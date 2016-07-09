@@ -1,5 +1,5 @@
-## shablona
-[![Build Status](https://travis-ci.org/uwescience/shablona.svg?branch=master)](https://travis-ci.org/uwescience/shablona)
+## bids
+[![Build Status](https://travis-ci.org/INCF/pybids.svg?branch=master)](https://travis-ci.org/INCF/pybids)
 
 Shablona is a template project for small scientific python projects. The
 recommendations we make here follow the standards and conventions of much of
@@ -9,7 +9,7 @@ to port your code into other projects and collaborate with other users of this
 eco-system.
 
 To use it as a template for your own project, you will need to clone this
-repository into your computer and follow the instructions at the [bottom of this page](#using-shablona-as-a-template).
+repository into your computer and follow the instructions at the [bottom of this page](#using-bids-as-a-template).
 
 First, let me explain all the different moving parts that make up a small
 scientific python project, and all the elements which allow us to effectively
@@ -19,11 +19,11 @@ share it with others, test it, document it, and track its evolution.
 
 The project has the following structure:
 
-    shablona/
+    bids/
       |- README.md
-      |- shablona/
+      |- bids/
          |- __init__.py
-         |- shablona.py
+         |- bids.py
          |- due.py
          |- data/
             |- ...
@@ -46,7 +46,7 @@ The project has the following structure:
 
 In the following sections we will examine these elements one by one. First,
 let's consider the core of the project. This is the code inside of
-`shablona/shablona.py`. This code provided in this file is intentionally rather
+`bids/bids.py`. This code provided in this file is intentionally rather
 simple. It implements some simple curve-fitting to data from a psychophysical
 experiment. It's not too important to know what it does, but if you are really
 interested, you can read all about it
@@ -54,15 +54,15 @@ interested, you can read all about it
 
 ### Module code
 
-We place the module code in a file called `shablona.py` in directory called
-`shablona`. This structure is a bit confusing at first, but it is a simple way
-to create a structure where when we type `import shablona as sb` in an
+We place the module code in a file called `bids.py` in directory called
+`bids`. This structure is a bit confusing at first, but it is a simple way
+to create a structure where when we type `import bids as sb` in an
 interactive Python session, the classes and functions defined inside of the
-`shablona.py` file are available in the `sb` namespace. For this to work, we
+`bids.py` file are available in the `sb` namespace. For this to work, we
 need to also create a file in `__init__.py` which contains code that imports
 everything in that file into the namespace of the project:
 
-    from .shablona import *
+    from .bids import *
 
 In the module code, we follow the convention that a function is defined in
 lines that precede the lines that use that function. This helps readability of
@@ -70,7 +70,7 @@ the code, because you know that if you see some name, the definition of that
 name will appear earlier in the file, either as a function/variable definition,
 or as an import from some other module or package.
 
-In the case of the shablona module, the main classes defined at the bottom of
+In the case of the bids module, the main classes defined at the bottom of
 the file make use of some of the functions defined in preceding lines.
 
 Remember that code will be probably be read more times than it will be written.
@@ -86,13 +86,13 @@ data that you are analyzing is too large, and cannot be effectively
 tracked with github, you might still want to store some data for
 testing purposes.
 
-Either way, you can create a `shablona/data` folder in which you can
+Either way, you can create a `bids/data` folder in which you can
 organize the data. As you can see in the test scripts, and in the
 analysis scripts, this provides a standard file-system location for
 the data at:
 
     import os.path as op
-    import shablona as sb
+    import bids as sb
     data_path = op.join(sb.__path__[0], 'data')
 
 
@@ -122,7 +122,7 @@ in your code.
 We recommend using the ['pytest'](http://pytest.org/latest/) library for
 testing. The `py.test` application traverses the directory tree in which it is
 issued, looking for files with the names that match the pattern `test_*.py`
-(typically, something like our `shablona/tests/test_shablona.py`). Within each
+(typically, something like our `bids/tests/test_bids.py`). Within each
 of these files, it looks for functions with names that match the pattern
 `test_*`. Typically each function in the module would have a corresponding test
 (e.g. `test_transform_data`). This is sometimes called 'unit testing', because
@@ -130,7 +130,7 @@ it independently tests each atomic unit in the software. Other tests might run a
 more elaborate sequence of functions ('end-to-end testing' if you run through
 the entire analysis), and check that particular values in the code evaluate to
 the same values over time. This is sometimes called 'regression testing'. We
-have one such test in `shablona/tests/test_shablona.py` called
+have one such test in `bids/tests/test_bids.py` called
 `test_params_regression`. Regressions in the code are often canaries in the coal
 mine, telling you that you need to examine changes in your software
 dependencies, the platform on which you are running your software, etc.
@@ -148,16 +148,16 @@ handling `numpy` arrays, and they allow to specify the tolerance of the
 comparison through the `decimal` key-word argument.
 
 To run the tests on the command line, change your present working directory to
-the top-level directory of the repository (e.g. `/Users/arokem/code/shablona`),
+the top-level directory of the repository (e.g. `/Users/arokem/code/bids`),
 and type:
 
-    py.test shablona
+    py.test bids
 
 This will exercise all of the tests in your code directory. If a test fails, you
 will see a message such as:
 
 
-  shablona/tests/test_shablona.py .F...
+  bids/tests/test_bids.py .F...
 
   =================================== FAILURES ===================================
   ________________________________ test_cum_gauss ________________________________
@@ -181,7 +181,7 @@ will see a message such as:
   E        ACTUAL: 0.15865525393145707
   E        DESIRED: 0.15999999999999998
 
-  shablona/tests/test_shablona.py:49: AssertionError
+  bids/tests/test_bids.py:49: AssertionError
   ====================== 1 failed, 4 passed in 0.82 seconds ======================
 
 This indicates to you that a test has failed. In this case, the calculation is
@@ -241,7 +241,7 @@ were developing the software, as well as provide some examples of usage,
 explanations of the relevant scientific concepts, and references to the relevant
 literature.
 
-To document `shablona` we use the [sphinx documentation
+To document `bids` we use the [sphinx documentation
 system](http://sphinx-doc.org/). You can follow the instructions on the sphinx
 website, and the example [here](http://matplotlib.org/sampledoc/) to set up the
 system, but we have also already initialized and commited a skeleton
@@ -265,9 +265,9 @@ go to the "admin" panel of the project on RTD, and navigate into the
 "advanced settings" so that you can tell it that your Python
 configuration file is in `doc/conf.py`:
 
-![RTD conf](https://github.com/uwescience/shablona/blob/master/doc/_static/RTD-advanced-conf.png)
+![RTD conf](https://github.com/INCF/pybids/blob/master/doc/_static/RTD-advanced-conf.png)
 
- http://shablona.readthedocs.org/en/latest/
+ http://pybids.readthedocs.org/en/latest/
 
 
 ### Installation
@@ -278,9 +278,9 @@ figure out how to install your software on a particular system. For a
 small project such as this one, managing installation of the software
 modules and the data is rather simple.
 
-A `shablona/version.py` contains all of the information needed for the
+A `bids/version.py` contains all of the information needed for the
 installation and for setting up the [PyPI
-page](https://pypi.python.org/pypi/shablona) for the software. This
+page](https://pypi.python.org/pypi/bids) for the software. This
 also makes it possible to install your software with using `pip` and
 `easy_install`, which are package managers for Python software. The
 `setup.py` file reads this information from there and passes it to the
@@ -303,9 +303,9 @@ to your project about the degree of test coverage of your project.
 You will need a .travis.yml file in your repo. This file contains the
 configuration of your testing environment. This includes the different
 environments in which you will test the source code (for example, we test
-`shablona` against Python 2.7, Python 3.3 and Python 3.4). It includes steps
+`bids` against Python 2.7, Python 3.3 and Python 3.4). It includes steps
 that need to be taken before installation of the software. For example,
-installation of the software dependencies. For `shablona`, we use the
+installation of the software dependencies. For `bids`, we use the
 [`Miniconda`](http://conda.pydata.org/miniconda.html) software distribution (not
 to be confused with [`Anaconda`](https://store.continuum.io/cshop/anaconda/),
 though they are similar and both produced by Continuum).
@@ -405,10 +405,10 @@ with these elements.
 For example, this repository contains an [IPython notebook] that reads
 in some data, and creates a figure. Maybe this is *Figure 1* from some
 future article? You can see this notebook fully rendered
-[here](https://github.com/uwescience/shablona/blob/master/scripts/Figure1.ipynb).
+[here](https://github.com/INCF/pybids/blob/master/scripts/Figure1.ipynb).
 
 
-### Using `shablona` as a template
+### Using `bids` as a template
 
 Let's assume that you want to create a small scientific Python project
 called `smallish`. Maybe you already have some code that you are
@@ -418,7 +418,7 @@ the tests might look like.
 To use this repository as a template, start by cloning it to your own
 computer under the name you will want your project to have:
 
-	git clone https://github.com/uwescience/shablona smallish
+	git clone https://github.com/INCF/pybids smallish
 	cd smallish
 
 To point to your own repository on github you will have to issue
@@ -429,28 +429,28 @@ something like the following:
 
 (replace `arokem` with your own Github user name).
 
-Next, you will want to move `shablona/shablona.py` to be called
+Next, you will want to move `bids/bids.py` to be called
 `smallish/smallish.py`
 
-	git mv shablona smallish
-	git mv smallish/shablona.py smallish/smallish.py
-	git mv smallish/tests/test_shablona.py smallish/tests/test_smallish.py
+	git mv bids smallish
+	git mv smallish/bids.py smallish/smallish.py
+	git mv smallish/tests/test_bids.py smallish/tests/test_smallish.py
 
 Make a commit recording these changes. Something like:
 
-	git commit -a -m"Moved names from `shablona` to `smallish`"
+	git commit -a -m"Moved names from `bids` to `smallish`"
 
 You will probably want to remove all the example data:
 
 	git rm smallish/data/*
-	git commit -a -m"Removed example `shablona` data"
+	git commit -a -m"Removed example `bids` data"
 
 Possibly, you will want to add some of your own data in there.
 
-You will want to edit a few more places that still have `shablona` in them. Type
+You will want to edit a few more places that still have `bids` in them. Type
 the following to see where all these files are:
 
-	git grep shablona
+	git grep bids
 
 This very file (README.md) should be edited to reflect what your project is
 about.
@@ -463,8 +463,8 @@ The `.coveragerc` file contains a few mentions of that name, as well as the
 `.travis.yml` file. This one will also have to be edited to reflect your PyPI
 credentials (see [above](### Distribution)).
 
-Edit all the mentions of `shablona` in the `shablona/__init__.py` file, and in
-the `shablona/version.py` file as well.
+Edit all the mentions of `bids` in the `bids/__init__.py` file, and in
+the `bids/version.py` file as well.
 
 Finally, you will probably want to change the copyright holder in the `LICENSE`
 file to be you. You can also replace the text of that file, if it doesn't match

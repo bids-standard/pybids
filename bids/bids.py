@@ -14,7 +14,7 @@ __all__ = ["Model", "Fit", "opt_err_func", "transform_data", "cumgauss"]
 due.cite(Doi("10.1167/13.9.30"),
          description="Template project for small scientific Python projects",
          tags=["reference-implementation"],
-         path='shablona')
+         path='bids')
 
 
 def transform_data(data):
