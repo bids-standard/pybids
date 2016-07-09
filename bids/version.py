@@ -30,46 +30,41 @@ description = "bids: a template for small scientific Python projects"
 # Long description will go up on the pypi page
 long_description = """
 
-Shablona
-========
-Shablona is a template project for small scientific Python projects.
+PyBIDS
+======
+PyBIDS is a Python module to interface with datasets conforming BIDS.
+See BIDS paper_ and http://bids.neuroimaging.io website for more information.
 
-It contains software implementations of an analysis of some simple data, but
-more importantly, it contains infrastructure for testing, documentation,
-continuous integration and deployment, which can be easily adapted
-to use in other projects.
-
-To get started using these components in your own software, please go to the
-repository README_.
-
-.. _README: https://github.com/INCF/pybids/blob/master/README.md
+.. paper_: http://www.nature.com/articles/sdata201644
 
 License
 =======
-``bids`` is licensed under the terms of the MIT license. See the file
+``pybids`` is licensed under the terms of the MIT license. See the file
 "LICENSE" for information on the history of this software, terms & conditions
 for usage, and a DISCLAIMER OF ALL WARRANTIES.
 
 All trademarks referenced herein are property of their respective holders.
 
-Copyright (c) 2015--, Ariel Rokem, The University of Washington
-eScience Institute.
+Copyright (c) 2015-2016, Ariel Rokem, The University of Washington eScience Institute.
+Copyright (c) 2016--, PyBIDS developers, Planet Earth
+
 """
 
-NAME = "bids"
-MAINTAINER = "Ariel Rokem"
-MAINTAINER_EMAIL = "arokem@gmail.com"
+NAME = "pybids"
+MAINTAINER = "PyBIDS Developers"
+MAINTAINER_EMAIL = "bids-discussion@googlegroups.com",
 DESCRIPTION = description
 LONG_DESCRIPTION = long_description
 URL = "http://github.com/INCF/pybids"
 DOWNLOAD_URL = ""
 LICENSE = "MIT"
-AUTHOR = "Ariel Rokem"
-AUTHOR_EMAIL = "arokem@gmail.com"
+AUTHOR = "Yaroslav Halchenko",
+AUTHOR_EMAIL = "debian@onerussian.com",
 PLATFORMS = "OS Independent"
 MAJOR = _version_major
 MINOR = _version_minor
 MICRO = _version_micro
 VERSION = __version__
-PACKAGE_DATA = {'bids': [pjoin('data', '*')]}
-REQUIRES = ["numpy"]
+# No data for now
+# PACKAGE_DATA = {'bids': [pjoin('data', '*')]}
+REQUIRES = []

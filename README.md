@@ -1,5 +1,12 @@
-## bids
+## PyBIDS
 [![Build Status](https://travis-ci.org/INCF/pybids.svg?branch=master)](https://travis-ci.org/INCF/pybids)
+
+PyBIDS is a Python library to centralize interactions with datasets conforming
+BIDS (Brain Imaging Data Structure) format.  For more information about BIDS
+visit http://bids.neuroimaging.io .
+
+Repository itself is based on Shablona project, so you might still find
+some Shablona content, which later will be removed.
 
 Shablona is a template project for small scientific python projects. The
 recommendations we make here follow the standards and conventions of much of
