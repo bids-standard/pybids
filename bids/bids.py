@@ -1,6 +1,7 @@
 from __future__ import absolute_import, division, print_function
 
 import os
+from os.path import join as opj
 
 from .due import due, Doi
 
@@ -99,12 +100,57 @@ def parse_filename(fname):
 
 def assemble_filename(filetype,
                       sub=None, ses=None, datatype=None, task=None, run=None,
-                      recording=None):
+                      recording=None, path=None):
     """Assemble a BIDS filename from its semantic components.
+
+    Parameters
+    ----------
+    filetype : str
+      Filename or file type labels, such as 'events.tsv', or 'bold.nii.gz'
+    sub : str
+      Subject label
+    ses : str
+      Session label
+    datatype : str
+      BIDS data type labels, such as 'func', 'anat', 'dwi', 'behav'.
+      Unknown labels are supported.
+    task : str
+      Task label
+    run : str
+      Run label
+    recording : str
+      Recording label
+    path : str
+      If this is given, the function will return the `filetype` appended to
+      this path (with a path separator). This enables support for non-BIDS
+      dataset content.
 
     See also
     --------
 
     This is the inverse of `assemble_filename()`.
     """
+    if path:
+        # signal that we know very very little
+        return opj(path, filetype)
+    if sub is not None:
+        # this isn't top-lebel stuff -> we need to build the directory
+        dcomps = [('sub', sub)]
+        if ses:
+            dcomps.append(('ses', ses))
+        if datatype:
+            dcomps.append(datatype)
+        # we can recycle 'path' now
+        path = opj(*['-'.join(dc) if isinstance(dc, tuple) else dc for dc in dcomps])
+    # assemble the filename
+    vars = locals()
+    fcomps = ['-'.join((c, vars[c]))
+              for c in ('sub', 'ses', 'task', 'run', 'recording') if vars[c]]
+    fcomps.append(filetype)
+    fname = '_'.join(fcomps)
+    if path:
+        return opj(path, fname)
+    else:
+        return fname
+
     pass

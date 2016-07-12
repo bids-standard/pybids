@@ -35,3 +35,20 @@ def test_parse_filename():
         sub='03', ses='movie', datatype='func', task='movie', run='4',
         recording='cardresp', filetype='physio.tsv.gz')
 
+
+def test_assemble_filename():
+    # plain top-level files are simple
+    assert assemble_filename('README') == 'README'
+    assert assemble_filename('UNknown') == 'UNknown'
+    # constructed top-level
+    assert assemble_filename('bold.json', task='some') == 'task-some_bold.json'
+    # can deal with unforeseen filenames/types and still respects the folder structure
+    assert assemble_filename('stupid', sub='test', ses='best', datatype='extreme') \
+        == 'sub-test/ses-best/extreme/sub-test_ses-best_stupid'
+    # can deal with unforeseen datatypes
+    assert assemble_filename('stupid', sub='test', ses='best') \
+        == 'sub-test/ses-best/sub-test_ses-best_stupid'
+
+    # round-trip
+    fname = "sub-03/ses-movie/func/sub-03_ses-movie_task-movie_run-4_recording-cardresp_physio.tsv.gz"
+    assert assemble_filename(**parse_filename(fname)) == fname
