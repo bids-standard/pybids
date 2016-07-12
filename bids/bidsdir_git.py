@@ -16,7 +16,6 @@ class bidsdir(object):
     def get_subj_foldernames(self):
         """
         """
-
         subj_ids = []
         for fil in os.listdir(self.basedir):
             if fil.startswith('sub-'):
@@ -24,7 +23,8 @@ class bidsdir(object):
         return subj_ids
 
 
-    def get_bold_run_filenames(self, subj, ses, task):
+    def get_bold_run_filenames(self, subj, task, ses=None):
+        if ses == None: ses = task
         sub=self.get_subj_foldernames()[subj-1]
         ses='ses-'+ses
         task='task-'+task
@@ -35,20 +35,33 @@ class bidsdir(object):
         return bolds        
 
 
-    def get_task_bold_run_filenames(self, ses, task):
+    def get_task_bold_run_filenames(self, task, ses=None):
         """
         """
+        if ses == None: ses = task
+
         out = {}
         for sub in range(len(self.get_subj_foldernames())):
             runs = self.get_bold_run_filenames(sub, ses, task)
             if len(runs):
                 out[sub+1] = runs
         return out
+
+        def _parse_filename(fname):
+            """ By Hanke
+            """
+            components = fname.split('_')
+            ftype = components[-1]
+            components = dict([c.split('-') for c in components[:-1]])
+            components['filetype'] = ftype
+            return components
+ 
         
 
 basedir = '/Users/andrebeukers/Documents/fMRI/Python/Study Forrest/video_studyforrest'
 bids = bidsdir(basedir)
 bids.get_subj_foldernames
-bids.get_bold_run_filenames(1,ses='movie',task='movie')
-bids.get_task_bold_run_filenames(ses='movie',task='movie')
+bids.get_bold_run_filenames(1,task='movie')
+bids.get_task_bold_run_filenames(task='movie')
+
 
