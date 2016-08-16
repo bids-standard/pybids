@@ -1,16 +1,9 @@
 .. bids documentation master file, created by sphinx-quickstart on Tue Apr 14 10:29:06 2015. You can adapt this file completely to your liking, but it should at least contain the root `toctree` directive.
 
-Welcome to bids's documentation!
+Welcome to pybids's documentation!
 ====================================
 
-`Shablona` is a template for a small scientific Python project. 
-
-To see how to use it, please refer to the `README file 
-<https://github.com/INCF/pybids/blob/master/README.md>`_ in the Github repository.
-
-This is an example of documentation of the software, using sphinx_. 
-
-.. _sphinx: http://sphinx-doc.org/
+`pybids` is a set of tools for working with Brain Imaging Data Structure datasets.
 
 
 Contents:
@@ -18,7 +11,6 @@ Contents:
 .. toctree::
    :maxdepth: 2
 
-   theory
    reference/index
 
 Indices and tables

@@ -1,5 +1,4 @@
 from __future__ import absolute_import, division, print_function
-from os.path import join as pjoin
 
 # Format expected by setup.py and doc/source/conf.py: string of form "X.Y.Z"
 _version_major = 0
@@ -45,7 +44,6 @@ for usage, and a DISCLAIMER OF ALL WARRANTIES.
 
 All trademarks referenced herein are property of their respective holders.
 
-Copyright (c) 2015-2016, Ariel Rokem, The University of Washington eScience Institute.
 Copyright (c) 2016--, PyBIDS developers, Planet Earth
 
 """
