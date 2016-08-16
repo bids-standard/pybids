@@ -1,7 +1,5 @@
 sudo: false
 
-language: python #just to make travis web UI not report this project as "Ruby"
-
 #we are not ready to deploy anything
 #deploy:
 #  provider: pypi
