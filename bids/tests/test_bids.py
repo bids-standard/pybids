@@ -4,5 +4,3 @@ import os.path as op
 import bids 
 
 data_path = op.join(bids.__path__[0], 'data')
-
-
