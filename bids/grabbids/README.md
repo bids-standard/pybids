@@ -5,23 +5,9 @@ Get grabby with BIDS projects
 
 Grabbit is a lightweight Python 2 and 3 package for simple queries over filenames within a project. It's geared towards projects or applications with highly structured filenames that allow useful queries to be performed without having to inspect the file metadata or contents. Grabbids is a BIDS-specific extension of grabbit that makes it particularly easy to work with BIDS projects, and provides additional functionality.
 
-## Installation
-
-```
-$ pip install grabbids
-```
-
-Or, if you like to (a) do things the hard way or (b) live on the bleeding edge:
-
-```
-$ git clone https://github.com/INCF/grabbids
-$ cd grabbids
-$ python setup.py develop
-```
-
 ## Quickstart
 
-Suppose we've already defined (or otherwise obtained) a grabbids JSON configuration file that looks [like this](FIXME). And we have a BIDS project directory that looks like this (partial listing):
+Suppose we have a BIDS project directory that looks like this (partial listing):
 
 ```
 ├── dataset_description.json
@@ -63,12 +49,12 @@ Suppose we've already defined (or otherwise obtained) a grabbids JSON configurat
 We can initialize a grabbids Layout object like so:
 
 ```python
-from grabbids import Layout
-project_root = '/my_bids_project' 
-layout = Layout(project_root)
+from bids.grabbids import BIDSLayout
+project_root = '/my_bids_project'
+layout = BIDSLayout(project_root)
 ```
 
-The `Layout` instance is a lightweight container for all of the files in the BIDS project directory. It automatically detects any BIDS entities found in the file paths, and allows us to perform simple but relatively powerful queries over the file tree. By default, defined BIDS entities include things like "subject", "session", "run", and "type". In case you're curious, the definitions in the config file look like this (though you probaby won't ever have to define them yourself):
+The `BIDSLayout` instance is a lightweight container for all of the files in the BIDS project directory. It automatically detects any BIDS entities found in the file paths, and allows us to perform simple but relatively powerful queries over the file tree. By default, defined BIDS entities include things like "subject", "session", "run", and "type". In case you're curious, the definitions in the config file look like this (though you probably won't ever have to define them yourself):
 
 ```json
 {
