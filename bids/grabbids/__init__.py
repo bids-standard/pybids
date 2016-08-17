@@ -1,1 +1,1 @@
-from bids_layout import *  # noga
+from .bids_layout import *  # noga
