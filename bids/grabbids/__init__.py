@@ -1,1 +1,2 @@
-__all__ = ["bids_layout"]
+from .bids_layout import BIDSLayout
+__all__ = ["BIDSLayout"]
