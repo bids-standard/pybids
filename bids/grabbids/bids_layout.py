@@ -1,4 +1,5 @@
-from grabbit import Layout, Entity, File
+from grabbit import Layout
+from bids import grabbids
 import os
 import re
 
@@ -38,8 +39,9 @@ class BIDSLayout(Layout):
         if not os.path.exists(source):
             raise OSError("The file '%s' doesn't exist." % source)
         elif not source.startswith(self.root):
-            raise ValueError("The file '%s' is not contained within the "
-                             "current project directory (%s)." % (source, self.root))
+            raise ValueError("The file '%s' is not contained "
+                             "within the current project "
+                             "directory (%s)." % (source, self.root))
         rel = os.path.relpath(os.path.dirname(source), self.root)
         sep = os.path.sep
         chunks = rel.split(sep)
@@ -52,6 +54,7 @@ class BIDSLayout(Layout):
                 if len(matches) == 1:
                     return matches[0]
                 else:
-                    raise ValueError("Ambiguous target: more than one candidate "
-                                     "file found in directory '%s'." % path)
+                    raise ValueError("Ambiguous target: more than one "
+                                     "candidate file found in "
+                                     "directory '%s'." % path)
         return None

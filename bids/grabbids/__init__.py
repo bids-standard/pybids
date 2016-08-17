@@ -1,1 +1,1 @@
-from bids_layout import BIDSLayout as Layout
+from bids_layout import BIDSLayout as Layout  # noga

@@ -3,8 +3,6 @@ from .version import __version__  # noqa
 from . import *  # noqa
 from .due import due, Doi
 
-import grabbids
-
 due.cite(Doi("10.1038/sdata.2016.44"),
          description="Brain Imaging Data Structure",
          tags=["reference-implementation"],
