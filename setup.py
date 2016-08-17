@@ -21,12 +21,8 @@ opts = dict(name=NAME,
             platforms=PLATFORMS,
             version=VERSION,
             packages=PACKAGES,
-            # package_data=PACKAGE_DATA, # no package data for now
-            # turn off until grabit is fixed
-            # requires=REQUIRES,
-            # install_requires=REQUIRES,
-            dependency_links=["https://github.com/chrisfilo/grabbit/"
-                              "archive/master.zip"])
+            requires=REQUIRES,
+            install_requires=REQUIRES)
 
 
 if __name__ == '__main__':
