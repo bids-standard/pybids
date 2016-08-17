@@ -46,7 +46,6 @@ before_install:
 - conda info -a
 - conda config --add channels conda-forge
 - conda install python=$PYTHON_VERSION $CONDA_DEPS
-- pip install https://github.com/chrisfilo/grabbit/archive/master.zip
 
 install:
 - pip install -e .
