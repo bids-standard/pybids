@@ -12,7 +12,7 @@ sudo: false
 
 env:
   global:
-    - CONDA_DEPS="pip flake8 pytest numpy scipy matplotlib pandas" PIP_DEPS="coveralls pytest-cov"
+    - CONDA_DEPS="pip flake8 pytest numpy scipy matplotlib pandas"
 
 matrix:
   include:
@@ -46,17 +46,13 @@ before_install:
 - conda info -a
 - conda config --add channels conda-forge
 - conda install python=$PYTHON_VERSION $CONDA_DEPS
-- travis_retry pip install $PIP_DEPS
 
 install:
-- python setup.py install --record installed_files.txt
+- pip install -e .
 
 script:
 - flake8 --ignore N802,N806 `find . -name \*.py | grep -v setup.py | grep -v /doc/`
-
-- mkdir for_test
-- cd for_test
-#- py.test --pyargs bids --cov-report term-missing --cov=bids
+- py.test --pyargs bids
 
 after_success:
 - coveralls
@@ -66,7 +62,6 @@ before_cache:
 # this makes the cache rebuilt less frequently
 - conda clean --tarballs --packages --index-cache
 - rm -rf $HOME/miniconda/pkgs/cache
-- xargs rm <installed_files.txt
 
 cache:
   directories:
