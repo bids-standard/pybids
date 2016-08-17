@@ -1,1 +1,1 @@
-from .bids_layout import *  # noga
+__all__ = ["bids_layout"]
