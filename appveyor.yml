@@ -26,6 +26,4 @@ install:
   - python setup.py install
 
 test_script:
-  - mkdir for_test
-  - cd for_test
-  - py.test --pyargs bids --cov-report term-missing --cov=bids
+  - py.test --pyargs bids
