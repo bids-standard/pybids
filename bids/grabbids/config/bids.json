@@ -1,0 +1,40 @@
+{
+  "entities": [
+    {
+      "name": "subject",
+      "pattern": "(sub-\\d+)",
+      "directory": "{{root}}/{subject}"
+    },
+    {
+      "name": "session",
+      "pattern": "(ses-\\d)",
+      "mandatory": false,
+      "directory": "{{root}}/{subject}/{session}",
+      "missing_value": "ses-1"
+    },
+    {
+      "name": "run",
+      "pattern": "(run-\\d+)"
+    },
+    {
+      "name": "type",
+      "pattern": ".*_(.*?)\\."
+    },
+    {
+      "name": "task",
+      "pattern": "task-(.*?)-"
+    },
+    {
+      "name": "acquisition",
+      "pattern": "acq-(.*?)-"
+    },
+    {
+      "name": "bval",
+      "pattern": "(.*\\.bval)$"
+    },
+    {
+      "name": "bvec",
+      "pattern": "(.*\\.bvec)$"
+    }
+  ]
+}

@@ -1,0 +1,4 @@
+filename	positive	negative	future	past	myself	people	surroundings	vigilance	images	words	specific_vague	intrusive
+func/sub-05_ses-2_task-rest_acq-fullbrain_run-1_bold.nii.gz	75	25	75	30	35	80	15	35	70	35	80	30
+func/sub-05_ses-2_task-rest_acq-fullbrain_run-2_bold.nii.gz	70	30	80	20	25	80	20	30	75	25	75	25
+func/sub-05_ses-2_task-rest_acq-prefrontal_bold.nii.gz	75	20	75	25	25	75	25	25	80	25	75	25
