@@ -1,5 +1,4 @@
 from grabbit import Layout
-from bids import grabbids
 import os
 import re
 
@@ -10,7 +9,7 @@ class BIDSLayout(Layout):
 
     def __init__(self, path, config=None):
         if config is None:
-            root = os.path.dirname(grabbids.__file__)
+            root = os.path.dirname(os.path.realpath(__file__))
             config = os.path.join(root, 'config', 'bids.json')
         super(BIDSLayout, self).__init__(path, config)
 
