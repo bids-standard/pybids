@@ -85,8 +85,8 @@ Once we've initialized a `Layout`, we can do simple things like counting and lis
 >>> layout.unique('subject')
 ['sub-09', 'sub-05', 'sub-08', 'sub-01', 'sub-02', 'sub-06', 'sub-04', 'sub-03', 'sub-07', 'sub-10']
 
->>> layout.count('run')
-2
+>>> layout.count('subject')
+10
 ```
 
 ### Querying and filtering
