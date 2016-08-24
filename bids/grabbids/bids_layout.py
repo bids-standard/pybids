@@ -54,7 +54,6 @@ class BIDSLayout(Layout):
 
         merged_param_dict = {}
         for json_file_path in potentialJSONs:
-            print(json_file_path)
             if os.path.exists(json_file_path):
                 param_dict = json.load(open(json_file_path, "r"))
                 merged_param_dict.update(param_dict)
