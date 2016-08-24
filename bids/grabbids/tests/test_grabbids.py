@@ -11,7 +11,7 @@ def test_layout_init():
     assert isinstance(layout.files, dict)
 
 
-def test_gwt_metadata():
+def test_get_metadata():
     data_dir = join(dirname(__file__), 'data', '7t_trt')
     layout = BIDSLayout(data_dir)
     target = 'sub-03/ses-2/func/sub-03_ses-2_task-' \
