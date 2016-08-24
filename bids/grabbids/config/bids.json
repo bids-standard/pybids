@@ -45,7 +45,7 @@
             "pattern": "(\\.\\w+\\.\\w+|\\.\\w+)$"
         },
         {
-            "name": "fieldmap",
+            "name": "fmap",
             "pattern": "(phasediff|magnitude[0-9]*|phase[0-9]+|fieldmap|epi)\\.nii"
         },
         {
