@@ -33,24 +33,24 @@ class BIDSLayout(Layout):
             for components in itertools.combinations(keyword_components, k):
                 print(components)
                 potentialJSONs.append(os.path.join(self.root,
-                                                   "_".join(components
-                                                            + (suffix,))))
+                                                   "_".join(components +
+                                                            (suffix,))))
 
         for k in range(len(keyword_components) + 1):
             for components in itertools.combinations(keyword_components, k):
                 potentialJSONs.append(os.path.join(self.root, sub,
-                                                   "_".join((sub,)
-                                                            + components
-                                                            + (suffix,))))
+                                                   "_".join((sub,) +
+                                                            components +
+                                                            (suffix,))))
 
         if ses:
             for k in range(len(keyword_components) + 1):
                 for components in itertools.combinations(keyword_components,
                                                          k):
                     potentialJSONs.append(os.path.join(self.root, sub, ses,
-                                                       "_".join((sub, ses)
-                                                                + components
-                                                                + (suffix,))))
+                                                       "_".join((sub, ses) +
+                                                                components +
+                                                                (suffix,))))
 
         merged_param_dict = {}
         for json_file_path in potentialJSONs:
