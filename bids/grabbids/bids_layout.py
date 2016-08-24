@@ -28,20 +28,29 @@ class BIDSLayout(Layout):
             keyword_components = filenameComponents[2:-1]
 
         potentialJSONs = []
-        for k in range(len(keyword_components)+1):
+        for k in range(len(keyword_components) + 1):
             print(k)
             for components in itertools.combinations(keyword_components, k):
                 print(components)
-                potentialJSONs.append(os.path.join(self.root, "_".join(components + (suffix,))))
+                potentialJSONs.append(os.path.join(self.root,
+                                                   "_".join(components
+                                                            + (suffix,))))
 
-        for k in range(len(keyword_components)+1):
+        for k in range(len(keyword_components) + 1):
             for components in itertools.combinations(keyword_components, k):
-                potentialJSONs.append(os.path.join(self.root, sub, "_".join((sub,) + components + (suffix,))))
+                potentialJSONs.append(os.path.join(self.root, sub,
+                                                   "_".join((sub,)
+                                                            + components
+                                                            + (suffix,))))
 
         if ses:
-            for k in range(len(keyword_components)+1):
-                for components in itertools.combinations(keyword_components, k):
-                    potentialJSONs.append(os.path.join(self.root, sub, ses, "_".join((sub, ses) + components + (suffix,))))
+            for k in range(len(keyword_components) + 1):
+                for components in itertools.combinations(keyword_components,
+                                                         k):
+                    potentialJSONs.append(os.path.join(self.root, sub, ses,
+                                                       "_".join((sub, ses)
+                                                                + components
+                                                                + (suffix,))))
 
         merged_param_dict = {}
         for json_file_path in potentialJSONs:
