@@ -1,8 +1,14 @@
-from grabbit import Layout
 import os
 import re
 import json
-import itertools
+
+from itertools import combinations
+from os.path import dirname
+from os.path import realpath
+from os.path import join as pathjoin
+from os.path import split as pathsplit
+
+from grabbit import Layout
 
 __all__ = ['BIDSLayout']
 
@@ -10,47 +16,47 @@ __all__ = ['BIDSLayout']
 class BIDSLayout(Layout):
     def __init__(self, path, config=None):
         if config is None:
-            root = os.path.dirname(os.path.realpath(__file__))
-            config = os.path.join(root, 'config', 'bids.json')
+            root = dirname(realpath(__file__))
+            config = pathjoin(root, 'config', 'bids.json')
         super(BIDSLayout, self).__init__(path, config)
 
     def get_metadata(self, path):
         sidecarJSON = path.replace(".nii.gz", ".json").replace(".nii", ".json")
-        pathComponents = os.path.split(sidecarJSON)
-        filenameComponents = pathComponents[-1].split("_")
+        path_components = pathsplit(sidecarJSON)
+        filename_components = path_components[-1].split("_")
         ses = None
-        suffix = filenameComponents[-1]
+        suffix = filename_components[-1]
 
-        sub = filenameComponents[0]
-        keyword_components = filenameComponents[1:-1]
-        if filenameComponents[1][:3] == "ses":
-            ses = filenameComponents[1]
-            keyword_components = filenameComponents[2:-1]
+        sub = filename_components[0]
+        keyword_components = filename_components[1:-1]
+        if filename_components[1][:3] == "ses":
+            ses = filename_components[1]
+            keyword_components = filename_components[2:-1]
 
         potentialJSONs = []
         for k in range(len(keyword_components) + 1):
             print(k)
-            for components in itertools.combinations(keyword_components, k):
+            for components in combinations(keyword_components, k):
                 print(components)
-                potentialJSONs.append(os.path.join(self.root,
-                                                   "_".join(components +
-                                                            (suffix,))))
+                potentialJSONs.append(
+                    pathjoin(self.root,
+                             "_".join(components + (suffix,)))
+                )
 
         for k in range(len(keyword_components) + 1):
-            for components in itertools.combinations(keyword_components, k):
-                potentialJSONs.append(os.path.join(self.root, sub,
-                                                   "_".join((sub,) +
-                                                            components +
-                                                            (suffix,))))
+            for components in combinations(keyword_components, k):
+                potentialJSONs.append(
+                    pathjoin(self.root,
+                             sub, "_".join((sub,) + components + (suffix,)))
+                )
 
         if ses:
             for k in range(len(keyword_components) + 1):
-                for components in itertools.combinations(keyword_components,
-                                                         k):
-                    potentialJSONs.append(os.path.join(self.root, sub, ses,
-                                                       "_".join((sub, ses) +
-                                                                components +
-                                                                (suffix,))))
+                for components in combinations(keyword_components, k):
+                    potentialJSONs.append(
+                        pathjoin(self.root, sub, ses,
+                                 "_".join((sub, ses) + components + (suffix,)))
+                    )
 
         merged_param_dict = {}
         for json_file_path in potentialJSONs:
@@ -90,12 +96,12 @@ class BIDSLayout(Layout):
             raise ValueError("The file '%s' is not contained "
                              "within the current project "
                              "directory (%s)." % (source, self.root))
-        rel = os.path.relpath(os.path.dirname(source), self.root)
+        rel = os.path.relpath(dirname(source), self.root)
         sep = os.path.sep
         chunks = rel.split(sep)
         n_chunks = len(chunks)
         for i in range(n_chunks, -1, -1):
-            path = os.path.join(self.root, *chunks[:i])
+            path = pathjoin(self.root, *chunks[:i])
             patt = path + '\%s[^\%s]+$' % (sep, sep)
             if sep == "\\":
                 patt = path + '\\[^\\]+$'
