@@ -34,29 +34,23 @@ class BIDSLayout(Layout):
             keyword_components = filename_components[2:-1]
 
         potentialJSONs = []
-        for k in range(len(keyword_components) + 1):
-            print(k)
-            for components in combinations(keyword_components, k):
-                print(components)
-                potentialJSONs.append(
-                    pathjoin(self.root,
-                             "_".join(components + (suffix,)))
-                )
-
-        for k in range(len(keyword_components) + 1):
-            for components in combinations(keyword_components, k):
-                potentialJSONs.append(
-                    pathjoin(self.root,
-                             sub, "_".join((sub,) + components + (suffix,)))
-                )
-
-        if ses:
+        for prefixes, conditional in (  # Levels
+                (tuple(), True),        # top
+                ((sub,),  True),        # subject
+                ((sub, ses), ses)       # session
+        ):
+            if not conditional:
+                continue
             for k in range(len(keyword_components) + 1):
+                # print(k)
                 for components in combinations(keyword_components, k):
+                    # print(components)
                     potentialJSONs.append(
-                        pathjoin(self.root, sub, ses,
-                                 "_".join((sub, ses) + components + (suffix,)))
-                    )
+                        pathjoin(
+                            self.root,
+                            *(prefixes +
+                              ("_".join(prefixes + components + (suffix,)),)
+                        )))
 
         merged_param_dict = {}
         for json_file_path in potentialJSONs:
