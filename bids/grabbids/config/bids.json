@@ -1,40 +1,56 @@
 {
-  "entities": [
-    {
-      "name": "subject",
-      "pattern": "(sub-\\d+)",
-      "directory": "{{root}}/{subject}"
-    },
-    {
-      "name": "session",
-      "pattern": "(ses-\\d)",
-      "mandatory": false,
-      "directory": "{{root}}/{subject}/{session}",
-      "missing_value": "ses-1"
-    },
-    {
-      "name": "run",
-      "pattern": "(run-\\d+)"
-    },
-    {
-      "name": "type",
-      "pattern": ".*_(.*?)\\."
-    },
-    {
-      "name": "task",
-      "pattern": "task-(.*?)-"
-    },
-    {
-      "name": "acquisition",
-      "pattern": "acq-(.*?)-"
-    },
-    {
-      "name": "bval",
-      "pattern": "(.*\\.bval)$"
-    },
-    {
-      "name": "bvec",
-      "pattern": "(.*\\.bvec)$"
-    }
-  ]
+    "entities": [
+        {
+            "name": "subject",
+            "pattern": "sub-([a-zA-Z0-9]+)",
+            "directory": "{{root}}/{subject}"
+        },
+        {
+            "name": "session",
+            "pattern": "ses-([a-zA-Z0-9]+)",
+            "mandatory": false,
+            "directory": "{{root}}/{subject}/{session}",
+            "missing_value": "ses-1"
+        },
+        {
+            "name": "run",
+            "pattern": "(run-\\d+)"
+        },
+        {
+            "name": "type",
+            "pattern": "sub-[a-zA-Z0-9_-]+_(.*?)\\."
+        },
+        {
+            "name": "task",
+            "pattern": "task-(.*?)(?:_+)"
+        },
+        {
+            "name": "scans",
+            "pattern": "(.*\\_scans.tsv)$"
+        },
+        {
+            "name": "acquisition",
+            "pattern": "acq-(.*?)(?:_+)"
+        },
+        {
+            "name": "bval",
+            "pattern": "(.*\\.bval)$"
+        },
+        {
+            "name": "bvec",
+            "pattern": "(.*\\.bvec)$"
+        },
+        {
+            "name": "ext",
+            "pattern": "(\\.\\w+\\.\\w+|\\.\\w+)$"
+        },
+        {
+            "name": "fmap",
+            "pattern": "(phasediff|magnitude[0-9]*|phase[0-9]+|fieldmap|epi)\\.nii"
+        },
+        {
+            "name": "modality",
+            "pattern": "\/(func|anat|fmap|dwi)\/"
+        }
+    ]
 }

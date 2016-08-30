@@ -122,12 +122,11 @@ Some other examples of get() requests:
 ['T1map', 'magnitude2', 'magnitude1', 'scans', 'bold', 'phasediff', 'T1w', 'physio']
 ```
 
-### Find the nearest matching entity
-A common use case when working with BIDS projects is to find the nearest entity of a given type that matches a particular input image. For example, one might want to find the .bval or .bvec file that applies to a particular nifti image. The location of such files is underdetermined by the BIDS spec (which seeks to minimize redundancy, so it allows metadata and other files to be placed at varying levels of the project hierarchy). Fortunately, we can try to locate the nearest matching file by walking up the file tree from a given target:
+### Get all metadata for a given file
 
 ```python
->>> layout.find_match(target='bval', source='7t_trt/sub-03/ses-2/func/sub-03_ses-2_task-rest_acq-fullbrain_run-2_bold.nii.gz')
-"7t_trt/sub-03/sub-03-test.bval"
+>>> layout.get_metadata('7t_trt/sub-03/ses-2/func/sub-03_ses-2_task-rest_acq-fullbrain_run-2_bold.nii.gz')["RepetitionTime"]
+3.0
 ```
 
 ### For DIYers

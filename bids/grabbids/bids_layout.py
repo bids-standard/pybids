@@ -1,6 +1,8 @@
 from grabbit import Layout
 import os
 import re
+import json
+import itertools
 
 __all__ = ['BIDSLayout']
 
@@ -11,6 +13,52 @@ class BIDSLayout(Layout):
             root = os.path.dirname(os.path.realpath(__file__))
             config = os.path.join(root, 'config', 'bids.json')
         super(BIDSLayout, self).__init__(path, config)
+
+    def get_metadata(self, path):
+        sidecarJSON = path.replace(".nii.gz", ".json").replace(".nii", ".json")
+        pathComponents = os.path.split(sidecarJSON)
+        filenameComponents = pathComponents[-1].split("_")
+        ses = None
+        suffix = filenameComponents[-1]
+
+        sub = filenameComponents[0]
+        keyword_components = filenameComponents[1:-1]
+        if filenameComponents[1][:3] == "ses":
+            ses = filenameComponents[1]
+            keyword_components = filenameComponents[2:-1]
+
+        potentialJSONs = []
+        for k in range(len(keyword_components) + 1):
+            print(k)
+            for components in itertools.combinations(keyword_components, k):
+                print(components)
+                potentialJSONs.append(os.path.join(self.root,
+                                                   "_".join(components +
+                                                            (suffix,))))
+
+        for k in range(len(keyword_components) + 1):
+            for components in itertools.combinations(keyword_components, k):
+                potentialJSONs.append(os.path.join(self.root, sub,
+                                                   "_".join((sub,) +
+                                                            components +
+                                                            (suffix,))))
+
+        if ses:
+            for k in range(len(keyword_components) + 1):
+                for components in itertools.combinations(keyword_components,
+                                                         k):
+                    potentialJSONs.append(os.path.join(self.root, sub, ses,
+                                                       "_".join((sub, ses) +
+                                                                components +
+                                                                (suffix,))))
+
+        merged_param_dict = {}
+        for json_file_path in potentialJSONs:
+            if os.path.exists(json_file_path):
+                param_dict = json.load(open(json_file_path, "r"))
+                merged_param_dict.update(param_dict)
+
+        return merged_param_dict
 
     def find_match(self, target, source=None):
 
