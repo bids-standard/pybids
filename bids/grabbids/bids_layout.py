@@ -36,7 +36,7 @@ class BIDSLayout(Layout):
         potentialJSONs = []
         for prefixes, conditional in (  # Levels
                 (tuple(), True),        # top
-                ((sub,),  True),        # subject
+                ((sub,), True),         # subject
                 ((sub, ses), ses)       # session
         ):
             if not conditional:
@@ -49,8 +49,7 @@ class BIDSLayout(Layout):
                         pathjoin(
                             self.root,
                             *(prefixes +
-                              ("_".join(prefixes + components + (suffix,)),)
-                        )))
+                              ("_".join(prefixes + components + (suffix,)),))))
 
         merged_param_dict = {}
         for json_file_path in potentialJSONs:
