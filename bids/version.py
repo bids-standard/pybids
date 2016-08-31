@@ -4,7 +4,7 @@ from __future__ import absolute_import, division, print_function
 _version_major = 0
 _version_minor = 1
 _version_micro = ''  # use '' for first of series, number for 1 and above
-_version_extra = 'dev'
+_version_extra = 'dev0'
 # _version_extra = ''  # Uncomment this for full releases
 
 # Construct full version string from these.
