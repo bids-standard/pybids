@@ -4,10 +4,12 @@ from os.path import join, dirname
 """ Tests of BIDS-specific functionality. Generic tests of core grabbit
 functionality should go in the grabbit package. """
 
+
 def test_layout_init():
     data_dir = join(dirname(__file__), 'data', '7t_trt')
     layout = BIDSLayout(data_dir)
     assert isinstance(layout.files, dict)
+
 
 def test_get_metadata():
     data_dir = join(dirname(__file__), 'data', '7t_trt')
@@ -17,6 +19,7 @@ def test_get_metadata():
     result = layout.get_metadata(join(data_dir, target))
     assert result['RepetitionTime'] == 3.0
 
+
 def test_get_metadata2():
     data_dir = join(dirname(__file__), 'data', '7t_trt')
     layout = BIDSLayout(data_dir)
@@ -24,12 +27,14 @@ def test_get_metadata2():
     result = layout.get_metadata(join(data_dir, target))
     assert result['EchoTime1'] == 0.006
 
+
 def test_get_subjects():
     data_dir = join(dirname(__file__), 'data', '7t_trt')
     layout = BIDSLayout(data_dir)
     result = layout.get_subjects()
     predicted = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10']
     assert predicted == result
+
 
 def test_get_fieldmap():
     data_dir = join(dirname(__file__), 'data', '7t_trt')

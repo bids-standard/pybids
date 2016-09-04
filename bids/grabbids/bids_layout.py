@@ -37,9 +37,9 @@ class BIDSLayout(Layout):
         for prefixes, midlayer, conditional in (  # Levels
                 (tuple(), tuple(), True),        # top
                 ((sub,), tuple(), True),         # subject
-                ((sub, ), (pathsplit(path_components[-2])[-1],), True),# subj
-                ((sub, ses), tuple(),  ses),  # session
-                ((sub, ses), (pathsplit(path_components[-2])[-1],), ses)# sess
+                ((sub, ), (pathsplit(path_components[-2])[-1],), True),
+                ((sub, ses), tuple(), ses),  # session
+                ((sub, ses), (pathsplit(path_components[-2])[-1],), ses)
         ):
             if not conditional:
                 continue
@@ -81,13 +81,13 @@ class BIDSLayout(Layout):
                         break
                     elif file.type == "phase1":
                         fieldmap_set["phase1"] = file.filename
-                        fieldmap_set["magnitude1"] = file.filename.replace(
-                                            "phase1", "magnitude1")
+                        fieldmap_set["magnitude1"] = \
+                            file.filename.replace("phase1", "magnitude1")
                         fieldmap_set["type"] = "phase"
                     elif file.type == "phase2":
                         fieldmap_set["phase2"] = file.filename
-                        fieldmap_set["magnitude2"] = file.filename.replace(
-                                            "phase2", "magnitude2")
+                        fieldmap_set["magnitude2"] = \
+                            file.filename.replace("phase2", "magnitude2")
                         fieldmap_set["type"] = "phase"
                     elif file.type == "epi":
                         if "epi" not in fieldmap_set.keys():
@@ -96,8 +96,8 @@ class BIDSLayout(Layout):
                         fieldmap_set["type"] = "epi"
                     elif file.type == "fieldmap":
                         fieldmap_set["fieldmap"] = file.filename
-                        fieldmap_set["magnitude"] = file.filename.replace(
-                                            "fieldmap", "magnitude")
+                        fieldmap_set["magnitude"] = \
+                            file.filename.replace("fieldmap", "magnitude")
                         fieldmap_set["type"] = "fieldmap"
         return fieldmap_set
 
