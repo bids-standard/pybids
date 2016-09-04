@@ -46,7 +46,7 @@
         },
         {
             "name": "fmap",
-            "pattern": "(phasediff|magnitude[0-9]*|phase[0-9]+|fieldmap|epi)\\.nii"
+            "pattern": "(phasediff|magnitude[1-2]|phase[1-2]|fieldmap|epi)\\.nii"
         },
         {
             "name": "modality",
