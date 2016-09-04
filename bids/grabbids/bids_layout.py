@@ -18,7 +18,7 @@ class BIDSLayout(Layout):
         if config is None:
             root = dirname(realpath(__file__))
             config = pathjoin(root, 'config', 'bids.json')
-        super(BIDSLayout, self).__init__(path, config)
+        super(BIDSLayout, self).__init__(path, config, dynamic_getters=True)
 
     def get_metadata(self, path):
         sidecarJSON = path.replace(".nii.gz", ".json").replace(".nii", ".json")
@@ -97,9 +97,6 @@ class BIDSLayout(Layout):
                             file.filename.replace("fieldmap", "magnitude")
                         fieldmap_set["type"] = "fieldmap"
         return fieldmap_set
-
-    def get_subjects(self):
-        return sorted(self.unique("subject"))
 
     def find_match(self, target, source=None):
 
