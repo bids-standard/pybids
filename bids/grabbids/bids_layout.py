@@ -52,7 +52,6 @@ class BIDSLayout(Layout):
                               ("_".join(prefixes + components + (suffix,)),))))
 
         merged_param_dict = {}
-        print(potentialJSONs)
         for json_file_path in potentialJSONs:
             if os.path.exists(json_file_path):
                 param_dict = json.load(open(json_file_path, "r"))
@@ -62,9 +61,7 @@ class BIDSLayout(Layout):
 
     def get_fieldmap(self, path):
         sub = os.path.split(path)[1].split("_")[0].split("sub-")[1]
-        print(sub)
         fieldmap_set = {}
-        print("dsf")
         for file in self.get(subject=sub,
                              type='(phase1|phase2|phasediff|epi|fieldmap)',
                              extensions=['nii.gz', 'nii']):
