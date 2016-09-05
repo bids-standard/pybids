@@ -18,7 +18,7 @@ class BIDSLayout(Layout):
         if config is None:
             root = dirname(realpath(__file__))
             config = pathjoin(root, 'config', 'bids.json')
-        super(BIDSLayout, self).__init__(path, config)
+        super(BIDSLayout, self).__init__(path, config, dynamic_getters=True)
 
     def get_metadata(self, path):
         sidecarJSON = path.replace(".nii.gz", ".json").replace(".nii", ".json")
@@ -34,21 +34,21 @@ class BIDSLayout(Layout):
             keyword_components = filename_components[2:-1]
 
         potentialJSONs = []
-        for prefixes, conditional in (  # Levels
-                (tuple(), True),        # top
-                ((sub,), True),         # subject
-                ((sub, ses), ses)       # session
+        for prefixes, midlayer, conditional in (  # Levels
+                (tuple(), tuple(), True),        # top
+                ((sub,), tuple(), True),         # subject
+                ((sub, ), (pathsplit(path_components[-2])[-1],), True),
+                ((sub, ses), tuple(), ses),  # session
+                ((sub, ses), (pathsplit(path_components[-2])[-1],), ses)
         ):
             if not conditional:
                 continue
             for k in range(len(keyword_components) + 1):
-                # print(k)
                 for components in combinations(keyword_components, k):
-                    # print(components)
                     potentialJSONs.append(
                         pathjoin(
                             self.root,
-                            *(prefixes +
+                            *(prefixes + midlayer +
                               ("_".join(prefixes + components + (suffix,)),))))
 
         merged_param_dict = {}
@@ -58,6 +58,45 @@ class BIDSLayout(Layout):
                 merged_param_dict.update(param_dict)
 
         return merged_param_dict
+
+    def get_fieldmap(self, path):
+        sub = os.path.split(path)[1].split("_")[0].split("sub-")[1]
+        fieldmap_set = {}
+        for file in self.get(subject=sub,
+                             type='(phase1|phase2|phasediff|epi|fieldmap)',
+                             extensions=['nii.gz', 'nii']):
+            metadata = self.get_metadata(file.filename)
+            if metadata and "IntendedFor" in metadata.keys():
+                if path.endswith(metadata["IntendedFor"]):
+                    if file.type == "phasediff":
+                        fieldmap_set = {"phasediff": file.filename,
+                                        "magnitude1": file.filename.replace(
+                                            "phasediff", "magnitude1"),
+                                        "magnitude2": file.filename.replace(
+                                            "phasediff", "magnitude2"),
+                                        "type": "phasediff"}
+                        break
+                    elif file.type == "phase1":
+                        fieldmap_set["phase1"] = file.filename
+                        fieldmap_set["magnitude1"] = \
+                            file.filename.replace("phase1", "magnitude1")
+                        fieldmap_set["type"] = "phase"
+                    elif file.type == "phase2":
+                        fieldmap_set["phase2"] = file.filename
+                        fieldmap_set["magnitude2"] = \
+                            file.filename.replace("phase2", "magnitude2")
+                        fieldmap_set["type"] = "phase"
+                    elif file.type == "epi":
+                        if "epi" not in fieldmap_set.keys():
+                            fieldmap_set["epi"] = []
+                        fieldmap_set["epi"].append(file.filename)
+                        fieldmap_set["type"] = "epi"
+                    elif file.type == "fieldmap":
+                        fieldmap_set["fieldmap"] = file.filename
+                        fieldmap_set["magnitude"] = \
+                            file.filename.replace("fieldmap", "magnitude")
+                        fieldmap_set["type"] = "fieldmap"
+        return fieldmap_set
 
     def find_match(self, target, source=None):
 

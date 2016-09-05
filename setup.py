@@ -23,6 +23,7 @@ opts = dict(name=NAME,
             platforms=PLATFORMS,
             version=VERSION,
             packages=PACKAGES,
+            package_data={'bids': ['grabbids/config/bids.json']},
             requires=REQUIRES,
             install_requires=REQUIRES)
 

@@ -79,14 +79,11 @@ The `BIDSLayout` instance is a lightweight container for all of the files in the
 ```
 
 ### Getting unique values and counts
-Once we've initialized a `Layout`, we can do simple things like counting and listing all unique values of a given entity:
+Once we've initialized a `Layout`, we can do simple things like getting a list of subject labels
 
 ```python
->>> layout.unique('subject')
-['sub-09', 'sub-05', 'sub-08', 'sub-01', 'sub-02', 'sub-06', 'sub-04', 'sub-03', 'sub-07', 'sub-10']
-
->>> layout.count('subject')
-10
+>>> layout.get_subjects()
+['01', '02', '03', '04', '05', '06', '07', '08', '09', '10']
 ```
 
 ### Querying and filtering
@@ -125,8 +122,21 @@ Some other examples of get() requests:
 ### Get all metadata for a given file
 
 ```python
->>> layout.get_metadata('7t_trt/sub-03/ses-2/func/sub-03_ses-2_task-rest_acq-fullbrain_run-2_bold.nii.gz')["RepetitionTime"]
+>>> layout.get_metadata('sub-03/ses-2/func/sub-03_ses-2_task-rest_acq-fullbrain_run-2_bold.nii.gz')["RepetitionTime"]
 3.0
+```
+
+### Get a fieldmap files intended for a given map
+
+```python
+>>> layout.get_fieldmap('7t_trt/sub-03/ses-2/func/sub-03_ses-2_task-rest_acq-fullbrain_run-2_bold.nii.gz')
+{
+  'type': 'phasediff',
+  'phasediff': 'sub-03/ses-2/fmap/sub-03_ses-2_run-1_phasediff.nii.gz',
+  'magnitude1': 'sub-03/ses-2/fmap/sub-03_ses-2_run-1_magnitude1.nii.gz',
+  'magnitude2': 'sub-03/ses-2/fmap/sub-03_ses-2_run-1_magnitude2.nii.gz'
+}
+
 ```
 
 ### For DIYers
