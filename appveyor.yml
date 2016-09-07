@@ -26,3 +26,6 @@ install:
 
 test_script:
   - py.test --pyargs bids
+
+after_test:
+  - bash <(curl -s https://codecov.io/bash)
