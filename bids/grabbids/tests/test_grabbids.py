@@ -45,6 +45,7 @@ def test_get_fieldmap():
     assert result["type"] == "phasediff"
     assert result["phasediff"].endswith('sub-03_ses-1_run-1_phasediff.nii.gz')
 
+
 def test_get_fieldmap2():
     data_dir = join(dirname(__file__), 'data', '7t_trt')
     layout = BIDSLayout(data_dir)
