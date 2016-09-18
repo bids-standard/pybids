@@ -67,7 +67,11 @@ class BIDSLayout(Layout):
                              extensions=['nii.gz', 'nii']):
             metadata = self.get_metadata(file.filename)
             if metadata and "IntendedFor" in metadata.keys():
-                if path.endswith(metadata["IntendedFor"]):
+                if isinstance(metadata["IntendedFor"], list):
+                    intended_for = metadata["IntendedFor"]
+                else:
+                    intended_for = [metadata["IntendedFor"]]
+                if any([path.endswith(suffix) for suffix in intended_for]):
                     if file.type == "phasediff":
                         fieldmap_set = {"phasediff": file.filename,
                                         "magnitude1": file.filename.replace(
