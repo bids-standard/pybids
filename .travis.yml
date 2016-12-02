@@ -67,3 +67,11 @@ before_cache:
 cache:
   directories:
     - $HOME/miniconda
+
+deploy:
+  provider: pypi
+  user: $PYPI_USER
+  password: $PYPI_PASS
+  on:
+    tags: true
+    condition: $TRAVIS_PYTHON_VERSION = "3.5"
