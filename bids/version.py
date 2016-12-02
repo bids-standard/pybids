@@ -2,9 +2,9 @@ from __future__ import absolute_import, division, print_function
 
 # Format expected by setup.py and doc/source/conf.py: string of form "X.Y.Z"
 _version_major = 0
-_version_minor = 1
-_version_micro = ''  # use '' for first of series, number for 1 and above
-_version_extra = 'dev0'
+_version_minor = 0
+_version_micro = 1  # use '' for first of series, number for 1 and above
+_version_extra = ''
 # _version_extra = ''  # Uncomment this for full releases
 
 # Construct full version string from these.
