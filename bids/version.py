@@ -50,14 +50,14 @@ Copyright (c) 2016--, PyBIDS developers, Planet Earth
 
 NAME = "pybids"
 MAINTAINER = "PyBIDS Developers"
-MAINTAINER_EMAIL = "bids-discussion@googlegroups.com",
+MAINTAINER_EMAIL = "bids-discussion@googlegroups.com"
 DESCRIPTION = description
 LONG_DESCRIPTION = long_description
 URL = "http://github.com/INCF/pybids"
 DOWNLOAD_URL = ""
 LICENSE = "MIT"
-AUTHOR = "Yaroslav Halchenko",
-AUTHOR_EMAIL = "debian@onerussian.com",
+AUTHOR = "Yaroslav Halchenko"
+AUTHOR_EMAIL = "debian@onerussian.com"
 PLATFORMS = "OS Independent"
 MAJOR = _version_major
 MINOR = _version_minor
