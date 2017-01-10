@@ -90,7 +90,7 @@ Once we've initialized a `Layout`, we can do simple things like getting a list o
 Counting is kind of trivial; everyone can count! More usefully, we can run simple logical queries, returning the results in a variety of formats:
 
 ```python
->>> files = layout.get(subject='sub-0[12]', run=1, extensions='.nii.gz')
+>>> files = layout.get(subject='0[12]', run=1, extensions='.nii.gz')
 >>> files[0]
 File(filename='7t_trt/sub-02/ses-1/fmap/sub-02_ses-1_run-1_magnitude1.nii.gz', subject='sub-02', run='run-1', session='ses-1', type='magnitude1')
 
