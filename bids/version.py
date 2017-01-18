@@ -25,7 +25,7 @@ CLASSIFIERS = ["Development Status :: 3 - Alpha",
                "Topic :: Scientific/Engineering"]
 
 # Description should be a one-liner:
-description = "bids: a template for small scientific Python projects"
+description = "bids: interface with datasets conforming BIDS"
 # Long description will go up on the pypi page
 long_description = """
 
@@ -56,8 +56,8 @@ LONG_DESCRIPTION = long_description
 URL = "http://github.com/INCF/pybids"
 DOWNLOAD_URL = ""
 LICENSE = "MIT"
-AUTHOR = "Yaroslav Halchenko"
-AUTHOR_EMAIL = "debian@onerussian.com"
+AUTHOR = "PyBIDS developers"
+AUTHOR_EMAIL = "http://github.com/INCF/pybids"
 PLATFORMS = "OS Independent"
 MAJOR = _version_major
 MINOR = _version_minor
