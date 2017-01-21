@@ -41,10 +41,6 @@
             "pattern": "(.*\\.bvec)$"
         },
         {
-            "name": "ext",
-            "pattern": "(\\.\\w+\\.\\w+|\\.\\w+)$"
-        },
-        {
             "name": "fmap",
             "pattern": "(phasediff|magnitude[1-2]|phase[1-2]|fieldmap|epi)\\.nii"
         },
