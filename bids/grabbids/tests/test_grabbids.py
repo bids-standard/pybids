@@ -49,3 +49,8 @@ def test_get_fieldmap2(testlayout1):
     result = testlayout1.get_fieldmap(join(testlayout1.root, target))
     assert result["type"] == "phasediff"
     assert result["phasediff"].endswith('sub-03_ses-2_run-2_phasediff.nii.gz')
+
+
+def test_bids_json(testlayout1):
+    assert testlayout1.get(return_type='id', target='run') == ['1', '2']
+    assert testlayout1.get(return_type='id', target='session') == ['1', '2']
