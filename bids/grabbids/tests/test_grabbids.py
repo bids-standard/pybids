@@ -5,6 +5,7 @@ import pytest
 from bids.grabbids import BIDSLayout
 from os.path import join, dirname
 
+
 # Fixture uses in the rest of the tests
 @pytest.fixture
 def testlayout1():
