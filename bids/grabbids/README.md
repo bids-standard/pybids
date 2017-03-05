@@ -3,7 +3,7 @@ Get grabby with BIDS projects
 
 ## Overview
 
-Grabbit is a lightweight Python 2 and 3 package for simple queries over filenames within a project. It's geared towards projects or applications with highly structured filenames that allow useful queries to be performed without having to inspect the file metadata or contents. Grabbids is a BIDS-specific extension of grabbit that makes it particularly easy to work with BIDS projects, and provides additional functionality.
+[Grabbit](https://github.com/grabbles/grabbit) is a lightweight Python 2 and 3 package for simple queries over filenames within a project. It's geared towards projects or applications with highly structured filenames that allow useful queries to be performed without having to inspect the file metadata or contents. Grabbids is a BIDS-specific extension of grabbit that makes it particularly easy to work with BIDS projects, and provides additional functionality.
 
 ## Quickstart
 
@@ -59,23 +59,24 @@ The `BIDSLayout` instance is a lightweight container for all of the files in the
 ```json
 {
   "name": "subject",
-  "pattern": "(sub-\\d+)",
-  "directory": "{{root}}/{subject}",
-  "mandatory": true
+  "pattern": "sub-([a-zA-Z0-9]+)",
+  "directory": "{{root}}/{subject}"
 },
 {
   "name": "session",
-  "pattern": "(ses-\\d)",
+  "pattern": "ses-([a-zA-Z0-9]+)",
+  "mandatory": false,
   "directory": "{{root}}/{subject}/{session}",
+  "missing_value": "ses-1"
 },
 {
   "name": "run",
-  "pattern": "(run-\\d+)"
+  "pattern": "run-(\\d+)"
 },
 {
   "name": "type",
-  "pattern": ".*_(.*?)\\."
-}
+  "pattern": "sub-[a-zA-Z0-9_-]+_(.*?)\\."
+},
 ```
 
 ### Getting unique values and counts
@@ -103,7 +104,7 @@ File(filename='7t_trt/sub-02/ses-1/fmap/sub-02_ses-1_run-1_magnitude1.nii.gz', s
 ```
 In the above snippet, we retrieve all files with subject id 1 or 2 and run id 1 (notice that any entity defined in the config file can be used a filtering argument), and with a file extension of .nii.gz. The returned result is a list of named tuples, one per file, allowing direct access to the defined entities as attributes.
 
-Some other examples of get() requests:
+Some other examples of `get()` requests:
 
 ```python
 >>> # Return all unique 'session' directories

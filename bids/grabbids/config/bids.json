@@ -14,7 +14,7 @@
         },
         {
             "name": "run",
-            "pattern": "(run-\\d+)"
+            "pattern": "run-(\\d+)"
         },
         {
             "name": "type",
