@@ -18,7 +18,7 @@ class BIDSLayout(Layout):
         if config is None:
             root = dirname(realpath(__file__))
             config = pathjoin(root, 'config', 'bids.json')
-        super(BIDSLayout, self).__init__(path, config, 
+        super(BIDSLayout, self).__init__(path, config,
                                          dynamic_getters=True, **kwargs)
 
     def get_metadata(self, path):
