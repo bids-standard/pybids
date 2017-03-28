@@ -64,6 +64,19 @@ def loopable(func):
 
 class BIDSTransformer(object):
 
+    ''' Applies supported transformations to the columns of event files
+    specified in a BIDS project.
+
+    Args:
+        collection (BIDSEventCollection): The collection to operate on.
+        spec (str): An optional path to a json file containing transformation
+            specifications.
+        sampling_rate (int): The sampling rate (in hz) to use when working with
+            dense columns. This should be sufficiently high to minimize
+            information loss when resampling, but larger values will slow down
+            transformation.
+    '''
+
     def __init__(self, collection, spec=None, sampling_rate=10):
         self.collection = collection
         self.sampling_rate = sampling_rate
@@ -72,6 +85,7 @@ class BIDSTransformer(object):
             self.apply_from_json(spec)
 
     def _build_dense_index(self):
+        ''' Build an index of all tracked entities for all dense columns. '''
         index = []
         for evf in self.collection.event_files:
             reps = int(math.ceil(evf.duration * self.sampling_rate))
@@ -82,6 +96,10 @@ class BIDSTransformer(object):
         self.dense_index = pd.concat(index, axis=0).reset_index(drop=True)
 
     def _densify_columns(self, cols):
+        ''' Convert the named SparseBIDSColumns to DenseBIDSColumns.
+        Args:
+            cols (list): Column names to convert from sparse to dense.
+        '''
         for c in cols:
             if isinstance(c, SparseBIDSColumn):
                 self.collection[c] = self.collection[c].to_dense()
@@ -125,11 +143,22 @@ class BIDSTransformer(object):
                 warnings.warn(msg)
 
     def apply(self, func, *args, **kwargs):
+        ''' Applies an arbitrary callable or named function. Mostly useful for
+        automating transformations via an external spec.
+        Args:
+            func (str, callable): Either a callable, or a string giving the
+                name of an existing bound method to apply.
+            args, kwargs: Optional positional and keyword arguments to pass
+                on to the callable.
+        '''
         if isinstance(func, string_types):
             func = getattr(self, func)
-            func(*args, **kwargs)
+        func(*args, **kwargs)
 
     def apply_from_json(self, spec):
+        ''' Apply a series of transformations from a JSON spec.
+        spec (str): Path to the JSON file containing transformations.
+        '''
         if os.path.exists(spec):
             spec = json.load(open(spec, 'rU'))
         for t in spec['transformations']:
@@ -138,6 +167,19 @@ class BIDSTransformer(object):
                     self.apply(name, cols, **t)
 
     def rename(self, cols, output):
+        ''' Rename one or more columns.
+
+        Args:
+            cols (str, list): Names of existing columns to rename.
+            output (str, list): New names of columns.
+
+        Details: If `cols` and `output` have the same number of elements, then
+            named columns will be mapped from old to new names in a 1-to-1
+            fashion. If there is only a single value in `output`, and more than
+            1 value in `cols`, old column names will be prepended with the
+            value in `output`.
+
+        '''
         cols = listify(cols)
         output = listify(output)
         for _old, _new in dict(zip(cols, output)).items():
@@ -146,7 +188,15 @@ class BIDSTransformer(object):
             self.collection.columns[_new].name = _new
 
     @loopable
-    def standardize(self, col, demean=True, rescale=True):
+    def scale(self, col, demean=True, rescale=True):
+        ''' Scale a column by subtracting its mean and/or dividing by its
+        standard deviation. By default, this is equivalent to standardization.
+
+        Args:
+            col (BIDSColumn): The column to scale.
+            demean (bool): Whether or not to subtract the column mean.
+            rescale (bool): Whether or not to divide by the standard deviation.
+        '''
 
         data = col.values.copy()
         if demean:
@@ -158,6 +208,12 @@ class BIDSTransformer(object):
 
     @loopable
     def _binarize(self, col, threshold=0.0):
+        ''' Binarize a column around a specified threshold.
+        Args:
+            col (BIDSColumn): The column to scale.
+            threshold (float): The value to binarize around (values above will
+                be assigned 1, values below will be assigned 0).
+        '''
         data = col.values.copy()
         above = data > threshold
         data[above] = 1
@@ -165,8 +221,18 @@ class BIDSTransformer(object):
         return data
 
     @loopable
-    def orthogonalize(self, col, other, output=None, force_dense=False):
-
+    def orthogonalize(self, col, other, force_dense=False):
+        ''' Orthgonalize a column with respect to one or more other columns.
+        Args:
+            col (BIDSColumn): The column to orthogonalize.
+            other (list, str): The names of variables to orthogonalize the
+                target column with respect to. Note that these must be strings,
+                and not BIDSColumn instances.
+            force_dense (bool): if True, all columns will be forced to dense
+                format before orthogonalization, otherwise orthogonalization
+                will be applied to the sparse representations (assuming that
+                all columns are aligned properly).
+        '''
         other = listify(other)
 
         if col.name in other:
