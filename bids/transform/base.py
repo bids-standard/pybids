@@ -122,8 +122,6 @@ class SparseBIDSColumn(BIDSColumn):
 
 class DenseBIDSColumn(BIDSColumn):
 
-    # def __init__(self, )
-
     def apply(self, func, groupby='event_file_id', *args, **kwargs):
         grouper = pd.core.groupby._get_grouper(self.collection.dense_index,
                                                groupby)[0]

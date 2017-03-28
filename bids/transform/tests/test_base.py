@@ -1,5 +1,5 @@
 from bids.transform.base import (SparseBIDSColumn, BIDSEventCollection,
-                                 BIDSEventFile, BIDSTransformer)
+                                 BIDSEventFile)
 import pytest
 from os.path import join, dirname
 

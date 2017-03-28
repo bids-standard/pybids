@@ -102,7 +102,7 @@ class BIDSTransformer(object):
         '''
         for c in cols:
             if isinstance(c, SparseBIDSColumn):
-                self.collection[c] = self.collection[c].to_dense()
+                self.collection[c] = self.collection[c].to_dense(self)
 
     def _check_column_alignment(self, cols, force=True):
         ''' Checks whether the specified columns have aligned indexes. This
@@ -123,23 +123,24 @@ class BIDSTransformer(object):
                     msg += (" Sparse columns  %s will be converted to dense "
                             "form." % sparse)
                     for s in sparse:
-                        self.collection[s] = self.collection[s].to_dense()
+                        self.collection[s] = self.collection[s].to_dense(self)
             warnings.warn(msg)
 
         # If all are sparse, durations and onsets must match perfectly for all
         else:
             def get_col_data(name):
                 col = self.collection[name]
-                return np.array([col.durations, col.onsets])
+                return np.array([col.durations, col.onsets]).T
             # Compare 1st col with each of the others
             fc = get_col_data(cols[0])
-            if not all([np.allclose(fc, c) for c in cols[1:]]):
+            compare_cols = lambda a, b: (len(a) == len(b)) and np.allclose(a, b)
+            if not all([compare_cols(fc, get_col_data(c)) for c in cols[1:]]):
                 msg = "Misaligned sparse columns found."
                 if force:
                     msg += (" Forcing all sparse columns to dense in order to "
                             "ensure proper alignment.")
                     for c in cols:
-                        self.collection[c] = self.collection[c].to_dense()
+                        self.collection[c] = self.collection[c].to_dense(self)
                 warnings.warn(msg)
 
     def apply(self, func, *args, **kwargs):
@@ -247,8 +248,9 @@ class BIDSTransformer(object):
 
         self._check_column_alignment(all_cols, force=True)
 
-        y = col.values
-        X = pd.concat([self.collection[c].values for c in other], axis=1).values
+        y = self.collection[col.name].values.values
+        X = np.c_[[self.collection[c].values.values for c in other]]
+        X = X.squeeze(axis=0)
         _aX = np.c_[np.ones(len(y)), X]
         coefs, resids, rank, s = np.linalg.lstsq(_aX, y)
         return y - X.dot(coefs[1:])
