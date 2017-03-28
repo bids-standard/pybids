@@ -37,6 +37,7 @@ def test_apply_scale(transformer):
     z = t.collection['RT_Z'].values
     assert np.allclose(z, (orig - orig.mean()) / orig.std())
 
+
 def test_apply_orthogonalize(transformer):
     t = transformer
     t.apply('orthogonalize', cols='parametric gain', other='RT')

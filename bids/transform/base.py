@@ -77,7 +77,7 @@ class SparseBIDSColumn(BIDSColumn):
         self.onsets = data['onset'].values
         self.durations = data['duration'].values
         ent_cols = list(set(data.columns) - {'onset', 'duration', 'condition',
-                                        'amplitude'})
+                                             'amplitude'})
         self.entities = data.loc[:, ent_cols]
 
         if data['amplitude'].dtype.kind not in 'bifc':
@@ -157,7 +157,7 @@ class BIDSEventCollection(object):
             self.columns = {}
 
         images = self.project.get(return_type='file', modality='func',
-                                 extensions='.nii.gz', **kwargs)
+                                  extensions='.nii.gz', **kwargs)
         if not images:
             raise Exception("No functional runs found in BIDS project.")
 
@@ -170,8 +170,9 @@ class BIDSEventCollection(object):
             f_ents = {k: v for k, v in f_ents.items() if k in self.entities}
 
             # HARDCODED FOR DEVELOPMENT
-            evf = self.project.get(return_type='file', extensions='.tsv', **f_ents)
-            # evf = self.project.get_event_file(img_f) # NOT IMPLEMENTED YET!!!!!
+            evf = self.project.get(
+                return_type='file', extensions='.tsv', **f_ents)
+            # evf = self.project.get_event_file(img_f) # NOT IMPLEMENTED YET!!!
             if not evf:
                 continue
             _data = pd.read_table(evf[0], sep='\t')
@@ -184,11 +185,11 @@ class BIDSEventCollection(object):
                 duration = img.shape[3] * img.header.get_zooms()[-1] / 1000
             except:
                 duration = (_data['onset'] + _data['duration']).max()
-                # warnings.warn("Unable to extract scan duration from image %s; "
-                #               "setting duration to the offset of the last "
-                #               "detected event instead (%d)--but note that this"
-                #               " may produce unexpected results." %
-                #               (img_f, duration))
+                warnings.warn("Unable to extract scan duration from image %s; "
+                              "setting duration to the offset of the last "
+                              "detected event instead (%d)--but note that this"
+                              " may produce unexpected results." %
+                              (img_f, duration))
 
             evf_index = len(self.event_files)
             f_ents['event_file_id'] = evf_index
@@ -240,7 +241,8 @@ class BIDSEventCollection(object):
                     omit = cols + ['trial_type']
                     cols += list(set(_data.columns.tolist()) - set(omit))
 
-                _df = pd.melt(_data.loc[:, cols], id_vars=['onset', 'duration'],
+                _df = pd.melt(_data.loc[:, cols],
+                              id_vars=['onset', 'duration'],
                               value_name='amplitude', var_name='condition')
                 file_df.append(_df.dropna(subset=['amplitude']))
 

@@ -131,9 +131,12 @@ class BIDSTransformer(object):
             def get_col_data(name):
                 col = self.collection[name]
                 return np.array([col.durations, col.onsets]).T
+
+            def compare_cols(a, b):
+                return len(a) == len(b) and np.allclose(a, b)
+
             # Compare 1st col with each of the others
             fc = get_col_data(cols[0])
-            compare_cols = lambda a, b: (len(a) == len(b)) and np.allclose(a, b)
             if not all([compare_cols(fc, get_col_data(c)) for c in cols[1:]]):
                 msg = "Misaligned sparse columns found."
                 if force:
@@ -147,7 +150,7 @@ class BIDSTransformer(object):
         ''' Applies an arbitrary callable or named function. Mostly useful for
         automating transformations via an external spec.
         Args:
-            func (str, callable): Either a callable, or a string giving the
+            func (str, callable): ither a callable, or a string giving the
                 name of an existing bound method to apply.
             args, kwargs: Optional positional and keyword arguments to pass
                 on to the callable.
@@ -163,9 +166,9 @@ class BIDSTransformer(object):
         if os.path.exists(spec):
             spec = json.load(open(spec, 'rU'))
         for t in spec['transformations']:
-                    name = t.pop('name')
-                    cols = t.pop('input', None)
-                    self.apply(name, cols, **t)
+            name = t.pop('name')
+            cols = t.pop('input', None)
+            self.apply(name, cols, **t)
 
     def rename(self, cols, output):
         ''' Rename one or more columns.
