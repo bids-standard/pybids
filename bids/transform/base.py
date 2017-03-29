@@ -72,33 +72,28 @@ class BIDSColumn(object):
 
 class SparseBIDSColumn(BIDSColumn):
 
-    def __init__(self, collection, name, data):
+    def __init__(self, collection, name, data, factor_name=None,
+                 factor_index=None, level_name=None):
 
         self.onsets = data['onset'].values
         self.durations = data['duration'].values
+        self.factor_name = factor_name
+        self.factor_index = factor_index
+        self.level_name = level_name
+
         ent_cols = list(set(data.columns) - {'onset', 'duration', 'condition',
-                                             'amplitude'})
+                                             'amplitude', 'factor'})
         self.entities = data.loc[:, ent_cols]
 
-        if data['amplitude'].dtype.kind not in 'bifc':
-            values = pd.get_dummies(data['amplitude'], prefix=name,
-                                    prefix_sep='#')
-        elif data['condition'].nunique() > 1:
-            dummies = pd.get_dummies(data['condition'], prefix=name,
-                                     prefix_sep='#')
-            values = dummies * data['amplitude']
-        else:
-            values = data['amplitude']
-            values.name = name
+        values = data['amplitude'].reset_index(drop=True)
+        values.name = name
 
-        values = values.to_frame().reset_index(drop=True)
         super(SparseBIDSColumn, self).__init__(collection, name, values)
 
     def to_dense(self, transformer):
         sampling_rate = transformer.sampling_rate
         duration = len(transformer.dense_index)
-        cols = self.values.shape[1]
-        ts = np.zeros((duration, cols))
+        ts = np.zeros(duration)
 
         onsets = np.ceil(self.onsets * sampling_rate).astype(int)
         durations = np.round(self.durations * sampling_rate).astype(int)
@@ -108,23 +103,28 @@ class SparseBIDSColumn(BIDSColumn):
             run_onset = self.collection.event_files[file_id].start
             ev_start = onsets[i] + int(math.ceil(run_onset * sampling_rate))
             ev_end = ev_start + durations[i]
-            ts[ev_start:ev_end, :] = row
+            ts[ev_start:ev_end] = row
 
-        ts = pd.DataFrame(ts, columns=self.values.columns)
+        ts = pd.DataFrame(ts)
 
         return DenseBIDSColumn(self.collection, self.name, ts)
 
-    def apply(self, func, groupby='event_file_id', *args, **kwargs):
+    def get_grouper(self, groupby='event_file_id'):
+        return pd.core.groupby._get_grouper(self.entities, groupby)[0]
 
-        grouper = pd.core.groupby._get_grouper(self.entities, groupby)[0]
+    def apply(self, func, groupby='event_file_id', *args, **kwargs):
+        grouper = self.get_grouper(groupby)
         return self.values.groupby(grouper).apply(func, *args, **kwargs)
 
 
 class DenseBIDSColumn(BIDSColumn):
 
+    def get_grouper(self, groupby='event_file_id'):
+        return pd.core.groupby._get_grouper(self.collection.dense_index,
+                                            groupby)[0]
+
     def apply(self, func, groupby='event_file_id', *args, **kwargs):
-        grouper = pd.core.groupby._get_grouper(self.collection.dense_index,
-                                               groupby)[0]
+        grouper = self.get_grouper(groupby)
         return self.values.groupby(grouper).apply(func, *args, **kwargs)
 
 
@@ -178,18 +178,21 @@ class BIDSEventCollection(object):
             _data = pd.read_table(evf[0], sep='\t')
             _data = _data.replace('n/a', np.nan)  # Replace BIDS' n/a
             _data = _data.apply(pd.to_numeric, errors='ignore')
-            # _data = self._validate_columns(_data, f)
 
+            # Get duration of run: first try to get it directly from the image
+            # header; if that fails, fall back on taking the offset of the last
+            # event in the event file--but raise warning, because this is
+            # suboptimal (e.g., there could be empty volumes at the end).
             try:
                 img = nb.load(img_f)
                 duration = img.shape[3] * img.header.get_zooms()[-1] / 1000
             except:
                 duration = (_data['onset'] + _data['duration']).max()
-                warnings.warn("Unable to extract scan duration from image %s; "
-                              "setting duration to the offset of the last "
-                              "detected event instead (%d)--but note that this"
-                              " may produce unexpected results." %
-                              (img_f, duration))
+                # warnings.warn("Unable to extract scan duration from image %s; "
+                #               "setting duration to the offset of the last "
+                #               "detected event instead (%d)--but note that this"
+                #               " may produce unexpected results." %
+                #               (img_f, duration))
 
             evf_index = len(self.event_files)
             f_ents['event_file_id'] = evf_index
@@ -199,11 +202,15 @@ class BIDSEventCollection(object):
             self.event_files.append(ef)
             start_time += duration
 
+            skip_cols = ['onset', 'duration']
+
             file_df = []
 
             # If condition column is provided, either extract amplitudes
             # from given amplitude column, or to default value
             if self.condition_column is not None:
+
+                skip_cols.append(self.condition_column)
 
                 if self.condition_column not in _data.columns:
                     raise ValueError(
@@ -218,33 +225,34 @@ class BIDSEventCollection(object):
                                 self.amplitude_column))
                     else:
                         amplitude = _data[self.amplitude_column]
+                        skip_cols.append(self.amplitude_column)
                 else:
                     if 'amplitude' in _data.columns:
-                        warnings.warn("Setting amplitude to values in "
-                                      "column 'ampliude'")
+                        warnings.warn("Setting amplitude to values in column "
+                                      "'amplitude'")
                         amplitude = _data['amplitude']
+                        skip_cols.append('amplitude')
                     else:
-                        amplitude = self.default_amplitude
+                        amplitude = _data[self.condition_column]
 
-                    _df = _data[['onset', 'duration']].copy()
-                    _df['condition'] = _data[self.condition_column]
-                    _df['amplitude'] = amplitude
+                    df = _data[['onset', 'duration']].copy()
+                    df['condition'] = _data[self.condition_column]
+                    df['amplitude'] = amplitude
+                    df['factor'] = self.condition_column
 
-                file_df.append(_df)
+                file_df.append(df)
 
-            rec = self.extra_columns
-            if rec:
-                cols = ['onset', 'duration']
-                if isinstance(rec, (list, tuple)):
-                    cols += rec
-                else:
-                    omit = cols + ['trial_type']
-                    cols += list(set(_data.columns.tolist()) - set(omit))
+            extra = self.extra_columns
+            if extra:
+                if not isinstance(extra, (list, tuple)):
+                    extra = list(set(_data.columns.tolist()) - set(skip_cols))
 
-                _df = pd.melt(_data.loc[:, cols],
-                              id_vars=['onset', 'duration'],
-                              value_name='amplitude', var_name='condition')
-                file_df.append(_df.dropna(subset=['amplitude']))
+                for col in extra:
+                    df = _data[['onset', 'duration']].copy()
+                    df['condition'] = col
+                    df['amplitude'] = _data[col].values
+                    df['factor'] = col
+                    file_df.append(df.dropna())
 
             _df = pd.concat(file_df, axis=0)
             for entity, value in f_ents.items():
@@ -253,8 +261,26 @@ class BIDSEventCollection(object):
             dfs.append(_df)
 
         _df = pd.concat(dfs, axis=0)
-        for name, grp in _df.groupby('condition'):
-            self.columns[name] = SparseBIDSColumn(self, name, grp)
+
+        for name, grp in _df.groupby(['factor', 'condition']):
+            self._create_column(name, grp)
+
+    def _create_column(self, name, data):
+        # If amplitude column contains categoricals, split on it and create
+        # 1 dummy-coded column per level
+        data = data.apply(pd.to_numeric, errors='ignore')
+        factor, condition = name[0], name[1]
+        if data['amplitude'].dtype.kind not in 'bifc':
+            grps = data.groupby('amplitude')
+            for i, (lev_name, lev_grp) in enumerate(grps):
+                name = '%s/%s' % (factor, lev_name)
+                lev_grp['amplitude'] = self.default_amplitude
+                col = SparseBIDSColumn(self, name, data,
+                                       factor_name=factor, factor_index=i,
+                                       level_name=lev_name)
+                self.columns[name] = col
+        else:
+            self.columns[condition] = SparseBIDSColumn(self, condition, data)
 
     def __getitem__(self, col):
         return self.columns[col]

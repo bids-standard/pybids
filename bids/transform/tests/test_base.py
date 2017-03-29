@@ -29,7 +29,8 @@ def test_collection(bids_event_collection):
     # Test extracted columns
     col_keys = bec.columns.keys()
     assert set(col_keys) == {'RT', 'gain', 'respnum', 'PTval', 'loss',
-                             'respcat', 'parametric gain'}
+                             'respcat', 'parametric gain',
+                             'trial_type/parametric gain'}
     col = bec.columns['RT']
     assert isinstance(col, SparseBIDSColumn)
     assert col.collection == bec

@@ -18,7 +18,7 @@ def test_apply_rename(transformer):
     coll = t.collection
     dense_rt = coll.columns['RT'].to_dense(t)
     assert len(dense_rt.values) == 229280
-    t.apply('rename', 'RT', 'reaction_time')
+    t.apply('rename', 'RT', output='reaction_time')
     assert 'reaction_time' in coll.columns
     assert 'RT' not in coll.columns
     col = coll.columns['reaction_time']
@@ -33,11 +33,12 @@ def test_apply_from_json(transformer):
 def test_apply_scale(transformer):
     t = transformer
     t.apply('scale', cols=['RT', 'parametric gain'], output=['RT_Z', 'gain_Z'])
-    orig = t.collection['RT'].values
-    z = t.collection['RT_Z'].values
-    assert np.allclose(z, (orig - orig.mean()) / orig.std())
+    groupby = t.collection['RT'].entities['event_file_id'].values
+    z1 = t.collection['RT_Z'].values
+    z2 = t.collection['RT'].values.groupby(groupby).apply(lambda x: (x - x.mean())/ x.std())
+    assert np.allclose(z1, z2)
 
 
-def test_apply_orthogonalize(transformer):
-    t = transformer
-    t.apply('orthogonalize', cols='parametric gain', other='RT')
+# def test_apply_orthogonalize(transformer):
+#     t = transformer
+#     t.apply('orthogonalize', cols='parametric gain', other='RT')
