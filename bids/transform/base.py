@@ -52,6 +52,7 @@ class BIDSColumn(object):
         self.collection = None
         clone = deepcopy(self, memo)
         clone.collection = coll
+        self.collection = coll
         self.__deepcopy__ = dc_method
         return clone
 
@@ -125,6 +126,10 @@ class SparseBIDSColumn(BIDSColumn):
             transformer (BIDSTransformer): A transformer object containing
                 information controlling the densification process.
         '''
+
+        if isinstance(self, DenseBIDSColumn):
+            return self
+
         sampling_rate = transformer.sampling_rate
         duration = len(transformer.dense_index)
         ts = np.zeros(duration)
@@ -141,7 +146,7 @@ class SparseBIDSColumn(BIDSColumn):
 
         ts = pd.DataFrame(ts)
 
-        return DenseBIDSColumn(self.collection, self.name, ts)
+        return DenseBIDSColumn(self.collection, self.name, ts, transformer)
 
     @property
     def index(self):
@@ -152,10 +157,14 @@ class SparseBIDSColumn(BIDSColumn):
 class DenseBIDSColumn(BIDSColumn):
     ''' A dense representation of a single column. '''
 
+    def __init__(self, collection, name, values, transformer):
+        self.transformer = transformer
+        super(DenseBIDSColumn, self).__init__(collection, name, values)
+
     @property
     def index(self):
         ''' An index of all named entities. '''
-        return self.collection.dense_index
+        return self.transformer.dense_index
 
 
 BIDSEventFile = namedtuple('BIDSEventFile', ('image_file', 'event_file',
@@ -339,7 +348,7 @@ class BIDSEventCollection(object):
             for i, (lev_name, lev_grp) in enumerate(grps):
                 name = '%s/%s' % (factor, lev_name)
                 lev_grp['amplitude'] = self.default_amplitude
-                col = SparseBIDSColumn(self, name, data,
+                col = SparseBIDSColumn(self, name, lev_grp,
                                        factor_name=factor, factor_index=i,
                                        level_name=lev_name)
                 self.columns[name] = col

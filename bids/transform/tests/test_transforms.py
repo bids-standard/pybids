@@ -4,6 +4,7 @@ import pytest
 from os.path import join, dirname
 from bids import grabbids
 import numpy as np
+import pandas as pd
 
 
 @pytest.fixture
@@ -39,6 +40,18 @@ def test_apply_scale(transformer):
     assert np.allclose(z1, z2)
 
 
-# def test_apply_orthogonalize(transformer):
-#     t = transformer
-#     t.apply('orthogonalize', cols='parametric gain', other='RT')
+def test_apply_orthogonalize(transformer):
+    t = transformer
+    coll = t.collection
+    pg_pre = coll['trial_type/parametric gain'].to_dense(t).values
+    rt = coll['RT'].to_dense(t).values
+    t.apply('orthogonalize', cols='trial_type/parametric gain', other='RT',
+            dense=True)
+    pg_post = coll['trial_type/parametric gain'].values
+    vals = np.c_[rt.values, pg_pre.values, pg_post.values]
+    df = pd.DataFrame(vals, columns=['rt', 'pre', 'post'])
+    groupby = t.dense_index['event_file_id']
+    pre_r = df.groupby(groupby).apply(lambda x: x.corr().iloc[0, 1])
+    post_r = df.groupby(groupby).apply(lambda x: x.corr().iloc[0, 2])
+    assert (pre_r > 0.2).any()
+    assert (post_r < 0.0001).all()

@@ -9,15 +9,17 @@ import math
 from six import string_types
 from abc import ABCMeta, abstractmethod
 from copy import deepcopy
+import itertools
 
 
 class Transformation(object):
 
-    _loopable = True
-    _groupable = True
-    _input = 'column'
-    _align = False
-    _output_required = False
+    _columns_used = ()          # List all columns the transformation touches
+    _loopable = True            # Loop over input columns one at a time?
+    _groupable = True           # Can groupby operations be applied?
+    _input = 'pandas'           # Either 'pandas' or 'column'
+    _output_required = False    # Require names of output columns?
+    _densify = ('cols')           # Columns to densify, if dense=True in args
 
     __metaclass__ = ABCMeta
 
@@ -34,22 +36,53 @@ class Transformation(object):
         self.cols = listify(cols)
         self.groupby = kwargs.pop('groupby', 'event_file_id')
         self.output = listify(kwargs.pop('output', None))
-        self.force_dense = kwargs.pop('force_dense', None)
+        self.dense = kwargs.pop('dense', False)
         self.args = args
         self.kwargs = kwargs
 
+    def _clone_columns(self):
+        ''' Deep copy all columns the transformation touches. This prevents us
+        from unnecessarily overwriting existing columns. '''
+
+        # Always clone the target columns
+        self._columns = {c: deepcopy(self.collection[c]) for c in self.cols}
+
+        if not self._columns_used:
+            return
+
+        # Loop over argument names and clone all column names in each one
+        for var in self._columns_used:
+            for c in listify(self.kwargs.get(var, [])):
+                self._columns[c] = deepcopy(self.collection[c])
+
+    def _densify_columns(self):
+
+        for var in self._densify:
+
+            if var == 'cols':
+                for c in self.cols:
+                    self._columns[c] = self._columns[c].to_dense(self.transformer)
+            else:
+                for c in listify(self.kwargs.get(var, [])):
+                    self._columns[c] = self._columns[c].to_dense(self.transformer)
+
     def transform(self):
-
-        args, kwargs = self.args, self.kwargs
-
-        columns = [deepcopy(self.collection[c]) for c in self.cols]
-
-        columns = self.transformer._validate_column_alignment(columns,
-                                                              self._align)
 
         if self.output is None and (self._output_required or not self._loopable):
             raise ValueError("Transformation '%s' requires the 'output' "
                              "argument to be set." % self.__class__.__name__)
+
+        args, kwargs = self.args, self.kwargs
+
+        # Deep copy all columns we expect to touch
+        self._clone_columns()
+
+        # Densify columns if needed
+        if self.dense:
+            self._densify_columns()
+
+        # Set columns we plan to operate on directly
+        columns = [self._columns[c] for c in self.cols]
 
         if not self._loopable:
             columns = [columns]
@@ -60,8 +93,8 @@ class Transformation(object):
             if isinstance(col, (list, tuple)):
                 result = self._transform(col.values, *args, **kwargs)
                 col = col.clone(data=result, name=self.output[0])
+            # Loop over columns individually
             else:
-                # Loop over columns
                 self.column = col
                 if self._groupable and self.groupby is not None:
                     result = col.apply(self._transform, groupby=self.groupby,
@@ -91,10 +124,62 @@ class Transformation(object):
     def _transform(self, *args, **kwargs):
         pass
 
+    def _align_columns(self, cols, force=True):
+        ''' Checks whether the specified columns have aligned indexes. This
+        implies either that all columns are dense, or that all columns are
+        sparse and have exactly the same onsets and durations. If columns are
+        not aligned and force = True, all columns will be forced to dense
+        format in order to ensure alignment.
+        '''
+
+        if self._align is None:  # We shouldn't be here!
+            return
+
+        def _align(cols):
+            # If any column is dense, all columns must be dense
+            sparse = [isinstance(c, SparseBIDSColumn) for c in cols]
+            if len(sparse) < len(cols):
+                if sparse:
+                    sparse_names = [s.name for s in sparse]
+                    msg = ("Found a mix of dense and sparse columns. This may "
+                           "cause problems for some transformations.")
+                    if force:
+                        msg += (" Sparse columns  %s were converted to dense "
+                                "form to ensure proper alignment." %
+                                sparse_names)
+                        sparse = [s.to_dense(self) for s in sparse]
+                warnings.warn(msg)
+            # If all are sparse, durations, onsets, and index must match
+            # perfectly for all
+            else:
+                def get_col_data(col):
+                    return np.c_[col.values.index, col.durations, col.onsets]
+
+                def compare_cols(a, b):
+                    return len(a) == len(b) and np.allclose(a, b)
+
+                # Compare 1st col with each of the others
+                fc = get_col_data(cols[0])
+                if not all([compare_cols(fc, get_col_data(c)) for c in cols[1:]]):
+                    msg = "Misaligned sparse columns found."
+                    if force:
+                        msg += (" Forcing all sparse columns to dense in order"
+                                " to ensure proper alignment.")
+                        cols = [c.to_dense(self) for c in cols]
+                    warnings.warn(msg)
+
+        align_cols = [self.kwargs.get(v, []) for v in listify(self._align)]
+        align_cols = list(itertools.chain(align_cols))
+        align_cols = [self.collection[c] for c in align_cols]
+
+        if self._loopable:
+            for c in cols:
+                _align([c] + align_cols)
+        else:
+            _align(listify(cols) + align_cols)
+
 
 class scale(Transformation):
-
-    _input = 'numpy'
 
     def _transform(self, data, demean=True, rescale=True):
         if demean:
@@ -108,7 +193,6 @@ class sum(Transformation):
 
     _loopable = False
     _groupable = False
-    _input = 'numpy'
     _align = True
 
     def _transform(self, data):
@@ -117,30 +201,33 @@ class sum(Transformation):
 
 class orthogonalize(Transformation):
 
-    _input = 'numpy'
-    _align = True
+    _columns_used = ('cols', 'other')
+    _densify = ('cols', 'other')
+    _align = ('other')
 
-    def _transform(self, y, other):
-        X = X.squeeze(axis=0)
+    def _transform(self, col, other):
+
+        other = listify(other)
+
+        # Set up X matrix and slice into it based on target column indices
+        # TODO: verify that pandas and numpy indices always align! (I.e.,
+        # the pandas index should always be range(n_rows), in that order.)
+        X = np.array([self._columns[c].values.values.squeeze() for c in other]).T
+        X = X[col.index, :]
+        assert len(X) == len(col)
+        y = col.values
         _aX = np.c_[np.ones(len(y)), X]
         coefs, resids, rank, s = np.linalg.lstsq(_aX, y)
-        return y - X.dot(coefs[1:])
+        result = pd.DataFrame(y - X.dot(coefs[1:]), index=col.index)
+        return result
+
 
 class rename(Transformation):
-    ''' Rename one or more columns.
+    ''' Rename a column.
 
     Args:
-        cols (str, list): Names of existing columns to rename.
-        output (str, list): New names of columns.
-
-    Details: If `cols` and `output` have the same number of elements, then
-        named columns will be mapped from old to new names in a 1-to-1
-        fashion. If there is only a single value in `output`, and more than
-        1 value in `cols`, old column names will be prepended with the
-        value in `output`.
-
+        col (str): Name of existing column to rename.
     '''
-
     _groupable = False
     _output_required = True
     _input = 'column'
@@ -152,68 +239,40 @@ class rename(Transformation):
         return col.values.values
 
 
-    # @loopable
-    # def binarize(self, col, threshold=0.0):
-    #     ''' Binarize a column around a specified threshold.
-    #     Args:
-    #         col (BIDSColumn): The column to scale.
-    #         threshold (float): The value to binarize around (values above will
-    #             be assigned 1, values below will be assigned 0).
-    #     '''
-    #     data = col.values.copy()
-    #     above = data > threshold
-    #     data[above] = 1
-    #     data[~above] = 0
-    #     return data
+class binarize(Transformation):
+    ''' Binarize a column.
+    Args:
+        col (Series/DF): The pandas structure to binarize.
+        threshold (float): The value to binarize around (values above will
+            be assigned 1, values below will be assigned 0).
+    '''
 
-    # @loopable
-    # def orthogonalize(self, col, other, force_dense=False, groupby=None):
-    #     ''' Orthgonalize a column with respect to one or more other columns.
-    #     Args:
-    #         col (BIDSColumn): The column to orthogonalize.
-    #         other (list, str): The names of variables to orthogonalize the
-    #             target column with respect to. Note that these must be strings,
-    #             and not BIDSColumn instances.
-    #         force_dense (bool): if True, all columns will be forced to dense
-    #             format before orthogonalization, otherwise orthogonalization
-    #             will be applied to the sparse representations (assuming that
-    #             all columns are aligned properly).
-    #     '''
-    #     other = listify(other)
+    _groupable = False
+    _input = 'pandas'
 
-    #     if col.name in other:
-    #         raise ValueError("Column %s cannot appear in both the set of "
-    #                          "columns to orthogonalize and the set of columns "
-    #                          "to orthogonalize with respect to!" % col.name)
+    def _transform(self, data, threshold=0.):
+        above = data > threshold
+        data[above] = 1
+        data[~above] = 0
+        return data
 
-    #     all_cols = [col.name] + other
 
-    #     if force_dense:
-    #         self._densify_columns(all_cols)
+# class split(Transformation):
+#     ''' Split a single column into N columns as defined by the levels of
+#     one or more other columns.
 
-    #     self._validate_column_alignment(all_cols, force=True)
+#     Args:
+#         col (BIDSColumn): The column whose events should be split.
+#         by (str, list): The names of the columns whose levels define the groups
+#             to split on.
+#     '''
 
-    #     # def _orthogonalize(X, y):
-    #     #     _aX = np.c_[np.ones(len(y)), X]
-    #     #     coefs, resids, rank, s = np.linalg.lstsq(_aX, y)
-    #     #     return y - X.dot(coefs[1:])
+#     _groupable = False
+#     _input = 'pandas'
+#     _align = 'by'
 
-    #     y = self.collection[col.name].values.values
-    #     X = np.c_[[self.collection[c].values.values for c in other]]
-    #     X = X.squeeze(axis=0)
-    #     _aX = np.c_[np.ones(len(y)), X]
-    #     coefs, resids, rank, s = np.linalg.lstsq(_aX, y)
-    #     return y - X.dot(coefs[1:])
-
-    # @loopable
-    # def split(self, col, by):
-    #     ''' Split a single column into N columns as defined by the levels of
-    #     one or more other columns.
-    #     Args:
-    #         col (BIDSColumn): The column whose events should be split.
-    #         by (str, list): The names of the columns whose levels define
-    #             the groups to split on.
-    #     '''
+#     def _transform(self, col, by):
+#         pass
 
 
 class BIDSTransformer(object):
@@ -257,46 +316,6 @@ class BIDSTransformer(object):
         for c in cols:
             if isinstance(c, SparseBIDSColumn):
                 self.collection[c] = self.collection[c].to_dense(self)
-
-    def _validate_column_alignment(self, cols, force=True):
-        ''' Checks whether the specified columns have aligned indexes. This
-        implies either that all columns are dense, or that all columns are
-        sparse and have exactly the same onsets and durations. If columns are
-        not aligned and force = True, all columns will be forced to dense
-        format in order to ensure alignment.
-        '''
-
-        # If any column is dense, all columns must be dense
-        sparse = [isinstance(c, SparseBIDSColumn) for c in cols]
-        if len(sparse) < len(cols):
-            if sparse:
-                sparse_names = [s.name for s in sparse]
-                msg = ("Found a mix of dense and sparse columns. This may "
-                       "cause problems for some transformations.")
-                if force:
-                    msg += (" Sparse columns  %s were converted to dense "
-                            "form to ensure proper alignment." % sparse_names)
-                    sparse = [s.to_dense(self) for s in sparse]
-            warnings.warn(msg)
-
-        # If all are sparse, durations and onsets must match perfectly for all
-        else:
-            def get_col_data(col):
-                return np.array([col.durations, col.onsets]).T
-
-            def compare_cols(a, b):
-                return len(a) == len(b) and np.allclose(a, b)
-
-            # Compare 1st col with each of the others
-            fc = get_col_data(cols[0])
-            if not all([compare_cols(fc, get_col_data(c)) for c in cols[1:]]):
-                msg = "Misaligned sparse columns found."
-                if force:
-                    msg += (" Forcing all sparse columns to dense in order to "
-                            "ensure proper alignment.")
-                    cols = [c.to_dense(self) for c in cols]
-                warnings.warn(msg)
-        return cols
 
     def apply(self, func, cols, *args, **kwargs):
         ''' Applies an arbitrary callable or named function. Mostly useful for
