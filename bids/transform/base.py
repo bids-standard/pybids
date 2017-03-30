@@ -5,11 +5,15 @@ import nibabel as nb
 import warnings
 from collections import namedtuple
 import math
-from .utils import listify
 from copy import deepcopy
+from abc import abstractproperty, ABCMeta
 
 
 class BIDSColumn(object):
+
+    ''' Base representation of a column in a BIDS project. '''
+
+    __metaclass__ = ABCMeta
 
     def __init__(self, collection, name, values):
         self.collection = collection
@@ -18,9 +22,22 @@ class BIDSColumn(object):
 
     def clone(self, data=None, **kwargs):
         ''' Clone (deep copy) the current column, optionally replacing its
-        data and/or any other attributes. '''
+        data and/or any other attributes.
+        Args:
+            data (DataFrame, ndarray): Optional new data to substitute into
+                the cloned column. Must have same dimensionality as the
+                original.
+            kwargs (dict): Optional keyword arguments containing new attribute
+                values to set in the copy. E.g., passing `name='my_name'`
+                would set the `.name` attribute on the cloned instance to the
+                passed value.
+        '''
         result = deepcopy(self)
         if data is not None:
+            if data.shape != self.values.shape:
+                raise ValueError("Replacement data has shape %s; must have "
+                                 "same shape as existing data %s." %
+                                 (data.shape, self.values.shape))
             result.values = pd.DataFrame(data, columns=self.values.columns)
         if kwargs:
             for k, v in kwargs.items():
@@ -28,7 +45,7 @@ class BIDSColumn(object):
         return result
 
     def __deepcopy__(self, memo):
-        # We want to copy all attributes except the linked collection
+        # When deep copying, we want to stay linked to the same collection.
         dc_method = self.__deepcopy__
         self.__deepcopy__ = None
         coll = self.collection
@@ -38,39 +55,51 @@ class BIDSColumn(object):
         self.__deepcopy__ = dc_method
         return clone
 
-    def _get_grouper(self, df, groupby):
+    @abstractproperty
+    def index(self):
+        pass
 
-        # First, retrieve the actual pandas columns for all groupby variables.
-        # These can come from either the index of BIDS entities (stored in df),
-        # or from the current BIDSEventCollection (if the user is trying to
-        # group on another named column).
-        groupby = listify(groupby)
+    def get_grouper(self, groupby='event_file_id'):
+        ''' Return a pandas Grouper object suitable for use in groupby calls.
+        Args:
+            groupby (str, list): Name(s) of column(s) defining the grouper
+                object. Anything that would be valid inside a .groupby() call
+                on a pandas structure.
+        Returns:
+            A pandas Grouper object constructed from the specified columns
+                of the current index.
+        '''
+        return pd.core.groupby._get_grouper(self.index, groupby)[0]
 
-        def get_column(col):
-            if col in df.columns:
-                return df.loc[:, col]
-            elif col in self.collection.columns:
-                vals = self.collection.columns[col].values
-                if vals.shape[1] > 1:
-                    raise ValueError("Cannot group on categorical variables "
-                                     "(error occured for column '%s')." % col)
-                    return vals
-            raise ValueError("Desired column '%s' in groupby argument could "
-                             "not be found.")
-        groupby = [get_column(c) for c in groupby]
-
-        # # Next, we need to make sure that the groupby columns all align with
-        # # one another.
-        # if len(groupby) > 1:
-        #     # If any of the columns are dense, all of them must be dense
-        #     if any(['onset' not in g.columns for g in groupby]):
-
-        df = pd.concat(groupby, axis=1)
-
-        return pd.core.groupby._get_grouper(df, df.columns)[0]
+    def apply(self, func, groupby='event_file_id', *args, **kwargs):
+        ''' Applies the passed function to the groups defined by the groupby
+        argument. Works identically to the standard pandas df.groupby() call.
+        Args:
+            func (callable): The function to apply to each group.
+            groupby (str, list): Name(s) of column(s) defining the grouping.
+            args, kwargs: Optional positional and keyword arguments to pass
+                onto the function call.
+        '''
+        grouper = self.get_grouper(groupby)
+        return self.values.groupby(grouper).apply(func, *args, **kwargs)
 
 
 class SparseBIDSColumn(BIDSColumn):
+    ''' A sparse representation of a single column of events.
+    Args:
+        collection (BIDSEventCollection): The collection the current column
+            is bound to and derived from.
+        name (str): Name of the column.
+        data (DataFrame): A pandas DataFrame minimally containing the columns
+            'onset', 'duration', and 'amplitude'.
+        factor_name (str): If this column is derived from a categorical factor
+            (e.g., level 'A' in a 'trial_type' column), the name of the
+            originating factor.
+        factor_index (int): The positional index of the current level in the
+            originating categorical factor. Ignored if factor_name is None.
+        level_name (str): The name of the current level in the originating
+            categorical factor, if applicable.
+    '''
 
     def __init__(self, collection, name, data, factor_name=None,
                  factor_index=None, level_name=None):
@@ -91,6 +120,11 @@ class SparseBIDSColumn(BIDSColumn):
         super(SparseBIDSColumn, self).__init__(collection, name, values)
 
     def to_dense(self, transformer):
+        ''' Convert the current sparse column to a dense representation.
+        Args:
+            transformer (BIDSTransformer): A transformer object containing
+                information controlling the densification process.
+        '''
         sampling_rate = transformer.sampling_rate
         duration = len(transformer.dense_index)
         ts = np.zeros(duration)
@@ -109,23 +143,19 @@ class SparseBIDSColumn(BIDSColumn):
 
         return DenseBIDSColumn(self.collection, self.name, ts)
 
-    def get_grouper(self, groupby='event_file_id'):
-        return pd.core.groupby._get_grouper(self.entities, groupby)[0]
-
-    def apply(self, func, groupby='event_file_id', *args, **kwargs):
-        grouper = self.get_grouper(groupby)
-        return self.values.groupby(grouper).apply(func, *args, **kwargs)
+    @property
+    def index(self):
+        ''' An index of all named entities. '''
+        return self.entities
 
 
 class DenseBIDSColumn(BIDSColumn):
+    ''' A dense representation of a single column. '''
 
-    def get_grouper(self, groupby='event_file_id'):
-        return pd.core.groupby._get_grouper(self.collection.dense_index,
-                                            groupby)[0]
-
-    def apply(self, func, groupby='event_file_id', *args, **kwargs):
-        grouper = self.get_grouper(groupby)
-        return self.values.groupby(grouper).apply(func, *args, **kwargs)
+    @property
+    def index(self):
+        ''' An index of all named entities. '''
+        return self.collection.dense_index
 
 
 BIDSEventFile = namedtuple('BIDSEventFile', ('image_file', 'event_file',
@@ -134,8 +164,32 @@ BIDSEventFile = namedtuple('BIDSEventFile', ('image_file', 'event_file',
 
 class BIDSEventCollection(object):
 
+    ''' A container for all design events extracted from a BIDS project.
+    Args:
+        base_dir (str): Path to the root of the BIDS project.
+        default_duration (float): Default duration to assign to events in cases
+            where a duration is missing.
+        default_amplitude (float): Default amplitude to assign to events in
+            cases where an amplitude is missing.
+        condition_column (str): Optional name of the column that contains
+            the names of conditions. Defaults to 'trial_type', per the BIDS
+            specification. If None, only extra columns (beyond onset and
+            duration) are inspected for events.
+        amplitude_column (str): Optional name of the column providing the
+            amplitudes that correspond to the 'condition' column. Ignored if
+            condition_column is None.
+        entities (list): Optional list of entities to encode and index by.
+            If None (default), uses the standard BIDS-defined entities of
+            ['run', 'session', 'subject', 'task'].
+        extra_columns (list): Optional list of names specifying which extra
+            columns in the event files to read. By default, reads all columns
+            found.
+        kwargs: Optional keywords to pass onto the read() call (just for
+            convenience).
+    '''
+
     def __init__(self, base_dir, default_duration=0, default_amplitude=1,
-                 amplitude_column=None, condition_column='trial_type',
+                 condition_column='trial_type', amplitude_column=None,
                  entities=None, extra_columns=True, **kwargs):
 
         self.default_duration = default_duration
@@ -150,11 +204,21 @@ class BIDSEventCollection(object):
         self.extra_columns = extra_columns
         self.read(**kwargs)
 
-    def read(self, reset=True, **kwargs):
-
+    def read(self, files=None, reset=True, **kwargs):
+        ''' Read in and process event files.
+        files (None, list): Optional list of event files to read from. If
+            None (default), will use all event files found within the current
+            BIDS project. Note that if `files` is passed, existing event files
+            within the BIDS project are completely ignored.
+        reset (bool): If True (default), clears all previously processed
+            event files and columns; if False, adds new files incrementally.
+        '''
         if reset:
             self.event_files = []
             self.columns = {}
+
+        if files is not None:
+            pass
 
         images = self.project.get(return_type='file', modality='func',
                                   extensions='.nii.gz', **kwargs)
