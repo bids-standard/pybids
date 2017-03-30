@@ -36,7 +36,8 @@ def test_apply_scale(transformer):
     t.apply('scale', cols=['RT', 'parametric gain'], output=['RT_Z', 'gain_Z'])
     groupby = t.collection['RT'].entities['event_file_id'].values
     z1 = t.collection['RT_Z'].values
-    z2 = t.collection['RT'].values.groupby(groupby).apply(lambda x: (x - x.mean())/ x.std())
+    z2 = t.collection['RT'].values.groupby(
+        groupby).apply(lambda x: (x - x.mean()) / x.std())
     assert np.allclose(z1, z2)
 
 

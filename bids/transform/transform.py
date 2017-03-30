@@ -61,14 +61,17 @@ class Transformation(object):
 
             if var == 'cols':
                 for c in self.cols:
-                    self._columns[c] = self._columns[c].to_dense(self.transformer)
+                    self._columns[c] = self._columns[
+                        c].to_dense(self.transformer)
             else:
                 for c in listify(self.kwargs.get(var, [])):
-                    self._columns[c] = self._columns[c].to_dense(self.transformer)
+                    self._columns[c] = self._columns[
+                        c].to_dense(self.transformer)
 
     def transform(self):
 
-        if self.output is None and (self._output_required or not self._loopable):
+        if self.output is None and (self._output_required
+                                    or not self._loopable):
             raise ValueError("Transformation '%s' requires the 'output' "
                              "argument to be set." % self.__class__.__name__)
 
@@ -160,7 +163,8 @@ class Transformation(object):
 
                 # Compare 1st col with each of the others
                 fc = get_col_data(cols[0])
-                if not all([compare_cols(fc, get_col_data(c)) for c in cols[1:]]):
+                if not all([compare_cols(fc, get_col_data(c))
+                           for c in cols[1:]]):
                     msg = "Misaligned sparse columns found."
                     if force:
                         msg += (" Forcing all sparse columns to dense in order"
@@ -212,7 +216,8 @@ class orthogonalize(Transformation):
         # Set up X matrix and slice into it based on target column indices
         # TODO: verify that pandas and numpy indices always align! (I.e.,
         # the pandas index should always be range(n_rows), in that order.)
-        X = np.array([self._columns[c].values.values.squeeze() for c in other]).T
+        X = np.array([self._columns[c].values.values.squeeze()
+                      for c in other]).T
         X = X[col.index, :]
         assert len(X) == len(col)
         y = col.values
@@ -263,8 +268,8 @@ class binarize(Transformation):
 
 #     Args:
 #         col (BIDSColumn): The column whose events should be split.
-#         by (str, list): The names of the columns whose levels define the groups
-#             to split on.
+#         by (str, list): The names of the columns whose levels define the
+#            groups to split on.
 #     '''
 
 #     _groupable = False

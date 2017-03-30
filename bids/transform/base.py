@@ -261,11 +261,11 @@ class BIDSEventCollection(object):
                 duration = img.shape[3] * img.header.get_zooms()[-1] / 1000
             except:
                 duration = (_data['onset'] + _data['duration']).max()
-                # warnings.warn("Unable to extract scan duration from image %s; "
-                #               "setting duration to the offset of the last "
-                #               "detected event instead (%d)--but note that this"
-                #               " may produce unexpected results." %
-                #               (img_f, duration))
+                warnings.warn("Unable to extract scan duration from image %s; "
+                              "setting duration to the offset of the last "
+                              "detected event instead (%d)--but note that this"
+                              " may produce unexpected results." %
+                              (img_f, duration))
 
             evf_index = len(self.event_files)
             f_ents['event_file_id'] = evf_index
