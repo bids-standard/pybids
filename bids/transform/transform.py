@@ -70,8 +70,8 @@ class Transformation(object):
 
     def transform(self):
 
-        if self.output is None and (self._output_required
-                                    or not self._loopable):
+        if self.output is None and (self._output_required or not
+                                    self._loopable):
             raise ValueError("Transformation '%s' requires the 'output' "
                              "argument to be set." % self.__class__.__name__)
 
