@@ -2,11 +2,10 @@ from bids.transform.base import (SparseBIDSColumn, BIDSEventCollection,
                                  BIDSEventFile)
 import pytest
 from os.path import join, dirname
-
+from bids import grabbids
 
 @pytest.fixture
 def bids_event_collection():
-    from bids import grabbids
     path = join(dirname(grabbids.__file__), 'tests', 'data', 'ds005')
     return BIDSEventCollection(path)
 
@@ -15,6 +14,7 @@ def test_collection(bids_event_collection):
     ''' Integration test for BIDSEventCollection initialization. '''
 
     bec = bids_event_collection
+    bec.read()
 
     # Test collection attributes
     assert bec.condition_column == 'trial_type'
@@ -24,7 +24,7 @@ def test_collection(bids_event_collection):
     ef = bec.event_files[0]
     assert isinstance(ef, BIDSEventFile)
     assert ef.entities['task'] == 'mixedgamblestask'
-    assert ef.entities['subject'] == '01'
+    assert ef.entities['subject'] == '16'
 
     # Test extracted columns
     col_keys = bec.columns.keys()
@@ -41,3 +41,16 @@ def test_collection(bids_event_collection):
     ents = col.entities
     assert (ents['task'] == 'mixedgamblestask').all()
     assert set(ents.columns) == {'task', 'subject', 'run', 'event_file_id'}
+
+
+def test_read_from_files(bids_event_collection):
+    bec = bids_event_collection
+    path = join(dirname(grabbids.__file__), 'tests', 'data', 'ds005')
+    subs = ['02', '06', '08']
+    template = 'sub-%s/func/sub-%s_task-mixedgamblestask_run-01_events.tsv'
+    files = [join(path, template % (s, s)) for s in subs]
+    bec.read(files=files)
+    col_keys = bec.columns.keys()
+    assert set(col_keys) == {'RT', 'gain', 'respnum', 'PTval', 'loss',
+                             'respcat', 'parametric gain',
+                             'trial_type/parametric gain'}

@@ -11,6 +11,7 @@ import pandas as pd
 def transformer():
     path = join(dirname(grabbids.__file__), 'tests', 'data', 'ds005')
     evc = BIDSEventCollection(path)
+    evc.read()
     return BIDSTransformer(evc)
 
 

@@ -199,7 +199,7 @@ class BIDSEventCollection(object):
 
     def __init__(self, base_dir, default_duration=0, default_amplitude=1,
                  condition_column='trial_type', amplitude_column=None,
-                 entities=None, extra_columns=True, **kwargs):
+                 entities=None, extra_columns=True):
 
         self.default_duration = default_duration
         self.default_amplitude = default_amplitude
@@ -211,44 +211,83 @@ class BIDSEventCollection(object):
             entities = ['run', 'session', 'subject', 'task']
         self.entities = entities
         self.extra_columns = extra_columns
-        self.read(**kwargs)
 
     def read(self, files=None, reset=True, **kwargs):
         ''' Read in and process event files.
-        files (None, list): Optional list of event files to read from. If
-            None (default), will use all event files found within the current
-            BIDS project. Note that if `files` is passed, existing event files
-            within the BIDS project are completely ignored.
-        reset (bool): If True (default), clears all previously processed
-            event files and columns; if False, adds new files incrementally.
+        Args:
+            files (None, list): Optional list of event files to read from. If
+                None (default), will use all event files found within the
+                current BIDS project. Note that if `files` is passed, existing
+                event files within the BIDS project are completely ignored.
+            reset (bool): If True (default), clears all previously processed
+                event files and columns; if False, adds new files
+                incrementally.
+
+        Notes:
+            If the names of event files are passed in using the `files`
+            argument, the following two constraints apply:
+                * ALL relevant BIDS entities MUST be encoded in each file.
+                  I.e., "sub-02_task-mixedgamblestask_run-01_events.tsv" is
+                  valid, but "subject_events.tsv" would not be.
+                * It is assumed that all and only the files in the passed list
+                  are to be processed—i.e., there cannot be any other subjects,
+                  runs, etc. whose events also need to be processed but that
+                  are missing from the passed list.
         '''
         if reset:
             self.event_files = []
             self.columns = {}
 
-        if files is not None:
-            pass
+        valid_pairs = []
 
-        images = self.project.get(return_type='file', modality='func',
-                                  extensions='.nii.gz', **kwargs)
-        if not images:
-            raise Exception("No functional runs found in BIDS project.")
+        # Starting with either files or images, get all event files that have
+        # a valid functional run, and store their duration if available.
+        if files is not None:
+
+            for f in files:
+                f_ents = self.project.files[f].entities
+                f_ents = {k: v for k, v in f_ents.items() if k in self.entities}
+
+                img_f = self.project.get(return_type='file', modality='func',
+                                         extensions='.nii.gz', type='bold',
+                                         **kwargs)
+
+                if not img_f:
+                    continue
+
+                valid_pairs.append((f, img_f[0]))
+
+        else:
+
+            images = self.project.get(return_type='file', modality='func',
+                                      type='bold', extensions='.nii.gz',
+                                      **kwargs)
+            if not images:
+                raise Exception("No functional runs found in BIDS project.")
+
+            for img_f in images:
+                f_ents = self.project.files[img_f].entities
+                f_ents = {k: v for k, v in f_ents.items() if k in self.entities}
+
+                # HARDCODED FOR DEVELOPMENT
+                # TODO: need to walk up the tree for each image to get .tsv
+                # file; can't assume that entities will always be set in the
+                # filename.
+                evf = self.project.get(return_type='file', extensions='.tsv',
+                                       type='events', **f_ents)
+
+                # evf = self.project.get_event_file(img_f) # NOT IMPLEMENTED YET!!!
+                if not evf:
+                    continue
+
+                valid_pairs.append((evf[0], img_f))
 
         dfs = []
         start_time = 0
 
-        for img_f in images:
+        for evf, img_f in valid_pairs:
 
-            f_ents = self.project.files[img_f].entities
-            f_ents = {k: v for k, v in f_ents.items() if k in self.entities}
-
-            # HARDCODED FOR DEVELOPMENT
-            evf = self.project.get(
-                return_type='file', extensions='.tsv', **f_ents)
-            # evf = self.project.get_event_file(img_f) # NOT IMPLEMENTED YET!!!
-            if not evf:
-                continue
-            _data = pd.read_table(evf[0], sep='\t')
+            _data = pd.read_table(evf, sep='\t')
             _data = _data.replace('n/a', np.nan)  # Replace BIDS' n/a
             _data = _data.apply(pd.to_numeric, errors='ignore')
 
