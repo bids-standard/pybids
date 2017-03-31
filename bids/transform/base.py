@@ -230,9 +230,9 @@ class BIDSEventCollection(object):
                   I.e., "sub-02_task-mixedgamblestask_run-01_events.tsv" is
                   valid, but "subject_events.tsv" would not be.
                 * It is assumed that all and only the files in the passed list
-                  are to be processed—i.e., there cannot be any other subjects,
-                  runs, etc. whose events also need to be processed but that
-                  are missing from the passed list.
+                  are to be processed--i.e., there cannot be any other
+                  subjects, runs, etc. whose events also need to be processed
+                  but that are missing from the passed list.
         '''
         if reset:
             self.event_files = []

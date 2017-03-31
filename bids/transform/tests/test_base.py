@@ -1,12 +1,13 @@
 from bids.transform.base import (SparseBIDSColumn, BIDSEventCollection,
                                  BIDSEventFile)
 import pytest
-from os.path import join, dirname
+from os.path import join, dirname, abspath
 from bids import grabbids
 
 @pytest.fixture
 def bids_event_collection():
-    path = join(dirname(grabbids.__file__), 'tests', 'data', 'ds005')
+    mod_file = abspath(grabbids.__file__)
+    path = join(dirname(mod_file), 'tests', 'data', 'ds005')
     return BIDSEventCollection(path)
 
 
@@ -45,10 +46,12 @@ def test_collection(bids_event_collection):
 
 def test_read_from_files(bids_event_collection):
     bec = bids_event_collection
-    path = join(dirname(grabbids.__file__), 'tests', 'data', 'ds005')
+    path = join(dirname(abspath(grabbids.__file__)), 'tests', 'data', 'ds005')
     subs = ['02', '06', '08']
     template = 'sub-%s/func/sub-%s_task-mixedgamblestask_run-01_events.tsv'
     files = [join(path, template % (s, s)) for s in subs]
+    # for x in os.walk(os.path.dirname(files[0])):
+    #     print(x)
     bec.read(files=files)
     col_keys = bec.columns.keys()
     assert set(col_keys) == {'RT', 'gain', 'respnum', 'PTval', 'loss',
