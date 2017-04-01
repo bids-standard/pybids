@@ -32,6 +32,14 @@ def test_apply_from_json(transformer):
     pass
 
 
+def test_apply_product(transformer):
+    t = transformer
+    c = t.collection
+    t.apply('product', cols=['parametric gain', 'gain'], output='prod')
+    res = c['prod'].values
+    assert (res == c['parametric gain'].values * c['gain'].values).all()
+
+
 def test_apply_scale(transformer):
     t = transformer
     t.apply('scale', cols=['RT', 'parametric gain'], output=['RT_Z', 'gain_Z'])

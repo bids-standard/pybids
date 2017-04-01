@@ -38,7 +38,7 @@ class BIDSColumn(object):
                 raise ValueError("Replacement data has shape %s; must have "
                                  "same shape as existing data %s." %
                                  (data.shape, self.values.shape))
-            result.values = pd.DataFrame(data, columns=self.values.columns)
+            result.values = pd.Series(data, name=self.values.name)
         if kwargs:
             for k, v in kwargs.items():
                 setattr(result, k, v)
@@ -54,6 +54,7 @@ class BIDSColumn(object):
         clone.collection = coll
         self.collection = coll
         self.__deepcopy__ = dc_method
+        clone.__deepcopy__ = dc_method
         return clone
 
     @abstractproperty

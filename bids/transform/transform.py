@@ -87,6 +87,13 @@ class Transformation(object):
         # Set columns we plan to operate on directly
         columns = [self._columns[c] for c in self.cols]
 
+        # Pass desired type--column, DataFrame, or NDArray
+        def select_type(col):
+            return {'column': col, 'pandas': col.values,
+                    'numpy': col.values.values}[self._input]
+
+        data = [select_type(c) for c in columns]
+
         if not self._loopable:
             columns = [columns]
 
@@ -94,29 +101,25 @@ class Transformation(object):
 
             # Handle all columns together
             if isinstance(col, (list, tuple)):
-                result = self._transform(col.values, *args, **kwargs)
-                col = col.clone(data=result, name=self.output[0])
+                result = self._transform(data, *args, **kwargs)
+                col = col[0].clone(data=result, name=self.output[0])
             # Loop over columns individually
             else:
-                self.column = col
                 if self._groupable and self.groupby is not None:
                     result = col.apply(self._transform, groupby=self.groupby,
                                        *args, **kwargs)
                 else:
-                    data = {
-                        'column': col,
-                        'pandas': col.values,
-                        'numpy': col.values.values
-                    }[self._input]
-                    result = self._transform(data, *args, **kwargs)
+                    result = self._transform(data[i], *args, **kwargs)
 
             col.values = result
+
             # Overwrite existing column
             if self.output is None:
                 self.collection[col.name] = col
+
             # Set as a new column
             else:
-                if len(self.cols) == len(self.output):
+                if len(self.cols) == len(self.output) or not self._loopable:
                     _output = self.output[i]
                 elif len(self.output) == 1:
                     _output = str(self.output) + '_' + col.name
@@ -187,9 +190,9 @@ class scale(Transformation):
 
     def _transform(self, data, demean=True, rescale=True):
         if demean:
-            data -= data.mean(0)
+            data -= data.mean(1)
         if rescale:
-            data /= data.std(0)
+            data /= data.std(1)
         return data
 
 
@@ -200,7 +203,19 @@ class sum(Transformation):
     _align = True
 
     def _transform(self, data):
-        return data.sum(0)
+        data = pd.concat(data, axis=1)
+        return data.sum(1)
+
+
+class product(Transformation):
+
+    _loopable = False
+    _groupable = False
+    _align = True
+
+    def _transform(self, data):
+        data = pd.concat(data, axis=1)
+        return data.product(1)
 
 
 class orthogonalize(Transformation):
