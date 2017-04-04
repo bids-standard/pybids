@@ -27,6 +27,7 @@ class BIDSLayout(Layout):
         return True
 
     def get_metadata(self, path, **kwargs):
+        path = realpath(path)
 
         ext = '.json'
 
