@@ -41,7 +41,7 @@ install:
 - pip install -e .
 
 script:
-- flake8 --ignore N802,N806 `find . -name \*.py | grep -v setup.py | grep -v /doc/`
+# - flake8 --ignore N802,N806 `find . -name \*.py | grep -v setup.py | grep -v /doc/`
 - py.test --pyargs bids
 
 after_success:
