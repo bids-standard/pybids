@@ -2,11 +2,10 @@ import os
 import re
 import json
 
-from itertools import combinations
 from os.path import dirname
 from os.path import realpath
 from os.path import join as pathjoin
-from os.path import split as pathsplit
+from os.path import basename
 
 from grabbit import Layout
 
@@ -29,11 +28,12 @@ class BIDSLayout(Layout):
     def get_metadata(self, path, **kwargs):
         path = realpath(path)
 
-        ext = '.json'
+        if path not in self.files:
+            raise ValueError("File '%s' could not be found in the current BIDS"
+                             " project." % path)
 
-        # Further constrain the search; sidecars must end with same type
-        if path in self.files:
-            ext = self.files[path].entities['type'] + ext
+        # Constrain the search to .json files with the same type as target
+        ext = self.files[path].entities['type'] + '.json'
 
         potentialJSONs = self.get_nearest(path, extensions=ext, all_=True,
                                           **kwargs)
@@ -52,7 +52,7 @@ class BIDSLayout(Layout):
         type_ = '(phase1|phase2|phasediff|epi|fieldmap)'
         for file in self.get(subject=sub, type=type_,
                              extensions=['nii.gz', 'nii']):
-            metadata = self.get_metadata(file.filename, type=type_)
+            metadata = self.get_metadata(file.filename)
             if metadata and "IntendedFor" in metadata.keys():
                 if isinstance(metadata["IntendedFor"], list):
                     intended_for = metadata["IntendedFor"]
