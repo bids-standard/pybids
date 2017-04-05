@@ -33,10 +33,10 @@ class BIDSLayout(Layout):
                              " project." % path)
 
         # Constrain the search to .json files with the same type as target
-        ext = self.files[path].entities['type'] + '.json'
+        type_ = self.files[path].entities['type']
 
-        potentialJSONs = self.get_nearest(path, extensions=ext, all_=True,
-                                          **kwargs)
+        potentialJSONs = self.get_nearest(path, extensions='.json', all_=True,
+                                          type=type_, **kwargs)
 
         merged_param_dict = {}
         for json_file_path in potentialJSONs:
