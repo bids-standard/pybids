@@ -25,7 +25,7 @@ def test_get_metadata(testlayout1):
 
 
 def test_get_metadata2(testlayout1):
-    target = 'sub-03/ses-2/fmap/sub-03_ses-1_run-1_phasediff.nii.gz'
+    target = 'sub-03/ses-1/fmap/sub-03_ses-1_run-1_phasediff.nii.gz'
     result = testlayout1.get_metadata(join(testlayout1.root, target))
     assert result['EchoTime1'] == 0.006
 

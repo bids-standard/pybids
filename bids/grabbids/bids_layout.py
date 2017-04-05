@@ -2,11 +2,10 @@ import os
 import re
 import json
 
-from itertools import combinations
 from os.path import dirname
 from os.path import realpath
 from os.path import join as pathjoin
-from os.path import split as pathsplit
+from os.path import basename
 
 from grabbit import Layout
 
@@ -21,36 +20,23 @@ class BIDSLayout(Layout):
         super(BIDSLayout, self).__init__(path, config,
                                          dynamic_getters=True, **kwargs)
 
-    def get_metadata(self, path):
-        sidecarJSON = path.replace(".nii.gz", ".json").replace(".nii", ".json")
-        path_components = pathsplit(sidecarJSON)
-        filename_components = path_components[-1].split("_")
-        ses = None
-        suffix = filename_components[-1]
+    def _validate_file(self, f):
+        # Return False to exclude a file from indexing. This should call
+        # some kind of validation regex.
+        return True
 
-        sub = filename_components[0]
-        keyword_components = filename_components[1:-1]
-        if filename_components[1][:3] == "ses":
-            ses = filename_components[1]
-            keyword_components = filename_components[2:-1]
+    def get_metadata(self, path, **kwargs):
+        path = realpath(path)
 
-        potentialJSONs = []
-        for prefixes, midlayer, conditional in (  # Levels
-                (tuple(), tuple(), True),        # top
-                ((sub,), tuple(), True),         # subject
-                ((sub, ), (pathsplit(path_components[-2])[-1],), True),
-                ((sub, ses), tuple(), ses),  # session
-                ((sub, ses), (pathsplit(path_components[-2])[-1],), ses)
-        ):
-            if not conditional:
-                continue
-            for k in range(len(keyword_components) + 1):
-                for components in combinations(keyword_components, k):
-                    potentialJSONs.append(
-                        pathjoin(
-                            self.root,
-                            *(prefixes + midlayer +
-                              ("_".join(prefixes + components + (suffix,)),))))
+        if path not in self.files:
+            raise ValueError("File '%s' could not be found in the current BIDS"
+                             " project." % path)
+
+        # Constrain the search to .json files with the same type as target
+        type_ = self.files[path].entities['type']
+
+        potentialJSONs = self.get_nearest(path, extensions='.json', all_=True,
+                                          type=type_, **kwargs)
 
         merged_param_dict = {}
         for json_file_path in potentialJSONs:
@@ -63,8 +49,8 @@ class BIDSLayout(Layout):
     def get_fieldmap(self, path):
         sub = os.path.split(path)[1].split("_")[0].split("sub-")[1]
         fieldmap_set = {}
-        for file in self.get(subject=sub,
-                             type='(phase1|phase2|phasediff|epi|fieldmap)',
+        type_ = '(phase1|phase2|phasediff|epi|fieldmap)'
+        for file in self.get(subject=sub, type=type_,
                              extensions=['nii.gz', 'nii']):
             metadata = self.get_metadata(file.filename)
             if metadata and "IntendedFor" in metadata.keys():

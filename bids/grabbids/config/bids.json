@@ -8,7 +8,7 @@
         {
             "name": "session",
             "pattern": "ses-([a-zA-Z0-9]+)",
-            "mandatory": false,
+            "mandatory": false, 
             "directory": "{{root}}/{subject}/{session}",
             "missing_value": "ses-1"
         },
@@ -18,7 +18,7 @@
         },
         {
             "name": "type",
-            "pattern": "sub-[a-zA-Z0-9_-]+_(.*?)\\."
+            "pattern": ".*_([a-zA-Z0-9]*?)\\."
         },
         {
             "name": "task",
