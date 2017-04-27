@@ -46,15 +46,24 @@ class BIDSLayout(Layout):
 
         return merged_param_dict
 
-    def get_fieldmap(self, path):
-        fieldmaps = self.get_fieldmaps(path)
+    def get_fieldmap(self, path, all=False):
+        fieldmaps = self._get_fieldmaps(path)
 
-        if len(fieldmaps) == 1:
-            return fieldmaps[0]
-        else:
+        if all:
             return fieldmaps
+        else:
+            if len(fieldmaps) == 1:
+                return fieldmaps[0]
+            elif len(fieldmaps) > 1:
+                raise ValueError("More than one fieldmap found, but 'all' "
+                                 "argument was set to False. Either ensure that "
+                                 "there is only one fieldmap for this image, "
+                                 "or set the 'all' argument to True and handle "
+                                 "the result as a list.")
+            else: # len == 0
+                return fieldmaps
 
-    def get_fieldmaps(self, path):
+    def _get_fieldmaps(self, path):
         sub = os.path.split(path)[1].split("_")[0].split("sub-")[1]
         fieldmap_set = []
         type_ = '(phase1|phasediff|epi|fieldmap)'
