@@ -47,6 +47,14 @@
         {
             "name": "modality",
             "pattern": "\/(func|anat|fmap|dwi)\/"
+        },
+        {
+            "name": "dir",
+            "pattern": "dir-([a-zA-Z0-9]+)"
+        },
+        {
+            "name": "acq",
+            "pattern": "acq-([a-zA-Z0-9]+)"
         }
     ]
 }
