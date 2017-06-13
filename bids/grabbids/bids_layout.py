@@ -3,7 +3,7 @@ import re
 import json
 
 from os.path import dirname
-from os.path import realpath
+from os.path import abspath
 from os.path import join as pathjoin
 from os.path import basename
 
@@ -15,7 +15,7 @@ __all__ = ['BIDSLayout']
 class BIDSLayout(Layout):
     def __init__(self, path, config=None, **kwargs):
         if config is None:
-            root = dirname(realpath(__file__))
+            root = dirname(abspath(__file__))
             config = pathjoin(root, 'config', 'bids.json')
         super(BIDSLayout, self).__init__(path, config,
                                          dynamic_getters=True, **kwargs)
@@ -26,7 +26,7 @@ class BIDSLayout(Layout):
         return True
 
     def get_metadata(self, path, **kwargs):
-        path = realpath(path)
+        path = abspath(path)
 
         if path not in self.files:
             raise ValueError("File '%s' could not be found in the current BIDS"
