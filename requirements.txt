@@ -2,4 +2,5 @@ grabbit>=0.0.5
 nibabel
 numpy
 pandas
+patsy
 six
