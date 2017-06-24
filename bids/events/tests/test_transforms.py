@@ -28,7 +28,15 @@ def test_apply_rename(transformer):
 
 
 def test_apply_from_json(transformer):
-    pass
+    ''' Same as test_apply_scale, but from json. '''
+    t = transformer
+    path = join(dirname(__file__), 'data', 'transformations.json')
+    t.apply_from_json(path)
+    groupby = t.collection['RT'].entities['event_file_id'].values
+    z1 = t.collection['RT_Z'].values
+    z2 = t.collection['RT'].values.groupby(
+        groupby).apply(lambda x: (x - x.mean()) / x.std())
+    assert np.allclose(z1, z2)
 
 
 def test_apply_product(transformer):
