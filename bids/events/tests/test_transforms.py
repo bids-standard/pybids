@@ -95,3 +95,14 @@ def test_apply_split(transformer):
     t.apply('split', cols='RT_2', by='respcat')
     assert 'RT_2/respcat[0.0]' in coll.columns.keys()
     assert len(coll['RT_2/respcat[0.0]'].values) == len(coll['RT_2'].values)
+
+
+def test_resample_dense(transformer):
+    t = transformer
+    coll = t.collection
+    coll['RT'] = coll['RT'].to_dense(t)
+    old_rt = coll['RT'].clone()
+    t.resample(50)
+    assert len(old_rt.values) * 5 == len(coll['RT'].values)
+    t.resample(5, force_dense=True)
+    assert len(old_rt.values) == len(coll['parametric gain'].values) * 2

@@ -1,5 +1,5 @@
 from bids.events.base import (SparseBIDSColumn, BIDSEventCollection,
-                            BIDSEventFile)
+                              BIDSEventFile)
 import pytest
 from os.path import join, dirname, abspath
 from bids import grabbids

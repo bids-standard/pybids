@@ -11,7 +11,7 @@ from six import string_types
 import os
 import json
 from bids.events import transform
-
+from scipy.interpolate import interp1d
 
 class BIDSColumn(object):
 
@@ -255,6 +255,7 @@ class BIDSEventCollection(object):
             entities = ['run', 'session', 'subject', 'task']
         self.entities = entities
         self.extra_columns = extra_columns
+        self.transformer = None
 
     def read(self, files=None, reset=True, **kwargs):
         ''' Read in and process event files.
@@ -462,6 +463,7 @@ class BIDSTransformer(object):
 
     def __init__(self, collection, spec=None, sampling_rate=10):
         self.collection = collection
+        self.collection.transformer = self
         self.sampling_rate = sampling_rate
         self._build_dense_index()
         if spec is not None:
@@ -504,3 +506,29 @@ class BIDSTransformer(object):
             name = t.pop('name')
             cols = t.pop('input', None)
             self.apply(name, cols, **t)
+
+    def resample(self, sampling_rate, force_dense=False, kind='linear'):
+
+        # TODO: make this more robust; should not replace sampling_rate in
+        # self until everything works successfully--but this will require
+        # some refactoring.
+
+        # Store old sampling rate-based variables
+        old_sr = self.sampling_rate
+        n = len(self.dense_index)
+
+        # Rebuild the dense index
+        self.sampling_rate = sampling_rate
+        self._build_dense_index()
+
+        x = np.arange(n)
+        num = n * sampling_rate / old_sr
+
+        for name, col in self.collection.columns.items():
+            if isinstance(col, SparseBIDSColumn):
+                if force_dense:
+                    self.collection.columns[name] = col.to_dense(self)
+            else:
+                f = interp1d(x, col.values.values.ravel(), kind=kind)
+                x_new = np.linspace(0, n-1, num=num)
+                col.values = pd.DataFrame(f(x_new))
