@@ -365,38 +365,39 @@ class BIDSEventCollection(object):
             # If condition column is provided, either extract amplitudes
             # from given amplitude column, or to default value
             if self.condition_column is not None:
-
-                skip_cols.append(self.condition_column)
-
                 if self.condition_column not in _data.columns:
-                    raise ValueError(
+                    warnings.warn(
                         "Event file is missing the specified"
-                        "condition column, {}".format(self.condition_column))
-
-                if self.amplitude_column is not None:
-                    if self.amplitude_column not in _data.columns:
-                        raise ValueError(
-                            "Event file is missing the specified "
-                            "amplitude column, {}".format(
-                                self.amplitude_column))
-                    else:
-                        amplitude = _data[self.amplitude_column]
-                        skip_cols.append(self.amplitude_column)
+                        "condition column, {}. Setting to None".format(
+                            self.condition_column))
+                    self.condition_column = None
                 else:
-                    if 'amplitude' in _data.columns:
-                        warnings.warn("Setting amplitude to values in column "
-                                      "'amplitude'")
-                        amplitude = _data['amplitude']
-                        skip_cols.append('amplitude')
+                    skip_cols.append(self.condition_column)
+
+                    if self.amplitude_column is not None:
+                        if self.amplitude_column not in _data.columns:
+                            raise ValueError(
+                                "Event file is missing the specified "
+                                "amplitude column, {}".format(
+                                    self.amplitude_column))
+                        else:
+                            amplitude = _data[self.amplitude_column]
+                            skip_cols.append(self.amplitude_column)
                     else:
-                        amplitude = _data[self.condition_column]
+                        if 'amplitude' in _data.columns:
+                            warnings.warn("Setting amplitude to values in "
+                                          "column 'amplitude'")
+                            amplitude = _data['amplitude']
+                            skip_cols.append('amplitude')
+                        else:
+                            amplitude = _data[self.condition_column]
 
-                    df = _data[['onset', 'duration']].copy()
-                    df['condition'] = _data[self.condition_column]
-                    df['amplitude'] = amplitude
-                    df['factor'] = self.condition_column
+                        df = _data[['onset', 'duration']].copy()
+                        df['condition'] = _data[self.condition_column]
+                        df['amplitude'] = amplitude
+                        df['factor'] = self.condition_column
 
-                file_df.append(df)
+                    file_df.append(df)
 
             extra = self.extra_columns
             if extra:
