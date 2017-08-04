@@ -3,4 +3,5 @@ nibabel
 numpy
 pandas
 patsy
+scipy
 six

@@ -11,6 +11,7 @@ from six import string_types
 import os
 import json
 from bids.events import transform
+from scipy.interpolate import interp1d
 
 
 class BIDSColumn(object):
@@ -42,29 +43,30 @@ class BIDSColumn(object):
                 raise ValueError("Replacement data has shape %s; must have "
                                  "same shape as existing data %s." %
                                  (data.shape, self.values.shape))
-            result.values = pd.Series(data, name=self.values.name)
+            result.values = pd.Series(data)
+
         if kwargs:
             for k, v in kwargs.items():
                 setattr(result, k, v)
+
+        # Need to update name on Series as well
+        result.values.name = kwargs.get('name', self.name)
         return result
 
     def __deepcopy__(self, memo):
-        # When deep copying, we want to stay linked to the same collection.
-        skip_vars = ['collection', 'transformer']
-        tmp = {}
-        dc_method = self.__deepcopy__
-        self.__deepcopy__ = None
-        for sv in skip_vars:
-            if hasattr(self, sv):
-                tmp[sv] = getattr(self, sv)
-                setattr(self, sv, None)
-        clone = deepcopy(self, memo)
-        for k, v in tmp.items():
-            setattr(clone, k, v)
-            setattr(self, k, v)
-        self.__deepcopy__ = dc_method
-        clone.__deepcopy__ = dc_method
-        return clone
+
+        cls = self.__class__
+        result = cls.__new__(cls)
+        memo[id(self)] = result
+
+        # Any variables we don't want to deep copy, and should pass by ref--
+        # e.g., the existing collection.
+        skip_vars = ['collection']
+
+        for k, v in self.__dict__.items():
+            new_val = getattr(self, k) if k in skip_vars else deepcopy(v, memo)
+            setattr(result, k, new_val)
+        return result
 
     @abstractproperty
     def index(self):
@@ -130,15 +132,11 @@ class SparseBIDSColumn(BIDSColumn):
 
         super(SparseBIDSColumn, self).__init__(collection, name, values)
 
-    def to_dense(self, transformer):
-        ''' Convert the current sparse column to a dense representation.
-        Args:
-            transformer (BIDSTransformer): A transformer object containing
-                information controlling the densification process.
-        '''
+    def to_dense(self):
+        ''' Convert the current sparse column to a dense representation. '''
 
-        sampling_rate = transformer.sampling_rate
-        duration = len(transformer.dense_index)
+        sampling_rate = self.collection.sampling_rate
+        duration = len(self.collection.dense_index)
         ts = np.zeros(duration)
 
         onsets = np.ceil(self.onsets * sampling_rate).astype(int)
@@ -153,11 +151,10 @@ class SparseBIDSColumn(BIDSColumn):
 
         ts = pd.DataFrame(ts)
 
-        return DenseBIDSColumn(self.collection, self.name, ts, transformer)
+        return DenseBIDSColumn(self.collection, self.name, ts)
 
     def split(self, grouper):
         ''' Split the current SparseBIDSColumn into multiple columns.
-        one.
         Args:
             grouper (iterable): list to groupby, where each unique value will
                 be taken as the name of the resulting column.
@@ -185,14 +182,10 @@ class SparseBIDSColumn(BIDSColumn):
 class DenseBIDSColumn(BIDSColumn):
     ''' A dense representation of a single column. '''
 
-    def __init__(self, collection, name, values, transformer):
-        self.transformer = transformer
-        super(DenseBIDSColumn, self).__init__(collection, name, values)
-
     @property
     def index(self):
         ''' An index of all named entities. '''
-        return self.transformer.dense_index
+        return self.collection.dense_index
 
     def split(self, grouper):
         ''' Split the current DenseBIDSColumn into multiple columns.
@@ -207,7 +200,7 @@ class DenseBIDSColumn(BIDSColumn):
         df = grouper * self.values
         names = df.columns
         return [DenseBIDSColumn(self.collection, '%s/%s' % (self.name, name),
-                                df[name].values, self.transformer)
+                                df[name].values)
                 for i, name in enumerate(names)]
 
 
@@ -237,13 +230,13 @@ class BIDSEventCollection(object):
         extra_columns (list): Optional list of names specifying which extra
             columns in the event files to read. By default, reads all columns
             found.
-        kwargs: Optional keywords to pass onto the read() call (just for
-            convenience).
+        sampling_rate (int, float): Sampling rate to use internally when
+            converting sparse columns to dense format.
     '''
 
     def __init__(self, base_dir, default_duration=0, default_amplitude=1,
                  condition_column='trial_type', amplitude_column=None,
-                 entities=None, extra_columns=True):
+                 entities=None, extra_columns=True, sampling_rate=10):
 
         self.default_duration = default_duration
         self.default_amplitude = default_amplitude
@@ -255,6 +248,7 @@ class BIDSEventCollection(object):
             entities = ['run', 'session', 'subject', 'task']
         self.entities = entities
         self.extra_columns = extra_columns
+        self.sampling_rate = sampling_rate
 
     def read(self, files=None, reset=True, **kwargs):
         ''' Read in and process event files.
@@ -282,7 +276,7 @@ class BIDSEventCollection(object):
             self.event_files = []
             self.columns = {}
 
-        valid_pairs = []
+        valid_files = []
 
         # Starting with either files or images, get all event files that have
         # a valid functional run, and store their duration if available.
@@ -299,7 +293,7 @@ class BIDSEventCollection(object):
                 if not img_f:
                     continue
 
-                valid_pairs.append((f, img_f[0]))
+                valid_files.append((f, img_f[0], f_ents))
 
         else:
 
@@ -324,12 +318,12 @@ class BIDSEventCollection(object):
                 if not evf:
                     continue
 
-                valid_pairs.append((evf[0], img_f))
+                valid_files.append((evf[0], img_f, f_ents))
 
         dfs = []
         start_time = 0
 
-        for evf, img_f in valid_pairs:
+        for evf, img_f, f_ents in valid_files:
 
             _data = pd.read_table(evf, sep='\t')
             _data = _data.replace('n/a', np.nan)  # Replace BIDS' n/a
@@ -344,11 +338,11 @@ class BIDSEventCollection(object):
                 duration = img.shape[3] * img.header.get_zooms()[-1] / 1000
             except:
                 duration = (_data['onset'] + _data['duration']).max()
-                warnings.warn("Unable to extract scan duration from image %s; "
-                              "setting duration to the offset of the last "
-                              "detected event instead (%d)--but note that this"
-                              " may produce unexpected results." %
-                              (img_f, duration))
+                # warnings.warn("Unable to extract scan duration from image %s; "
+                #               "setting duration to the offset of the last "
+                #               "detected event instead (%d)--but note that this"
+                #               " may produce unexpected results." %
+                #               (img_f, duration))
 
             evf_index = len(self.event_files)
             f_ents['event_file_id'] = evf_index
@@ -422,6 +416,40 @@ class BIDSEventCollection(object):
         for name, grp in _df.groupby(['factor', 'condition']):
             self._create_column(name, grp)
 
+        # build the index
+        self._build_dense_index()
+
+    def write(self, path, columns=None, sparse=True, sampling_rate=None):
+        ''' Write out all events in collection to a TSV file.
+        Args:
+            path (str): The directory to write event files to
+            columns (list): Optional list of column names to retain; if None,
+                all columns are written out.
+            sparse (bool): If True, events will be written out in sparse format
+                provided they are all internally represented as such. If False,
+                a dense matrix (i.e., uniform sampling rate for all events)
+                will be exported. Will be ignored if at least one column is
+                dense.
+            sampling_rate (int): If a dense matrix is written out, the sampling
+                rate (in Hz) to use for downsampling. Defaults to the value
+                currently set in the instance.
+        '''
+
+        is_dense = [isinstance(c, DenseBIDSColumn) for c in self.columns]
+        force_dense = True if not sparse or any(is_dense) else False
+        if sampling_rate is None:
+            sampling_rate = self.sampling_rate
+        columns = self.resample(sampling_rate, force_dense=force_dense,
+                                in_place=False)
+
+        if force_dense:
+            dfs = [self.dense_index] + [c.values for c in columns]
+            data = pd.concat(dfs, axis=1)
+            common_ents = list(set(self.entities) & set(data.columns))
+            groups = data.groupby(common_ents)
+
+        # More here...
+
     def _create_column(self, name, data):
         # If amplitude column contains categoricals, split on it and create
         # 1 dummy-coded column per level
@@ -445,37 +473,16 @@ class BIDSEventCollection(object):
     def __setitem__(self, col, obj):
         self.columns[col] = obj
 
-
-class BIDSTransformer(object):
-
-    ''' Applies supported transformations to the columns of event files
-    specified in a BIDS project.
-
-    Args:
-        collection (BIDSEventCollection): The collection to operate on.
-        spec (str): An optional path to a json file containing transformation
-            specifications.
-        sampling_rate (int): The sampling rate (in hz) to use when working with
-            dense columns. This should be sufficiently high to minimize
-            information loss when resampling, but larger values will slow down
-            transformation.
-    '''
-
-    def __init__(self, collection, spec=None, sampling_rate=10):
-        self.collection = collection
-        self.sampling_rate = sampling_rate
-        self._build_dense_index()
-        if spec is not None:
-            self.apply_from_json(spec)
-
     def _build_dense_index(self):
         ''' Build an index of all tracked entities for all dense columns. '''
         index = []
-        for evf in self.collection.event_files:
+        sr = 1./self.sampling_rate
+        for evf in self.event_files:
             reps = int(math.ceil(evf.duration * self.sampling_rate))
             ent_vals = list(evf.entities.values())
             data = np.broadcast_to(ent_vals, (reps, len(ent_vals)))
             df = pd.DataFrame(data, columns=list(evf.entities.keys()))
+            df['time'] = pd.date_range(0, periods=len(df), freq='%sS' % sr)
             index.append(df)
         self.dense_index = pd.concat(index, axis=0).reset_index(drop=True)
 
@@ -505,3 +512,53 @@ class BIDSTransformer(object):
             name = t.pop('name')
             cols = t.pop('input', None)
             self.apply(name, cols, **t)
+
+    def resample(self, sampling_rate, force_dense=False, in_place=True,
+                 kind='linear'):
+        ''' Resample all dense columns (and optionally, sparse ones) to the
+        specified sampling rate.
+
+        Args:
+            sampling_rate (int, float): Target sampling rate (in Hz)
+            force_dense (bool): if True, all sparse columns will be forced to
+                dense.
+            in_place (bool): When True, all columns are overwritten in-place.
+                When False, returns resampled versions of all columns.
+            kind (str): Argument to pass to scipy's interp1d; indicates the
+                kind of interpolation approach to use. See interp1d docs for
+                valid values.
+        '''
+
+        # TODO: make this more robust; should not replace sampling_rate in
+        # self until everything works successfully--but this will require
+        # some refactoring.
+
+        # Store old sampling rate-based variables
+        old_sr = self.sampling_rate
+        n = len(self.dense_index)
+
+        # Rebuild the dense index
+        self.sampling_rate = sampling_rate
+        self._build_dense_index()
+
+        x = np.arange(n)
+        num = n * sampling_rate / old_sr
+
+        columns = {}
+
+        for name, col in self.columns.items():
+            if isinstance(col, SparseBIDSColumn):
+                if force_dense:
+                    columns[name] = col.to_dense()
+            else:
+                col = col.clone()
+                f = interp1d(x, col.values.values.ravel(), kind=kind)
+                x_new = np.linspace(0, n-1, num=num)
+                col.values = pd.DataFrame(f(x_new))
+                columns[name] = col
+
+        if in_place:
+            for k, v in columns.items():
+                self.columns[k] = v
+        else:
+            return columns.values()

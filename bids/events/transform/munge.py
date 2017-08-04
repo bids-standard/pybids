@@ -9,6 +9,21 @@ from .base import Transformation
 from patsy import dmatrix
 
 
+class copy(Transformation):
+    ''' Copy/clone a column.
+
+    Args:
+        col (str): Name of column to copy.
+    '''
+
+    _groupable = False
+    _output_required = True
+
+    def _transform(self, col):
+        # We don't have to do anything else here b/c it's handled in base.
+        return col.values.values
+
+
 class rename(Transformation):
     ''' Rename a column.
 
@@ -83,8 +98,27 @@ class densify(Transformation):
 
 
 class assign(Transformation):
-    ''' Assign one column's amplitude, duration, or onset to another. '''
+    ''' Assign one column's amplitude, duration, or onset attribute to
+    another. '''
+
+    _loopable = False
+    _groupable = False
+    _input_type = 'column'
+    _return_type = 'column'
 
     def _transform(self, source, target, source_attr='amplitude',
                    target_attr='amplitude'):
-        pass
+
+        # Ensure attributes are valid
+        valid_attrs = ['amplitude', 'duration', 'onset']
+        if source_attr not in valid_attrs:
+            raise ValueError("Valid values for source_attr are: %s." %
+                             valid_attr)
+        if source_attr not in valid_attrs:
+            raise ValueError("Valid values for target_attr are: %s." %
+                             valid_attr)
+
+        # Ensure alignment
+        # if len(source.index)
+
+

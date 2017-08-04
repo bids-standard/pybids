@@ -12,7 +12,7 @@ sudo: false
 
 env:
   global:
-    - CONDA_DEPS="pip flake8 pytest numpy scipy patsy"
+    - CONDA_DEPS="pip flake8 pytest numpy pandas scipy patsy"
 
 matrix:
   include:
