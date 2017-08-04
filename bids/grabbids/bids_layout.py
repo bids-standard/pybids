@@ -2,11 +2,10 @@ import os
 import re
 import json
 
-from itertools import combinations
 from os.path import dirname
-from os.path import realpath
+from os.path import abspath
 from os.path import join as pathjoin
-from os.path import split as pathsplit
+from os.path import basename
 
 from grabbit import Layout
 
@@ -16,41 +15,28 @@ __all__ = ['BIDSLayout']
 class BIDSLayout(Layout):
     def __init__(self, path, config=None, **kwargs):
         if config is None:
-            root = dirname(realpath(__file__))
+            root = dirname(abspath(__file__))
             config = pathjoin(root, 'config', 'bids.json')
         super(BIDSLayout, self).__init__(path, config,
                                          dynamic_getters=True, **kwargs)
 
-    def get_metadata(self, path):
-        sidecarJSON = path.replace(".nii.gz", ".json").replace(".nii", ".json")
-        path_components = pathsplit(sidecarJSON)
-        filename_components = path_components[-1].split("_")
-        ses = None
-        suffix = filename_components[-1]
+    def _validate_file(self, f):
+        # Return False to exclude a file from indexing. This should call
+        # some kind of validation regex.
+        return True
 
-        sub = filename_components[0]
-        keyword_components = filename_components[1:-1]
-        if filename_components[1][:3] == "ses":
-            ses = filename_components[1]
-            keyword_components = filename_components[2:-1]
+    def get_metadata(self, path, **kwargs):
+        path = abspath(path)
 
-        potentialJSONs = []
-        for prefixes, midlayer, conditional in (  # Levels
-                (tuple(), tuple(), True),        # top
-                ((sub,), tuple(), True),         # subject
-                ((sub, ), (pathsplit(path_components[-2])[-1],), True),
-                ((sub, ses), tuple(), ses),  # session
-                ((sub, ses), (pathsplit(path_components[-2])[-1],), ses)
-        ):
-            if not conditional:
-                continue
-            for k in range(len(keyword_components) + 1):
-                for components in combinations(keyword_components, k):
-                    potentialJSONs.append(
-                        pathjoin(
-                            self.root,
-                            *(prefixes + midlayer +
-                              ("_".join(prefixes + components + (suffix,)),))))
+        if path not in self.files:
+            raise ValueError("File '%s' could not be found in the current BIDS"
+                             " project." % path)
+
+        # Constrain the search to .json files with the same type as target
+        type_ = self.files[path].entities['type']
+
+        potentialJSONs = self.get_nearest(path, extensions='.json', all_=True,
+                                          type=type_, **kwargs)
 
         merged_param_dict = {}
         for json_file_path in potentialJSONs:
@@ -60,11 +46,29 @@ class BIDSLayout(Layout):
 
         return merged_param_dict
 
-    def get_fieldmap(self, path):
+    def get_fieldmap(self, path, return_list=False):
+        fieldmaps = self._get_fieldmaps(path)
+
+        if return_list:
+            return fieldmaps
+        else:
+            if len(fieldmaps) == 1:
+                return fieldmaps[0]
+            elif len(fieldmaps) > 1:
+                raise ValueError("More than one fieldmap found, but the "
+                                 "'return_list' argument was set to False. "
+                                 "Either ensure that there is only one "
+                                 "fieldmap for this image, or set the "
+                                 "'return_list' argument to True and handle "
+                                 "the result as a list.")
+            else:  # len(fieldmaps) == 0
+                return None
+
+    def _get_fieldmaps(self, path):
         sub = os.path.split(path)[1].split("_")[0].split("sub-")[1]
-        fieldmap_set = {}
-        for file in self.get(subject=sub,
-                             type='(phase1|phase2|phasediff|epi|fieldmap)',
+        fieldmap_set = []
+        type_ = '(phase1|phasediff|epi|fieldmap)'
+        for file in self.get(subject=sub, type=type_,
                              extensions=['nii.gz', 'nii']):
             metadata = self.get_metadata(file.filename)
             if metadata and "IntendedFor" in metadata.keys():
@@ -73,34 +77,32 @@ class BIDSLayout(Layout):
                 else:
                     intended_for = [metadata["IntendedFor"]]
                 if any([path.endswith(suffix) for suffix in intended_for]):
+                    cur_fieldmap = {}
                     if file.type == "phasediff":
-                        fieldmap_set = {"phasediff": file.filename,
+                        cur_fieldmap = {"phasediff": file.filename,
                                         "magnitude1": file.filename.replace(
                                             "phasediff", "magnitude1"),
                                         "magnitude2": file.filename.replace(
                                             "phasediff", "magnitude2"),
                                         "type": "phasediff"}
-                        break
                     elif file.type == "phase1":
-                        fieldmap_set["phase1"] = file.filename
-                        fieldmap_set["magnitude1"] = \
+                        cur_fieldmap["phase1"] = file.filename
+                        cur_fieldmap["magnitude1"] = \
                             file.filename.replace("phase1", "magnitude1")
-                        fieldmap_set["type"] = "phase"
-                    elif file.type == "phase2":
-                        fieldmap_set["phase2"] = file.filename
-                        fieldmap_set["magnitude2"] = \
-                            file.filename.replace("phase2", "magnitude2")
-                        fieldmap_set["type"] = "phase"
+                        cur_fieldmap["phase2"] = \
+                            file.filename.replace("phase1", "phase2")
+                        cur_fieldmap["magnitude2"] = \
+                            file.filename.replace("phase1", "magnitude2")
+                        cur_fieldmap["type"] = "phase"
                     elif file.type == "epi":
-                        if "epi" not in fieldmap_set.keys():
-                            fieldmap_set["epi"] = []
-                        fieldmap_set["epi"].append(file.filename)
-                        fieldmap_set["type"] = "epi"
+                        cur_fieldmap["epi"] = file.filename
+                        cur_fieldmap["type"] = "epi"
                     elif file.type == "fieldmap":
-                        fieldmap_set["fieldmap"] = file.filename
-                        fieldmap_set["magnitude"] = \
+                        cur_fieldmap["fieldmap"] = file.filename
+                        cur_fieldmap["magnitude"] = \
                             file.filename.replace("fieldmap", "magnitude")
-                        fieldmap_set["type"] = "fieldmap"
+                        cur_fieldmap["type"] = "fieldmap"
+                    fieldmap_set.append(cur_fieldmap)
         return fieldmap_set
 
     def find_match(self, target, source=None):
