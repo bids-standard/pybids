@@ -2,6 +2,6 @@ grabbit>=0.0.5
 nibabel
 numpy
 pandas
-patsy
+patsy==0.4.1
 scipy
 six
