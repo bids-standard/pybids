@@ -250,24 +250,25 @@ class BIDSEventCollection(object):
         self.extra_columns = extra_columns
         self.sampling_rate = sampling_rate
 
-    def read(self, files=None, reset=True, **kwargs):
+    def read(self, file_directory=None, reset=True, **kwargs):
         ''' Read in and process event files.
         Args:
-            files (None, list): Optional list of event files to read from. If
-                None (default), will use all event files found within the
-                current BIDS project. Note that if `files` is passed, existing
-                event files within the BIDS project are completely ignored.
+            file_directory (None, str): Optional path to folder containing
+                event files to read from. If None (default), will use all event
+                files found within the current BIDS project. Note that if
+                `files` is passed, existing event files within the BIDS
+                project are completely ignored.
             reset (bool): If True (default), clears all previously processed
                 event files and columns; if False, adds new files
                 incrementally.
 
         Notes:
-            If the names of event files are passed in using the `files`
+            If a directory of event files is passed in using the `file_directory`
             argument, the following two constraints apply:
                 * ALL relevant BIDS entities MUST be encoded in each file.
                   I.e., "sub-02_task-mixedgamblestask_run-01_events.tsv" is
                   valid, but "subject_events.tsv" would not be.
-                * It is assumed that all and only the files in the passed list
+                * It is assumed that all and only the event files in the folder
                   are to be processed--i.e., there cannot be any other
                   subjects, runs, etc. whose events also need to be processed
                   but that are missing from the passed list.
@@ -280,18 +281,23 @@ class BIDSEventCollection(object):
 
         # Starting with either files or images, get all event files that have
         # a valid functional run, and store their duration if available.
-        if files is not None:
-
-            for f in files:
-                f_ents = self.project.files[f].entities
+        if file_directory is not None:
+            new_project = BIDSLayout(file_directory)
+            evf = new_project.get(return_type='file', extensions='.tsv',
+                                   type='events', **kwargs)
+            for f in evf:
+                f_ents = new_project.files[f].entities
                 f_ents = {k: v for k, v in f_ents.items() if k in self.entities}
 
                 img_f = self.project.get(return_type='file', modality='func',
                                          extensions='.nii.gz', type='bold',
-                                         **kwargs)
+                                         **f_ents)
 
                 if not img_f:
                     continue
+                elif len(img_f) > 1:
+                    warnings.warn("Event file matched multiple images,"
+                                  "matching to first")
 
                 valid_files.append((f, img_f[0], f_ents))
 
