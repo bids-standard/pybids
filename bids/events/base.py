@@ -392,10 +392,10 @@ class BIDSEventCollection(object):
                         else:
                             amplitude = _data[self.condition_column]
 
-                        df = _data[['onset', 'duration']].copy()
-                        df['condition'] = _data[self.condition_column]
-                        df['amplitude'] = amplitude
-                        df['factor'] = self.condition_column
+                    df = _data[['onset', 'duration']].copy()
+                    df['condition'] = _data[self.condition_column]
+                    df['amplitude'] = amplitude
+                    df['factor'] = self.condition_column
 
                     file_df.append(df)
 
