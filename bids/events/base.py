@@ -482,13 +482,13 @@ class BIDSEventCollection(object):
     def _build_dense_index(self):
         ''' Build an index of all tracked entities for all dense columns. '''
         index = []
-        sr = 1./self.sampling_rate
+        sr = int(1000./self.sampling_rate)
         for evf in self.event_files:
             reps = int(math.ceil(evf.duration * self.sampling_rate))
             ent_vals = list(evf.entities.values())
             data = np.broadcast_to(ent_vals, (reps, len(ent_vals)))
             df = pd.DataFrame(data, columns=list(evf.entities.keys()))
-            df['time'] = pd.date_range(0, periods=len(df), freq='%sS' % sr)
+            df['time'] = pd.date_range(0, periods=len(df), freq='%sms' % sr)
             index.append(df)
         self.dense_index = pd.concat(index, axis=0).reset_index(drop=True)
 
