@@ -24,9 +24,16 @@ class sum(Transformation):
     _groupable = False
     _align = True
 
-    def _transform(self, data):
+    def _transform(self, data, weights=None):
+        if weights is None:
+            weights = np.ones(data.shape[1])
+        else:
+            if len(weights.ravel()) != data.shape[1]:
+                raise ValueError("If weights are passed to sum(), the number "
+                                 "of elements must equal the number of columns"
+                                 "being summed.")
         data = pd.concat(data, axis=1)
-        return data.sum(1)
+        return data.dot(weights)
 
 
 class product(Transformation):

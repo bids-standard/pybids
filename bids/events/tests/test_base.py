@@ -25,7 +25,7 @@ def test_collection(bids_event_collection):
     ef = bec.event_files[0]
     assert isinstance(ef, BIDSEventFile)
     assert ef.entities['task'] == 'mixedgamblestask'
-    assert ef.entities['subject'] == '16'
+    assert ef.entities['subject'] == '01'
 
     # Test extracted columns
     col_keys = bec.columns.keys()
@@ -50,10 +50,14 @@ def test_read_from_files(bids_event_collection):
     subs = ['02', '06', '08']
     template = 'sub-%s/func/sub-%s_task-mixedgamblestask_run-01_events.tsv'
     files = [join(path, template % (s, s)) for s in subs]
-    # for x in os.walk(os.path.dirname(files[0])):
-    #     print(x)
     bec.read(files=files)
     col_keys = bec.columns.keys()
     assert set(col_keys) == {'RT', 'gain', 'respnum', 'PTval', 'loss',
                              'respcat', 'parametric gain',
                              'trial_type/parametric gain'}
+
+
+def test_write_collection(bids_event_collection):
+    bec = bids_event_collection
+    bec.read()
+    bec.write('.', sparse=False)

@@ -1,9 +1,7 @@
-from .base import (BIDSEventCollection, BIDSTransformer, DenseBIDSColumn,
-                   SparseBIDSColumn)
+from .base import (BIDSEventCollection, DenseBIDSColumn, SparseBIDSColumn)
 
 __all__ = [
     'BIDSEventCollection',
-    'BIDSTransformer',
     'DenseBIDSColumn',
     'SparseBIDSColumn',
 ]

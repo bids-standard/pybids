@@ -13,8 +13,8 @@ class Transformation(object):
 
     _columns_used = ()          # List all columns the transformation touches
     _input_type = 'pandas'      # 'column', 'pandas', or 'numpy'
-    _return_type = 'pandas'     # 'column', 'pandas', 'numpy', 'none'
-
+    _return_type = 'pandas'     # 'column', 'pandas', 'numpy', or 'none'
+    _align = None               # Which columns to ensure alignment for
     _loopable = True            # Loop over input columns one at a time?
     _groupable = True           # Can groupby operations be applied?
     _output_required = False    # Require names of output columns?
@@ -22,16 +22,15 @@ class Transformation(object):
 
     __metaclass__ = ABCMeta
 
-    def __new__(cls, transformer, cols, *args, **kwargs):
+    def __new__(cls, collection, cols, *args, **kwargs):
         t = super(Transformation, cls).__new__(cls)
-        t._setup(transformer, cols, *args, **kwargs)
+        t._setup(collection, cols, *args, **kwargs)
         return t.transform()
 
-    def _setup(self, transformer, cols, *args, **kwargs):
+    def _setup(self, collection, cols, *args, **kwargs):
         ''' Replaces __init__ to set instance attributes because on Python
         >= 3.3, we can't override both new and init. '''
-        self.transformer = transformer
-        self.collection = self.transformer.collection
+        self.collection = collection
         self.cols = listify(cols)
         self.groupby = kwargs.pop('groupby', 'event_file_id')
         self.output = listify(kwargs.pop('output', None))
@@ -44,7 +43,7 @@ class Transformation(object):
         from unnecessarily overwriting existing columns. '''
 
         # Always clone the target columns
-        self._columns = {c: deepcopy(self.collection[c]) for c in self.cols}
+        self._columns = {c: self.collection[c].clone() for c in self.cols}
 
         if not self._columns_used:
             return
@@ -70,7 +69,7 @@ class Transformation(object):
         for c in cols:
             col = self._columns[c]
             if isinstance(col, SparseBIDSColumn):
-                self._columns[c] = col.to_dense(self.transformer)
+                self._columns[c] = col.to_dense()
 
     def transform(self):
 
@@ -91,6 +90,9 @@ class Transformation(object):
         # Set columns we plan to operate on directly
         columns = [self._columns[c] for c in self.cols]
 
+        # Align columns if needed
+        self._align_columns(columns)
+
         # Pass desired type--column, DataFrame, or NDArray
         def select_type(col):
             return {'column': col, 'pandas': col.values,
@@ -103,8 +105,7 @@ class Transformation(object):
 
         for i, col in enumerate(columns):
 
-            # If we still have a list, pass all columns to the transformer
-            # in one block
+            # If we still have a list, pass all columns in one block
             if isinstance(col, (list, tuple)):
                 result = self._transform(data, *args, **kwargs)
                 col = col[0].clone(data=result, name=self.output[0])
@@ -159,13 +160,13 @@ class Transformation(object):
         format in order to ensure alignment.
         '''
 
-        if self._align is None:  # We shouldn't be here!
+        if self._align is None or self._align == 'none':
             return
 
         def _align(cols):
             # If any column is dense, all columns must be dense
             from bids.events.base import SparseBIDSColumn
-            sparse = [isinstance(c, SparseBIDSColumn) for c in cols]
+            sparse = [c for c in cols if isinstance(c, SparseBIDSColumn)]
             if len(sparse) < len(cols):
                 if sparse:
                     sparse_names = [s.name for s in sparse]
@@ -175,7 +176,7 @@ class Transformation(object):
                         msg += (" Sparse columns  %s were converted to dense "
                                 "form to ensure proper alignment." %
                                 sparse_names)
-                        sparse = [s.to_dense(self) for s in sparse]
+                        sparse = [s.to_dense() for s in sparse]
                 warnings.warn(msg)
             # If all are sparse, durations, onsets, and index must match
             # perfectly for all
@@ -194,15 +195,20 @@ class Transformation(object):
                     if force:
                         msg += (" Forcing all sparse columns to dense in order"
                                 " to ensure proper alignment.")
-                        cols = [c.to_dense(self) for c in cols]
+                        cols = [c.to_dense() for c in cols]
                     warnings.warn(msg)
 
-        align_cols = [self.kwargs.get(v, []) for v in listify(self._align)]
-        align_cols = list(itertools.chain(align_cols))
-        align_cols = [self.collection[c] for c in align_cols]
+        align_cols = [listify(self.kwargs[v]) for v in listify(self._align)
+                      if v in self.kwargs]
+        align_cols = list(itertools.chain(*align_cols))
+        align_cols = [self.collection[c] for c in align_cols if c]
 
-        if self._loopable:
+        if align_cols and self._loopable:
             for c in cols:
+                # TODO: should clone all variables in align_cols before
+                # alignment to prevent conversion to dense in any given
+                # iteration having side effects. This could be an issue if,
+                # e.g., some columns in 'cols' are dense and some are sparse.
                 _align([c] + align_cols)
         else:
             _align(listify(cols) + align_cols)

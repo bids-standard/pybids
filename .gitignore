@@ -1,2 +1,9 @@
 *.pyc
 *~
+build/
+dist/
+*.egg-info
+.cache/
+*.DS_Store
+.coverage
+.ipynb_checkpoints
