@@ -1,8 +1,12 @@
 from bids.events.base import (SparseBIDSColumn, BIDSEventCollection,
                               BIDSEventFile)
 import pytest
-from os.path import join, dirname, abspath
+from os.path import join, dirname, abspath, exists
+import os
 from bids import grabbids
+import tempfile
+import pandas as pd
+
 
 @pytest.fixture
 def bids_event_collection():
@@ -58,6 +62,18 @@ def test_read_from_files(bids_event_collection):
 
 
 def test_write_collection(bids_event_collection):
+
     bec = bids_event_collection
     bec.read()
-    bec.write('.', sparse=False)
+    filename = tempfile.mktemp() + '.tsv'
+
+    # Sparse, single file
+    bec.write(file=filename, sparse=True)
+    # data = pd.read_csv(filename, sep='\t')
+    assert exists(filename)
+    os.remove(filename)
+
+    # Dense, single file
+    bec.write(file=filename, sparse=False, sampling_rate=1)
+    assert exists(filename)
+    os.remove(filename)

@@ -65,4 +65,4 @@ MICRO = _version_micro
 VERSION = __version__
 # No data for now
 # PACKAGE_DATA = {'bids': [pjoin('data', '*')]}
-REQUIRES = ["grabbit>=0.0.6", "six"]
+REQUIRES = ["grabbit>=0.0.6", "six", "nibabel", "numpy", "pandas"]

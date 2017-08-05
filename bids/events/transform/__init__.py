@@ -1,4 +1,4 @@
-from .compute import (sum, product, scale, orthogonalize, binarize)
+from .compute import (sum, product, scale, orthogonalize, threshold)
 from .munge import (split, rename)
 
 __all__ = [
@@ -6,7 +6,7 @@ __all__ = [
     'product',
     'scale',
     'orthogonalize',
-    'binarize',
+    'threshold',
     'split',
     'rename'
 ]
