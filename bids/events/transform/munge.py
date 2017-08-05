@@ -86,7 +86,7 @@ class split(Transformation):
             return col.split(dm)
 
 
-class densify(Transformation):
+class to_dense(Transformation):
     ''' Convert column to dense representation. '''
 
     _groupable = False
@@ -101,7 +101,7 @@ class assign(Transformation):
     ''' Assign one column's amplitude, duration, or onset attribute to
     another. '''
 
-    _loopable = False
+    _loopable = True
     _groupable = False
     _input_type = 'column'
     _return_type = 'column'
