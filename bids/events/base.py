@@ -153,6 +153,27 @@ class SparseBIDSColumn(BIDSColumn):
 
         return DenseBIDSColumn(self.collection, self.name, ts)
 
+    def to_df(self, condition=True, entities=True):
+        ''' Convert to a DataFrame, with columns for onset/duration/amplitude
+        plus (optionally) name and entities.
+        Args:
+            condition (bool): If True, adds a column for condition name, and
+                names the amplitude column 'amplitude'. If False, returns just
+                onset, duration, and amplitude, and gives the amplitude column
+                the current column name.
+            entities (bool): If True, adds extra columns for all entities.
+        '''
+        amp = 'amplitude' if condition else self.name
+        data = pd.DataFrame({'onset': self.onsets,
+                             'duration': self.durations,
+                             amp: self.values.values})
+        if condition:
+            data['condition'] = self.name
+        if entities:
+            ent_data = self.entities.reset_index(drop=True)
+            data = pd.concat([data, ent_data], axis=1)
+        return data
+
     def split(self, grouper):
         ''' Split the current SparseBIDSColumn into multiple columns.
         Args:
@@ -307,14 +328,9 @@ class BIDSEventCollection(object):
                 f_ents = self.project.files[img_f].entities
                 f_ents = {k: v for k, v in f_ents.items() if k in self.entities}
 
-                # HARDCODED FOR DEVELOPMENT
-                # TODO: need to walk up the tree for each image to get .tsv
-                # file; can't assume that entities will always be set in the
-                # filename.
                 evf = self.project.get(return_type='file', extensions='.tsv',
                                        type='events', **f_ents)
 
-                # evf = self.project.get_event_file(img_f) # NOT IMPLEMENTED YET!!!
                 if not evf:
                     continue
 
@@ -418,8 +434,9 @@ class BIDSEventCollection(object):
         # build the index
         self._build_dense_index()
 
-    def write(self, path, columns=None, sparse=True, sampling_rate=None):
-        ''' Write out all events in collection to a TSV file.
+    def write(self, path=None, file=None, suffix='', columns=None,
+              sparse=True, sampling_rate=None, header=True, overwrite=False):
+        ''' Write out all events in collection to TSV file(s).
         Args:
             path (str): The directory to write event files to
             columns (list): Optional list of column names to retain; if None,
@@ -432,22 +449,70 @@ class BIDSEventCollection(object):
             sampling_rate (int): If a dense matrix is written out, the sampling
                 rate (in Hz) to use for downsampling. Defaults to the value
                 currently set in the instance.
+            header (bool): If True, includes column names in the header row. If
+                False, omits the header row.
+            overwrite (bool): If True, any existing .tsv file at the output
+                location will be overwritten.
         '''
 
-        is_dense = [isinstance(c, DenseBIDSColumn) for c in self.columns]
-        force_dense = True if not sparse or any(is_dense) else False
+        if path is None and file is None:
+            raise ValueError("Either the 'path' or the 'file' arguments must "
+                             "be provided.")
+
+        # Can only write sparse output if all columns are sparse
+        force_dense = True if not sparse or not self._all_sparse() else False
+
+        # Default to sampling rate of current instance
+        # TODO: Store the TR internally when reading images, and then allow
+        # user to downsample to TR resolution using the special value 'tr'.
         if sampling_rate is None:
             sampling_rate = self.sampling_rate
-        columns = self.resample(sampling_rate, force_dense=force_dense,
-                                in_place=False)
+        if force_dense and not self._all_dense():
+            _cols = self.resample(sampling_rate, force_dense=force_dense,
+                                    in_place=False)
+        else:
+            _cols = self.columns.values()
 
+        # Retain only specific columns if desired
+        if columns is not None:
+            _cols = [c for c in _cols if c.name in columns]
+
+        # Merge all data into one DF
         if force_dense:
-            dfs = [self.dense_index] + [c.values for c in columns]
+            dfs = [pd.Series(c.values.iloc[:, 0], name=c.name) for c in _cols]
+            # Convert datetime to seconds and add duration column
+            dense_index = self.dense_index.copy()
+            onsets = self.dense_index.pop('time').values.astype(float) / 1e+9
+            timing = pd.DataFrame({'onset': onsets})
+            timing['duration'] = 1. / sampling_rate
+            dfs = [timing] + dfs + [dense_index]
             data = pd.concat(dfs, axis=1)
+        else:
+            data = pd.concat([c.to_df() for c in _cols], axis=0)
+
+        # If output is a single file, just write out the entire DF, adding in
+        # the entities.
+        if file is not None:
+            data.to_csv(file, sep='\t', header=header, index=False)
+
+        # Otherwise we write out one event file per entity combination
+        else:
             common_ents = list(set(self.entities) & set(data.columns))
             groups = data.groupby(common_ents)
 
-        # More here...
+            for name, g in groups:
+
+                # build file name
+                filename = '_'.join(['%s-%s' % (e, name[i]) for i, e in
+                                     enumerate(common_ents)])
+                filename = os.path.join(path, filename, suffix, )
+                g.to_csv(filename, sep='\t', header=header, index=False)
+
+    def _all_sparse(self):
+        return all([isinstance(c, SparseBIDSColumn) for c in self.columns.values()])
+
+    def _all_dense(self):
+        return all([isinstance(c, DenseBIDSColumn) for c in self.columns.values()])
 
     def _create_column(self, name, data):
         # If amplitude column contains categoricals, split on it and create
