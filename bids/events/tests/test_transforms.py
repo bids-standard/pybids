@@ -1,4 +1,5 @@
 from bids.events.base import BIDSEventCollection
+from bids.events import transform
 import pytest
 from os.path import join, dirname
 from bids import grabbids
@@ -119,3 +120,22 @@ def test_resample_dense(collection):
     assert len(old_rt.values) * 5 == len(collection['RT'].values)
     collection.resample(5, force_dense=True)
     assert len(old_rt.values) == len(collection['parametric gain'].values) * 2
+
+def test_threshold(collection):
+    old_pg = collection['parametric gain']
+    orig_vals = old_pg.values
+
+    collection['pg'] = old_pg.clone()
+    transform.threshold(collection, 'pg', threshold=0.2, binarize=True)
+    assert collection.columns['pg'].values.sum() == (orig_vals >= 0.2).sum()
+
+    collection['pg'] = old_pg.clone()
+    transform.threshold(collection, 'pg', threshold=0.2, binarize=False)
+    assert collection.columns['pg'].values.sum() != (orig_vals >= 0.2).sum()
+    assert (collection.columns['pg'].values >= 0.2).sum() == (orig_vals >= 0.2).sum()
+
+    collection['pg'] = old_pg.clone()
+    transform.threshold(collection, 'pg', threshold=-0.1, binarize=True,
+                        signed=False, above=False)
+    n = np.logical_and(orig_vals <= 0.1, orig_vals >= -0.1).sum()
+    assert collection.columns['pg'].values.sum() == n

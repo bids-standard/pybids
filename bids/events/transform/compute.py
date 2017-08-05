@@ -69,19 +69,50 @@ class orthogonalize(Transformation):
         return result
 
 
-class binarize(Transformation):
-    ''' Binarize a column.
+class threshold(Transformation):
+    ''' Threshold and/or binarize a column.
     Args:
-        col (Series/DF): The pandas structure to binarize.
+        data (Series/DF): The pandas structure to threshold.
         threshold (float): The value to binarize around (values above will
             be assigned 1, values below will be assigned 0).
+        binarize (bool): If True, binarizes all non-zero values (i.e., every
+            non-zero value will be set to 1).
+        above (bool): Specifies which values to retain with respect to the
+            cut-off. If True, all value above the threshold will be kept; if
+            False, all values below the threshold will be kept. Defaults to
+            True.
+        signed (bool): Specifies whether to treat the threshold as signed
+        (default) or unsigned. For example, when passing above=True and
+        threshold=3, if signed=True, all and only values above +3 would be
+        retained. If signed=False, all absolute values > 3 would be retained
+        (i.e.,values in  the range -3 < X < 3 would be set to 0).
+
     '''
 
     _groupable = False
-    _input_type = 'pandas'
 
-    def _transform(self, data, threshold=0.):
-        above = data > threshold
-        data[above] = 1
-        data[~above] = 0
+    def _transform(self, data, threshold=0., binarize=False, above=True,
+                   signed=True):
+        if not signed:
+            threshold = np.abs(threshold)
+            data = data.abs()
+        keep = data >= threshold if above else data <= threshold
+        # print("Keep:", keep)
+        data[~keep] = 0
+        if binarize:
+            data[keep] = 1
         return data
+
+
+class or_(Transformation):
+    ''' Logical OR (inclusive) on two or more columns.
+    Args:
+        dfs (list of DFs): Columns to enter into the disjunction.
+    '''
+
+    _loopable = False
+    _groupable = False
+
+    def _transform(self, dfs):
+        df = pd.concat(dfs, axis=1)
+        return pd.any(axis=1)
