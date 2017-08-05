@@ -470,6 +470,13 @@ class BIDSEventCollection(object):
         return self.columns[col]
 
     def __setitem__(self, col, obj):
+        # Ensure name matches collection key, but raise warning if needed.
+        if obj.name != col:
+            warnings.warn("The provided key to use in the collection ('%s') "
+                          "does not match the passed Column object's existing "
+                          "name ('%s'). The Column name will be set to match "
+                          "the provided key." % (col, obj.name))
+            obj.name = col
         self.columns[col] = obj
 
     def _build_dense_index(self):
