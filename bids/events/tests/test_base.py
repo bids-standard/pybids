@@ -6,7 +6,7 @@ import os
 from bids import grabbids
 import tempfile
 import pandas as pd
-
+from shutil import copy2
 
 @pytest.fixture
 def bids_event_collection():
@@ -54,7 +54,12 @@ def test_read_from_files(bids_event_collection):
     subs = ['02', '06', '08']
     template = 'sub-%s/func/sub-%s_task-mixedgamblestask_run-01_events.tsv'
     files = [join(path, template % (s, s)) for s in subs]
-    bec.read(files=files)
+    # Put them in a temporary directory
+    tmp_dir = tempfile.mkdtemp()
+    for f in files:
+        copy2(f, tmp_dir)
+
+    bec.read(file_directory=tmp_dir)
     col_keys = bec.columns.keys()
     assert set(col_keys) == {'RT', 'gain', 'respnum', 'PTval', 'loss',
                              'respcat', 'parametric gain',
