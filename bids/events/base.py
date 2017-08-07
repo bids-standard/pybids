@@ -266,7 +266,7 @@ class BIDSEventCollection(object):
         self.base_dir = base_dir
         self.project = BIDSLayout(self.base_dir)
         if entities is None:
-            entities = ['run', 'session', 'subject', 'task']
+            entities = ['subject', 'session', 'task', 'run']
         self.entities = entities
         self.extra_columns = extra_columns
         self.sampling_rate = sampling_rate
@@ -441,7 +441,7 @@ class BIDSEventCollection(object):
         # build the index
         self._build_dense_index()
 
-    def write(self, path=None, file=None, suffix='', columns=None,
+    def write(self, path=None, file=None, suffix='_events', columns=None,
               sparse=True, sampling_rate=None, header=True, overwrite=False):
         ''' Write out all events in collection to TSV file(s).
         Args:
@@ -506,15 +506,15 @@ class BIDSEventCollection(object):
 
         # Otherwise we write out one event file per entity combination
         else:
-            common_ents = list(set(self.entities) & set(data.columns))
+            common_ents = [e for e in self.entities if e in data.columns]
             groups = data.groupby(common_ents)
+            common_ents = ["sub" if e is "subject" else e for e in common_ents]
 
             for name, g in groups:
-
                 # build file name
                 filename = '_'.join(['%s-%s' % (e, name[i]) for i, e in
                                      enumerate(common_ents)])
-                filename = os.path.join(path, filename + suffix)
+                filename = os.path.join(path, filename + suffix + ".tsv")
                 g.to_csv(filename, sep='\t', header=header, index=False)
 
     def _all_sparse(self):
