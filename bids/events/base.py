@@ -446,6 +446,8 @@ class BIDSEventCollection(object):
         ''' Write out all events in collection to TSV file(s).
         Args:
             path (str): The directory to write event files to
+            file (str): Event file to write events to
+            suffix (str): Suffix to append to filenames
             columns (list): Optional list of column names to retain; if None,
                 all columns are written out.
             sparse (bool): If True, events will be written out in sparse format
@@ -453,7 +455,7 @@ class BIDSEventCollection(object):
                 a dense matrix (i.e., uniform sampling rate for all events)
                 will be exported. Will be ignored if at least one column is
                 dense.
-            sampling_rate (int): If a dense matrix is written out, the sampling
+            sampling_rate (float): If a dense matrix is written out, the sampling
                 rate (in Hz) to use for downsampling. Defaults to the value
                 currently set in the instance.
             header (bool): If True, includes column names in the header row. If
@@ -512,7 +514,7 @@ class BIDSEventCollection(object):
                 # build file name
                 filename = '_'.join(['%s-%s' % (e, name[i]) for i, e in
                                      enumerate(common_ents)])
-                filename = os.path.join(path, filename, suffix, )
+                filename = os.path.join(path, filename + suffix)
                 g.to_csv(filename, sep='\t', header=header, index=False)
 
     def _all_sparse(self):
