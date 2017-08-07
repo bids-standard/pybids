@@ -486,6 +486,8 @@ class BIDSEventCollection(object):
         if columns is not None:
             _cols = [c for c in _cols if c.name in columns]
 
+        _cols = [c for c in _cols if c.name not in ["event_file_id", "time"]]
+
         # Merge all data into one DF
         if force_dense:
             dfs = [pd.Series(c.values.iloc[:, 0], name=c.name) for c in _cols]
@@ -499,15 +501,19 @@ class BIDSEventCollection(object):
         else:
             data = pd.concat([c.to_df() for c in _cols], axis=0)
 
+        # By default drop columns for internal use
+        _drop_cols = ['event_file_id', 'time']
         # If output is a single file, just write out the entire DF, adding in
         # the entities.
         if file is not None:
-            data.to_csv(file, sep='\t', header=header, index=False)
+            data.drop(_drop_cols, axis=1).\
+                 to_csv(file, sep='\t', header=header, index=False)
 
         # Otherwise we write out one event file per entity combination
         else:
             common_ents = [e for e in self.entities if e in data.columns]
             groups = data.groupby(common_ents)
+            _drop_cols += common_ents
             common_ents = ["sub" if e is "subject" else e for e in common_ents]
 
             for name, g in groups:
@@ -515,7 +521,8 @@ class BIDSEventCollection(object):
                 filename = '_'.join(['%s-%s' % (e, name[i]) for i, e in
                                      enumerate(common_ents)])
                 filename = os.path.join(path, filename + suffix + ".tsv")
-                g.to_csv(filename, sep='\t', header=header, index=False)
+                g.drop(_drop_cols, axis=1).\
+                  to_csv(filename, sep='\t', header=header, index=False)
 
     def _all_sparse(self):
         return all([isinstance(c, SparseBIDSColumn) for c in self.columns.values()])
