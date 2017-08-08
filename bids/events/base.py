@@ -593,7 +593,7 @@ class BIDSEventCollection(object):
         ''' Apply a series of transformations from a JSON spec.
         spec (str): Path to the JSON file containing transformations.
         '''
-        if os.path.exists(spec):
+        if isinstance(spec, str) and os.path.exists(spec):
             spec = json.load(open(spec, 'rU'))
         for t in spec['transformations']:
             name = t.pop('name')
