@@ -502,7 +502,7 @@ class BIDSEventCollection(object):
             data = pd.concat([c.to_df() for c in _cols], axis=0)
 
         # By default drop columns for internal use
-        _drop_cols = ['event_file_id', 'time']
+        _drop_cols = [c for c in data.columns if c in ['event_file_id', 'time']]
         # If output is a single file, just write out the entire DF, adding in
         # the entities.
         if file is not None:
