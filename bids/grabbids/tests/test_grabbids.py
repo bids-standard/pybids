@@ -34,11 +34,12 @@ def test_get_metadata2(testlayout1):
     result = testlayout1.get_metadata(join(testlayout1.root, target))
     assert result['EchoTime1'] == 0.006
 
+
 def test_get_events(testlayout2):
     target = 'sub-01/func/sub-01_task-' \
              'mixedgambletask_run-03_bold.nii.gz'
-    result = testlayout1.get_metadata(join(testlayout1.root, target))
-    assert result == join(testlayout1.root, target.replace('_bold.nii.gz',
+    result = testlayout1.get_metadata(join(testlayout2.root, target))
+    assert result == join(testlayout2.root, target.replace('_bold.nii.gz',
                                                            '_events.tsv'))
 
 def test_get_subjects(testlayout1):
