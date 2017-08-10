@@ -505,7 +505,8 @@ class BIDSEventCollection(object):
                 # build file name
                 filename = '_'.join(['%s-%s' % (e, name[i]) for i, e in
                                      enumerate(common_ents)])
-                filename = os.path.join(path, filename, suffix, )
+                filename += suffix + '_events.tsv'
+                filename = os.path.join(path, filename)
                 g.to_csv(filename, sep='\t', header=header, index=False)
 
     def _all_sparse(self):

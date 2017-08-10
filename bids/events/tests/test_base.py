@@ -65,11 +65,10 @@ def test_write_collection(bids_event_collection):
 
     bec = bids_event_collection
     bec.read()
-    filename = tempfile.mktemp() + '.tsv'
 
     # Sparse, single file
+    filename = tempfile.mktemp() + '.tsv'
     bec.write(file=filename, sparse=True)
-    # data = pd.read_csv(filename, sep='\t')
     assert exists(filename)
     os.remove(filename)
 
@@ -77,3 +76,7 @@ def test_write_collection(bids_event_collection):
     bec.write(file=filename, sparse=False, sampling_rate=1)
     assert exists(filename)
     os.remove(filename)
+
+    # Sparse, one output file per input file
+    tmpdir = tempfile.mkdtemp()
+    bec.write(tmpdir, sparse=True)
