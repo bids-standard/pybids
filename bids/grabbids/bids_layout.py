@@ -25,18 +25,23 @@ class BIDSLayout(Layout):
         # some kind of validation regex.
         return True
 
-    def get_metadata(self, path, **kwargs):
+    def get_nearest_helper(self, path, extension, type=None, **kwargs):
         path = abspath(path)
 
         if path not in self.files:
             raise ValueError("File '%s' could not be found in the current BIDS"
                              " project." % path)
 
-        # Constrain the search to .json files with the same type as target
-        type_ = self.files[path].entities['type']
+        if not type:
+            # Constrain the search to .json files with the same type as target
+            type = self.files[path].entities['type']
 
-        potentialJSONs = self.get_nearest(path, extensions='.json', all_=True,
-                                          type=type_, **kwargs)
+        return self.get_nearest(path, extensions=extension, all=True,
+                                type=type, **kwargs)
+
+    def get_metadata(self, path, **kwargs):
+
+        potentialJSONs = self.get_nearest_helper(path, '.json', **kwargs)
 
         merged_param_dict = {}
         for json_file_path in potentialJSONs:
@@ -45,6 +50,15 @@ class BIDSLayout(Layout):
                 merged_param_dict.update(param_dict)
 
         return merged_param_dict
+
+    def get_bvec(self, path, **kwargs):
+        return self.get_nearest_helper(path, '.bvec', **kwargs)[0]
+
+    def get_bval(self, path, **kwargs):
+        return self.get_nearest_helper(path, '.bval', **kwargs)[0]
+
+    def get_events(self, path, **kwargs):
+        return self.get_nearest_helper(path, '.tsv', 'events', **kwargs)[0]
 
     def get_fieldmap(self, path, return_list=False):
         fieldmaps = self._get_fieldmaps(path)
