@@ -36,7 +36,7 @@ class BIDSLayout(Layout):
             # Constrain the search to .json files with the same type as target
             type = self.files[path].entities['type']
 
-        return self.get_nearest(path, extensions=extension, all=True,
+        return self.get_nearest(path, extensions=extension, all_=True,
                                 type=type, **kwargs)
 
     def get_metadata(self, path, **kwargs):
