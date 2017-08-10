@@ -1,0 +1,38 @@
+Metadata-Version: 1.1
+Name: pybids
+Version: 0.0.1
+Summary: bids: a template for small scientific Python projects
+Home-page: http://github.com/INCF/pybids
+Author: PyBIDS Developers
+Author-email: bids-discussion@googlegroups.com
+License: MIT
+Description: 
+        
+        PyBIDS
+        ======
+        PyBIDS is a Python module to interface with datasets conforming BIDS.
+        See BIDS paper_ and http://bids.neuroimaging.io website for more information.
+        
+        .. paper_: http://www.nature.com/articles/sdata201644
+        
+        License
+        =======
+        ``pybids`` is licensed under the terms of the MIT license. See the file
+        "LICENSE" for information on the history of this software, terms & conditions
+        for usage, and a DISCLAIMER OF ALL WARRANTIES.
+        
+        All trademarks referenced herein are property of their respective holders.
+        
+        Copyright (c) 2016--, PyBIDS developers, Planet Earth
+        
+        
+Platform: OS Independent
+Classifier: Development Status :: 3 - Alpha
+Classifier: Environment :: Console
+Classifier: Intended Audience :: Science/Research
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python
+Classifier: Topic :: Scientific/Engineering
+Requires: grabbit
+Requires: six

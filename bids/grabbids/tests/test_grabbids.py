@@ -41,7 +41,6 @@ def test_get_events(testlayout2):
     assert result == join(testlayout1.root, target.replace('_bold.nii.gz',
                                                            '_events.tsv'))
 
-
 def test_get_subjects(testlayout1):
     result = testlayout1.get_subjects()
     predicted = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10']

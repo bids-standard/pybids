@@ -1,0 +1,12 @@
+setup.py
+bids/__init__.py
+bids/due.py
+bids/version.py
+bids/grabbids/__init__.py
+bids/grabbids/bids_layout.py
+bids/grabbids/config/bids.json
+pybids.egg-info/PKG-INFO
+pybids.egg-info/SOURCES.txt
+pybids.egg-info/dependency_links.txt
+pybids.egg-info/requires.txt
+pybids.egg-info/top_level.txt
