@@ -44,7 +44,7 @@ class BIDSLayout(Layout):
         potentialJSONs = self.get_nearest_helper(path, '.json', **kwargs)
 
         merged_param_dict = {}
-        for json_file_path in potentialJSONs:
+        for json_file_path in reversed(potentialJSONs):
             if os.path.exists(json_file_path):
                 param_dict = json.load(open(json_file_path, "r"))
                 merged_param_dict.update(param_dict)
