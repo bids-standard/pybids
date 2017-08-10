@@ -3,7 +3,7 @@ functionality should go in the grabbit package. """
 
 import pytest
 from bids.grabbids import BIDSLayout
-from os.path import join, dirname
+from os.path import join, dirname, abspath
 
 
 # Fixture uses in the rest of the tests
@@ -47,10 +47,11 @@ def test_get_metadata3(testlayout1):
 
 def test_get_events(testlayout2):
     target = 'sub-01/func/sub-01_task-' \
-             'mixedgambletask_run-03_bold.nii.gz'
-    result = testlayout1.get_metadata(join(testlayout2.root, target))
-    assert result == join(testlayout2.root, target.replace('_bold.nii.gz',
-                                                           '_events.tsv'))
+             'mixedgamblestask_run-03_bold.nii.gz'
+    result = testlayout2.get_events(join(testlayout2.root, target))
+    assert result == abspath(join(testlayout2.root,
+                                  target.replace('_bold.nii.gz',
+                                                 '_events.tsv')))
 
 def test_get_subjects(testlayout1):
     result = testlayout1.get_subjects()
