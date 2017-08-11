@@ -37,7 +37,8 @@ class BIDSLayout(Layout):
             type = self.files[path].entities['type']
 
         return self.get_nearest(path, extensions=extension, all_=True,
-                                type=type, **kwargs)
+                                type=type, ignore_strict_entities=['type'],
+                                **kwargs)
 
     def get_metadata(self, path, **kwargs):
 
