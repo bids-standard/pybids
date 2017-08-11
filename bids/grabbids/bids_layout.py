@@ -37,14 +37,15 @@ class BIDSLayout(Layout):
             type = self.files[path].entities['type']
 
         return self.get_nearest(path, extensions=extension, all_=True,
-                                type=type, **kwargs)
+                                type=type, ignore_strict_entities=['type'],
+                                **kwargs)
 
     def get_metadata(self, path, **kwargs):
 
         potentialJSONs = self.get_nearest_helper(path, '.json', **kwargs)
 
         merged_param_dict = {}
-        for json_file_path in potentialJSONs:
+        for json_file_path in reversed(potentialJSONs):
             if os.path.exists(json_file_path):
                 param_dict = json.load(open(json_file_path, "r"))
                 merged_param_dict.update(param_dict)
