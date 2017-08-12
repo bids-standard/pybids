@@ -266,29 +266,30 @@ class BIDSEventCollection(object):
         self.base_dir = base_dir
         self.project = BIDSLayout(self.base_dir)
         if entities is None:
-            entities = ['run', 'session', 'subject', 'task']
+            entities = ['subject', 'session', 'task', 'run']
         self.entities = entities
         self.extra_columns = extra_columns
         self.sampling_rate = sampling_rate
 
-    def read(self, files=None, reset=True, **kwargs):
+    def read(self, file_directory=None, reset=True, **kwargs):
         ''' Read in and process event files.
         Args:
-            files (None, list): Optional list of event files to read from. If
-                None (default), will use all event files found within the
-                current BIDS project. Note that if `files` is passed, existing
-                event files within the BIDS project are completely ignored.
+            file_directory (None, str): Optional path to folder containing
+                event files to read from. If None (default), will use all event
+                files found within the current BIDS project. Note that if
+                `files` is passed, existing event files within the BIDS
+                project are completely ignored.
             reset (bool): If True (default), clears all previously processed
                 event files and columns; if False, adds new files
                 incrementally.
 
         Notes:
-            If the names of event files are passed in using the `files`
+            If a directory of event files is passed in using the `file_directory`
             argument, the following two constraints apply:
                 * ALL relevant BIDS entities MUST be encoded in each file.
                   I.e., "sub-02_task-mixedgamblestask_run-01_events.tsv" is
                   valid, but "subject_events.tsv" would not be.
-                * It is assumed that all and only the files in the passed list
+                * It is assumed that all and only the event files in the folder
                   are to be processed--i.e., there cannot be any other
                   subjects, runs, etc. whose events also need to be processed
                   but that are missing from the passed list.
@@ -301,18 +302,23 @@ class BIDSEventCollection(object):
 
         # Starting with either files or images, get all event files that have
         # a valid functional run, and store their duration if available.
-        if files is not None:
-
-            for f in files:
-                f_ents = self.project.files[f].entities
+        if file_directory is not None:
+            new_project = BIDSLayout(file_directory)
+            evf = new_project.get(return_type='file', extensions='.tsv',
+                                   type='events', **kwargs)
+            for f in evf:
+                f_ents = new_project.files[f].entities
                 f_ents = {k: v for k, v in f_ents.items() if k in self.entities}
 
                 img_f = self.project.get(return_type='file', modality='func',
                                          extensions='.nii.gz', type='bold',
-                                         **kwargs)
+                                         **f_ents)
 
                 if not img_f:
                     continue
+                elif len(img_f) > 1:
+                    warnings.warn("Event file matched multiple images,"
+                                  "matching to first")
 
                 valid_files.append((f, img_f[0], f_ents))
 
@@ -375,38 +381,39 @@ class BIDSEventCollection(object):
             # If condition column is provided, either extract amplitudes
             # from given amplitude column, or to default value
             if self.condition_column is not None:
-
-                skip_cols.append(self.condition_column)
-
                 if self.condition_column not in _data.columns:
-                    raise ValueError(
+                    warnings.warn(
                         "Event file is missing the specified"
-                        "condition column, {}".format(self.condition_column))
-
-                if self.amplitude_column is not None:
-                    if self.amplitude_column not in _data.columns:
-                        raise ValueError(
-                            "Event file is missing the specified "
-                            "amplitude column, {}".format(
-                                self.amplitude_column))
-                    else:
-                        amplitude = _data[self.amplitude_column]
-                        skip_cols.append(self.amplitude_column)
+                        "condition column, {}. Setting to None".format(
+                            self.condition_column))
+                    self.condition_column = None
                 else:
-                    if 'amplitude' in _data.columns:
-                        warnings.warn("Setting amplitude to values in column "
-                                      "'amplitude'")
-                        amplitude = _data['amplitude']
-                        skip_cols.append('amplitude')
+                    skip_cols.append(self.condition_column)
+
+                    if self.amplitude_column is not None:
+                        if self.amplitude_column not in _data.columns:
+                            raise ValueError(
+                                "Event file is missing the specified "
+                                "amplitude column, {}".format(
+                                    self.amplitude_column))
+                        else:
+                            amplitude = _data[self.amplitude_column]
+                            skip_cols.append(self.amplitude_column)
                     else:
-                        amplitude = _data[self.condition_column]
+                        if 'amplitude' in _data.columns:
+                            warnings.warn("Setting amplitude to values in "
+                                          "column 'amplitude'")
+                            amplitude = _data['amplitude']
+                            skip_cols.append('amplitude')
+                        else:
+                            amplitude = _data[self.condition_column]
 
                     df = _data[['onset', 'duration']].copy()
                     df['condition'] = _data[self.condition_column]
                     df['amplitude'] = amplitude
                     df['factor'] = self.condition_column
 
-                file_df.append(df)
+                    file_df.append(df)
 
             extra = self.extra_columns
             if extra:
@@ -434,11 +441,13 @@ class BIDSEventCollection(object):
         # build the index
         self._build_dense_index()
 
-    def write(self, path=None, file=None, suffix='', columns=None,
+    def write(self, path=None, file=None, suffix='_events', columns=None,
               sparse=True, sampling_rate=None, header=True, overwrite=False):
         ''' Write out all events in collection to TSV file(s).
         Args:
             path (str): The directory to write event files to
+            file (str): Event file to write events to
+            suffix (str): Suffix to append to filenames
             columns (list): Optional list of column names to retain; if None,
                 all columns are written out.
             sparse (bool): If True, events will be written out in sparse format
@@ -446,7 +455,7 @@ class BIDSEventCollection(object):
                 a dense matrix (i.e., uniform sampling rate for all events)
                 will be exported. Will be ignored if at least one column is
                 dense.
-            sampling_rate (int): If a dense matrix is written out, the sampling
+            sampling_rate (float): If a dense matrix is written out, the sampling
                 rate (in Hz) to use for downsampling. Defaults to the value
                 currently set in the instance.
             header (bool): If True, includes column names in the header row. If
@@ -477,6 +486,8 @@ class BIDSEventCollection(object):
         if columns is not None:
             _cols = [c for c in _cols if c.name in columns]
 
+        _cols = [c for c in _cols if c.name not in ["event_file_id", "time"]]
+
         # Merge all data into one DF
         if force_dense:
             dfs = [pd.Series(c.values.iloc[:, 0], name=c.name) for c in _cols]
@@ -490,24 +501,28 @@ class BIDSEventCollection(object):
         else:
             data = pd.concat([c.to_df() for c in _cols], axis=0)
 
+        # By default drop columns for internal use
+        _drop_cols = [c for c in data.columns if c in ['event_file_id', 'time']]
         # If output is a single file, just write out the entire DF, adding in
         # the entities.
         if file is not None:
-            data.to_csv(file, sep='\t', header=header, index=False)
+            data.drop(_drop_cols, axis=1).\
+                 to_csv(file, sep='\t', header=header, index=False)
 
         # Otherwise we write out one event file per entity combination
         else:
-            common_ents = list(set(self.entities) & set(data.columns))
+            common_ents = [e for e in self.entities if e in data.columns]
             groups = data.groupby(common_ents)
+            _drop_cols += common_ents
+            common_ents = ["sub" if e is "subject" else e for e in common_ents]
 
             for name, g in groups:
-
                 # build file name
                 filename = '_'.join(['%s-%s' % (e, name[i]) for i, e in
                                      enumerate(common_ents)])
-                filename += suffix + '_events.tsv'
-                filename = os.path.join(path, filename)
-                g.to_csv(filename, sep='\t', header=header, index=False)
+                filename = os.path.join(path, filename + suffix + ".tsv")
+                g.drop(_drop_cols, axis=1).\
+                  to_csv(filename, sep='\t', header=header, index=False)
 
     def _all_sparse(self):
         return all([isinstance(c, SparseBIDSColumn) for c in self.columns.values()])
@@ -548,13 +563,13 @@ class BIDSEventCollection(object):
     def _build_dense_index(self):
         ''' Build an index of all tracked entities for all dense columns. '''
         index = []
-        sr = 1./self.sampling_rate
+        sr = int(1000./self.sampling_rate)
         for evf in self.event_files:
             reps = int(math.ceil(evf.duration * self.sampling_rate))
             ent_vals = list(evf.entities.values())
             data = np.broadcast_to(ent_vals, (reps, len(ent_vals)))
             df = pd.DataFrame(data, columns=list(evf.entities.keys()))
-            df['time'] = pd.date_range(0, periods=len(df), freq='%sS' % sr)
+            df['time'] = pd.date_range(0, periods=len(df), freq='%sms' % sr)
             index.append(df)
         self.dense_index = pd.concat(index, axis=0).reset_index(drop=True)
 
@@ -578,7 +593,7 @@ class BIDSEventCollection(object):
         ''' Apply a series of transformations from a JSON spec.
         spec (str): Path to the JSON file containing transformations.
         '''
-        if os.path.exists(spec):
+        if isinstance(spec, str) and os.path.exists(spec):
             spec = json.load(open(spec, 'rU'))
         for t in spec['transformations']:
             name = t.pop('name')

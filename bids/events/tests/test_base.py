@@ -9,7 +9,6 @@ import pandas as pd
 from glob import glob
 import shutil
 
-
 @pytest.fixture
 def bids_event_collection():
     mod_file = abspath(grabbids.__file__)
@@ -56,11 +55,17 @@ def test_read_from_files(bids_event_collection):
     subs = ['02', '06', '08']
     template = 'sub-%s/func/sub-%s_task-mixedgamblestask_run-01_events.tsv'
     files = [join(path, template % (s, s)) for s in subs]
-    bec.read(files=files)
+    # Put them in a temporary directory
+    tmp_dir = tempfile.mkdtemp()
+    for f in files:
+        shutil.copy2(f, tmp_dir)
+
+    bec.read(file_directory=tmp_dir)
     col_keys = bec.columns.keys()
     assert set(col_keys) == {'RT', 'gain', 'respnum', 'PTval', 'loss',
                              'respcat', 'parametric gain',
                              'trial_type/parametric gain'}
+    shutil.rmtree(tmp_dir)
 
 
 def test_write_collection(bids_event_collection):
