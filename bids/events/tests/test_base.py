@@ -6,6 +6,8 @@ import os
 from bids import grabbids
 import tempfile
 import pandas as pd
+from glob import glob
+import shutil
 
 
 @pytest.fixture
@@ -63,6 +65,7 @@ def test_read_from_files(bids_event_collection):
 
 def test_write_collection(bids_event_collection):
 
+    # TODO: test content of files, not just existence
     bec = bids_event_collection
     bec.read()
 
@@ -80,3 +83,13 @@ def test_write_collection(bids_event_collection):
     # Sparse, one output file per input file
     tmpdir = tempfile.mkdtemp()
     bec.write(tmpdir, sparse=True)
+    files = glob(join(tmpdir, "*.tsv"))
+    assert len(files) == bec.dense_index['event_file_id'].nunique()
+    shutil.rmtree(tmpdir)
+
+    # Dense, one output file per input file
+    tmpdir = tempfile.mkdtemp()
+    bec.write(tmpdir, sparse=False)
+    files = glob(join(tmpdir, "*.tsv"))
+    assert len(files) == bec.dense_index['event_file_id'].nunique()
+    shutil.rmtree(tmpdir)
