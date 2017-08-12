@@ -123,6 +123,8 @@ class Transformation(object):
                 col.values = pd.DataFrame(result)
             elif self._return_type == 'pandas':
                 col.values = result
+            elif self._return_type == 'column':
+                col = result
 
             # Overwrite existing column
             if self.output is None:

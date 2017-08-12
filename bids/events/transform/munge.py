@@ -85,7 +85,6 @@ class split(Transformation):
             dm = dmatrix(formula, data=group_data, return_type='dataframe')
             return col.split(dm)
 
-
 class to_dense(Transformation):
     ''' Convert column to dense representation. '''
 
@@ -106,19 +105,53 @@ class assign(Transformation):
     _input_type = 'column'
     _return_type = 'column'
 
-    def _transform(self, source, target, source_attr='amplitude',
+    def _transform(self, input, target, input_attr='amplitude',
                    target_attr='amplitude'):
 
+        if not input_attr.endswith('s'):
+            input_attr += 's'
+
+        if not target_attr.endswith('s'):
+            target_attr += 's'
+
+        # assign only makes sense for sparse columns; dense columns don't have
+        # durations or onsets, and amplitudes can be copied by cloning
+        from bids.events import DenseBIDSColumn
+        if isinstance(input, DenseBIDSColumn):
+            raise ValueError("The 'assign' transformation can only be applied"
+                             " to sparsely-coded event types. The input "
+                             "column (%s) is dense." % input.name)
+
+        target = self.collection.columns[target].clone()
+        if isinstance(target, DenseBIDSColumn):
+            raise ValueError("The 'assign' transformation can only be applied"
+                             " to sparsely-coded event types. The target "
+                             "column (%s) is dense." % target.name)
+
         # Ensure attributes are valid
-        valid_attrs = ['amplitude', 'duration', 'onset']
-        if source_attr not in valid_attrs:
-            raise ValueError("Valid values for source_attr are: %s." %
-                             valid_attr)
-        if source_attr not in valid_attrs:
+        valid_attrs = ['amplitudes', 'durations', 'onsets']
+        if input_attr not in valid_attrs:
+            raise ValueError("Valid values for input_attr are: %s." %
+                             valid_attrs)
+        if target_attr not in valid_attrs:
             raise ValueError("Valid values for target_attr are: %s." %
-                             valid_attr)
+                             valid_attrs)
 
-        # Ensure alignment
-        # if len(source.index)
+        # Columns must have same number of events, but do *not* need to have
+        # aligned onsets.
+        l_s, l_t = len(input.values), len(target.values)
+        if l_s != l_t:
+            raise ValueError("Input and target columns do not contain the "
+                             "same number of events (%d vs. %d)." % (l_s, l_t))
 
+        if input_attr.startswith('amplitude'):
+            vals = input.values.values
+        else:
+            vals = getattr(input, input_attr)
 
+        if target_attr.startswith('amplitude'):
+            target.values[:] = vals
+        else:
+            setattr(target, target_attr, vals)
+
+        return target

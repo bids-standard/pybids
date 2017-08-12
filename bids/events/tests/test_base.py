@@ -6,7 +6,8 @@ import os
 from bids import grabbids
 import tempfile
 import pandas as pd
-from shutil import copy2
+from glob import glob
+import shutil
 
 @pytest.fixture
 def bids_event_collection():
@@ -57,24 +58,25 @@ def test_read_from_files(bids_event_collection):
     # Put them in a temporary directory
     tmp_dir = tempfile.mkdtemp()
     for f in files:
-        copy2(f, tmp_dir)
+        shutil.copy2(f, tmp_dir)
 
     bec.read(file_directory=tmp_dir)
     col_keys = bec.columns.keys()
     assert set(col_keys) == {'RT', 'gain', 'respnum', 'PTval', 'loss',
                              'respcat', 'parametric gain',
                              'trial_type/parametric gain'}
+    shutil.rmtree(tmp_dir)
 
 
 def test_write_collection(bids_event_collection):
 
+    # TODO: test content of files, not just existence
     bec = bids_event_collection
     bec.read()
-    filename = tempfile.mktemp() + '.tsv'
 
     # Sparse, single file
+    filename = tempfile.mktemp() + '.tsv'
     bec.write(file=filename, sparse=True)
-    # data = pd.read_csv(filename, sep='\t')
     assert exists(filename)
     os.remove(filename)
 
@@ -82,3 +84,17 @@ def test_write_collection(bids_event_collection):
     bec.write(file=filename, sparse=False, sampling_rate=1)
     assert exists(filename)
     os.remove(filename)
+
+    # Sparse, one output file per input file
+    tmpdir = tempfile.mkdtemp()
+    bec.write(tmpdir, sparse=True)
+    files = glob(join(tmpdir, "*.tsv"))
+    assert len(files) == bec.dense_index['event_file_id'].nunique()
+    shutil.rmtree(tmpdir)
+
+    # Dense, one output file per input file
+    tmpdir = tempfile.mkdtemp()
+    bec.write(tmpdir, sparse=False)
+    files = glob(join(tmpdir, "*.tsv"))
+    assert len(files) == bec.dense_index['event_file_id'].nunique()
+    shutil.rmtree(tmpdir)
