@@ -1,5 +1,5 @@
 from .compute import (sum, product, scale, orthogonalize, threshold)
-from .munge import (split, rename)
+from .munge import (split, rename, assign)
 
 __all__ = [
     'sum',
@@ -8,5 +8,6 @@ __all__ = [
     'orthogonalize',
     'threshold',
     'split',
-    'rename'
+    'rename',
+    'assign'
 ]

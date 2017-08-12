@@ -113,6 +113,7 @@ def test_apply_split(collection):
     assert 'RT_3/respcat[0.0]' in collection.columns.keys()
     assert len(collection['RT_3/respcat[0.0]'].values) == len(collection['RT_3'].values)
 
+
 def test_resample_dense(collection):
     collection['RT'] = collection['RT'].to_dense()
     old_rt = collection['RT'].clone()
@@ -120,6 +121,7 @@ def test_resample_dense(collection):
     assert len(old_rt.values) * 5 == len(collection['RT'].values)
     collection.resample(5, force_dense=True)
     assert len(old_rt.values) == len(collection['parametric gain'].values) * 2
+
 
 def test_threshold(collection):
     old_pg = collection['parametric gain']
@@ -139,3 +141,22 @@ def test_threshold(collection):
                         signed=False, above=False)
     n = np.logical_and(orig_vals <= 0.1, orig_vals >= -0.1).sum()
     assert collection.columns['pg'].values.sum() == n
+
+
+def test_assign(collection):
+    transform.assign(collection, 'parametric gain', target='RT',
+                     target_attr='onset', output='test1')
+    t1 = collection['test1']
+    pg = collection['parametric gain']
+    rt = collection['RT']
+    assert np.array_equal(t1.onsets, pg.values.values)
+    assert np.array_equal(t1.durations, rt.durations)
+    assert np.array_equal(t1.values.values, rt.values.values)
+
+    transform.assign(collection, 'RT', target='parametric gain',
+                     input_attr='onset', target_attr='amplitude',
+                     output='test2')
+    t2 = collection['test2']
+    assert np.array_equal(t2.values.values, rt.onsets)
+    assert np.array_equal(t2.onsets, pg.onsets)
+    assert np.array_equal(t2.durations, pg.durations)
