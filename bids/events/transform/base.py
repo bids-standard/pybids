@@ -8,6 +8,7 @@ from abc import ABCMeta, abstractmethod
 from copy import deepcopy
 import itertools
 import re
+import inspect
 
 
 class Transformation(object):
@@ -86,18 +87,26 @@ class Transformation(object):
         self.cols = listify(cols)
         self.groupby = kwargs.pop('groupby', 'event_file_id')
         self.output = listify(kwargs.pop('output', None))
+        self.output_prefix = kwargs.pop('output_prefix', None)
+        self.output_suffix = kwargs.pop('output_suffix', None)
         self.dense = kwargs.pop('dense', False)
 
-        # TODO: need to convert all args to kwargs by inspecting the _transform
-        # signature--otherwise we can't ensure that alignment, densification,
-        # etc. are applied properly, as they require user to pass named
-        # arguments.
-        self.args = args
-        self.kwargs = kwargs
+        # Convert any args to named keyword arguments in order to make sure
+        # that operations like densification, alignment, etc. correctly detect
+        # all named arguments.
+        if args:
+            arg_spec = inspect.getfullargspec(self._transform)
+            n_args = len(arg_spec.args)
+            for i, arg_val in enumerate(args):
+                # Skip first two argnames--they're always 'self' and 'cols'
+                kwargs[arg_spec.args[2+i]] = arg_val
 
+        # Expand regex column names
         replace_args = kwargs.pop('regex_columns', None)
         if replace_args is not None:
             self._regex_replace_columns(replace_args)
+
+      self.kwargs = kwargs
 
     def _clone_columns(self):
         ''' Deep copy all columns the transformation touches. This prevents us
@@ -167,12 +176,15 @@ class Transformation(object):
 
     def transform(self):
 
-        if self.output is None and (self._output_required or not
-                                    self._loopable):
-            raise ValueError("Transformation '%s' requires the 'output' "
-                             "argument to be set." % self.__class__.__name__)
+        if (self.output is None and self.output_prefix is None and
+                self.output_suffix is None) and (self._output_required or (not
+                self._loopable and len(self.cols) > 1)):
+            raise ValueError("Transformation '%s' requires output names to be "
+                             "provided. Please set at least one of 'output',"
+                             "'output_prefix', or 'output_suffix'."  %
+                             self.__class__.__name__)
 
-        args, kwargs = self.args, self.kwargs
+        kwargs = self.kwargs
 
         # Deep copy all columns we expect to touch
         self._clone_columns()
@@ -201,15 +213,15 @@ class Transformation(object):
 
             # If we still have a list, pass all columns in one block
             if isinstance(col, (list, tuple)):
-                result = self._transform(data, *args, **kwargs)
+                result = self._transform(data, **kwargs)
                 col = col[0].clone(data=result, name=self.output[0])
             # Otherwise loop over columns individually
             else:
                 if self._groupable and self.groupby is not None:
                     result = col.apply(self._transform, groupby=self.groupby,
-                                       *args, **kwargs)
+                                       **kwargs)
                 else:
-                    result = self._transform(data[i], *args, **kwargs)
+                    result = self._transform(data[i], **kwargs)
 
             if self._return_type == 'none' or self._return_type is None:
                 continue
@@ -239,7 +251,7 @@ class Transformation(object):
                 self.collection[_output] = col
 
     @abstractmethod
-    def _transform(self, *args, **kwargs):
+    def _transform(self, **kwargs):
         pass
 
     def _preprocess(self, col):

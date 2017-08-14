@@ -94,7 +94,7 @@ def test_apply_split(collection):
     rt_pre_onsets = collection['RT'].onsets
 
     # Grouping SparseBIDSColumn by one column
-    collection.apply('split', cols=['RT'], by=['respcat'])
+    collection.apply('split', ['RT'], ['respcat'])
     assert 'RT/0' in collection.columns.keys() and \
            'RT/-1' in collection.columns.keys()
     rt_post_onsets = np.r_[collection['RT/0'].onsets,
