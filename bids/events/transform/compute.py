@@ -116,3 +116,17 @@ class or_(Transformation):
     def _transform(self, dfs):
         df = pd.concat(dfs, axis=1)
         return pd.any(axis=1)
+
+
+class and_(Transformation):
+    ''' Logical AND on two or more columns.
+    Args:
+        dfs (list of DFs): Columns to enter into the conjunction.
+    '''
+
+    _loopable = False
+    _groupable = False
+
+    def _transform(self, dfs):
+        def = pd.concat(dfs, axis=1)
+        return pd.all(axis=1)
