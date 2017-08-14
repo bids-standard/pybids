@@ -134,7 +134,6 @@ class SparseBIDSColumn(BIDSColumn):
 
     def to_dense(self):
         ''' Convert the current sparse column to a dense representation. '''
-
         sampling_rate = self.collection.sampling_rate
         duration = len(self.collection.dense_index)
         ts = np.zeros(duration)
@@ -378,48 +377,79 @@ class BIDSEventCollection(object):
 
             file_df = []
 
-            # If condition column is provided, either extract amplitudes
-            # from given amplitude column, or to default value
-            if self.condition_column is not None:
-                if self.condition_column not in _data.columns:
-                    warnings.warn(
-                        "Event file is missing the specified"
-                        "condition column, {}. Setting to None".format(
-                            self.condition_column))
-                    self.condition_column = None
+            # Set and/or check condition_column and amplitude_column for each
+            # event file separately. Note that we don't use the global value
+            # from self because it's valid for some event files to be missing
+            # these columns.
+
+            # If condition_column is missing, we set to None
+            condition_column = self.condition_column
+            if condition_column is not None and condition_column not in _data.columns:
+                msg = ("Event file is missing the specified condition column "
+                      "({}). Ignoring argument.").format(condition_column)
+                warnings.warn(msg)
+                condition_column = None
+
+            # If amplitude_column is provided but missing AND condition_column
+            # is set, we raise an exception, as we can't assume the user wants
+            # amplitudes implicitly set to 1. If condition_column is missing,
+            # we can safely ignore this, as other event files columns are
+            # always assumed to encode amplitude.
+            amplitude_column = self.amplitude_column
+            if amplitude_column is not None and amplitude_column not in _data.columns:
+                msg = ("Event file is missing the specified amplitude "
+                          "column ({}).").format(amplitude_column)
+                if condition_column is not None:
+                    msg += (' Either ensure the column name is correct, or '
+                            'set the amplitude_column argument to None to '
+                            'implicitly code the condition column as on/off.')
+                    raise ValueError(msg)
                 else:
-                    skip_cols.append(self.condition_column)
+                    warnings.warn(msg)
+                    amplitude_column = None
 
-                    if self.amplitude_column is not None:
-                        if self.amplitude_column not in _data.columns:
-                            raise ValueError(
-                                "Event file is missing the specified "
-                                "amplitude column, {}".format(
-                                    self.amplitude_column))
-                        else:
-                            amplitude = _data[self.amplitude_column]
-                            skip_cols.append(self.amplitude_column)
-                    else:
-                        if 'amplitude' in _data.columns:
-                            warnings.warn("Setting amplitude to values in "
-                                          "column 'amplitude'")
-                            amplitude = _data['amplitude']
-                            skip_cols.append('amplitude')
-                        else:
-                            amplitude = _data[self.condition_column]
 
-                    df = _data[['onset', 'duration']].copy()
-                    df['condition'] = _data[self.condition_column]
-                    df['amplitude'] = amplitude
-                    df['factor'] = self.condition_column
+            if condition_column is not None:
+                skip_cols.append(condition_column)
 
-                    file_df.append(df)
+                # Use specified amplitude column if it was explicitly named
+                if amplitude_column is not None:
+                    amplitude = _data[amplitude_column]
+                    skip_cols.append(amplitude_column)
 
+                # Fall back on 'amplitude' column if it exists
+                elif 'amplitude' in _data.columns:
+                    warnings.warn("Setting amplitude to values in column"
+                                  "'amplitude'.")
+                    amplitude = _data['amplitude']
+                    skip_cols.append('amplitude')
+
+                # Otherwise we just reuse the condition_column (which will
+                # result in conversion to a set of binary indicators later.)
+                else:
+                    amplitude = _data[condition_column]
+
+                # Construct a new DataFrame for the main condition column
+                df = _data[['onset', 'duration']].copy()
+                df['condition'] = _data[condition_column]
+                df['amplitude'] = amplitude
+                df['factor'] = condition_column
+
+                file_df.append(df)
+
+            # Handle any extra columns in the event file (i.e., anything other
+            # than condition, onset, duration, or amplitude. These are always
+            # assumed to encode amplitudes, and reuse the same onsets and
+            # durations.
             extra = self.extra_columns
+
             if extra:
-                if not isinstance(extra, (list, tuple)):
+                # By default, extra is True, which indicates additional cols
+                # should be automatically detectd.
+                if isinstance(extra, bool):
                     extra = list(set(_data.columns.tolist()) - set(skip_cols))
 
+                # Construct a DataFrame for each extra column
                 for col in extra:
                     df = _data[['onset', 'duration']].copy()
                     df['condition'] = col
@@ -427,7 +457,11 @@ class BIDSEventCollection(object):
                     df['factor'] = col
                     file_df.append(df.dropna())
 
+            # Concatenate all extracted column DFs along the row axis
             _df = pd.concat(file_df, axis=0)
+
+            # Add in all of the event file's entities as new columns; these
+            # are used for indexing later on
             for entity, value in f_ents.items():
                 _df[entity] = value
 
@@ -531,10 +565,10 @@ class BIDSEventCollection(object):
         return all([isinstance(c, DenseBIDSColumn) for c in self.columns.values()])
 
     def _create_column(self, name, data):
-        # If amplitude column contains categoricals, split on it and create
-        # 1 dummy-coded column per level
+        # Do any final postprocessing of column data and add to the collection
         data = data.apply(pd.to_numeric, errors='ignore')
         factor, condition = name[0], name[1]
+        # If amplitude values are strings, convert to binary columns
         if data['amplitude'].dtype.kind not in 'bifc':
             grps = data.groupby('amplitude')
             for i, (lev_name, lev_grp) in enumerate(grps):
