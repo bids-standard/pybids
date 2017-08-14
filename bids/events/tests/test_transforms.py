@@ -160,3 +160,22 @@ def test_assign(collection):
     assert np.array_equal(t2.values.values, rt.onsets)
     assert np.array_equal(t2.onsets, pg.onsets)
     assert np.array_equal(t2.durations, pg.durations)
+
+
+def test_copy(collection):
+    transform.copy(collection, 'RT', output='RT_copy')
+    assert 'RT_copy' in collection.columns.keys()
+    assert np.array_equal(collection['RT'].values.values, collection['RT_copy'].values.values)
+
+
+def test_regex_column_expansion(collection):
+    # Should fail because two output values are required following expansion
+    with pytest.raises(Exception):
+        transform.copy(collection, 'resp', regex_columns='cols')
+
+    transform.copy(collection, 'resp', output=['resp1', 'resp2'],
+                   regex_columns='cols')
+    assert 'resp1' in collection.columns.keys()
+    assert 'resp2' in collection.columns.keys()
+    assert np.array_equal(collection['respcat'].values.values,
+                          collection['resp1'].values.values)

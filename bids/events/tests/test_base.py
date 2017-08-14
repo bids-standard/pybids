@@ -96,6 +96,7 @@ def test_write_collection(collection):
     assert len(files) == collection.dense_index['event_file_id'].nunique()
     shutil.rmtree(tmpdir)
 
+
 def test_match_columns(collection):
     collection.read()
     matches = collection.match_columns('par.{3}tric')

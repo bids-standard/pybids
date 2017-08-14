@@ -21,7 +21,7 @@ class copy(Transformation):
 
     def _transform(self, col):
         # We don't have to do anything else here b/c it's handled in base.
-        return col.values.values
+        return col
 
 
 class rename(Transformation):

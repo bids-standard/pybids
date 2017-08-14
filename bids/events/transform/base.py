@@ -87,8 +87,17 @@ class Transformation(object):
         self.groupby = kwargs.pop('groupby', 'event_file_id')
         self.output = listify(kwargs.pop('output', None))
         self.dense = kwargs.pop('dense', False)
+
+        # TODO: need to convert all args to kwargs by inspecting the _transform
+        # signature--otherwise we can't ensure that alignment, densification,
+        # etc. are applied properly, as they require user to pass named
+        # arguments.
         self.args = args
         self.kwargs = kwargs
+
+        replace_args = kwargs.pop('regex_columns', None)
+        if replace_args is not None:
+            self._regex_replace_columns(replace_args)
 
     def _clone_columns(self):
         ''' Deep copy all columns the transformation touches. This prevents us
@@ -122,6 +131,39 @@ class Transformation(object):
             col = self._columns[c]
             if isinstance(col, SparseBIDSColumn):
                 self._columns[c] = col.to_dense()
+
+    def _regex_replace_columns(self, args):
+        ''' For each argument named in args, interpret the values set in the
+        argument as regex patterns to potentially be replaced with any columns
+        that match the pattern. '''
+
+        args = listify(args)
+
+        if 'cols' in args:
+            args.remove('cols')
+            cols = True
+        else:
+            cols = False
+
+        # Ensure all keyword arguments user wants to scan are valid
+        missing = set(args) - set(self.kwargs.keys())
+        if missing:
+            raise ValueError("Arguments '%s' specified for regex-based column"
+                                 "name replacement, but were not found among "
+                                 "keyword arguments." % missing)
+
+        def _replace_arg_values(names):
+            cols = listify(names)
+            cols = [self.collection.match_columns(c) for c in names]
+            cols = itertools.chain(*cols)
+            return list(set(cols))
+
+        # 'cols' is stored separately, so handle it separately
+        if cols:
+            self.cols = _replace_arg_values(self.cols)
+
+        for arg in args:
+            self.kwargs[arg] = _replace_arg_values(self.kwargs[arg])
 
     def transform(self):
 
