@@ -128,5 +128,5 @@ class and_(Transformation):
     _groupable = False
 
     def _transform(self, dfs):
-        def = pd.concat(dfs, axis=1)
+        df = pd.concat(dfs, axis=1)
         return pd.all(axis=1)
