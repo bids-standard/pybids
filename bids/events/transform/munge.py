@@ -85,6 +85,7 @@ class split(Transformation):
             dm = dmatrix(formula, data=group_data, return_type='dataframe')
             return col.split(dm)
 
+
 class to_dense(Transformation):
     ''' Convert column to dense representation. '''
 
@@ -155,3 +156,15 @@ class assign(Transformation):
             setattr(target, target_attr, vals)
 
         return target
+
+
+class filter(Transformation):
+    pass
+
+
+class select(Transformation):
+    pass
+
+
+class replace(Transformation):
+    pass
