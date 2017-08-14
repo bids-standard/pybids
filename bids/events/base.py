@@ -12,6 +12,7 @@ import os
 import json
 from bids.events import transform
 from scipy.interpolate import interp1d
+import re
 
 
 class BIDSColumn(object):
@@ -606,6 +607,18 @@ class BIDSEventCollection(object):
             df['time'] = pd.date_range(0, periods=len(df), freq='%sms' % sr)
             index.append(df)
         self.dense_index = pd.concat(index, axis=0).reset_index(drop=True)
+
+    def match_columns(self, pattern, return_type='name'):
+        ''' Return columns whose names match the provided regex pattern.
+        Args:
+            pattern (str): A regex pattern to match all column names against.
+            return_type (str): What to return. Must be one of:
+                'name': Returns a list of names of matching columns.
+                'column': Returns a list of Column objects whose names match.
+        '''
+        pattern = re.compile(pattern)
+        cols = [c for c in self.columns.values() if pattern.search(c.name)]
+        return cols if return_type.startswith('col') else [c.name for c in cols]
 
     def apply(self, func, cols, *args, **kwargs):
         ''' Applies an arbitrary callable or named function. Mostly useful for
