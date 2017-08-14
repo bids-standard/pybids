@@ -7,18 +7,70 @@ import warnings
 from abc import ABCMeta, abstractmethod
 from copy import deepcopy
 import itertools
+import re
 
 
 class Transformation(object):
 
-    _columns_used = ()          # List all columns the transformation touches
-    _input_type = 'pandas'      # 'column', 'pandas', or 'numpy'
-    _return_type = 'pandas'     # 'column', 'pandas', 'numpy', or 'none'
-    _align = None               # Which columns to ensure alignment for
-    _loopable = True            # Loop over input columns one at a time?
-    _groupable = True           # Can groupby operations be applied?
-    _output_required = False    # Require names of output columns?
-    _densify = ('cols',)           # Columns to densify, if dense=True in args
+    ### Class-level settings ###
+    # The following settings govern the way Transformations are applied to the
+    # data. The default settings can be overridden within subclasses.
+
+    # List all argument names that specify columns used in the Transformation.
+    # This is necessary in order to ensure that all and only columns touched
+    # by the transformation are cloned before any manipulation occurs.
+    # Columns in 'cols' are always cloned, so only additional arguments should
+    # be specified here.
+    _columns_used = ()
+
+    # What data type to pass onto the core _transform() logic. Must be one
+    # of 'column' (the entire BIDSColumn object), 'pandas' (the extracted
+    # pandas DF stored in .values), or 'numpy' (just the numpy array inside
+    # the .values property of the pandas DF). To minimize overhead and
+    # simplify code, it is recommended to avoid using 'column' if possible.
+    _input_type = 'pandas'
+
+    # The data type the internal _transform() method is expected to return.
+    # Must be one of 'column', 'pandas', 'numpy', or 'none'. In the last
+    # case, all desired changes must be made in-place within _transform(), as
+    # no further changes will be committed.
+    _return_type = 'pandas'
+
+    # A tuple indicating which arguments give the names of columns that must
+    # all be aligned with one another (i.e., onsets and durations match
+    # perfectly) before processing. Defaults to None.
+    _align = None
+
+    # Boolean indicating whether the Transformation should be applied to each
+    # column in the input list in turn. When True (default), the Transformation
+    # is applied once per element in the column list, with all arguments
+    # being passed repeatedly. When False, all data (i.e., columns or their
+    # pandas DFs or ndarrays, as specified in _input_type) are passed to the
+    # Transformation simultaneously.
+    _loopable = True
+
+    # Boolean indicating whether the Transformation can handle groupby
+    # operations. When True, a 'groupby' argument is made implicitly available,
+    # and if passed, the Transformation will be applied separately to each
+    # subset of the data, as defined by the columns named in groupby. When
+    # False, the Transformations does not allow grouping, and will raise an
+    # exception if groupby is passed. Transformations should set this to False
+    # if the groupby argument cannot possibly change the returned result.
+    _groupable = True
+
+    # Boolean indicating whether the output argument is mandatory. When False
+    # (default), transformations will be applied in-place unless output is set.
+    # When True, the user must explicitly specify the output, or an exception
+    # is raised.
+    _output_required = False
+
+    # An implicit 'dense' argument is always available, and indicates whether
+    # or not to operate on dense columns. When True, the arguments listed in
+    # _densify control which columns will be densified. Defaults to the columns
+    # named in the 'cols' argument. Note that if this value is overridden,
+    # 'cols' will need to be explicitly included (i.e., the subclass's
+    # _densify tuple replaces the base class rather than appending to it).
+    _densify = ('cols',)
 
     __metaclass__ = ABCMeta
 
@@ -175,7 +227,7 @@ class Transformation(object):
                     msg = ("Found a mix of dense and sparse columns. This may "
                            "cause problems for some transformations.")
                     if force:
-                        msg += (" Sparse columns  %s were converted to dense "
+                        msg += (" Sparse columns %s were converted to dense "
                                 "form to ensure proper alignment." %
                                 sparse_names)
                         sparse = [s.to_dense() for s in sparse]
