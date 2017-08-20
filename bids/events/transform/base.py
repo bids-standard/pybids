@@ -95,7 +95,7 @@ class Transformation(object):
         # that operations like densification, alignment, etc. correctly detect
         # all named arguments.
         if args:
-            arg_spec = inspect.getfullargspec(self._transform)
+            arg_spec = inspect.getargspec(self._transform)
             n_args = len(arg_spec.args)
             for i, arg_val in enumerate(args):
                 # Skip first two argnames--they're always 'self' and 'cols'
