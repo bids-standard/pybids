@@ -101,12 +101,12 @@ class Transformation(object):
                 # Skip first two argnames--they're always 'self' and 'cols'
                 kwargs[arg_spec.args[2+i]] = arg_val
 
+        self.kwargs = kwargs
+
         # Expand regex column names
-        replace_args = kwargs.pop('regex_columns', None)
+        replace_args = self.kwargs.pop('regex_columns', None)
         if replace_args is not None:
             self._regex_replace_columns(replace_args)
-
-      self.kwargs = kwargs
 
     def _clone_columns(self):
         ''' Deep copy all columns the transformation touches. This prevents us
@@ -176,9 +176,11 @@ class Transformation(object):
 
     def transform(self):
 
-        if (self.output is None and self.output_prefix is None and
-                self.output_suffix is None) and (self._output_required or (not
-                self._loopable and len(self.cols) > 1)):
+        output_passed = not (self.output is None and self.output_prefix is None
+                             and self.output_suffix is None)
+
+        if not output_passed and (self._output_required or (not self._loopable
+                             and len(self.cols) > 1)):
             raise ValueError("Transformation '%s' requires output names to be "
                              "provided. Please set at least one of 'output',"
                              "'output_prefix', or 'output_suffix'."  %
@@ -233,7 +235,7 @@ class Transformation(object):
                 col = result
 
             # Overwrite existing column
-            if self.output is None:
+            if not output_passed:
                 # If multiple Columns were returned, add each one separately
                 if isinstance(result, (list, tuple)):
                     for r in result:
@@ -243,10 +245,22 @@ class Transformation(object):
 
             # Set as a new column
             else:
-                if len(self.cols) == len(self.output) or not self._loopable:
-                    _output = self.output[i]
-                elif len(self.output) == 1:
-                    _output = str(self.output) + '_' + col.name
+                # Either assign new name in order, or re-use existing one
+                if self.output is not None:
+                    if len(self.cols) == len(self.output) or not \
+                            self._loopable:
+                        _output = self.output[i]
+                    elif len(self.output) == 1:
+                        _output = str(self.output) + '_' + col.name
+                else:
+                    _output = col.name
+
+                # Add prefix and suffix if provided
+                if self.output_prefix is not None:
+                    _output = self.output_prefix + _output
+                if self.output_suffix is not None:
+                    _output += self.output_suffix
+
                 col.name = _output
                 self.collection[_output] = col
 

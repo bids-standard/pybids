@@ -173,9 +173,11 @@ def test_regex_column_expansion(collection):
     with pytest.raises(Exception):
         transform.copy(collection, 'resp', regex_columns='cols')
 
-    transform.copy(collection, 'resp', output=['resp1', 'resp2'],
+    transform.copy(collection, 'resp', output_suffix='_copy',
                    regex_columns='cols')
-    assert 'resp1' in collection.columns.keys()
-    assert 'resp2' in collection.columns.keys()
+    assert 'respnum_copy' in collection.columns.keys()
+    assert 'respcat_copy' in collection.columns.keys()
     assert np.array_equal(collection['respcat'].values.values,
-                          collection['resp1'].values.values)
+                          collection['respcat_copy'].values.values)
+    assert np.array_equal(collection['respnum'].values.values,
+                          collection['respnum_copy'].values.values)
