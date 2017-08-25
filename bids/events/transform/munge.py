@@ -7,6 +7,7 @@ import pandas as pd
 from bids.events.utils import listify
 from .base import Transformation
 from patsy import dmatrix
+import re
 
 
 class copy(Transformation):
@@ -54,7 +55,6 @@ class split(Transformation):
     _groupable = False
     _input_type = 'column'
     _return_type = 'column'
-    _align = ('by')
     _columns_used = ('cols', 'by')
     _densify = ('cols', 'by')
     _allow_categorical = ('by',)
@@ -65,6 +65,7 @@ class split(Transformation):
         if not isinstance(col, SparseBIDSColumn):
             self._densify_columns()
 
+        # Set up all the splitting columns as a DF
         group_data = pd.concat([self._columns[c].values for c in listify(by)],
                                axis=1)
         group_data.columns = listify(by)
@@ -204,7 +205,37 @@ class factor(Transformation):
 
 
 class filter(Transformation):
-    pass
+
+    _groupable = False
+    _input_type = 'column'
+    _return_type = 'column'
+    _align = ('by')
+    _allow_categorical = ('cols', 'by')
+
+    def _transform(self, col, query, by=None):
+
+        if by is None:
+            by = []
+
+        names = [col.name] + listify(by)
+
+        # pandas .query can't handle non-identifiers in column names, so we
+        # need to replace them in both the column names and the query string.
+        name_map = {n: re.sub('[^a-zA-Z0-9_]+', '_', n) for n in names}
+        for k, v in name_map.items():
+            query = query.replace(k, v)
+
+        data = pd.concat([self.collection[c].values for c in names], axis=1)
+        data = data.reset_index(drop=True) # Make sure we can use integer index
+        data.columns = list(name_map.values())
+        data = data.query(query)
+
+        # Truncate target column to retained rows
+        col.onsets = col.onsets[data.index]
+        col.durations = col.durations[data.index]
+        col.values = col.values.iloc[data.index]
+
+        return col
 
 
 class select(Transformation):

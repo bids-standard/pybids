@@ -191,3 +191,15 @@ def test_factor(collection):
     assert 'trial_type/parametric gain' in collection.columns.keys()
     pg = collection.columns['trial_type/parametric gain']
     assert pg.values.unique() == [1]
+
+
+def test_filter(collection):
+    orig = collection['parametric gain'].clone()
+    q = "parametric gain > 0"
+    transform.filter(collection, 'parametric gain', query=q)
+    assert len(orig.values) == 2 * len(collection['parametric gain'].values)
+    assert np.all(collection['parametric gain'].values > 0)
+
+    orig = collection['RT'].clone()
+    transform.filter(collection, 'RT', by='parametric gain', query=q)
+    assert len(orig.values) == 2 * len(collection['RT'].values)
