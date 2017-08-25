@@ -236,40 +236,30 @@ class BIDSEventCollection(object):
         base_dir (str): Path to the root of the BIDS project.
         default_duration (float): Default duration to assign to events in cases
             where a duration is missing.
-        default_amplitude (float): Default amplitude to assign to events in
-            cases where an amplitude is missing.
-        condition_column (str): Optional name of the column that contains
-            the names of conditions. Defaults to 'trial_type', per the BIDS
-            specification. If None, only extra columns (beyond onset and
-            duration) are inspected for events.
-        amplitude_column (str): Optional name of the column providing the
-            amplitudes that correspond to the 'condition' column. Ignored if
-            condition_column is None.
         entities (list): Optional list of entities to encode and index by.
             If None (default), uses the standard BIDS-defined entities of
             ['run', 'session', 'subject', 'task'].
-        extra_columns (list): Optional list of names specifying which extra
-            columns in the event files to read. By default, reads all columns
-            found.
+        columns (list): Optional list of names specifying which columns in the
+            event files to read. By default, reads all columns found.
         sampling_rate (int, float): Sampling rate to use internally when
             converting sparse columns to dense format.
+        drop_na (bool): If True, removes all events where amplitude is n/a. If
+            False, leaves n/a values intact. Note that in the latter case,
+            transformations that requires numeric values may fail.
     '''
 
-    def __init__(self, base_dir, default_duration=0, default_amplitude=1,
-                 condition_column='trial_type', amplitude_column=None,
-                 entities=None, extra_columns=True, sampling_rate=10):
+    def __init__(self, base_dir, default_duration=0, entities=None,
+                 columns=None, sampling_rate=10, drop_na=True):
 
         self.default_duration = default_duration
-        self.default_amplitude = default_amplitude
-        self.condition_column = condition_column
-        self.amplitude_column = amplitude_column
         self.base_dir = base_dir
         self.project = BIDSLayout(self.base_dir)
         if entities is None:
             entities = ['subject', 'session', 'task', 'run']
         self.entities = entities
-        self.extra_columns = extra_columns
+        self.select_columns = columns
         self.sampling_rate = sampling_rate
+        self.drop_na = drop_na
 
     def read(self, file_directory=None, reset=True, **kwargs):
         ''' Read in and process event files.
@@ -378,85 +368,19 @@ class BIDSEventCollection(object):
 
             file_df = []
 
-            # Set and/or check condition_column and amplitude_column for each
-            # event file separately. Note that we don't use the global value
-            # from self because it's valid for some event files to be missing
-            # these columns.
+            _columns = self.select_columns
 
-            # If condition_column is missing, we set to None
-            condition_column = self.condition_column
-            if condition_column is not None and condition_column not in _data.columns:
-                msg = ("Event file is missing the specified condition column "
-                      "({}). Ignoring argument.").format(condition_column)
-                warnings.warn(msg)
-                condition_column = None
+            # By default, read all columns from the event file
+            if _columns is None:
+                _columns = list(set(_data.columns.tolist()) - set(skip_cols))
 
-            # If amplitude_column is provided but missing AND condition_column
-            # is set, we raise an exception, as we can't assume the user wants
-            # amplitudes implicitly set to 1. If condition_column is missing,
-            # we can safely ignore this, as other event files columns are
-            # always assumed to encode amplitude.
-            amplitude_column = self.amplitude_column
-            if amplitude_column is not None and amplitude_column not in _data.columns:
-                msg = ("Event file is missing the specified amplitude "
-                          "column ({}).").format(amplitude_column)
-                if condition_column is not None:
-                    msg += (' Either ensure the column name is correct, or '
-                            'set the amplitude_column argument to None to '
-                            'implicitly code the condition column as on/off.')
-                    raise ValueError(msg)
-                else:
-                    warnings.warn(msg)
-                    amplitude_column = None
-
-
-            if condition_column is not None:
-                skip_cols.append(condition_column)
-
-                # Use specified amplitude column if it was explicitly named
-                if amplitude_column is not None:
-                    amplitude = _data[amplitude_column]
-                    skip_cols.append(amplitude_column)
-
-                # Fall back on 'amplitude' column if it exists
-                elif 'amplitude' in _data.columns:
-                    warnings.warn("Setting amplitude to values in column"
-                                  "'amplitude'.")
-                    amplitude = _data['amplitude']
-                    skip_cols.append('amplitude')
-
-                # Otherwise we just reuse the condition_column (which will
-                # result in conversion to a set of binary indicators later.)
-                else:
-                    amplitude = _data[condition_column]
-
-                # Construct a new DataFrame for the main condition column
+            # Construct a DataFrame for each extra column
+            for col in _columns:
                 df = _data[['onset', 'duration']].copy()
-                df['condition'] = _data[condition_column]
-                df['amplitude'] = amplitude
-                df['factor'] = condition_column
-
+                df['condition'] = col
+                df['amplitude'] = _data[col].values
+                df['factor'] = col
                 file_df.append(df)
-
-            # Handle any extra columns in the event file (i.e., anything other
-            # than condition, onset, duration, or amplitude. These are always
-            # assumed to encode amplitudes, and reuse the same onsets and
-            # durations.
-            extra = self.extra_columns
-
-            if extra:
-                # By default, extra is True, which indicates additional cols
-                # should be automatically detectd.
-                if isinstance(extra, bool):
-                    extra = list(set(_data.columns.tolist()) - set(skip_cols))
-
-                # Construct a DataFrame for each extra column
-                for col in extra:
-                    df = _data[['onset', 'duration']].copy()
-                    df['condition'] = col
-                    df['amplitude'] = _data[col].values
-                    df['factor'] = col
-                    file_df.append(df.dropna())
 
             # Concatenate all extracted column DFs along the row axis
             _df = pd.concat(file_df, axis=0)
@@ -470,8 +394,13 @@ class BIDSEventCollection(object):
 
         _df = pd.concat(dfs, axis=0)
 
+        if self.drop_na:
+            _df = _df.dropna(subset=['amplitude'])
+
         for name, grp in _df.groupby(['factor', 'condition']):
-            self._create_column(name, grp)
+            data = grp.apply(pd.to_numeric, errors='ignore')
+            factor, condition = name[0], name[1]
+            self.columns[condition] = SparseBIDSColumn(self, condition, data)
 
         # build the index
         self._build_dense_index()
@@ -564,23 +493,6 @@ class BIDSEventCollection(object):
 
     def _all_dense(self):
         return all([isinstance(c, DenseBIDSColumn) for c in self.columns.values()])
-
-    def _create_column(self, name, data):
-        # Do any final postprocessing of column data and add to the collection
-        data = data.apply(pd.to_numeric, errors='ignore')
-        factor, condition = name[0], name[1]
-        # If amplitude values are strings, convert to binary columns
-        if data['amplitude'].dtype.kind not in 'bifc':
-            grps = data.groupby('amplitude')
-            for i, (lev_name, lev_grp) in enumerate(grps):
-                name = '%s/%s' % (factor, lev_name)
-                lev_grp['amplitude'] = self.default_amplitude
-                col = SparseBIDSColumn(self, name, lev_grp,
-                                       factor_name=factor, factor_index=i,
-                                       level_name=lev_name)
-                self.columns[name] = col
-        else:
-            self.columns[condition] = SparseBIDSColumn(self, condition, data)
 
     def __getitem__(self, col):
         return self.columns[col]

@@ -56,6 +56,7 @@ def test_apply_scale(collection):
 
 
 def test_apply_orthogonalize_dense(collection):
+    transform.factor(collection, 'trial_type')
     pg_pre = collection['trial_type/parametric gain'].to_dense().values
     rt = collection['RT'].to_dense().values
     collection.apply('orthogonalize', cols='trial_type/parametric gain',
@@ -119,6 +120,8 @@ def test_resample_dense(collection):
     old_rt = collection['RT'].clone()
     collection.resample(50)
     assert len(old_rt.values) * 5 == len(collection['RT'].values)
+    # Should work after explicitly converting categoricals
+    collection.apply('factor', 'trial_type')
     collection.resample(5, force_dense=True)
     assert len(old_rt.values) == len(collection['parametric gain'].values) * 2
 
@@ -181,3 +184,10 @@ def test_regex_column_expansion(collection):
                           collection['respcat_copy'].values.values)
     assert np.array_equal(collection['respnum'].values.values,
                           collection['respnum_copy'].values.values)
+
+
+def test_factor(collection):
+    transform.factor(collection, 'trial_type')
+    assert 'trial_type/parametric gain' in collection.columns.keys()
+    pg = collection.columns['trial_type/parametric gain']
+    assert pg.values.unique() == [1]

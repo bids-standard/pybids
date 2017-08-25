@@ -18,6 +18,7 @@ class copy(Transformation):
 
     _groupable = False
     _output_required = True
+    _allow_categorical = ('cols',)
 
     def _transform(self, col):
         # We don't have to do anything else here b/c it's handled in base.
@@ -33,6 +34,7 @@ class rename(Transformation):
     _groupable = False
     _output_required = True
     _input_type = 'column'
+    _allow_categorical = ('cols',)
 
     def _transform(self, col):
         ''' Rename happens automatically in the base class, so all we need to
@@ -55,6 +57,7 @@ class split(Transformation):
     _align = ('by')
     _columns_used = ('cols', 'by')
     _densify = ('cols', 'by')
+    _allow_categorical = ('by',)
 
     def _transform(self, col, by):
         from bids.events import SparseBIDSColumn
@@ -101,10 +104,10 @@ class assign(Transformation):
     ''' Assign one column's amplitude, duration, or onset attribute to
     another. '''
 
-    _loopable = True
     _groupable = False
     _input_type = 'column'
     _return_type = 'column'
+    _allow_categorical = ('cols', 'target')
 
     def _transform(self, input, target, input_attr='amplitude',
                    target_attr='amplitude'):
@@ -156,6 +159,48 @@ class assign(Transformation):
             setattr(target, target_attr, vals)
 
         return target
+
+
+class factor(Transformation):
+
+    _groupable = False
+    _input_type = 'column'
+    _return_type = 'column'
+    _allow_categorical = ('cols',)
+
+    def _transform(self, col, constraint='none', ref_level=None):
+
+        from bids.events import SparseBIDSColumn
+
+        result = []
+        data = col.to_df()
+        grps = data.groupby('amplitude')
+        orig_name = col.name
+
+        # Determine the reference level
+        if constraint in ['drop_one', 'mean_zero']:
+            levels = data['amplitude'].unique().sort_values()
+            if ref_level is None:
+                ref_level = levels[0]
+
+        for i, (lev_name, lev_grp) in enumerate(grps):
+            # TODO: consider appending info about the constraint to the name,
+            # though this has the downside of making names very long and
+            # difficult to work with.
+            name = '%s/%s' % (col.name, lev_name)
+            # TODO: implement constraint == 'mean_zero'
+            if constraint == 'drop_one' and lev_name == ref_level:
+                continue
+            lev_grp['amplitude'] = 1.0
+            col = SparseBIDSColumn(self.collection, name, lev_grp,
+                                   factor_name=col.name, factor_index=i,
+                                   level_name=lev_name)
+            result.append(col)
+
+        # Remove existing column. TODO: allow user to leave original in?
+        self.collection.columns.pop(orig_name)
+
+        return result
 
 
 class filter(Transformation):

@@ -9,6 +9,7 @@ import pandas as pd
 from glob import glob
 import shutil
 
+
 @pytest.fixture
 def collection():
     mod_file = abspath(grabbids.__file__)
@@ -21,9 +22,6 @@ def test_collection(collection):
 
     collection.read()
 
-    # Test collection attributes
-    assert collection.condition_column == 'trial_type'
-
     # Test that event files are loaded properly
     assert len(collection.event_files) == 48
     ef = collection.event_files[0]
@@ -34,8 +32,7 @@ def test_collection(collection):
     # Test extracted columns
     col_keys = collection.columns.keys()
     assert set(col_keys) == {'RT', 'gain', 'respnum', 'PTval', 'loss',
-                             'respcat', 'parametric gain',
-                             'trial_type/parametric gain'}
+                             'respcat', 'parametric gain', 'trial_type'}
     col = collection.columns['RT']
     assert isinstance(col, SparseBIDSColumn)
     assert col.collection == collection
@@ -61,8 +58,7 @@ def test_read_from_files(collection):
     collection.read(file_directory=tmp_dir)
     col_keys = collection.columns.keys()
     assert set(col_keys) == {'RT', 'gain', 'respnum', 'PTval', 'loss',
-                             'respcat', 'parametric gain',
-                             'trial_type/parametric gain'}
+                             'respcat', 'parametric gain', 'trial_type'}
     shutil.rmtree(tmp_dir)
 
 
@@ -77,17 +73,18 @@ def test_write_collection(collection):
     assert exists(filename)
     os.remove(filename)
 
-    # Dense, single file
-    collection.write(file=filename, sparse=False, sampling_rate=1)
-    assert exists(filename)
-    os.remove(filename)
-
     # Sparse, one output file per input file
     tmpdir = tempfile.mkdtemp()
     collection.write(tmpdir, sparse=True)
     files = glob(join(tmpdir, "*.tsv"))
     assert len(files) == collection.dense_index['event_file_id'].nunique()
     shutil.rmtree(tmpdir)
+
+    # Dense, single file
+    collection.apply('factor', 'trial_type')
+    collection.write(file=filename, sparse=False, sampling_rate=1)
+    assert exists(filename)
+    os.remove(filename)
 
     # Dense, one output file per input file
     tmpdir = tempfile.mkdtemp()
@@ -99,8 +96,6 @@ def test_write_collection(collection):
 
 def test_match_columns(collection):
     collection.read()
-    matches = collection.match_columns('par.{3}tric')
-    assert set(matches) == {'parametric gain', 'trial_type/parametric gain'}
     matches = collection.match_columns('^resp', return_type='columns')
     assert len(matches) == 2
     assert all(isinstance(m, SparseBIDSColumn) for m in matches)

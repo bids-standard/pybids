@@ -73,6 +73,12 @@ class Transformation(object):
     # _densify tuple replaces the base class rather than appending to it).
     _densify = ('cols',)
 
+    # Allow categorical columns in the input arguments? When None (default),
+    # any categorical columns encountered as inputs will raise an exception.
+    # Otherwise, a tuple giving the names of the arguments whose columns will
+    # be passed through as-is even if categorical.
+    _allow_categorical = None
+
     __metaclass__ = ABCMeta
 
     def __new__(cls, collection, cols, *args, **kwargs):
@@ -122,6 +128,24 @@ class Transformation(object):
         for var in self._columns_used:
             for c in listify(self.kwargs.get(var, [])):
                 self._columns[c] = deepcopy(self.collection[c])
+
+    def _check_categorical_columns(self):
+        ''' Convert categorical columns to dummy-coded indicators. '''
+
+        # Collect column names to pass through
+        pass_thru = []
+        if self._allow_categorical is not None:
+            for arg in self._allow_categorical:
+                keys = self.cols if arg == 'cols' else self.kwargs.get(arg, [])
+                pass_thru.extend(listify(keys))
+        pass_thru = list(set(pass_thru))
+
+        for name, col in self._columns.items():
+            if name not in pass_thru:
+                if col.values.values.dtype.kind not in 'bifc':
+                    msg = ("The %s transformation does not allow column '%s' "   "to be categorical. Eithe pass a different column, "   "or explicitly convert to a set of binary "
+                           "indicators via the 'factor' transformation.")
+                    raise ValueError(msg % (self.__class__.__name__, name))
 
     def _densify_columns(self):
 
@@ -190,6 +214,9 @@ class Transformation(object):
 
         # Deep copy all columns we expect to touch
         self._clone_columns()
+
+        # Make sure we don't have categorical columns we can't handle
+        self._check_categorical_columns()
 
         # Densify columns if needed
         if self.dense:
@@ -263,6 +290,7 @@ class Transformation(object):
 
                 col.name = _output
                 self.collection[_output] = col
+
 
     @abstractmethod
     def _transform(self, **kwargs):
