@@ -13,6 +13,7 @@ import json
 from bids.events import transform
 from scipy.interpolate import interp1d
 import re
+from functools import partial
 
 
 class BIDSColumn(object):
@@ -493,6 +494,11 @@ class BIDSEventCollection(object):
 
     def _all_dense(self):
         return all([isinstance(c, DenseBIDSColumn) for c in self.columns.values()])
+
+    def __getattr__(self, attr):
+        if hasattr(transform, attr):
+            return partial(getattr(transform, attr), self)
+        raise AttributeError
 
     def __getitem__(self, col):
         return self.columns[col]
