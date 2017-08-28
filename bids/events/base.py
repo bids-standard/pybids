@@ -166,7 +166,7 @@ class SparseBIDSColumn(BIDSColumn):
         amp = 'amplitude' if condition else self.name
         data = pd.DataFrame({'onset': self.onsets,
                              'duration': self.durations,
-                             amp: self.values.values})
+                             amp: self.values.values.ravel()})
         if condition:
             data['condition'] = self.name
         if entities:
