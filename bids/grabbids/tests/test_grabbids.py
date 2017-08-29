@@ -3,13 +3,18 @@ functionality should go in the grabbit package. """
 
 import pytest
 from bids.grabbids import BIDSLayout
-from os.path import join, dirname
+from os.path import join, dirname, abspath
 
 
 # Fixture uses in the rest of the tests
 @pytest.fixture
 def testlayout1():
     data_dir = join(dirname(__file__), 'data', '7t_trt')
+    return BIDSLayout(data_dir)
+
+@pytest.fixture
+def testlayout2():
+    data_dir = join(dirname(__file__), 'data', 'ds005')
     return BIDSLayout(data_dir)
 
 
@@ -29,6 +34,24 @@ def test_get_metadata2(testlayout1):
     result = testlayout1.get_metadata(join(testlayout1.root, target))
     assert result['EchoTime1'] == 0.006
 
+
+def test_get_metadata3(testlayout1):
+    target = 'sub-01/ses-1/func/sub-01_ses-1_task-rest_acq-fullbrain_run-1_bold.nii.gz'
+    result = testlayout1.get_metadata(join(testlayout1.root, target))
+    assert result['EchoTime'] == 0.020
+
+    target = 'sub-01/ses-1/func/sub-01_ses-1_task-rest_acq-fullbrain_run-2_bold.nii.gz'
+    result = testlayout1.get_metadata(join(testlayout1.root, target))
+    assert result['EchoTime'] == 0.017
+
+
+def test_get_events(testlayout2):
+    target = 'sub-01/func/sub-01_task-' \
+             'mixedgamblestask_run-03_bold.nii.gz'
+    result = testlayout2.get_events(join(testlayout2.root, target))
+    assert result == abspath(join(testlayout2.root,
+                                  target.replace('_bold.nii.gz',
+                                                 '_events.tsv')))
 
 def test_get_subjects(testlayout1):
     result = testlayout1.get_subjects()
