@@ -1,4 +1,7 @@
 {
+    "index" : {
+      "include" : ["sub-([a-zA-Z0-9]+)"]
+    },
     "entities": [
         {
             "name": "subject",
@@ -8,7 +11,7 @@
         {
             "name": "session",
             "pattern": "ses-([a-zA-Z0-9]+)",
-            "mandatory": false, 
+            "mandatory": false,
             "directory": "{{root}}/{subject}/{session}",
             "missing_value": "ses-1"
         },
