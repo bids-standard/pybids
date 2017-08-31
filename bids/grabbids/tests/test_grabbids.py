@@ -49,7 +49,6 @@ def test_get_events(testlayout2):
     target = 'sub-01/func/sub-01_task-' \
              'mixedgamblestask_run-03_bold.nii.gz'
     result = testlayout2.get_events(join(testlayout2.root, target))
-    print(result)
     assert result == abspath(join(testlayout2.root,
                                   target.replace('_bold.nii.gz',
                                                  '_events.tsv')))
