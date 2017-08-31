@@ -25,8 +25,7 @@ class BIDSLayout(Layout):
         # some kind of validation regex.
         return True
 
-    def get_nearest_helper(self, path, extension, type=None, return_list=True,
-                           **kwargs):
+    def _get_nearest_helper(self, path, extension, type=None, **kwargs):
         path = abspath(path)
 
         if path not in self.files:
@@ -40,17 +39,15 @@ class BIDSLayout(Layout):
         tmp = self.get_nearest(path, extensions=extension, all_=True,
                                type=type, ignore_strict_entities=['type'],
                                **kwargs)
-        if return_list:
-            return tmp
 
         if len(tmp):
-            return tmp[0]
+            return tmp
         else:
             return None
 
     def get_metadata(self, path, **kwargs):
 
-        potentialJSONs = self.get_nearest_helper(path, '.json', **kwargs)
+        potentialJSONs = self._get_nearest_helper(path, '.json', **kwargs)
 
         merged_param_dict = {}
         for json_file_path in reversed(potentialJSONs):
@@ -61,13 +58,13 @@ class BIDSLayout(Layout):
         return merged_param_dict
 
     def get_bvec(self, path, **kwargs):
-        return self.get_nearest_helper(path, 'bvec', type='dwi', return_list=False, **kwargs)
+        return self._get_nearest_helper(path, 'bvec', type='dwi', **kwargs)[0]
 
     def get_bval(self, path, **kwargs):
-        return self.get_nearest_helper(path, 'bval', type='dwi', return_list=False, **kwargs)
+        return self._get_nearest_helper(path, 'bval', type='dwi', **kwargs)[0]
 
     def get_events(self, path, **kwargs):
-        return self.get_nearest_helper(path, '.tsv', type='events', return_list=False, **kwargs)
+        return self._get_nearest_helper(path, '.tsv', type='events', **kwargs)[0]
 
     def get_fieldmap(self, path, return_list=False):
         fieldmaps = self._get_fieldmaps(path)
