@@ -7,13 +7,17 @@ from os.path import abspath
 from os.path import join as pathjoin
 from os.path import basename
 
+from .bids_validator import BIDSValidator
 from grabbit import Layout
 
 __all__ = ['BIDSLayout']
 
 
 class BIDSLayout(Layout):
-    def __init__(self, path, config=None, **kwargs):
+    def __init__(self, path, config=None, validate=False, **kwargs):
+        self.validator = BIDSValidator()
+        self.validate = validate
+        self.project_path = path
         if config is None:
             root = dirname(abspath(__file__))
             config = pathjoin(root, 'config', 'bids.json')
@@ -21,9 +25,14 @@ class BIDSLayout(Layout):
                                          dynamic_getters=True, **kwargs)
 
     def _validate_file(self, f):
-        # Return False to exclude a file from indexing. This should call
-        # some kind of validation regex.
-        return True
+        to_check = f.path
+        to_check = to_check.split(self.project_path, maxsplit=1)[1]
+        if to_check[0] != '/':
+            to_check = '/' + to_check
+        else:
+            None
+        print(to_check)
+        return (not self.validate) or self.validator.is_bids(to_check)
 
     def get_nearest_helper(self, path, extension, type=None, **kwargs):
         path = abspath(path)
