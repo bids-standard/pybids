@@ -61,13 +61,13 @@ class BIDSLayout(Layout):
         return merged_param_dict
 
     def get_bvec(self, path, **kwargs):
-        return self.get_nearest_helper(path, 'bvec', 'dwi', return_list=False, **kwargs)
+        return self.get_nearest_helper(path, 'bvec', type='dwi', return_list=False, **kwargs)
 
     def get_bval(self, path, **kwargs):
-        return self.get_nearest_helper(path, 'bval', 'dwi', return_list=False, **kwargs)
+        return self.get_nearest_helper(path, 'bval', type='dwi', return_list=False, **kwargs)
 
     def get_events(self, path, **kwargs):
-        return self.get_nearest_helper(path, '.tsv', 'events', return_list=False, **kwargs)
+        return self.get_nearest_helper(path, '.tsv', type='events', return_list=False, **kwargs)
 
     def get_fieldmap(self, path, return_list=False):
         fieldmaps = self._get_fieldmaps(path)
