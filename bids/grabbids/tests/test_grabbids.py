@@ -83,6 +83,8 @@ def test_include(testlayout2):
     assert join(
         testlayout2.root, 'models/ds-005_type-russ_sub-all_model.json') \
         not in testlayout2.files
+    assert 'all' not in testlayout2.get_subjects()
+
 def test_ignore_subfiles(testlayout2):
     f = [v for k, v in testlayout2.files.items() if 'ignore' in k][0]
     assert 'subject' not in f.entities
