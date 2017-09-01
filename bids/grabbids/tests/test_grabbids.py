@@ -52,6 +52,14 @@ def test_get_events(testlayout2):
     assert result == abspath(join(testlayout2.root,
                                   target.replace('_bold.nii.gz',
                                                  '_events.tsv')))
+def test_get_bvals_bvecs(testlayout2):
+    dwifile = testlayout2.get(subject="01", modality="dwi")[0]
+    result = testlayout2.get_bval(dwifile.filename)
+    assert result == abspath(join(testlayout2.root, 'dwi.bval'))
+
+    result = testlayout2.get_bvec(dwifile.filename)
+    assert result == abspath(join(testlayout2.root, 'dwi.bvec'))
+
 
 def test_get_subjects(testlayout1):
     result = testlayout1.get_subjects()
