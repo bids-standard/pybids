@@ -25,6 +25,8 @@ class BIDSLayout(Layout):
                                          dynamic_getters=True, **kwargs)
 
     def _validate_file(self, f):
+        if not self.validate:
+            return True
         to_check = f.path
         to_check = to_check.split(self.project_path, maxsplit=1)[1]
 
@@ -33,7 +35,7 @@ class BIDSLayout(Layout):
         else:
             None
         print(to_check)
-        return (not self.validate) or self.validator.is_bids(to_check)
+        return self.validator.is_bids(to_check)
 
     def get_nearest_helper(self, path, extension, type=None, **kwargs):
         path = abspath(path)
