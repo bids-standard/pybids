@@ -36,7 +36,7 @@ class BIDSLayout(Layout):
             to_check = '/' + to_check
         else:
             None
-        print(to_check)
+            
         return self.validator.is_bids(to_check)
 
     def get_nearest_helper(self, path, extension, type=None, **kwargs):
