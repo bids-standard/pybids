@@ -17,7 +17,7 @@ class BIDSLayout(Layout):
     def __init__(self, path, config=None, validate=False, **kwargs):
         self.validator = BIDSValidator()
         self.validate = validate
-        self.project_path = path
+        self.project_path = os.path.abspath(path)
         if config is None:
             root = dirname(abspath(__file__))
             config = pathjoin(root, 'config', 'bids.json')
@@ -27,6 +27,7 @@ class BIDSLayout(Layout):
     def _validate_file(self, f):
         to_check = f.path
         to_check = to_check.split(self.project_path, maxsplit=1)[1]
+
         if to_check[0] != '/':
             to_check = '/' + to_check
         else:
