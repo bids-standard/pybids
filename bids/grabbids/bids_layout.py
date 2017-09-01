@@ -25,6 +25,8 @@ class BIDSLayout(Layout):
                                          dynamic_getters=True, **kwargs)
 
     def _validate_file(self, f):
+        # If validate=True then checks files according to BIDS and
+        # returns False if file doesn't fit BIDS specification
         if not self.validate:
             return True
         to_check = f.path
