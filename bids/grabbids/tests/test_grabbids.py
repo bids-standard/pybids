@@ -44,6 +44,10 @@ def test_get_metadata3(testlayout1):
     result = testlayout1.get_metadata(join(testlayout1.root, target))
     assert result['EchoTime'] == 0.017
 
+def test_get_metadata4(testlayout2):
+    target = 'sub-03/anat/sub-03_T1w.nii.gz'
+    result = testlayout2.get_metadata(join(testlayout2.root, target))
+    assert result == None
 
 def test_get_events(testlayout2):
     target = 'sub-01/func/sub-01_task-' \

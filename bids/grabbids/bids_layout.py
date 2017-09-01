@@ -48,6 +48,7 @@ class BIDSLayout(Layout):
     def get_metadata(self, path, **kwargs):
 
         potentialJSONs = self._get_nearest_helper(path, '.json', **kwargs)
+        if not isinstance(potentialJSONs, list): return potentialJSONs
 
         merged_param_dict = {}
         for json_file_path in reversed(potentialJSONs):
