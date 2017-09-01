@@ -32,11 +32,12 @@ class BIDSLayout(Layout):
         to_check = f.path
         to_check = to_check.split(self.project_path, maxsplit=1)[1]
 
-        if to_check[0] != '/':
-            to_check = '/' + to_check
+        sep = os.path.sep
+        if to_check[:len(sep)] != sep:
+            to_check = sep + to_check
         else:
             None
-            
+
         return self.validator.is_bids(to_check)
 
     def get_nearest_helper(self, path, extension, type=None, **kwargs):
