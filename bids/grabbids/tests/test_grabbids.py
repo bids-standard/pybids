@@ -44,6 +44,10 @@ def test_get_metadata3(testlayout1):
     result = testlayout1.get_metadata(join(testlayout1.root, target))
     assert result['EchoTime'] == 0.017
 
+def test_get_metadata4(testlayout2):
+    target = 'sub-03/anat/sub-03_T1w.nii.gz'
+    result = testlayout2.get_metadata(join(testlayout2.root, target))
+    assert result == None
 
 def test_get_events(testlayout2):
     target = 'sub-01/func/sub-01_task-' \
@@ -52,6 +56,11 @@ def test_get_events(testlayout2):
     assert result == abspath(join(testlayout2.root,
                                   target.replace('_bold.nii.gz',
                                                  '_events.tsv')))
+def test_get_events2(testlayout2):
+    target = 'sub-03/anat/sub-03_T1w.nii.gz'
+    result = testlayout2.get_events(join(testlayout2.root, target))
+    assert result == None
+
 def test_get_bvals_bvecs(testlayout2):
     dwifile = testlayout2.get(subject="01", modality="dwi")[0]
     result = testlayout2.get_bval(dwifile.filename)
@@ -59,7 +68,6 @@ def test_get_bvals_bvecs(testlayout2):
 
     result = testlayout2.get_bvec(dwifile.filename)
     assert result == abspath(join(testlayout2.root, 'dwi.bvec'))
-
 
 def test_get_subjects(testlayout1):
     result = testlayout1.get_subjects()
