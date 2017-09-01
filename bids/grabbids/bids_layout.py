@@ -10,7 +10,7 @@ from os.path import basename
 from .bids_validator import BIDSValidator
 from grabbit import Layout
 
-__all__ = ['BIDSLayout']
+__all__ = ['BIDSLayout', 'BIDSValidator']
 
 
 class BIDSLayout(Layout):
