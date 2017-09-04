@@ -17,11 +17,11 @@ class BIDSLayout(Layout):
             config = pathjoin(root, 'config', 'bids.json')
         super(BIDSLayout, self).__init__(path, config,
                                          dynamic_getters=True, **kwargs)
-
+                                         
     def _validate_file(self, f):
         # Return False to exclude a file from indexing. This should call
         # some kind of validation regex.
-        return True
+        return super(BIDSLayout, self)._validate_file(f)
 
     def _get_nearest_helper(self, path, extension, type=None, **kwargs):
         """ Helper function for grabbit get_nearest """
