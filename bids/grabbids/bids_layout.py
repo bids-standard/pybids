@@ -17,17 +17,14 @@ class BIDSLayout(Layout):
             config = pathjoin(root, 'config', 'bids.json')
         super(BIDSLayout, self).__init__(path, config,
                                          dynamic_getters=True, **kwargs)
-                                         
+
     def _validate_file(self, f):
         # Return False to exclude a file from indexing. This should call
         # some kind of validation regex.
         return super(BIDSLayout, self)._validate_file(f)
 
     def _get_nearest_helper(self, path, extension, type=None, **kwargs):
-<<<<<<< HEAD
         """ Helper function for grabbit get_nearest """
-=======
->>>>>>> upstream/master
         path = abspath(path)
 
         if path not in self.files:
@@ -48,15 +45,9 @@ class BIDSLayout(Layout):
             return None
 
     def get_metadata(self, path, **kwargs):
-<<<<<<< HEAD
-        """ Return metadata by merging matching JSON sidecars in order of
-            distance from target file """
-        potentialJSONs = self._get_nearest_helper(path, '.json', **kwargs)
-=======
 
         potentialJSONs = self._get_nearest_helper(path, '.json', **kwargs)
         if not isinstance(potentialJSONs, list): return potentialJSONs
->>>>>>> upstream/master
 
         merged_param_dict = {}
         for json_file_path in reversed(potentialJSONs):
@@ -67,15 +58,6 @@ class BIDSLayout(Layout):
         return merged_param_dict
 
     def get_bvec(self, path, **kwargs):
-<<<<<<< HEAD
-        return self._get_nearest_helper(path, '.bvec', **kwargs)[0]
-
-    def get_bval(self, path, **kwargs):
-        return self._get_nearest_helper(path, '.bval', **kwargs)[0]
-
-    def get_events(self, path, **kwargs):
-        return self._get_nearest_helper(path, '.tsv', 'events', **kwargs)[0]
-=======
         tmp = self._get_nearest_helper(path, 'bvec', type='dwi', **kwargs)[0]
         if isinstance(tmp, list):
             return tmp[0]
@@ -95,7 +77,6 @@ class BIDSLayout(Layout):
             return tmp[0]
         else:
             return tmp
->>>>>>> upstream/master
 
     def get_fieldmap(self, path, return_list=False):
         fieldmaps = self._get_fieldmaps(path)
