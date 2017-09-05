@@ -21,7 +21,7 @@
         },
         {
             "name": "type",
-            "pattern": ".*_([a-zA-Z0-9]*?)\\."
+            "pattern": "[._]*([a-zA-Z0-9]*?)\\."
         },
         {
             "name": "task",
@@ -49,7 +49,7 @@
         },
         {
             "name": "modality",
-            "pattern": "\/(func|anat|fmap|dwi)\/"
+            "pattern": "[/\\\\](func|anat|fmap|dwi)[/\\\\]"
         },
         {
             "name": "dir",
