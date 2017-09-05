@@ -1,6 +1,6 @@
 {
     "index" : {
-      "include" : ["sub-([a-zA-Z0-9]+)"]
+      "exclude" : ["derivatives$", "models$"]
     },
     "entities": [
         {
