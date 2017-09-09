@@ -159,7 +159,7 @@ class BIDSValidator():
 
     #Check if the file has a name appropriate for a functional bold
     def is_func_bold(self, path):
-        funcRe = re.compile('^\\/(sub-[a-zA-Z0-9]+)' +
+        func_re = re.compile('^\\/(sub-[a-zA-Z0-9]+)' +
             '\\/(?:(ses-[a-zA-Z0-9]+)' +
             '\\/)?func' +
             '\\/\\1(_\\2)?_task-[a-zA-Z0-9]+(?:_acq-[a-zA-Z0-9]+)?(?:_rec-[a-zA-Z0-9]+)?' +\
