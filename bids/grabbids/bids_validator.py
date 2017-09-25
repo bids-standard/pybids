@@ -102,7 +102,7 @@ class BIDSValidator():
      #Check if the file has appropriate name for a subject level
 
     def is_subject_level(self, path):
-        scans_re = re.compile(r'^\\/(sub-[a-zA-Z0-9]+)' +
+        scans_re = re.compile('^\\/(sub-[a-zA-Z0-9]+)' +
             '\\/\\1(_sessions.tsv|_sessions.json)$')
         return scans_re.search(path) is not None
 
