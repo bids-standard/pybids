@@ -912,3 +912,20 @@ def test_is_phenotypic_false(testvalidator):
         if result != False:
             print(item)
         assert result == False
+
+
+def test_index_associated_false(testvalidator):
+    testvalidator = BIDSValidator(index_associated=False)
+    target_list = [
+"/code/",
+"/derivatives/",
+"/sourcedata/",
+"/stimuli/",
+"/.git/"
+    ]
+
+    for item in target_list:
+        result = testvalidator.is_associated_data(item)
+        if result != False:
+            print(item)
+        assert result == False
