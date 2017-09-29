@@ -8,6 +8,12 @@ class BIDSValidator():
 
     The main method of this class is `is_bids()`. You should use it for checking whether a file path compatible with BIDS.
 
+    Parameters
+    ----------
+    index_associated : bool, default: True
+        Specifies if an associated data should be checked. If it is true then any file paths in directories `code/`, 
+        `derivatives/`, `sourcedata/`, `stimuli/` and `.git/` will pass the validation, else they won't.
+
     Examples
     --------
     >>> from bids.grabbids import BIDSValidator
