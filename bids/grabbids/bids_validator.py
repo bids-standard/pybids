@@ -4,6 +4,24 @@ import re
 __all__ = ['BIDSLayout', 'BIDSValidator']
 
 class BIDSValidator():
+    """An object for BIDS (Brain Imaging Data Structure) verification in a data.
+
+    The main method of this class is `is_bids()`. You should use it for checking whether a file path compatible with BIDS.
+
+    Examples
+    --------
+    >>> from bids.grabbids import BIDSValidator
+    >>> validator = BIDSValidator()
+    >>> filepaths = ["/sub-01/anat/sub-01_rec-CSD_T1w.nii.gz",
+    >>> "/sub-01/anat/sub-01_acq-23_rec-CSD_T1w.exe", #wrong extension
+    >>> "/participants.tsv"]
+    >>> for filepath in filepaths:
+    >>>     print( validator.is_bids(filepath) )
+    True
+    False
+    True
+    """
+
     def __init__(self, index_associated = True):
         self.anat_suffixes =  ["T1w", "T2w", "T1map", "T2map",
                                "T1rho", "FLAIR", "PD", "PDT2",
@@ -12,6 +30,25 @@ class BIDSValidator():
         self.index_associated = index_associated
 
     def is_bids(self, path):
+        """Checks if a file path appropriate for BIDS.
+
+        Main method of the validator. uses other class methods for checking different aspects of the file path.
+
+        Parameters
+        ----------
+            path: string
+                A path of a file you want to check.
+
+        Examples
+        --------
+        >>> from bids.grabbids import BIDSValidator
+        >>> validator = BIDSValidator()
+        >>> validator.is_bids("/sub-01/ses-test/anat/sub-01_ses-test_rec-CSD_run-23_T1w.nii.gz")
+        True
+        >>> validator.is_bids("/sub-01/ses-test/sub-01_run-01_dwi.bvec") #missed session in the filename
+        False
+        """
+
         return (
             self.is_top_level(path)       |
             self.is_associated_data(path) |
