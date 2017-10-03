@@ -1,5 +1,4 @@
 import os
-import re
 import json
 
 from os.path import dirname
@@ -39,6 +38,7 @@ class BIDSLayout(Layout):
         return self.validator.is_bids(to_check)
 
     def _get_nearest_helper(self, path, extension, type=None, **kwargs):
+        """ Helper function for grabbit get_nearest """
         path = abspath(path)
 
         if path not in self.files:
@@ -59,7 +59,6 @@ class BIDSLayout(Layout):
             return None
 
     def get_metadata(self, path, **kwargs):
-
         potentialJSONs = self._get_nearest_helper(path, '.json', **kwargs)
 
         if not isinstance(potentialJSONs, list):
@@ -153,53 +152,3 @@ class BIDSLayout(Layout):
                         cur_fieldmap["type"] = "fieldmap"
                     fieldmap_set.append(cur_fieldmap)
         return fieldmap_set
-
-    def find_match(self, target, source=None):
-
-        # Try to take the easy way out
-        if source is not None:
-            _target = source.split('.')[0] + '.' + target
-            if os.path.exists(_target):
-                return target
-
-        if target in list(self.entities.keys()):
-            candidates = list(self.entities[target].files.keys())
-        else:
-            candidates = []
-
-            for root, directories, filenames in os.walk(self.root):
-                for f in filenames:
-                    if re.search(target + '$', f):
-                        if os.path.sep == "\\":
-                            f = f.replace("\\", "\\\\")
-                        candidates.append(f)
-
-        if source is None:
-            return candidates
-
-        # Walk up the file hierarchy from source, find first match
-        if not os.path.exists(source):
-            raise OSError("The file '%s' doesn't exist." % source)
-        elif not source.startswith(self.root):
-            raise ValueError("The file '%s' is not contained "
-                             "within the current project "
-                             "directory (%s)." % (source, self.root))
-        rel = os.path.relpath(dirname(source), self.root)
-        sep = os.path.sep
-        chunks = rel.split(sep)
-        n_chunks = len(chunks)
-        for i in range(n_chunks, -1, -1):
-            path = pathjoin(self.root, *chunks[:i])
-            patt = path + '\%s[^\%s]+$' % (sep, sep)
-            if sep == "\\":
-                patt = path + '\\[^\\]+$'
-                patt = patt.replace("\\", "\\\\")
-            matches = [x for x in candidates if re.search(patt, x)]
-            if matches:
-                if len(matches) == 1:
-                    return matches[0]
-                else:
-                    raise ValueError("Ambiguous target: more than one "
-                                     "candidate file found in "
-                                     "directory '%s'." % path)
-        return None
