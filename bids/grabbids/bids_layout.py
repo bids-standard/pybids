@@ -17,7 +17,6 @@ class BIDSLayout(Layout):
     def __init__(self, path, config=None, validate=False, **kwargs):
         self.validator = BIDSValidator()
         self.validate = validate
-        self.project_path = os.path.abspath(path)
         if config is None:
             root = dirname(abspath(__file__))
             config = pathjoin(root, 'config', 'bids.json')
@@ -30,7 +29,7 @@ class BIDSLayout(Layout):
         if not self.validate:
             return True
         to_check = f.path
-        to_check = to_check.split(self.project_path, maxsplit=1)[1]
+        to_check = to_check.split(self.root, maxsplit=1)[1]
 
         sep = os.path.sep
         if to_check[:len(sep)] != sep:

@@ -14,10 +14,10 @@ def testvalidator():
 #checks is_top_level() function true cases
 def test_is_top_level_true(testvalidator):
     target_list = [
-"/README", 
-"/CHANGES", 
-"/dataset_description.json", 
-"/participants.tsv", 
+"/README",
+"/CHANGES",
+"/dataset_description.json",
+"/participants.tsv",
 "/participants.json"
     ]
 
@@ -155,11 +155,8 @@ def test_is_session_level_false(testvalidator):
 
 #checks is_subject_level() function true cases
 def test_is_subject_level_true(testvalidator):
-    target_list = [
-"/sub-01/sub-01_sessions.tsv",
-"/sub-01/sub-01_sessions.json"
-    ]
-
+    target_list = ["/sub-01/sub-01_sessions.tsv",
+                   "/sub-01/sub-01_sessions.json"]
     for item in target_list:
         result = testvalidator.is_subject_level(item)
         if result != True:
@@ -639,7 +636,7 @@ def test_is_cont_false(testvalidator):
 "/ses-test/beh/sub-01/sub-01_ses-test_task-nback_physio.json", #wrong dirs order
 "/ses-test/sub-01/beh/sub-01_ses-test_task-nback_stim.tsv.gz", #wrong dirs order
 "/sub-01/ses-test/beh/sub-01_ses-test_task-nback.json", #missed modality
-"/sub-01/ses-test/beh/sub-01_ses-test_task-nback_recording-saturation_physio.", #missed extension 
+"/sub-01/ses-test/beh/sub-01_ses-test_task-nback_recording-saturation_physio.", #missed extension
 "/sub-01/ses-test/sub-01_ses-test_task-nback_recording-saturation_physio.json", #missed data type dir
 "/sub-01/beh/sub-01_ses-test_task-nback_recording-saturation_stim.tsv.gz", #missed session id dir
 "/ses-test/beh/sub-01_ses-test_task-nback_recording-saturation_stim.json" #missed sub id dir

@@ -96,7 +96,7 @@ class BIDSValidator():
 
     #Check if file is appropriate associated data.
     def is_associated_data(self, path):
-        associated_data_re = re.compile('^\\/(?:code|derivatives|sourcedata|stimuli|[.]git)\\/(?:.*)$')
+        associated_data_re = re.compile('^\\/(?:code|derivatives|sourcedata|stimuli)\\/(?:.*)$')
         associated_data_flag = associated_data_re.search(path)
         associated_data_flag = associated_data_flag is not None
         return associated_data_flag and self.index_associated
