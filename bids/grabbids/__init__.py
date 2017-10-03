@@ -1,2 +1,3 @@
 from .bids_layout import BIDSLayout
-__all__ = ["BIDSLayout"]
+from .bids_validator import BIDSValidator
+__all__ = ["BIDSLayout", "BIDSValidator"]
