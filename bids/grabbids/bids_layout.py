@@ -29,7 +29,7 @@ class BIDSLayout(Layout):
         if not self.validate:
             return True
         to_check = f.path
-        to_check = to_check.split(self.root, maxsplit=1)[1]
+        to_check = to_check.split(os.path.abspath(self.root), maxsplit=1)[1]
 
         sep = os.path.sep
         if to_check[:len(sep)] != sep:
