@@ -95,12 +95,8 @@ def test_bids_json(testlayout1):
     assert testlayout1.get(return_type='id', target='run') == ['1', '2']
     assert testlayout1.get(return_type='id', target='session') == ['1', '2']
 
-def test_include(testlayout2):
+def test_exclude(testlayout2):
     assert join(
         testlayout2.root, 'models/ds-005_type-russ_sub-all_model.json') \
         not in testlayout2.files
     assert 'all' not in testlayout2.get_subjects()
-
-def test_ignore_subfiles(testlayout2):
-    f = [v for k, v in testlayout2.files.items() if 'ignore' in k][0]
-    assert 'subject' not in f.entities
