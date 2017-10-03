@@ -11,8 +11,8 @@ class BIDSValidator():
     Parameters
     ----------
     index_associated : bool, default: True
-        Specifies if an associated data should be checked. If it is true then any file paths in directories `code/`, 
-        `derivatives/`, `sourcedata/`, `stimuli/` and `.git/` will pass the validation, else they won't.
+        Specifies if an associated data should be checked. If it is true then any file paths in directories `code/`,
+        `derivatives/`, `sourcedata/` and `stimuli/` will pass the validation, else they won't.
 
     Examples
     --------
