@@ -56,7 +56,6 @@ def test_is_associated_data_true(testvalidator):
         "/derivatives/",
         "/sourcedata/",
         "/stimuli/",
-        "/.git/"
     ]
 
     for item in target_list:
@@ -73,7 +72,7 @@ def test_is_associated_data_false(testvalidator):
         "/derivatves/",
         "/source/",
         "/stimli/",
-        "/.Giit/"
+        "/.git/"
     ]
 
     for item in target_list:
