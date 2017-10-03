@@ -5,13 +5,16 @@ from os.path import dirname
 from os.path import abspath
 from os.path import join as pathjoin
 
+from .bids_validator import BIDSValidator
 from grabbit import Layout
 
-__all__ = ['BIDSLayout']
+__all__ = ['BIDSLayout', 'BIDSValidator']
 
 
 class BIDSLayout(Layout):
-    def __init__(self, path, config=None, **kwargs):
+    def __init__(self, path, config=None, validate=False, **kwargs):
+        self.validator = BIDSValidator()
+        self.validate = validate
         if config is None:
             root = dirname(abspath(__file__))
             config = pathjoin(root, 'config', 'bids.json')
@@ -19,9 +22,20 @@ class BIDSLayout(Layout):
                                          dynamic_getters=True, **kwargs)
 
     def _validate_file(self, f):
-        # Return False to exclude a file from indexing. This should call
-        # some kind of validation regex.
-        return super(BIDSLayout, self)._validate_file(f)
+        # If validate=True then checks files according to BIDS and
+        # returns False if file doesn't fit BIDS specification
+        if not self.validate:
+            return True
+        to_check = f.path
+        to_check = to_check.split(os.path.abspath(self.root), maxsplit=1)[1]
+
+        sep = os.path.sep
+        if to_check[:len(sep)] != sep:
+            to_check = sep + to_check
+        else:
+            None
+
+        return self.validator.is_bids(to_check)
 
     def _get_nearest_helper(self, path, extension, type=None, **kwargs):
         """ Helper function for grabbit get_nearest """
@@ -46,12 +60,15 @@ class BIDSLayout(Layout):
 
     def get_metadata(self, path, **kwargs):
         potentialJSONs = self._get_nearest_helper(path, '.json', **kwargs)
-        if not isinstance(potentialJSONs, list): return potentialJSONs
+
+        if not isinstance(potentialJSONs, list):
+            return potentialJSONs
 
         merged_param_dict = {}
         for json_file_path in reversed(potentialJSONs):
             if os.path.exists(json_file_path):
-                param_dict = json.load(open(json_file_path, "r"))
+                param_dict = json.load(open(json_file_path, "r",
+                                            encoding='utf-8'))
                 merged_param_dict.update(param_dict)
 
         return merged_param_dict
