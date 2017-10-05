@@ -24,8 +24,6 @@ def test_is_top_level_true(testvalidator):
 
     for item in target_list:
         result = testvalidator.is_top_level(item)
-        if not result:
-            print(item)
         assert result
 
 
@@ -44,9 +42,7 @@ def test_is_top_level_false(testvalidator):
 
     for item in target_list:
         result = testvalidator.is_top_level(item)
-        if result:
-            print(item)
-        assert result == False
+        assert not result
 
 
 # checks is_associated_data() function true cases
@@ -60,8 +56,6 @@ def test_is_associated_data_true(testvalidator):
 
     for item in target_list:
         result = testvalidator.is_associated_data(item)
-        if not result:
-            print(item)
         assert result
 
 
@@ -77,9 +71,7 @@ def test_is_associated_data_false(testvalidator):
 
     for item in target_list:
         result = testvalidator.is_associated_data(item)
-        if result:
-            print(item)
-        assert result == False
+        assert not result
 
 
 # checks is_session_level() function true cases
@@ -113,8 +105,6 @@ def test_is_session_level_true(testvalidator):
 
     for item in target_list:
         result = testvalidator.is_session_level(item)
-        if not result:
-            print(item)
         assert result
 
 
@@ -149,9 +139,7 @@ def test_is_session_level_false(testvalidator):
 
     for item in target_list:
         result = testvalidator.is_session_level(item)
-        if result:
-            print(item)
-        assert result == False
+        assert not result
 
 
 # checks is_subject_level() function true cases
@@ -163,8 +151,6 @@ def test_is_subject_level_true(testvalidator):
 
     for item in target_list:
         result = testvalidator.is_subject_level(item)
-        if not result:
-            print(item)
         assert result
 
 
@@ -180,9 +166,7 @@ def test_is_subject_false(testvalidator):
 
     for item in target_list:
         result = testvalidator.is_subject_level(item)
-        if result:
-            print(item)
-        assert result == False
+        assert not result
 
 
 # checks is_anat() function true cases
@@ -223,8 +207,6 @@ def test_is_anat_true(testvalidator):
 
     for item in target_list:
         result = testvalidator.is_anat(item)
-        if not result:
-            print(item)
         assert result
 
 # checks is_anat() function false cases
@@ -255,9 +237,7 @@ def test_is_anat_false(testvalidator):
                    ]
     for item in target_list:
         result = testvalidator.is_anat(item)
-        if result:
-            print(item)
-        assert result == False
+        assert not result
 
 
 # checks is_dwi() function true cases
@@ -298,8 +278,6 @@ def test_is_dwi_true(testvalidator):
 
     for item in target_list:
         result = testvalidator.is_dwi(item)
-        if not result:
-            print(item)
         assert result
 
 # checks is_dwi() function false cases
@@ -332,9 +310,7 @@ def test_is_dwi_false(testvalidator):
 
     for item in target_list:
         result = testvalidator.is_dwi(item)
-        if result:
-            print(item)
-        assert result == False
+        assert not result
 
 
 # checks is_func() function true cases
@@ -447,8 +423,6 @@ def test_is_func_true(testvalidator):
 
     for item in target_list:
         result = testvalidator.is_func(item)
-        if not result:
-            print(item)
         assert result
 
 
@@ -474,9 +448,7 @@ def test_is_func_false(testvalidator):
 
     for item in target_list:
         result = testvalidator.is_func(item)
-        if result:
-            print(item)
-        assert result == False
+        assert not result
 
 
 # checks is_func_bold() true cases
@@ -501,8 +473,6 @@ def test_is_func_bold_true(testvalidator):
 
     for item in target_list:
         result = testvalidator.is_func_bold(item)
-        if not result:
-            print(item)
         assert result
 
 
@@ -543,9 +513,7 @@ def test_is_func_bold_false(testvalidator):
 
     for item in target_list:
         result = testvalidator.is_func_bold(item)
-        if result:
-            print(item)
-        assert result == False
+        assert not result
 
 
 # checks is_behavioral() function true cases
@@ -569,8 +537,6 @@ def test_is_behavioral_true(testvalidator):
 
     for item in target_list:
         result = testvalidator.is_behavioral(item)
-        if not result:
-            print(item)
         assert result
 
 
@@ -595,9 +561,7 @@ def test_is_behavioral_false(testvalidator):
 
     for item in target_list:
         result = testvalidator.is_behavioral(item)
-        if result:
-            print(item)
-        assert result == False
+        assert not result
 
 
 # checks is_cont() function true cases
@@ -623,8 +587,6 @@ def test_is_cont_true(testvalidator):
 
     for item in target_list:
         result = testvalidator.is_cont(item)
-        if not result:
-            print(item)
         assert result
 
 
@@ -651,9 +613,7 @@ def test_is_cont_false(testvalidator):
 
     for item in target_list:
         result = testvalidator.is_cont(item)
-        if result:
-            print(item)
-        assert result == False
+        assert not result
 
 
 # checks is_field_map() function true cases
@@ -854,8 +814,6 @@ def test_is_field_map_true(testvalidator):
 
     for item in target_list:
         result = testvalidator.is_field_map(item)
-        if not result:
-            print(item)
         assert result
 
 
@@ -883,9 +841,7 @@ def test_is_field_map_false(testvalidator):
 
     for item in target_list:
         result = testvalidator.is_field_map(item)
-        if result:
-            print(item)
-        assert result == False
+        assert not result
 
 
 # checks is_phenotypic() function true cases
@@ -897,8 +853,6 @@ def test_is_phenotypic_true(testvalidator):
 
     for item in target_list:
         result = testvalidator.is_phenotypic(item)
-        if not result:
-            print(item)
         assert result
 
 
@@ -912,9 +866,7 @@ def test_is_phenotypic_false(testvalidator):
 
     for item in target_list:
         result = testvalidator.is_phenotypic(item)
-        if result:
-            print(item)
-        assert result == False
+        assert not result
 
 
 def test_index_associated_false(testvalidator):
@@ -929,6 +881,4 @@ def test_index_associated_false(testvalidator):
 
     for item in target_list:
         result = testvalidator.is_associated_data(item)
-        if result:
-            print(item)
-        assert result == False
+        assert not result

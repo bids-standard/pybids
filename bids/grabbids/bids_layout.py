@@ -8,12 +8,14 @@ from os.path import join as pathjoin
 from .bids_validator import BIDSValidator
 from grabbit import Layout
 
-__all__ = ['BIDSLayout', 'BIDSValidator']
+__all__ = ['BIDSLayout']
 
 
 class BIDSLayout(Layout):
-    def __init__(self, path, config=None, validate=False, **kwargs):
-        self.validator = BIDSValidator()
+
+    def __init__(self, path, config=None, validate=False,
+                 index_associated=True, **kwargs):
+        self.validator = BIDSValidator(index_associated=index_associated)
         self.validate = validate
         if config is None:
             root = dirname(abspath(__file__))
@@ -59,6 +61,17 @@ class BIDSLayout(Layout):
             return None
 
     def get_metadata(self, path, **kwargs):
+        ''' Returns metadata found in JSON sidecars for the specified file.
+        Args:
+            path (str): Path to the file to get metadata for.
+            kwargs (dict): Optional keyword arguments to pass onto
+                get_nearest().
+        Notes:
+            A dictionary containing metadata extracted from all matching .json
+            files is returned. In cases where the same key is found in multiple
+            files, the values in files closer to the input filename will take
+            precedence, per the inheritance rules in the BIDS specification.
+        '''
         potentialJSONs = self._get_nearest_helper(path, '.json', **kwargs)
 
         if not isinstance(potentialJSONs, list):
