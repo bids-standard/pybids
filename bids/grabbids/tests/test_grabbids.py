@@ -12,6 +12,7 @@ def testlayout1():
     data_dir = join(dirname(__file__), 'data', '7t_trt')
     return BIDSLayout(data_dir)
 
+
 @pytest.fixture
 def testlayout2():
     data_dir = join(dirname(__file__), 'data', 'ds005')
@@ -44,10 +45,12 @@ def test_get_metadata3(testlayout1):
     result = testlayout1.get_metadata(join(testlayout1.root, target))
     assert result['EchoTime'] == 0.017
 
+
 def test_get_metadata4(testlayout2):
     target = 'sub-03/anat/sub-03_T1w.nii.gz'
     result = testlayout2.get_metadata(join(testlayout2.root, target))
     assert result == None
+
 
 def test_get_events(testlayout2):
     target = 'sub-01/func/sub-01_task-' \
@@ -56,10 +59,13 @@ def test_get_events(testlayout2):
     assert result == abspath(join(testlayout2.root,
                                   target.replace('_bold.nii.gz',
                                                  '_events.tsv')))
+
+
 def test_get_events2(testlayout2):
     target = 'sub-03/anat/sub-03_T1w.nii.gz'
     result = testlayout2.get_events(join(testlayout2.root, target))
     assert result == None
+
 
 def test_get_bvals_bvecs(testlayout2):
     dwifile = testlayout2.get(subject="01", modality="dwi")[0]
@@ -68,6 +74,7 @@ def test_get_bvals_bvecs(testlayout2):
 
     result = testlayout2.get_bvec(dwifile.filename)
     assert result == abspath(join(testlayout2.root, 'dwi.bvec'))
+
 
 def test_get_subjects(testlayout1):
     result = testlayout1.get_subjects()
@@ -94,6 +101,7 @@ def test_get_fieldmap2(testlayout1):
 def test_bids_json(testlayout1):
     assert testlayout1.get(return_type='id', target='run') == ['1', '2']
     assert testlayout1.get(return_type='id', target='session') == ['1', '2']
+
 
 def test_exclude(testlayout2):
     assert join(
