@@ -1,0 +1,9 @@
+{
+  "transformations": [
+    {
+      "name": "scale",
+      "input": ["RT", "parametric gain"],
+      "output": ["RT_Z", "gain_Z"]
+    }
+  ]
+}
