@@ -3,7 +3,7 @@ from .version import __version__  # noqa
 from .due import due, Doi
 
 
-__all__ = ["grabbids", "transform"]
+__all__ = ["grabbids", "events"]
 
 due.cite(Doi("10.1038/sdata.2016.44"),
          description="Brain Imaging Data Structure",
