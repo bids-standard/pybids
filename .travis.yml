@@ -2,7 +2,7 @@ sudo: false
 
 env:
   global:
-    - CONDA_DEPS="pip flake8 pytest numpy pandas scipy patsy"
+    - CONDA_DEPS="pip flake8 pytest numpy pandas scipy patsy nibabel"
 
 matrix:
   include:
@@ -30,7 +30,7 @@ before_install:
 - conda install python=$PYTHON_VERSION $CONDA_DEPS
 
 install:
-- pip install -e .
+- pip install -e . [events]
 
 script:
 # - flake8 --ignore N802,N806 `find . -name \*.py | grep -v setup.py | grep -v /doc/`
