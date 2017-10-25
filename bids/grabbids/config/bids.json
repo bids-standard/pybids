@@ -32,6 +32,10 @@
             "pattern": "(.*\\_scans.tsv)$"
         },
         {
+            "name": "echo",
+            "pattern": "echo-([0-9]+)"
+        },
+        {
             "name": "acquisition",
             "pattern": "acq-(.*?)(?:_+)"
         },
