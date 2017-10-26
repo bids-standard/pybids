@@ -26,7 +26,6 @@ before_install:
 - bash miniconda.sh -b -s -f -p $MINICONDA;
 - conda config --set always_yes yes
 - conda update conda
-- conda update -y ca-certificates -c defaults
 - conda info -a
 - conda config --add channels conda-forge
 - conda install python=$PYTHON_VERSION $CONDA_DEPS
@@ -42,15 +41,7 @@ after_success:
 - coveralls
 - bash <(curl -s https://codecov.io/bash)
 
-before_cache:
-# clean unused packages & installed files from conda cache
-# this makes the cache rebuilt less frequently
-- conda clean --tarballs --packages --index-cache
-- rm -rf $HOME/miniconda/pkgs
-
-cache:
-  directories:
-    - $HOME/miniconda
+cache: false
 
 deploy:
   provider: pypi
