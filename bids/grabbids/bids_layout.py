@@ -143,9 +143,11 @@ class BIDSLayout(Layout):
                         cur_fieldmap = {"phasediff": file.filename,
                                         "magnitude1": file.filename.replace(
                                             "phasediff", "magnitude1"),
-                                        "magnitude2": file.filename.replace(
-                                            "phasediff", "magnitude2"),
                                         "type": "phasediff"}
+                        magnitude2 = file.filename.replace(
+                            "phasediff", "magnitude2")
+                        if os.path.isfile(magnitude2):
+                            cur_fieldmap['magnitude2'] = magnitude2
                     elif file.type == "phase1":
                         cur_fieldmap["phase1"] = file.filename
                         cur_fieldmap["magnitude1"] = \
