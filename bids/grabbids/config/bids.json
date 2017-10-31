@@ -62,6 +62,18 @@
         {
             "name": "acq",
             "pattern": "acq-([a-zA-Z0-9]+)"
+        },
+        {
+            "name": "inv",
+            "pattern": "inv-([0-9]+)"
+        },
+        {
+            "name": "part",
+            "pattern": "part-(mag|phase)"
+        },
+        {
+            "name": "fa",
+            "pattern": "fa-([0-9]+)"
         }
     ]
 }
