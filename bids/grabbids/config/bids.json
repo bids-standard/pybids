@@ -33,7 +33,7 @@
         },
         {
             "name": "echo",
-            "pattern": "echo-([0-9]+)\\_bold."
+            "pattern": "echo-([0-9]+)"
         },
         {
             "name": "acquisition",
