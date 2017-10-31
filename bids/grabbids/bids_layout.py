@@ -44,8 +44,9 @@ class BIDSLayout(Layout):
         path = abspath(path)
 
         if path not in self.files:
-            raise ValueError("File '%s' could not be found in the current BIDS"
-                             " project." % path)
+            raise ValueError(
+                "File '%s' does not match any specification in the current "
+                "BIDS project." % path)
 
         if not type:
             # Constrain the search to .json files with the same type as target
