@@ -1,6 +1,8 @@
 import os
 import json
 
+from io import open
+
 from os.path import dirname
 from os.path import abspath
 from os.path import join as pathjoin
