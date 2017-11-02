@@ -60,6 +60,10 @@
             "pattern": "dir-([a-zA-Z0-9]+)"
         },
         {
+            "name": "recording",
+            "pattern": "recording-([a-zA-Z0-9]+)"
+        },
+        {
             "name": "acq",
             "pattern": "acq-([a-zA-Z0-9]+)"
         }
