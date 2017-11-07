@@ -1,0 +1,20 @@
+{
+    "entities": [
+        {
+            "name": "target",
+            "pattern": "target-([a-zA-Z0-9]+)"
+        },
+        {
+            "name": "space",
+            "pattern": "space-([a-zA-Z0-9]+)"
+        },
+        {
+            "name": "class",
+            "pattern": "class-([a-zA-Z0-9]+)"
+        },
+        {
+            "name": "variant",
+            "pattern": "variant-([a-zA-Z0-9]+)"
+        }
+    ]
+}

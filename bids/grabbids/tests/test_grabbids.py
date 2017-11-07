@@ -19,6 +19,12 @@ def testlayout2():
     return BIDSLayout(data_dir)
 
 
+@pytest.fixture
+def testlayout3():
+    data_dir = join(dirname(__file__), 'data', 'ds005')
+    return BIDSLayout(data_dir, extensions=['derivatives'])
+
+
 def test_layout_init(testlayout1):
     assert isinstance(testlayout1.files, dict)
 
