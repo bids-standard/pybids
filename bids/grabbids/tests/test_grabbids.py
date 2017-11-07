@@ -114,3 +114,7 @@ def test_exclude(testlayout2):
         testlayout2.root, 'models/ds-005_type-russ_sub-all_model.json') \
         not in testlayout2.files
     assert 'all' not in testlayout2.get_subjects()
+
+
+def test_layout_with_derivs(testlayout3):
+    assert isinstance(testlayout3.files, dict)

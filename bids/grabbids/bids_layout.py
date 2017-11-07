@@ -31,7 +31,7 @@ class BIDSLayout(Layout):
         for ext in extensions or []:
             with open(pathjoin(root, 'config', '%s.json' % ext)) as fobj:
                 ext_config = json.load(fobj)
-                config['entities'].update(ext_config['entities'])
+                config['entities'].extend(ext_config['entities'])
 
         super(BIDSLayout, self).__init__(path, config,
                                          dynamic_getters=True, **kwargs)
