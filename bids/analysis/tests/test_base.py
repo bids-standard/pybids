@@ -1,4 +1,4 @@
-from bids.design.base import (SparseBIDSColumn, BIDSDesignManager,
+from bids.analysis.variables import (SparseBIDSColumn, BIDSVariableManager,
                               BIDSEventFile)
 import pytest
 from os.path import join, dirname, abspath, exists
@@ -13,13 +13,13 @@ import shutil
 def manager():
     mod_file = abspath(grabbids.__file__)
     path = join(dirname(mod_file), 'tests', 'data', 'ds005')
-    return BIDSDesignManager(path)
+    return BIDSVariableManager(path)
 
 
 def test_manager(manager):
-    ''' Integration test for BIDSDesignManager initialization. '''
+    ''' Integration test for BIDSVariableManager initialization. '''
 
-    manager.read()
+    manager.load()
 
     # Test that event files are loaded properly
     assert len(manager.event_files) == 48
@@ -44,17 +44,22 @@ def test_manager(manager):
     assert set(ents.columns) == {'task', 'subject', 'run', 'event_file_id'}
 
 
-def test_read_from_files(manager):
-    path = join(dirname(abspath(grabbids.__file__)), 'tests', 'data', 'ds005')
+def test_read_from_files():
+
+    mod_file = abspath(grabbids.__file__)
+    path = join(dirname(mod_file), 'tests', 'data', 'ds005')
+
+    path2 = join(dirname(abspath(grabbids.__file__)), 'tests', 'data', 'ds005')
     subs = ['02', '06', '08']
     template = 'sub-%s/func/sub-%s_task-mixedgamblestask_run-01_events.tsv'
-    files = [join(path, template % (s, s)) for s in subs]
+    files = [join(path2, template % (s, s)) for s in subs]
     # Put them in a temporary directory
     tmp_dir = tempfile.mkdtemp()
     for f in files:
         shutil.copy2(f, tmp_dir)
 
-    manager.read(extra_paths=tmp_dir)
+    manager = BIDSVariableManager([path, tmp_dir])
+    manager.load()
     col_keys = manager.columns.keys()
     assert set(col_keys) == {'RT', 'gain', 'respnum', 'PTval', 'loss',
                              'respcat', 'parametric gain', 'trial_type'}
@@ -64,7 +69,7 @@ def test_read_from_files(manager):
 def test_write_manager(manager):
 
     # TODO: test content of files, not just existence
-    manager.read()
+    manager.load()
 
     # Sparse, single file
     filename = tempfile.mktemp() + '.tsv'
@@ -95,7 +100,31 @@ def test_write_manager(manager):
 
 
 def test_match_columns(manager):
-    manager.read()
+    manager.load()
     matches = manager.match_columns('^resp', return_type='columns')
     assert len(matches) == 2
     assert all(isinstance(m, SparseBIDSColumn) for m in matches)
+
+
+def test_get_design_matrix(manager):
+    manager.load()
+    manager.set_analysis_level('run')
+    subs = [str(s).zfill(2) for s in [1, 2, 3, 4, 5, 6]]
+    dm = manager.get_design_matrix(columns=['RT', 'parametric gain'],
+                                   subject=subs)
+    assert dm.shape == (4308, 6)
+
+def test_errything(manager):
+    from bids.analysis.base import Analysis
+    mod_file = abspath(grabbids.__file__)
+    layout_path = join(dirname(mod_file), 'tests', 'data', 'ds005')
+    json_file = join(layout_path, 'models', 'ds-005_type-test_model.json')
+
+    analysis = Analysis(layout_path, json_file)
+    analysis.setup()
+
+    result = analysis['secondlevel'].get_Xy()
+    assert len(result) == 16
+    assert len(result[0]) == 3
+    assert result[0][0].shape == (3, 8)
+

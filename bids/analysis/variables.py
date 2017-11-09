@@ -7,13 +7,14 @@ from collections import namedtuple
 import math
 from copy import deepcopy
 from abc import abstractproperty, ABCMeta
-# from six import string_types
+from six import string_types
 import os
 from bids.utils import listify
-# import json
+import json
 import re
-# from scipy.interpolate import interp1d
-# from functools import partial
+from scipy.interpolate import interp1d
+from functools import partial
+from pandas.api.types import is_numeric_dtype
 
 
 class BIDSColumn(object):
@@ -102,7 +103,7 @@ class BIDSColumn(object):
 class SparseBIDSColumn(BIDSColumn):
     ''' A sparse representation of a single column of events.
     Args:
-        manager (BIDSDesignManager): The manager the current column
+        manager (BIDSVariableManager): The manager the current column
             is bound to and derived from.
         name (str): Name of the column.
         data (DataFrame): A pandas DataFrame minimally containing the columns
@@ -230,12 +231,13 @@ BIDSEventFile = namedtuple('BIDSEventFile', ('image_file', 'event_file',
                                              'start', 'duration', 'entities'))
 
 
-class BIDSDesignManager(object):
+class BIDSVariableManager(object):
 
     ''' A container for all design-related informationextracted from a BIDS
     project.
     Args:
-        base_dir (str): Path to the root of the BIDS project.
+        layouts (str, list): Path(s) to the root of the BIDS project(s). Can
+            also be a list of Layouts.
         default_duration (float): Default duration to assign to events in cases
             where a duration is missing.
         entities (list): Optional list of entities to encode and index by.
@@ -248,94 +250,105 @@ class BIDSDesignManager(object):
         drop_na (bool): If True, removes all events where amplitude is n/a. If
             False, leaves n/a values intact. Note that in the latter case,
             transformations that requires numeric values may fail.
+        extra_paths (None, list): Optional list of additional paths to
+            files or folders containing design information to read from.
+            If None (default), will use all event files found within the
+            current BIDS project.
+        overwrite_bids_variables (bool): If `extra_paths` is passed and
+            this argument is True, existing event files within the BIDS
+            project are completely ignored.
+
+    Notes:
+        If extra_paths is passed, the following two constraints must apply
+        to every detected file:
+            * ALL relevant BIDS entities MUST be encoded in each file.
+              I.e., "sub-02_task-mixedgamblestask_run-01_events.tsv" is
+              valid, but "subject_events.tsv" would not be.
+            * It is assumed that all and only the event files in the folder
+              are to be processed--i.e., there cannot be any other
+              subjects, runs, etc. whose events also need to be processed
+              but that are missing from the passed list.
     '''
 
-    def __init__(self, base_dir, default_duration=0, entities=None,
-                 columns=None, sampling_rate=10, drop_na=True):
+    def __init__(self, layouts, default_duration=0, entities=None,
+                 columns=None, sampling_rate=10, drop_na=True,
+                 extra_paths=None, overwrite_bids_variables=False,
+                 **selectors):
 
-        self.default_duration = default_duration
-        self.base_dir = base_dir
-        self.project = BIDSLayout(self.base_dir)
+        # Load Layouts and merge them
+        layouts = listify(layouts)
+        layouts = [BIDSLayout(l) if isinstance(l, str) else l for l in layouts]
+        if len(layouts) > 1:
+            for l in layouts[1:]:
+                layouts[0].files.update(l.files)
+
+                for k, v in l.entities.items():
+                    if k not in layouts[0].entities:
+                        layouts[0].entities.update(v)
+                    else:
+                        layouts[0].entities[k].files.update(v.files)
+        self.layout = layouts[0]
+
         if entities is None:
             entities = ['subject', 'session', 'task', 'run']
         self.entities = entities
+
+        self.default_duration = default_duration
         self.select_columns = columns
         self.sampling_rate = sampling_rate
         self.drop_na = drop_na
+        self.current_grouper = 'event_file_id'
+        self.extra_paths = extra_paths
+        self.overwrite_bids_variables = overwrite_bids_variables
+        self.selectors = selectors
 
-    def read(self, extra_paths=None, replace_bids_design=False,
-             reset=True, **kwargs):
+    def get_sampling_rate(self, sr):
+        return self.repetition_time if sr == 'tr' else sr
+
+    def load(self):
         ''' Read in and process event files.
         Args:
-            extra_paths (None, list): Optional list of additional paths to
-                files or folders containing design information to read from.
-                If None (default), will use all event files found within the
-                current BIDS project.
-            replace_bids_design (bool): If `extra_paths` is passed and this
-                argument is True, existing event files within the BIDS project
-                are completely ignored.
             reset (bool): If True (default), clears all previously processed
                 event files and columns; if False, adds new files
                 incrementally.
-
-        Notes:
-            If extra_paths is passed, the following two constraints must apply
-            to every detected file:
-                * ALL relevant BIDS entities MUST be encoded in each file.
-                  I.e., "sub-02_task-mixedgamblestask_run-01_events.tsv" is
-                  valid, but "subject_events.tsv" would not be.
-                * It is assumed that all and only the event files in the folder
-                  are to be processed--i.e., there cannot be any other
-                  subjects, runs, etc. whose events also need to be processed
-                  but that are missing from the passed list.
         '''
-        if reset:
-            self.event_files = []
-            self.columns = {}
+        self.event_files = []
+        self.columns = {}
 
-        found_files = []
+        # Loop over images and get all corresponding event files
+        images = self.layout.get(return_type='file', type='bold',
+                                 modality='func', extensions='.nii.gz',
+                                 **self.selectors)
+        if not images:
+            raise ValueError("No functional images that match criteria found.")
 
-        # Starting with either files or images, get all event files that have
-        # a valid functional run, and store their duration if available.
-        if extra_paths is not None:
+        event_files = []
+        run_trs = []
 
-            extra_paths = listify(extra_paths)
-            for ep in extra_paths:
-                if os.path.isdir(ep):
-                    proj = BIDSLayout(ep)
-                    evf = proj.get(return_type='file', extensions='.tsv',
-                                   type='events', **kwargs)
-                    found_files.extend([proj.files[f] for f in evf])
-                # TODO: accept individual files--but this will require
-                # extracting entities from file name directly somehow.
-                # else:
-                #     found_files.append(ep)
-
-        if extra_paths is None or not replace_bids_design:
-            evf = self.project.get(return_type='file', type='events',
-                                   extensions='.tsv', **kwargs)
-            found_files.extend([self.project.files[f] for f in evf])
-
-        valid_files = []
-        for f in found_files:
-            f_ents = f.entities
+        for img_f in images:
+            f_ents = self.layout.files[img_f].entities
             f_ents = {k: v for k, v in f_ents.items() if k in self.entities}
-            img_f = self.project.get(return_type='file', modality='func',
-                                     extensions='.nii.gz', type='bold',
-                                     **f_ents)
-            if not img_f:
-                continue
-            elif len(img_f) > 1:
-                args = (f.filename, img_f[0])
-                warnings.warn("Design file %s matched multiple images, using "
-                              "the first one found (%s)." % args)
+            evf = self.layout.get(return_type='file', extensions='.tsv',
+                                  type='events', **f_ents)
+            if not evf:
+                raise ValueError("Could not find event file that matches %s." %
+                                 img_f)
+            tr = 1./self.layout.get_metadata(img_f)['RepetitionTime']
+            run_trs.append(tr)
 
-            valid_files.append((f.path, img_f[0], f_ents))
+            event_files.append((evf[0], img_f, f_ents))
+
+        if len(set(run_trs)) > 1:
+            raise ValueError("More than one TR detected across specified runs."
+                             " Currently we can only handle runs with the same"
+                             " repetition time.")
+
+        self.repetition_time = run_trs[0]
 
         dfs = []
         start_time = 0
 
-        for (evf, img_f, f_ents) in valid_files:
+        for (evf, img_f, f_ents) in event_files:
             _data = pd.read_table(evf, sep='\t')
             _data = _data.replace('n/a', np.nan)  # Replace BIDS' n/a
             _data = _data.apply(pd.to_numeric, errors='ignore')
@@ -355,8 +368,10 @@ class BIDSDesignManager(object):
                               " may produce unexpected results." %
                               (img_f, duration))
 
+            # Add default values for entities that may not be passed explicitly
             evf_index = len(self.event_files)
             f_ents['event_file_id'] = evf_index
+
             ef = BIDSEventFile(event_file=evf, image_file=img_f,
                                start=start_time, duration=duration,
                                entities=f_ents)
@@ -402,24 +417,11 @@ class BIDSDesignManager(object):
             self.columns[condition] = SparseBIDSColumn(self, condition, data)
 
         # build the index
-        # self._build_dense_index()
+        self._build_dense_index()
 
-
-    def get_design_matrix(self, **kwargs):
-        pass
-
-
-    def set_analysis_level(self, level):
-        pass
-
-
-    def write(self, path=None, file=None, suffix='_events', columns=None,
-              sparse=True, sampling_rate=None, header=True, overwrite=False):
-        ''' Write out all events in manager to TSV file(s).
+    def merge_columns(self, columns=None, sparse=True, sampling_rate='tr'):
+        ''' Merge columns into one DF.
         Args:
-            path (str): The directory to write event files to
-            file (str): Event file to write events to
-            suffix (str): Suffix to append to filenames
             columns (list): Optional list of column names to retain; if None,
                 all columns are written out.
             sparse (bool): If True, events will be written out in sparse format
@@ -427,31 +429,19 @@ class BIDSDesignManager(object):
                 a dense matrix (i.e., uniform sampling rate for all events)
                 will be exported. Will be ignored if at least one column is
                 dense.
-            sampling_rate (float): If a dense matrix is written out, the sampling
-                rate (in Hz) to use for downsampling. Defaults to the value
-                currently set in the instance.
-            header (bool): If True, includes column names in the header row. If
-                False, omits the header row.
-            overwrite (bool): If True, any existing .tsv file at the output
-                location will be overwritten.
+            sampling_rate (float): If a dense matrix is written out, the
+                sampling rate (in Hz) to use for downsampling. Defaults to the
+                value currently set in the instance.
+        Returns: A pandas DataFrame.
         '''
-
-        if path is None and file is None:
-            raise ValueError("Either the 'path' or the 'file' arguments must "
-                             "be provided.")
-
         # # Can only write sparse output if all columns are sparse
-        # force_dense = True if not sparse or not self._all_sparse() else False
-        force_dense = False
+        force_dense = True if not sparse or not self._all_sparse() else False
 
-        # Default to sampling rate of current instance
-        # TODO: Store the TR internally when reading images, and then allow
-        # user to downsample to TR resolution using the special value 'tr'.
-        if sampling_rate is None:
-            sampling_rate = self.sampling_rate
-        if force_dense:  #and not self._all_dense():
+        sampling_rate = self.get_sampling_rate(sampling_rate)
+
+        if force_dense and not self._all_dense():
             _cols = self.resample(sampling_rate, force_dense=force_dense,
-                                    in_place=False)
+                                  in_place=False)
         else:
             _cols = self.columns.values()
 
@@ -474,13 +464,37 @@ class BIDSDesignManager(object):
         else:
             data = pd.concat([c.to_df() for c in _cols], axis=0)
 
+        return data
+
+    def write(self, path=None, file=None, columns=None, sparse=True,
+              sampling_rate='tr', suffix='_events', header=True,
+              overwrite=False):
+        ''' Write out all events in manager to TSV file(s).
+        Args:
+            path (str): The directory to write event files to
+            file (str): Event file to write events to
+            suffix (str): Suffix to append to filenames
+            header (bool): If True, includes column names in the header row. If
+                False, omits the header row.
+            overwrite (bool): If True, any existing .tsv file at the output
+                location will be overwritten.
+        '''
+
+        if path is None and file is None:
+            raise ValueError("Either the 'path' or the 'file' arguments must "
+                             "be provided.")
+
+        data = self.merge_columns(columns, sparse, sampling_rate)
+
         # By default drop columns for internal use
-        _drop_cols = [c for c in data.columns if c in ['event_file_id', 'time']]
+        _drop_cols = [c for c in data.columns
+                      if c in ['event_file_id', 'time']]
+
         # If output is a single file, just write out the entire DF, adding in
         # the entities.
         if file is not None:
-            data.drop(_drop_cols, axis=1).\
-                 to_csv(file, sep='\t', header=header, index=False)
+            data.drop(_drop_cols, axis=1).to_csv(file, sep='\t', header=header,
+                                                 index=False)
 
         # Otherwise we write out one event file per entity combination
         else:
@@ -494,19 +508,16 @@ class BIDSDesignManager(object):
                 filename = '_'.join(['%s-%s' % (e, name[i]) for i, e in
                                      enumerate(common_ents)])
                 filename = os.path.join(path, filename + suffix + ".tsv")
-                g.drop(_drop_cols, axis=1).\
-                  to_csv(filename, sep='\t', header=header, index=False)
+                g.drop(_drop_cols, axis=1).to_csv(filename, sep='\t',
+                                                  header=header, index=False)
 
-    # def _all_sparse(self):
-    #     return all([isinstance(c, SparseBIDSColumn) for c in self.columns.values()])
+    def _all_sparse(self):
+        return all([isinstance(c, SparseBIDSColumn)
+                    for c in self.columns.values()])
 
-    # def _all_dense(self):
-    #     return all([isinstance(c, DenseBIDSColumn) for c in self.columns.values()])
-
-    # def __getattr__(self, attr):
-    #     if hasattr(transform, attr):
-    #         return partial(getattr(transform, attr), self)
-    #     raise AttributeError
+    def _all_dense(self):
+        return all([isinstance(c, DenseBIDSColumn)
+                    for c in self.columns.values()])
 
     def __getitem__(self, col):
         return self.columns[col]
@@ -521,18 +532,18 @@ class BIDSDesignManager(object):
             obj.name = col
         self.columns[col] = obj
 
-    # def _build_dense_index(self):
-    #     ''' Build an index of all tracked entities for all dense columns. '''
-    #     index = []
-    #     sr = int(1000./self.sampling_rate)
-    #     for evf in self.event_files:
-    #         reps = int(math.ceil(evf.duration * self.sampling_rate))
-    #         ent_vals = list(evf.entities.values())
-    #         data = np.broadcast_to(ent_vals, (reps, len(ent_vals)))
-    #         df = pd.DataFrame(data, columns=list(evf.entities.keys()))
-    #         df['time'] = pd.date_range(0, periods=len(df), freq='%sms' % sr)
-    #         index.append(df)
-    #     self.dense_index = pd.concat(index, axis=0).reset_index(drop=True)
+    def _build_dense_index(self):
+        ''' Build an index of all tracked entities for all dense columns. '''
+        index = []
+        sr = int(1000. / self.sampling_rate)
+        for evf in self.event_files:
+            reps = int(math.ceil(evf.duration * self.sampling_rate))
+            ent_vals = list(evf.entities.values())
+            data = np.broadcast_to(ent_vals, (reps, len(ent_vals)))
+            df = pd.DataFrame(data, columns=list(evf.entities.keys()))
+            df['time'] = pd.date_range(0, periods=len(df), freq='%sms' % sr)
+            index.append(df)
+        self.dense_index = pd.concat(index, axis=0).reset_index(drop=True)
 
     def match_columns(self, pattern, return_type='name'):
         ''' Return columns whose names match the provided regex pattern.
@@ -544,81 +555,108 @@ class BIDSDesignManager(object):
         '''
         pattern = re.compile(pattern)
         cols = [c for c in self.columns.values() if pattern.search(c.name)]
-        return cols if return_type.startswith('col') else [c.name for c in cols]
+        return cols if return_type.startswith('col') \
+            else [c.name for c in cols]
 
-    # def apply_transformations(self, func, cols, *args, **kwargs):
-    #     ''' Applies an arbitrary callable or named function. Mostly useful for
-    #     automating transformations via an external spec.
-    #     Args:
-    #         func (str, callable): ither a callable, or a string giving the
-    #             name of an existing bound method to apply.
-    #         args, kwargs: Optional positional and keyword arguments to pass
-    #             on to the callable.
-    #     '''
-    #     if isinstance(func, string_types):
-    #         if not hasattr(transform, func):
-    #             raise ValueError("No transformation '%s' found!" % func)
-    #         func = getattr(transform, func)
+    def get_design_matrix(self, groupby=None, results=None, columns=None,
+                          aggregate=None, add_intercept=True,
+                          sampling_rate='tr', drop_entities=False, **kwargs):
 
-    #     func(self, cols, *args, **kwargs)
+        if columns is None:
+            columns = list(self.columns.keys())
 
-    # def apply_transformations_from_json(self, spec):
-    #     ''' Apply a series of transformations from a JSON spec.
-    #     spec (str): Path to the JSON file containing transformations.
-    #     '''
-    #     if isinstance(spec, str) and os.path.exists(spec):
-    #         spec = json.load(open(spec, 'rU'))
-    #     for t in spec['transformations']:
-    #         name = t.pop('name')
-    #         cols = t.pop('input', None)
-    #         self.apply(name, cols, **t)
+        if groupby is None:
+            groupby = []
 
-    # def resample(self, sampling_rate, force_dense=False, in_place=True,
-    #              kind='linear'):
-    #     ''' Resample all dense columns (and optionally, sparse ones) to the
-    #     specified sampling rate.
+        # data = pd.concat([self.columns[c].to_df() for c in columns], axis=0)
+        data = self.merge_columns(columns=columns, sampling_rate=sampling_rate,
+                                  sparse=False)
 
-    #     Args:
-    #         sampling_rate (int, float): Target sampling rate (in Hz)
-    #         force_dense (bool): if True, all sparse columns will be forced to
-    #             dense.
-    #         in_place (bool): When True, all columns are overwritten in-place.
-    #             When False, returns resampled versions of all columns.
-    #         kind (str): Argument to pass to scipy's interp1d; indicates the
-    #             kind of interpolation approach to use. See interp1d docs for
-    #             valid values.
-    #     '''
+        # subset the data if needed
+        if kwargs:
+            # TODO: make sure this handles constraints on int columns properly
+            bad_keys = list(set(kwargs.keys()) - set(data.columns))
+            if bad_keys:
+                raise ValueError("The following query constraints do not map "
+                                 "onto existing columns: %s." % bad_keys)
+            query = ' and '.join(["{} in {}".format(k, v)
+                                  for k, v in kwargs.items()])
+            data = data.query(query)
 
-    #     # TODO: make this more robust; should not replace sampling_rate in
-    #     # self until everything works successfully--but this will require
-    #     # some refactoring.
+        if groupby and aggregate is not None:
+            groupby = list(set(groupby) & set(data.columns))
+            data = data.groupby(groupby).agg(aggregate).reset_index()
 
-    #     # Store old sampling rate-based variables
-    #     old_sr = self.sampling_rate
-    #     n = len(self.dense_index)
+        if add_intercept:
+            data.insert(0, 'intercept', 1)
 
-    #     # Rebuild the dense index
-    #     self.sampling_rate = sampling_rate
-    #     self._build_dense_index()
+        # Always drop columns meant for internal use
+        drop_cols = ['onset', 'duration', 'event_file_id', 'time']
+        # Optionally drop entities
+        if drop_entities:
+            drop_cols += self.entities
 
-    #     x = np.arange(n)
-    #     num = n * sampling_rate / old_sr
+        drop_cols = list(set(drop_cols) & set(data.columns))
 
-    #     columns = {}
+        return data.drop(drop_cols, axis=1)
 
-    #     for name, col in self.columns.items():
-    #         if isinstance(col, SparseBIDSColumn):
-    #             if force_dense:
-    #                 columns[name] = col.to_dense()
-    #         else:
-    #             col = col.clone()
-    #             f = interp1d(x, col.values.values.ravel(), kind=kind)
-    #             x_new = np.linspace(0, n-1, num=num)
-    #             col.values = pd.DataFrame(f(x_new))
-    #             columns[name] = col
+    def set_analysis_level(self, level, hierarchical=True):
+        if level == 'dataset':
+            level = None
+        elif hierarchical:
+            hierarchy = ['run', 'session', 'subject'][::-1]
+            pos = hierarchy.index(level)
+            level = hierarchy[:(pos + 1)]
+        self.current_grouper = level
 
-        # if in_place:
-        #     for k, v in columns.items():
-        #         self.columns[k] = v
-        # else:
-        #     return columns.values()
+    def resample(self, sampling_rate='tr', force_dense=False, in_place=False,
+                 kind='linear'):
+        ''' Resample all dense columns (and optionally, sparse ones) to the
+        specified sampling rate.
+
+        Args:
+            sampling_rate (int, float): Target sampling rate (in Hz)
+            force_dense (bool): if True, all sparse columns will be forced to
+                dense.
+            in_place (bool): When True, all columns are overwritten in-place.
+                When False, returns resampled versions of all columns.
+            kind (str): Argument to pass to scipy's interp1d; indicates the
+                kind of interpolation approach to use. See interp1d docs for
+                valid values.
+        '''
+
+        # TODO: make this more robust; should not replace sampling_rate in
+        # self until everything works successfully--but this will require
+        # some refactoring.
+
+        # Store old sampling rate-based variables
+        sampling_rate = self.get_sampling_rate(sampling_rate)
+
+        old_sr = self.sampling_rate
+        n = len(self.dense_index)
+
+        # Rebuild the dense index
+        self.sampling_rate = sampling_rate
+        self._build_dense_index()
+
+        x = np.arange(n)
+        num = n * sampling_rate / old_sr
+
+        columns = {}
+
+        for name, col in self.columns.items():
+            if isinstance(col, SparseBIDSColumn):
+                if force_dense and is_numeric_dtype(col.values):
+                    columns[name] = col.to_dense()
+            else:
+                col = col.clone()
+                f = interp1d(x, col.values.values.ravel(), kind=kind)
+                x_new = np.linspace(0, n - 1, num=num)
+                col.values = pd.DataFrame(f(x_new))
+                columns[name] = col
+
+        if in_place:
+            for k, v in columns.items():
+                self.columns[k] = v
+        else:
+            return columns.values()
