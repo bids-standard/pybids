@@ -8,14 +8,18 @@ DesignMatrix = namedtuple('DesignMatrix', ('entities', 'groupby', 'data'))
 class Analysis(object):
 
     def __init__(self, layouts, model, manager=None, **selectors):
-
-        if manager is None:
-            manager = BIDSVariableManager(layouts, **selectors)
-        self.manager = manager
-
         if isinstance(model, str):
             model = json.load(open(model))
         self.model = model
+
+        if 'input' in model:
+            selectors.update(model['input'])
+
+        if manager is None:
+            manager = BIDSVariableManager(layouts, **selectors)
+
+        self.manager = manager
+
         self._load_blocks(model['blocks'])
 
         self.layout = manager.layout # for convenience
