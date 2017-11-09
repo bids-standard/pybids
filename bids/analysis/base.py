@@ -51,7 +51,7 @@ class Analysis(object):
 
 class Block(object):
 
-    def __init__(self, analysis, level, index, name, transformations=None,
+    def __init__(self, analysis, level, index, name=None, transformations=None,
                  model=None, contrasts=None):
 
         self.analysis = analysis
