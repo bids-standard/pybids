@@ -22,7 +22,9 @@ class Analysis(object):
 
         self._load_blocks(model['blocks'])
 
-        self.layout = manager.layout # for convenience
+    @property
+    def layout(self):
+        return self.manager.layout  # for convenience
 
     def __iter__(self):
         for b in self.blocks:
