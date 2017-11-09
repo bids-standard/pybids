@@ -1,5 +1,6 @@
 import os
 import json
+import collections
 
 from io import open
 
@@ -16,12 +17,22 @@ __all__ = ['BIDSLayout']
 class BIDSLayout(Layout):
 
     def __init__(self, path, config=None, validate=False,
-                 index_associated=True, **kwargs):
+                 index_associated=True, extensions=None, **kwargs):
         self.validator = BIDSValidator(index_associated=index_associated)
         self.validate = validate
         if config is None:
             root = dirname(abspath(__file__))
             config = pathjoin(root, 'config', 'bids.json')
+
+        # Use dictionary config to allow extension augmentations
+        if not isinstance(config, collections.Mapping):
+            with open(config) as fobj:
+                config = json.load(fobj)
+        for ext in extensions or []:
+            with open(pathjoin(root, 'config', '%s.json' % ext)) as fobj:
+                ext_config = json.load(fobj)
+                config['entities'].extend(ext_config['entities'])
+
         super(BIDSLayout, self).__init__(path, config,
                                          dynamic_getters=True, **kwargs)
 
