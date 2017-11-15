@@ -19,6 +19,12 @@ def testlayout2():
     return BIDSLayout(data_dir)
 
 
+@pytest.fixture
+def testlayout3():
+    data_dir = join(dirname(__file__), 'data', 'ds005')
+    return BIDSLayout(data_dir, extensions=['derivatives'])
+
+
 def test_layout_init(testlayout1):
     assert isinstance(testlayout1.files, dict)
 
@@ -108,3 +114,7 @@ def test_exclude(testlayout2):
         testlayout2.root, 'models/ds-005_type-russ_sub-all_model.json') \
         not in testlayout2.files
     assert 'all' not in testlayout2.get_subjects()
+
+
+def test_layout_with_derivs(testlayout3):
+    assert isinstance(testlayout3.files, dict)

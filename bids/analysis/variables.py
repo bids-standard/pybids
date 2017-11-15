@@ -326,17 +326,17 @@ class BIDSVariableManager(object):
         run_trs = []
 
         for img_f in images:
-            f_ents = self.layout.files[img_f].entities
-            f_ents = {k: v for k, v in f_ents.items() if k in self.entities}
-            evf = self.layout.get(return_type='file', extensions='.tsv',
-                                  type='events', **f_ents)
+            evf = self.layout.get_events(img_f)
             if not evf:
                 raise ValueError("Could not find event file that matches %s." %
                                  img_f)
             tr = 1./self.layout.get_metadata(img_f)['RepetitionTime']
             run_trs.append(tr)
 
-            event_files.append((evf[0], img_f, f_ents))
+            f_ents = self.layout.files[evf].entities
+            f_ents = {k: v for k, v in f_ents.items() if k in self.entities}
+
+            event_files.append((evf, img_f, f_ents))
 
         if len(set(run_trs)) > 1:
             raise ValueError("More than one TR detected across specified runs."
