@@ -1,4 +1,4 @@
-# from .variables import BIDSVariableManager
-# from .base import Analysis, Block, Sparse
+from .variables import BIDSVariableManager
+from .base import Analysis
 
-# __all__ = ['BIDSVariableManager', 'Analysis', 'Block']
+__all__ = ['BIDSVariableManager', 'Analysis']

@@ -4,7 +4,7 @@ formats or shapes.
 '''
 
 import pandas as pd
-from bids.events.utils import listify
+from bids.utils import listify
 from .base import Transformation
 from patsy import dmatrix
 import re
@@ -39,8 +39,8 @@ class rename(Transformation):
 
     def _transform(self, col):
         ''' Rename happens automatically in the base class, so all we need to
-        do is unset the original column in the collection. '''
-        self.collection.columns.pop(col.name)
+        do is unset the original column in the manager. '''
+        self.manager.columns.pop(col.name)
         return col.values.values
 
 
@@ -60,7 +60,7 @@ class split(Transformation):
     _allow_categorical = ('by',)
 
     def _transform(self, col, by):
-        from bids.events import SparseBIDSColumn
+        from bids.analysis.variables import SparseBIDSColumn
 
         if not isinstance(col, SparseBIDSColumn):
             self._densify_columns()
@@ -121,13 +121,13 @@ class assign(Transformation):
 
         # assign only makes sense for sparse columns; dense columns don't have
         # durations or onsets, and amplitudes can be copied by cloning
-        from bids.events import DenseBIDSColumn
+        from bids.analysis.variables import DenseBIDSColumn
         if isinstance(input, DenseBIDSColumn):
             raise ValueError("The 'assign' transformation can only be applied"
                              " to sparsely-coded event types. The input "
                              "column (%s) is dense." % input.name)
 
-        target = self.collection.columns[target].clone()
+        target = self.manager.columns[target].clone()
         if isinstance(target, DenseBIDSColumn):
             raise ValueError("The 'assign' transformation can only be applied"
                              " to sparsely-coded event types. The target "
@@ -171,7 +171,7 @@ class factor(Transformation):
 
     def _transform(self, col, constraint='none', ref_level=None):
 
-        from bids.events import SparseBIDSColumn
+        from bids.analysis.variables import SparseBIDSColumn
 
         result = []
         data = col.to_df()
@@ -193,13 +193,13 @@ class factor(Transformation):
             if constraint == 'drop_one' and lev_name == ref_level:
                 continue
             lev_grp['amplitude'] = 1.0
-            col = SparseBIDSColumn(self.collection, name, lev_grp,
+            col = SparseBIDSColumn(self.manager, name, lev_grp,
                                    factor_name=col.name, factor_index=i,
                                    level_name=lev_name)
             result.append(col)
 
         # Remove existing column. TODO: allow user to leave original in?
-        self.collection.columns.pop(orig_name)
+        self.manager.columns.pop(orig_name)
 
         return result
 
@@ -225,7 +225,7 @@ class filter(Transformation):
         for k, v in name_map.items():
             query = query.replace(k, v)
 
-        data = pd.concat([self.collection[c].values for c in names], axis=1)
+        data = pd.concat([self.manager[c].values for c in names], axis=1)
         data = data.reset_index(drop=True) # Make sure we can use integer index
         data.columns = list(name_map.values())
         data = data.query(query)

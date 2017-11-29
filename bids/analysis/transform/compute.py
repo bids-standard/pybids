@@ -4,7 +4,7 @@ Transformations that primarily involve numerical computation on columns.
 
 import numpy as np
 import pandas as pd
-from bids.events.utils import listify
+from bids.utils import listify
 from .base import Transformation
 
 

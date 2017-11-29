@@ -13,13 +13,13 @@ import shutil
 def manager():
     mod_file = abspath(grabbids.__file__)
     path = join(dirname(mod_file), 'tests', 'data', 'ds005')
-    return BIDSVariableManager(path)
+    manager = BIDSVariableManager(path)
+    manager.load()
+    return manager
 
 
 def test_manager(manager):
     ''' Integration test for BIDSVariableManager initialization. '''
-
-    manager.load()
 
     # Test that event files are loaded properly
     assert len(manager.event_files) == 48
@@ -69,7 +69,6 @@ def test_read_from_files():
 def test_write_manager(manager):
 
     # TODO: test content of files, not just existence
-    manager.load()
 
     # Sparse, single file
     filename = tempfile.mktemp() + '.tsv'
@@ -100,7 +99,14 @@ def test_write_manager(manager):
 
 
 def test_match_columns(manager):
-    manager.load()
     matches = manager.match_columns('^resp', return_type='columns')
     assert len(matches) == 2
     assert all(isinstance(m, SparseBIDSColumn) for m in matches)
+
+
+def test_get_design_matrix(manager):
+    manager.set_analysis_level('run')
+    subs = [str(s).zfill(2) for s in [1, 2, 3, 4, 5, 6]]
+    dm = manager.get_design_matrix(columns=['RT', 'parametric gain'],
+                                   subject=subs)
+    assert dm.shape == (4308, 6)

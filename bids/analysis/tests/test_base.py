@@ -11,16 +11,7 @@ def manager():
     return BIDSVariableManager(path)
 
 
-def test_get_design_matrix(manager):
-    manager.load()
-    manager.set_analysis_level('run')
-    subs = [str(s).zfill(2) for s in [1, 2, 3, 4, 5, 6]]
-    dm = manager.get_design_matrix(columns=['RT', 'parametric gain'],
-                                   subject=subs)
-    assert dm.shape == (4308, 6)
-
-
-def test_analysis_smoke_test(manager):
+def test_analysis_smoke_test():
     from bids.analysis.base import Analysis
     mod_file = abspath(grabbids.__file__)
     layout_path = join(dirname(mod_file), 'tests', 'data', 'ds005')
