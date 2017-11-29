@@ -8,6 +8,7 @@ from abc import ABCMeta, abstractmethod
 from copy import deepcopy
 import itertools
 import inspect
+from bids.analysis.variables import _match_columns
 
 
 class Transformation(object):
@@ -80,15 +81,15 @@ class Transformation(object):
 
     __metaclass__ = ABCMeta
 
-    def __new__(cls, manager, cols, *args, **kwargs):
+    def __new__(cls, state, cols, *args, **kwargs):
         t = super(Transformation, cls).__new__(cls)
-        t._setup(manager, cols, *args, **kwargs)
+        t._setup(state, cols, *args, **kwargs)
         return t.transform()
 
-    def _setup(self, manager, cols, *args, **kwargs):
+    def _setup(self, state, cols, *args, **kwargs):
         ''' Replaces __init__ to set instance attributes because on Python
         >= 3.3, we can't override both new and init. '''
-        self.manager = manager
+        self.state = state
         self.cols = listify(cols)
         self.groupby = kwargs.pop('groupby', 'event_file_id')
         self.output = listify(kwargs.pop('output', None))
@@ -118,7 +119,7 @@ class Transformation(object):
         from unnecessarily overwriting existing columns. '''
 
         # Always clone the target columns
-        self._columns = {c: self.manager[c].clone() for c in self.cols}
+        self._columns = {c: self.state[c].clone() for c in self.cols}
 
         if not self._columns_used:
             return
@@ -126,7 +127,7 @@ class Transformation(object):
         # Loop over argument names and clone all column names in each one
         for var in self._columns_used:
             for c in listify(self.kwargs.get(var, [])):
-                self._columns[c] = deepcopy(self.manager[c])
+                self._columns[c] = deepcopy(self.state[c])
 
     def _check_categorical_columns(self):
         ''' Convert categorical columns to dummy-coded indicators. '''
@@ -181,12 +182,12 @@ class Transformation(object):
         missing = set(args) - set(self.kwargs.keys())
         if missing:
             raise ValueError("Arguments '%s' specified for regex-based column"
-                                 "name replacement, but were not found among "
-                                 "keyword arguments." % missing)
+                             "name replacement, but were not found among "
+                             "keyword arguments." % missing)
 
         def _replace_arg_values(names):
             cols = listify(names)
-            cols = [self.manager.match_columns(c) for c in names]
+            cols = [_match_columns(self.state, c) for c in names]
             cols = itertools.chain(*cols)
             return list(set(cols))
 
@@ -265,9 +266,9 @@ class Transformation(object):
                 # If multiple Columns were returned, add each one separately
                 if isinstance(result, (list, tuple)):
                     for r in result:
-                        self.manager[r.name] = r
+                        self.state[r.name] = r
                 else:
-                    self.manager[col.name] = col
+                    self.state[col.name] = col
 
             # Set as a new column
             else:
@@ -288,7 +289,7 @@ class Transformation(object):
                     _output += self.output_suffix
 
                 col.name = _output
-                self.manager[_output] = col
+                self.state[_output] = col
 
 
     @abstractmethod
@@ -350,7 +351,7 @@ class Transformation(object):
         align_cols = [listify(self.kwargs[v]) for v in listify(self._align)
                       if v in self.kwargs]
         align_cols = list(itertools.chain(*align_cols))
-        align_cols = [self.manager[c] for c in align_cols if c]
+        align_cols = [self.state[c] for c in align_cols if c]
 
         if align_cols and self._loopable:
             for c in cols:

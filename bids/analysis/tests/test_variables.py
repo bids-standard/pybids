@@ -18,6 +18,21 @@ def manager():
     return manager
 
 
+def test_clone_manager(manager):
+    clone = manager.clone()
+    assert clone != manager
+    props_same = ['entities', 'default_duration', 'select_columns',
+                  'sampling_rate', 'drop_na', 'current_grouper', 'extra_paths',
+                  'overwrite_bids_variables', 'selectors', 'layout']
+    for ps in props_same:
+        assert getattr(manager, ps) is getattr(clone, ps)
+
+    assert manager.columns.keys() == clone.columns.keys()
+    assert manager.columns is not clone.columns
+    assert manager.dense_index.equals(clone.dense_index)
+    assert manager.dense_index is not clone.dense_index
+
+
 def test_manager(manager):
     ''' Integration test for BIDSVariableManager initialization. '''
 

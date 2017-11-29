@@ -5,7 +5,7 @@ import nibabel as nb
 import warnings
 from collections import namedtuple
 import math
-from copy import deepcopy
+from copy import copy, deepcopy
 from abc import abstractproperty, ABCMeta
 from six import string_types
 import os
@@ -15,6 +15,20 @@ import re
 from scipy.interpolate import interp1d
 from functools import partial
 from pandas.api.types import is_numeric_dtype
+
+
+def _match_columns(columns, pattern, return_type='name'):
+    ''' Return columns whose names match the provided regex pattern.
+    Args:
+        pattern (str): A regex pattern to match all column names against.
+        return_type (str): What to return. Must be one of:
+            'name': Returns a list of names of matching columns.
+            'column': Returns a list of Column objects whose names match.
+    '''
+    pattern = re.compile(pattern)
+    cols = [c for c in columns.values() if pattern.search(c.name)]
+    return cols if return_type.startswith('col') \
+        else [c.name for c in cols]
 
 
 class BIDSColumn(object):
@@ -292,7 +306,6 @@ class BIDSVariableManager(object):
         if entities is None:
             entities = ['subject', 'session', 'task', 'run']
         self.entities = entities
-
         self.default_duration = default_duration
         self.select_columns = columns
         self.sampling_rate = sampling_rate
@@ -511,6 +524,15 @@ class BIDSVariableManager(object):
                 g.drop(_drop_cols, axis=1).to_csv(filename, sep='\t',
                                                   header=header, index=False)
 
+    def clone(self):
+        ''' Returns a shallow copy of the current instance, except that all
+        columns and indexes are deep-cloned.
+        '''
+        clone = copy(self)
+        clone.columns = {k: v.clone() for (k, v) in self.columns.items()}
+        clone.dense_index = self.dense_index.copy()
+        return clone
+
     def _all_sparse(self):
         return all([isinstance(c, SparseBIDSColumn)
                     for c in self.columns.values()])
@@ -553,10 +575,7 @@ class BIDSVariableManager(object):
                 'name': Returns a list of names of matching columns.
                 'column': Returns a list of Column objects whose names match.
         '''
-        pattern = re.compile(pattern)
-        cols = [c for c in self.columns.values() if pattern.search(c.name)]
-        return cols if return_type.startswith('col') \
-            else [c.name for c in cols]
+        return _match_columns(self.columns, pattern, return_type)
 
     def get_design_matrix(self, groupby=None, results=None, columns=None,
                           aggregate=None, add_intercept=True,

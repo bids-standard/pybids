@@ -58,6 +58,9 @@ class Analysis(object):
     def setup(self):
         ''' Read in all variables and set up the sequence of blocks. '''
         self.manager.load()
+        # we need to update columns as we flow through, so maintain state
+        self._variables = {k: v.clone() for (k, v) in
+                           self.manager.columns.items()}
         # pass the manager through the pipeline
         last_level = None
         for b in self.blocks:
@@ -130,6 +133,10 @@ class Block(object):
         hierarchy = ['subject', 'session', 'run']
         pos = hierarchy.index(level)
         return hierarchy[:(pos + 1)]
+
+    def apply_transformations(self):
+        ''' Apply all transformations to the variables in the manager.
+        '''
 
     def get_Xy(self, **selectors):
         ''' Return X and y information for all groups defined by the current
