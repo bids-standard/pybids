@@ -17,20 +17,6 @@ from functools import partial
 from pandas.api.types import is_numeric_dtype
 
 
-def _match_columns(columns, pattern, return_type='name'):
-    ''' Return columns whose names match the provided regex pattern.
-    Args:
-        pattern (str): A regex pattern to match all column names against.
-        return_type (str): What to return. Must be one of:
-            'name': Returns a list of names of matching columns.
-            'column': Returns a list of Column objects whose names match.
-    '''
-    pattern = re.compile(pattern)
-    cols = [c for c in columns.values() if pattern.search(c.name)]
-    return cols if return_type.startswith('col') \
-        else [c.name for c in cols]
-
-
 class BIDSColumn(object):
 
     ''' Base representation of a column in a BIDS project. '''
@@ -575,7 +561,10 @@ class BIDSVariableManager(object):
                 'name': Returns a list of names of matching columns.
                 'column': Returns a list of Column objects whose names match.
         '''
-        return _match_columns(self.columns, pattern, return_type)
+        pattern = re.compile(pattern)
+        cols = [c for c in self.columns.values() if pattern.search(c.name)]
+        return cols if return_type.startswith('col') \
+            else [c.name for c in cols]
 
     def get_design_matrix(self, groupby=None, results=None, columns=None,
                           aggregate=None, add_intercept=True,

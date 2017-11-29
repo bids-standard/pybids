@@ -19,7 +19,7 @@ def manager():
 def test_apply_rename(manager):
     dense_rt = manager.columns['RT'].to_dense()
     assert len(dense_rt.values) == 229280
-    manager.apply('rename', 'RT', output='reaction_time')
+    transform.rename(manager, 'RT', output='reaction_time')
     assert 'reaction_time' in manager.columns
     assert 'RT' not in manager.columns
     col = manager.columns['reaction_time']
@@ -27,28 +27,27 @@ def test_apply_rename(manager):
     assert col.onsets.max() == 476
 
 
-def test_apply_from_json(manager):
-    ''' Same as test_apply_scale, but from json. '''
-    path = join(dirname(__file__), 'data', 'transformations.json')
-    manager.apply_from_json(path)
-    groupby = manager['RT'].entities['event_file_id'].values
-    z1 = manager['RT_Z'].values
-    z2 = manager['RT'].values.groupby(
-        groupby).apply(lambda x: (x - x.mean()) / x.std())
-    assert np.allclose(z1, z2)
+# def test_apply_from_json(manager):
+#     ''' Same as test_apply_scale, but from json. '''
+#     path = join(dirname(__file__), 'data', 'transformations.json')
+#     manager.apply_from_json(path)
+#     groupby = manager['RT'].entities['event_file_id'].values
+#     z1 = manager['RT_Z'].values
+#     z2 = manager['RT'].values.groupby(
+#         groupby).apply(lambda x: (x - x.mean()) / x.std())
+#     assert np.allclose(z1, z2)
 
 
 def test_apply_product(manager):
     c = manager
-    manager.apply('product', cols=['parametric gain', 'gain'],
-                     output='prod')
+    transform.product(manager, cols=['parametric gain', 'gain'], output='prod')
     res = c['prod'].values
     assert (res == c['parametric gain'].values * c['gain'].values).all()
 
 
 def test_apply_scale(manager):
-    manager.apply('scale', cols=['RT', 'parametric gain'],
-                  output=['RT_Z', 'gain_Z'])
+    transform.scale(manager, cols=['RT', 'parametric gain'],
+                    output=['RT_Z', 'gain_Z'])
     groupby = manager['RT'].entities['event_file_id'].values
     z1 = manager['RT_Z'].values
     z2 = manager['RT'].values.groupby(
@@ -60,8 +59,8 @@ def test_apply_orthogonalize_dense(manager):
     transform.factor(manager, 'trial_type')
     pg_pre = manager['trial_type/parametric gain'].to_dense().values
     rt = manager['RT'].to_dense().values
-    manager.apply('orthogonalize', cols='trial_type/parametric gain',
-                  other='RT', dense=True)
+    transform.orthogonalize(manager, cols='trial_type/parametric gain',
+                            other='RT', dense=True)
     pg_post = manager['trial_type/parametric gain'].values
     vals = np.c_[rt.values, pg_pre.values, pg_post.values]
     df = pd.DataFrame(vals, columns=['rt', 'pre', 'post'])
@@ -75,8 +74,7 @@ def test_apply_orthogonalize_dense(manager):
 def test_apply_orthogonalize_sparse(manager):
     pg_pre = manager['parametric gain'].values
     rt = manager['RT'].values
-    manager.apply('orthogonalize', cols='parametric gain',
-                  other='RT')
+    transform.orthogonalize(manager, cols='parametric gain', other='RT')
     pg_post = manager['parametric gain'].values
     vals = np.c_[rt.values, pg_pre.values, pg_post.values]
     df = pd.DataFrame(vals, columns=['rt', 'pre', 'post'])
@@ -96,7 +94,7 @@ def test_apply_split(manager):
     rt_pre_onsets = manager['RT'].onsets
 
     # Grouping SparseBIDSColumn by one column
-    manager.apply('split', ['RT'], ['respcat'])
+    transform.split(manager, ['RT'], ['respcat'])
     assert 'RT/0' in manager.columns.keys() and \
            'RT/-1' in manager.columns.keys()
     rt_post_onsets = np.r_[manager['RT/0'].onsets,
@@ -105,13 +103,13 @@ def test_apply_split(manager):
     assert np.array_equal(rt_pre_onsets.sort(), rt_post_onsets.sort())
 
     # Grouping SparseBIDSColumn by multiple columns
-    manager.apply('split', cols=['RT_2'], by=['respcat', 'loss'])
+    transform.split(manager, cols=['RT_2'], by=['respcat', 'loss'])
     tmp = manager['RT_2']
     assert 'RT_2/-1_13' in manager.columns.keys() and \
            'RT_2/1_13' in manager.columns.keys()
 
     # Grouping by DenseBIDSColumn
-    manager.apply('split', cols='RT_3', by='respcat')
+    transform.split(manager, cols='RT_3', by='respcat')
     assert 'RT_3/respcat[0.0]' in manager.columns.keys()
     assert len(manager['RT_3/respcat[0.0]'].values) == len(manager['RT_3'].values)
 
@@ -122,7 +120,7 @@ def test_resample_dense(manager):
     manager.resample(50)
     assert len(old_rt.values) * 5 == len(manager['RT'].values)
     # Should work after explicitly converting categoricals
-    manager.apply('factor', 'trial_type')
+    transform.factor(manager, 'trial_type')
     manager.resample(5, force_dense=True)
     assert len(old_rt.values) == len(manager['parametric gain'].values) * 2
 

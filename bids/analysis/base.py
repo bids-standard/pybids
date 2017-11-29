@@ -1,6 +1,9 @@
 import json
 from .variables import BIDSVariableManager
+from . import transform
 from collections import namedtuple
+from six import string_types
+
 
 DesignMatrix = namedtuple('DesignMatrix', ('entities', 'groupby', 'data'))
 
@@ -56,15 +59,16 @@ class Analysis(object):
             self.blocks.append(Block(self, index=i, **b))
 
     def setup(self):
+
         ''' Read in all variables and set up the sequence of blocks. '''
         self.manager.load()
-        # we need to update columns as we flow through, so maintain state
-        self._variables = {k: v.clone() for (k, v) in
-                           self.manager.columns.items()}
-        # pass the manager through the pipeline
+
+        # pass a copy of the manager through the pipeline (columns mutate)
+        _manager = self.manager.clone()
         last_level = None
+
         for b in self.blocks:
-            b.setup(self.manager, last_level)
+            b.setup(_manager, last_level)
             last_level = b.level
 
 
@@ -137,6 +141,16 @@ class Block(object):
     def apply_transformations(self):
         ''' Apply all transformations to the variables in the manager.
         '''
+        for t in self.transformations:
+            kwargs = dict(t)
+            func = kwargs.pop('name')
+            cols = kwargs.pop('input', None)
+
+            if isinstance(func, string_types):
+                if not hasattr(transform, func):
+                    raise ValueError("No transformation '%s' found!" % func)
+                func = getattr(transform, func)
+                func(self.manager, cols, **kwargs)
 
     def get_Xy(self, **selectors):
         ''' Return X and y information for all groups defined by the current
@@ -176,18 +190,22 @@ class Block(object):
         by get_Xy(). See get_Xy() for arguments and return format. '''
         return (t for t in self.get_Xy(**selectors))
 
-    def setup(self, manager=None, last_level=None, input_design_matrix=None):
+    def setup(self, manager, last_level=None, input_design_matrix=None):
         ''' Set up the Block and construct the design matrix.
         Args:
-            manager (BIDSVariableManager): The variable manager to use. If
-                None, uses the parent Analysis's manager.
+            manager (BIDSVariableManager): The variable manager to use. Note:
+                that the setup process will often mutate the manager instance.
             last_level (str): The level of the previous Block in the analysis,
                 if any.
             input_design_matrix: Placeholder, ignore for now.
         '''
-        if manager is None:
-            manager = self.analysis.manager
+        self.manager = manager
+
         agg = 'mean' if self.level != 'run' else None
         last_level = self._get_groupby_cols(last_level)
+
+        if self.transformations:
+            self.apply_transformations()
+
         self.design_matrix = manager.get_design_matrix(groupby=last_level,
                                                        aggregate=agg).copy()
