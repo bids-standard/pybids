@@ -7,6 +7,21 @@ DesignMatrix = namedtuple('DesignMatrix', ('entities', 'groupby', 'data'))
 
 class Analysis(object):
 
+    ''' Represents an entire BIDS-Model analysis.
+    Args:
+        layouts (BIDSLayout or list): One or more BIDSLayout objects to pull
+            variables from.
+        model (str or dict): a BIDS model specification. Can either be a
+            string giving the path of the JSON model spec, or an already-loaded
+            dict containing the model info.
+        manager (BIDSVariableManager): Optional BIDSVariableManager object used
+            to load/manage variables. If None, a new manager is initialized
+            from the provided layouts.
+        selectors (dict): Optional keyword arguments to pass onto the manager;
+            these will be passed on to the Layout's .get() method, and can be
+            used to restrict variables.
+    '''
+
     def __init__(self, layouts, model, manager=None, **selectors):
         if isinstance(model, str):
             model = json.load(open(model))
@@ -41,6 +56,7 @@ class Analysis(object):
             self.blocks.append(Block(self, index=i, **b))
 
     def setup(self):
+        ''' Read in all variables and set up the sequence of blocks. '''
         self.manager.load()
         # pass the manager through the pipeline
         last_level = None
@@ -50,6 +66,21 @@ class Analysis(object):
 
 
 class Block(object):
+
+    ''' Represents a single analysis block from a BIDS-Model specification.
+    Args:
+        analysis (Analysis): The parent Analysis this Block belongs to.
+        level (str): The BIDS keyword to use as the grouping variable; must be
+            one of ['run', 'session', 'subject', or 'dataset'].
+        index (int): The numerical index of the current Block within the
+            sequence of blocks.
+        name (str): Optional name to assign to the block. Must be specified
+            in order to enable name-based indexing in the parent Analysis.
+        transformations (list): List of BIDS-Model transformations to apply.
+        model (dict): The 'model' part of the BIDS-Model block specification.
+        contrasts (list): List of contrasts to apply to the parameter estimates
+            generated when the model is fit.
+    '''
 
     def __init__(self, analysis, level, index, name=None, transformations=None,
                  model=None, contrasts=None):
@@ -89,6 +120,11 @@ class Block(object):
         return data.drop(common_ents, axis=1)
 
     def _get_groupby_cols(self, level):
+        # Get a list of keywords that define the grouping at the current level.
+        # Note that we need to include all entities *above* the current one--
+        # e.g., if the block level is 'run', this means we actually want to
+        # groupby(['subject', 'session', 'run']), otherwise we would only
+        # end up with n(runs) groups.
         if level is None:
             return None
         hierarchy = ['subject', 'session', 'run']
@@ -96,7 +132,20 @@ class Block(object):
         return hierarchy[:(pos + 1)]
 
     def get_Xy(self, **selectors):
-
+        ''' Return X and y information for all groups defined by the current
+        level.
+        Args:
+            selectors (dict): Optional keyword arguments to further constrain
+                the data retrieved.
+        Returns:
+            A list of triples, where each triple contains data for a single
+                group, and the elements reflect (in order):
+                    - The design matrix containing all of the predictors (X);
+                    - The filename of the 4D image associated with the
+                      current group/design matrix;
+                    - A dict of entities defining the current group (e.g.,
+                      {'subject': '03', 'run': 1})
+        '''
         data = self._get_design_matrix(**selectors)
         ent_cols = self._get_groupby_cols(self.level)
 
@@ -116,9 +165,21 @@ class Block(object):
         return tuples
 
     def iter_Xy(self, **selectors):
+        ''' Convenience method that returns an iterator over tuples returned
+        by get_Xy(). See get_Xy() for arguments and return format. '''
         return (t for t in self.get_Xy(**selectors))
 
-    def setup(self, manager, last_level=None, input_design_matrix=None):
+    def setup(self, manager=None, last_level=None, input_design_matrix=None):
+        ''' Set up the Block and construct the design matrix.
+        Args:
+            manager (BIDSVariableManager): The variable manager to use. If
+                None, uses the parent Analysis's manager.
+            last_level (str): The level of the previous Block in the analysis,
+                if any.
+            input_design_matrix: Placeholder, ignore for now.
+        '''
+        if manager is None:
+            manager = self.analysis.manager
         agg = 'mean' if self.level != 'run' else None
         last_level = self._get_groupby_cols(last_level)
         self.design_matrix = manager.get_design_matrix(groupby=last_level,
