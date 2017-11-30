@@ -117,11 +117,11 @@ def test_apply_split(manager):
 def test_resample_dense(manager):
     manager['RT'] = manager['RT'].to_dense()
     old_rt = manager['RT'].clone()
-    manager.resample(50)
+    manager.resample(50, in_place=True)
     assert len(old_rt.values) * 5 == len(manager['RT'].values)
     # Should work after explicitly converting categoricals
     transform.factor(manager, 'trial_type')
-    manager.resample(5, force_dense=True)
+    manager.resample(5, force_dense=True, in_place=True)
     assert len(old_rt.values) == len(manager['parametric gain'].values) * 2
 
 

@@ -648,7 +648,7 @@ class BIDSVariableManager(object):
         self._build_dense_index()
 
         x = np.arange(n)
-        num = n * sampling_rate / old_sr
+        num = int(np.ceil(n * sampling_rate / old_sr))
 
         columns = {}
 
@@ -667,4 +667,4 @@ class BIDSVariableManager(object):
             for k, v in columns.items():
                 self.columns[k] = v
         else:
-            return columns.values()
+            return columns
