@@ -58,7 +58,7 @@ class Analysis(object):
         for i, b in enumerate(blocks):
             self.blocks.append(Block(self, index=i, **b))
 
-    def setup(self):
+    def setup(self, apply_transformations=True):
 
         ''' Read in all variables and set up the sequence of blocks. '''
         self.manager.load()
@@ -68,7 +68,8 @@ class Analysis(object):
         last_level = None
 
         for b in self.blocks:
-            b.setup(_manager, last_level)
+            b.setup(_manager, last_level,
+                    apply_transformations=apply_transformations)
             last_level = b.level
 
 
@@ -190,21 +191,23 @@ class Block(object):
         by get_Xy(). See get_Xy() for arguments and return format. '''
         return (t for t in self.get_Xy(**selectors))
 
-    def setup(self, manager, last_level=None, input_design_matrix=None):
+    def setup(self, manager, last_level=None, apply_transformations=True):
         ''' Set up the Block and construct the design matrix.
         Args:
             manager (BIDSVariableManager): The variable manager to use. Note:
                 that the setup process will often mutate the manager instance.
             last_level (str): The level of the previous Block in the analysis,
                 if any.
-            input_design_matrix: Placeholder, ignore for now.
+            apply_transformations (bool): If True (default), apply any
+                transformations in the block before constructing the design
+                matrix.
         '''
         self.manager = manager
 
         agg = 'mean' if self.level != 'run' else None
         last_level = self._get_groupby_cols(last_level)
 
-        if self.transformations:
+        if self.transformations and apply_transformations:
             self.apply_transformations()
 
         self.design_matrix = manager.get_design_matrix(groupby=last_level,

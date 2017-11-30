@@ -18,7 +18,7 @@ def test_analysis_smoke_test():
     json_file = join(layout_path, 'models', 'ds-005_type-test_model.json')
 
     analysis = Analysis(layout_path, json_file)
-    analysis.setup()
+    analysis.setup(apply_transformations=True)
 
     result = analysis['secondlevel'].get_Xy()
     assert len(result) == 16

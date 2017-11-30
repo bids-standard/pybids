@@ -440,7 +440,7 @@ class BIDSVariableManager(object):
 
         if force_dense and not self._all_dense():
             _cols = self.resample(sampling_rate, force_dense=force_dense,
-                                  in_place=False)
+                                  in_place=False).values()
         else:
             _cols = self.columns.values()
 

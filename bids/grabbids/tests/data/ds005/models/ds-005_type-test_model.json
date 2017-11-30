@@ -4,7 +4,13 @@
   "blocks": [
     {
       "name": "firstlevel",
-      "level": "run"
+      "level": "run",
+      "transformations": [
+        {
+          "name": "scale",
+          "input": "RT"
+        }
+      ]
     },
     {
       "name": "secondlevel",
