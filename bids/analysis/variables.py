@@ -17,6 +17,9 @@ from functools import partial
 from pandas.api.types import is_numeric_dtype
 
 
+BASE_ENTITIES = ['subject', 'session', 'task', 'run']
+
+
 class BIDSColumn(object):
 
     ''' Base representation of a column in a BIDS project. '''
@@ -290,7 +293,7 @@ class BIDSVariableManager(object):
         self.layout = layouts[0]
 
         if entities is None:
-            entities = ['subject', 'session', 'task', 'run']
+            entities = BASE_ENTITIES
         self.entities = entities
         self.default_duration = default_duration
         self.select_columns = columns
@@ -325,6 +328,7 @@ class BIDSVariableManager(object):
         run_trs = []
 
         for img_f in images:
+
             evf = self.layout.get_events(img_f)
             if not evf:
                 raise ValueError("Could not find event file that matches %s." %
@@ -332,9 +336,12 @@ class BIDSVariableManager(object):
             tr = 1./self.layout.get_metadata(img_f)['RepetitionTime']
             run_trs.append(tr)
 
-            f_ents = self.layout.files[evf].entities
+            # Because of inheritance, _events.tsv filenames don't always
+            # contain all entities, so we first get them from the image
+            # file, then update with anything found in the event file.
+            f_ents = self.layout.files[img_f].entities
+            f_ents.update(self.layout.files[evf].entities)
             f_ents = {k: v for k, v in f_ents.items() if k in self.entities}
-
             event_files.append((evf, img_f, f_ents))
 
         if len(set(run_trs)) > 1:
