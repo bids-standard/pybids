@@ -1,14 +1,5 @@
-from bids.analysis.variables import BIDSVariableManager
-import pytest
 from os.path import join, dirname, abspath
 from bids import grabbids
-
-
-@pytest.fixture
-def manager():
-    mod_file = abspath(grabbids.__file__)
-    path = join(dirname(mod_file), 'tests', 'data', 'ds005')
-    return BIDSVariableManager(path)
 
 
 def test_analysis_smoke_test():
@@ -17,7 +8,7 @@ def test_analysis_smoke_test():
     layout_path = join(dirname(mod_file), 'tests', 'data', 'ds005')
     json_file = join(layout_path, 'models', 'ds-005_type-test_model.json')
 
-    analysis = Analysis(layout_path, json_file)
+    analysis = Analysis(json_file, layouts=layout_path)
     analysis.setup(apply_transformations=True)
 
     result = analysis['secondlevel'].get_Xy()
