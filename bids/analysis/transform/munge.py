@@ -60,9 +60,9 @@ class split(Transformation):
     _allow_categorical = ('by',)
 
     def _transform(self, col, by):
-        from bids.analysis.variables import SparseBIDSColumn
+        from bids.analysis.variables import SparseEventColumn
 
-        if not isinstance(col, SparseBIDSColumn):
+        if not isinstance(col, SparseEventColumn):
             self._densify_columns()
 
         # Set up all the splitting columns as a DF
@@ -71,7 +71,7 @@ class split(Transformation):
         group_data.columns = listify(by)
 
         # For sparse data, we need to set up a 1D grouper
-        if isinstance(col, SparseBIDSColumn):
+        if isinstance(col, SparseEventColumn):
             # Create single grouping column by combining all 'by' columns
             if group_data.shape[1] == 1:
                 group_labels = group_data.iloc[:, 0].values
@@ -113,28 +113,22 @@ class assign(Transformation):
     def _transform(self, input, target, input_attr='amplitude',
                    target_attr='amplitude'):
 
-        if not input_attr.endswith('s'):
-            input_attr += 's'
-
-        if not target_attr.endswith('s'):
-            target_attr += 's'
-
         # assign only makes sense for sparse columns; dense columns don't have
         # durations or onsets, and amplitudes can be copied by cloning
-        from bids.analysis.variables import DenseBIDSColumn
-        if isinstance(input, DenseBIDSColumn):
+        from bids.analysis.variables import DenseEventColumn
+        if isinstance(input, DenseEventColumn):
             raise ValueError("The 'assign' transformation can only be applied"
                              " to sparsely-coded event types. The input "
                              "column (%s) is dense." % input.name)
 
         target = self.manager.columns[target].clone()
-        if isinstance(target, DenseBIDSColumn):
+        if isinstance(target, DenseEventColumn):
             raise ValueError("The 'assign' transformation can only be applied"
                              " to sparsely-coded event types. The target "
                              "column (%s) is dense." % target.name)
 
         # Ensure attributes are valid
-        valid_attrs = ['amplitudes', 'durations', 'onsets']
+        valid_attrs = ['amplitude', 'duration', 'onset']
         if input_attr not in valid_attrs:
             raise ValueError("Valid values for input_attr are: %s." %
                              valid_attrs)
@@ -171,7 +165,7 @@ class factor(Transformation):
 
     def _transform(self, col, constraint='none', ref_level=None, sep='_'):
 
-        from bids.analysis.variables import SparseBIDSColumn
+        from bids.analysis.variables import SparseEventColumn
 
         result = []
         data = col.to_df()
@@ -193,7 +187,7 @@ class factor(Transformation):
             if constraint == 'drop_one' and lev_name == ref_level:
                 continue
             lev_grp['amplitude'] = 1.0
-            new_col = SparseBIDSColumn(self.manager, name, lev_grp,
+            new_col = SparseEventColumn(self.manager, name, lev_grp,
                                        factor_name=col.name, level_index=i,
                                        level_name=lev_name)
             result.append(new_col)
@@ -226,13 +220,14 @@ class filter(Transformation):
             query = query.replace(k, v)
 
         data = pd.concat([self.manager[c].values for c in names], axis=1)
-        data = data.reset_index(drop=True) # Make sure we can use integer index
+        # Make sure we can use integer index
+        data = data.reset_index(drop=True)
         data.columns = list(name_map.values())
         data = data.query(query)
 
         # Truncate target column to retained rows
-        col.onsets = col.onsets[data.index]
-        col.durations = col.durations[data.index]
+        col.onset = col.onset[data.index]
+        col.duration = col.duration[data.index]
         col.values = col.values.iloc[data.index]
 
         return col

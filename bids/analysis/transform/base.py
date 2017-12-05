@@ -148,7 +148,7 @@ class Transformation(object):
 
     def _densify_columns(self):
 
-        from bids.analysis.variables import SparseBIDSColumn
+        from bids.analysis.variables import SparseEventColumn
 
         cols = []
 
@@ -161,7 +161,7 @@ class Transformation(object):
 
         for c in cols:
             col = self._columns[c]
-            if isinstance(col, SparseBIDSColumn):
+            if isinstance(col, SparseEventColumn):
                 self._columns[c] = col.to_dense()
 
     def _regex_replace_columns(self, args):
@@ -314,8 +314,8 @@ class Transformation(object):
 
         def _align(cols):
             # If any column is dense, all columns must be dense
-            from bids.analysis.variables import SparseBIDSColumn
-            sparse = [c for c in cols if isinstance(c, SparseBIDSColumn)]
+            from bids.analysis.variables import SparseEventColumn
+            sparse = [c for c in cols if isinstance(c, SparseEventColumn)]
             if len(sparse) < len(cols):
                 if sparse:
                     sparse_names = [s.name for s in sparse]
@@ -331,7 +331,7 @@ class Transformation(object):
             # perfectly for all
             else:
                 def get_col_data(col):
-                    return np.c_[col.values.index, col.durations, col.onsets]
+                    return np.c_[col.values.index, col.duration, col.onset]
 
                 def compare_cols(a, b):
                     return len(a) == len(b) and np.allclose(a, b)
