@@ -169,7 +169,7 @@ class factor(Transformation):
     _return_type = 'column'
     _allow_categorical = ('cols',)
 
-    def _transform(self, col, constraint='none', ref_level=None):
+    def _transform(self, col, constraint='none', ref_level=None, sep='_'):
 
         from bids.analysis.variables import SparseBIDSColumn
 
@@ -188,15 +188,15 @@ class factor(Transformation):
             # TODO: consider appending info about the constraint to the name,
             # though this has the downside of making names very long and
             # difficult to work with.
-            name = '%s/%s' % (col.name, lev_name)
+            name = ''.join([col.name, sep, lev_name])
             # TODO: implement constraint == 'mean_zero'
             if constraint == 'drop_one' and lev_name == ref_level:
                 continue
             lev_grp['amplitude'] = 1.0
-            col = SparseBIDSColumn(self.manager, name, lev_grp,
+            new_col = SparseBIDSColumn(self.manager, name, lev_grp,
                                    factor_name=col.name, factor_index=i,
                                    level_name=lev_name)
-            result.append(col)
+            result.append(new_col)
 
         # Remove existing column. TODO: allow user to leave original in?
         self.manager.columns.pop(orig_name)
