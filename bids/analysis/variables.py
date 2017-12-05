@@ -184,7 +184,7 @@ def load_variables(layouts, default_duration=0, entities=None, columns=None,
     for name, grp in _df.groupby(['factor', 'condition']):
         data = grp.apply(pd.to_numeric, errors='ignore')
         _, condition = name[0], name[1]
-        # self.columns[condition] = SparseBIDSColumn(self, condition, data)
+        # self.columns[condition] = SparseEventColumn(self, condition, data)
         collection.add_column(condition, data)
 
     # build the index
@@ -276,7 +276,92 @@ class BIDSColumn(object):
         return self.values.groupby(grouper).apply(func, *args, **kwargs)
 
 
-class SparseBIDSColumn(BIDSColumn):
+class SimpleColumn(BIDSColumn):
+    ''' Represents a simple design matrix column that has no timing
+    information.
+    Args:
+
+    '''
+
+    # Columns that define special properties (e.g., onset, duration). These
+    # will be stored separately from the main data object, and are accessible
+    # as properties on the SimpleColumn instance.
+    _property_columns = {}
+    _entity_columns = {'condition', 'amplitude', 'factor'}
+
+    def __init__(self, collection, name, data, factor_name=None,
+                 level_index=None, level_name=None):
+
+        self.factor_name = factor_name
+        self.level_index = level_index
+        self.level_name = level_name
+
+        for sc in self._property_columns:
+            setattr(self, sc, data[sc].values)
+
+        ent_cols = list(set(data.columns) - self._entity_columns -
+                        self._property_columns)
+        self.entities = data.loc[:, ent_cols]
+
+        values = data['amplitude'].reset_index(drop=True)
+        values.name = name
+
+        super(SimpleColumn, self).__init__(collection, name, values)
+
+    def to_df(self, condition=True, entities=True):
+        ''' Convert to a DataFrame, with columns for onset/duration/amplitude
+        plus (optionally) name and entities.
+        Args:
+            condition (bool): If True, adds a column for condition name, and
+                names the amplitude column 'amplitude'. If False, returns just
+                onset, duration, and amplitude, and gives the amplitude column
+                the current column name.
+            entities (bool): If True, adds extra columns for all entities.
+        '''
+        amp = 'amplitude' if condition else self.name
+        data = pd.DataFrame({amp: self.values.values.ravel()})
+
+        for sc in self._property_columns:
+            data[sc] = getattr(self, sc)
+
+        if condition:
+            data['condition'] = self.name
+
+        if entities:
+            ent_data = self.entities.reset_index(drop=True)
+            data = pd.concat([data, ent_data], axis=1)
+
+        return data
+
+    def split(self, grouper):
+        ''' Split the current SparseEventColumn into multiple columns.
+        Args:
+            grouper (iterable): list to groupby, where each unique value will
+                be taken as the name of the resulting column.
+        Returns:
+            A list of SparseEventColumns, one per unique value in the grouper.
+        '''
+        data = self.to_df(condition=True, entities=False)
+        data = data.drop('condition', axis=1)
+        # data = pd.DataFrame(dict(onset=self.onset, duration=self.duration,
+        #                          amplitude=self.values.values))
+        # data = pd.concat([data, self.index.reset_index(drop=True)], axis=1)
+
+        subsets = []
+        for i, (name, g) in enumerate(data.groupby(grouper)):
+            name = '%s/%s' % (self.name, name)
+            col = self.__class__(self.collection, name, g, level_name=name,
+                                 factor_name=self.name, level_index=i)
+            subsets.append(col)
+        return subsets
+
+    @property
+    def index(self):
+        ''' An index of all named entities. '''
+        return self.entities
+
+
+class SparseEventColumn(SimpleColumn):
     ''' A sparse representation of a single column of events.
     Args:
         collection (BIDSVariableCollection): The collection the current column
@@ -293,23 +378,7 @@ class SparseBIDSColumn(BIDSColumn):
             categorical factor, if applicable.
     '''
 
-    def __init__(self, collection, name, data, factor_name=None,
-                 level_index=None, level_name=None):
-
-        self.onsets = data['onset'].values
-        self.durations = data['duration'].values
-        self.factor_name = factor_name
-        self.level_index = level_index
-        self.level_name = level_name
-
-        ent_cols = list(set(data.columns) - {'onset', 'duration', 'condition',
-                                             'amplitude', 'factor'})
-        self.entities = data.loc[:, ent_cols]
-
-        values = data['amplitude'].reset_index(drop=True)
-        values.name = name
-
-        super(SparseBIDSColumn, self).__init__(collection, name, values)
+    _property_columns = {'onset', 'duration'}
 
     def to_dense(self):
         ''' Convert the current sparse column to a dense representation. '''
@@ -317,8 +386,8 @@ class SparseBIDSColumn(BIDSColumn):
         duration = len(self.collection.dense_index)
         ts = np.zeros(duration)
 
-        onsets = np.ceil(self.onsets * sampling_rate).astype(int)
-        durations = np.round(self.durations * sampling_rate).astype(int)
+        onsets = np.ceil(self.onset * sampling_rate).astype(int)
+        durations = np.round(self.duration * sampling_rate).astype(int)
 
         for i, row in enumerate(self.values.values):
             file_id = self.entities['event_file_id'].values[i]
@@ -329,56 +398,10 @@ class SparseBIDSColumn(BIDSColumn):
 
         ts = pd.DataFrame(ts)
 
-        return DenseBIDSColumn(self.collection, self.name, ts)
-
-    def to_df(self, condition=True, entities=True):
-        ''' Convert to a DataFrame, with columns for onset/duration/amplitude
-        plus (optionally) name and entities.
-        Args:
-            condition (bool): If True, adds a column for condition name, and
-                names the amplitude column 'amplitude'. If False, returns just
-                onset, duration, and amplitude, and gives the amplitude column
-                the current column name.
-            entities (bool): If True, adds extra columns for all entities.
-        '''
-        amp = 'amplitude' if condition else self.name
-        data = pd.DataFrame({'onset': self.onsets,
-                             'duration': self.durations,
-                             amp: self.values.values.ravel()})
-        if condition:
-            data['condition'] = self.name
-        if entities:
-            ent_data = self.entities.reset_index(drop=True)
-            data = pd.concat([data, ent_data], axis=1)
-        return data
-
-    def split(self, grouper):
-        ''' Split the current SparseBIDSColumn into multiple columns.
-        Args:
-            grouper (iterable): list to groupby, where each unique value will
-                be taken as the name of the resulting column.
-        Returns:
-            A list of SparseBIDSColumns, one per unique value in the grouper.
-        '''
-        data = pd.DataFrame(dict(onset=self.onsets, duration=self.durations,
-                                 amplitude=self.values.values))
-        data = pd.concat([data, self.entities.reset_index(drop=True)], axis=1)
-
-        subsets = []
-        for i, (name, g) in enumerate(data.groupby(grouper)):
-            name = '%s/%s' % (self.name, name)
-            col = SparseBIDSColumn(self.collection, name, g, level_name=name,
-                                   factor_name=self.name, level_index=i)
-            subsets.append(col)
-        return subsets
-
-    @property
-    def index(self):
-        ''' An index of all named entities. '''
-        return self.entities
+        return DenseEventColumn(self.collection, self.name, ts)
 
 
-class DenseBIDSColumn(BIDSColumn):
+class DenseEventColumn(BIDSColumn):
     ''' A dense representation of a single column. '''
 
     @property
@@ -387,19 +410,19 @@ class DenseBIDSColumn(BIDSColumn):
         return self.collection.dense_index
 
     def split(self, grouper):
-        ''' Split the current DenseBIDSColumn into multiple columns.
+        ''' Split the current DenseEventColumn into multiple columns.
         Args:
             grouper (DataFrame): binary DF specifying the design matrix to
                 use for splitting. Number of rows must match current
-                DenseBIDSColumn; a new DenseBIDSColumn will be generated
+                DenseEventColumn; a new DenseEventColumn will be generated
                 for each column in the grouper.
         Returns:
-            A list of DenseBIDSColumns, one per unique value in the grouper.
+            A list of DenseEventColumns, one per unique value in the grouper.
         '''
         df = grouper * self.values
         names = df.columns
-        return [DenseBIDSColumn(self.collection, '%s/%s' % (self.name, name),
-                                df[name].values)
+        return [DenseEventColumn(self.collection, '%s/%s' % (self.name, name),
+                                 df[name].values)
                 for i, name in enumerate(names)]
 
 
@@ -420,7 +443,7 @@ class BIDSVariableCollection(object):
         self.event_files = []
 
     def add_column(self, name, data):
-        self.columns[name] = SparseBIDSColumn(self, name, data)
+        self.columns[name] = SparseEventColumn(self, name, data)
 
     def get_sampling_rate(self, sr):
         return self.repetition_time if sr == 'tr' else sr
@@ -482,11 +505,11 @@ class BIDSVariableCollection(object):
         return clone
 
     def _all_sparse(self):
-        return all([isinstance(c, SparseBIDSColumn)
+        return all([isinstance(c, SparseEventColumn)
                     for c in self.columns.values()])
 
     def _all_dense(self):
-        return all([isinstance(c, DenseBIDSColumn)
+        return all([isinstance(c, DenseEventColumn)
                     for c in self.columns.values()])
 
     def __getitem__(self, col):
@@ -606,7 +629,7 @@ class BIDSVariableCollection(object):
         columns = {}
 
         for name, col in self.columns.items():
-            if isinstance(col, SparseBIDSColumn):
+            if isinstance(col, SparseEventColumn):
                 if force_dense and is_numeric_dtype(col.values):
                     columns[name] = col.to_dense()
             else:
