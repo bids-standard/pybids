@@ -1,8 +1,10 @@
 import json
-from .variables import BIDSVariableManager
+from .variables import load_variables
 from . import transform
 from collections import namedtuple
 from six import string_types
+import pandas as pd
+import numpy as np
 
 
 DesignMatrix = namedtuple('DesignMatrix', ('entities', 'groupby', 'data'))
@@ -17,15 +19,20 @@ class Analysis(object):
         model (str or dict): a BIDS model specification. Can either be a
             string giving the path of the JSON model spec, or an already-loaded
             dict containing the model info.
-        manager (BIDSVariableManager): Optional BIDSVariableManager object used
-            to load/manage variables. If None, a new manager is initialized
-            from the provided layouts.
-        selectors (dict): Optional keyword arguments to pass onto the manager;
-            these will be passed on to the Layout's .get() method, and can be
-            used to restrict variables.
+        collection (BIDSVariableCollection): Optional BIDSVariableCollection
+            object used to load/manage variables. If None, a new collection is
+            initialized from the provided layouts.
+        selectors (dict): Optional keyword arguments to pass onto the
+            collection; these will be passed on to the Layout's .get() method,
+            and can be used to restrict variables.
     '''
 
-    def __init__(self, layouts, model, manager=None, **selectors):
+    def __init__(self, model, collection=None, layouts=None, **selectors):
+
+        if layouts is None and collection is None:
+            raise ValueError("At least one of the 'layout' and 'collection' "
+                             "arguments must be passed.")
+
         if isinstance(model, str):
             model = json.load(open(model))
         self.model = model
@@ -33,16 +40,16 @@ class Analysis(object):
         if 'input' in model:
             selectors.update(model['input'])
 
-        if manager is None:
-            manager = BIDSVariableManager(layouts, **selectors)
+        if collection is None:
+            collection = load_variables(layouts, **selectors)
 
-        self.manager = manager
+        self.collection = collection
 
         self._load_blocks(model['blocks'])
 
     @property
     def layout(self):
-        return self.manager.layout  # for convenience
+        return self.collection.layout  # for convenience
 
     def __iter__(self):
         for b in self.blocks:
@@ -58,18 +65,18 @@ class Analysis(object):
         for i, b in enumerate(blocks):
             self.blocks.append(Block(self, index=i, **b))
 
-    def setup(self, apply_transformations=True):
+    def setup(self, apply_transformations=True, generate_output=True):
+        ''' Set up the sequence of blocks--applying transformations,
+        generating outputs, etc. '''
 
-        ''' Read in all variables and set up the sequence of blocks. '''
-        self.manager.load()
-
-        # pass a copy of the manager through the pipeline (columns mutate)
-        _manager = self.manager.clone()
+        # pass a copy of the collection through the pipeline (columns mutate)
+        _collection = self.collection.clone()
         last_level = None
 
         for b in self.blocks:
-            b.setup(_manager, last_level,
-                    apply_transformations=apply_transformations)
+            b.setup(_collection, last_level,
+                    apply_transformations=apply_transformations,
+                    generate_output=generate_output)
             last_level = b.level
 
 
@@ -101,6 +108,7 @@ class Block(object):
         self.model = model or None
         self.contrasts = contrasts or []
         self.design_matrix = None
+        self.output = None
 
     def _get_design_matrix(self, **selectors):
         if self.design_matrix is None:
@@ -140,7 +148,7 @@ class Block(object):
         return hierarchy[:(pos + 1)]
 
     def apply_transformations(self):
-        ''' Apply all transformations to the variables in the manager.
+        ''' Apply all transformations to the variables in the collection.
         '''
         for t in self.transformations:
             kwargs = dict(t)
@@ -151,7 +159,50 @@ class Block(object):
                 if not hasattr(transform, func):
                     raise ValueError("No transformation '%s' found!" % func)
                 func = getattr(transform, func)
-                func(self.manager, cols, **kwargs)
+                func(self.collection, cols, **kwargs)
+
+    def generate_output(self, keep_input_columns=True):
+        data = self._get_design_matrix()
+        ent_cols = self._get_groupby_cols(self.level)
+        ent_cols = list(set(ent_cols) & set(data.columns))
+        contrast_names = [c['name'] for c in self.contrasts]
+        if keep_input_columns:
+            contrast_names = data.columns.tolist() + contrast_names
+        unit_weights = pd.Series(np.ones(len(contrast_names)),
+                                 index=contrast_names)
+        self.output = data.groupby(ent_cols).apply(lambda x: unit_weights)
+
+    def get_contrasts(self, format='matrix', **selectors):
+        ''' Return contrast information for the current block.
+        Args:
+            format (str): What format to return the contrast specifications in.
+                Valid options are:
+                    'matrix' or 'df': Returns a pandas DataFrame with each
+                        contrast as a row and each of the existing design
+                        matrix columns as a column. This format makes it easy
+                        to matrix-multiply existing in-memory images by the
+                        contrast definition matrix in one shot.
+                    'patsy': Returns a list of strings, where each string gives
+                        a patsy-compatible definition of the contrast. E.g.,
+                        if there are conditions 'A' and 'B', and the weights
+                        are [1, -1], the returned string would be "A-B".
+                    'dict': Returns the BIDS-Model contrast specification
+                        as a dict loaded from the original json.
+                    'json': Returns the json string containing the raw contrast
+                        specification found in the original BIDS-Model spec.
+            selectors (dict): Optional keyword arguments to further constrain
+                the data retrieved.
+        Returns:
+            See format argument for returned object formats.
+        '''
+        if format == 'dict':
+            return self.contrasts
+
+        if format == 'json':
+            return json.dumps(self.contrasts)
+
+        # Construct contrast x variable matrix
+        pass
 
     def get_Xy(self, **selectors):
         ''' Return X and y information for all groups defined by the current
@@ -191,18 +242,21 @@ class Block(object):
         by get_Xy(). See get_Xy() for arguments and return format. '''
         return (t for t in self.get_Xy(**selectors))
 
-    def setup(self, manager, last_level=None, apply_transformations=True):
+    def setup(self, collection, last_level=None, apply_transformations=True,
+              generate_output=True):
         ''' Set up the Block and construct the design matrix.
         Args:
-            manager (BIDSVariableManager): The variable manager to use. Note:
-                that the setup process will often mutate the manager instance.
+            collection (BIDSVariableCollection): The variable collection to use. Note:
+                that the setup process will often mutate the collection instance.
             last_level (str): The level of the previous Block in the analysis,
                 if any.
             apply_transformations (bool): If True (default), apply any
                 transformations in the block before constructing the design
                 matrix.
+            generate_output (bool): If True (default), generate an output
+                design matrix for the current block.
         '''
-        self.manager = manager
+        self.collection = collection
 
         agg = 'mean' if self.level != 'run' else None
         last_level = self._get_groupby_cols(last_level)
@@ -210,5 +264,8 @@ class Block(object):
         if self.transformations and apply_transformations:
             self.apply_transformations()
 
-        self.design_matrix = manager.get_design_matrix(groupby=last_level,
+        self.design_matrix = collection.get_design_matrix(groupby=last_level,
                                                        aggregate=agg).copy()
+
+        if self.generate_output:
+            self.generate_output()
