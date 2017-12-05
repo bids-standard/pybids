@@ -7,13 +7,9 @@ from collections import namedtuple
 import math
 from copy import copy, deepcopy
 from abc import abstractproperty, ABCMeta
-from six import string_types
-import os
 from bids.utils import listify
-import json
 import re
 from scipy.interpolate import interp1d
-from functools import partial
 from pandas.api.types import is_numeric_dtype
 
 

@@ -246,8 +246,9 @@ class Block(object):
               generate_output=True):
         ''' Set up the Block and construct the design matrix.
         Args:
-            collection (BIDSVariableCollection): The variable collection to use. Note:
-                that the setup process will often mutate the collection instance.
+            collection (BIDSVariableCollection): The variable collection to
+                use. Note that the setup process will often mutate the
+                collection instance.
             last_level (str): The level of the previous Block in the analysis,
                 if any.
             apply_transformations (bool): If True (default), apply any
@@ -265,7 +266,7 @@ class Block(object):
             self.apply_transformations()
 
         self.design_matrix = collection.get_design_matrix(groupby=last_level,
-                                                       aggregate=agg).copy()
+                                                          aggregate=agg).copy()
 
         if self.generate_output:
             self.generate_output()
