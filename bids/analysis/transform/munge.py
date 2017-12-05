@@ -194,8 +194,8 @@ class factor(Transformation):
                 continue
             lev_grp['amplitude'] = 1.0
             new_col = SparseBIDSColumn(self.manager, name, lev_grp,
-                                   factor_name=col.name, factor_index=i,
-                                   level_name=lev_name)
+                                       factor_name=col.name, level_index=i,
+                                       level_name=lev_name)
             result.append(new_col)
 
         # Remove existing column. TODO: allow user to leave original in?
