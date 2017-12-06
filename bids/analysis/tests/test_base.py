@@ -11,7 +11,14 @@ def test_analysis_smoke_test():
     analysis = Analysis(json_file, layouts=layout_path)
     analysis.setup(apply_transformations=True)
 
+    result = analysis['firstlevel'].get_Xy(subject=['01', '02'])
+    assert len(result) == 6
+    assert len(result[0]) == 3
+    assert 'sub-01_task-mixedgamblestask_run-01_bold.nii.gz' in result[0][1]
+
     result = analysis['secondlevel'].get_Xy()
     assert len(result) == 16
     assert len(result[0]) == 3
-    assert result[0][0].shape == (3, 8)
+    assert result[0].data.shape == (3, 8)
+    assert result[0].image is None
+    assert result[0].entities == {'subject': '01'}

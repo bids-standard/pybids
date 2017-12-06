@@ -7,7 +7,7 @@ import pandas as pd
 import numpy as np
 
 
-DesignMatrix = namedtuple('DesignMatrix', ('entities', 'groupby', 'data'))
+DesignMatrix = namedtuple('DesignMatrix', ('data', 'image', 'entities'))
 
 
 class Analysis(object):
@@ -234,7 +234,8 @@ class Block(object):
                 img = img[0]
             else:
                 img = None
-            tuples.append((self._drop_columns(g.copy()), img, ents))
+            record = DesignMatrix(self._drop_columns(g.copy()), img, ents)
+            tuples.append(record)
         return tuples
 
     def iter_Xy(self, **selectors):

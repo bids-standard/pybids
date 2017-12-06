@@ -80,6 +80,7 @@ def load_variables(layouts, default_duration=0, entities=None, columns=None,
     # Loop over images and get all corresponding event files
     images = layout.get(return_type='file', type='bold', modality='func',
                         extensions='.nii.gz', **selectors)
+
     if not images:
         raise ValueError("No functional images that match criteria found.")
 
@@ -98,7 +99,7 @@ def load_variables(layouts, default_duration=0, entities=None, columns=None,
         # Because of inheritance, _events.tsv filenames don't always
         # contain all entities, so we first get them from the image
         # file, then update with anything found in the event file.
-        f_ents = layout.files[img_f].entities
+        f_ents = layout.files[img_f].entities.copy()
         f_ents.update(layout.files[evf].entities)
         f_ents = {k: v for k, v in f_ents.items() if k in entities}
         event_files.append((evf, img_f, f_ents))
