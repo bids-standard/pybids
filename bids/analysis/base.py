@@ -1,5 +1,5 @@
 import json
-from .variables import load_variables
+from .variables import load_variables, SimpleColumn, BIDSVariableCollection
 from . import transform
 from collections import namedtuple
 from six import string_types
@@ -65,19 +65,16 @@ class Analysis(object):
         for i, b in enumerate(blocks):
             self.blocks.append(Block(self, index=i, **b))
 
-    def setup(self, apply_transformations=True, generate_output=True):
+    def setup(self, apply_transformations=True):
         ''' Set up the sequence of blocks--applying transformations,
         generating outputs, etc. '''
 
         # pass a copy of the collection through the pipeline (columns mutate)
         _collection = self.collection.clone()
-        last_level = None
 
         for b in self.blocks:
-            b.setup(_collection, last_level,
-                    apply_transformations=apply_transformations,
-                    generate_output=generate_output)
-            last_level = b.level
+            b.setup(_collection, apply_transformations=apply_transformations)
+            _collection = b.output_collection.clone()
 
 
 class Block(object):
@@ -107,15 +104,16 @@ class Block(object):
         self.transformations = transformations or []
         self.model = model or None
         self.contrasts = contrasts or []
-        self.design_matrix = None
-        self.output = None
+        self._design_matrix = None
+        self.input_collection = None
+        self.output_collection = None
 
     def _get_design_matrix(self, **selectors):
-        if self.design_matrix is None:
+        if self._design_matrix is None:
             raise ValueError("Block hasn't been set up yet; please call "
                              "setup() before you try to retrieve the DM.")
         # subset the data if needed
-        data = self.design_matrix
+        data = self._design_matrix
         if selectors:
             # TODO: make sure this handles constraints on int columns properly
             bad_keys = list(set(selectors.keys()) - set(data.columns))
@@ -127,24 +125,21 @@ class Block(object):
             data = data.query(query)
         return data
 
-    def get_contrast_matrix(self):
-        pass
-
     def _drop_columns(self, data):
         entities = {'onset', 'duration', 'run', 'session', 'subject', 'task'}
         common_ents = list(entities & set(data.columns))
         return data.drop(common_ents, axis=1)
 
-    def _get_groupby_cols(self, level):
+    def _get_groupby_cols(self):
         # Get a list of keywords that define the grouping at the current level.
         # Note that we need to include all entities *above* the current one--
         # e.g., if the block level is 'run', this means we actually want to
         # groupby(['subject', 'session', 'run']), otherwise we would only
         # end up with n(runs) groups.
-        if level is None:
+        if self.level is None:
             return None
         hierarchy = ['subject', 'session', 'run']
-        pos = hierarchy.index(level)
+        pos = hierarchy.index(self.level)
         return hierarchy[:(pos + 1)]
 
     def apply_transformations(self):
@@ -159,18 +154,46 @@ class Block(object):
                 if not hasattr(transform, func):
                     raise ValueError("No transformation '%s' found!" % func)
                 func = getattr(transform, func)
-                func(self.collection, cols, **kwargs)
+                func(self.input_collection, cols, **kwargs)
 
-    def generate_output(self, keep_input_columns=True):
+    def generate_output_collection(self, keep_input_columns=True):
+
         data = self._get_design_matrix()
-        ent_cols = self._get_groupby_cols(self.level)
-        ent_cols = list(set(ent_cols) & set(data.columns))
+
+        # Figure out which column names to keep
         contrast_names = [c['name'] for c in self.contrasts]
         if keep_input_columns:
-            contrast_names = data.columns.tolist() + contrast_names
+            sel_cols = list(data['condition'].unique())
+            if self.model is not None and 'variables' in self.model:
+                sel_cols = list(set(sel_cols) and set(self.model['variables']))
+            contrast_names = sel_cols + contrast_names
+
+        ent_cols = self._get_groupby_cols()
+        ent_cols = list(set(ent_cols) & set(data.columns))
+
+        contrast_names = list(set(contrast_names) -
+                              set(self.input_collection.entities))
+
+        # Set the same (unit) weights for all rows
         unit_weights = pd.Series(np.ones(len(contrast_names)),
                                  index=contrast_names)
-        self.output = data.groupby(ent_cols).apply(lambda x: unit_weights)
+
+        df = data.groupby(ent_cols).apply(lambda x: unit_weights)
+
+        # Generate a new BIDSVariableCollection to pass to next block
+        ic = self.input_collection
+
+        collection = BIDSVariableCollection(ic.layout, entities=ent_cols)
+
+        for col_name in df.columns:
+            col_data = df[col_name].reset_index()
+            col_data = col_data.rename(columns={col_name: 'amplitude'})
+            col = SimpleColumn(collection, col_name, col_data)
+            collection.columns[col_name] = col
+
+        self.output_collection = collection
+        for k, v in collection.columns.items():
+            pass
 
     def get_contrasts(self, format='matrix', **selectors):
         ''' Return contrast information for the current block.
@@ -220,7 +243,7 @@ class Block(object):
                       {'subject': '03', 'run': 1})
         '''
         data = self._get_design_matrix(**selectors)
-        ent_cols = self._get_groupby_cols(self.level)
+        ent_cols = self._get_groupby_cols()
 
         tuples = []
         ent_cols = list(set(ent_cols) & set(data.columns))
@@ -243,8 +266,8 @@ class Block(object):
         by get_Xy(). See get_Xy() for arguments and return format. '''
         return (t for t in self.get_Xy(**selectors))
 
-    def setup(self, collection, last_level=None, apply_transformations=True,
-              generate_output=True):
+    def setup(self, collection, apply_transformations=True,
+              generate_output_collection=True):
         ''' Set up the Block and construct the design matrix.
         Args:
             collection (BIDSVariableCollection): The variable collection to
@@ -255,19 +278,19 @@ class Block(object):
             apply_transformations (bool): If True (default), apply any
                 transformations in the block before constructing the design
                 matrix.
-            generate_output (bool): If True (default), generate an output
-                design matrix for the current block.
+            generate_output_collection (bool): If True (default), generate the
+                output collection to pass to the next block as its input.
         '''
-        self.collection = collection
-
-        agg = 'mean' if self.level != 'run' else None
-        last_level = self._get_groupby_cols(last_level)
+        self.input_collection = collection
+        self.output_collection = None
 
         if self.transformations and apply_transformations:
             self.apply_transformations()
 
-        self.design_matrix = collection.get_design_matrix(groupby=last_level,
-                                                          aggregate=agg).copy()
+        gb = self._get_groupby_cols()
 
-        if self.generate_output:
-            self.generate_output()
+        self._design_matrix = collection.get_design_matrix(groupby=gb).copy()
+        # print(self._design_matrix)
+
+        if self.generate_output_collection:
+            self.generate_output_collection()

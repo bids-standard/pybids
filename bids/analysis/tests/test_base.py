@@ -19,6 +19,8 @@ def test_analysis_smoke_test():
     result = analysis['secondlevel'].get_Xy()
     assert len(result) == 16
     assert len(result[0]) == 3
+    print(result[0].data)
+    print(result[0].entities)
     assert result[0].data.shape == (3, 8)
     assert result[0].image is None
     assert result[0].entities == {'subject': '01'}

@@ -287,7 +287,7 @@ class SimpleColumn(BIDSColumn):
     # Columns that define special properties (e.g., onset, duration). These
     # will be stored separately from the main data object, and are accessible
     # as properties on the SimpleColumn instance.
-    _property_columns = {}
+    _property_columns = set()
     _entity_columns = {'condition', 'amplitude', 'factor'}
 
     def __init__(self, collection, name, data, factor_name=None,
@@ -433,8 +433,8 @@ BIDSEventFile = namedtuple('BIDSEventFile', ('image_file', 'event_file',
 
 class BIDSVariableCollection(object):
 
-    def __init__(self, layout, entities, default_duration, sampling_rate,
-                 repetition_time):
+    def __init__(self, layout, entities, default_duration=None,
+                 sampling_rate=None, repetition_time=None):
         self.layout = layout
         self.entities = entities
         self.default_duration = default_duration
@@ -442,8 +442,9 @@ class BIDSVariableCollection(object):
         self.repetition_time = repetition_time
         self.columns = {}
         self.event_files = []
+        self.dense_index = None
 
-    def add_column(self, name, data):
+    def add_column(self, name, data, cls='event'):
         self.columns[name] = SparseEventColumn(self, name, data)
 
     def get_sampling_rate(self, sr):
@@ -454,7 +455,7 @@ class BIDSVariableCollection(object):
         Args:
             columns (list): Optional list of column names to retain; if None,
                 all columns are written out.
-            sparse (bool): If True, events will be written out in sparse format
+            sparse (bool): If True, columns will be kept in a sparse format
                 provided they are all internally represented as such. If False,
                 a dense matrix (i.e., uniform sampling rate for all events)
                 will be exported. Will be ignored if at least one column is
@@ -465,7 +466,7 @@ class BIDSVariableCollection(object):
         Returns: A pandas DataFrame.
         '''
         # # Can only write sparse output if all columns are sparse
-        force_dense = True if not sparse or not self._all_sparse() else False
+        force_dense = True if not sparse or not self._none_dense() else False
 
         sampling_rate = self.get_sampling_rate(sampling_rate)
 
@@ -502,11 +503,12 @@ class BIDSVariableCollection(object):
         '''
         clone = copy(self)
         clone.columns = {k: v.clone() for (k, v) in self.columns.items()}
-        clone.dense_index = self.dense_index.copy()
+        if clone.dense_index is not None:
+            clone.dense_index = self.dense_index.copy()
         return clone
 
-    def _all_sparse(self):
-        return all([isinstance(c, SparseEventColumn)
+    def _none_dense(self):
+        return all([isinstance(c, SimpleColumn)
                     for c in self.columns.values()])
 
     def _all_dense(self):
@@ -553,7 +555,7 @@ class BIDSVariableCollection(object):
             else [c.name for c in cols]
 
     def get_design_matrix(self, groupby=None, results=None, columns=None,
-                          aggregate=None, add_intercept=True,
+                          aggregate=None, add_intercept=False,
                           sampling_rate='tr', drop_entities=False, **kwargs):
 
         if columns is None:
@@ -564,7 +566,7 @@ class BIDSVariableCollection(object):
 
         # data = pd.concat([self.columns[c].to_df() for c in columns], axis=0)
         data = self.merge_columns(columns=columns, sampling_rate=sampling_rate,
-                                  sparse=False)
+                                  sparse=True)
 
         # subset the data if needed
         if kwargs:
@@ -586,6 +588,7 @@ class BIDSVariableCollection(object):
 
         # Always drop columns meant for internal use
         drop_cols = ['onset', 'duration', 'event_file_id', 'time']
+
         # Optionally drop entities
         if drop_entities:
             drop_cols += self.entities
