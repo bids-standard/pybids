@@ -136,9 +136,12 @@ class Block(object):
         # e.g., if the block level is 'run', this means we actually want to
         # groupby(['subject', 'session', 'run']), otherwise we would only
         # end up with n(runs) groups.
+        hierarchy = ['subject', 'session', 'run']
+
         if self.level is None:
             return None
-        hierarchy = ['subject', 'session', 'run']
+        elif self.level not in hierarchy:  # e.g., for 'dataset'
+            return []
         pos = hierarchy.index(self.level)
         return hierarchy[:(pos + 1)]
 
@@ -178,15 +181,16 @@ class Block(object):
         unit_weights = pd.Series(np.ones(len(contrast_names)),
                                  index=contrast_names)
 
-        df = data.groupby(ent_cols).apply(lambda x: unit_weights)
+        if ent_cols:
+            data = data.groupby(ent_cols).apply(lambda x: unit_weights)
 
         # Generate a new BIDSVariableCollection to pass to next block
         ic = self.input_collection
 
         collection = BIDSVariableCollection(ic.layout, entities=ent_cols)
 
-        for col_name in df.columns:
-            col_data = df[col_name].reset_index()
+        for col_name in data.columns:
+            col_data = data[col_name].reset_index()
             col_data = col_data.rename(columns={col_name: 'amplitude'})
             col = SimpleColumn(collection, col_name, col_data)
             collection.columns[col_name] = col
@@ -247,6 +251,12 @@ class Block(object):
 
         tuples = []
         ent_cols = list(set(ent_cols) & set(data.columns))
+
+        # If there are no entities to group on, return the whole dataset
+        if not ent_cols:
+            return [(data, None, {})]
+
+        # Otherwise loop over groups and construct a tuple for each one
         for name, g in data.groupby(ent_cols):
             ent_data = g[ent_cols].drop_duplicates().iloc[0, :]
             ents = ent_data.to_dict()
