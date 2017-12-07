@@ -39,8 +39,8 @@ class rename(Transformation):
 
     def _transform(self, col):
         ''' Rename happens automatically in the base class, so all we need to
-        do is unset the original column in the manager. '''
-        self.manager.columns.pop(col.name)
+        do is unset the original column in the collection. '''
+        self.collection.columns.pop(col.name)
         return col.values.values
 
 
@@ -55,23 +55,26 @@ class split(Transformation):
     _groupable = False
     _input_type = 'column'
     _return_type = 'column'
-    _columns_used = ('cols', 'by')
-    _densify = ('cols', 'by')
     _allow_categorical = ('by',)
 
     def _transform(self, col, by):
-        from bids.analysis.variables import SparseEventColumn
+        from bids.analysis.variables import SimpleColumn
 
-        if not isinstance(col, SparseEventColumn):
+        if not isinstance(col, SimpleColumn):
             self._densify_columns()
 
-        # Set up all the splitting columns as a DF
-        group_data = pd.concat([self._columns[c].values for c in listify(by)],
-                               axis=1)
+        # Set up all the splitting columns as a DF. Note that columns in 'by'
+        # can be either regular columns, or entities in the index--so we need
+        # to check both places.
+        all_cols = self.collection.columns
+        by_cols = [all_cols[c].values if c in all_cols
+                   else col.index[c].reset_index(drop=True)
+                   for c in listify(by)]
+        group_data = pd.concat(by_cols, axis=1)
         group_data.columns = listify(by)
 
         # For sparse data, we need to set up a 1D grouper
-        if isinstance(col, SparseEventColumn):
+        if isinstance(col, SimpleColumn):
             # Create single grouping column by combining all 'by' columns
             if group_data.shape[1] == 1:
                 group_labels = group_data.iloc[:, 0].values
@@ -121,7 +124,7 @@ class assign(Transformation):
                              " to sparsely-coded event types. The input "
                              "column (%s) is dense." % input.name)
 
-        target = self.manager.columns[target].clone()
+        target = self.collection.columns[target].clone()
         if isinstance(target, DenseEventColumn):
             raise ValueError("The 'assign' transformation can only be applied"
                              " to sparsely-coded event types. The target "
@@ -165,12 +168,11 @@ class factor(Transformation):
 
     def _transform(self, col, constraint='none', ref_level=None, sep='_'):
 
-        from bids.analysis.variables import SparseEventColumn
-
         result = []
         data = col.to_df()
         grps = data.groupby('amplitude')
         orig_name = col.name
+        ColumnClass = col.__class__
 
         # Determine the reference level
         if constraint in ['drop_one', 'mean_zero']:
@@ -187,13 +189,14 @@ class factor(Transformation):
             if constraint == 'drop_one' and lev_name == ref_level:
                 continue
             lev_grp['amplitude'] = 1.0
-            new_col = SparseEventColumn(self.manager, name, lev_grp,
-                                       factor_name=col.name, level_index=i,
-                                       level_name=lev_name)
+
+            new_col = ColumnClass(self.collection, name, lev_grp,
+                                  factor_name=col.name, level_index=i,
+                                  level_name=lev_name)
             result.append(new_col)
 
         # Remove existing column. TODO: allow user to leave original in?
-        self.manager.columns.pop(orig_name)
+        self.collection.columns.pop(orig_name)
 
         return result
 
@@ -219,7 +222,7 @@ class filter(Transformation):
         for k, v in name_map.items():
             query = query.replace(k, v)
 
-        data = pd.concat([self.manager[c].values for c in names], axis=1)
+        data = pd.concat([self.collection[c].values for c in names], axis=1)
         # Make sure we can use integer index
         data = data.reset_index(drop=True)
         data.columns = list(name_map.values())

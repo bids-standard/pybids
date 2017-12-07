@@ -74,8 +74,8 @@ def test_orthogonalize_sparse(collection):
 
 def test_split(collection):
 
-    tmp = collection['RT'].clone(name='RT_2')
-    collection['RT_2'] = tmp
+    orig = collection['RT'].clone(name='RT_2')
+    collection['RT_2'] = orig.clone()
     collection['RT_3'] = collection['RT'].clone(name='RT_3').to_dense()
 
     rt_pre_onsets = collection['RT'].onset
@@ -91,14 +91,19 @@ def test_split(collection):
 
     # Grouping SparseEventColumn by multiple columns
     transform.split(collection, cols=['RT_2'], by=['respcat', 'loss'])
-    tmp = collection['RT_2']
     assert 'RT_2/-1_13' in collection.columns.keys() and \
            'RT_2/1_13' in collection.columns.keys()
 
     # Grouping by DenseEventColumn
     transform.split(collection, cols='RT_3', by='respcat')
-    assert 'RT_3/respcat[0.0]' in collection.columns.keys()
-    assert len(collection['RT_3/respcat[0.0]'].values) == len(collection['RT_3'].values)
+    assert 'RT_3/respcat[0]' in collection.columns.keys()
+    assert len(collection['RT_3/respcat[0]'].values) == \
+        len(collection['RT_3'].values)
+
+    # Grouping by entities in the index
+    collection['RT_4'] = orig.clone(name='RT_4')
+    transform.split(collection, cols=['RT_4'], by=['respcat', 'run'])
+    assert 'RT_4/-1_3' in collection.columns.keys()
 
 
 def test_resample_dense(collection):
