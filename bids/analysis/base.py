@@ -164,6 +164,15 @@ class Block(object):
                 func = getattr(transform, func)
                 func(self.input_collection, cols, **kwargs)
 
+        # Also apply variable selection even if it's not represented in
+        # its own transformation.
+        if self.model is not None and 'variables' in self.model:
+            # TODO: add a "select" transformation and construct a call to it
+            # here instead of filtering directly on the collection.
+            coll = self.input_collection
+            coll.columns = {k: v for k, v in coll.columns.items()
+                            if k in self.model['variables']}
+
     def generate_output_collection(self, keep_input_columns=True):
 
         data = self._get_design_matrix()
@@ -172,8 +181,6 @@ class Block(object):
         contrast_names = [c['name'] for c in self.contrasts]
         if keep_input_columns:
             sel_cols = list(data['condition'].unique())
-            if self.model is not None and 'variables' in self.model:
-                sel_cols = list(set(sel_cols) and set(self.model['variables']))
             contrast_names = sel_cols + contrast_names
 
         ent_cols = self._get_groupby_cols()
@@ -201,8 +208,6 @@ class Block(object):
             collection.columns[col_name] = col
 
         self.output_collection = collection
-        for k, v in collection.columns.items():
-            pass
 
     def get_contrasts(self, format='matrix', **selectors):
         ''' Return contrast information for the current block.
