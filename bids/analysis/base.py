@@ -125,9 +125,14 @@ class Block(object):
             data = data.query(query)
         return data
 
-    def _drop_columns(self, data):
-        entities = {'onset', 'duration', 'run', 'session', 'subject', 'task'}
-        common_ents = list(entities & set(data.columns))
+    def _drop_columns(self, data, drop_entities=True, drop_timing=False):
+
+        entities = []
+        if drop_entities:
+            entities += ['run', 'session', 'subject', 'task']
+        if drop_timing:
+            entities += ['onset', 'duration']
+        common_ents = list(set(entities) & set(data.columns))
         return data.drop(common_ents, axis=1)
 
     def _get_groupby_cols(self):
@@ -231,7 +236,7 @@ class Block(object):
         # Construct contrast x variable matrix
         pass
 
-    def get_Xy(self, **selectors):
+    def get_Xy(self, drop_entities=True, **selectors):
         ''' Return X and y information for all groups defined by the current
         level.
         Args:
@@ -267,7 +272,9 @@ class Block(object):
                 img = img[0]
             else:
                 img = None
-            record = DesignMatrix(self._drop_columns(g.copy()), img, ents)
+            group_data = self._drop_columns(g.copy(),
+                                            drop_entities=drop_entities)
+            record = DesignMatrix(group_data, img, ents)
             tuples.append(record)
         return tuples
 
@@ -300,7 +307,6 @@ class Block(object):
         gb = self._get_groupby_cols()
 
         self._design_matrix = collection.get_design_matrix(groupby=gb).copy()
-        # print(self._design_matrix)
 
         if self.generate_output_collection:
             self.generate_output_collection()

@@ -556,7 +556,8 @@ class BIDSVariableCollection(object):
 
     def get_design_matrix(self, groupby=None, results=None, columns=None,
                           aggregate=None, add_intercept=False,
-                          sampling_rate='tr', drop_entities=False, **kwargs):
+                          sampling_rate='tr', drop_entities=False,
+                          drop_timing=False, **kwargs):
 
         if columns is None:
             columns = list(self.columns.keys())
@@ -587,7 +588,10 @@ class BIDSVariableCollection(object):
             data.insert(0, 'intercept', 1)
 
         # Always drop columns meant for internal use
-        drop_cols = ['onset', 'duration', 'event_file_id', 'time']
+        drop_cols = ['event_file_id', 'time']
+
+        if drop_timing:
+            drop_cols += ['onset', 'duration']
 
         # Optionally drop entities
         if drop_entities:
