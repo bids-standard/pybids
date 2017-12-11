@@ -133,11 +133,10 @@ def load_variables(layouts, default_duration=0, entities=None, columns=None,
             duration = img.shape[3] * img.header.get_zooms()[-1]
         except Exception as e:
             duration = (_data['onset'] + _data['duration']).max()
-            warnings.warn("Unable to extract scan duration from image %s; "
-                          "setting duration to the offset of the last "
-                          "detected event instead (%d)--but note that this"
-                          " may produce unexpected results." %
-                          (img_f, duration))
+            warnings.warn("Unable to extract scan duration from one or more"
+                          "images; setting duration to the offset of the last "
+                          "detected event instead--but note that this may "
+                          "produce unexpected results.")
 
         # Add default values for entities that may not be passed explicitly
         evf_index = len(collection.event_files)
