@@ -167,11 +167,7 @@ class Block(object):
         # Also apply variable selection even if it's not represented in
         # its own transformation.
         if self.model is not None and 'variables' in self.model:
-            # TODO: add a "select" transformation and construct a call to it
-            # here instead of filtering directly on the collection.
-            coll = self.input_collection
-            coll.columns = {k: v for k, v in coll.columns.items()
-                            if k in self.model['variables']}
+            transform.select(self.input_collection, self.model['variables'])
 
     def generate_output_collection(self, keep_input_columns=True):
 
