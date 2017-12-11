@@ -237,7 +237,19 @@ class filter(Transformation):
 
 
 class select(Transformation):
-    pass
+    ''' Select columns to retain.
+
+    Args:
+        cols (list, str): Name(s) of columns to retain. All columns not in the
+            list will be dropped from the collection.
+    '''
+    _groupable = False
+    _loopable = False
+    _input_type = 'column'
+    _return_type = 'none'
+
+    def _transform(self, cols):
+        self.collection.columns = {c.name: c for c in cols}
 
 
 class replace(Transformation):

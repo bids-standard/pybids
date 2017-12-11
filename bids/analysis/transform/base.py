@@ -202,8 +202,7 @@ class Transformation(object):
         output_passed = not (self.output is None and self.output_prefix is None
                              and self.output_suffix is None)
 
-        if not output_passed and (self._output_required or (not self._loopable
-                             and len(self.cols) > 1)):
+        if not output_passed and self._output_required:
             raise ValueError("Transformation '%s' requires output names to be "
                              "provided. Please set at least one of 'output',"
                              "'output_prefix', or 'output_suffix'."  %
@@ -242,7 +241,8 @@ class Transformation(object):
             # If we still have a list, pass all columns in one block
             if isinstance(col, (list, tuple)):
                 result = self._transform(data, **kwargs)
-                col = col[0].clone(data=result, name=self.output[0])
+                if self._return_type not in ['none', None]:
+                    col = col[0].clone(data=result, name=self.output[0])
             # Otherwise loop over columns individually
             else:
                 if self._groupable and self.groupby is not None:
@@ -251,7 +251,7 @@ class Transformation(object):
                 else:
                     result = self._transform(data[i], **kwargs)
 
-            if self._return_type == 'none' or self._return_type is None:
+            if self._return_type in ['none', None]:
                 continue
             elif self._return_type == 'numpy':
                 col.values = pd.DataFrame(result)

@@ -23,6 +23,7 @@ class sum(Transformation):
     _loopable = False
     _groupable = False
     _align = True
+    _output_required = True
 
     def _transform(self, data, weights=None):
         if weights is None:
@@ -41,6 +42,7 @@ class product(Transformation):
     _loopable = False
     _groupable = False
     _align = True
+    _output_required = True
 
     def _transform(self, data):
         data = pd.concat(data, axis=1)
@@ -112,6 +114,7 @@ class or_(Transformation):
 
     _loopable = False
     _groupable = False
+    _output_required = True
 
     def _transform(self, dfs):
         df = pd.concat(dfs, axis=1)
@@ -126,6 +129,7 @@ class and_(Transformation):
 
     _loopable = False
     _groupable = False
+    _output_required = True
 
     def _transform(self, dfs):
         df = pd.concat(dfs, axis=1)
