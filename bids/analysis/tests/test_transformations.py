@@ -194,3 +194,9 @@ def test_filter(collection):
     orig = collection['RT'].clone()
     transform.filter(collection, 'RT', by='parametric gain', query=q)
     assert len(orig.values) == 2 * len(collection['RT'].values)
+
+
+def test_select(collection):
+    keep = ['RT', 'parametric gain', 'respcat']
+    transform.select(collection, keep)
+    assert set(collection.columns.keys()) == set(keep)

@@ -76,38 +76,6 @@ def test_read_from_files():
     shutil.rmtree(tmp_dir)
 
 
-# def test_write_collection(collection):
-
-#     # TODO: test content of files, not just existence
-
-#     # Sparse, single file
-#     filename = tempfile.mktemp() + '.tsv'
-#     collection.write(file=filename, sparse=True)
-#     assert exists(filename)
-#     os.remove(filename)
-
-#     # Sparse, one output file per input file
-#     tmpdir = tempfile.mkdtemp()
-#     collection.write(tmpdir, sparse=True)
-#     files = glob(join(tmpdir, "*.tsv"))
-#     # assert len(files) == collection.dense_index['event_file_id'].nunique()
-#     shutil.rmtree(tmpdir)
-
-#     # UNCOMMENT NEXT BLOCK ONCE TRANSFORMATIONS ARE RE-ADDED
-#     # # Dense, single file
-#     # collection.apply('factor', 'trial_type')
-#     # collection.write(file=filename, sparse=False, sampling_rate=1)
-#     # assert exists(filename)
-#     # os.remove(filename)
-
-#     # Dense, one output file per input file
-#     tmpdir = tempfile.mkdtemp()
-#     collection.write(tmpdir, sparse=False)
-#     files = glob(join(tmpdir, "*.tsv"))
-#     # assert len(files) == collection.dense_index['event_file_id'].nunique()
-#     shutil.rmtree(tmpdir)
-
-
 def test_match_columns(collection):
     matches = collection.match_columns('^resp', return_type='columns')
     assert len(matches) == 2
@@ -115,8 +83,14 @@ def test_match_columns(collection):
 
 
 def test_get_design_matrix(collection):
-    subs = [str(s).zfill(2) for s in [1, 2, 3, 4, 5, 6]]
+    sub_ids = [1, 2, 3, 4, 5, 6]
+    subs = [str(s).zfill(2) for s in sub_ids]
     dm = collection.get_design_matrix(columns=['RT', 'parametric gain'],
                                       groupby=['subject', 'run'],
                                       subject=subs)
-    assert dm.shape == (4308, 6)
+    assert set(dm['subject'].unique()) == set(sub_ids)
+    cols = set(['amplitude', 'onset', 'duration', 'subject', 'run', 'task',
+                'condition'])
+    assert set(dm.columns) == cols
+    assert set(dm['condition'].unique()) == {'RT', 'parametric gain'}
+    assert dm.shape == (3072, 7)
