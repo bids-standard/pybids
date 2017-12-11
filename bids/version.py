@@ -67,5 +67,5 @@ VERSION = __version__
 # PACKAGE_DATA = {'bids': [pjoin('data', '*')]}
 REQUIRES = ["grabbit>=0.0.7", "six"]
 EXTRAS_REQUIRE = {
-    'analysis': ['numpy', 'scipy', 'pandas', 'nibabel'],
+    'analysis': ['numpy', 'scipy', 'pandas', 'nibabel', 'patsy'],
 }
