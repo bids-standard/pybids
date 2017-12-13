@@ -119,6 +119,9 @@ def load_variables(layouts, default_duration=0, entities=None, columns=None,
                                         sampling_rate=sampling_rate,
                                         repetition_time=repetition_time)
 
+    ### HANDLE ALL BIDS VARIABLE FILES ###
+
+    # Load events.tsv
     for (evf, img_f, f_ents) in event_files:
         _data = pd.read_table(evf, sep='\t')
         _data = _data.replace('n/a', np.nan)  # Replace BIDS' n/a
@@ -187,6 +190,34 @@ def load_variables(layouts, default_duration=0, entities=None, columns=None,
         # self.columns[condition] = SparseEventColumn(self, condition, data)
         collection.add_column(condition, data)
 
+    # sessions.tsv and participants.tsv have the same format and differ only
+    # in level assignment.
+    variable_files = [('sessions', 'session'), ('participants', 'subject')]
+
+    for type_, level in variable_files:
+
+        files = layout.get(extensions='.tsv', type=type_, **selectors)
+        dfs = [pd.read_table(f.filename, sep='\t') for f in files]
+
+        if not dfs:
+            continue
+
+        data = pd.concat(dfs, axis=0)
+
+        for i, col_name in enumerate(data.columns):
+            # Rename colummns: values must be in 'amplitude', and users
+            # sometimes give the ID column the wrong name.
+            old_lev_name = data.columns[i]
+            _data = data.loc[:, [old_lev_name, col_name]]
+            _data.columns = [level, 'amplitude']
+            col = SimpleColumn(collection, col_name, _data, level)
+            if col_name in collection.columns:
+                raise ValueError("Name conflict: column '%s' in %s.tsv "
+                                 "already exists--probably because it's "
+                                 "defined in an events.tsv file. Please use "
+                                 "unique names." % (col_name, level))
+            collection[col_name] = col
+
     # build the index
     collection._build_dense_index()
 
@@ -199,10 +230,11 @@ class BIDSColumn(object):
 
     __metaclass__ = ABCMeta
 
-    def __init__(self, collection, name, values):
+    def __init__(self, collection, name, values, block_level=None):
         self.collection = collection
         self.name = name
         self.values = values
+        self.block_level = block_level
 
     def clone(self, data=None, **kwargs):
         ''' Clone (deep copy) the current column, optionally replacing its
@@ -289,8 +321,8 @@ class SimpleColumn(BIDSColumn):
     _property_columns = set()
     _entity_columns = {'condition', 'amplitude', 'factor'}
 
-    def __init__(self, collection, name, data, factor_name=None,
-                 level_index=None, level_name=None):
+    def __init__(self, collection, name, data, block_level=None,
+                 factor_name=None, level_index=None, level_name=None):
 
         self.factor_name = factor_name
         self.level_index = level_index
@@ -306,7 +338,8 @@ class SimpleColumn(BIDSColumn):
         values = data['amplitude'].reset_index(drop=True)
         values.name = name
 
-        super(SimpleColumn, self).__init__(collection, name, values)
+        super(SimpleColumn, self).__init__(collection, name, values,
+                                           block_level)
 
     def to_df(self, condition=True, entities=True):
         ''' Convert to a DataFrame, with columns for onset/duration/amplitude
