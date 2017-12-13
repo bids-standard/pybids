@@ -42,7 +42,8 @@ def test_collection(collection):
     # Test extracted columns
     col_keys = collection.columns.keys()
     assert set(col_keys) == {'RT', 'gain', 'respnum', 'PTval', 'loss',
-                             'respcat', 'parametric gain', 'trial_type'}
+                             'respcat', 'parametric gain', 'trial_type',
+                             'sex', 'age'}
     col = collection.columns['RT']
     assert isinstance(col, SparseEventColumn)
     assert col.collection == collection
@@ -72,7 +73,8 @@ def test_read_from_files():
     collection = load_variables([path, tmp_dir])
     col_keys = collection.columns.keys()
     assert set(col_keys) == {'RT', 'gain', 'respnum', 'PTval', 'loss',
-                             'respcat', 'parametric gain', 'trial_type'}
+                             'respcat', 'parametric gain', 'trial_type',
+                             'sex', 'age'}
     shutil.rmtree(tmp_dir)
 
 

@@ -187,8 +187,8 @@ def load_variables(layouts, default_duration=0, entities=None, columns=None,
     for name, grp in _df.groupby(['factor', 'condition']):
         data = grp.apply(pd.to_numeric, errors='ignore')
         _, condition = name[0], name[1]
-        # self.columns[condition] = SparseEventColumn(self, condition, data)
-        collection.add_column(condition, data)
+        collection[condition] = SparseEventColumn(collection, condition, data,
+                                                  block_level='run')
 
     # sessions.tsv and participants.tsv have the same format and differ only
     # in level assignment.
@@ -204,7 +204,7 @@ def load_variables(layouts, default_duration=0, entities=None, columns=None,
 
         data = pd.concat(dfs, axis=0)
 
-        for i, col_name in enumerate(data.columns):
+        for i, col_name in enumerate(data.columns[1:]):
             # Rename colummns: values must be in 'amplitude', and users
             # sometimes give the ID column the wrong name.
             old_lev_name = data.columns[i]
@@ -476,9 +476,6 @@ class BIDSVariableCollection(object):
         self.event_files = []
         self.dense_index = None
 
-    def add_column(self, name, data, cls='event'):
-        self.columns[name] = SparseEventColumn(self, name, data)
-
     def get_sampling_rate(self, sr):
         return self.repetition_time if sr == 'tr' else sr
 
@@ -587,9 +584,9 @@ class BIDSVariableCollection(object):
             else [c.name for c in cols]
 
     def get_design_matrix(self, groupby=None, results=None, columns=None,
-                          aggregate=None, add_intercept=False,
-                          sampling_rate='tr', drop_entities=False,
-                          drop_timing=False, **kwargs):
+                          aggregate=None, block_level='run',
+                          add_intercept=False, sampling_rate='tr',
+                          drop_entities=False, drop_timing=False, **kwargs):
 
         if columns is None:
             columns = list(self.columns.keys())
@@ -597,7 +594,10 @@ class BIDSVariableCollection(object):
         if groupby is None:
             groupby = []
 
-        # data = pd.concat([self.columns[c].to_df() for c in columns], axis=0)
+        if block_level is not None:
+            columns = [c for c in columns
+                       if self.columns[c].block_level == block_level]
+
         data = self.merge_columns(columns=columns, sampling_rate=sampling_rate,
                                   sparse=True)
 
