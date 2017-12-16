@@ -307,7 +307,8 @@ class Block(object):
 
         gb = self._get_groupby_cols()
 
-        self._design_matrix = collection.get_design_matrix(groupby=gb).copy()
+        dm = collection.get_design_matrix(groupby=gb, block_level=self.level)
+        self._design_matrix = dm.copy()
 
         if self.generate_output_collection:
             self.generate_output_collection()

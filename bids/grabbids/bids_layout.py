@@ -33,8 +33,8 @@ class BIDSLayout(Layout):
                 ext_config = json.load(fobj)
                 config['entities'].extend(ext_config['entities'])
 
-        super(BIDSLayout, self).__init__(path, config,
-                                         dynamic_getters=True, **kwargs)
+        super(BIDSLayout, self).__init__(path, config, dynamic_getters=True,
+                                         **kwargs)
 
     def _validate_file(self, f):
         # If validate=True then checks files according to BIDS and

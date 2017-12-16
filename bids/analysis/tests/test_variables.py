@@ -16,6 +16,12 @@ def collection():
     return load_variables(path)
 
 
+def test_load_all_bids_variables():
+    mod_file = abspath(grabbids.__file__)
+    path = join(dirname(mod_file), 'tests', 'data', '7t_trt')
+    collection = load_variables(path, acq='fullbrain')
+
+
 def test_clone_collection(collection):
     clone = collection.clone()
     assert clone != collection

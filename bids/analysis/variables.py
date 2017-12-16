@@ -11,6 +11,7 @@ from bids.utils import listify
 import re
 from scipy.interpolate import interp1d
 from pandas.api.types import is_numeric_dtype
+from os.path import dirname, basename, join
 
 
 BASE_ENTITIES = ['subject', 'session', 'task', 'run']
@@ -74,8 +75,6 @@ def load_variables(layouts, default_duration=0, entities=None, columns=None,
                     layouts[0].entities[k].files.update(v.files)
 
     layout = layouts[0]
-    entities = entities if entities is not None else BASE_ENTITIES
-    event_files = []
 
     # Loop over images and get all corresponding event files
     images = layout.get(return_type='file', type='bold', modality='func',
@@ -86,15 +85,23 @@ def load_variables(layouts, default_duration=0, entities=None, columns=None,
 
     event_files = []
     run_trs = []
+    entities = entities if entities is not None else BASE_ENTITIES
 
     for img_f in images:
 
-        evf = layout.get_events(img_f)
-        if not evf:
-            raise ValueError("Could not find event file that matches %s." %
-                             img_f)
+        # Store TR
         tr = 1. / layout.get_metadata(img_f)['RepetitionTime']
         run_trs.append(tr)
+
+        evf = layout.get_events(img_f)
+        if not evf:
+            # TODO: need to handle this better. Failing is not an option since
+            # event files are optional, but silence is no good. Warnings are
+            # problematic because an informative message will be unique each
+            # time and flood the user.
+            continue
+            # raise ValueError("Could not find event file that matches %s." %
+                             # img_f)
 
         # Because of inheritance, _events.tsv filenames don't always
         # contain all entities, so we first get them from the image
@@ -122,100 +129,129 @@ def load_variables(layouts, default_duration=0, entities=None, columns=None,
     ### HANDLE ALL BIDS VARIABLE FILES ###
 
     # Load events.tsv
-    for (evf, img_f, f_ents) in event_files:
-        _data = pd.read_table(evf, sep='\t')
-        _data = _data.replace('n/a', np.nan)  # Replace BIDS' n/a
-        _data = _data.apply(pd.to_numeric, errors='ignore')
+    if event_files:
+        for (evf, img_f, f_ents) in event_files:
+            _data = pd.read_table(evf, sep='\t')
+            _data = _data.replace('n/a', np.nan)  # Replace BIDS' n/a
+            _data = _data.apply(pd.to_numeric, errors='ignore')
 
-        # Get duration of run: first try to get it directly from the image
-        # header; if that fails, fall back on taking the offset of the last
-        # event in the event file--but raise warning, because this is
-        # suboptimal (e.g., there could be empty volumes at the end).
-        try:
-            img = nb.load(img_f)
-            duration = img.shape[3] * img.header.get_zooms()[-1]
-        except Exception as e:
-            duration = (_data['onset'] + _data['duration']).max()
-            warnings.warn("Unable to extract scan duration from one or more"
-                          "images; setting duration to the offset of the last "
-                          "detected event instead--but note that this may "
-                          "produce unexpected results.")
+            # Get duration of run: first try to get it directly from the image
+            # header; if that fails, fall back on taking the offset of the last
+            # event in the event file--but raise warning, because this is
+            # suboptimal (e.g., there could be empty volumes at the end).
+            try:
+                img = nb.load(img_f)
+                duration = img.shape[3] * img.header.get_zooms()[-1]
+            except Exception as e:
+                duration = (_data['onset'] + _data['duration']).max()
+                msg = ("Unable to extract scan duration from one or more "
+                       "images; setting duration to the offset of the last "
+                       "detected event instead--but note that this may produce"
+                       "unexpected results.")
+                warnings.warn(msg)
 
-        # Add default values for entities that may not be passed explicitly
-        evf_index = len(collection.event_files)
-        f_ents['event_file_id'] = evf_index
+            # Add default values for entities that may not be passed explicitly
+            evf_index = len(collection.event_files)
+            f_ents['event_file_id'] = evf_index
 
-        ef = BIDSEventFile(event_file=evf, image_file=img_f,
-                           start=start_time, duration=duration,
-                           entities=f_ents)
-        collection.event_files.append(ef)
-        start_time += duration
+            ef = BIDSEventFile(event_file=evf, image_file=img_f,
+                               start=start_time, duration=duration,
+                               entities=f_ents)
+            collection.event_files.append(ef)
+            start_time += duration
 
-        skip_cols = ['onset', 'duration']
+            skip_cols = ['onset', 'duration']
 
-        file_df = []
+            file_df = []
 
-        _columns = columns
+            _columns = columns
 
-        # By default, read all columns from the event file
-        if _columns is None:
-            _columns = list(set(_data.columns.tolist()) - set(skip_cols))
+            # By default, read all columns from the event file
+            if _columns is None:
+                _columns = list(set(_data.columns.tolist()) - set(skip_cols))
 
-        # Construct a DataFrame for each extra column
-        for col in _columns:
-            df = _data[['onset', 'duration']].copy()
-            df['condition'] = col
-            df['amplitude'] = _data[col].values
-            df['factor'] = col
-            file_df.append(df)
+            # Construct a DataFrame for each extra column
+            for col in _columns:
+                df = _data[['onset', 'duration']].copy()
+                df['condition'] = col
+                df['amplitude'] = _data[col].values
+                df['factor'] = col
+                file_df.append(df)
 
-        # Concatenate all extracted column DFs along the row axis
-        _df = pd.concat(file_df, axis=0)
+            # Concatenate all extracted column DFs along the row axis
+            _df = pd.concat(file_df, axis=0)
 
-        # Add in all of the event file's entities as new columns; these
-        # are used for indexing later on
-        for entity, value in f_ents.items():
-            _df[entity] = value
+            # Add in all of the event file's entities as new columns; these
+            # are used for indexing later on
+            for entity, value in f_ents.items():
+                _df[entity] = value
 
-        dfs.append(_df)
+            dfs.append(_df)
 
-    _df = pd.concat(dfs, axis=0)
+        _df = pd.concat(dfs, axis=0)
 
-    if drop_na:
-        _df = _df.dropna(subset=['amplitude'])
+        if drop_na:
+            _df = _df.dropna(subset=['amplitude'])
 
-    for name, grp in _df.groupby(['factor', 'condition']):
-        data = grp.apply(pd.to_numeric, errors='ignore')
-        _, condition = name[0], name[1]
-        collection[condition] = SparseEventColumn(collection, condition, data,
-                                                  block_level='run')
+        for name, grp in _df.groupby(['factor', 'condition']):
+            data = grp.apply(pd.to_numeric, errors='ignore')
+            _, condition = name[0], name[1]
+            collection[condition] = SparseEventColumn(collection, condition,
+                                                      data, block_level='run')
 
-    # sessions.tsv and participants.tsv have the same format and differ only
-    # in level assignment.
-    variable_files = [('sessions', 'session'), ('participants', 'subject')]
+    # scans.tsv, sessions.tsv and participants.tsv have the same format and
+    # differ only in level assignment and minor details.
+    variable_files = [
+        ('scans', 'run'),
+        ('sessions', 'session'),
+        ('participants', 'subject')
+    ]
 
     for type_, level in variable_files:
 
-        files = layout.get(extensions='.tsv', type=type_, **selectors)
-        dfs = [pd.read_table(f.filename, sep='\t') for f in files]
+        files = layout.get(extensions='.tsv', return_type='file', type=type_)
+        dfs = []
+
+        for f in files:
+            f = layout.files[f]
+            _data = pd.read_table(f.path, sep='\t')
+            # Add entity columns from file
+            for ent_name, ent_val in f.entities.items():
+                _data[ent_name] = ent_val
+            # Special handling for scans.tsv, which has a filename in 1st col
+            if type_ == 'scans':
+                image = _data.iloc[:, 0]
+                _data = _data.drop(_data.columns[0], axis=1)
+                dn = dirname(f.filename)
+                paths = [join(dn, p) for p in image.values]
+                ent_recs = [layout.files[p].entities for p in paths
+                            if p in layout.files]
+                ent_cols = pd.DataFrame.from_records(ent_recs)
+                _data = pd.concat([_data, ent_cols], axis=1)
+            dfs.append(_data)
 
         if not dfs:
             continue
 
         data = pd.concat(dfs, axis=0)
 
-        for i, col_name in enumerate(data.columns[1:]):
+        col_start = 0 if type_ == 'scans' else 1
+        for i, col_name in enumerate(data.columns[col_start:]):
+
             # Rename colummns: values must be in 'amplitude', and users
             # sometimes give the ID column the wrong name.
             old_lev_name = data.columns[i]
             _data = data.loc[:, [old_lev_name, col_name]]
             _data.columns = [level, 'amplitude']
             col = SimpleColumn(collection, col_name, _data, level)
-            if col_name in collection.columns:
-                raise ValueError("Name conflict: column '%s' in %s.tsv "
-                                 "already exists--probably because it's "
-                                 "defined in an events.tsv file. Please use "
-                                 "unique names." % (col_name, level))
+            # TODO: Figure out some configurable way to handle name conflicts
+            # between files. This can be quite common if, e.g., users are using
+            # sessions.tsv to report the average value for rows in scans.tsv.
+            # if col_name in collection.columns:
+            #     raise ValueError("Name conflict: column '%s' in %s.tsv "
+            #                      "already exists--probably because it's "
+            #                      "defined in an events.tsv file. Please use "
+            #                      "unique names." % (col_name, type_))
             collection[col_name] = col
 
     # build the index
@@ -559,6 +595,10 @@ class BIDSVariableCollection(object):
 
     def _build_dense_index(self):
         ''' Build an index of all tracked entities for all dense columns. '''
+
+        if not self.event_files:
+            return
+
         index = []
         sr = int(1000. / self.sampling_rate)
         for evf in self.event_files:
