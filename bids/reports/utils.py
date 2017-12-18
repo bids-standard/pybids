@@ -14,7 +14,7 @@ from num2words import num2words
 from ..version import __version__
 
 # TODO: Determine if directions are correct
-dir_converter = {'i': 'left to right',
+DIR_CONVERTER = {'i': 'left to right',
                  'i-': 'right to left',
                  'j': 'posterior to anterior',
                  'j-': 'anterior to posterior',
@@ -23,7 +23,7 @@ dir_converter = {'i': 'left to right',
 
 # TODO: Determine how to report Scanning Sequence
 # TODO: Determine if this list is comprehensive/universal
-seq_converter = {'SE': 'spin echo',
+SEQ_CONVERTER = {'SE': 'spin echo',
                  'IR': 'inversion recovery',
                  'GR': 'gradient recalled',
                  'EP': 'echo planar',
@@ -31,7 +31,7 @@ seq_converter = {'SE': 'spin echo',
 
 # TODO: Determine how to report Sequence Variant
 # TODO: Determine if this list is comprehensive/universal
-seqvar_converter = {'SK': 'segmented k-space',
+SEQVAR_CONVERTER = {'SK': 'segmented k-space',
                     'MTC': 'magnetization transfer contrast',
                     'SS': 'steady state',
                     'TRSS': 'time reversed steady state',
@@ -46,9 +46,10 @@ def warnings():
            'a degree symbol.')
 
 
-def rem_dupes(seq):
+def remove_duplicates(seq):
     """
-    Removes duplicate scan descriptions.
+    Return unique elements from list while preserving order.
+    From https://stackoverflow.com/a/480227/2589328
     """
     seen = set()
     seen_add = seen.add
@@ -116,7 +117,7 @@ def get_slice_info(slice_times):
     multiband_factor = max(counter.values())
 
     # Slice order
-    slice_times = rem_dupes(slice_times)
+    slice_times = remove_duplicates(slice_times)
     slice_order = sorted(range(len(slice_times)), key=lambda k: slice_times[k])
     if slice_order == range(len(slice_order)):
         slice_order_name = 'sequential ascending'
@@ -152,8 +153,8 @@ def get_seqstr(metadata):
         Sequence variant names.
     """
     seq_abbrs = metadata['ScanningSequence'].split('_')
-    seqs = [seq_converter[seq] for seq in seq_abbrs]
-    variants = [seqvar_converter[var] for var in \
+    seqs = [SEQ_CONVERTER[seq] for seq in seq_abbrs]
+    variants = [SEQVAR_CONVERTER[var] for var in \
                 metadata['SequenceVariant'].split('_')]
     seqs = list_to_str(seqs)
     seqs += ' ({0})'.format('/'.join(seq_abbrs))
@@ -214,7 +215,7 @@ def general_acquisition_info(metadata):
     return out_str
 
 
-def functional(task, n_runs, metadata, img):
+def func_info(task, n_runs, metadata, img):
     """
     Describes T2*-weighted fMRI scans.
 
@@ -245,66 +246,74 @@ def functional(task, n_runs, metadata, img):
     mins, secs = divmod(run_secs, 60)
     length = '{0}:{1:02.0f}'.format(int(mins), int(secs))
 
-    s = ''
-    s += '{n_runs} runs of {task} {variants} {seqs} fMRI data were collected '
-    s += '({n_slices} slices in {so} order; repetition time, TR={tr}ms; '
-    s += 'echo time, TE={te}ms; flip angle, FA={fa}<deg>; '
-    s += 'field of view, FOV={fov}mm; matrix size={ms}; '
-    s += 'voxel size={vs}mm{mb_str}). '
-    s += 'Each run was {length} minutes in length, during which '
-    s += '{n_vols} functional volumes were acquired.'
-    s = s.format(n_runs=num2words(n_runs).title(),
-                 task=task,
-                 variants=variants,
-                 seqs=seqs,
-                 n_slices=n_slices,
-                 so=so,
-                 tr=num_to_str(tr*1000),
-                 te=num_to_str(metadata['EchoTime']*1000),
-                 fa=metadata['FlipAngle'],
-                 vs=vs_str,
-                 fov=fov_str,
-                 ms=ms_str,
-                 length=length,
-                 n_vols=n_tps,
-                 mb_str=mb_str
-                 )
-    return s
+    desc = '''
+           {n_runs} runs of {task} {variants} {seqs} fMRI data were collected
+           ({n_slices} slices in {so} order; repetition time, TR={tr}ms;
+           echo time, TE={te}ms; flip angle, FA={fa}<deg>;
+           field of view, FOV={fov}mm; matrix size={ms};
+           voxel size={vs}mm{mb_str}).
+           Each run was {length} minutes in length, during which
+           {n_vols} functional volumes were acquired.
+           '''.format(n_runs=num2words(n_runs).title(),
+                      task=task,
+                      variants=variants,
+                      seqs=seqs,
+                      n_slices=n_slices,
+                      so=so,
+                      tr=num_to_str(tr*1000),
+                      te=num_to_str(metadata['EchoTime']*1000),
+                      fa=metadata['FlipAngle'],
+                      vs=vs_str,
+                      fov=fov_str,
+                      ms=ms_str,
+                      length=length,
+                      n_vols=n_tps,
+                      mb_str=mb_str
+                     )
+    desc = desc.replace('\n', ' ')
+    while '  ' in desc:
+        desc = desc.replace('  ', ' ')
+
+    return desc
 
 
-def structural(type_, metadata, nii_header):
+def anat_info(type_, metadata, img):
     """
     Describes T1- and T2-weighted structural scans.
     """
-    n_slices, vs_str, ms_str, fov_str = get_sizestr(nii_header)
+    n_slices, vs_str, ms_str, fov_str = get_sizestr(img)
     seqs, variants = get_seqstr(metadata)
 
-    s = ''
-    s += '{type_}-weighted {variants} {seqs} structural MRI data were collected '
-    s += '({n_slices} slices; repetition time, TR={tr}ms; '
-    s += 'echo time, TE={te}ms; flip angle, FA={fa}<deg>; '
-    s += 'field of view, FOV={fov}mm; matrix size={ms}; voxel size={vs}mm).'
-    s = s.format(type_=type_,
-                 variants=variants,
-                 seqs=seqs,
-                 n_slices=n_slices,
-                 tr=num_to_str(metadata['RepetitionTime']*1000),
-                 te=num_to_str(metadata['EchoTime']*1000),
-                 fa=metadata['FlipAngle'],
-                 vs=vs_str,
-                 fov=fov_str,
-                 ms=ms_str,
-                 )
-    return s
+    desc = '''
+           {type_}-weighted {variants} {seqs} structural MRI data were collected
+           ({n_slices} slices; repetition time, TR={tr}ms;
+           echo time, TE={te}ms; flip angle, FA={fa}<deg>;
+           field of view, FOV={fov}mm; matrix size={ms}; voxel size={vs}mm).
+           '''.format(type_=type_,
+                      variants=variants,
+                      seqs=seqs,
+                      n_slices=n_slices,
+                      tr=num_to_str(metadata['RepetitionTime']*1000),
+                      te=num_to_str(metadata['EchoTime']*1000),
+                      fa=metadata['FlipAngle'],
+                      vs=vs_str,
+                      fov=fov_str,
+                      ms=ms_str,
+                     )
+    desc = desc.replace('\n', ' ')
+    while '  ' in desc:
+        desc = desc.replace('  ', ' ')
+
+    return desc
 
 
-def dwi(bval_file, metadata, nii_header):
+def dwi_info(bval_file, metadata, img):
     """
     Describes DWI scans.
     """
     # Parse bval file
-    with open(bval_file, 'r') as fo:
-        d = fo.read().splitlines()
+    with open(bval_file, 'r') as file_object:
+        d = file_object.read().splitlines()
     bvals = [item for sublist in [l.split(' ') for l in d] for item in sublist]
     bvals = sorted([int(v) for v in set(bvals)])
     bvals = [str(v) for v in bvals]
@@ -323,42 +332,46 @@ def dwi(bval_file, metadata, nii_header):
     else:
         mb_str = ''
 
-    n_slices, vs_str, ms_str, fov_str = get_sizestr(nii_header)
-    n_vecs = nii_header.shape[3]
+    n_slices, vs_str, ms_str, fov_str = get_sizestr(img)
+    n_vecs = img.shape[3]
     seqs, variants = get_seqstr(metadata)
     variants = variants[0].upper() + variants[1:]  # variants starts sentence
 
-    s = ''
-    s += '{variants} {seqs} diffusion-weighted (dMRI) data were collected '
-    s += '({n_slices} slices in {so} order; repetition time, TR={tr}ms; '
-    s += 'echo time, TE={te}ms; flip angle, FA={fa}<deg>; '
-    s += 'field of view, FOV={fov}mm; matrix size={ms}; voxel size={vs}mm; '
-    s += 'b-values of {bval_str} acquired; '
-    s += '{n_vecs} diffusion directions{mb_str}).'
-    s = s.format(variants=variants,
-                 seqs=seqs,
-                 n_slices=n_slices,
-                 so=so,
-                 tr=num_to_str(metadata['RepetitionTime']*1000),
-                 te=num_to_str(metadata['EchoTime']*1000),
-                 fa=metadata['FlipAngle'],
-                 vs=vs_str,
-                 fov=fov_str,
-                 ms=ms_str,
-                 bval_str=bval_str,
-                 n_vecs=n_vecs,
-                 mb_str=mb_str
-                 )
-    return s
+    desc = '''
+           {variants} {seqs} diffusion-weighted (dMRI) data were collected
+           ({n_slices} slices in {so} order; repetition time, TR={tr}ms;
+           echo time, TE={te}ms; flip angle, FA={fa}<deg>;
+           field of view, FOV={fov}mm; matrix size={ms}; voxel size={vs}mm;
+           b-values of {bval_str} acquired;
+           {n_vecs} diffusion directions{mb_str}).
+           '''.format(variants=variants,
+                      seqs=seqs,
+                      n_slices=n_slices,
+                      so=so,
+                      tr=num_to_str(metadata['RepetitionTime']*1000),
+                      te=num_to_str(metadata['EchoTime']*1000),
+                      fa=metadata['FlipAngle'],
+                      vs=vs_str,
+                      fov=fov_str,
+                      ms=ms_str,
+                      bval_str=bval_str,
+                      n_vecs=n_vecs,
+                      mb_str=mb_str
+                     )
+    desc = desc.replace('\n', ' ')
+    while '  ' in desc:
+        desc = desc.replace('  ', ' ')
+
+    return desc
 
 
-def fieldmap(metadata, nii_header, task_dict, subj_dir):
+def fmap_info(metadata, img, task_dict, subj_dir):
     """
     Describes field maps.
     TODO: Add stuff.
     """
-    dir_ = dir_converter[metadata['PhaseEncodingDirection']]
-    n_slices, vs_str, ms_str, fov_str = get_sizestr(nii_header)
+    dir_ = DIR_CONVERTER[metadata['PhaseEncodingDirection']]
+    n_slices, vs_str, ms_str, fov_str = get_sizestr(img)
     seqs, variants = get_seqstr(metadata)
 
     if 'IntendedFor' in metadata.keys():
@@ -400,25 +413,28 @@ def fieldmap(metadata, nii_header, task_dict, subj_dir):
     else:
         for_str = ''
 
-    s = ''
-    s += 'A {variants} {seqs} field map (Phase encoding: '
-    s += '{dir_}; '
-    s += '{n_slices} slices; repetition time, TR={tr}ms; '
-    s += 'echo time, TE={te}ms; flip angle, FA={fa}<deg>; '
-    s += 'field of view, FOV={fov}mm; matrix size={ms}; '
-    s += 'voxel size={vs}mm) was acquired{for_str}.'
-    s = s.format(variants=variants,
-                 seqs=seqs,
-                 dir_=dir_,
-                 for_str=for_str,
-                 n_slices=n_slices,
-                 tr=num_to_str(metadata['RepetitionTime']*1000),
-                 te=num_to_str(metadata['EchoTime']*1000),
-                 fa=metadata['FlipAngle'],
-                 vs=vs_str,
-                 fov=fov_str,
-                 ms=ms_str)
-    return s
+    desc = '''
+           A {variants} {seqs} field map (Phase encoding:
+           {dir_}; {n_slices} slices; repetition time, TR={tr}ms;
+           echo time, TE={te}ms; flip angle, FA={fa}<deg>;
+           field of view, FOV={fov}mm; matrix size={ms};
+           voxel size={vs}mm) was acquired{for_str}.
+           '''.format(variants=variants,
+                      seqs=seqs,
+                      dir_=dir_,
+                      for_str=for_str,
+                      n_slices=n_slices,
+                      tr=num_to_str(metadata['RepetitionTime']*1000),
+                      te=num_to_str(metadata['EchoTime']*1000),
+                      fa=metadata['FlipAngle'],
+                      vs=vs_str,
+                      fov=fov_str,
+                      ms=ms_str)
+    desc = desc.replace('\n', ' ')
+    while '  ' in desc:
+        desc = desc.replace('  ', ' ')
+
+    return desc
 
 
 def final_paragraph(metadata):
@@ -435,10 +451,15 @@ def final_paragraph(metadata):
     out_str : :obj:`str`
         Output string with scanner information.
     """
-    out_str = ('Dicoms were converted to NIfTI-1 format using {soft} '
-               '({conv_vers}). This section was (in part) generated '
-               'automatically using pybids ({meth_vers}).')
-    out_str = out_str.format(soft=metadata['ConversionSoftware'],
-                             conv_vers=metadata['ConversionSoftwareVersion'],
-                             meth_vers=__version__)
-    return out_str
+    desc = '''
+           Dicoms were converted to NIfTI-1 format using {soft}
+           ({conv_vers}). This section was (in part) generated
+           automatically using pybids ({meth_vers}).
+           '''.format(soft=metadata['ConversionSoftware'],
+                      conv_vers=metadata['ConversionSoftwareVersion'],
+                      meth_vers=__version__)
+    desc = desc.replace('\n', ' ')
+    while '  ' in desc:
+        desc = desc.replace('  ', ' ')
+
+    return desc
