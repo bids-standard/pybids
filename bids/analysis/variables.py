@@ -238,6 +238,8 @@ def load_event_variables(layout, entities=None, columns=None, scan_length=None,
 
             for name, grp in _df.groupby(['factor', 'condition']):
                 data = grp.apply(pd.to_numeric, errors='ignore')
+                # Subjects are often labeled numerically; ignore this
+                data['subject'] = grp['subject']
                 _, condition = name[0], name[1]
                 col = SparseEventColumn(collection, condition, data)
                 collection[condition] = col
