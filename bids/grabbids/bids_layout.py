@@ -62,7 +62,11 @@ class BIDSLayout(Layout):
                 "BIDS project." % path)
 
         if not type:
-            # Constrain the search to .json files with the same type as target
+            if 'type' not in self.files[path].entities:
+                raise ValueError(
+                    "File '%s' does not have a valid type definition, most "
+                    "likely because it is not a valid BIDS file." % path
+                )
             type = self.files[path].entities['type']
 
         tmp = self.get_nearest(path, extensions=extension, all_=True,
