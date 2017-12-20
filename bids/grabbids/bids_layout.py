@@ -33,8 +33,8 @@ class BIDSLayout(Layout):
                 ext_config = json.load(fobj)
                 config['entities'].extend(ext_config['entities'])
 
-        super(BIDSLayout, self).__init__(path, config,
-                                         dynamic_getters=True, **kwargs)
+        super(BIDSLayout, self).__init__(path, config, dynamic_getters=True,
+                                         **kwargs)
 
     def _validate_file(self, f):
         # If validate=True then checks files according to BIDS and
@@ -74,7 +74,7 @@ class BIDSLayout(Layout):
         else:
             return None
 
-    def get_metadata(self, path, **kwargs):
+    def get_metadata(self, path, include_entities=False, **kwargs):
         ''' Returns metadata found in JSON sidecars for the specified file.
         Args:
             path (str): Path to the file to get metadata for.
@@ -97,6 +97,10 @@ class BIDSLayout(Layout):
                 param_dict = json.load(open(json_file_path, "r",
                                             encoding='utf-8'))
                 merged_param_dict.update(param_dict)
+
+        if include_entities:
+            entities = self.files[path]
+            merged_param_dict.update(entities)
 
         return merged_param_dict
 

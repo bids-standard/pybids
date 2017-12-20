@@ -1,0 +1,20 @@
+{
+  "name": "test_model",
+  "description": "simple test model",
+  "blocks": [
+    {
+      "name": "firstlevel",
+      "level": "run",
+      "transformations": [
+        {
+          "name": "scale",
+          "input": "RT"
+        }
+      ]
+    },
+    {
+      "name": "secondlevel",
+      "level": "subject"
+    }
+  ]
+}
