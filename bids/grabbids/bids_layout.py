@@ -99,7 +99,7 @@ class BIDSLayout(Layout):
                 merged_param_dict.update(param_dict)
 
         if include_entities:
-            entities = self.files[path]
+            entities = self.files[path].entities
             merged_param_dict.update(entities)
 
         return merged_param_dict
