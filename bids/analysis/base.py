@@ -19,17 +19,17 @@ class Analysis(object):
         model (str or dict): a BIDS model specification. Can either be a
             string giving the path of the JSON model spec, or an already-loaded
             dict containing the model info.
-        collection (BIDSVariableCollection): Optional BIDSVariableCollection
-            object used to load/manage variables. If None, a new collection is
+        manager (BIDSVariableManager): Optional BIDSVariableManager
+            object used to load/manage variables. If None, a new manager is
             initialized from the provided layouts.
         selectors (dict): Optional keyword arguments to pass onto the
-            collection; these will be passed on to the Layout's .get() method,
+            manager; these will be passed on to the Layout's .get() method,
             and can be used to restrict variables.
     '''
 
-    def __init__(self, model, collection=None, layouts=None, **selectors):
+    def __init__(self, model, manager=None, layouts=None, **selectors):
 
-        if layouts is None and collection is None:
+        if layouts is None and manager is None:
             raise ValueError("At least one of the 'layout' and 'collection' "
                              "arguments must be passed.")
 
@@ -40,16 +40,16 @@ class Analysis(object):
         if 'input' in model:
             selectors.update(model['input'])
 
-        if collection is None:
-            collection = load_variables(layouts, **selectors)
+        if manager is None:
+            manager = load_variables(layouts, **selectors)
 
-        self.collection = collection
+        self.manager = manager
 
         self._load_blocks(model['blocks'])
 
     @property
     def layout(self):
-        return self.collection.layout  # for convenience
+        return self.manager.layout  # for convenience
 
     def __iter__(self):
         for b in self.blocks:
@@ -69,8 +69,9 @@ class Analysis(object):
         ''' Set up the sequence of blocks--applying transformations,
         generating outputs, etc. '''
 
-        # pass a copy of the collection through the pipeline (columns mutate)
-        _collection = self.collection.clone()
+        # pass a copy of the first level's collection through the pipeline
+        # (clone because columns mutate)
+        _collection = list(self.manager.levels.values())[0].clone()
 
         for b in self.blocks:
             b.setup(_collection, apply_transformations=apply_transformations)
@@ -193,9 +194,7 @@ class Block(object):
             data = data.groupby(ent_cols).apply(lambda x: unit_weights)
 
         # Generate a new BIDSVariableCollection to pass to next block
-        ic = self.input_collection
-
-        collection = BIDSVariableCollection(ic.layout, entities=ent_cols)
+        collection = BIDSVariableCollection(unit=self.level, entities=ent_cols)
 
         for col_name in data.columns:
             col_data = data[col_name].reset_index()
@@ -307,7 +306,7 @@ class Block(object):
 
         gb = self._get_groupby_cols()
 
-        dm = collection.get_design_matrix(groupby=gb, block_level=self.level)
+        dm = collection.get_design_matrix(groupby=gb)
         self._design_matrix = dm.copy()
 
         if self.generate_output_collection:

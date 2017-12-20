@@ -1,16 +1,14 @@
 from bids.analysis.variables import (SparseEventColumn, load_variables,
                                      BIDSEventFile)
 import pytest
-from os.path import join, dirname, abspath, exists
-import os
+from os.path import join, dirname, abspath
 from bids import grabbids
 import tempfile
-from glob import glob
 import shutil
 
 
 @pytest.fixture
-def collection():
+def manager():
     mod_file = abspath(grabbids.__file__)
     path = join(dirname(mod_file), 'tests', 'data', 'ds005')
     return load_variables(path)
@@ -19,13 +17,14 @@ def collection():
 def test_load_all_bids_variables():
     mod_file = abspath(grabbids.__file__)
     path = join(dirname(mod_file), 'tests', 'data', '7t_trt')
-    collection = load_variables(path, acq='fullbrain')
+    manager = load_variables(path, acq='fullbrain')
 
 
-def test_clone_collection(collection):
+def test_clone_collection(manager):
+    collection = manager['time']
     clone = collection.clone()
     assert clone != collection
-    props_same = ['entities', 'default_duration', 'sampling_rate', 'layout']
+    props_same = ['entities', 'default_duration', 'sampling_rate']
     for ps in props_same:
         assert getattr(collection, ps) is getattr(clone, ps)
 
@@ -35,10 +34,11 @@ def test_clone_collection(collection):
     assert collection.dense_index is not clone.dense_index
 
 
-def test_collection(collection):
+def test_collection(manager):
     ''' Integration test for BIDSVariableCollection initialization. '''
 
     # Test that event files are loaded properly
+    collection = manager['time']
     assert len(collection.event_files) == 48
     ef = collection.event_files[0]
     assert isinstance(ef, BIDSEventFile)
@@ -48,8 +48,7 @@ def test_collection(collection):
     # Test extracted columns
     col_keys = collection.columns.keys()
     assert set(col_keys) == {'RT', 'gain', 'respnum', 'PTval', 'loss',
-                             'respcat', 'parametric gain', 'trial_type',
-                             'sex', 'age'}
+                             'respcat', 'parametric gain', 'trial_type'}
     col = collection.columns['RT']
     assert isinstance(col, SparseEventColumn)
     assert col.collection == collection
@@ -76,23 +75,27 @@ def test_read_from_files():
     for f in files:
         shutil.copy2(f, tmp_dir)
 
-    collection = load_variables([path, tmp_dir])
-    col_keys = collection.columns.keys()
+    manager = load_variables([path, tmp_dir])
+    col_keys = manager['time'].columns.keys()
     assert set(col_keys) == {'RT', 'gain', 'respnum', 'PTval', 'loss',
-                             'respcat', 'parametric gain', 'trial_type',
-                             'sex', 'age'}
+                             'respcat', 'parametric gain', 'trial_type'}
+    col_keys = manager['subject'].columns.keys()
+    print(manager['subject'].columns['type'].values)
+    assert set(col_keys) == {'sex', 'age', 'type'}
     shutil.rmtree(tmp_dir)
 
 
-def test_match_columns(collection):
+def test_match_columns(manager):
+    collection = manager['time']
     matches = collection.match_columns('^resp', return_type='columns')
     assert len(matches) == 2
     assert all(isinstance(m, SparseEventColumn) for m in matches)
 
 
-def test_get_design_matrix(collection):
+def test_get_design_matrix(manager):
     sub_ids = [1, 2, 3, 4, 5, 6]
     subs = [str(s).zfill(2) for s in sub_ids]
+    collection = manager['time']
     dm = collection.get_design_matrix(columns=['RT', 'parametric gain'],
                                       groupby=['subject', 'run'],
                                       subject=subs)

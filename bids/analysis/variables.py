@@ -3,7 +3,7 @@ import pandas as pd
 from bids.grabbids import BIDSLayout
 import nibabel as nb
 import warnings
-from collections import namedtuple
+from collections import namedtuple, OrderedDict
 import math
 from copy import copy, deepcopy
 from abc import abstractproperty, ABCMeta
@@ -11,7 +11,7 @@ from bids.utils import listify
 import re
 from scipy.interpolate import interp1d
 from pandas.api.types import is_numeric_dtype
-from os.path import dirname, basename, join
+from os.path import dirname, join
 
 
 BASE_ENTITIES = ['subject', 'session', 'task', 'run']
@@ -121,14 +121,16 @@ def load_variables(layouts, default_duration=0, entities=None, columns=None,
     dfs = []
     start_time = 0
 
-    collection = BIDSVariableCollection(layouts[0], entities=entities,
-                                        default_duration=default_duration,
-                                        sampling_rate=sampling_rate,
-                                        repetition_time=repetition_time)
+    manager = BIDSVariableManager(layout)
 
     ### HANDLE ALL BIDS VARIABLE FILES ###
 
     # Load events.tsv
+    collection = BIDSEventVariableCollection('time', entities=entities,
+                                             default_duration=default_duration,
+                                             sampling_rate=sampling_rate,
+                                             repetition_time=repetition_time)
+
     if event_files:
         for (evf, img_f, f_ents) in event_files:
             _data = pd.read_table(evf, sep='\t')
@@ -197,7 +199,11 @@ def load_variables(layouts, default_duration=0, entities=None, columns=None,
             data = grp.apply(pd.to_numeric, errors='ignore')
             _, condition = name[0], name[1]
             collection[condition] = SparseEventColumn(collection, condition,
-                                                      data, block_level='run')
+                                                      data)
+
+        # build the index and add to manager
+        collection._build_dense_index()
+        manager['time'] = collection
 
     # scans.tsv, sessions.tsv and participants.tsv have the same format and
     # differ only in level assignment and minor details.
@@ -207,7 +213,7 @@ def load_variables(layouts, default_duration=0, entities=None, columns=None,
         ('participants', 'subject')
     ]
 
-    for type_, level in variable_files:
+    for type_, unit in variable_files:
 
         files = layout.get(extensions='.tsv', return_type='file', type=type_)
         dfs = []
@@ -233,6 +239,8 @@ def load_variables(layouts, default_duration=0, entities=None, columns=None,
         if not dfs:
             continue
 
+        collection = BIDSVariableCollection(unit, entities)
+
         data = pd.concat(dfs, axis=0)
 
         col_start = 0 if type_ == 'scans' else 1
@@ -242,8 +250,8 @@ def load_variables(layouts, default_duration=0, entities=None, columns=None,
             # sometimes give the ID column the wrong name.
             old_lev_name = data.columns[i]
             _data = data.loc[:, [old_lev_name, col_name]]
-            _data.columns = [level, 'amplitude']
-            col = SimpleColumn(collection, col_name, _data, level)
+            _data.columns = [unit, 'amplitude']
+            col = SimpleColumn(collection, col_name, _data, unit)
             # TODO: Figure out some configurable way to handle name conflicts
             # between files. This can be quite common if, e.g., users are using
             # sessions.tsv to report the average value for rows in scans.tsv.
@@ -254,10 +262,9 @@ def load_variables(layouts, default_duration=0, entities=None, columns=None,
             #                      "unique names." % (col_name, type_))
             collection[col_name] = col
 
-    # build the index
-    collection._build_dense_index()
+        manager[unit] = collection
 
-    return collection
+    return manager
 
 
 class BIDSColumn(object):
@@ -266,11 +273,10 @@ class BIDSColumn(object):
 
     __metaclass__ = ABCMeta
 
-    def __init__(self, collection, name, values, block_level=None):
+    def __init__(self, collection, name, values):
         self.collection = collection
         self.name = name
         self.values = values
-        self.block_level = block_level
 
     def clone(self, data=None, **kwargs):
         ''' Clone (deep copy) the current column, optionally replacing its
@@ -357,8 +363,8 @@ class SimpleColumn(BIDSColumn):
     _property_columns = set()
     _entity_columns = {'condition', 'amplitude', 'factor'}
 
-    def __init__(self, collection, name, data, block_level=None,
-                 factor_name=None, level_index=None, level_name=None):
+    def __init__(self, collection, name, data, factor_name=None,
+                 level_index=None, level_name=None):
 
         self.factor_name = factor_name
         self.level_index = level_index
@@ -374,8 +380,7 @@ class SimpleColumn(BIDSColumn):
         values = data['amplitude'].reset_index(drop=True)
         values.name = name
 
-        super(SimpleColumn, self).__init__(collection, name, values,
-                                           block_level)
+        super(SimpleColumn, self).__init__(collection, name, values)
 
     def to_df(self, condition=True, entities=True):
         ''' Convert to a DataFrame, with columns for onset/duration/amplitude
@@ -501,84 +506,37 @@ BIDSEventFile = namedtuple('BIDSEventFile', ('image_file', 'event_file',
 
 class BIDSVariableCollection(object):
 
-    def __init__(self, layout, entities, default_duration=None,
-                 sampling_rate=None, repetition_time=None):
-        self.layout = layout
+    def __init__(self, unit, entities):
+
+        self.unit = unit
         self.entities = entities
-        self.default_duration = default_duration
-        self.sampling_rate = sampling_rate
-        self.repetition_time = repetition_time
         self.columns = {}
-        self.event_files = []
         self.dense_index = None
 
-    def get_sampling_rate(self, sr):
-        return self.repetition_time if sr == 'tr' else sr
-
-    def merge_columns(self, columns=None, sparse=True, sampling_rate='tr'):
+    def merge_columns(self, columns=None):
         ''' Merge columns into one DF.
         Args:
             columns (list): Optional list of column names to retain; if None,
                 all columns are written out.
-            sparse (bool): If True, columns will be kept in a sparse format
-                provided they are all internally represented as such. If False,
-                a dense matrix (i.e., uniform sampling rate for all events)
-                will be exported. Will be ignored if at least one column is
-                dense.
-            sampling_rate (float): If a dense matrix is written out, the
-                sampling rate (in Hz) to use for downsampling. Defaults to the
-                value currently set in the instance.
         Returns: A pandas DataFrame.
         '''
-        # # Can only write sparse output if all columns are sparse
-        force_dense = True if not sparse or not self._none_dense() else False
 
-        sampling_rate = self.get_sampling_rate(sampling_rate)
-
-        if force_dense and not self._all_dense():
-            _cols = self.resample(sampling_rate, force_dense=force_dense,
-                                  in_place=False).values()
-        else:
-            _cols = self.columns.values()
+        _cols = self.columns.values()
 
         # Retain only specific columns if desired
         if columns is not None:
             _cols = [c for c in _cols if c.name in columns]
 
-        _cols = [c for c in _cols if c.name not in ["event_file_id", "time"]]
-
-        # Merge all data into one DF
-        if force_dense:
-            dfs = [pd.Series(c.values.iloc[:, 0], name=c.name) for c in _cols]
-            # Convert datetime to seconds and add duration column
-            dense_index = self.dense_index.copy()
-            onsets = self.dense_index.pop('time').values.astype(float) / 1e+9
-            timing = pd.DataFrame({'onset': onsets})
-            timing['duration'] = 1. / sampling_rate
-            dfs = [timing] + dfs + [dense_index]
-            data = pd.concat(dfs, axis=1)
-        else:
-            data = pd.concat([c.to_df() for c in _cols], axis=0)
-
-        return data
+        # _cols = [c for c in _cols if c.name not in ["event_file_id", "time"]]
+        return pd.concat([c.to_df() for c in _cols], axis=0)
 
     def clone(self):
         ''' Returns a shallow copy of the current instance, except that all
-        columns and indexes are deep-cloned.
+        columns are deep-cloned.
         '''
         clone = copy(self)
         clone.columns = {k: v.clone() for (k, v) in self.columns.items()}
-        if clone.dense_index is not None:
-            clone.dense_index = self.dense_index.copy()
         return clone
-
-    def _none_dense(self):
-        return all([isinstance(c, SimpleColumn)
-                    for c in self.columns.values()])
-
-    def _all_dense(self):
-        return all([isinstance(c, DenseEventColumn)
-                    for c in self.columns.values()])
 
     def __getitem__(self, col):
         return self.columns[col]
@@ -593,23 +551,6 @@ class BIDSVariableCollection(object):
             obj.name = col
         self.columns[col] = obj
 
-    def _build_dense_index(self):
-        ''' Build an index of all tracked entities for all dense columns. '''
-
-        if not self.event_files:
-            return
-
-        index = []
-        sr = int(1000. / self.sampling_rate)
-        for evf in self.event_files:
-            reps = int(math.ceil(evf.duration * self.sampling_rate))
-            ent_vals = list(evf.entities.values())
-            data = np.broadcast_to(ent_vals, (reps, len(ent_vals)))
-            df = pd.DataFrame(data, columns=list(evf.entities.keys()))
-            df['time'] = pd.date_range(0, periods=len(df), freq='%sms' % sr)
-            index.append(df)
-        self.dense_index = pd.concat(index, axis=0).reset_index(drop=True)
-
     def match_columns(self, pattern, return_type='name'):
         ''' Return columns whose names match the provided regex pattern.
         Args:
@@ -623,23 +564,9 @@ class BIDSVariableCollection(object):
         return cols if return_type.startswith('col') \
             else [c.name for c in cols]
 
-    def get_design_matrix(self, groupby=None, results=None, columns=None,
-                          aggregate=None, block_level='run',
-                          add_intercept=False, sampling_rate='tr',
-                          drop_entities=False, drop_timing=False, **kwargs):
-
-        if columns is None:
-            columns = list(self.columns.keys())
-
-        if groupby is None:
-            groupby = []
-
-        if block_level is not None:
-            columns = [c for c in columns
-                       if self.columns[c].block_level == block_level]
-
-        data = self.merge_columns(columns=columns, sampling_rate=sampling_rate,
-                                  sparse=True)
+    def _construct_design_matrix(self, data, groupby=None, aggregate=None,
+                                 add_intercept=None, drop_entities=False,
+                                 drop_cols=None, **kwargs):
 
         # subset the data if needed
         if kwargs:
@@ -659,11 +586,11 @@ class BIDSVariableCollection(object):
         if add_intercept:
             data.insert(0, 'intercept', 1)
 
-        # Always drop columns meant for internal use
-        drop_cols = ['event_file_id', 'time']
+        if drop_cols is None:
+            drop_cols = []
 
-        if drop_timing:
-            drop_cols += ['onset', 'duration']
+        # Always drop columns meant for internal use
+        drop_cols += ['event_file_id', 'time']
 
         # Optionally drop entities
         if drop_entities:
@@ -672,6 +599,70 @@ class BIDSVariableCollection(object):
         drop_cols = list(set(drop_cols) & set(data.columns))
 
         return data.drop(drop_cols, axis=1)
+
+    def get_design_matrix(self, groupby=None, columns=None, aggregate=None,
+                          add_intercept=False, drop_entities=False, **kwargs):
+
+        if columns is None:
+            columns = list(self.columns.keys())
+
+        if groupby is None:
+            groupby = []
+
+        data = self.merge_columns(columns=columns)
+
+        return self._construct_design_matrix(data, groupby, aggregate,
+                                             add_intercept, drop_entities,
+                                             **kwargs)
+
+
+class BIDSEventVariableCollection(BIDSVariableCollection):
+
+    def __init__(self, unit, entities, default_duration=None,
+                 sampling_rate=None, repetition_time=None):
+
+        self.default_duration = default_duration
+        self.sampling_rate = sampling_rate
+        self.repetition_time = repetition_time
+        self.event_files = []
+        self.dense_index = None
+        super(BIDSEventVariableCollection, self).__init__(unit, entities)
+
+    def get_sampling_rate(self, sr):
+        return self.repetition_time if sr == 'tr' else sr
+
+    def _build_dense_index(self):
+        ''' Build an index of all tracked entities for all dense columns. '''
+
+        if not self.event_files:
+            return
+
+        index = []
+        sr = int(1000. / self.sampling_rate)
+        for evf in self.event_files:
+            reps = int(math.ceil(evf.duration * self.sampling_rate))
+            ent_vals = list(evf.entities.values())
+            data = np.broadcast_to(ent_vals, (reps, len(ent_vals)))
+            df = pd.DataFrame(data, columns=list(evf.entities.keys()))
+            df['time'] = pd.date_range(0, periods=len(df), freq='%sms' % sr)
+            index.append(df)
+        self.dense_index = pd.concat(index, axis=0).reset_index(drop=True)
+
+    def _none_dense(self):
+        return all([isinstance(c, SimpleColumn)
+                    for c in self.columns.values()])
+
+    def _all_dense(self):
+        return all([isinstance(c, DenseEventColumn)
+                    for c in self.columns.values()])
+
+    def clone(self):
+        ''' Returns a shallow copy of the current instance, except that all
+        columns and the index are deep-cloned.
+        '''
+        clone = super(BIDSEventVariableCollection, self).clone()
+        clone.dense_index = self.dense_index.copy()
+        return clone
 
     def resample(self, sampling_rate='tr', force_dense=False, in_place=False,
                  kind='linear'):
@@ -724,3 +715,128 @@ class BIDSVariableCollection(object):
                 self.columns[k] = v
         else:
             return columns
+
+    def merge_columns(self, columns=None, sparse=True, sampling_rate='tr'):
+        ''' Merge columns into one DF.
+        Args:
+            columns (list): Optional list of column names to retain; if None,
+                all columns are written out.
+            sparse (bool): If True, columns will be kept in a sparse format
+                provided they are all internally represented as such. If False,
+                a dense matrix (i.e., uniform sampling rate for all events)
+                will be exported. Will be ignored if at least one column is
+                dense.
+            sampling_rate (float): If a dense matrix is written out, the
+                sampling rate (in Hz) to use for downsampling. Defaults to the
+                value currently set in the instance.
+        Returns: A pandas DataFrame.
+        '''
+
+        if sparse and self._none_dense:
+            return super(BIDSEventVariableCollection, self).merge_columns(columns)
+
+        sampling_rate = self.get_sampling_rate(sampling_rate)
+
+        if self._all_dense():
+            _cols = self.columns.values()
+        else:
+            _cols = self.resample(sampling_rate, force_dense=True,
+                                  in_place=False).values()
+
+        # Retain only specific columns if desired
+        if columns is not None:
+            _cols = [c for c in _cols if c.name in columns]
+
+        _cols = [c for c in _cols if c.name not in ["event_file_id", "time"]]
+
+        # Merge all data into one DF
+        dfs = [pd.Series(c.values.iloc[:, 0], name=c.name) for c in _cols]
+        # Convert datetime to seconds and add duration column
+        dense_index = self.dense_index.copy()
+        onsets = self.dense_index.pop('time').values.astype(float) / 1e+9
+        timing = pd.DataFrame({'onset': onsets})
+        timing['duration'] = 1. / sampling_rate
+        dfs = [timing] + dfs + [dense_index]
+        data = pd.concat(dfs, axis=1)
+
+        return data
+
+    def get_design_matrix(self, groupby=None, results=None, columns=None,
+                          aggregate=None, add_intercept=False,
+                          sampling_rate='tr', drop_entities=False,
+                          drop_timing=False, **kwargs):
+
+        if columns is None:
+            columns = list(self.columns.keys())
+
+        if groupby is None:
+            groupby = []
+
+        data = self.merge_columns(columns=columns, sampling_rate=sampling_rate,
+                                  sparse=True)
+
+        return self._construct_design_matrix(data, groupby, aggregate,
+                                             add_intercept, drop_entities,
+                                             **kwargs)
+
+
+class BIDSVariableManager(object):
+
+    def __init__(self, layout):
+        self.layout = layout
+        self.levels = OrderedDict()
+
+    def __getitem__(self, level):
+        return self.levels[level]
+
+    def __setitem__(self, level, value):
+        self.levels[level] = value
+
+    def merge_levels(self, levels, target=None, agg_func='mean'):
+        ''' Merge two or more levels into a single BIDSVariableCollection.
+        Args:
+            levels (list): List of level names to merge. Each element must be
+                one of 'run', 'session', 'subject', or 'dataset'.
+            target (str, None): The level that defines the shape of the final
+                result. If None, the lowest level of analysis will be used
+                (e.g., if levels=['run', 'subject'], 'run' will be the target).
+                In this case, higher-level values will be repeated as many
+                times as necessary to fill the lower-level matrix. If a higher
+                level is specified, lower-level rows will be aggregated using
+                the function defined in agg_func.
+            agg_func (str, Callable): The function to use for row aggregation
+                in the event that the target level is not the lowest one
+                possible. If a string, must name a function recognized by
+                pandas. If a Callable, should take a DataFrame as input and
+                aggregate over rows to return a Series.
+        Returns:
+            A BIDSVariableCollection instance.
+        '''
+        pass
+
+    def get_design_matrix(self, levels, target=None, agg_func='mean',
+                          **kwargs):
+        ''' Extract design matrix from variables at one or more levels.
+        Args:
+            levels (list): List of level names to merge. Each element must be
+                one of 'run', 'session', 'subject', or 'dataset'.
+            target (str, None): The level that defines the shape of the final
+                result. If None, the lowest level of analysis will be used
+                (e.g., if levels=['run', 'subject'], 'run' will be the target).
+                In this case, higher-level values will be repeated as many
+                times as necessary to fill the lower-level matrix. If a higher
+                level is specified, lower-level rows will be aggregated using
+                the function defined in agg_func.
+            agg_func (str, Callable): The function to use for row aggregation
+                in the event that the target level is not the lowest one
+                possible. If a string, must name a function recognized by
+                pandas. If a Callable, should take a DataFrame as input and
+                aggregate over rows to return a Series.
+            kwargs: Optional keyword arguments passed on to the assembled
+                BIDSVariableCollection's get_design_matrix() method.
+        '''
+        if isinstance(levels, (tuple, list)):
+            coll = self.merge_levels(levels, target, agg_func)
+        else:
+            coll = self.levels[levels]
+        return coll.get_design_matrix(**kwargs)
