@@ -88,7 +88,7 @@ class BIDSLayout(Layout):
         '''
 
         if include_entities:
-            entities = self.files[path].entities
+            entities = self.files[abspath(path)].entities
             merged_param_dict = entities
         else:
             merged_param_dict = {}
