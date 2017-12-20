@@ -86,21 +86,23 @@ class BIDSLayout(Layout):
             files, the values in files closer to the input filename will take
             precedence, per the inheritance rules in the BIDS specification.
         '''
+
+        if include_entities:
+            entities = self.files[path].entities
+            merged_param_dict = entities
+        else:
+            merged_param_dict = {}
+
         potentialJSONs = self._get_nearest_helper(path, '.json', **kwargs)
 
-        if not isinstance(potentialJSONs, list):
-            return potentialJSONs
+        if potentialJSONs is None:
+            return merged_param_dict
 
-        merged_param_dict = {}
         for json_file_path in reversed(potentialJSONs):
             if os.path.exists(json_file_path):
                 param_dict = json.load(open(json_file_path, "r",
                                             encoding='utf-8'))
                 merged_param_dict.update(param_dict)
-
-        if include_entities:
-            entities = self.files[path].entities
-            merged_param_dict.update(entities)
 
         return merged_param_dict
 

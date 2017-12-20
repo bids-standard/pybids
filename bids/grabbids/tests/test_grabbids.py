@@ -55,7 +55,7 @@ def test_get_metadata3(testlayout1):
 def test_get_metadata4(testlayout2):
     target = 'sub-03/anat/sub-03_T1w.nii.gz'
     result = testlayout2.get_metadata(join(testlayout2.root, target))
-    assert result == None
+    assert result == {}
 
 
 def test_get_metadata5(testlayout1):
