@@ -47,6 +47,14 @@ def test_get_metadata3(testlayout1):
     result = testlayout1.get_metadata(join(testlayout1.root, target))
     assert result['EchoTime'] == 0.020
 
+def test_get_metadata4(testlayout1):
+    target = 'sub-01/ses-1/func/sub-01_ses-1_task-rest_acq-fullbrain_run-1_bold.nii.gz'
+    result = testlayout1.get_metadata(join(testlayout1.root, target),
+                                      include_entities=True)
+    assert result['EchoTime'] == 0.020
+    assert result['subject'] == '01'
+    assert result['acquisition'] == 'fullbrain'
+
     target = 'sub-01/ses-1/func/sub-01_ses-1_task-rest_acq-fullbrain_run-2_bold.nii.gz'
     result = testlayout1.get_metadata(join(testlayout1.root, target))
     assert result['EchoTime'] == 0.017
