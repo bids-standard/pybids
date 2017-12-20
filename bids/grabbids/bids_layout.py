@@ -74,7 +74,7 @@ class BIDSLayout(Layout):
         else:
             return None
 
-    def get_metadata(self, path, **kwargs):
+    def get_metadata(self, path, include_entities=False, **kwargs):
         ''' Returns metadata found in JSON sidecars for the specified file.
         Args:
             path (str): Path to the file to get metadata for.
@@ -86,12 +86,18 @@ class BIDSLayout(Layout):
             files, the values in files closer to the input filename will take
             precedence, per the inheritance rules in the BIDS specification.
         '''
+
+        if include_entities:
+            entities = self.files[abspath(path)].entities
+            merged_param_dict = entities
+        else:
+            merged_param_dict = {}
+
         potentialJSONs = self._get_nearest_helper(path, '.json', **kwargs)
 
-        if not isinstance(potentialJSONs, list):
-            return potentialJSONs
+        if potentialJSONs is None:
+            return merged_param_dict
 
-        merged_param_dict = {}
         for json_file_path in reversed(potentialJSONs):
             if os.path.exists(json_file_path):
                 param_dict = json.load(open(json_file_path, "r",
