@@ -11,7 +11,8 @@ import pandas as pd
 def collection():
     mod_file = abspath(grabbids.__file__)
     path = join(dirname(mod_file), 'tests', 'data', 'ds005')
-    return load_variables(path)
+    manager = load_variables(path)
+    return manager['time']
 
 
 def test_rename(collection):
