@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import nibabel as nb
 import warnings
-from collections import namedtuple, OrderedDict
+from collections import namedtuple
 import math
 from copy import copy, deepcopy
 from abc import abstractproperty, ABCMeta
@@ -168,13 +168,13 @@ def load_event_variables(layout, entities=None, columns=None,
         collection[condition] = SparseEventColumn(collection, condition,
                                                   data)
 
-    # build the index and add to manager
+    # build the index
     collection._build_dense_index()
 
     return collection
 
 
-def _load_tsv_variables(layout, unit, entities=None, columns=None):
+def _load_tsv_variables(layout, unit, entities=None, columns=None, **kwargs):
     ''' Helper for scans.tsv, sessions.tsv, and participants.tsv. '''
     bids_names = {
         'run': 'scans',
@@ -187,7 +187,8 @@ def _load_tsv_variables(layout, unit, entities=None, columns=None):
 
     type_ = bids_names[unit]
 
-    files = layout.get(extensions='.tsv', return_type='file', type=type_)
+    files = layout.get(extensions='.tsv', return_type='file', type=type_,
+                       **kwargs)
     dfs = []
 
     for f in files:
@@ -213,6 +214,7 @@ def _load_tsv_variables(layout, unit, entities=None, columns=None):
     if not dfs:
         warnings.warn("No %s.tsv files found in specified BIDSLayout."
                       "Returning an empty BIDSVariableCollection." % type_)
+        return collection
 
     data = pd.concat(dfs, axis=0)
 
@@ -250,7 +252,7 @@ def load_subject_variables(layout, entities=None, columns=None, **kwargs):
     return _load_tsv_variables(layout, 'subject', entities, columns, **kwargs)
 
 
-def load_variables(layout, levels=None, merge=False, target=None,**kwargs):
+def load_variables(layout, levels=None, merge=False, target=None, **kwargs):
     ''' A convenience wrapper for one or more load_*_variables() calls.
     Args:
         layout (BIDSLayout): BIDSLayout containing variable files.
@@ -271,6 +273,11 @@ def load_variables(layout, levels=None, merge=False, target=None,**kwargs):
             BIDSVariableCollections in values.
     '''
 
+    ALL_LEVELS = ['time', 'run', 'session', 'subject']
+
+    if levels is None:
+        levels = ALL_LEVELS
+
     _levels = listify(levels)
 
     func_map = {
@@ -280,13 +287,13 @@ def load_variables(layout, levels=None, merge=False, target=None,**kwargs):
         'subject': load_subject_variables
     }
 
-    bad_levels = set(levels) - set(func_map.keys())
+    bad_levels = set(_levels) - set(ALL_LEVELS)
     if bad_levels:
         raise ValueError("Invalid level names: %s" % bad_levels)
 
-    collections = [func_map[l](**kwargs) for l in _levels]
+    collections = [func_map[l](layout, **kwargs) for l in _levels]
 
-    if len(collections == 1):
+    if len(collections) == 1:
         return collections[0]
 
     if merge:
@@ -907,72 +914,3 @@ class BIDSEventVariableCollection(BIDSVariableCollection):
         return self._construct_design_matrix(data, groupby, aggregate,
                                              add_intercept, drop_entities,
                                              **kwargs)
-
-
-class BIDSVariableManager(object):
-
-    ''' Container for one or more BIDSVariableCollections.
-    args:
-        layout (BIDSLayout): The BIDSLayout to use.
-    '''
-
-    def __init__(self, layout):
-        self.layout = layout
-        self.levels = OrderedDict()
-
-    def __getitem__(self, level):
-        return self.levels[level]
-
-    def __setitem__(self, level, value):
-        self.levels[level] = value
-
-    def merge_levels(self, levels, target=None, agg_func='mean'):
-        ''' Merge two or more levels into a single BIDSVariableCollection.
-        Args:
-            levels (list, str): List of level names to merge. Each element
-                must be one of 'run', 'session', 'subject', or 'dataset'.
-                Alternatively, the single string 'all' can be passed, in which
-                case all available levels will be merged.
-            target (str, None): The level that defines the shape of the final
-                result. If None, the lowest level of analysis will be used
-                (e.g., if levels=['run', 'subject'], 'run' will be the target).
-                In this case, higher-level values will be repeated as many
-                times as necessary to fill the lower-level matrix. If a higher
-                level is specified, lower-level rows will be aggregated using
-                the function defined in agg_func.
-            agg_func (str, Callable): The function to use for row aggregation
-                in the event that the target level is not the lowest one
-                possible. If a string, must name a function recognized by
-                pandas. If a Callable, should take a DataFrame as input and
-                aggregate over rows to return a Series.
-        Returns:
-            A BIDSVariableCollection instance.
-        '''
-        pass
-
-    # def get_design_matrix(self, levels, target=None, agg_func='mean',
-    #                       **kwargs):
-    #     ''' Extract design matrix from variables at one or more levels.
-    #     Args:
-    #         levels (list): List of level names to merge. Each element must be
-    #             one of 'run', 'session', 'subject', or 'dataset'.
-    #         target (str, None): The level that defines the shape of the final
-    #             result. If None, the lowest level of analysis will be used
-    #             (e.g., if levels=['run', 'subject'], 'run' will be the target).
-    #             In this case, higher-level values will be repeated as many
-    #             times as necessary to fill the lower-level matrix. If a higher
-    #             level is specified, lower-level rows will be aggregated using
-    #             the function defined in agg_func.
-    #         agg_func (str, Callable): The function to use for row aggregation
-    #             in the event that the target level is not the lowest one
-    #             possible. If a string, must name a function recognized by
-    #             pandas. If a Callable, should take a DataFrame as input and
-    #             aggregate over rows to return a Series.
-    #         kwargs: Optional keyword arguments passed on to the assembled
-    #             BIDSVariableCollection's get_design_matrix() method.
-    #     '''
-    #     if isinstance(levels, (tuple, list)):
-    #         coll = self.merge_levels(levels, target, agg_func)
-    #     else:
-    #         coll = self.levels[levels]
-    #     return coll.get_design_matrix(**kwargs)

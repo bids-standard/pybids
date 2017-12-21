@@ -1,8 +1,10 @@
+from bids.grabbids import BIDSLayout
 from bids.analysis.variables import (SparseEventColumn, load_variables,
                                      BIDSEventFile)
 import pytest
 from os.path import join, dirname, abspath
 from bids import grabbids
+from grabbit import merge_layouts
 import tempfile
 import shutil
 
@@ -11,14 +13,16 @@ import shutil
 def manager():
     mod_file = abspath(grabbids.__file__)
     path = join(dirname(mod_file), 'tests', 'data', 'ds005')
-    return load_variables(path)
+    layout = BIDSLayout(path)
+    return load_variables(layout)
 
 
 def test_load_all_bids_variables():
     mod_file = abspath(grabbids.__file__)
     path = join(dirname(mod_file), 'tests', 'data', '7t_trt')
-    manager = load_variables(path, acq='fullbrain')
-
+    layout = BIDSLayout(path)
+    manager = load_variables(layout, acq='fullbrain')
+    # TODO
 
 def test_clone_collection(manager):
     collection = manager['time']
@@ -75,12 +79,19 @@ def test_read_from_files():
     for f in files:
         shutil.copy2(f, tmp_dir)
 
-    manager = load_variables([path, tmp_dir])
-    col_keys = manager['time'].columns.keys()
+    layout = BIDSLayout(path)
+    layout2 = BIDSLayout(tmp_dir)
+    layout = merge_layouts([layout, layout2])
+
+    # Time-level variables
+    collection = load_variables(layout, 'time')
+    col_keys = collection.columns.keys()
     assert set(col_keys) == {'RT', 'gain', 'respnum', 'PTval', 'loss',
                              'respcat', 'parametric gain', 'trial_type'}
-    col_keys = manager['subject'].columns.keys()
-    print(manager['subject'].columns['type'].values)
+
+    # Subject-level variables
+    collection = load_variables(layout, 'subject')
+    col_keys = collection.columns.keys()
     assert set(col_keys) == {'sex', 'age', 'type'}
     shutil.rmtree(tmp_dir)
 

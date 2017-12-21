@@ -1,5 +1,6 @@
-from bids.analysis import load_variables
+from bids.analysis.variables import load_event_variables
 from bids.analysis import transform
+from bids.grabbids import BIDSLayout
 import pytest
 from os.path import join, dirname, abspath
 from bids import grabbids
@@ -11,8 +12,8 @@ import pandas as pd
 def collection():
     mod_file = abspath(grabbids.__file__)
     path = join(dirname(mod_file), 'tests', 'data', 'ds005')
-    manager = load_variables(path)
-    return manager['time']
+    layout = BIDSLayout(path)
+    return load_event_variables(layout)
 
 
 def test_rename(collection):

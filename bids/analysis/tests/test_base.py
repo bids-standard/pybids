@@ -1,5 +1,6 @@
 from os.path import join, dirname, abspath
 from bids import grabbids
+from bids.grabbids import BIDSLayout
 
 
 def test_analysis_smoke_test():
@@ -8,7 +9,7 @@ def test_analysis_smoke_test():
     layout_path = join(dirname(mod_file), 'tests', 'data', 'ds005')
     json_file = join(layout_path, 'models', 'ds-005_type-test_model.json')
 
-    analysis = Analysis(json_file, layouts=layout_path)
+    analysis = Analysis(layout_path, json_file)
     analysis.setup(apply_transformations=True)
 
     result = analysis['firstlevel'].get_Xy(subject=['01', '02'])
