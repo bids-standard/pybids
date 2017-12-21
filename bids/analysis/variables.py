@@ -1,14 +1,13 @@
 import numpy as np
 import pandas as pd
-from bids.grabbids import BIDSLayout
 import nibabel as nb
 import warnings
 from collections import namedtuple, OrderedDict
 import math
 from copy import copy, deepcopy
 from abc import abstractproperty, ABCMeta
-from bids.utils import listify
 import re
+from bids.utils import listify
 from scipy.interpolate import interp1d
 from pandas.api.types import is_numeric_dtype
 from os.path import dirname, join
@@ -17,11 +16,11 @@ from os.path import dirname, join
 BASE_ENTITIES = ['subject', 'session', 'task', 'run']
 
 
-def load_variables(layouts, default_duration=0, entities=None, columns=None,
-                   sampling_rate=10, drop_na=True, extra_paths=None,
-                   overwrite_bids_variables=False, **selectors):
-    ''' Loads all variables found in one or more BIDSLayouts and returns them
-    as a BIDSVariableCollection.
+def load_event_variables(layout, entities=None, columns=None,
+                         default_duration=0, sampling_rate=10, drop_na=True,
+                         **selectors):
+    ''' Loads all variables found in *_events.tsv files and returns them as a
+    BIDSVariableCollection.
 
     Args:
         layouts (str, list): Path(s) to the root of the BIDS project(s). Can
@@ -38,44 +37,12 @@ def load_variables(layouts, default_duration=0, entities=None, columns=None,
         drop_na (bool): If True, removes all events where amplitude is n/a. If
             False, leaves n/a values intact. Note that in the latter case,
             transformations that requires numeric values may fail.
-        extra_paths (None, list): Optional list of additional paths to
-            files or folders containing design information to read from.
-            If None (default), will use all event files found within the
-            current BIDS project.
-        overwrite_bids_variables (bool): If `extra_paths` is passed and
-            this argument is True, existing event files within the BIDS
-            project are completely ignored.
         selectors (dict): Optional keyword arguments passed onto the
             BIDSLayout instance's get() method; can be used to constrain
             which data are loaded.
 
-    Notes:
-        If extra_paths is passed, the following two constraints must apply
-        to every detected file:
-            * ALL relevant BIDS entities MUST be encoded in each file.
-              I.e., "sub-02_task-mixedgamblestask_run-01_events.tsv" is
-              valid, but "subject_events.tsv" would not be.
-            * It is assumed that all and only the event files in the folder
-              are to be processed--i.e., there cannot be any other
-              subjects, runs, etc. whose events also need to be processed
-              but that are missing from the passed list.
+    Returns: A BIDSEventVariableCollection.
     '''
-
-    # Load Layouts and merge them
-    layouts = listify(layouts)
-    layouts = [BIDSLayout(l) if isinstance(l, str) else l for l in layouts]
-    if len(layouts) > 1:
-        for l in layouts[1:]:
-            layouts[0].files.update(l.files)
-
-            for k, v in l.entities.items():
-                if k not in layouts[0].entities:
-                    layouts[0].entities.update(v)
-                else:
-                    layouts[0].entities[k].files.update(v.files)
-
-    layout = layouts[0]
-
     # Loop over images and get all corresponding event files
     images = layout.get(return_type='file', type='bold', modality='func',
                         extensions='.nii.gz', **selectors)
@@ -121,150 +88,217 @@ def load_variables(layouts, default_duration=0, entities=None, columns=None,
     dfs = []
     start_time = 0
 
-    manager = BIDSVariableManager(layout)
-
-    ### HANDLE ALL BIDS VARIABLE FILES ###
-
     # Load events.tsv
     collection = BIDSEventVariableCollection('time', entities=entities,
                                              default_duration=default_duration,
                                              sampling_rate=sampling_rate,
                                              repetition_time=repetition_time)
 
-    if event_files:
-        for (evf, img_f, f_ents) in event_files:
-            _data = pd.read_table(evf, sep='\t')
-            _data = _data.replace('n/a', np.nan)  # Replace BIDS' n/a
-            _data = _data.apply(pd.to_numeric, errors='ignore')
+    if not event_files:
+        warnings.warn("No events.tsv files found in specified BIDSLayout."
+                      "Returning an empty BIDSEventVariableCollection.")
+        return collection
 
-            # Get duration of run: first try to get it directly from the image
-            # header; if that fails, fall back on taking the offset of the last
-            # event in the event file--but raise warning, because this is
-            # suboptimal (e.g., there could be empty volumes at the end).
-            try:
-                img = nb.load(img_f)
-                duration = img.shape[3] * img.header.get_zooms()[-1]
-            except Exception as e:
-                duration = (_data['onset'] + _data['duration']).max()
-                msg = ("Unable to extract scan duration from one or more "
-                       "images; setting duration to the offset of the last "
-                       "detected event instead--but note that this may produce"
-                       "unexpected results.")
-                warnings.warn(msg)
+    for (evf, img_f, f_ents) in event_files:
+        _data = pd.read_table(evf, sep='\t')
+        _data = _data.replace('n/a', np.nan)  # Replace BIDS' n/a
+        _data = _data.apply(pd.to_numeric, errors='ignore')
 
-            # Add default values for entities that may not be passed explicitly
-            evf_index = len(collection.event_files)
-            f_ents['event_file_id'] = evf_index
+        # Get duration of run: first try to get it directly from the image
+        # header; if that fails, fall back on taking the offset of the last
+        # event in the event file--but raise warning, because this is
+        # suboptimal (e.g., there could be empty volumes at the end).
+        try:
+            img = nb.load(img_f)
+            duration = img.shape[3] * img.header.get_zooms()[-1]
+        except Exception as e:
+            duration = (_data['onset'] + _data['duration']).max()
+            msg = ("Unable to extract scan duration from one or more "
+                   "images; setting duration to the offset of the last "
+                   "detected event instead--but note that this may produce"
+                   "unexpected results.")
+            warnings.warn(msg)
 
-            ef = BIDSEventFile(event_file=evf, image_file=img_f,
-                               start=start_time, duration=duration,
-                               entities=f_ents)
-            collection.event_files.append(ef)
-            start_time += duration
+        # Add default values for entities that may not be passed explicitly
+        evf_index = len(collection.event_files)
+        f_ents['event_file_id'] = evf_index
 
-            skip_cols = ['onset', 'duration']
+        ef = BIDSEventFile(event_file=evf, image_file=img_f,
+                           start=start_time, duration=duration,
+                           entities=f_ents)
+        collection.event_files.append(ef)
+        start_time += duration
 
-            file_df = []
+        skip_cols = ['onset', 'duration']
 
-            _columns = columns
+        file_df = []
 
-            # By default, read all columns from the event file
-            if _columns is None:
-                _columns = list(set(_data.columns.tolist()) - set(skip_cols))
+        _columns = columns
 
-            # Construct a DataFrame for each extra column
-            for col in _columns:
-                df = _data[['onset', 'duration']].copy()
-                df['condition'] = col
-                df['amplitude'] = _data[col].values
-                df['factor'] = col
-                file_df.append(df)
+        # By default, read all columns from the event file
+        if _columns is None:
+            _columns = list(set(_data.columns.tolist()) - set(skip_cols))
 
-            # Concatenate all extracted column DFs along the row axis
-            _df = pd.concat(file_df, axis=0)
+        # Construct a DataFrame for each extra column
+        for col in _columns:
+            df = _data[['onset', 'duration']].copy()
+            df['condition'] = col
+            df['amplitude'] = _data[col].values
+            df['factor'] = col
+            file_df.append(df)
 
-            # Add in all of the event file's entities as new columns; these
-            # are used for indexing later on
-            for entity, value in f_ents.items():
-                _df[entity] = value
+        # Concatenate all extracted column DFs along the row axis
+        _df = pd.concat(file_df, axis=0)
 
-            dfs.append(_df)
+        # Add in all of the event file's entities as new columns; these
+        # are used for indexing later on
+        for entity, value in f_ents.items():
+            _df[entity] = value
 
-        _df = pd.concat(dfs, axis=0)
+        dfs.append(_df)
 
-        if drop_na:
-            _df = _df.dropna(subset=['amplitude'])
+    _df = pd.concat(dfs, axis=0)
 
-        for name, grp in _df.groupby(['factor', 'condition']):
-            data = grp.apply(pd.to_numeric, errors='ignore')
-            _, condition = name[0], name[1]
-            collection[condition] = SparseEventColumn(collection, condition,
-                                                      data)
+    if drop_na:
+        _df = _df.dropna(subset=['amplitude'])
 
-        # build the index and add to manager
-        collection._build_dense_index()
-        manager['time'] = collection
+    for name, grp in _df.groupby(['factor', 'condition']):
+        data = grp.apply(pd.to_numeric, errors='ignore')
+        _, condition = name[0], name[1]
+        collection[condition] = SparseEventColumn(collection, condition,
+                                                  data)
 
-    # scans.tsv, sessions.tsv and participants.tsv have the same format and
-    # differ only in level assignment and minor details.
-    variable_files = [
-        ('scans', 'run'),
-        ('sessions', 'session'),
-        ('participants', 'subject')
-    ]
+    # build the index and add to manager
+    collection._build_dense_index()
 
-    for type_, unit in variable_files:
+    return collection
 
-        files = layout.get(extensions='.tsv', return_type='file', type=type_)
-        dfs = []
 
-        for f in files:
-            f = layout.files[f]
-            _data = pd.read_table(f.path, sep='\t')
-            # Add entity columns from file
-            for ent_name, ent_val in f.entities.items():
-                _data[ent_name] = ent_val
-            # Special handling for scans.tsv, which has a filename in 1st col
-            if type_ == 'scans':
-                image = _data.iloc[:, 0]
-                _data = _data.drop(_data.columns[0], axis=1)
-                dn = dirname(f.filename)
-                paths = [join(dn, p) for p in image.values]
-                ent_recs = [layout.files[p].entities for p in paths
-                            if p in layout.files]
-                ent_cols = pd.DataFrame.from_records(ent_recs)
-                _data = pd.concat([_data, ent_cols], axis=1)
-            dfs.append(_data)
+def _load_tsv_variables(layout, unit, entities=None, columns=None):
+    ''' Helper for scans.tsv, sessions.tsv, and participants.tsv. '''
+    bids_names = {
+        'run': 'scans',
+        'session': 'sessions',
+        'subject': 'participants'
+    }
 
-        if not dfs:
-            continue
+    if unit not in bids_names.keys():
+        raise ValueError("unit must be one of 'run', 'session', or 'subject'.")
 
-        collection = BIDSVariableCollection(unit, entities)
+    type_ = bids_names[unit]
 
-        data = pd.concat(dfs, axis=0)
+    files = layout.get(extensions='.tsv', return_type='file', type=type_)
+    dfs = []
 
-        col_start = 0 if type_ == 'scans' else 1
-        for i, col_name in enumerate(data.columns[col_start:]):
+    for f in files:
+        f = layout.files[f]
+        _data = pd.read_table(f.path, sep='\t')
+        # Add entity columns from file
+        for ent_name, ent_val in f.entities.items():
+            _data[ent_name] = ent_val
+        # Special handling for scans.tsv, which has a filename in 1st col
+        if type_ == 'scans':
+            image = _data.iloc[:, 0]
+            _data = _data.drop(_data.columns[0], axis=1)
+            dn = dirname(f.filename)
+            paths = [join(dn, p) for p in image.values]
+            ent_recs = [layout.files[p].entities for p in paths
+                        if p in layout.files]
+            ent_cols = pd.DataFrame.from_records(ent_recs)
+            _data = pd.concat([_data, ent_cols], axis=1)
+        dfs.append(_data)
 
-            # Rename colummns: values must be in 'amplitude', and users
-            # sometimes give the ID column the wrong name.
-            old_lev_name = data.columns[i]
-            _data = data.loc[:, [old_lev_name, col_name]]
-            _data.columns = [unit, 'amplitude']
-            col = SimpleColumn(collection, col_name, _data, unit)
-            # TODO: Figure out some configurable way to handle name conflicts
-            # between files. This can be quite common if, e.g., users are using
-            # sessions.tsv to report the average value for rows in scans.tsv.
-            # if col_name in collection.columns:
-            #     raise ValueError("Name conflict: column '%s' in %s.tsv "
-            #                      "already exists--probably because it's "
-            #                      "defined in an events.tsv file. Please use "
-            #                      "unique names." % (col_name, type_))
-            collection[col_name] = col
+    collection = BIDSVariableCollection(unit, entities)
 
-        manager[unit] = collection
+    if not dfs:
+        warnings.warn("No %s.tsv files found in specified BIDSLayout."
+                      "Returning an empty BIDSVariableCollection." % type_)
 
-    return manager
+    data = pd.concat(dfs, axis=0)
+
+    col_start = 0 if type_ == 'scans' else 1
+    for i, col_name in enumerate(data.columns[col_start:]):
+
+        # Rename colummns: values must be in 'amplitude', and users
+        # sometimes give the ID column the wrong name.
+        old_lev_name = data.columns[i]
+        _data = data.loc[:, [old_lev_name, col_name]]
+        _data.columns = [unit, 'amplitude']
+        col = SimpleColumn(collection, col_name, _data, unit)
+        # TODO: Figure out some configurable way to handle name conflicts
+        # between files. This can be quite common if, e.g., users are using
+        # sessions.tsv to report the average value for rows in scans.tsv.
+        # if col_name in collection.columns:
+        #     raise ValueError("Name conflict: column '%s' in %s.tsv "
+        #                      "already exists--probably because it's "
+        #                      "defined in an events.tsv file. Please use "
+        #                      "unique names." % (col_name, type_))
+        collection[col_name] = col
+
+    return collection
+
+
+def load_run_variables(layout, entities=None, columns=None, **kwargs):
+    return _load_tsv_variables(layout, 'run', entities, columns, **kwargs)
+
+
+def load_session_variables(layout, entities=None, columns=None, **kwargs):
+    return _load_tsv_variables(layout, 'session', entities, columns, **kwargs)
+
+
+def load_subject_variables(layout, entities=None, columns=None, **kwargs):
+    return _load_tsv_variables(layout, 'subject', entities, columns, **kwargs)
+
+
+def load_variables(layout, levels=None, merge=False, target=None,**kwargs):
+    ''' A convenience wrapper for one or more load_*_variables() calls.
+    Args:
+        layout (BIDSLayout): BIDSLayout containing variable files.
+        levels (str, list): Level or list of levels to load variables for.
+            Valid values are 'time', 'run', 'session', and 'subject'.
+        merge (bool): If True, the requested levels are merged into a single
+            BIDSVariableCollection before returning. Ignored if only one
+            level is requested.
+        target (str): If merge=True, target indicates the level that defines
+            the granularity of the result. See merge_collections for further
+            explanation.
+        kwargs: Optional keyword arguments to pass onto the individual
+            load_*_variables() calls.
+    Returns:
+        If only a single level is passed, or merge is True, a single
+            BIDSVariableCollection. If a list of levels is passed and merge is
+            False, a dict is returned, with level names in keys and
+            BIDSVariableCollections in values.
+    '''
+
+    _levels = listify(levels)
+
+    func_map = {
+        'time': load_event_variables,
+        'run': load_run_variables,
+        'session': load_session_variables,
+        'subject': load_subject_variables
+    }
+
+    bad_levels = set(levels) - set(func_map.keys())
+    if bad_levels:
+        raise ValueError("Invalid level names: %s" % bad_levels)
+
+    collections = [func_map[l](**kwargs) for l in _levels]
+
+    if len(collections == 1):
+        return collections[0]
+
+    if merge:
+        return merge_collections(collections, target=target)
+
+    return dict(zip(_levels, collections))
+
+
+def merge_collections(collections, target=None, agg_func='mean',
+                      missing='fail'):
+    # For missing: 'fail' or 'drop'
+    pass
 
 
 class BIDSColumn(object):
@@ -895,8 +929,10 @@ class BIDSVariableManager(object):
     def merge_levels(self, levels, target=None, agg_func='mean'):
         ''' Merge two or more levels into a single BIDSVariableCollection.
         Args:
-            levels (list): List of level names to merge. Each element must be
-                one of 'run', 'session', 'subject', or 'dataset'.
+            levels (list, str): List of level names to merge. Each element
+                must be one of 'run', 'session', 'subject', or 'dataset'.
+                Alternatively, the single string 'all' can be passed, in which
+                case all available levels will be merged.
             target (str, None): The level that defines the shape of the final
                 result. If None, the lowest level of analysis will be used
                 (e.g., if levels=['run', 'subject'], 'run' will be the target).
@@ -914,29 +950,29 @@ class BIDSVariableManager(object):
         '''
         pass
 
-    def get_design_matrix(self, levels, target=None, agg_func='mean',
-                          **kwargs):
-        ''' Extract design matrix from variables at one or more levels.
-        Args:
-            levels (list): List of level names to merge. Each element must be
-                one of 'run', 'session', 'subject', or 'dataset'.
-            target (str, None): The level that defines the shape of the final
-                result. If None, the lowest level of analysis will be used
-                (e.g., if levels=['run', 'subject'], 'run' will be the target).
-                In this case, higher-level values will be repeated as many
-                times as necessary to fill the lower-level matrix. If a higher
-                level is specified, lower-level rows will be aggregated using
-                the function defined in agg_func.
-            agg_func (str, Callable): The function to use for row aggregation
-                in the event that the target level is not the lowest one
-                possible. If a string, must name a function recognized by
-                pandas. If a Callable, should take a DataFrame as input and
-                aggregate over rows to return a Series.
-            kwargs: Optional keyword arguments passed on to the assembled
-                BIDSVariableCollection's get_design_matrix() method.
-        '''
-        if isinstance(levels, (tuple, list)):
-            coll = self.merge_levels(levels, target, agg_func)
-        else:
-            coll = self.levels[levels]
-        return coll.get_design_matrix(**kwargs)
+    # def get_design_matrix(self, levels, target=None, agg_func='mean',
+    #                       **kwargs):
+    #     ''' Extract design matrix from variables at one or more levels.
+    #     Args:
+    #         levels (list): List of level names to merge. Each element must be
+    #             one of 'run', 'session', 'subject', or 'dataset'.
+    #         target (str, None): The level that defines the shape of the final
+    #             result. If None, the lowest level of analysis will be used
+    #             (e.g., if levels=['run', 'subject'], 'run' will be the target).
+    #             In this case, higher-level values will be repeated as many
+    #             times as necessary to fill the lower-level matrix. If a higher
+    #             level is specified, lower-level rows will be aggregated using
+    #             the function defined in agg_func.
+    #         agg_func (str, Callable): The function to use for row aggregation
+    #             in the event that the target level is not the lowest one
+    #             possible. If a string, must name a function recognized by
+    #             pandas. If a Callable, should take a DataFrame as input and
+    #             aggregate over rows to return a Series.
+    #         kwargs: Optional keyword arguments passed on to the assembled
+    #             BIDSVariableCollection's get_design_matrix() method.
+    #     '''
+    #     if isinstance(levels, (tuple, list)):
+    #         coll = self.merge_levels(levels, target, agg_func)
+    #     else:
+    #         coll = self.levels[levels]
+    #     return coll.get_design_matrix(**kwargs)

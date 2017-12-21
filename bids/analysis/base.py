@@ -1,5 +1,7 @@
 import json
-from .variables import load_variables, SimpleColumn, BIDSVariableCollection
+from bids.grabbids import BIDSLayout
+from .variables import (load_variables, merge_collections, SimpleColumn,
+                        BIDSVariableCollection)
 from . import transform
 from collections import namedtuple
 from six import string_types
@@ -14,24 +16,18 @@ class Analysis(object):
 
     ''' Represents an entire BIDS-Model analysis.
     Args:
-        layouts (BIDSLayout or list): One or more BIDSLayout objects to pull
-            variables from.
+        layout (BIDSLayout, str): A BIDSLayout instance or path to pass on
+            to the BIDSLayout initializer.
         model (str or dict): a BIDS model specification. Can either be a
             string giving the path of the JSON model spec, or an already-loaded
             dict containing the model info.
-        manager (BIDSVariableManager): Optional BIDSVariableManager
-            object used to load/manage variables. If None, a new manager is
-            initialized from the provided layouts.
-        selectors (dict): Optional keyword arguments to pass onto the
-            manager; these will be passed on to the Layout's .get() method,
-            and can be used to restrict variables.
     '''
 
-    def __init__(self, model, manager=None, layouts=None, **selectors):
+    def __init__(self, layout, model, **selectors):
 
-        if layouts is None and manager is None:
-            raise ValueError("At least one of the 'layout' and 'collection' "
-                             "arguments must be passed.")
+        if not isinstance(layout, BIDSLayout):
+            layout = BIDSLayout(layout)
+        self.layout = layout
 
         if isinstance(model, str):
             model = json.load(open(model))
@@ -40,16 +36,7 @@ class Analysis(object):
         if 'input' in model:
             selectors.update(model['input'])
 
-        if manager is None:
-            manager = load_variables(layouts, **selectors)
-
-        self.manager = manager
-
         self._load_blocks(model['blocks'])
-
-    @property
-    def layout(self):
-        return self.manager.layout  # for convenience
 
     def __iter__(self):
         for b in self.blocks:
@@ -65,17 +52,57 @@ class Analysis(object):
         for i, b in enumerate(blocks):
             self.blocks.append(Block(self, index=i, **b))
 
-    def setup(self, apply_transformations=True):
-        ''' Set up the sequence of blocks--applying transformations,
-        generating outputs, etc. '''
+    def setup(self, blocks=None, apply_transformations=True, agg_func='mean'):
+        ''' Set up the sequence of blocks for analysis.
+        Args:
+            blocks (list): Optional list of blocks to set up. Each element
+                must be either an int giving the index of the block in the
+                JSON config block list, or a str giving the (unique) name of
+                the block, as specified in the JSON config. Blocks that do not
+                match either index or name will be skipped.
+            apply_transformations (bool): If True, any transformations detected
+                in each block are applied. If False, transformations are
+                skipped.
+            agg_func (str or Callable): The aggregation function to use when
+                combining rows from the previous level of analysis. E.g.,
+                when analyzing a 'subject'-level block, inputs coming from the
+                'session' level are typically averaged to produce individual
+                subject-level estimates. Must be either a string giving the
+                name of a function recognized by apply() in pandas, or a
+                Callable that takes a DataFrame as input and returns a Series
+                or a DataFrame.
+        '''
 
-        # pass a copy of the first level's collection through the pipeline
-        # (clone because columns mutate)
-        _collection = list(self.manager.levels.values())[0].clone()
+        # In the beginning, there was nothing
+        input_coll = None
 
-        for b in self.blocks:
-            b.setup(_collection, apply_transformations=apply_transformations)
-            _collection = b.output_collection.clone()
+        # Remap level names, because the BIDS-Model spec treats the level as
+        # the looping variable, whereas we need to treat it as the unit/row
+        # identifier for internal variable-reading purposes.
+        levels = ['time', 'run', 'session', 'subject', 'dataset']
+
+        for i, b in enumerate(self.blocks):
+
+            # Skip any blocks whose names or indexes don't match block list
+            if blocks is not None and i not in blocks and b.name not in blocks:
+                continue
+
+            lev_ind = levels.index(b.level)
+            unit = levels[lev_ind - 1]
+
+            # Get all variables for current level
+            current_coll = load_variables(self.layout, unit)
+
+            # Merge input collection and current collection
+            if input_coll is not None:
+                collection = merge_collections([input_coll, current_coll],
+                                               target=unit, agg_func=agg_func)
+            else:
+                collection = current_coll
+
+            b.setup(collection, apply_transformations=apply_transformations)
+            # Clone output collection because it may be mutated in next block
+            input_coll = b.output_collection.clone()
 
 
 class Block(object):
@@ -171,6 +198,14 @@ class Block(object):
             transform.select(self.input_collection, self.model['variables'])
 
     def generate_output_collection(self, keep_input_columns=True):
+        ''' Generate the output collection by applying contrasts.
+        Args:
+            keep_input_columns (bool): If True, default contrasts for all
+                columns available in the input collection are automatically
+                added. These have the same name as the input variable and
+                receive a weight of 1 for the input column and 0 for all other
+                columns.
+        '''
 
         data = self._get_design_matrix()
 
@@ -283,13 +318,12 @@ class Block(object):
         by get_Xy(). See get_Xy() for arguments and return format. '''
         return (t for t in self.get_Xy(**selectors))
 
-    def setup(self, collection, apply_transformations=True,
+    def setup(self, input_collection, apply_transformations=True,
               generate_output_collection=True):
         ''' Set up the Block and construct the design matrix.
         Args:
-            collection (BIDSVariableCollection): The variable collection to
-                use. Note that the setup process will often mutate the
-                collection instance.
+            input_collection (BIDSVariableCollection): The input variable
+                collection.
             last_level (str): The level of the previous Block in the analysis,
                 if any.
             apply_transformations (bool): If True (default), apply any
@@ -298,7 +332,8 @@ class Block(object):
             generate_output_collection (bool): If True (default), generate the
                 output collection to pass to the next block as its input.
         '''
-        self.input_collection = collection
+
+        self.input_collection = input_collection
         self.output_collection = None
 
         if self.transformations and apply_transformations:
@@ -306,7 +341,7 @@ class Block(object):
 
         gb = self._get_groupby_cols()
 
-        dm = collection.get_design_matrix(groupby=gb)
+        dm = input_collection.get_design_matrix(groupby=gb)
         self._design_matrix = dm.copy()
 
         if self.generate_output_collection:
