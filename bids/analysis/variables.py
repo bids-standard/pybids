@@ -354,7 +354,18 @@ class SimpleColumn(BIDSColumn):
     ''' Represents a simple design matrix column that has no timing
     information.
     Args:
-
+        collection (BIDSVariableCollection): The collection the current column
+            is bound to and derived from.
+        name (str): Name of the column.
+        data (DataFrame): A pandas DataFrame minimally containing the columns
+            'onset', 'duration', and 'amplitude'.
+        factor_name (str): If this column is derived from a categorical factor
+            (e.g., level 'A' in a 'trial_type' column), the name of the
+            originating factor.
+        level_index (int): The positional index of the current level in the
+            originating categorical factor. Ignored if factor_name is None.
+        level_name (str): The name of the current level in the originating
+            categorical factor, if applicable.
     '''
 
     # Columns that define special properties (e.g., onset, duration). These
@@ -455,7 +466,8 @@ class SparseEventColumn(SimpleColumn):
     _property_columns = {'onset', 'duration'}
 
     def to_dense(self):
-        ''' Convert the current sparse column to a dense representation. '''
+        ''' Convert the current sparse column to a dense representation.
+        Returns: A DenseEventColumn. '''
         sampling_rate = self.collection.sampling_rate
         duration = len(self.collection.dense_index)
         ts = np.zeros(duration)
@@ -505,6 +517,17 @@ BIDSEventFile = namedtuple('BIDSEventFile', ('image_file', 'event_file',
 
 
 class BIDSVariableCollection(object):
+
+    ''' A container for one or more variables extracted from variable files
+    at a single level of analysis defined in the BIDS spec (i.e., 'run',
+    'session', 'subject', or 'dataset').
+    Args:
+        unit (str): The unit of analysis. Each row in the stored column(s)
+            is taken to reflect a single unit. Must be one of 'time', 'run',
+            'session', 'subject', or 'dataset'.
+        entities (list): A list of entities defined for all variables in this
+            collection.
+    '''
 
     def __init__(self, unit, entities):
 
@@ -600,8 +623,34 @@ class BIDSVariableCollection(object):
 
         return data.drop(drop_cols, axis=1)
 
-    def get_design_matrix(self, groupby=None, columns=None, aggregate=None,
+    def get_design_matrix(self, columns=None, groupby=None, aggregate=None,
                           add_intercept=False, drop_entities=False, **kwargs):
+        ''' Returns a design matrix constructed by combining the current
+        BIDSVariableCollection's columns.
+        Args:
+            columns (list): Optional list naming columns to include in the
+                design matrix. If None (default), all columns are included.
+            groupby (str, list): Optional name (or list of names) of design
+                variables to group by.
+            aggregate (str, Callable): Optional aggregation function to apply
+                to groups if groupby is not None (ignored otherwise). Must be
+                either a named function recognized by pandas, or a Callable
+                that takes a DataFrame and returns a Series or DataFrame.
+            add_intercept (bool): If True, adds an intercept column (i.e.,
+                constant column of 1's) to the returned design matrix.
+            drop_entities (bool): If True, entities are stripped from the
+                returned design matrix. When False, entities like 'subject' and
+                'run' are included as columns in the matrix, leaving it up to
+                the user to remove them if appropriate.
+            kwargs: Optional query constraints understood by
+                pd.DataFrame.query(). Must be compatible with the 'in' syntax;
+                e.g., passing subject=['01', '02', '03'] would return only
+                rows that match the first 3 subjects.
+
+        Returns: A pandas DataFrame, where units of analysis (seconds, runs,
+            etc.) are in rows, and variables/columns are in columns.
+
+        '''
 
         if columns is None:
             columns = list(self.columns.keys())
@@ -618,6 +667,22 @@ class BIDSVariableCollection(object):
 
 class BIDSEventVariableCollection(BIDSVariableCollection):
 
+    ''' A container for one or more EventColumns--i.e., Columns that have a
+    temporal dimension.
+
+    Args:
+        unit (str): The unit of analysis. Each row in the stored column(s)
+            is taken to reflect a single unit. Must be one of 'time', 'run',
+            'session', 'subject', or 'dataset'.
+        entities (list): A list of entities defined for all variables in this
+            collection.
+        default_duration (float): The default duration (in seconds) to use for
+            events that do not have an explicitly specified duration.
+        sampling_rate (float): Sampling rate (in Hz) to use when working with
+            dense representations of variables.
+        repetition_time (float): TR of corresponding image(s) in seconds.
+    '''
+
     def __init__(self, unit, entities, default_duration=None,
                  sampling_rate=None, repetition_time=None):
 
@@ -628,7 +693,7 @@ class BIDSEventVariableCollection(BIDSVariableCollection):
         self.dense_index = None
         super(BIDSEventVariableCollection, self).__init__(unit, entities)
 
-    def get_sampling_rate(self, sr):
+    def _get_sampling_rate(self, sr):
         return self.repetition_time if sr == 'tr' else sr
 
     def _build_dense_index(self):
@@ -685,7 +750,7 @@ class BIDSEventVariableCollection(BIDSVariableCollection):
         # some refactoring.
 
         # Store old sampling rate-based variables
-        sampling_rate = self.get_sampling_rate(sampling_rate)
+        sampling_rate = self._get_sampling_rate(sampling_rate)
 
         old_sr = self.sampling_rate
         n = len(self.dense_index)
@@ -733,9 +798,10 @@ class BIDSEventVariableCollection(BIDSVariableCollection):
         '''
 
         if sparse and self._none_dense:
-            return super(BIDSEventVariableCollection, self).merge_columns(columns)
+            return super(BIDSEventVariableCollection,
+                         self).merge_columns(columns)
 
-        sampling_rate = self.get_sampling_rate(sampling_rate)
+        sampling_rate = self._get_sampling_rate(sampling_rate)
 
         if self._all_dense():
             _cols = self.columns.values()
@@ -761,11 +827,40 @@ class BIDSEventVariableCollection(BIDSVariableCollection):
 
         return data
 
-    def get_design_matrix(self, groupby=None, results=None, columns=None,
-                          aggregate=None, add_intercept=False,
-                          sampling_rate='tr', drop_entities=False,
-                          drop_timing=False, **kwargs):
+    def get_design_matrix(self, columns=None, groupby=None, aggregate=None,
+                          add_intercept=False, drop_entities=False,
+                          drop_timing=False, sampling_rate='tr', **kwargs):
+        ''' Returns a design matrix constructed by combining the current
+        BIDSVariableCollection's columns.
+        Args:
+            columns (list): Optional list naming columns to include in the
+                design matrix. If None (default), all columns are included.
+            groupby (str, list): Optional name (or list of names) of design
+                variables to group by.
+            aggregate (str, Callable): Optional aggregation function to apply
+                to groups if groupby is not None (ignored otherwise). Must be
+                either a named function recognized by pandas, or a Callable
+                that takes a DataFrame and returns a Series or DataFrame.
+            add_intercept (bool): If True, adds an intercept column (i.e.,
+                constant column of 1's) to the returned design matrix.
+            drop_entities (bool): If True, entities are stripped from the
+                returned design matrix. When False, entities like 'subject' and
+                'run' are included as columns in the matrix, leaving it up to
+                the user to remove them if appropriate.
+            sampling_rate (float, str): The sampling rate to use for the
+                returned design matrix. Value must be either a float
+                expressed in seconds, or the special value 'tr', which
+                uses the associated scan's repetition time as the sampling
+                rate.
+            kwargs: Optional query constraints understood by
+                pd.DataFrame.query(). Must be compatible with the 'in' syntax;
+                e.g., passing subject=['01', '02', '03'] would return only
+                rows that match the first 3 subjects.
 
+        Returns: A pandas DataFrame, where units of analysis (seconds, runs,
+            etc.) are in rows, and variables/columns are in columns.
+
+        '''
         if columns is None:
             columns = list(self.columns.keys())
 
@@ -781,6 +876,11 @@ class BIDSEventVariableCollection(BIDSVariableCollection):
 
 
 class BIDSVariableManager(object):
+
+    ''' Container for one or more BIDSVariableCollections.
+    args:
+        layout (BIDSLayout): The BIDSLayout to use.
+    '''
 
     def __init__(self, layout):
         self.layout = layout
