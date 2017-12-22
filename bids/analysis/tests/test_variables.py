@@ -114,7 +114,7 @@ def test_read_from_files():
     # Subject-level variables
     collection = load_variables(layout, 'subject')
     col_keys = collection.columns.keys()
-    assert set(col_keys) == {'sex', 'age', 'type'}
+    assert set(col_keys) == {'sex', 'age'}
     shutil.rmtree(tmp_dir)
 
 
