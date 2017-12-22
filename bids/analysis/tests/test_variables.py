@@ -24,6 +24,18 @@ def test_load_all_bids_variables():
     manager = load_variables(layout, acq='fullbrain')
     # TODO
 
+
+def test_aggregate_column(manager):
+    col = manager['time']['RT']
+    agg_col = col.aggregate('subject')
+    assert agg_col.values.shape[0] == 16
+    assert agg_col.entities.shape[0] == 16
+    assert set(agg_col.entities.columns) == {'subject'}
+    agg_col2 = col.aggregate('subject', func='max')
+    assert (agg_col2.values >= agg_col.values).all() and \
+        agg_col2.values.mean() > agg_col.values.mean()
+
+
 def test_clone_collection(manager):
     collection = manager['time']
     clone = collection.clone()

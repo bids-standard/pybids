@@ -3,7 +3,7 @@
   "description": "simple test model",
   "blocks": [
     {
-      "name": "firstlevel",
+      "name": "run",
       "level": "run",
       "transformations": [
         {
@@ -13,8 +13,16 @@
       ]
     },
     {
-      "name": "secondlevel",
+      "name": "session",
+      "level": "session"
+    },
+    {
+      "name": "participant",
       "level": "subject"
+    },
+    {
+      "name": "group",
+      "level": "dataset"
     }
   ]
 }

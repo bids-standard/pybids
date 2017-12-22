@@ -1,7 +1,7 @@
 import json
 from bids.grabbids import BIDSLayout
-from .variables import (load_variables, merge_collections, SimpleColumn,
-                        BIDSVariableCollection)
+from .variables import (load_variables, SimpleColumn, BIDSVariableCollection,
+                        merge_collections)
 from . import transform
 from collections import namedtuple
 from six import string_types
@@ -45,7 +45,10 @@ class Analysis(object):
     def __getitem__(self, index):
         if isinstance(index, int):
             return self.blocks[index]
-        return list(filter(lambda x: x.name == index, self.blocks))[0]
+        name_matches = list(filter(lambda x: x.name == index, self.blocks))
+        if not name_matches:
+            raise KeyError('There is no block with the name "%s".' % index)
+        return name_matches[0]
 
     def _load_blocks(self, blocks):
         self.blocks = []
@@ -91,14 +94,23 @@ class Analysis(object):
             unit = levels[lev_ind - 1]
 
             # Get all variables for current level
-            current_coll = load_variables(self.layout, unit)
+            curr_coll = load_variables(self.layout, unit)
 
             # Merge input collection and current collection
             if input_coll is not None:
-                collection = merge_collections([input_coll, current_coll],
-                                               target=unit, agg_func=agg_func)
+                if input_coll.unit != unit:
+                    input_coll.aggregate(unit)
+
+                if curr_coll is not None:
+                    collection = merge_collections([input_coll, curr_coll])
+                else:
+                    collection = input_coll
+
+            elif curr_coll is not None:
+                collection = curr_coll
+
             else:
-                collection = current_coll
+                raise ValueError("No variables provided as input!")
 
             b.setup(collection, apply_transformations=apply_transformations)
             # Clone output collection because it may be mutated in next block
@@ -294,7 +306,7 @@ class Block(object):
 
         # If there are no entities to group on, return the whole dataset
         if not ent_cols:
-            return [(data, None, {})]
+            return [DesignMatrix(data, None, {})]
 
         # Otherwise loop over groups and construct a tuple for each one
         for name, g in data.groupby(ent_cols):
@@ -309,6 +321,7 @@ class Block(object):
                 img = None
             group_data = self._drop_columns(g.copy(),
                                             drop_entities=drop_entities)
+            group_data = group_data.reset_index(drop=True)
             record = DesignMatrix(group_data, img, ents)
             tuples.append(record)
         return tuples

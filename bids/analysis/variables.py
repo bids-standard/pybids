@@ -5,7 +5,7 @@ import warnings
 from collections import namedtuple
 import math
 from copy import copy, deepcopy
-from abc import abstractproperty, ABCMeta
+from abc import abstractproperty, abstractmethod, ABCMeta
 import re
 from bids.utils import listify
 from scipy.interpolate import interp1d
@@ -97,7 +97,7 @@ def load_event_variables(layout, entities=None, columns=None,
     if not event_files:
         warnings.warn("No events.tsv files found in specified BIDSLayout."
                       "Returning an empty BIDSEventVariableCollection.")
-        return collection
+        return None
 
     for (evf, img_f, f_ents) in event_files:
         _data = pd.read_table(evf, sep='\t')
@@ -214,7 +214,7 @@ def _load_tsv_variables(layout, unit, entities=None, columns=None, **kwargs):
     if not dfs:
         warnings.warn("No %s.tsv files found in specified BIDSLayout."
                       "Returning an empty BIDSVariableCollection." % type_)
-        return collection
+        return None
 
     data = pd.concat(dfs, axis=0)
 
@@ -296,16 +296,34 @@ def load_variables(layout, levels=None, merge=False, target=None, **kwargs):
     if len(collections) == 1:
         return collections[0]
 
-    if merge:
-        return merge_collections(collections, target=target)
+    # if merge:
+    #     return merge_collections(collections, target=target)
 
     return dict(zip(_levels, collections))
 
 
-def merge_collections(collections, target=None, agg_func='mean',
-                      missing='fail'):
-    # For missing: 'fail' or 'drop'
-    pass
+def merge_collections(collections):
+    # For the moment, assume collections are always at same level
+    collections[0].columns.update(collections[1].columns)
+    return collections[0]
+
+# def merge_collections(collections, target=None, agg_func='mean',
+#                       categorical_agg_func=None, missing='fail',
+#                       constant_event_values=True):
+
+    # # Make sure the list is sorted by level
+    # levels = ['time', 'run', 'session', 'subject', 'dataset']
+    # collections = sorted(collections, key=lambda x: levels.index(x.level))
+
+    # if target is None:
+    #     target = collections[0].level
+
+    # ranks = [levels.index(c.level) for c in collections]
+
+    # # Start from the first collection and repeatedly merge with neighbor
+    # # If no aggregation function is provided for categoricals, we fail if any
+    # # categorical variable has more than one unique value.
+
 
 
 class BIDSColumn(object):
@@ -346,6 +364,10 @@ class BIDSColumn(object):
         # Need to update name on Series as well
         result.values.name = kwargs.get('name', self.name)
         return result
+
+    @abstractmethod
+    def aggregate(self, unit, level, func):
+        pass
 
     def __deepcopy__(self, memo):
 
@@ -398,8 +420,8 @@ class SimpleColumn(BIDSColumn):
         collection (BIDSVariableCollection): The collection the current column
             is bound to and derived from.
         name (str): Name of the column.
-        data (DataFrame): A pandas DataFrame minimally containing the columns
-            'onset', 'duration', and 'amplitude'.
+        data (DataFrame): A pandas DataFrame minimally containing a column
+            named 'amplitude' as well as any identifying entities.
         factor_name (str): If this column is derived from a categorical factor
             (e.g., level 'A' in a 'trial_type' column), the name of the
             originating factor.
@@ -433,6 +455,19 @@ class SimpleColumn(BIDSColumn):
         values.name = name
 
         super(SimpleColumn, self).__init__(collection, name, values)
+
+    def aggregate(self, unit, dropna=False, func='mean'):
+
+        levels = ['run', 'session', 'subject']
+        groupby = set(levels[levels.index(unit):]) & set(self.entities.columns)
+        groupby = list(groupby)
+
+        entities = self.entities.loc[:, groupby].reset_index(drop=True)
+        values = pd.DataFrame({'amplitude': self.values.values})
+        data = pd.concat([values, entities], axis=1)
+        data = data.groupby(groupby, as_index=False).agg(func)
+        return SimpleColumn(self.collection, self.name, data, self.factor_name,
+                            self.level_index, self.level_name)
 
     def to_df(self, condition=True, entities=True):
         ''' Convert to a DataFrame, with columns for onset/duration/amplitude
@@ -577,6 +612,7 @@ class BIDSVariableCollection(object):
         self.columns = {}
         self.dense_index = None
 
+
     def merge_columns(self, columns=None):
         ''' Merge columns into one DF.
         Args:
@@ -601,6 +637,39 @@ class BIDSVariableCollection(object):
         clone = copy(self)
         clone.columns = {k: v.clone() for (k, v) in self.columns.items()}
         return clone
+
+    def aggregate(self, unit, agg_func='mean', categorical_agg_func=None):
+        ''' Aggregate variable values from a lower level at a higher level.
+        Args:
+            unit (str): The unit of aggregation. The returned collection will
+                have one row per value of this unit.
+            agg_func (str, Callable): Aggregation function to use. Must be
+                either a named function recognized by apply() in pandas, or a
+                Callable that takes a DataFrame and returns a Series or
+                DataFrame.
+            categorical_agg_func (str, Callable): Aggregation function to use
+                for categorical variables. Must be a function that returns
+                valid output given categorical inputs. If None, aggregation
+                will only proceed if all categorical columns have exactly one
+                unique value.
+        '''
+
+        for col in self.columns.values():
+            if is_numeric_dtype(col.values):
+                _func = agg_func
+            else:
+                if categorical_agg_func is not None:
+                    _func = categorical_agg_func
+                elif col.values.nunique() > 1:
+                    msg = ("Column %s is categorical and has more than one "
+                           "unique value. You must explicitly specify an "
+                           "aggregation function in the categorical_agg_func "
+                           "argument.")
+                    raise ValueError(msg)
+                else:
+                    _func = 'first'
+
+            self[col.name] = col.aggregate(unit, _func)
 
     def __getitem__(self, col):
         return self.columns[col]
@@ -661,8 +730,8 @@ class BIDSVariableCollection(object):
             drop_cols += self.entities
 
         drop_cols = list(set(drop_cols) & set(data.columns))
-
-        return data.drop(drop_cols, axis=1)
+        data = data.drop(drop_cols, axis=1).reset_index(drop=True)
+        return data
 
     def get_design_matrix(self, columns=None, groupby=None, aggregate=None,
                           add_intercept=False, drop_entities=False, **kwargs):
