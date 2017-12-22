@@ -4,7 +4,7 @@ from bids.analysis.variables import (SparseEventColumn, load_variables,
 import pytest
 from os.path import join, dirname, abspath
 from bids import grabbids
-from grabbit import merge_layouts
+# from grabbit import merge_layouts
 import tempfile
 import shutil
 
@@ -92,8 +92,8 @@ def test_read_from_files():
         shutil.copy2(f, tmp_dir)
 
     layout = BIDSLayout(path)
-    layout2 = BIDSLayout(tmp_dir)
-    layout = merge_layouts([layout, layout2])
+    # layout2 = BIDSLayout(tmp_dir)
+    # layout = merge_layouts([layout, layout2])
 
     # Time-level variables
     collection = load_variables(layout, 'time')
