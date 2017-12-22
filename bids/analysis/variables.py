@@ -456,7 +456,7 @@ class SimpleColumn(BIDSColumn):
 
         super(SimpleColumn, self).__init__(collection, name, values)
 
-    def aggregate(self, unit, dropna=False, func='mean'):
+    def aggregate(self, unit, func='mean'):
 
         levels = ['run', 'session', 'subject']
         groupby = set(levels[levels.index(unit):]) & set(self.entities.columns)
@@ -586,6 +586,19 @@ class DenseEventColumn(BIDSColumn):
         return [DenseEventColumn(self.collection, '%s/%s' % (self.name, name),
                                  df[name].values)
                 for i, name in enumerate(names)]
+
+    def aggregate(self, unit, func='mean'):
+
+        levels = ['run', 'session', 'subject']
+        groupby = set(levels[levels.index(unit):]) & \
+            set(self.index.columns)
+        groupby = list(groupby)
+
+        entities = self.index.loc[:, groupby].reset_index(drop=True)
+        values = pd.DataFrame({'amplitude': self.values.values.ravel()})
+        data = pd.concat([values, entities], axis=1)
+        data = data.groupby(groupby, as_index=False).agg(func)
+        return SimpleColumn(self.collection, self.name, data)
 
 
 BIDSEventFile = namedtuple('BIDSEventFile', ('image_file', 'event_file',

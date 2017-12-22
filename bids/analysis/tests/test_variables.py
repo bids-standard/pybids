@@ -35,6 +35,16 @@ def test_aggregate_column(manager):
     assert (agg_col2.values >= agg_col.values).all() and \
         agg_col2.values.mean() > agg_col.values.mean()
 
+    # Dense column
+    dc = col.to_dense()
+    agg_col = dc.aggregate('subject')
+    assert agg_col.values.shape[0] == 16
+    assert agg_col.entities.shape[0] == 16
+    assert set(agg_col.entities.columns) == {'subject'}
+    agg_col2 = dc.aggregate('subject', func='max')
+    assert (agg_col2.values >= agg_col.values).all() and \
+        agg_col2.values.mean() > agg_col.values.mean()
+
 
 def test_clone_collection(manager):
     collection = manager['time']
