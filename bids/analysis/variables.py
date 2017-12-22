@@ -194,19 +194,32 @@ def _load_tsv_variables(layout, unit, entities=None, columns=None, **kwargs):
     for f in files:
         f = layout.files[f]
         _data = pd.read_table(f.path, sep='\t')
-        # Add entity columns from file
-        for ent_name, ent_val in f.entities.items():
-            _data[ent_name] = ent_val
-        # Special handling for scans.tsv, which has a filename in 1st col
+
+        # Entities can be defined either within the first column of the .tsv
+        # file (for entities that vary by row), or from the full file path
+        # (for entities constant over all rows in the file). We extract both
+        # and store them in the main DataFrame alongside other variables (as
+        # they'll be extracted when the Column object is initialized anyway).
+        # Handling is a bit more convoluted for scans.tsv, because the first
+        # column contains the run filename, which we also need to parse.
         if type_ == 'scans':
             image = _data.iloc[:, 0]
-            _data = _data.drop(_data.columns[0], axis=1)
+            # _data = _data.drop(_data.columns[0], axis=1)
             dn = dirname(f.filename)
             paths = [join(dn, p) for p in image.values]
             ent_recs = [layout.files[p].entities for p in paths
                         if p in layout.files]
             ent_cols = pd.DataFrame.from_records(ent_recs)
             _data = pd.concat([_data, ent_cols], axis=1)
+        # BIDS spec requires ID columns to be named 'session_id', 'run_id',
+        # etc., and IDs begin with entity prefixes (e.g., 'sub-01'). To ensure
+        # consistent internal handling, we strip these suffixes and prefixes.
+        elif type_ == 'sessions':
+            _data = _data.rename(columns={'session_id': 'session'})
+            _data['session'] = _data['session'].str.replace('ses-', '')
+        elif type_ == 'participants':
+            _data = _data.rename(columns={'participant_id': 'subject'})
+            _data['subject'] = _data['subject'].str.replace('sub-', '')
         dfs.append(_data)
 
     collection = BIDSVariableCollection(unit, entities)
@@ -218,14 +231,15 @@ def _load_tsv_variables(layout, unit, entities=None, columns=None, **kwargs):
 
     data = pd.concat(dfs, axis=0)
 
-    col_start = 0 if type_ == 'scans' else 1
-    for i, col_name in enumerate(data.columns[col_start:]):
+    ent_cols = list(set(BASE_ENTITIES) & set(data.columns))
+    amp_cols = list(set(data.columns) - set(ent_cols))
 
-        # Rename colummns: values must be in 'amplitude', and users
-        # sometimes give the ID column the wrong name.
-        old_lev_name = data.columns[i]
-        _data = data.loc[:, [old_lev_name, col_name]]
-        _data.columns = [unit, 'amplitude']
+    for col_name in amp_cols:
+
+        # Rename colummns: values must be in 'amplitude'
+        _data = data.loc[:, [col_name] + ent_cols]
+        _data.columns = ['amplitude'] + ent_cols
+
         col = SimpleColumn(collection, col_name, _data, unit)
         # TODO: Figure out some configurable way to handle name conflicts
         # between files. This can be quite common if, e.g., users are using
@@ -640,7 +654,6 @@ class BIDSVariableCollection(object):
         if columns is not None:
             _cols = [c for c in _cols if c.name in columns]
 
-        # _cols = [c for c in _cols if c.name not in ["event_file_id", "time"]]
         return pd.concat([c.to_df() for c in _cols], axis=0)
 
     def clone(self):

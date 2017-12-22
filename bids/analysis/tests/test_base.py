@@ -25,13 +25,20 @@ def test_analysis_smoke_test():
     assert result[0].entities == {'subject': 1}
 
     # Participant level and also check integer-based indexing
-    result1 = analysis['participant'].get_Xy()
+    result = analysis['participant'].get_Xy()
     assert len(result) == 16
     assert analysis[2].name == 'participant'
 
     # Dataset level
     result = analysis['group'].get_Xy()
     assert len(result) == 1
+    data = result[0].data
+    assert len(data) == 160
+    # Not 16 because subs get represented as both ints and str--should fix!
+    assert data['subject'].nunique() == 32
+    # Make sure columns from different levels exist
+    varset = {'sex', 'age', 'RT', 'respnum'}
+    assert not (varset - set(data['condition'].unique()))
 
     # Calling an invalid level name should raise an exception
     with pytest.raises(KeyError):
