@@ -90,7 +90,7 @@ class Transformation(object):
         >= 3.3, we can't override both new and init. '''
         self.collection = collection
         self.cols = listify(cols)
-        self.groupby = kwargs.pop('groupby', 'event_file_id')
+        self.groupby = kwargs.pop('groupby', 'unique_run_id')
         self.output = listify(kwargs.pop('output', None))
         self.output_prefix = kwargs.pop('output_prefix', None)
         self.output_suffix = kwargs.pop('output_suffix', None)
@@ -326,7 +326,7 @@ class Transformation(object):
                                 "form to ensure proper alignment." %
                                 sparse_names)
                         sparse = [s.to_dense() for s in sparse]
-                warnings.warn(msg)
+                    warnings.warn(msg)
             # If all are sparse, durations, onsets, and index must match
             # perfectly for all
             else:

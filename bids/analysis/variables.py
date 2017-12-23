@@ -11,13 +11,15 @@ from bids.utils import listify
 from scipy.interpolate import interp1d
 from pandas.api.types import is_numeric_dtype
 from os.path import dirname, join
+import json
 
 
 BASE_ENTITIES = ['subject', 'session', 'task', 'run']
 
 
-def load_event_variables(layout, entities=None, columns=None,
-                         default_duration=0, sampling_rate=10, drop_na=True,
+def load_event_variables(layout, entities=None, columns=None, scan_length=None,
+                         sampling_rate=10, drop_na=True, extract_events=True,
+                         extract_recordings=True, interp_method='linear',
                          **selectors):
     ''' Loads all variables found in *_events.tsv files and returns them as a
     BIDSVariableCollection.
@@ -25,148 +27,216 @@ def load_event_variables(layout, entities=None, columns=None,
     Args:
         layouts (str, list): Path(s) to the root of the BIDS project(s). Can
             also be a list of Layouts.
-        default_duration (float): Default duration to assign to events in cases
-            where a duration is missing.
         entities (list): Optional list of entities to encode and index by.
             If None (default), uses the standard BIDS-defined entities of
             ['run', 'session', 'subject', 'task'].
         columns (list): Optional list of names specifying which columns in the
             event files to read. By default, reads all columns found.
+        scan_length (float): Optional duration of runs (in seconds). By
+            default, this will be extracted from the BOLD image. However, in
+            cases where the user doesn't have access to the images (e.g.,
+            because only file handles are locally available), a fixed duration
+            can be manually specified as a fallback.
         sampling_rate (int, float): Sampling rate to use internally when
             converting sparse columns to dense format.
         drop_na (bool): If True, removes all events where amplitude is n/a. If
             False, leaves n/a values intact. Note that in the latter case,
             transformations that requires numeric values may fail.
+        extract_events (bool): If True, extracts variables from events.tsv
+            files.
+        extract_recordings (bool): If True, extracts variables from physio and
+            stim recording files with dense sampling.
+        interp_method (str): Interpolation method to use when resampling
+            recording files to the desired sampling rate. Can be any value
+            recognized by scipy.interpolate.interp1d.
         selectors (dict): Optional keyword arguments passed onto the
             BIDSLayout instance's get() method; can be used to constrain
             which data are loaded.
 
     Returns: A BIDSEventVariableCollection.
     '''
-    # Loop over images and get all corresponding event files
+
     images = layout.get(return_type='file', type='bold', modality='func',
                         extensions='.nii.gz', **selectors)
 
     if not images:
         raise ValueError("No functional images that match criteria found.")
 
-    event_files = []
-    run_trs = []
-    entities = entities if entities is not None else BASE_ENTITIES
-
-    for img_f in images:
-
-        # Store TR
-        tr = 1. / layout.get_metadata(img_f)['RepetitionTime']
-        run_trs.append(tr)
-
-        evf = layout.get_events(img_f)
-        if not evf:
-            # TODO: need to handle this better. Failing is not an option since
-            # event files are optional, but silence is no good. Warnings are
-            # problematic because an informative message will be unique each
-            # time and flood the user.
-            continue
-            # raise ValueError("Could not find event file that matches %s." %
-                             # img_f)
-
-        # Because of inheritance, _events.tsv filenames don't always
-        # contain all entities, so we first get them from the image
-        # file, then update with anything found in the event file.
-        f_ents = layout.files[img_f].entities.copy()
-        f_ents.update(layout.files[evf].entities)
-        f_ents = {k: v for k, v in f_ents.items() if k in entities}
-        event_files.append((evf, img_f, f_ents))
-
+    # Make sure all images have a common TR. In principle we could support
+    # varying TRs, but this would make life much more complicated, and in any
+    # case it almost invariably means the user is trying to model more than one
+    # task at the same time, which is usually a mistake.
+    run_trs = [layout.get_metadata(img)['RepetitionTime'] for img in images]
     if len(set(run_trs)) > 1:
         raise ValueError("More than one TR detected across specified runs."
-                         " Currently we can only handle runs with the same"
-                         " repetition time.")
+                         " Currently we can only handle sets of runs that "
+                         "share the same repetition time.")
+    tr = 1. / run_trs[0]
 
-    repetition_time = run_trs[0]
+    # Valid entities
+    if entities is None:
+        entities = ['run', 'session', 'subject', 'task', 'recording']
 
-    dfs = []
-    start_time = 0
+    # # Helper function to consolidate entities. Because of inheritance,
+    # # tsv filenames don't always contain all entities, so we first get
+    # # them from the image file, then update with anything found in the tsv.
+    # def _combine_entities(img_path, tsv_path):
+    #     ents = layout.files[img_path].entities.copy()
+    #     ents.update(layout.files[tsv_path].entities)
+    #     return {k: v for k, v in ents.items() if k in entities}
 
-    # Load events.tsv
+    # Initialize counters/storage vars
+    run_start_time = 0
+    event_dfs = []
+    rec_dfs = []
+
+    # Initialize collection
     collection = BIDSEventVariableCollection('time', entities=entities,
-                                             default_duration=default_duration,
                                              sampling_rate=sampling_rate,
-                                             repetition_time=repetition_time)
+                                             repetition_time=tr)
 
-    if not event_files:
-        warnings.warn("No events.tsv files found in specified BIDSLayout."
-                      "Returning an empty BIDSEventVariableCollection.")
-        return None
-
-    for (evf, img_f, f_ents) in event_files:
-        _data = pd.read_table(evf, sep='\t')
-        _data = _data.replace('n/a', np.nan)  # Replace BIDS' n/a
-        _data = _data.apply(pd.to_numeric, errors='ignore')
+    # Main loop over images
+    for img_f in images:
 
         # Get duration of run: first try to get it directly from the image
-        # header; if that fails, fall back on taking the offset of the last
-        # event in the event file--but raise warning, because this is
-        # suboptimal (e.g., there could be empty volumes at the end).
+        # header; if that fails, fall back on the scan_length argument.
         try:
             img = nb.load(img_f)
             duration = img.shape[3] * img.header.get_zooms()[-1]
         except Exception as e:
-            duration = (_data['onset'] + _data['duration']).max()
-            msg = ("Unable to extract scan duration from one or more "
-                   "images; setting duration to the offset of the last "
-                   "detected event instead--but note that this may produce"
-                   "unexpected results.")
-            warnings.warn(msg)
+            if scan_length is not None:
+                duration = scan_length
+            else:
+                msg = ("Unable to extract scan duration from one or more "
+                       "BOLD runs, and no scan_length argument was provided "
+                       "as a fallback. Please check that the image files are "
+                       "available, or manually specify the scan duration.")
+                raise ValueError(msg)
 
-        # Add default values for entities that may not be passed explicitly
-        evf_index = len(collection.event_files)
-        f_ents['event_file_id'] = evf_index
+        f_ents = layout.files[img_f].entities.copy()
 
-        ef = BIDSEventFile(event_file=evf, image_file=img_f,
-                           start=start_time, duration=duration,
-                           entities=f_ents)
-        collection.event_files.append(ef)
-        start_time += duration
+        save_run = False
 
-        skip_cols = ['onset', 'duration']
+        # Process event files
+        if extract_events:
+            evf = layout.get_events(img_f)
+            if evf:
+                _data = pd.read_table(evf, sep='\t')
+                _data = _data.replace('n/a', np.nan)  # Replace BIDS' n/a
+                _data = _data.apply(pd.to_numeric, errors='ignore')
 
-        file_df = []
+                file_df = []
 
-        _columns = columns
+                _cols = columns or list(set(_data.columns.tolist()) -
+                                        {'onset', 'duration'})
 
-        # By default, read all columns from the event file
-        if _columns is None:
-            _columns = list(set(_data.columns.tolist()) - set(skip_cols))
+                # Construct a DataFrame for each extra column
+                for col in _cols:
+                    df = _data[['onset', 'duration']].copy()
+                    df['condition'] = col
+                    df['amplitude'] = _data[col].values
+                    df['factor'] = col
+                    file_df.append(df)
 
-        # Construct a DataFrame for each extra column
-        for col in _columns:
-            df = _data[['onset', 'duration']].copy()
-            df['condition'] = col
-            df['amplitude'] = _data[col].values
-            df['factor'] = col
-            file_df.append(df)
+                # Concatenate all extracted column DFs along the row axis
+                _df = pd.concat(file_df, axis=0)
 
-        # Concatenate all extracted column DFs along the row axis
-        _df = pd.concat(file_df, axis=0)
+                # Add in all of the event file's entities as new columns; these
+                # are used for indexing later on
+                for entity, value in f_ents.items():
+                    _df[entity] = value
 
-        # Add in all of the event file's entities as new columns; these
-        # are used for indexing later on
-        for entity, value in f_ents.items():
-            _df[entity] = value
+                event_dfs.append(_df)
+                save_run = True
 
-        dfs.append(_df)
+        # Process recording files
+        if extract_recordings:
+            rec_files = layout.get_nearest(img_f, extensions='.tsv.gz',
+                                           all_=True, type=['physio', 'stim'],
+                                           ignore_strict_entities=['type'])
+            for rf in rec_files:
+                metadata = layout.get_metadata(rf)
+                if not metadata:
+                    raise ValueError("No .json sidecar found for '%s'." % rf)
 
-    _df = pd.concat(dfs, axis=0)
+                data = pd.read_csv(rf, sep='\t')
+                freq = metadata['SamplingFrequency']
+                st = metadata['StartTime']
+                rf_cols = metadata['Columns']
+                data.columns = rf_cols
 
-    if drop_na:
-        _df = _df.dropna(subset=['amplitude'])
+                # Filter columns if user passed names
+                if columns is not None:
+                    rf_cols = list(set(rf_cols) & set(columns))
+                    data = data.loc[:, rf_cols]
 
-    for name, grp in _df.groupby(['factor', 'condition']):
-        data = grp.apply(pd.to_numeric, errors='ignore')
-        _, condition = name[0], name[1]
-        collection[condition] = SparseEventColumn(collection, condition,
-                                                  data)
+                n_cols = len(rf_cols)
+                if not n_cols:
+                    continue
+
+                # Keep only in-scan samples
+                if st < 0:
+                    start_ind = np.floor(-st * freq)
+                    values = data.values[start_ind:, :]
+                else:
+                    values = data.values
+
+                if st > 0:
+                    n_pad = freq * st
+                    pad = np.zeros((n_pad, n_cols))
+                    values = np.r_[pad, values]
+
+                n_rows = int(duration * freq)
+                if len(values) > n_rows:
+                    values = values[:n_rows, :]
+                elif len(values) < n_rows:
+                    pad = np.zeros((n_rows-len(values), n_cols))
+                    values = np.r_[values, pad]
+
+                # Resample to the target rate. We do this before creating the
+                # final Column, because in principle, the sampling rate of
+                # continuous recordings could differ across runs/subjects/etc.
+                x = np.arange(n_rows)
+                n_new = duration*sampling_rate
+                x_new = np.linspace(0, n_rows-1, num=n_new)
+                new_vals = np.zeros((n_new, n_cols))
+
+                for i, col_name in enumerate(rf_cols):
+                    f = interp1d(x, values[:, i], kind=interp_method)
+                    new_vals[:, i] = f(x_new)
+
+                _df = pd.DataFrame(new_vals, columns=rf_cols)
+                rec_dfs.append(_df)
+
+                save_run = True
+
+        # Track run info and add to collection
+        if save_run:
+            # Add a unique run ID
+            f_ents['unique_run_id'] = len(collection.run_infos)
+            run_info = BIDSRunInfo(image_file=img_f, start=run_start_time,
+                                   duration=duration, entities=f_ents)
+            collection.run_infos.append(run_info)
+            run_start_time += duration
+
+        if extract_events and event_dfs:
+            _df = pd.concat(event_dfs, axis=0)
+
+            if drop_na:
+                _df = _df.dropna(subset=['amplitude'])
+
+            for name, grp in _df.groupby(['factor', 'condition']):
+                data = grp.apply(pd.to_numeric, errors='ignore')
+                _, condition = name[0], name[1]
+                col = SparseEventColumn(collection, condition, data)
+                collection[condition] = col
+
+        if extract_recordings and rec_dfs:
+
+            _df = pd.concat(rec_dfs, axis=0).reset_index(drop=True)
+            for col_name in _df.columns:
+                col = DenseEventColumn(collection, col_name, _df[[col_name]])
+                collection[col_name] = col
 
     # build the index
     collection._build_dense_index()
@@ -174,7 +244,8 @@ def load_event_variables(layout, entities=None, columns=None,
     return collection
 
 
-def _load_tsv_variables(layout, unit, entities=None, columns=None, **kwargs):
+def _load_tsv_variables(layout, unit, entities=None, columns=None,
+                        prefix_level=False, **kwargs):
     ''' Helper for scans.tsv, sessions.tsv, and participants.tsv. '''
     bids_names = {
         'run': 'scans',
@@ -192,6 +263,7 @@ def _load_tsv_variables(layout, unit, entities=None, columns=None, **kwargs):
     dfs = []
 
     for f in files:
+
         f = layout.files[f]
         _data = pd.read_table(f.path, sep='\t')
 
@@ -200,17 +272,24 @@ def _load_tsv_variables(layout, unit, entities=None, columns=None, **kwargs):
         # (for entities constant over all rows in the file). We extract both
         # and store them in the main DataFrame alongside other variables (as
         # they'll be extracted when the Column object is initialized anyway).
+        for ent_name, ent_val in f.entities.items():
+            if ent_name in BASE_ENTITIES:
+                _data[ent_name] = ent_val
+
         # Handling is a bit more convoluted for scans.tsv, because the first
         # column contains the run filename, which we also need to parse.
         if type_ == 'scans':
             image = _data.iloc[:, 0]
-            # _data = _data.drop(_data.columns[0], axis=1)
+            _data = _data.drop(_data.columns[0], axis=1)
             dn = dirname(f.filename)
             paths = [join(dn, p) for p in image.values]
             ent_recs = [layout.files[p].entities for p in paths
                         if p in layout.files]
             ent_cols = pd.DataFrame.from_records(ent_recs)
             _data = pd.concat([_data, ent_cols], axis=1)
+            # It's possible to end up with duplicate entity columns this way
+            _data = _data.T.drop_duplicates().T
+
         # BIDS spec requires ID columns to be named 'session_id', 'run_id',
         # etc., and IDs begin with entity prefixes (e.g., 'sub-01'). To ensure
         # consistent internal handling, we strip these suffixes and prefixes.
@@ -225,8 +304,7 @@ def _load_tsv_variables(layout, unit, entities=None, columns=None, **kwargs):
     collection = BIDSVariableCollection(unit, entities)
 
     if not dfs:
-        warnings.warn("No %s.tsv files found in specified BIDSLayout."
-                      "Returning an empty BIDSVariableCollection." % type_)
+        warnings.warn("No %s.tsv files found in specified BIDSLayout." % type_)
         return None
 
     data = pd.concat(dfs, axis=0)
@@ -239,6 +317,9 @@ def _load_tsv_variables(layout, unit, entities=None, columns=None, **kwargs):
         # Rename colummns: values must be in 'amplitude'
         _data = data.loc[:, [col_name] + ent_cols]
         _data.columns = ['amplitude'] + ent_cols
+
+        if prefix_level:
+            col_name = '%s#%s' % (type_, col_name)
 
         col = SimpleColumn(collection, col_name, _data, unit)
         # TODO: Figure out some configurable way to handle name conflicts
@@ -339,7 +420,6 @@ def merge_collections(collections):
     # # categorical variable has more than one unique value.
 
 
-
 class BIDSColumn(object):
 
     ''' Base representation of a column in a BIDS project. '''
@@ -402,7 +482,7 @@ class BIDSColumn(object):
     def index(self):
         pass
 
-    def get_grouper(self, groupby='event_file_id'):
+    def get_grouper(self, groupby='unique_run_id'):
         ''' Return a pandas Grouper object suitable for use in groupby calls.
         Args:
             groupby (str, list): Name(s) of column(s) defining the grouper
@@ -414,7 +494,7 @@ class BIDSColumn(object):
         '''
         return pd.core.groupby._get_grouper(self.index, groupby)[0]
 
-    def apply(self, func, groupby='event_file_id', *args, **kwargs):
+    def apply(self, func, groupby='unique_run_id', *args, **kwargs):
         ''' Applies the passed function to the groups defined by the groupby
         argument. Works identically to the standard pandas df.groupby() call.
         Args:
@@ -566,8 +646,8 @@ class SparseEventColumn(SimpleColumn):
         durations = np.round(self.duration * sampling_rate).astype(int)
 
         for i, row in enumerate(self.values.values):
-            file_id = self.entities['event_file_id'].values[i]
-            run_onset = self.collection.event_files[file_id].start
+            file_id = self.entities['unique_run_id'].values[i]
+            run_onset = self.collection.run_infos[file_id].start
             ev_start = onsets[i] + int(math.ceil(run_onset * sampling_rate))
             ev_end = ev_start + durations[i]
             ts[ev_start:ev_end] = row
@@ -615,8 +695,8 @@ class DenseEventColumn(BIDSColumn):
         return SimpleColumn(self.collection, self.name, data)
 
 
-BIDSEventFile = namedtuple('BIDSEventFile', ('image_file', 'event_file',
-                                             'start', 'duration', 'entities'))
+BIDSRunInfo = namedtuple('BIDSRunInfo', ('image_file', 'start', 'duration',
+                                         'entities'))
 
 
 class BIDSVariableCollection(object):
@@ -638,7 +718,6 @@ class BIDSVariableCollection(object):
         self.entities = entities
         self.columns = {}
         self.dense_index = None
-
 
     def merge_columns(self, columns=None):
         ''' Merge columns into one DF.
@@ -749,7 +828,7 @@ class BIDSVariableCollection(object):
             drop_cols = []
 
         # Always drop columns meant for internal use
-        drop_cols += ['event_file_id', 'time']
+        drop_cols += ['unique_run_id', 'time']
 
         # Optionally drop entities
         if drop_entities:
@@ -812,20 +891,17 @@ class BIDSEventVariableCollection(BIDSVariableCollection):
             'session', 'subject', or 'dataset'.
         entities (list): A list of entities defined for all variables in this
             collection.
-        default_duration (float): The default duration (in seconds) to use for
-            events that do not have an explicitly specified duration.
         sampling_rate (float): Sampling rate (in Hz) to use when working with
             dense representations of variables.
         repetition_time (float): TR of corresponding image(s) in seconds.
     '''
 
-    def __init__(self, unit, entities, default_duration=None,
-                 sampling_rate=None, repetition_time=None):
+    def __init__(self, unit, entities, sampling_rate=None,
+                 repetition_time=None):
 
-        self.default_duration = default_duration
         self.sampling_rate = sampling_rate
         self.repetition_time = repetition_time
-        self.event_files = []
+        self.run_infos = []
         self.dense_index = None
         super(BIDSEventVariableCollection, self).__init__(unit, entities)
 
@@ -835,16 +911,16 @@ class BIDSEventVariableCollection(BIDSVariableCollection):
     def _build_dense_index(self):
         ''' Build an index of all tracked entities for all dense columns. '''
 
-        if not self.event_files:
+        if not self.run_infos:
             return
 
         index = []
         sr = int(1000. / self.sampling_rate)
-        for evf in self.event_files:
-            reps = int(math.ceil(evf.duration * self.sampling_rate))
-            ent_vals = list(evf.entities.values())
+        for run in self.run_infos:
+            reps = int(math.ceil(run.duration * self.sampling_rate))
+            ent_vals = list(run.entities.values())
             data = np.broadcast_to(ent_vals, (reps, len(ent_vals)))
-            df = pd.DataFrame(data, columns=list(evf.entities.keys()))
+            df = pd.DataFrame(data, columns=list(run.entities.keys()))
             df['time'] = pd.date_range(0, periods=len(df), freq='%sms' % sr)
             index.append(df)
         self.dense_index = pd.concat(index, axis=0).reset_index(drop=True)
@@ -856,6 +932,10 @@ class BIDSEventVariableCollection(BIDSVariableCollection):
     def _all_dense(self):
         return all([isinstance(c, DenseEventColumn)
                     for c in self.columns.values()])
+
+    @property
+    def index(self):
+        return self.dense_index
 
     def clone(self):
         ''' Returns a shallow copy of the current instance, except that all

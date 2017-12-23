@@ -1,6 +1,6 @@
 from bids.grabbids import BIDSLayout
 from bids.analysis.variables import (SparseEventColumn, load_variables,
-                                     BIDSEventFile)
+                                     BIDSRunInfo, load_event_variables)
 import pytest
 from os.path import join, dirname, abspath
 from bids import grabbids
@@ -10,23 +10,30 @@ import shutil
 
 
 @pytest.fixture
-def manager():
+def collection():
     mod_file = abspath(grabbids.__file__)
     path = join(dirname(mod_file), 'tests', 'data', 'ds005')
     layout = BIDSLayout(path)
-    return load_variables(layout)
+    return load_event_variables(layout, scan_length=480)
 
 
-def test_load_all_bids_variables():
+# def test_load_all_bids_variables():
+#     mod_file = abspath(grabbids.__file__)
+#     path = join(dirname(mod_file), 'tests', 'data', '7t_trt')
+#     layout = BIDSLayout(path)
+#     # collection = load_variables(layout, acq='fullbrain')
+#     # TODO
+
+
+def test_load_dense_variables():
     mod_file = abspath(grabbids.__file__)
     path = join(dirname(mod_file), 'tests', 'data', '7t_trt')
     layout = BIDSLayout(path)
-    manager = load_variables(layout, acq='fullbrain')
-    # TODO
+    load_event_variables(layout)
 
 
-def test_aggregate_column(manager):
-    col = manager['time']['RT']
+def test_aggregate_column(collection):
+    col = collection['RT']
     agg_col = col.aggregate('subject')
     assert agg_col.values.shape[0] == 16
     assert agg_col.entities.shape[0] == 16
@@ -46,11 +53,10 @@ def test_aggregate_column(manager):
         agg_col2.values.mean() > agg_col.values.mean()
 
 
-def test_clone_collection(manager):
-    collection = manager['time']
+def test_clone_collection(collection):
     clone = collection.clone()
     assert clone != collection
-    props_same = ['entities', 'default_duration', 'sampling_rate']
+    props_same = ['entities', 'sampling_rate']
     for ps in props_same:
         assert getattr(collection, ps) is getattr(clone, ps)
 
@@ -60,14 +66,13 @@ def test_clone_collection(manager):
     assert collection.dense_index is not clone.dense_index
 
 
-def test_collection(manager):
+def test_collection(collection):
     ''' Integration test for BIDSVariableCollection initialization. '''
 
     # Test that event files are loaded properly
-    collection = manager['time']
-    assert len(collection.event_files) == 48
-    ef = collection.event_files[0]
-    assert isinstance(ef, BIDSEventFile)
+    assert len(collection.run_infos) == 48
+    ef = collection.run_infos[0]
+    assert isinstance(ef, BIDSRunInfo)
     assert ef.entities['task'] == 'mixedgamblestask'
     assert ef.entities['subject'] == '01'
 
@@ -84,7 +89,7 @@ def test_collection(manager):
     assert len(col.duration) == 4096
     ents = col.entities
     assert (ents['task'] == 'mixedgamblestask').all()
-    assert set(ents.columns) == {'task', 'subject', 'run', 'event_file_id'}
+    assert set(ents.columns) == {'task', 'subject', 'run', 'unique_run_id'}
 
 
 def test_read_from_files():
@@ -106,7 +111,7 @@ def test_read_from_files():
     # layout = merge_layouts([layout, layout2])
 
     # Time-level variables
-    collection = load_variables(layout, 'time')
+    collection = load_event_variables(layout, scan_length=480)
     col_keys = collection.columns.keys()
     assert set(col_keys) == {'RT', 'gain', 'respnum', 'PTval', 'loss',
                              'respcat', 'parametric gain', 'trial_type'}
@@ -118,17 +123,15 @@ def test_read_from_files():
     shutil.rmtree(tmp_dir)
 
 
-def test_match_columns(manager):
-    collection = manager['time']
+def test_match_columns(collection):
     matches = collection.match_columns('^resp', return_type='columns')
     assert len(matches) == 2
     assert all(isinstance(m, SparseEventColumn) for m in matches)
 
 
-def test_get_design_matrix(manager):
+def test_get_design_matrix(collection):
     sub_ids = [1, 2, 3, 4, 5, 6]
     subs = [str(s).zfill(2) for s in sub_ids]
-    collection = manager['time']
     dm = collection.get_design_matrix(columns=['RT', 'parametric gain'],
                                       groupby=['subject', 'run'],
                                       subject=subs)
