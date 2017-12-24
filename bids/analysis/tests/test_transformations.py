@@ -13,12 +13,14 @@ def collection():
     mod_file = abspath(grabbids.__file__)
     path = join(dirname(mod_file), 'tests', 'data', 'ds005')
     layout = BIDSLayout(path)
-    return load_event_variables(layout)
+    collection = load_event_variables(layout, scan_length=480,
+                                      extract_recordings=False)
+    return collection
 
 
 def test_rename(collection):
     dense_rt = collection.columns['RT'].to_dense()
-    assert len(dense_rt.values) == 229280
+    assert len(dense_rt.values) == 230400
     transform.rename(collection, 'RT', output='reaction_time')
     assert 'reaction_time' in collection.columns
     assert 'RT' not in collection.columns
@@ -29,7 +31,8 @@ def test_rename(collection):
 
 def test_product(collection):
     c = collection
-    transform.product(collection, cols=['parametric gain', 'gain'], output='prod')
+    transform.product(collection, cols=['parametric gain', 'gain'],
+                      output='prod')
     res = c['prod'].values
     assert (res == c['parametric gain'].values * c['gain'].values).all()
 
@@ -37,7 +40,7 @@ def test_product(collection):
 def test_scale(collection):
     transform.scale(collection, cols=['RT', 'parametric gain'],
                     output=['RT_Z', 'gain_Z'])
-    groupby = collection['RT'].entities['event_file_id'].values
+    groupby = collection['RT'].entities['unique_run_id'].values
     z1 = collection['RT_Z'].values
     z2 = collection['RT'].values.groupby(
         groupby).apply(lambda x: (x - x.mean()) / x.std())
@@ -53,7 +56,7 @@ def test_orthogonalize_dense(collection):
     pg_post = collection['trial_type/parametric gain'].values
     vals = np.c_[rt.values, pg_pre.values, pg_post.values]
     df = pd.DataFrame(vals, columns=['rt', 'pre', 'post'])
-    groupby = collection.dense_index['event_file_id']
+    groupby = collection.dense_index['unique_run_id']
     pre_r = df.groupby(groupby).apply(lambda x: x.corr().iloc[0, 1])
     post_r = df.groupby(groupby).apply(lambda x: x.corr().iloc[0, 2])
     assert (pre_r > 0.2).any()
@@ -67,7 +70,7 @@ def test_orthogonalize_sparse(collection):
     pg_post = collection['parametric gain'].values
     vals = np.c_[rt.values, pg_pre.values, pg_post.values]
     df = pd.DataFrame(vals, columns=['rt', 'pre', 'post'])
-    groupby = collection['RT'].entities['event_file_id'].values
+    groupby = collection['RT'].entities['unique_run_id'].values
     pre_r = df.groupby(groupby).apply(lambda x: x.corr().iloc[0, 1])
     post_r = df.groupby(groupby).apply(lambda x: x.corr().iloc[0, 2])
     assert (pre_r > 0.2).any()
@@ -130,7 +133,8 @@ def test_threshold(collection):
     collection['pg'] = old_pg.clone()
     transform.threshold(collection, 'pg', threshold=0.2, binarize=False)
     assert collection.columns['pg'].values.sum() != (orig_vals >= 0.2).sum()
-    assert (collection.columns['pg'].values >= 0.2).sum() == (orig_vals >= 0.2).sum()
+    coll_sum = (collection.columns['pg'].values >= 0.2).sum()
+    assert coll_sum == (orig_vals >= 0.2).sum()
 
     collection['pg'] = old_pg.clone()
     transform.threshold(collection, 'pg', threshold=-0.1, binarize=True,
@@ -161,7 +165,8 @@ def test_assign(collection):
 def test_copy(collection):
     transform.copy(collection, 'RT', output='RT_copy')
     assert 'RT_copy' in collection.columns.keys()
-    assert np.array_equal(collection['RT'].values.values, collection['RT_copy'].values.values)
+    assert np.array_equal(collection['RT'].values.values,
+                          collection['RT_copy'].values.values)
 
 
 def test_regex_column_expansion(collection):

@@ -21,9 +21,16 @@ class Analysis(object):
         model (str or dict): a BIDS model specification. Can either be a
             string giving the path of the JSON model spec, or an already-loaded
             dict containing the model info.
+        variables (dict): An optional dictionary containing all variables to
+            use. Keys are level names ('time', 'run', 'session', or 'subject');
+            values are BIDSVariableCollections. If None, all variables will be
+            read from the current layout. Mainly useful for cases where custom
+            arguments need to be passed during variable-reading.
     '''
 
-    def __init__(self, layout, model, **selectors):
+    def __init__(self, layout, model, variables=None, **selectors):
+
+        self.variables = variables
 
         if not isinstance(layout, BIDSLayout):
             layout = BIDSLayout(layout)
@@ -94,7 +101,10 @@ class Analysis(object):
             unit = levels[lev_ind - 1]
 
             # Get all variables for current level
-            curr_coll = load_variables(self.layout, unit)
+            if self.variables is not None and unit in self.variables:
+                curr_coll = self.variables[unit]
+            else:
+                curr_coll = load_variables(self.layout, unit)
 
             # Merge input collection and current collection
             if input_coll is not None:

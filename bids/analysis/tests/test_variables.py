@@ -25,11 +25,11 @@ def collection():
 #     # TODO
 
 
-def test_load_dense_variables():
-    mod_file = abspath(grabbids.__file__)
-    path = join(dirname(mod_file), 'tests', 'data', '7t_trt')
-    layout = BIDSLayout(path)
-    load_event_variables(layout)
+# def test_load_dense_variables():
+#     mod_file = abspath(grabbids.__file__)
+#     path = join(dirname(mod_file), 'tests', 'data', '7t_trt')
+#     layout = BIDSLayout(path)
+#     load_event_variables(layout)
 
 
 def test_aggregate_column(collection):
@@ -89,7 +89,8 @@ def test_collection(collection):
     assert len(col.duration) == 4096
     ents = col.entities
     assert (ents['task'] == 'mixedgamblestask').all()
-    assert set(ents.columns) == {'task', 'subject', 'run', 'unique_run_id'}
+    assert set(ents.columns) == {'task', 'subject', 'run', 'unique_run_id',
+                                 'modality', 'type'}
 
 
 def test_read_from_files():
@@ -137,7 +138,7 @@ def test_get_design_matrix(collection):
                                       subject=subs)
     assert set(dm['subject'].unique()) == set(sub_ids)
     cols = set(['amplitude', 'onset', 'duration', 'subject', 'run', 'task',
-                'condition'])
+                'condition', 'modality', 'type'])
     assert set(dm.columns) == cols
     assert set(dm['condition'].unique()) == {'RT', 'parametric gain'}
-    assert dm.shape == (3072, 7)
+    assert dm.shape == (3072, 9)

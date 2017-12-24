@@ -95,6 +95,11 @@ def load_event_variables(layout, entities=None, columns=None, scan_length=None,
                                              sampling_rate=sampling_rate,
                                              repetition_time=tr)
 
+    def get_entities(img):
+        f_ents = layout.files[img].entities.copy()
+        f_ents['unique_run_id'] = len(collection.run_infos)
+        return f_ents
+
     # Main loop over images
     for img_f in images:
 
@@ -113,14 +118,15 @@ def load_event_variables(layout, entities=None, columns=None, scan_length=None,
                        "available, or manually specify the scan duration.")
                 raise ValueError(msg)
 
-        f_ents = layout.files[img_f].entities.copy()
-
+        f_ents = None
         save_run = False
 
         # Process event files
         if extract_events:
             evf = layout.get_events(img_f)
             if evf:
+                if f_ents is None:
+                    f_ents = get_entities(img_f)
                 _data = pd.read_table(evf, sep='\t')
                 _data = _data.replace('n/a', np.nan)  # Replace BIDS' n/a
                 _data = _data.apply(pd.to_numeric, errors='ignore')
@@ -154,6 +160,8 @@ def load_event_variables(layout, entities=None, columns=None, scan_length=None,
             rec_files = layout.get_nearest(img_f, extensions='.tsv.gz',
                                            all_=True, type=['physio', 'stim'],
                                            ignore_strict_entities=['type'])
+            if rec_files and f_ents is None:
+                f_ents = get_entities(img_f)
             for rf in rec_files:
                 metadata = layout.get_metadata(rf)
                 if not metadata:
@@ -190,15 +198,15 @@ def load_event_variables(layout, entities=None, columns=None, scan_length=None,
                 if len(values) > n_rows:
                     values = values[:n_rows, :]
                 elif len(values) < n_rows:
-                    pad = np.zeros((n_rows-len(values), n_cols))
+                    pad = np.zeros((n_rows - len(values), n_cols))
                     values = np.r_[values, pad]
 
                 # Resample to the target rate. We do this before creating the
                 # final Column, because in principle, the sampling rate of
                 # continuous recordings could differ across runs/subjects/etc.
                 x = np.arange(n_rows)
-                n_new = duration*sampling_rate
-                x_new = np.linspace(0, n_rows-1, num=n_new)
+                n_new = duration * sampling_rate
+                x_new = np.linspace(0, n_rows - 1, num=n_new)
                 new_vals = np.zeros((n_new, n_cols))
 
                 for i, col_name in enumerate(rf_cols):
@@ -212,8 +220,6 @@ def load_event_variables(layout, entities=None, columns=None, scan_length=None,
 
         # Track run info and add to collection
         if save_run:
-            # Add a unique run ID
-            f_ents['unique_run_id'] = len(collection.run_infos)
             run_info = BIDSRunInfo(image_file=img_f, start=run_start_time,
                                    duration=duration, entities=f_ents)
             collection.run_infos.append(run_info)
@@ -232,7 +238,6 @@ def load_event_variables(layout, entities=None, columns=None, scan_length=None,
                 collection[condition] = col
 
         if extract_recordings and rec_dfs:
-
             _df = pd.concat(rec_dfs, axis=0).reset_index(drop=True)
             for col_name in _df.columns:
                 col = DenseEventColumn(collection, col_name, _df[[col_name]])
