@@ -31,6 +31,7 @@ class Analysis(object):
     def __init__(self, layout, model, variables=None, **selectors):
 
         self.variables = variables
+        self.selectors = selectors
 
         if not isinstance(layout, BIDSLayout):
             layout = BIDSLayout(layout)
@@ -104,7 +105,7 @@ class Analysis(object):
             if self.variables is not None and unit in self.variables:
                 curr_coll = self.variables[unit]
             else:
-                curr_coll = load_variables(self.layout, unit)
+                curr_coll = load_variables(self.layout, unit, **self.selectors)
 
             # Merge input collection and current collection
             if input_coll is not None:
@@ -219,7 +220,7 @@ class Block(object):
         if self.model is not None and 'variables' in self.model:
             transform.select(self.input_collection, self.model['variables'])
 
-    def generate_output_collection(self, keep_input_columns=True):
+    def _generate_output_collection(self, keep_input_columns=True):
         ''' Generate the output collection by applying contrasts.
         Args:
             keep_input_columns (bool): If True, default contrasts for all
@@ -261,7 +262,7 @@ class Block(object):
 
         self.output_collection = collection
 
-    def get_contrasts(self, format='matrix', **selectors):
+    def get_contrasts(self, format='matrix', names=None):
         ''' Return contrast information for the current block.
         Args:
             format (str): What format to return the contrast specifications in.
@@ -279,19 +280,31 @@ class Block(object):
                         as a dict loaded from the original json.
                     'json': Returns the json string containing the raw contrast
                         specification found in the original BIDS-Model spec.
-            selectors (dict): Optional keyword arguments to further constrain
-                the data retrieved.
+            names (list): Optional list of names of contrasts to return. If
+                None (default), all contrasts are returned.
         Returns:
             See format argument for returned object formats.
         '''
+        contrasts = self.contrasts
+        if names is not None:
+            contrasts = {c: contrasts[c] for c in names}
+
         if format == 'dict':
-            return self.contrasts
+            return contrasts
 
         if format == 'json':
-            return json.dumps(self.contrasts)
+            return json.dumps(contrasts)
 
         # Construct contrast x variable matrix
-        pass
+        contrast_defs = [pd.Series(c['weights'], index=c['condition_list'])
+                         for c in contrasts]
+        df = pd.DataFrame(contrast_defs).fillna(0)
+        df.index = [c['name'] for c in contrasts]
+        if format == 'matrix' or format == 'df':
+            return df
+
+        if format == 'patsy':
+            pass
 
     def get_Xy(self, drop_entities=True, **selectors):
         ''' Return X and y information for all groups defined by the current
@@ -341,8 +354,7 @@ class Block(object):
         by get_Xy(). See get_Xy() for arguments and return format. '''
         return (t for t in self.get_Xy(**selectors))
 
-    def setup(self, input_collection, apply_transformations=True,
-              generate_output_collection=True):
+    def setup(self, input_collection, apply_transformations=True):
         ''' Set up the Block and construct the design matrix.
         Args:
             input_collection (BIDSVariableCollection): The input variable
@@ -352,8 +364,6 @@ class Block(object):
             apply_transformations (bool): If True (default), apply any
                 transformations in the block before constructing the design
                 matrix.
-            generate_output_collection (bool): If True (default), generate the
-                output collection to pass to the next block as its input.
         '''
 
         self.input_collection = input_collection
@@ -367,5 +377,4 @@ class Block(object):
         dm = input_collection.get_design_matrix(groupby=gb)
         self._design_matrix = dm.copy()
 
-        if self.generate_output_collection:
-            self.generate_output_collection()
+        self._generate_output_collection()
