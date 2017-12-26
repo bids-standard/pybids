@@ -1,12 +1,13 @@
 from os.path import join, dirname, abspath
 from bids import grabbids
 from bids.grabbids import BIDSLayout
+from bids.analysis.base import Analysis, Block
 from bids.analysis.variables import load_variables, load_event_variables
 import pytest
 
 
-def test_analysis_smoke_test():
-    from bids.analysis.base import Analysis
+@pytest.fixture
+def analysis():
     mod_file = abspath(grabbids.__file__)
     layout_path = join(dirname(mod_file), 'tests', 'data', 'ds005')
     layout = BIDSLayout(layout_path)
@@ -17,18 +18,20 @@ def test_analysis_smoke_test():
     variables['time'] = load_event_variables(layout, scan_length=480)
 
     analysis = Analysis(layout_path, json_file, variables=variables)
-    analysis.setup(apply_transformations=True)
+    analysis.setup()
+    return analysis
+
+
+def test_analysis_smoke_test(analysis):
 
     result = analysis['run'].get_Xy(subject=['01', '02'])
     assert len(result) == 6
-    assert len(result[0]) == 3
-    assert 'sub-01_task-mixedgamblestask_run-01_bold.nii.gz' in result[0][1]
+    assert len(result[0]) == 2
 
     result = analysis['session'].get_Xy(drop_entities=True)
     assert len(result) == 16
-    assert len(result[0]) == 3
+    assert len(result[0]) == 2
     assert result[0].data.shape == (24, 2)
-    assert result[0].image is None
     assert result[0].entities == {'subject': 1}
 
     # Participant level and also check integer-based indexing

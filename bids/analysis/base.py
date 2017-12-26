@@ -9,7 +9,7 @@ import pandas as pd
 import numpy as np
 
 
-DesignMatrix = namedtuple('DesignMatrix', ('data', 'image', 'entities'))
+DesignMatrix = namedtuple('DesignMatrix', ('data', 'entities'))
 
 
 class Analysis(object):
@@ -60,8 +60,9 @@ class Analysis(object):
 
     def _load_blocks(self, blocks):
         self.blocks = []
-        for i, b in enumerate(blocks):
-            self.blocks.append(Block(self, index=i, **b))
+        for i, block_args in enumerate(blocks):
+            block = Block(index=i, **block_args)
+            self.blocks.append(block)
 
     def setup(self, blocks=None, apply_transformations=True, agg_func='mean'):
         ''' Set up the sequence of blocks for analysis.
@@ -132,7 +133,6 @@ class Block(object):
 
     ''' Represents a single analysis block from a BIDS-Model specification.
     Args:
-        analysis (Analysis): The parent Analysis this Block belongs to.
         level (str): The BIDS keyword to use as the grouping variable; must be
             one of ['run', 'session', 'subject', or 'dataset'].
         index (int): The numerical index of the current Block within the
@@ -145,10 +145,9 @@ class Block(object):
             generated when the model is fit.
     '''
 
-    def __init__(self, analysis, level, index, name=None, transformations=None,
+    def __init__(self, level, index, name=None, transformations=None,
                  model=None, contrasts=None):
 
-        self.analysis = analysis
         self.level = level
         self.index = index
         self.name = name
@@ -313,11 +312,9 @@ class Block(object):
             selectors (dict): Optional keyword arguments to further constrain
                 the data retrieved.
         Returns:
-            A list of triples, where each triple contains data for a single
+            A list of namedtuples, where each tuple contains data for a single
                 group, and the elements reflect (in order):
-                    - The design matrix containing all of the predictors (X);
-                    - The filename of the 4D image associated with the
-                      current group/design matrix;
+                    - .data: a pandas DataFrame containing the design matrix;
                     - A dict of entities defining the current group (e.g.,
                       {'subject': '03', 'run': 1})
         '''
@@ -329,23 +326,16 @@ class Block(object):
 
         # If there are no entities to group on, return the whole dataset
         if not ent_cols:
-            return [DesignMatrix(data, None, {})]
+            return [DesignMatrix(data, {})]
 
         # Otherwise loop over groups and construct a tuple for each one
         for name, g in data.groupby(ent_cols):
             ent_data = g[ent_cols].drop_duplicates().iloc[0, :]
             ents = ent_data.to_dict()
-            if 'run' in ent_cols:
-                img = self.analysis.layout.get(return_type='file', type='bold',
-                                               modality='func',
-                                               extensions='.nii.gz', **ents)
-                img = img[0]
-            else:
-                img = None
             group_data = self._drop_columns(g.copy(),
                                             drop_entities=drop_entities)
             group_data = group_data.reset_index(drop=True)
-            record = DesignMatrix(group_data, img, ents)
+            record = DesignMatrix(group_data, ents)
             tuples.append(record)
         return tuples
 
