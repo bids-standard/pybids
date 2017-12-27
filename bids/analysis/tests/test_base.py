@@ -1,7 +1,7 @@
 from os.path import join, dirname, abspath
 from bids import grabbids
 from bids.grabbids import BIDSLayout
-from bids.analysis.base import Analysis, Block
+from bids.analysis.base import Analysis
 from bids.analysis.variables import load_variables, load_event_variables
 import pytest
 

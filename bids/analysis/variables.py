@@ -104,19 +104,24 @@ def load_event_variables(layout, entities=None, columns=None, scan_length=None,
     for img_f in images:
 
         # Get duration of run: first try to get it directly from the image
-        # header; if that fails, fall back on the scan_length argument.
+        # header; if that fails, try to get NumberOfVolumes from the
+        # run metadata; if that fails, look for a scan_length argument.
         try:
             img = nb.load(img_f)
             duration = img.shape[3] * img.header.get_zooms()[-1]
         except Exception as e:
-            if scan_length is not None:
-                duration = scan_length
-            else:
-                msg = ("Unable to extract scan duration from one or more "
+            try:
+                md = layout.get_metadata(img_f)
+                duration = md['NumberOfVolumes'] * md['RepetitionTime']
+            except Exception as e:
+                if scan_length is not None:
+                    duration = scan_length
+                else:
+                    msg = ("Unable to extract scan duration from one or more "
                        "BOLD runs, and no scan_length argument was provided "
                        "as a fallback. Please check that the image files are "
                        "available, or manually specify the scan duration.")
-                raise ValueError(msg)
+                    raise ValueError(msg)
 
         f_ents = None
         save_run = False
