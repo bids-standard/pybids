@@ -271,10 +271,6 @@ class Block(object):
                         matrix columns as a column. This format makes it easy
                         to matrix-multiply existing in-memory images by the
                         contrast definition matrix in one shot.
-                    'patsy': Returns a list of strings, where each string gives
-                        a patsy-compatible definition of the contrast. E.g.,
-                        if there are conditions 'A' and 'B', and the weights
-                        are [1, -1], the returned string would be "A-B".
                     'dict': Returns the BIDS-Model contrast specification
                         as a dict loaded from the original json.
                     'json': Returns the json string containing the raw contrast
@@ -294,16 +290,16 @@ class Block(object):
         if format == 'json':
             return json.dumps(contrasts)
 
-        # Construct contrast x variable matrix
-        contrast_defs = [pd.Series(c['weights'], index=c['condition_list'])
-                         for c in contrasts]
-        df = pd.DataFrame(contrast_defs).fillna(0)
-        df.index = [c['name'] for c in contrasts]
         if format == 'matrix' or format == 'df':
+            contrast_defs = [pd.Series(c['weights'], index=c['condition_list'])
+                             for c in contrasts]
+            df = pd.DataFrame(contrast_defs).fillna(0)
+            df.index = [c['name'] for c in contrasts]
             return df
 
-        if format == 'patsy':
-            pass
+        raise ValueError("Invalid format argument specified for returned "
+                         "object. Format must be one of 'matrix', 'dict', or "
+                         "'json'.")
 
     def get_Xy(self, drop_entities=True, **selectors):
         ''' Return X and y information for all groups defined by the current
