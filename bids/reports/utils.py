@@ -554,8 +554,15 @@ def report(layout, subj, ses, task_converter=None):
     # Get json files for scan metadata
     if ses:
         jsons = layout.get(subject=subj, session=ses, extensions='json')
+
+        if not jsons:
+            raise Exception('No json files found for subject {0} and session '
+                            '{1}'.format(subj, ses))
     else:
         jsons = layout.get(subject=subj, extensions='json')
+
+        if not jsons:
+            raise Exception('No json files found for subject {0}'.format(subj))
 
     description_list = []
     for json_struct in jsons:
