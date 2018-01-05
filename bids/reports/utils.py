@@ -417,9 +417,7 @@ def fmap_info(metadata, img, task_dict):
     task_dict : :obj:`dict`
         A dictionary converting task names as they appear in BIDS filenames to
         task names as the user would like them to appear in the report.
-        Example: {'emotionalnback': 'emotional n-back task'}
-    subj_dir : :obj:`str`
-        Path to the subject's folder in the BIDS dataset.
+        Example: {'emotionalnback': 'emotional n-back task'}.
 
     Returns
     -------
@@ -432,7 +430,6 @@ def fmap_info(metadata, img, task_dict):
 
     if 'IntendedFor' in metadata.keys():
         scans = metadata['IntendedFor']
-        #scans = [join(subj_dir, scan) for scan in scans]
         run_dict = {}
         for scan in scans:
             fn = basename(scan)
@@ -527,47 +524,45 @@ def report(layout, subj, ses, task_converter=None):
 
     Parameters
     ----------
-    bids_dir : str
-        Path to BIDS dataset.
-    subj : str
+    layout : :obj:`bids.grabbids.BIDSLayout`
+        Layout object for BIDS dataset.
+    subj : :obj:`str`
         Subject ID.
-    ses : str
+    ses : :obj:`str`
         Session number.
-    task_converter : dict, optional
+    task_converter : :obj:`dict`, optional
         A dictionary converting task names as they appear in BIDS filenames to
         task names as the user would like them to appear in the report.
         Example: {'emotionalnback': 'emotional n-back task'}
 
     Returns
     -------
-    description : str
+    description : :obj:`str`
         A publication-ready report of the dataset's data acquisition
         information. Each scan type is given its own paragraph.
     """
     if task_converter is None:
         task_converter = {}
-    #layout = BIDSLayout(bids_dir)
 
-    # Remove potential trailing slash with abspath
-    #subj_dir = abspath(join(bids_dir, subj))
-
-    # Get json files for scan metadata
+    # Get nifti files for subject's scans
     if ses:
-        jsons = layout.get(subject=subj, session=ses, extensions='json')
+        niftis = layout.get(subject=subj, session=ses, extensions='nii.gz')
 
-        if not jsons:
-            raise Exception('No json files found for subject {0} and session '
+        if not niftis:
+            raise Exception('No nifti files found for subject {0} and session '
                             '{1}'.format(subj, ses))
     else:
-        jsons = layout.get(subject=subj, extensions='json')
+        niftis = layout.get(subject=subj, extensions='nii.gz')
 
-        if not jsons:
-            raise Exception('No json files found for subject {0}'.format(subj))
+        if not niftis:
+            raise Exception('No nifti files found for subject {0}'.format(subj))
 
     description_list = []
-    for json_struct in jsons:
+    for nifti_struct in niftis:
+        nii_file = nifti_struct.filename
+        json_struct = layout.get_nearest(nii_file, 'json')
         json_file = json_struct.filename
-        nii_file = splitext(json_file)[0] + '.nii.gz'
+
         with open(json_file, 'r') as file_object:
             json_data = json.load(file_object)
         img = nib.load(nii_file)
@@ -582,8 +577,8 @@ def report(layout, subj, ses, task_converter=None):
                 n_runs = len(layout.get(subject=subj, session=ses,
                                         extensions='json', task=json_struct.task))
             else:
-                n_runs = len(layout.get(subject=subj,
-                                        extensions='json', task=json_struct.task))
+                n_runs = len(layout.get(subject=subj, extensions='json',
+                                        task=json_struct.task))
             description_list.append(func_info(task, n_runs, json_data, img))
         elif json_struct.modality == 'anat':
             type_ = json_struct.type[:-1]
@@ -592,8 +587,7 @@ def report(layout, subj, ses, task_converter=None):
             bval_file = splitext(json_file)[0] + '.bval'
             description_list.append(dwi_info(bval_file, json_data, img))
         elif json_struct.modality == 'fmap':
-            description_list.append(fmap_info(json_data, img,
-                                              task_converter))
+            description_list.append(fmap_info(json_data, img, task_converter))
 
     # Assume all data were converted the same way.
     description_list.append(final_paragraph(json_data))
