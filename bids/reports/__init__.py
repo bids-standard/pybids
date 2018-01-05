@@ -1,2 +1,2 @@
-from .report import report
-__all__ = ["report"]
+from .report import BIDSReport
+__all__ = ["BIDSReport"]

@@ -5,13 +5,16 @@ Utilities to generate the MRI data acquisition portion of a
 methods section from a BIDS dataset.
 """
 import re
+import json
 from collections import Counter
-from os.path import join, basename
+from os.path import join, abspath, basename, splitext
 
 import numpy as np
+import nibabel as nib
 from num2words import num2words
 
-from ..version import __version__
+from bids.grabbids import BIDSLayout
+from bids.version import __version__
 
 # TODO: Determine if directions are correct
 DIR_CONVERTER = {'i': 'left to right',
@@ -96,7 +99,7 @@ def get_slice_info(slice_times):
     """
     Extract slice order and multiband information from slice timing info.
 
-    TODO: Be more specific with orders.
+    TODO: Be more specific with slice orders.
     Currently anything where there's some kind of skipping is interpreted as
     interleaved of some kind.
 
@@ -217,7 +220,7 @@ def general_acquisition_info(metadata):
 
 def func_info(task, n_runs, metadata, img):
     """
-    Describes T2*-weighted fMRI scans.
+    Generate a paragraph describing T2*-weighted functional scans.
 
     Parameters
     ----------
@@ -226,9 +229,14 @@ def func_info(task, n_runs, metadata, img):
     n_runs : :obj:`int`
         The number of runs acquired for this task.
     metadata : :obj:`dict`
-        The metadata for the dataset.
+        The metadata for the scan from the json associated with the scan.
     img : :obj:`nibabel.Nifti1Image`
         Image corresponding to one of the runs.
+
+    Returns
+    -------
+    desc : :obj:`str`
+        A description of the scan's acquisition information.
     """
     st = metadata['SliceTiming']
     mb, so = get_slice_info(st)
@@ -279,7 +287,22 @@ def func_info(task, n_runs, metadata, img):
 
 def anat_info(type_, metadata, img):
     """
-    Describes T1- and T2-weighted structural scans.
+    Generate a paragraph describing T1- and T2-weighted structural scans.
+
+    Parameters
+    ----------
+    type_ : :obj:`str`
+        T1 or T2.
+    metadata : :obj:`dict`
+        Data from the json file associated with the scan, in dictionary
+        form.
+    img : :obj:`nibabel.Nifti1Image`
+        The nifti image of the scan.
+
+    Returns
+    -------
+    desc : :obj:`str`
+        A description of the scan's acquisition information.
     """
     n_slices, vs_str, ms_str, fov_str = get_sizestr(img)
     seqs, variants = get_seqstr(metadata)
@@ -309,7 +332,22 @@ def anat_info(type_, metadata, img):
 
 def dwi_info(bval_file, metadata, img):
     """
-    Describes DWI scans.
+    Generate a paragraph describing DWI scan acquisition information.
+
+    Parameters
+    ----------
+    bval_file : :obj:`str`
+        File containing b-vals associated with DWI scan.
+    metadata : :obj:`dict`
+        Data from the json file associated with the DWI scan, in dictionary
+        form.
+    img : :obj:`nibabel.Nifti1Image`
+        The nifti image of the DWI scan.
+
+    Returns
+    -------
+    desc : :obj:`str`
+        A description of the DWI scan's acquisition information.
     """
     # Parse bval file
     with open(bval_file, 'r') as file_object:
@@ -367,8 +405,26 @@ def dwi_info(bval_file, metadata, img):
 
 def fmap_info(metadata, img, task_dict, subj_dir):
     """
-    Describes field maps.
-    TODO: Add stuff.
+    Generate a paragraph describing field map acquisition information.
+
+    Parameters
+    ----------
+    metadata : :obj:`dict`
+        Data from the json file associated with the field map, in dictionary
+        form.
+    img : :obj:`nibabel.Nifti1Image`
+        The nifti image of the field map.
+    task_dict : :obj:`dict`
+        A dictionary converting task names as they appear in BIDS filenames to
+        task names as the user would like them to appear in the report.
+        Example: {'emotionalnback': 'emotional n-back task'}
+    subj_dir : :obj:`str`
+        Path to the subject's folder in the BIDS dataset.
+
+    Returns
+    -------
+    desc : :obj:`str`
+        A description of the field map's acquisition information.
     """
     dir_ = DIR_CONVERTER[metadata['PhaseEncodingDirection']]
     n_slices, vs_str, ms_str, fov_str = get_sizestr(img)
@@ -376,7 +432,7 @@ def fmap_info(metadata, img, task_dict, subj_dir):
 
     if 'IntendedFor' in metadata.keys():
         scans = metadata['IntendedFor']
-        scans = [join(subj_dir, scan) for scan in scans]
+        #scans = [join(subj_dir, scan) for scan in scans]
         run_dict = {}
         for scan in scans:
             fn = basename(scan)
@@ -386,7 +442,8 @@ def fmap_info(metadata, img, task_dict, subj_dir):
             ty = type_search.groups()[0].upper()
             if ty == 'BOLD':
                 task_search = re.search(r'.*_task-([a-z0-9]+).*', fn)
-                task = task_dict[task_search.groups()[0]]
+                task = task_dict.get(task_search.groups()[0],
+                                     task_search.groups()[0])
                 ty_str = '{0} {1} scan'.format(task, ty)
             else:
                 ty_str = '{0} scan'.format(ty)
@@ -414,7 +471,7 @@ def fmap_info(metadata, img, task_dict, subj_dir):
         for_str = ''
 
     desc = '''
-           A {variants} {seqs} field map (Phase encoding:
+           A {variants} {seqs} field map (phase encoding:
            {dir_}; {n_slices} slices; repetition time, TR={tr}ms;
            echo time, TE={te}ms; flip angle, FA={fa}<deg>;
            field of view, FOV={fov}mm; matrix size={ms};
@@ -463,3 +520,69 @@ def final_paragraph(metadata):
         desc = desc.replace('  ', ' ')
 
     return desc
+
+
+def report(bids_dir, subj, ses, task_converter=None):
+    """Write a report.
+
+    Parameters
+    ----------
+    bids_dir : str
+        Path to BIDS dataset.
+    subj : str
+        Subject ID.
+    ses : str
+        Session number.
+    task_converter : dict, optional
+        A dictionary converting task names as they appear in BIDS filenames to
+        task names as the user would like them to appear in the report.
+        Example: {'emotionalnback': 'emotional n-back task'}
+
+    Returns
+    -------
+    description : str
+        A publication-ready report of the dataset's data acquisition
+        information. Each scan type is given its own paragraph.
+    """
+    if task_converter is None:
+        task_converter = {}
+    layout = BIDSLayout(bids_dir)
+
+    # Remove potential trailing slash with abspath
+    subj_dir = abspath(join(bids_dir, subj))
+
+    # Get json files for scan metadata
+    jsons = layout.get(subject=subj, session=ses, extensions='json')
+
+    description_list = []
+    for json_struct in jsons:
+        json_file = json_struct.filename
+        nii_file = splitext(json_file)[0] + '.nii.gz'
+        with open(json_file, 'r') as file_object:
+            json_data = json.load(file_object)
+        img = nib.load(nii_file)
+
+        # Assume all data were acquired the same way.
+        if not description_list:
+            description_list.append(general_acquisition_info(json_data))
+
+        if json_struct.modality == 'func':
+            task = task_converter.get(json_struct.task, json_struct.task)
+            n_runs = len(layout.get(subject=subj, session=ses,
+                                    extensions='json', task=json_struct.task))
+            description_list.append(func_info(task, n_runs, json_data, img))
+        elif json_struct.modality == 'anat':
+            type_ = json_struct.type[:-1]
+            description_list.append(anat_info(type_, json_data, img))
+        elif json_struct.modality == 'dwi':
+            bval_file = splitext(json_file)[0] + '.bval'
+            description_list.append(dwi_info(bval_file, json_data, img))
+        elif json_struct.modality == 'fmap':
+            description_list.append(fmap_info(json_data, img,
+                                                    task_converter, subj_dir))
+
+    # Assume all data were converted the same way.
+    description_list.append(final_paragraph(json_data))
+    description_list = remove_duplicates(description_list)
+    description = '\n\n'.join(description_list)
+    return description
