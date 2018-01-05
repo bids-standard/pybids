@@ -552,7 +552,10 @@ def report(bids_dir, subj, ses, task_converter=None):
     subj_dir = abspath(join(bids_dir, subj))
 
     # Get json files for scan metadata
-    jsons = layout.get(subject=subj, session=ses, extensions='json')
+    if ses:
+        jsons = layout.get(subject=subj, session=ses, extensions='json')
+    else:
+        jsons = layout.get(subject=subj, extensions='json')
 
     description_list = []
     for json_struct in jsons:
@@ -568,8 +571,12 @@ def report(bids_dir, subj, ses, task_converter=None):
 
         if json_struct.modality == 'func':
             task = task_converter.get(json_struct.task, json_struct.task)
-            n_runs = len(layout.get(subject=subj, session=ses,
-                                    extensions='json', task=json_struct.task))
+            if ses:
+                n_runs = len(layout.get(subject=subj, session=ses,
+                                        extensions='json', task=json_struct.task))
+            else:
+                n_runs = len(layout.get(subject=subj,
+                                        extensions='json', task=json_struct.task))
             description_list.append(func_info(task, n_runs, json_data, img))
         elif json_struct.modality == 'anat':
             type_ = json_struct.type[:-1]
@@ -579,7 +586,7 @@ def report(bids_dir, subj, ses, task_converter=None):
             description_list.append(dwi_info(bval_file, json_data, img))
         elif json_struct.modality == 'fmap':
             description_list.append(fmap_info(json_data, img,
-                                                    task_converter, subj_dir))
+                                              task_converter, subj_dir))
 
     # Assume all data were converted the same way.
     description_list.append(final_paragraph(json_data))

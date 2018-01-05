@@ -20,10 +20,17 @@ class BIDSReport(object):
             task_converter = {}
         descriptions = []
         sessions = self.layout.get_sessions()
-        for ses in sessions:
-            subjs = self.layout.get_subjects(session=ses)
+        if sessions:
+            for ses in sessions:
+                subjs = self.layout.get_subjects(session=ses)
+                for sid in subjs:
+                    description = utils.report(self.layout, subj=sid, ses=ses,
+                                               task_converter=task_converter)
+                    descriptions.append(description)
+        else:
+            subjs = self.layout.get_subjects()
             for sid in subjs:
-                description = utils.report(self.layout, subj=sid, ses=ses,
+                description = utils.report(self.layout, subj=sid, ses=None,
                                            task_converter=task_converter)
                 descriptions.append(description)
         counter = Counter(descriptions)
