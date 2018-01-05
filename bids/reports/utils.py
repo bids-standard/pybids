@@ -403,7 +403,7 @@ def dwi_info(bval_file, metadata, img):
     return desc
 
 
-def fmap_info(metadata, img, task_dict, subj_dir):
+def fmap_info(metadata, img, task_dict):
     """
     Generate a paragraph describing field map acquisition information.
 
@@ -522,7 +522,7 @@ def final_paragraph(metadata):
     return desc
 
 
-def report(bids_dir, subj, ses, task_converter=None):
+def report(layout, subj, ses, task_converter=None):
     """Write a report.
 
     Parameters
@@ -546,10 +546,10 @@ def report(bids_dir, subj, ses, task_converter=None):
     """
     if task_converter is None:
         task_converter = {}
-    layout = BIDSLayout(bids_dir)
+    #layout = BIDSLayout(bids_dir)
 
     # Remove potential trailing slash with abspath
-    subj_dir = abspath(join(bids_dir, subj))
+    #subj_dir = abspath(join(bids_dir, subj))
 
     # Get json files for scan metadata
     if ses:
@@ -586,7 +586,7 @@ def report(bids_dir, subj, ses, task_converter=None):
             description_list.append(dwi_info(bval_file, json_data, img))
         elif json_struct.modality == 'fmap':
             description_list.append(fmap_info(json_data, img,
-                                              task_converter, subj_dir))
+                                              task_converter))
 
     # Assume all data were converted the same way.
     description_list.append(final_paragraph(json_data))
