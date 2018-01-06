@@ -1,19 +1,18 @@
 """Generate publication-quality data acquisition methods section from BIDS dataset.
-"""
-"""
+
 Utilities to generate the MRI data acquisition portion of a
 methods section from a BIDS dataset.
 """
+from __future__ import print_function
 import re
 import json
 from collections import Counter
-from os.path import join, abspath, basename, splitext
+from os.path import basename, splitext
 
 import numpy as np
 import nibabel as nib
 from num2words import num2words
 
-from bids.grabbids import BIDSLayout
 from bids.version import __version__
 
 # TODO: Determine if directions are correct
@@ -155,10 +154,10 @@ def get_seqstr(metadata):
     variants : :obj:`str`
         Sequence variant names.
     """
-    seq_abbrs = metadata['ScanningSequence'].split('_')
-    seqs = [SEQ_CONVERTER[seq] for seq in seq_abbrs]
-    variants = [SEQVAR_CONVERTER[var] for var in \
-                metadata['SequenceVariant'].split('_')]
+    seq_abbrs = metadata.get('ScanningSequence', 'UNKNOWN SEQUENCE').split('_')
+    seqs = [SEQ_CONVERTER.get(seq, seq) for seq in seq_abbrs]
+    variants = [SEQVAR_CONVERTER.get(var, var) for var in \
+                metadata.get('SequenceVariant', 'UNKNOWN VARIANT').split('_')]
     seqs = list_to_str(seqs)
     seqs += ' ({0})'.format('/'.join(seq_abbrs))
     variants = list_to_str(variants)
@@ -278,7 +277,7 @@ def func_info(task, n_runs, metadata, img):
                       n_vols=n_tps,
                       mb_str=mb_str
                      )
-    desc = desc.replace('\n', ' ')
+    desc = desc.replace('\n', ' ').lstrip()
     while '  ' in desc:
         desc = desc.replace('  ', ' ')
 
@@ -323,7 +322,7 @@ def anat_info(type_, metadata, img):
                       fov=fov_str,
                       ms=ms_str,
                      )
-    desc = desc.replace('\n', ' ')
+    desc = desc.replace('\n', ' ').lstrip()
     while '  ' in desc:
         desc = desc.replace('  ', ' ')
 
@@ -396,7 +395,7 @@ def dwi_info(bval_file, metadata, img):
                       n_vecs=n_vecs,
                       mb_str=mb_str
                      )
-    desc = desc.replace('\n', ' ')
+    desc = desc.replace('\n', ' ').lstrip()
     while '  ' in desc:
         desc = desc.replace('  ', ' ')
 
@@ -484,7 +483,7 @@ def fmap_info(metadata, img, task_dict):
                       vs=vs_str,
                       fov=fov_str,
                       ms=ms_str)
-    desc = desc.replace('\n', ' ')
+    desc = desc.replace('\n', ' ').lstrip()
     while '  ' in desc:
         desc = desc.replace('  ', ' ')
 
@@ -505,14 +504,18 @@ def final_paragraph(metadata):
     out_str : :obj:`str`
         Output string with scanner information.
     """
+    if 'ConversionSoftware' in metadata.keys():
+        software_str = ' using {soft} ({conv_vers})'.format(soft=metadata['ConversionSoftware'],
+                                                            conv_vers=metadata['ConversionSoftwareVersion'])
+    else:
+        software_str = ''
     desc = '''
-           Dicoms were converted to NIfTI-1 format using {soft}
-           ({conv_vers}). This section was (in part) generated
+           Dicoms were converted to NIfTI-1 format{software_str}.
+           This section was (in part) generated
            automatically using pybids ({meth_vers}).
-           '''.format(soft=metadata['ConversionSoftware'],
-                      conv_vers=metadata['ConversionSoftwareVersion'],
+           '''.format(software_str=software_str,
                       meth_vers=__version__)
-    desc = desc.replace('\n', ' ')
+    desc = desc.replace('\n', ' ').lstrip()
     while '  ' in desc:
         desc = desc.replace('  ', ' ')
 
@@ -562,32 +565,34 @@ def report(layout, subj, ses, task_converter=None):
         nii_file = nifti_struct.filename
         json_struct = layout.get_nearest(nii_file, 'json')
         json_file = json_struct.filename
+        if not json_file.endswith('json'):
+            print('No json file found for {0}'.format(nii_file))
+        else:
+            with open(json_file, 'r') as file_object:
+                json_data = json.load(file_object)
+            img = nib.load(nii_file)
 
-        with open(json_file, 'r') as file_object:
-            json_data = json.load(file_object)
-        img = nib.load(nii_file)
+            # Assume all data were acquired the same way.
+            if not description_list:
+                description_list.append(general_acquisition_info(json_data))
 
-        # Assume all data were acquired the same way.
-        if not description_list:
-            description_list.append(general_acquisition_info(json_data))
-
-        if json_struct.modality == 'func':
-            task = task_converter.get(json_struct.task, json_struct.task)
-            if ses:
-                n_runs = len(layout.get(subject=subj, session=ses,
-                                        extensions='json', task=json_struct.task))
-            else:
-                n_runs = len(layout.get(subject=subj, extensions='json',
-                                        task=json_struct.task))
-            description_list.append(func_info(task, n_runs, json_data, img))
-        elif json_struct.modality == 'anat':
-            type_ = json_struct.type[:-1]
-            description_list.append(anat_info(type_, json_data, img))
-        elif json_struct.modality == 'dwi':
-            bval_file = splitext(json_file)[0] + '.bval'
-            description_list.append(dwi_info(bval_file, json_data, img))
-        elif json_struct.modality == 'fmap':
-            description_list.append(fmap_info(json_data, img, task_converter))
+            if json_struct.modality == 'func':
+                task = task_converter.get(json_struct.task, json_struct.task)
+                if ses:
+                    n_runs = len(layout.get(subject=subj, session=ses,
+                                            extensions='json', task=json_struct.task))
+                else:
+                    n_runs = len(layout.get(subject=subj, extensions='json',
+                                            task=json_struct.task))
+                description_list.append(func_info(task, n_runs, json_data, img))
+            elif json_struct.modality == 'anat':
+                type_ = json_struct.type[:-1]
+                description_list.append(anat_info(type_, json_data, img))
+            elif json_struct.modality == 'dwi':
+                bval_file = splitext(json_file)[0] + '.bval'
+                description_list.append(dwi_info(bval_file, json_data, img))
+            elif json_struct.modality == 'fmap':
+                description_list.append(fmap_info(json_data, img, task_converter))
 
     # Assume all data were converted the same way.
     description_list.append(final_paragraph(json_data))
