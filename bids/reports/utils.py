@@ -253,15 +253,20 @@ def func_info(task, n_runs, metadata, img):
     mins, secs = divmod(run_secs, 60)
     length = '{0}:{1:02.0f}'.format(int(mins), int(secs))
 
+    if n_runs == 1:
+        run_str = '{0} run'.format(num2words(n_runs).title())
+    else:
+        run_str = '{0} runs'.format(num2words(n_runs).title())
+
     desc = '''
-           {n_runs} runs of {task} {variants} {seqs} fMRI data were collected
+           {run_str} of {task} {variants} {seqs} fMRI data were collected
            ({n_slices} slices in {so} order; repetition time, TR={tr}ms;
            echo time, TE={te}ms; flip angle, FA={fa}<deg>;
            field of view, FOV={fov}mm; matrix size={ms};
            voxel size={vs}mm{mb_str}).
            Each run was {length} minutes in length, during which
            {n_vols} functional volumes were acquired.
-           '''.format(n_runs=num2words(n_runs).title(),
+           '''.format(run_str=run_str,
                       task=task,
                       variants=variants,
                       seqs=seqs,
@@ -563,39 +568,39 @@ def report(layout, subj, ses, task_converter=None):
     description_list = []
     for nifti_struct in niftis:
         nii_file = nifti_struct.filename
-        json_struct = layout.get_nearest(nii_file, 'json')
-        json_file = json_struct.filename
-        if not json_file.endswith('json'):
+        metadata = layout.get_metadata(nii_file)
+        if not metadata:
             print('No json file found for {0}'.format(nii_file))
         else:
-            with open(json_file, 'r') as file_object:
-                json_data = json.load(file_object)
             img = nib.load(nii_file)
 
             # Assume all data were acquired the same way.
             if not description_list:
-                description_list.append(general_acquisition_info(json_data))
+                description_list.append(general_acquisition_info(metadata))
 
-            if json_struct.modality == 'func':
-                task = task_converter.get(json_struct.task, json_struct.task)
+            if nifti_struct.modality == 'func':
+                task = task_converter.get(nifti_struct.task, nifti_struct.task)
                 if ses:
                     n_runs = len(layout.get(subject=subj, session=ses,
-                                            extensions='json', task=json_struct.task))
+                                            extensions='nii.gz', task=nifti_struct.task))
                 else:
-                    n_runs = len(layout.get(subject=subj, extensions='json',
-                                            task=json_struct.task))
-                description_list.append(func_info(task, n_runs, json_data, img))
-            elif json_struct.modality == 'anat':
-                type_ = json_struct.type[:-1]
-                description_list.append(anat_info(type_, json_data, img))
-            elif json_struct.modality == 'dwi':
-                bval_file = splitext(json_file)[0] + '.bval'
-                description_list.append(dwi_info(bval_file, json_data, img))
-            elif json_struct.modality == 'fmap':
-                description_list.append(fmap_info(json_data, img, task_converter))
+                    n_runs = len(layout.get(subject=subj, extensions='nii.gz',
+                                            task=nifti_struct.task))
+                description_list.append(func_info(task, n_runs, metadata, img))
+            elif nifti_struct.modality == 'anat':
+                type_ = nifti_struct.type[:-1]
+                description_list.append(anat_info(type_, metadata, img))
+            elif nifti_struct.modality == 'dwi':
+                bval_file = nii_file.replace('.nii.gz', '.bval')
+                description_list.append(dwi_info(bval_file, metadata, img))
+            elif nifti_struct.modality == 'fmap':
+                description_list.append(fmap_info(metadata, img, task_converter))
 
     # Assume all data were converted the same way.
-    description_list.append(final_paragraph(json_data))
+    if 'metadata' not in vars():
+        raise Exception('No valid jsons found. Cannot generate final paragraph.')
+
+    description_list.append(final_paragraph(metadata))
     description_list = remove_duplicates(description_list)
     description = '\n\n'.join(description_list)
     return description
