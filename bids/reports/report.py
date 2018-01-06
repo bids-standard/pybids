@@ -1,5 +1,6 @@
 """Generate publication-quality data acquisition methods section from BIDS dataset.
 """
+from __future__ import print_function
 from collections import Counter
 
 from bids.reports import utils
