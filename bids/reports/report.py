@@ -36,4 +36,6 @@ class BIDSReport(object):
                 descriptions.append(description)
         counter = Counter(descriptions)
         print('Number of patterns detected: {0}'.format(len(counter.keys())))
+        print(utils.warnings())
+        print('')
         return counter
