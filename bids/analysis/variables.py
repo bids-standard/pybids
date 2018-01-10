@@ -1025,7 +1025,7 @@ class BIDSEventVariableCollection(BIDSVariableCollection):
         Returns: A pandas DataFrame.
         '''
 
-        if sparse and self._none_dense:
+        if sparse and self._none_dense():
             return super(BIDSEventVariableCollection,
                          self).merge_columns(columns)
 
