@@ -1,5 +1,6 @@
 import json
-from bids.grabbids import BIDSLayout
+from ..grabbids import BIDSLayout
+from ..utils import listify
 from .variables import (load_variables, SimpleColumn, BIDSVariableCollection,
                         merge_collections)
 from . import transform
@@ -33,8 +34,17 @@ class Analysis(object):
         self.variables = variables
         self.selectors = selectors
 
-        if not isinstance(layout, BIDSLayout):
-            layout = BIDSLayout(layout)
+        layouts = listify(layout)
+        layout = layouts[0] if isinstance(layouts[0], BIDSLayout) else BIDSLayout(layouts[0])
+
+        for l in layouts[1:]:
+            layout.files.update(l.files)
+            for k, v in l.entities.items():
+                if k not in layout.entities:
+                    layout.entities[k] = v
+                else:
+                    layout.entities[k].files.update(v.files)
+
         self.layout = layout
 
         if isinstance(model, str):
