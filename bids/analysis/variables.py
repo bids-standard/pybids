@@ -123,15 +123,13 @@ def load_event_variables(layout, entities=None, columns=None, scan_length=None,
                        "available, or manually specify the scan duration.")
                     raise ValueError(msg)
 
-        f_ents = None
+        f_ents = get_entities(img_f)
         save_run = False
 
         # Process event files
         if extract_events:
             evf = layout.get_events(img_f)
             if evf:
-                if f_ents is None:
-                    f_ents = get_entities(img_f)
                 _data = pd.read_table(evf, sep='\t')
                 _data = _data.replace('n/a', np.nan)  # Replace BIDS' n/a
                 _data = _data.apply(pd.to_numeric, errors='ignore')
@@ -165,8 +163,6 @@ def load_event_variables(layout, entities=None, columns=None, scan_length=None,
             rec_files = layout.get_nearest(img_f, extensions='.tsv.gz',
                                            all_=True, type=['physio', 'stim'],
                                            ignore_strict_entities=['type'])
-            if rec_files and f_ents is None:
-                f_ents = get_entities(img_f)
             for rf in rec_files:
                 metadata = layout.get_metadata(rf)
                 if not metadata:
