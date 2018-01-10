@@ -616,7 +616,7 @@ class SimpleColumn(BIDSColumn):
 
         subsets = []
         for i, (name, g) in enumerate(data.groupby(grouper)):
-            name = '%s/%s' % (self.name, name)
+            name = '%s.%s' % (name, self.name)
             col = self.__class__(self.collection, name, g, level_name=name,
                                  factor_name=self.name, level_index=i)
             subsets.append(col)
