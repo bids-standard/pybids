@@ -20,6 +20,7 @@ BASE_ENTITIES = ['subject', 'session', 'task', 'run']
 def load_event_variables(layout, entities=None, columns=None, scan_length=None,
                          sampling_rate=10, drop_na=True, extract_events=True,
                          extract_recordings=True, interp_method='linear',
+                         extract_confounds=True,
                          **selectors):
     ''' Loads all variables found in *_events.tsv files and returns them as a
     BIDSVariableCollection.
@@ -88,6 +89,7 @@ def load_event_variables(layout, entities=None, columns=None, scan_length=None,
     # Initialize counters/storage vars
     run_start_time = 0
     event_dfs = []
+    confound_dfs = []
     rec_dfs = []
 
     # Initialize collection
@@ -156,6 +158,20 @@ def load_event_variables(layout, entities=None, columns=None, scan_length=None,
                     _df[entity] = value
 
                 event_dfs.append(_df)
+                save_run = True
+
+        if extract_confounds:
+            sub_ents = {k: v for k, v in f_ents.items()
+                        if k not in ('type', 'unique_run_id')}
+            confound_files = layout.get(type='confounds', **sub_ents)
+            for cf in confound_files:
+                _data = pd.read_csv(cf.filename, sep='\t', na_values='n/a')
+                if columns is not None:
+                    conf_cols = list(set(_data.columns) & set(columns))
+                    _data = _data.loc[:, conf_cols]
+                if len(_data.columns) == 0:
+                    continue
+                confound_dfs.append(_data)
                 save_run = True
 
         # Process recording files
@@ -239,6 +255,12 @@ def load_event_variables(layout, entities=None, columns=None, scan_length=None,
                 _, condition = name[0], name[1]
                 col = SparseEventColumn(collection, condition, data)
                 collection[condition] = col
+
+        if extract_confounds and confound_dfs:
+            _df = pd.concat(confound_dfs, axis=0).reset_index(drop=True)
+            for col_name in _df.columns:
+                col = DenseEventColumn(collection, col_name, _df[[col_name]])
+                collection[col_name] = col
 
         if extract_recordings and rec_dfs:
             _df = pd.concat(rec_dfs, axis=0).reset_index(drop=True)
