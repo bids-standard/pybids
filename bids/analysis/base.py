@@ -1,7 +1,5 @@
 import json
-from grabbit import merge_layouts
-from ..grabbids import BIDSLayout
-from ..utils import listify
+from bids.grabbids import BIDSLayout
 from .variables import (load_variables, SimpleColumn, BIDSVariableCollection,
                         merge_collections)
 from . import transform
@@ -35,9 +33,9 @@ class Analysis(object):
         self.variables = variables
         self.selectors = selectors
 
-        self.layout = merge_layouts(
-            [l if isinstance(l, BIDSLayout) else BIDSLayout(l)
-             for l in listify(layout)])
+        if not isinstance(layout, BIDSLayout):
+            layout = BIDSLayout(layout)
+        self.layout = layout
 
         if isinstance(model, str):
             model = json.load(open(model))
