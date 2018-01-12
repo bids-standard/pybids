@@ -5,42 +5,13 @@ methods section from a BIDS dataset.
 """
 from __future__ import print_function
 import re
-import json
-from collections import Counter
-from os.path import basename, splitext
+from os.path import basename
 
 import numpy as np
 import nibabel as nib
 from num2words import num2words
 
 from bids.version import __version__
-
-# TODO: Determine if directions are correct
-DIR_CONVERTER = {'i': 'left to right',
-                 'i-': 'right to left',
-                 'j': 'posterior to anterior',
-                 'j-': 'anterior to posterior',
-                 'k': 'inferior to superior',
-                 'k-': 'superior to inferior'}
-
-# TODO: Determine how to report Scanning Sequence
-# TODO: Determine if this list is comprehensive/universal
-SEQ_CONVERTER = {'SE': 'spin echo',
-                 'IR': 'inversion recovery',
-                 'GR': 'gradient recalled',
-                 'EP': 'echo planar',
-                 'RM': 'research mode'}
-
-# TODO: Determine how to report Sequence Variant
-# TODO: Determine if this list is comprehensive/universal
-SEQVAR_CONVERTER = {'SK': 'segmented k-space',
-                    'MTC': 'magnetization transfer contrast',
-                    'SS': 'steady state',
-                    'TRSS': 'time reversed steady state',
-                    'SP': 'spoiled',
-                    'MP': 'MAG prepared',
-                    'OSP': 'oversampling phase',
-                    'NONE': 'no sequence variant'}
 
 
 def warnings():
@@ -96,7 +67,7 @@ def list_to_str(lst):
 
 def get_slice_info(slice_times):
     """
-    Extract slice order and multiband information from slice timing info.
+    Extract slice order from slice timing info.
 
     TODO: Be more specific with slice orders.
     Currently anything where there's some kind of skipping is interpreted as
@@ -109,15 +80,9 @@ def get_slice_info(slice_times):
 
     Returns
     -------
-    multiband_factor : :obj:`int`
-        The multiband factor.
     slice_order_name : :obj:`str`
         The name of the slice order sequence.
     """
-    # Multiband factor is number of duplicate slice times.
-    counter = Counter(slice_times)
-    multiband_factor = max(counter.values())
-
     # Slice order
     slice_times = remove_duplicates(slice_times)
     slice_order = sorted(range(len(slice_times)), key=lambda k: slice_times[k])
@@ -134,16 +99,19 @@ def get_slice_info(slice_times):
         slice_order = [str(s) for s in slice_order]
         raise Exception('Unknown slice order: [{0}]'.format(', '.join(slice_order)))
 
-    return multiband_factor, slice_order_name
+    return slice_order_name
 
 
-def get_seqstr(metadata):
+def get_seqstr(config, metadata):
     """
     Extract and reformat imaging sequence(s) and variant(s) into pretty
     strings.
 
     Parameters
     ----------
+    config : :obj:`dict`
+        A dictionary with relevant information regarding sequences, sequence
+        variants, phase encoding directions, and task names.
     metadata : :obj:`dict`
         The metadata for the scan.
 
@@ -154,12 +122,13 @@ def get_seqstr(metadata):
     variants : :obj:`str`
         Sequence variant names.
     """
-    seq_abbrs = metadata.get('ScanningSequence', 'UNKNOWN SEQUENCE').split('_')
-    seqs = [SEQ_CONVERTER.get(seq, seq) for seq in seq_abbrs]
-    variants = [SEQVAR_CONVERTER.get(var, var) for var in \
-                metadata.get('SequenceVariant', 'UNKNOWN VARIANT').split('_')]
+    seq_abbrs = metadata.get('ScanningSequence', '').split('_')
+    seqs = [config['seq'].get(seq, seq) for seq in seq_abbrs]
+    variants = [config['seqvar'].get(var, var) for var in \
+                metadata.get('SequenceVariant', '').split('_')]
     seqs = list_to_str(seqs)
-    seqs += ' ({0})'.format('/'.join(seq_abbrs))
+    if seq_abbrs[0]:
+        seqs += ' ({0})'.format('/'.join(seq_abbrs))
     variants = list_to_str(variants)
     return seqs, variants
 
@@ -186,11 +155,11 @@ def get_sizestr(img):
         Field of view string (e.g., '256x256')
     """
     n_x, n_y, n_slices = img.shape[:3]
-    voxel_dims = abs(img.affine.diagonal()[:-1])
+    voxel_dims = np.array(img.get_header().get_zooms()[:3])
     matrix_size = '{0}x{1}'.format(num_to_str(n_x), num_to_str(n_y))
     voxel_size = 'x'.join([num_to_str(s) for s in voxel_dims])
     fov = [n_x, n_y] * voxel_dims[:2]
-    fov = 'x'.join([str(int(s)) for s in fov])
+    fov = 'x'.join([num_to_str(s) for s in fov])
     return n_slices, voxel_size, matrix_size, fov
 
 
@@ -217,7 +186,7 @@ def general_acquisition_info(metadata):
     return out_str
 
 
-def func_info(task, n_runs, metadata, img):
+def func_info(task, n_runs, metadata, img, config):
     """
     Generate a paragraph describing T2*-weighted functional scans.
 
@@ -231,20 +200,21 @@ def func_info(task, n_runs, metadata, img):
         The metadata for the scan from the json associated with the scan.
     img : :obj:`nibabel.Nifti1Image`
         Image corresponding to one of the runs.
+    config : :obj:`dict`
+        A dictionary with relevant information regarding sequences, sequence
+        variants, phase encoding directions, and task names.
 
     Returns
     -------
     desc : :obj:`str`
         A description of the scan's acquisition information.
     """
-    st = metadata['SliceTiming']
-    mb, so = get_slice_info(st)
-    if mb > 1:
-        mb_str = '; MB factor={0}'.format(mb)
+    if metadata.get('MultibandAccelerationFactor', 1) > 1:
+        mb_str = '; MB factor={0}'.format(metadata['MultibandAccelerationFactor'])
     else:
         mb_str = ''
 
-    seqs, variants = get_seqstr(metadata)
+    seqs, variants = get_seqstr(config, metadata)
     n_slices, vs_str, ms_str, fov_str = get_sizestr(img)
 
     tr = metadata['RepetitionTime']
@@ -271,7 +241,7 @@ def func_info(task, n_runs, metadata, img):
                       variants=variants,
                       seqs=seqs,
                       n_slices=n_slices,
-                      so=so,
+                      so=get_slice_info(metadata['SliceTiming']),
                       tr=num_to_str(tr*1000),
                       te=num_to_str(metadata['EchoTime']*1000),
                       fa=metadata['FlipAngle'],
@@ -289,7 +259,7 @@ def func_info(task, n_runs, metadata, img):
     return desc
 
 
-def anat_info(type_, metadata, img):
+def anat_info(type_, metadata, img, config):
     """
     Generate a paragraph describing T1- and T2-weighted structural scans.
 
@@ -302,6 +272,9 @@ def anat_info(type_, metadata, img):
         form.
     img : :obj:`nibabel.Nifti1Image`
         The nifti image of the scan.
+    config : :obj:`dict`
+        A dictionary with relevant information regarding sequences, sequence
+        variants, phase encoding directions, and task names.
 
     Returns
     -------
@@ -309,10 +282,10 @@ def anat_info(type_, metadata, img):
         A description of the scan's acquisition information.
     """
     n_slices, vs_str, ms_str, fov_str = get_sizestr(img)
-    seqs, variants = get_seqstr(metadata)
+    seqs, variants = get_seqstr(config, metadata)
 
     desc = '''
-           {type_}-weighted {variants} {seqs} structural MRI data were collected
+           {type_} {variants} {seqs} structural MRI data were collected
            ({n_slices} slices; repetition time, TR={tr}ms;
            echo time, TE={te}ms; flip angle, FA={fa}<deg>;
            field of view, FOV={fov}mm; matrix size={ms}; voxel size={vs}mm).
@@ -334,7 +307,7 @@ def anat_info(type_, metadata, img):
     return desc
 
 
-def dwi_info(bval_file, metadata, img):
+def dwi_info(bval_file, metadata, img, config):
     """
     Generate a paragraph describing DWI scan acquisition information.
 
@@ -347,6 +320,9 @@ def dwi_info(bval_file, metadata, img):
         form.
     img : :obj:`nibabel.Nifti1Image`
         The nifti image of the DWI scan.
+    config : :obj:`dict`
+        A dictionary with relevant information regarding sequences, sequence
+        variants, phase encoding directions, and task names.
 
     Returns
     -------
@@ -367,16 +343,14 @@ def dwi_info(bval_file, metadata, img):
         bval_str = ', '.join(bvals[:-1])
         bval_str += ', and {0}'.format(bvals[-1])
 
-    st = metadata['SliceTiming']
-    mb, so = get_slice_info(st)
-    if mb > 1:
-        mb_str = '; MB factor={0}'.format(mb)
+    if metadata.get('MultibandAccelerationFactor', 1) > 1:
+        mb_str = '; MB factor={0}'.format(metadata['MultibandAccelerationFactor'])
     else:
         mb_str = ''
 
     n_slices, vs_str, ms_str, fov_str = get_sizestr(img)
     n_vecs = img.shape[3]
-    seqs, variants = get_seqstr(metadata)
+    seqs, variants = get_seqstr(config, metadata)
     variants = variants[0].upper() + variants[1:]  # variants starts sentence
 
     desc = '''
@@ -389,7 +363,7 @@ def dwi_info(bval_file, metadata, img):
            '''.format(variants=variants,
                       seqs=seqs,
                       n_slices=n_slices,
-                      so=so,
+                      so=get_slice_info(metadata['SliceTiming']),
                       tr=num_to_str(metadata['RepetitionTime']*1000),
                       te=num_to_str(metadata['EchoTime']*1000),
                       fa=metadata['FlipAngle'],
@@ -407,7 +381,7 @@ def dwi_info(bval_file, metadata, img):
     return desc
 
 
-def fmap_info(metadata, img, task_dict):
+def fmap_info(metadata, img, config):
     """
     Generate a paragraph describing field map acquisition information.
 
@@ -418,19 +392,18 @@ def fmap_info(metadata, img, task_dict):
         form.
     img : :obj:`nibabel.Nifti1Image`
         The nifti image of the field map.
-    task_dict : :obj:`dict`
-        A dictionary converting task names as they appear in BIDS filenames to
-        task names as the user would like them to appear in the report.
-        Example: {'emotionalnback': 'emotional n-back task'}.
+    config : :obj:`dict`
+        A dictionary with relevant information regarding sequences, sequence
+        variants, phase encoding directions, and task names.
 
     Returns
     -------
     desc : :obj:`str`
         A description of the field map's acquisition information.
     """
-    dir_ = DIR_CONVERTER[metadata['PhaseEncodingDirection']]
+    dir_ = config['dir'][metadata['PhaseEncodingDirection']]
     n_slices, vs_str, ms_str, fov_str = get_sizestr(img)
-    seqs, variants = get_seqstr(metadata)
+    seqs, variants = get_seqstr(config, metadata)
 
     if 'IntendedFor' in metadata.keys():
         scans = metadata['IntendedFor']
@@ -443,8 +416,8 @@ def fmap_info(metadata, img, task_dict):
             ty = type_search.groups()[0].upper()
             if ty == 'BOLD':
                 task_search = re.search(r'.*_task-([a-z0-9]+).*', fn)
-                task = task_dict.get(task_search.groups()[0],
-                                     task_search.groups()[0])
+                task = config['task'].get(task_search.groups()[0],
+                                          task_search.groups()[0])
                 ty_str = '{0} {1} scan'.format(task, ty)
             else:
                 ty_str = '{0} scan'.format(ty)
@@ -527,45 +500,11 @@ def final_paragraph(metadata):
     return desc
 
 
-def report(layout, subj, ses, task_converter=None):
-    """Write a report.
-
-    Parameters
-    ----------
-    layout : :obj:`bids.grabbids.BIDSLayout`
-        Layout object for BIDS dataset.
-    subj : :obj:`str`
-        Subject ID.
-    ses : :obj:`str`
-        Session number.
-    task_converter : :obj:`dict`, optional
-        A dictionary converting task names as they appear in BIDS filenames to
-        task names as the user would like them to appear in the report.
-        Example: {'emotionalnback': 'emotional n-back task'}
-
-    Returns
-    -------
-    description : :obj:`str`
-        A publication-ready report of the dataset's data acquisition
-        information. Each scan type is given its own paragraph.
+def parse_niftis(layout, niftis, subj, ses, config):
     """
-    if task_converter is None:
-        task_converter = {}
-
-    # Get nifti files for subject's scans
-    if ses:
-        niftis = layout.get(subject=subj, session=ses, extensions='nii.gz')
-
-        if not niftis:
-            raise Exception('No nifti files found for subject {0} and session '
-                            '{1}'.format(subj, ses))
-    else:
-        niftis = layout.get(subject=subj, extensions='nii.gz')
-
-        if not niftis:
-            raise Exception('No nifti files found for subject {0}'.format(subj))
-
+    """
     description_list = []
+    skip_task = {}
     for nifti_struct in niftis:
         nii_file = nifti_struct.filename
         metadata = layout.get_metadata(nii_file)
@@ -579,28 +518,26 @@ def report(layout, subj, ses, task_converter=None):
                 description_list.append(general_acquisition_info(metadata))
 
             if nifti_struct.modality == 'func':
-                task = task_converter.get(nifti_struct.task, nifti_struct.task)
-                if ses:
-                    n_runs = len(layout.get(subject=subj, session=ses,
-                                            extensions='nii.gz', task=nifti_struct.task))
-                else:
-                    n_runs = len(layout.get(subject=subj, extensions='nii.gz',
-                                            task=nifti_struct.task))
-                description_list.append(func_info(task, n_runs, metadata, img))
+                task = config['task'].get(nifti_struct.task, nifti_struct.task+' task')
+                if not skip_task.get(task, False):
+                    if ses:
+                        n_runs = len(layout.get(subject=subj, session=ses,
+                                                extensions='nii.gz', task=nifti_struct.task))
+                    else:
+                        n_runs = len(layout.get(subject=subj, extensions='nii.gz',
+                                                task=nifti_struct.task))
+                    description_list.append(func_info(task, n_runs, metadata, img, config))
+                    skip_task[task] = True
+
             elif nifti_struct.modality == 'anat':
-                type_ = nifti_struct.type[:-1]
-                description_list.append(anat_info(type_, metadata, img))
+                type_ = nifti_struct.type
+                if type_.endswith('w'):
+                    type_ = type_[:-1] + '-weighted'
+                description_list.append(anat_info(type_, metadata, img, config))
             elif nifti_struct.modality == 'dwi':
                 bval_file = nii_file.replace('.nii.gz', '.bval')
-                description_list.append(dwi_info(bval_file, metadata, img))
+                description_list.append(dwi_info(bval_file, metadata, img, config))
             elif nifti_struct.modality == 'fmap':
-                description_list.append(fmap_info(metadata, img, task_converter))
+                description_list.append(fmap_info(metadata, img, config))
 
-    # Assume all data were converted the same way.
-    if 'metadata' not in vars():
-        raise Exception('No valid jsons found. Cannot generate final paragraph.')
-
-    description_list.append(final_paragraph(metadata))
-    description_list = remove_duplicates(description_list)
-    description = '\n\n'.join(description_list)
-    return description
+    return description_list
