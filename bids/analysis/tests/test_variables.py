@@ -136,7 +136,7 @@ def test_get_design_matrix(collection):
     dm = collection.get_design_matrix(columns=['RT', 'parametric gain'],
                                       groupby=['subject', 'run'],
                                       subject=subs)
-    assert set(dm['subject'].unique()) == set(sub_ids)
+    assert set(dm['subject'].unique()) == set(subs)
     cols = set(['amplitude', 'onset', 'duration', 'subject', 'run', 'task',
                 'condition', 'modality', 'type'])
     assert set(dm.columns) == cols

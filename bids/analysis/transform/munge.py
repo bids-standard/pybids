@@ -166,7 +166,7 @@ class factor(Transformation):
     _return_type = 'column'
     _allow_categorical = ('cols',)
 
-    def _transform(self, col, constraint='none', ref_level=None, sep='_'):
+    def _transform(self, col, constraint='none', ref_level=None, sep='.'):
 
         result = []
         data = col.to_df()

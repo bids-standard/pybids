@@ -634,7 +634,7 @@ class SimpleColumn(BIDSColumn):
 
         subsets = []
         for i, (name, g) in enumerate(data.groupby(grouper)):
-            name = '%s.%s' % (name, self.name)
+            name = '%s.%s' % (self.name, name)
             col = self.__class__(self.collection, name, g, level_name=name,
                                  factor_name=self.name, level_index=i)
             subsets.append(col)
@@ -707,7 +707,7 @@ class DenseEventColumn(BIDSColumn):
         '''
         df = grouper * self.values
         names = df.columns
-        return [DenseEventColumn(self.collection, '%s/%s' % (self.name, name),
+        return [DenseEventColumn(self.collection, '%s.%s' % (self.name, name),
                                  df[name].values)
                 for i, name in enumerate(names)]
 

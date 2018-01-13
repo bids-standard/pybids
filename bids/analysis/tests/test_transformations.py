@@ -49,6 +49,7 @@ def test_scale(collection):
 
 def test_orthogonalize_dense(collection):
     transform.factor(collection, 'trial_type', sep='/')
+    print(collection.columns.keys())
     pg_pre = collection['trial_type/parametric gain'].to_dense().values
     rt = collection['RT'].to_dense().values
     transform.orthogonalize(collection, cols='trial_type/parametric gain',
@@ -87,28 +88,28 @@ def test_split(collection):
 
     # Grouping SparseEventColumn by one column
     transform.split(collection, ['RT'], ['respcat'])
-    assert 'RT/0' in collection.columns.keys() and \
-           'RT/-1' in collection.columns.keys()
-    rt_post_onsets = np.r_[collection['RT/0'].onset,
-                           collection['RT/-1'].onset,
-                           collection['RT/1'].onset]
+    assert 'RT.0' in collection.columns.keys() and \
+           'RT.-1' in collection.columns.keys()
+    rt_post_onsets = np.r_[collection['RT.0'].onset,
+                           collection['RT.-1'].onset,
+                           collection['RT.1'].onset]
     assert np.array_equal(rt_pre_onsets.sort(), rt_post_onsets.sort())
 
     # Grouping SparseEventColumn by multiple columns
     transform.split(collection, cols=['RT_2'], by=['respcat', 'loss'])
-    assert 'RT_2/-1_13' in collection.columns.keys() and \
-           'RT_2/1_13' in collection.columns.keys()
+    assert 'RT_2.-1_13' in collection.columns.keys() and \
+           'RT_2.1_13' in collection.columns.keys()
 
     # Grouping by DenseEventColumn
     transform.split(collection, cols='RT_3', by='respcat')
-    assert 'RT_3/respcat[0]' in collection.columns.keys()
-    assert len(collection['RT_3/respcat[0]'].values) == \
+    assert 'RT_3.respcat[0]' in collection.columns.keys()
+    assert len(collection['RT_3.respcat[0]'].values) == \
         len(collection['RT_3'].values)
 
     # Grouping by entities in the index
     collection['RT_4'] = orig.clone(name='RT_4')
     transform.split(collection, cols=['RT_4'], by=['respcat', 'run'])
-    assert 'RT_4/-1_3' in collection.columns.keys()
+    assert 'RT_4.-1_3' in collection.columns.keys()
 
 
 def test_resample_dense(collection):
