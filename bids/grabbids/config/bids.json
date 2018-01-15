@@ -25,7 +25,7 @@
         },
         {
             "name": "task",
-            "pattern": "task-(.*?)(?:_+)"
+            "pattern": "task-([a-zA-Z0-9]+)"
         },
         {
             "name": "scans",
@@ -37,7 +37,11 @@
         },
         {
             "name": "acquisition",
-            "pattern": "acq-(.*?)(?:_+)"
+            "pattern": "acq-([a-zA-Z0-9]+)"
+        },
+        {
+            "name": "acq",
+            "pattern": "acq-([a-zA-Z0-9]+)"
         },
         {
             "name": "bval",
@@ -56,16 +60,16 @@
             "pattern": "[/\\\\](func|anat|fmap|dwi)[/\\\\]"
         },
         {
+            "name": "direction",
+            "pattern": "dir-([a-zA-Z0-9]+)"
+        },
+        {
             "name": "dir",
             "pattern": "dir-([a-zA-Z0-9]+)"
         },
         {
             "name": "recording",
             "pattern": "recording-([a-zA-Z0-9]+)"
-        },
-        {
-            "name": "acq",
-            "pattern": "acq-([a-zA-Z0-9]+)"
         }
     ]
 }
