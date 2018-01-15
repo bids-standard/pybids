@@ -15,6 +15,9 @@ from bids.version import __version__
 
 
 def warnings():
+    """
+    Remind users about things they need to do after generating the report.
+    """
     return('Remember to double-check everything and to replace <deg> with '
            'a degree symbol.')
 
@@ -31,6 +34,7 @@ def remove_duplicates(seq):
 
 def num_to_str(num):
     """
+    Convert an int or float to a nice string.
     E.g.,
         21 -> '21'
         2.500 -> '2.5'
@@ -40,7 +44,8 @@ def num_to_str(num):
 
 
 def list_to_str(lst):
-    """ Turn a list into a comma- and/or and-separated string.
+    """
+    Turn a list into a comma- and/or and-separated string.
 
     Parameters
     ----------
@@ -479,7 +484,7 @@ def final_paragraph(metadata):
 
     Returns
     -------
-    out_str : :obj:`str`
+    desc : :obj:`str`
         Output string with scanner information.
     """
     if 'ConversionSoftware' in metadata.keys():
@@ -502,6 +507,21 @@ def final_paragraph(metadata):
 
 def parse_niftis(layout, niftis, subj, ses, config):
     """
+    Loop through niftis in a BIDSLayout and generate the appropriate description
+    type for each scan. Compile all of the descriptions into a list.
+
+    Parameters
+    ----------
+    layout : :obj:`bids.grabbids.BIDSLayout`
+        Layout object for a BIDS dataset.
+    niftis : :obj:`list` or :obj:`grabbit.core.File`
+        List of nifti files in layout corresponding to subject/session combo.
+    subj : :obj:`str`
+        Subject ID.
+    ses : :obj:`str` or :obj:`None`
+        Session number. Can be None.
+    config : :obj:`dict`
+        Configuration info for methods generation.
     """
     description_list = []
     skip_task = {}
