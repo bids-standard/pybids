@@ -3,7 +3,7 @@ functionality should go in the grabbit package. """
 
 import pytest
 from bids.grabbids import BIDSLayout
-from os.path import join, dirname, abspath
+from os.path import join, dirname, abspath, basename
 
 
 # Fixture uses in the rest of the tests
@@ -18,6 +18,12 @@ def testlayout2():
     data_dir = join(dirname(__file__), 'data', 'ds005')
     return BIDSLayout(data_dir)
 
+@pytest.fixture
+def testmergedlayout():
+    data_dir = [join(dirname(__file__), 'data', 'ds005'),
+                join(dirname(__file__), 'data', 'ds005',
+                     'derivatives', 'events')]
+    return BIDSLayout(data_dir)
 
 @pytest.fixture
 def testlayout3():
@@ -67,13 +73,19 @@ def test_get_metadata5(testlayout1):
     assert result['acquisition'] == 'fullbrain'
 
 
-def test_get_events(testlayout2):
+def test_get_events(testmergedlayout):
     target = 'sub-01/func/sub-01_task-' \
-             'mixedgamblestask_run-03_bold.nii.gz'
-    result = testlayout2.get_events(join(testlayout2.root, target))
-    assert result == abspath(join(testlayout2.root,
-                                  target.replace('_bold.nii.gz',
-                                                 '_events.tsv')))
+             'mixedgamblestask_run-01_bold.nii.gz'
+    result = testmergedlayout.get_events(join(testmergedlayout.root, target))
+    assert len(result) == 2
+    expected1 = abspath(join(
+        testmergedlayout.root, target.replace('_bold.nii.gz', '_events.tsv')))
+    assert expected1 in result
+
+    expected2 = abspath(join(
+        testmergedlayout.root, 'derivatives/events/func/', basename(expected1)))
+
+    assert expected2 in result
 
 
 def test_get_events2(testlayout2):

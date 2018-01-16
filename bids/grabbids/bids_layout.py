@@ -140,7 +140,7 @@ class BIDSLayout(Layout):
 
         # TODO: Add event file merging
 
-        return events
+        return events or None
 
     def get_fieldmap(self, path, return_list=False):
         fieldmaps = self._get_fieldmaps(path)
