@@ -665,11 +665,13 @@ class SparseEventColumn(SimpleColumn):
 
     _property_columns = {'onset', 'duration'}
 
-    def to_dense(self):
+    def to_dense(self, sampling_rate=None):
         ''' Convert the current sparse column to a dense representation.
         Returns: A DenseEventColumn. '''
-        sampling_rate = self.collection.sampling_rate
-        duration = len(self.collection.dense_index)
+        if sampling_rate is None:
+            sampling_rate = self.collection.sampling_rate
+        duration = int(sampling_rate * len(self.collection.dense_index) /
+                       self.collection.sampling_rate)
         ts = np.zeros(duration)
 
         onsets = np.ceil(self.onset * sampling_rate).astype(int)
@@ -688,12 +690,30 @@ class SparseEventColumn(SimpleColumn):
 
 
 class DenseEventColumn(BIDSColumn):
-    ''' A dense representation of a single column. '''
+    ''' A dense representation of a single column.
+
+    Args:
+        collection (BIDSEventVariableCollection): The collection the
+            DenseEventColumn belongs to
+        name (str): The name of the column
+        values (NDArray): The values/amplitudes to store
+        sampling_rate (float): Optional sampling rate (in Hz) to use. Must
+            match the sampling rate used to generate the values. If None,
+            the collection's sampling rate will be used.
+    '''
+
+    def __init__(self, collection, name, values, sampling_rate=None):
+        if sampling_rate is None:
+            sampling_rate = collection.sampling_rate
+        self.sampling_rate = sampling_rate
+        super(DenseEventColumn, self).__init__(collection, name, values)
+        self._index = _build_dense_index(self.collection.run_infos,
+                                         sampling_rate)
 
     @property
     def index(self):
         ''' An index of all named entities. '''
-        return self.collection.dense_index
+        return self._index
 
     def split(self, grouper):
         ''' Split the current DenseEventColumn into multiple columns.
@@ -718,11 +738,44 @@ class DenseEventColumn(BIDSColumn):
             set(self.index.columns)
         groupby = list(groupby)
 
-        entities = self.index.loc[:, groupby].reset_index(drop=True)
+        entities = self._index.loc[:, groupby].reset_index(drop=True)
         values = pd.DataFrame({'amplitude': self.values.values.ravel()})
         data = pd.concat([values, entities], axis=1)
         data = data.groupby(groupby, as_index=False).agg(func)
         return SimpleColumn(self.collection, self.name, data)
+
+    def resample(self, sampling_rate, kind='linear'):
+        ''' Resample the column to the specified sampling rate.
+
+        Args:
+            sampling_rate (int, float): Target sampling rate (in Hz)
+            kind (str): Argument to pass to scipy's interp1d; indicates the
+                kind of interpolation approach to use. See interp1d docs for
+                valid values.
+        '''
+
+        if sampling_rate == self.sampling_rate:
+            return
+
+        # Use the collection's index if possible
+        if sampling_rate == self.collection.sampling_rate:
+            self._index = self.collection.index
+            return
+
+        old_sr = self.sampling_rate
+        n = len(self.index)
+
+        self._index = _build_dense_index(self.collection.run_infos,
+                                         sampling_rate)
+
+        x = np.arange(n)
+        num = int(np.ceil(n * sampling_rate / old_sr))
+
+        f = interp1d(x, self.values.values.ravel(), kind=kind)
+        x_new = np.linspace(0, n - 1, num=num)
+        self.values = pd.DataFrame(f(x_new))
+
+        self.sampling_rate = sampling_rate
 
 
 BIDSRunInfo = namedtuple('BIDSRunInfo', ('image_file', 'start', 'duration',
@@ -944,16 +997,8 @@ class BIDSEventVariableCollection(BIDSVariableCollection):
         if not self.run_infos:
             return
 
-        index = []
-        sr = int(1000. / self.sampling_rate)
-        for run in self.run_infos:
-            reps = int(math.ceil(run.duration * self.sampling_rate))
-            ent_vals = list(run.entities.values())
-            data = np.broadcast_to(ent_vals, (reps, len(ent_vals)))
-            df = pd.DataFrame(data, columns=list(run.entities.keys()))
-            df['time'] = pd.date_range(0, periods=len(df), freq='%sms' % sr)
-            index.append(df)
-        self.dense_index = pd.concat(index, axis=0).reset_index(drop=True)
+        self.dense_index = _build_dense_index(self.run_infos,
+                                              self.sampling_rate)
 
     def _none_dense(self):
         return all([isinstance(c, SimpleColumn)
@@ -1015,11 +1060,7 @@ class BIDSEventVariableCollection(BIDSVariableCollection):
                 if force_dense and is_numeric_dtype(col.values):
                     columns[name] = col.to_dense()
             else:
-                col = col.clone()
-                f = interp1d(x, col.values.values.ravel(), kind=kind)
-                x_new = np.linspace(0, n - 1, num=num)
-                col.values = pd.DataFrame(f(x_new))
-                columns[name] = col
+                col.resample(sampling_rate, kind)
 
         if in_place:
             for k, v in columns.items():
@@ -1119,3 +1160,17 @@ class BIDSEventVariableCollection(BIDSVariableCollection):
         return self._construct_design_matrix(data, groupby, aggregate,
                                              add_intercept, drop_entities,
                                              **kwargs)
+
+
+def _build_dense_index(run_infos, sampling_rate):
+    ''' Build an index of all tracked entities for all dense columns. '''
+    index = []
+    sr = int(1000. / sampling_rate)
+    for run in run_infos:
+        reps = int(math.ceil(run.duration * sampling_rate))
+        ent_vals = list(run.entities.values())
+        data = np.broadcast_to(ent_vals, (reps, len(ent_vals)))
+        df = pd.DataFrame(data, columns=list(run.entities.keys()))
+        df['time'] = pd.date_range(0, periods=len(df), freq='%sms' % sr)
+        index.append(df)
+    return pd.concat(index, axis=0).reset_index(drop=True)

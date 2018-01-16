@@ -32,6 +32,18 @@ def collection():
 #     load_event_variables(layout)
 
 
+def test_resample_dense_event_column(collection):
+    col = collection['RT'].to_dense()
+    col2 = col.clone()
+    sr = col.sampling_rate * 5
+    col2.resample(sr)
+    assert len(col.values) * 5 == len(col2.values)
+    assert col2.sampling_rate == 50
+    assert col.sampling_rate == 10
+    assert collection.sampling_rate == 10
+    assert len(col2.index) == len(collection.index) * 50 / 10
+
+
 def test_aggregate_column(collection):
     col = collection['RT']
     agg_col = col.aggregate('subject')

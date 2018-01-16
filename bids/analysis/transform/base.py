@@ -290,7 +290,6 @@ class Transformation(object):
                 col.name = _output
                 self.collection[_output] = col
 
-
     @abstractmethod
     def _transform(self, **kwargs):
         pass
@@ -339,7 +338,7 @@ class Transformation(object):
                 # Compare 1st col with each of the others
                 fc = get_col_data(cols[0])
                 if not all([compare_cols(fc, get_col_data(c))
-                           for c in cols[1:]]):
+                            for c in cols[1:]]):
                     msg = "Misaligned sparse columns found."
                     if force:
                         msg += (" Forcing all sparse columns to dense in order"

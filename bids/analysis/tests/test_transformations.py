@@ -49,7 +49,6 @@ def test_scale(collection):
 
 def test_orthogonalize_dense(collection):
     transform.factor(collection, 'trial_type', sep='/')
-    print(collection.columns.keys())
     pg_pre = collection['trial_type/parametric gain'].to_dense().values
     rt = collection['RT'].to_dense().values
     transform.orthogonalize(collection, cols='trial_type/parametric gain',
