@@ -56,11 +56,6 @@ class BIDSLayout(Layout):
         """ Helper function for grabbit get_nearest """
         path = abspath(path)
 
-        if path not in self.files:
-            raise ValueError(
-                "File '%s' does not match any specification in the current "
-                "BIDS project." % path)
-
         if not type:
             if 'type' not in self.files[path].entities:
                 raise ValueError(
@@ -124,12 +119,28 @@ class BIDSLayout(Layout):
         else:
             return tmp
 
-    def get_events(self, path, **kwargs):
-        tmp = self._get_nearest_helper(path, '.tsv', type='events', **kwargs)
-        if isinstance(tmp, list):
-            return tmp[0]
-        else:
-            return tmp
+    ## TODO: return_type = file (default) or events; derivatives = 'only', 'ignore' or 'both' (default)
+    ## With default parameters, it is backwards compatible
+    ## Wtih derivatives, uses get_nearest_helper for non-derivs events, then get to get all other matching events (from derivs)
+    ## Finally, if return_type is events, merges event files (prioritize derivs, but also merge w/ hierarchy for others)
+    def get_events(self, path, return_type='file', derivatives='both', **kwargs):
+        # Get all events
+        events =  self.get(extensions='tsv', type='events',
+                           return_type='file',
+                           **self.get_entities(path, exclude=['type']))
+
+        # Get events in base Layout directory
+        root_events = self._get_nearest_helper(
+            path, '.tsv', type='events', **kwargs)
+
+        if derivatives == 'only':
+            events = [e for e in events if e not in root_events]
+        elif derivatives == 'ignore':
+            events = root_events
+
+        # TODO: Add event file merging
+
+        return events
 
     def get_fieldmap(self, path, return_list=False):
         fieldmaps = self._get_fieldmaps(path)
