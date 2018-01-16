@@ -9,6 +9,7 @@ from os.path import abspath
 from os.path import join as pathjoin
 
 from .bids_validator import BIDSValidator
+from .utils import merge_rowise
 from grabbit import Layout
 
 __all__ = ['BIDSLayout']
@@ -123,22 +124,54 @@ class BIDSLayout(Layout):
     ## With default parameters, it is backwards compatible
     ## Wtih derivatives, uses get_nearest_helper for non-derivs events, then get to get all other matching events (from derivs)
     ## Finally, if return_type is events, merges event files (prioritize derivs, but also merge w/ hierarchy for others)
-    def get_events(self, path, return_type='file', derivatives='both', **kwargs):
-        # Get all events
-        events =  self.get(extensions='tsv', type='events',
-                           return_type='file',
-                           **self.get_entities(path, exclude=['type']))
+    def get_events(self, path, output='file', derivatives='both', **kwargs):
+        """ For a given file in a BIDS project, finds corresponding event files
+        and optionally returns merged dataframe containing all variables.
 
-        # Get events in base Layout directory
+        Args:
+            path (string): Path to a file
+            output (string): Output to return.
+                'file' returns list of files, 'df' returns merged dataframe.
+            derivatives (string): How to handle derivative events. One of
+                'ignore', 'both', or 'only'
+            how (string): Merge method.
+        Returns:
+            List of file or merged Pandas dataframe.
+        """
+
+        path = abspath(path)
+
+        # Get events in base Layout directory (ordered)
         root_events = self._get_nearest_helper(
             path, '.tsv', type='events', **kwargs)
 
+        entities = self.files[path].entities
+        entities.pop('type')
+        entities.update(kwargs)
+
+        # Get all events
+        events =  self.get(extensions='tsv', type='events',
+                           return_type='file', **entities)
+
+        deriv_events = set(events) - set(root_events)
+
         if derivatives == 'only':
-            events = [e for e in events if e not in root_events]
+            events = deriv_events
         elif derivatives == 'ignore':
             events = root_events
+        else: # Combine with order
+            events = deriv_events + root_events
 
-        # TODO: Add event file merging
+        if output == 'df':
+            # Merge dataframes sequentially, giving preference to values from
+            # event files higher in the hierarchy
+            merged = None
+            for e in events:
+                if merged is None:
+                    merged = e
+                else:
+                    merged = merge_rowise(merged, e, on=['onset', 'duration'])
+            events = merged
 
         return events or None
 
