@@ -6,42 +6,63 @@
         {
             "name": "subject",
             "pattern": ".*sub-([a-zA-Z0-9]+)",
-            "directory": "{{root}}/{subject}"
+            "directory": "{{root}}/{subject}",
+            "aliases": ["sub"]
         },
         {
             "name": "session",
             "pattern": "ses-([a-zA-Z0-9]+)",
             "mandatory": false,
             "directory": "{{root}}/{subject}/{session}",
-            "missing_value": "ses-1"
-        },
-        {
-            "name": "run",
-            "pattern": "run-(\\d+)"
-        },
-        {
-            "name": "type",
-            "pattern": "[._]*([a-zA-Z0-9]*?)\\.[^/\\\\]+$"
+            "missing_value": "ses-1",
+            "aliases": ["ses"]
         },
         {
             "name": "task",
             "pattern": "task-([a-zA-Z0-9]+)"
         },
         {
-            "name": "scans",
-            "pattern": "(.*\\_scans.tsv)$"
+            "name": "acquisition",
+            "pattern": "acq-([a-zA-Z0-9]+)",
+            "aliases": ["acq"]
+        },
+        {
+            "name": "ce",
+            "pattern": "ce-([a-zA-Z0-9]+)"
+        },
+        {
+            "name": "reconstruction",
+            "pattern": "rec-([a-zA-Z0-9]+)",
+            "aliases": ["rec"]
+        },
+        {
+            "name": "direction",
+            "pattern": "dir-([a-zA-Z0-9]+)",
+            "aliases": ["dir"]
+        },
+        {
+            "name": "run",
+            "pattern": "run-(\\d+)"
+        },
+        {
+            "name": "mod",
+            "pattern": "mod-([a-zA-Z0-9]+)"
         },
         {
             "name": "echo",
             "pattern": "echo-([0-9]+)\\_bold."
         },
         {
-            "name": "acquisition",
-            "pattern": "acq-([a-zA-Z0-9]+)"
+            "name": "recording",
+            "pattern": "recording-([a-zA-Z0-9]+)"
         },
         {
-            "name": "acq",
-            "pattern": "acq-([a-zA-Z0-9]+)"
+            "name": "type",
+            "pattern": "[._]*([a-zA-Z0-9]*?)\\.[^/\\\\]+$"
+        },
+        {
+            "name": "scans",
+            "pattern": "(.*\\_scans.tsv)$"
         },
         {
             "name": "bval",
@@ -58,18 +79,6 @@
         {
             "name": "modality",
             "pattern": "[/\\\\](func|anat|fmap|dwi)[/\\\\]"
-        },
-        {
-            "name": "direction",
-            "pattern": "dir-([a-zA-Z0-9]+)"
-        },
-        {
-            "name": "dir",
-            "pattern": "dir-([a-zA-Z0-9]+)"
-        },
-        {
-            "name": "recording",
-            "pattern": "recording-([a-zA-Z0-9]+)"
         }
     ]
 }
