@@ -1036,35 +1036,27 @@ class BIDSEventVariableCollection(BIDSVariableCollection):
                 valid values.
         '''
 
-        # TODO: make this more robust; should not replace sampling_rate in
-        # self until everything works successfully--but this will require
-        # some refactoring.
-
         # Store old sampling rate-based variables
         sampling_rate = self._get_sampling_rate(sampling_rate)
-
-        old_sr = self.sampling_rate
-        n = len(self.dense_index)
-
-        # Rebuild the dense index
-        self.sampling_rate = sampling_rate
-        self._build_dense_index()
-
-        x = np.arange(n)
-        num = int(np.ceil(n * sampling_rate / old_sr))
 
         columns = {}
 
         for name, col in self.columns.items():
             if isinstance(col, SparseEventColumn):
                 if force_dense and is_numeric_dtype(col.values):
-                    columns[name] = col.to_dense()
+                    columns[name] = col.to_dense(sampling_rate)
             else:
+                col = col.clone()
                 col.resample(sampling_rate, kind)
+                columns[name] = col
 
         if in_place:
             for k, v in columns.items():
                 self.columns[k] = v
+            # Rebuild the dense index
+            self.sampling_rate = sampling_rate
+            self._build_dense_index()
+
         else:
             return columns
 
@@ -1090,11 +1082,9 @@ class BIDSEventVariableCollection(BIDSVariableCollection):
 
         sampling_rate = self._get_sampling_rate(sampling_rate)
 
-        if self._all_dense():
-            _cols = self.columns.values()
-        else:
-            _cols = self.resample(sampling_rate, force_dense=True,
-                                  in_place=False).values()
+        # Make sure all columns have the same sampling rate
+        _cols = self.resample(sampling_rate, force_dense=True,
+                              in_place=False).values()
 
         # Retain only specific columns if desired
         if columns is not None:
