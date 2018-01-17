@@ -120,10 +120,6 @@ class BIDSLayout(Layout):
         else:
             return tmp
 
-    ## TODO: return_type = file (default) or events; derivatives = 'only', 'ignore' or 'both' (default)
-    ## With default parameters, it is backwards compatible
-    ## Wtih derivatives, uses get_nearest_helper for non-derivs events, then get to get all other matching events (from derivs)
-    ## Finally, if return_type is events, merges event files (prioritize derivs, but also merge w/ hierarchy for others)
     def get_events(self, path, output='file', derivatives='both', **kwargs):
         """ For a given file in a BIDS project, finds corresponding event files
         and optionally returns merged dataframe containing all variables.
@@ -143,7 +139,7 @@ class BIDSLayout(Layout):
 
         # Get events in base Layout directory (ordered)
         root_events = self._get_nearest_helper(
-            path, '.tsv', type='events', **kwargs)
+            path, '.tsv', type='events', **kwargs) or []
 
         entities = self.files[path].entities
         entities.pop('type')
@@ -151,9 +147,9 @@ class BIDSLayout(Layout):
 
         # Get all events
         events =  self.get(extensions='tsv', type='events',
-                           return_type='file', **entities)
+                           return_type='file', **entities) or []
 
-        deriv_events = set(events) - set(root_events)
+        deriv_events = list(set(events) - set(root_events))
 
         if derivatives == 'only':
             events = deriv_events
