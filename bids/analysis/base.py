@@ -9,12 +9,13 @@ import pandas as pd
 import numpy as np
 
 
-DesignMatrix = namedtuple('DesignMatrix', ('data', 'entities'))
+DesignMatrixInfo = namedtuple('DesignMatrixInfo', ('data', 'entities'))
 
 
 class Analysis(object):
 
     ''' Represents an entire BIDS-Model analysis.
+
     Args:
         layout (BIDSLayout, str): A BIDSLayout instance or path to pass on
             to the BIDSLayout initializer.
@@ -66,6 +67,7 @@ class Analysis(object):
 
     def setup(self, blocks=None, apply_transformations=True, agg_func='mean'):
         ''' Set up the sequence of blocks for analysis.
+
         Args:
             blocks (list): Optional list of blocks to set up. Each element
                 must be either an int giving the index of the block in the
@@ -132,6 +134,7 @@ class Analysis(object):
 class Block(object):
 
     ''' Represents a single analysis block from a BIDS-Model specification.
+
     Args:
         level (str): The BIDS keyword to use as the grouping variable; must be
             one of ['run', 'session', 'subject', or 'dataset'].
@@ -160,7 +163,7 @@ class Block(object):
         self.identity_contrasts = kwargs.pop('identity_contrasts', True)
         self.kwargs = kwargs
 
-    def _get_design_matrix(self, **selectors):
+    def _get_dm(self, **selectors):
         if self._design_matrix is None:
             raise ValueError("Block hasn't been set up yet; please call "
                              "setup() before you try to retrieve the DM.")
@@ -225,7 +228,7 @@ class Block(object):
         ''' Generate the output collection by applying contrasts.
         '''
 
-        data = self._get_design_matrix()
+        data = self._get_dm()
 
         # Figure out which column names to keep
         contrast_names = [c['name'] for c in self.contrasts]
@@ -260,6 +263,7 @@ class Block(object):
     def get_contrasts(self, format='matrix', names=None,
                       identity_contrasts=None):
         ''' Return contrast information for the current block.
+
         Args:
             format (str): What format to return the contrast specifications in.
                 Valid options are:
@@ -278,6 +282,7 @@ class Block(object):
                 design matrix are automatically assigned identity contrasts.
                 If None, falls back on the identity_contrasts flag defined at
                 the block level (which defaults to True).
+
         Returns:
             See format argument for returned object formats.
         '''
@@ -316,9 +321,9 @@ class Block(object):
                          "object. Format must be one of 'matrix', 'dict', or "
                          "'json'.")
 
-    def get_Xy(self, drop_entities=True, **selectors):
-        ''' Return X and y information for all groups defined by the current
-        level.
+    def get_design_matrix(self, drop_entities=True, **selectors):
+        ''' Return design matrices for all groups defined by the current level.
+
         Args:
             selectors (dict): Optional keyword arguments to further constrain
                 the data retrieved.
@@ -329,7 +334,7 @@ class Block(object):
                     - A dict of entities defining the current group (e.g.,
                       {'subject': '03', 'run': 1})
         '''
-        data = self._get_design_matrix(**selectors)
+        data = self._get_dm(**selectors)
         ent_cols = self._get_groupby_cols()
 
         tuples = []
@@ -337,7 +342,7 @@ class Block(object):
 
         # If there are no entities to group on, return the whole dataset
         if not ent_cols:
-            return [DesignMatrix(data, {})]
+            return [DesignMatrixInfo(data, {})]
 
         # Otherwise loop over groups and construct a tuple for each one
         for name, g in data.groupby(ent_cols):
@@ -346,17 +351,18 @@ class Block(object):
             group_data = self._drop_columns(g.copy(),
                                             drop_entities=drop_entities)
             group_data = group_data.reset_index(drop=True)
-            record = DesignMatrix(group_data, ents)
+            record = DesignMatrixInfo(group_data, ents)
             tuples.append(record)
         return tuples
 
-    def iter_Xy(self, **selectors):
+    def iter_design_matrix(self, **selectors):
         ''' Convenience method that returns an iterator over tuples returned
         by get_Xy(). See get_Xy() for arguments and return format. '''
         return (t for t in self.get_Xy(**selectors))
 
     def setup(self, input_collection, apply_transformations=True):
         ''' Set up the Block and construct the design matrix.
+
         Args:
             input_collection (BIDSVariableCollection): The input variable
                 collection.
