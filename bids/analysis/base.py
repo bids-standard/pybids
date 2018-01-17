@@ -146,7 +146,7 @@ class Block(object):
     '''
 
     def __init__(self, level, index, name=None, transformations=None,
-                 model=None, contrasts=None):
+                 model=None, contrasts=None, **kwargs):
 
         self.level = level
         self.index = index
@@ -157,6 +157,8 @@ class Block(object):
         self._design_matrix = None
         self.input_collection = None
         self.output_collection = None
+        self.identity_contrasts = kwargs.pop('identity_contrasts', True)
+        self.kwargs = kwargs
 
     def _get_design_matrix(self, **selectors):
         if self._design_matrix is None:
@@ -219,21 +221,15 @@ class Block(object):
         if self.model is not None and 'variables' in self.model:
             transform.select(self.input_collection, self.model['variables'])
 
-    def _generate_output_collection(self, keep_input_columns=True):
+    def _generate_output_collection(self):
         ''' Generate the output collection by applying contrasts.
-        Args:
-            keep_input_columns (bool): If True, default contrasts for all
-                columns available in the input collection are automatically
-                added. These have the same name as the input variable and
-                receive a weight of 1 for the input column and 0 for all other
-                columns.
         '''
 
         data = self._get_design_matrix()
 
         # Figure out which column names to keep
         contrast_names = [c['name'] for c in self.contrasts]
-        if keep_input_columns:
+        if self.identity_contrasts:
             sel_cols = list(data['condition'].unique())
             contrast_names = sel_cols + contrast_names
 
@@ -282,7 +278,18 @@ class Block(object):
         '''
         contrasts = self.contrasts
         if names is not None:
-            contrasts = {c: contrasts[c] for c in names}
+            contrasts = [c for c in contrasts if c['name'] in names]
+
+        if self.identity_contrasts:
+            if self._design_matrix is None:
+                raise ValueError("Block hasn't been set up yet; please call "
+                                 "setup() before you try to get_contrasts().")
+            for col_name in self.output_collection.columns.keys():
+                contrasts.append({
+                    'name': col_name,
+                    'condition_list': [col_name],
+                    'weights': [1],
+                })
 
         if format == 'dict':
             return contrasts
