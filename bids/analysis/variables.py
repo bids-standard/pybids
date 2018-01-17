@@ -160,6 +160,7 @@ def load_event_variables(layout, entities=None, columns=None, scan_length=None,
                 event_dfs.append(_df)
                 save_run = True
 
+        # Process confound files
         if extract_confounds:
             sub_ents = {k: v for k, v in f_ents.items()
                         if k not in ('type', 'unique_run_id')}
