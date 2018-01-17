@@ -286,7 +286,7 @@ class Block(object):
         Returns:
             See format argument for returned object formats.
         '''
-        contrasts = self.contrasts
+        contrasts = self.contrasts.copy()
         if names is not None:
             contrasts = [c for c in contrasts if c['name'] in names]
 
