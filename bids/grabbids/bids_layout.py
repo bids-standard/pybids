@@ -11,6 +11,7 @@ from os.path import join as pathjoin
 from .bids_validator import BIDSValidator
 from .utils import merge_rowise
 from grabbit import Layout
+import pandas as pd
 
 __all__ = ['BIDSLayout']
 
@@ -142,7 +143,8 @@ class BIDSLayout(Layout):
             path, '.tsv', type='events', **kwargs) or []
 
         entities = self.files[path].entities
-        entities.pop('type')
+        if 'type' in entities:
+            entities.pop('type')
         entities.update(kwargs)
 
         # Get all events
@@ -163,13 +165,16 @@ class BIDSLayout(Layout):
             # event files higher in the hierarchy
             merged = None
             for e in events:
+                e = pd.read_csv(e, delimiter='\t')
                 if merged is None:
                     merged = e
                 else:
                     merged = merge_rowise(merged, e, on=['onset', 'duration'])
             events = merged
+        else:
+            events = None if events == [] else events
 
-        return events or None
+        return events
 
     def get_fieldmap(self, path, return_list=False):
         fieldmaps = self._get_fieldmaps(path)

@@ -85,6 +85,15 @@ def test_get_events(testmergedlayout):
     expected2 = abspath(join(
         testmergedlayout.root, 'derivatives/events/func/', basename(expected1)))
 
+    merged = testmergedlayout.get_events(join(testmergedlayout.root, target),
+                                         output='df')
+
+    assert 'response' in merged
+    assert 'trial_type' in merged
+    assert merged[merged.onset == 1].RT.values[0] == 1.0
+    assert merged[merged.onset == 18].RT.values[0] == 100.0
+    assert merged[merged.onset == 102].RT.values[0] > 1
+
     assert expected2 in result
 
 
