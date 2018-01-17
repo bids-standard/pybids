@@ -32,7 +32,7 @@ def test_analysis_smoke_test(analysis):
     assert len(result) == 16
     assert len(result[0]) == 2
     assert result[0].data.shape == (24, 2)
-    assert result[0].entities == {'subject': 1}
+    assert result[0].entities == {'subject': '01'}
 
     # Participant level and also check integer-based indexing
     result = analysis['participant'].get_Xy()
@@ -44,8 +44,7 @@ def test_analysis_smoke_test(analysis):
     assert len(result) == 1
     data = result[0].data
     assert len(data) == 160
-    # Not 16 because subs get represented as both ints and str--should fix!
-    assert data['subject'].nunique() == 32
+    assert data['subject'].nunique() == 16
     # Make sure columns from different levels exist
     varset = {'sex', 'age', 'RT', 'respnum'}
     assert not (varset - set(data['condition'].unique()))
