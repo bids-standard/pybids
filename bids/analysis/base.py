@@ -257,7 +257,8 @@ class Block(object):
 
         self.output_collection = collection
 
-    def get_contrasts(self, format='matrix', names=None):
+    def get_contrasts(self, format='matrix', names=None,
+                      identity_contrasts=None):
         ''' Return contrast information for the current block.
         Args:
             format (str): What format to return the contrast specifications in.
@@ -273,6 +274,10 @@ class Block(object):
                         specification found in the original BIDS-Model spec.
             names (list): Optional list of names of contrasts to return. If
                 None (default), all contrasts are returned.
+            identity_contrasts (bool): If True, all columns in the output
+                design matrix are automatically assigned identity contrasts.
+                If None, falls back on the identity_contrasts flag defined at
+                the block level (which defaults to True).
         Returns:
             See format argument for returned object formats.
         '''
@@ -280,7 +285,10 @@ class Block(object):
         if names is not None:
             contrasts = [c for c in contrasts if c['name'] in names]
 
-        if self.identity_contrasts:
+        if identity_contrasts is None:
+            identity_contrasts = self.identity_contrasts
+
+        if identity_contrasts:
             if self._design_matrix is None:
                 raise ValueError("Block hasn't been set up yet; please call "
                                  "setup() before you try to get_contrasts().")
