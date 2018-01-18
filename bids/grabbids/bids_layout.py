@@ -9,9 +9,8 @@ from os.path import abspath
 from os.path import join as pathjoin
 
 from .bids_validator import BIDSValidator
-from .utils import merge_rowise
+from .utils import _merge_event_files
 from grabbit import Layout
-import pandas as pd
 
 __all__ = ['BIDSLayout']
 
@@ -121,17 +120,16 @@ class BIDSLayout(Layout):
         else:
             return tmp
 
-    def get_events(self, path, output='file', derivatives='both', **kwargs):
+    def get_events(self, path, return_type='file', derivatives='both', **kwargs):
         """ For a given file in a BIDS project, finds corresponding event files
         and optionally returns merged dataframe containing all variables.
 
         Args:
             path (string): Path to a file
-            output (string): Output to return.
+            return_type (string): Output to return.
                 'file' returns list of files, 'df' returns merged dataframe.
             derivatives (string): How to handle derivative events. One of
                 'ignore', 'both', or 'only'
-            how (string): Merge method.
         Returns:
             List of file or merged Pandas dataframe.
         """
@@ -160,17 +158,8 @@ class BIDSLayout(Layout):
         else: # Combine with order
             events = deriv_events + root_events
 
-        if output == 'df':
-            # Merge dataframes sequentially, giving preference to values from
-            # event files higher in the hierarchy
-            merged = None
-            for e in events:
-                e = pd.read_csv(e, delimiter='\t')
-                if merged is None:
-                    merged = e
-                else:
-                    merged = merge_rowise(merged, e, on=['onset', 'duration'])
-            events = merged
+        if return_type == 'df':
+            events = _merge_event_files(events)
         else:
             events = None if events == [] else events
 

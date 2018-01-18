@@ -86,7 +86,7 @@ def test_get_events(testmergedlayout):
         testmergedlayout.root, 'derivatives/events/func/', basename(expected1)))
 
     merged = testmergedlayout.get_events(join(testmergedlayout.root, target),
-                                         output='df')
+                                         return_type='df')
 
     assert 'response' in merged
     assert 'trial_type' in merged
