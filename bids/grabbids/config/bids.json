@@ -67,5 +67,13 @@
             "name": "acq",
             "pattern": "acq-([a-zA-Z0-9]+)"
         }
+    ],
+    "default_path_patterns": [
+        "sub-{subject}[/ses-{session}]/anat/sub-{subject}[_ses-{session}][_acq-{acquisition}][_ce-{contrast}][_rec-{reconstruction}]_{type}",
+        "sub-{subject}[/ses-{session}]/anat/sub-{subject}[_ses-{session}][_acq-{acquisition}][_ce-{contrast}][_rec-{reconstruction}][_mod-{modality}]_defacemask",
+        "sub-{subject}[/ses-{session}]/func/sub-{subject}[_ses-{session}][_task-{task}][_acq-{acquisition}][_rec-{reconstruction}][_run-{run}][_echo-{echo}]_{type}",
+        "sub-{subject}[/ses-{session}]/dwi/sub-{subject}[_ses-{session}][_acq-{acquisition}]_{type}",
+        "sub-{subject}[/ses-{session}]/fmap/sub-{subject}[_ses-{session}][_acq-{acquisition}][_dir-{direction}][_run-{run}]_{type}",
+        "sub-{subject}[/ses-{session}]/func/sub-{subject}[_ses-{session}][_task-{task}][_acq-{acquisition}][_rec-{reconstruction}][_run-{run}][_echo-{echo}][_recording-{recording}]_physio.tsv"
     ]
 }
