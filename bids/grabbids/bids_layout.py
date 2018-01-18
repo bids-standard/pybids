@@ -10,7 +10,7 @@ from os.path import join as pathjoin
 
 from .bids_validator import BIDSValidator
 from .utils import _merge_event_files
-from grabbit import Layout
+from grabbit import Layout, File
 
 __all__ = ['BIDSLayout']
 
@@ -245,3 +245,12 @@ class BIDSLayout(Layout):
         index = load_variables(self, types=types, levels=level, **kwargs)
         return index.get_collections(level, variables, merge,
                                      sampling_rate=sampling_rate)
+
+    def parse_entities(self, filelike):
+        if not isinstance(filelike, File):
+            filelike = File(filelike)
+
+        for ent in self.entities.values():
+            ent.matches(filelike)
+
+        return filelike.entities
