@@ -9,12 +9,12 @@ from os.path import abspath
 from os.path import join as pathjoin
 
 from .bids_validator import BIDSValidator
-from grabbit import Layout
+from grabbit import WritableLayout
 
 __all__ = ['BIDSLayout']
 
 
-class BIDSLayout(Layout):
+class BIDSLayout(WritableLayout):
 
     def __init__(self, path, config=None, validate=False,
                  index_associated=True, extensions=None, **kwargs):
@@ -33,7 +33,7 @@ class BIDSLayout(Layout):
                 ext_config = json.load(fobj)
                 config['entities'].extend(ext_config['entities'])
 
-        super(BIDSLayout, self).__init__(path, config,
+        super(BIDSLayout, self).__init__(path, config=config,
                                          dynamic_getters=True, **kwargs)
 
     def _validate_file(self, f):

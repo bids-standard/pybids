@@ -24,7 +24,8 @@ opts = dict(name=NAME,
             version=VERSION,
             packages=PACKAGES,
             package_data={'bids': ['grabbids/config/*.json']},
-            install_requires=REQUIRES)
+            install_requires=REQUIRES,
+            extras_require=EXTRAS_REQUIRE)
 
 
 if __name__ == '__main__':
