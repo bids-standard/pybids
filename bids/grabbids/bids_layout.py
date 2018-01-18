@@ -10,7 +10,7 @@ from os.path import join as pathjoin
 
 from .bids_validator import BIDSValidator
 from .utils import _merge_event_files
-from grabbit import Layout
+from grabbit import Layout, File
 
 __all__ = ['BIDSLayout']
 
@@ -238,3 +238,12 @@ class BIDSLayout(Layout):
                         cur_fieldmap["type"] = "fieldmap"
                     fieldmap_set.append(cur_fieldmap)
         return fieldmap_set
+
+    def parse_entities(self, filelike):
+        if not isinstance(filelike, File):
+            filelike = File(filelike)
+
+        for ent in self.entities.values():
+            ent.matches(filelike)
+
+        return filelike.entities
