@@ -9,12 +9,12 @@ from os.path import abspath
 from os.path import join as pathjoin
 
 from .bids_validator import BIDSValidator
-from grabbit import WritableLayout
+from grabbit import Layout
 
 __all__ = ['BIDSLayout']
 
 
-class BIDSLayout(WritableLayout):
+class BIDSLayout(Layout):
 
     def __init__(self, path, config=None, validate=False,
                  index_associated=True, extensions=None, **kwargs):
