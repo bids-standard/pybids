@@ -144,7 +144,7 @@ class BIDSLayout(Layout):
         root_events = self._get_nearest_helper(
             path, '.tsv', type='events', **kwargs) or []
 
-        entities = self.files[path].entities
+        entities = self.files[path].entities.copy()
         if 'type' in entities:
             entities.pop('type')
         entities.update(kwargs)
