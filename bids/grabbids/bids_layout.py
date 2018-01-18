@@ -125,11 +125,15 @@ class BIDSLayout(Layout):
         and optionally returns merged dataframe containing all variables.
 
         Args:
-            path (string): Path to a file
-            return_type (string): Output to return.
-                'file' returns list of files, 'df' returns merged dataframe.
-            derivatives (string): How to handle derivative events. One of
-                'ignore', 'both', or 'only'
+            path (str): Path to a file to match to events.
+            return_type (str): Type of output to return.
+                'file' returns list of files,
+                'df' merges events into a single DataFrame, giving precedence
+                to events closer to the file.
+            derivatives (str): How to handle derivative events.
+                'ignore' - Ignore any event files outside of root directory.
+                'only' - Only include event files from outside directories.
+                'both' - Include both. Derivative events have precedence.
         Returns:
             List of file or merged Pandas dataframe.
         """
