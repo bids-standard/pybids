@@ -1,0 +1,28 @@
+{
+  "name": "test_model",
+  "description": "simple test model",
+  "blocks": [
+    {
+      "name": "run",
+      "level": "run",
+      "transformations": [
+        {
+          "name": "scale",
+          "input": "RT"
+        }
+      ]
+    },
+    {
+      "name": "session",
+      "level": "session"
+    },
+    {
+      "name": "participant",
+      "level": "subject"
+    },
+    {
+      "name": "group",
+      "level": "dataset"
+    }
+  ]
+}

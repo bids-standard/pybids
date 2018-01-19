@@ -34,7 +34,7 @@ class BIDSLayout(Layout):
                 ext_config = json.load(fobj)
                 config['entities'].extend(ext_config['entities'])
 
-        super(BIDSLayout, self).__init__(path, config,
+        super(BIDSLayout, self).__init__(path, config=config,
                                          dynamic_getters=True, **kwargs)
 
     def _validate_file(self, f):
@@ -120,7 +120,8 @@ class BIDSLayout(Layout):
         else:
             return tmp
 
-    def get_events(self, path, return_type='file', derivatives='both', **kwargs):
+    def get_events(self, path, return_type='file', derivatives='both',
+                   **kwargs):
         """ For a given file in a BIDS project, finds corresponding event files
         and optionally returns merged dataframe containing all variables.
 
@@ -150,8 +151,8 @@ class BIDSLayout(Layout):
         entities.update(kwargs)
 
         # Get all events
-        events =  self.get(extensions='tsv', type='events',
-                           return_type='file', **entities) or []
+        events = self.get(extensions='tsv', type='events',
+                          return_type='file', **entities) or []
 
         deriv_events = list(set(events) - set(root_events))
 
@@ -164,9 +165,10 @@ class BIDSLayout(Layout):
 
         if return_type == 'df':
             events = _merge_event_files(events)
-        else:
-            events = None if events == [] else events
-
+        elif not events:
+            return None
+        elif len(events) == 1:
+            return events[0]
         return events
 
     def get_fieldmap(self, path, return_list=False):
