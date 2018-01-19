@@ -24,23 +24,23 @@ def analysis():
 
 def test_analysis_smoke_test(analysis):
 
-    result = analysis['run'].get_Xy(subject=['01', '02'])
+    result = analysis['run'].get_design_matrix(subject=['01', '02'])
     assert len(result) == 6
     assert len(result[0]) == 2
 
-    result = analysis['session'].get_Xy(drop_entities=True)
+    result = analysis['session'].get_design_matrix(drop_entities=True)
     assert len(result) == 16
     assert len(result[0]) == 2
     assert result[0].data.shape == (24, 2)
     assert result[0].entities == {'subject': '01'}
 
     # Participant level and also check integer-based indexing
-    result = analysis['participant'].get_Xy()
+    result = analysis['participant'].get_design_matrix()
     assert len(result) == 16
     assert analysis[2].name == 'participant'
 
     # Dataset level
-    result = analysis['group'].get_Xy()
+    result = analysis['group'].get_design_matrix()
     assert len(result) == 1
     data = result[0].data
     assert len(data) == 160
@@ -51,10 +51,10 @@ def test_analysis_smoke_test(analysis):
 
     # Calling an invalid level name should raise an exception
     with pytest.raises(KeyError):
-        result = analysis['nonexistent_name'].get_Xy()
+        result = analysis['nonexistent_name'].get_design_matrix()
 
     # With entities included
-    result = analysis['run'].get_Xy(drop_entities=False)
+    result = analysis['run'].get_design_matrix(drop_entities=False)
     assert len(result) == 48
     assert result[0][0].shape == (688, 9)
     assert set(result[0][0].columns) == {'amplitude', 'onset', 'duration',

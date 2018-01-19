@@ -11,7 +11,6 @@ from bids.utils import listify
 from scipy.interpolate import interp1d
 from pandas.api.types import is_numeric_dtype
 from os.path import dirname, join
-import json
 
 
 BASE_ENTITIES = ['subject', 'session', 'task', 'run']
