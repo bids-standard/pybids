@@ -16,28 +16,52 @@
             "missing_value": "ses-1"
         },
         {
+            "name": "task",
+            "pattern": "task-([a-zA-Z0-9]+)"
+        },
+        {
+            "name": "acquisition",
+            "pattern": "acq-([a-zA-Z0-9]+)"
+        },
+        {
+            "name": "acq",
+            "pattern": "acq-([a-zA-Z0-9]+)"
+        },
+        {
+            "name": "ce",
+            "pattern": "ce-([a-zA-Z0-9]+)"
+        },
+        {
+            "name": "reconstruction",
+            "pattern": "rec-([a-zA-Z0-9]+)"
+        },
+        {
+            "name": "dir",
+            "pattern": "dir-([a-zA-Z0-9]+)"
+        },
+        {
             "name": "run",
             "pattern": "run-(\\d+)"
         },
         {
-            "name": "type",
-            "pattern": "[._]*([a-zA-Z0-9]*?)\\.[^/\\\\]+$"
-        },
-        {
-            "name": "task",
-            "pattern": "task-(.*?)(?:_+)"
-        },
-        {
-            "name": "scans",
-            "pattern": "(.*\\_scans.tsv)$"
+            "name": "mod",
+            "pattern": "mod-([a-zA-Z0-9]+)"
         },
         {
             "name": "echo",
             "pattern": "echo-([0-9]+)\\_bold."
         },
         {
-            "name": "acquisition",
-            "pattern": "acq-(.*?)(?:_+)"
+            "name": "recording",
+            "pattern": "recording-([a-zA-Z0-9]+)"
+        },
+        {
+            "name": "type",
+            "pattern": "[._]*([a-zA-Z0-9]*?)\\.[^/\\\\]+$"
+        },
+        {
+            "name": "scans",
+            "pattern": "(.*\\_scans.tsv)$"
         },
         {
             "name": "bval",
@@ -54,18 +78,6 @@
         {
             "name": "modality",
             "pattern": "[/\\\\](func|anat|fmap|dwi)[/\\\\]"
-        },
-        {
-            "name": "dir",
-            "pattern": "dir-([a-zA-Z0-9]+)"
-        },
-        {
-            "name": "recording",
-            "pattern": "recording-([a-zA-Z0-9]+)"
-        },
-        {
-            "name": "acq",
-            "pattern": "acq-([a-zA-Z0-9]+)"
         }
     ],
     "default_path_patterns": [

@@ -9,6 +9,7 @@ from os.path import abspath
 from os.path import join as pathjoin
 
 from .bids_validator import BIDSValidator
+from .utils import _merge_event_files
 from grabbit import Layout
 
 __all__ = ['BIDSLayout']
@@ -55,11 +56,6 @@ class BIDSLayout(Layout):
     def _get_nearest_helper(self, path, extension, type=None, **kwargs):
         """ Helper function for grabbit get_nearest """
         path = abspath(path)
-
-        if path not in self.files:
-            raise ValueError(
-                "File '%s' does not match any specification in the current "
-                "BIDS project." % path)
 
         if not type:
             if 'type' not in self.files[path].entities:
@@ -124,12 +120,54 @@ class BIDSLayout(Layout):
         else:
             return tmp
 
-    def get_events(self, path, **kwargs):
-        tmp = self._get_nearest_helper(path, '.tsv', type='events', **kwargs)
-        if isinstance(tmp, list):
-            return tmp[0]
+    def get_events(self, path, return_type='file', derivatives='both', **kwargs):
+        """ For a given file in a BIDS project, finds corresponding event files
+        and optionally returns merged dataframe containing all variables.
+
+        Args:
+            path (str): Path to a file to match to events.
+            return_type (str): Type of output to return.
+                'file' returns list of files,
+                'df' merges events into a single DataFrame, giving precedence
+                to events closer to the file.
+            derivatives (str): How to handle derivative events.
+                'ignore' - Ignore any event files outside of root directory.
+                'only' - Only include event files from outside directories.
+                'both' - Include both. Derivative events have precedence.
+        Returns:
+            List of file or merged Pandas dataframe.
+        """
+
+        path = abspath(path)
+
+        # Get events in base Layout directory (ordered)
+        root_events = self._get_nearest_helper(
+            path, '.tsv', type='events', **kwargs) or []
+
+        entities = self.files[path].entities.copy()
+        if 'type' in entities:
+            entities.pop('type')
+        entities.update(kwargs)
+
+        # Get all events
+        events =  self.get(extensions='tsv', type='events',
+                           return_type='file', **entities) or []
+
+        deriv_events = list(set(events) - set(root_events))
+
+        if derivatives == 'only':
+            events = deriv_events
+        elif derivatives == 'ignore':
+            events = root_events
+        else: # Combine with order
+            events = deriv_events + root_events
+
+        if return_type == 'df':
+            events = _merge_event_files(events)
         else:
-            return tmp
+            events = None if events == [] else events
+
+        return events
 
     def get_fieldmap(self, path, return_list=False):
         fieldmaps = self._get_fieldmaps(path)
