@@ -40,6 +40,7 @@ before_install:
 
 install:
 - pip install -e .
+- pip install pandas
 
 script:
 # - flake8 --ignore N802,N806 `find . -name \*.py | grep -v setup.py | grep -v /doc/`
