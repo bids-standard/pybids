@@ -129,9 +129,9 @@ def load_event_variables(layout, entities=None, columns=None, scan_length=None,
 
         # Process event files
         if extract_events:
-            evf = layout.get_events(img_f)
-            if evf:
-                _data = pd.read_table(evf, sep='\t')
+            _data = layout.get_events(img_f, return_type='df')
+            if _data is not None:
+                # _data = pd.read_table(evf, sep='\t')
                 _data = _data.replace('n/a', np.nan)  # Replace BIDS' n/a
                 _data = _data.apply(pd.to_numeric, errors='ignore')
 

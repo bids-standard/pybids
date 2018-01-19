@@ -1,3 +1,4 @@
+
 def _merge_event_files(events):
     """ Merge TSV event files sequentially, giving preference to values from
     event files higher in the hierarchy
@@ -7,8 +8,7 @@ def _merge_event_files(events):
     Returns:
         Merged dataframe
     """
-    def _merge_rowise(left, right, on=None,
-                      how='outer', conflict_suffix='_conflict'):
+    def _merge_rowise(left, right, on=None, how='outer'):
             """ Merges two dfs and resolves row-wise conflicts.
             If more than value for a column is found, picks value from left df.
             Args:
@@ -17,13 +17,14 @@ def _merge_event_files(events):
                 on (list): Columns to merge on
                 how (string): Merge method (passed to pandas)
             """
+            conf_suff = '_#remove#'
             merged = pd.merge(left, right, on=['onset', 'duration'],
-                              how=how, suffixes=('', '_conflict'))
+                              how=how, suffixes=('', conf_suff))
 
-            clash_keys = [k for k in merged.columns if k.endswith(conflict_suffix)]
+            clash_keys = [k for k in merged.columns if k.endswith(conf_suff)]
 
             for key in clash_keys:
-                keep_key = key[:-len(conflict_suffix)]
+                keep_key = key[:-len(conf_suff)]
                 merged[keep_key] = merged[keep_key].combine_first(merged[key])
 
             merged = merged.drop(columns=clash_keys)
