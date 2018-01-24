@@ -30,9 +30,12 @@ class BIDSLayout(Layout):
             with open(config) as fobj:
                 config = json.load(fobj)
         for ext in extensions or []:
-            with open(pathjoin(root, 'config', '%s.json' % ext)) as fobj:
+            builtin_ext = pathjoin(root, 'config', '%s.json' % ext)
+            if os.path.exists(builtin_ext):
+                ext = builtin_ext
+            with open(ext) as fobj:
                 ext_config = json.load(fobj)
-                config['entities'].extend(ext_config['entities'])
+            config['entities'].extend(ext_config['entities'])
 
         super(BIDSLayout, self).__init__(path, config=config,
                                          dynamic_getters=True, **kwargs)
