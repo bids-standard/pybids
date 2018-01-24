@@ -5,55 +5,55 @@
     "entities": [
         {
             "name": "subject",
-            "pattern": ".*sub-([a-zA-Z0-9]+)",
+            "pattern": "[_/\\\\]sub-([a-zA-Z0-9]+)",
             "directory": "{{root}}/{subject}"
         },
         {
             "name": "session",
-            "pattern": "ses-([a-zA-Z0-9]+)",
+            "pattern": "[_/\\\\]ses-([a-zA-Z0-9]+)",
             "mandatory": false,
             "directory": "{{root}}/{subject}/{session}",
             "missing_value": "ses-1"
         },
         {
             "name": "task",
-            "pattern": "task-([a-zA-Z0-9]+)"
+            "pattern": "[_/\\\\]task-([a-zA-Z0-9]+)"
         },
         {
             "name": "acquisition",
-            "pattern": "acq-([a-zA-Z0-9]+)"
+            "pattern": "[_/\\\\]acq-([a-zA-Z0-9]+)"
         },
         {
             "name": "acq",
-            "pattern": "acq-([a-zA-Z0-9]+)"
+            "pattern": "[_/\\\\]acq-([a-zA-Z0-9]+)"
         },
         {
             "name": "ce",
-            "pattern": "ce-([a-zA-Z0-9]+)"
+            "pattern": "[_/\\\\]ce-([a-zA-Z0-9]+)"
         },
         {
             "name": "reconstruction",
-            "pattern": "rec-([a-zA-Z0-9]+)"
+            "pattern": "[_/\\\\]rec-([a-zA-Z0-9]+)"
         },
         {
             "name": "dir",
-            "pattern": "dir-([a-zA-Z0-9]+)"
+            "pattern": "[_/\\\\]dir-([a-zA-Z0-9]+)"
         },
         {
             "name": "run",
-            "pattern": "run-(\\d+)"
+            "pattern": "[_/\\\\]run-(\\d+)"
         },
         {
             "name": "mod",
-            "pattern": "mod-([a-zA-Z0-9]+)"
+            "pattern": "[_/\\\\]mod-([a-zA-Z0-9]+)"
         },
         {
             "name": "echo",
-            "pattern": "echo-([0-9]+)\\_bold."
+            "pattern": "[_/\\\\]echo-([0-9]+)\\_bold."
         },
         {
             "name": "recording",
-            "pattern": "recording-([a-zA-Z0-9]+)"
+            "pattern": "[_/\\\\]recording-([a-zA-Z0-9]+)"
         },
         {
             "name": "type",
