@@ -146,8 +146,12 @@ class BIDSLayout(Layout):
             path, '.tsv', type='events', **kwargs) or []
 
         entities = self.files[path].entities.copy()
+
         if 'type' in entities:
             entities.pop('type')
+        if 'modality' in entities and entities['modality'] == 'func':
+            entities.pop('modality')
+
         entities.update(kwargs)
 
         # Get all events
