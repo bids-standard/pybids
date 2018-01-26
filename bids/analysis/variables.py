@@ -19,7 +19,7 @@ BASE_ENTITIES = ['subject', 'session', 'task', 'run']
 def load_event_variables(layout, entities=None, columns=None, scan_length=None,
                          sampling_rate=10, drop_na=True, extract_events=True,
                          extract_recordings=True, interp_method='linear',
-                         extract_confounds=True,
+                         extract_confounds=True, derivatives=None,
                          **selectors):
     ''' Loads all variables found in *_events.tsv files and returns them as a
     BIDSVariableCollection.
@@ -49,6 +49,8 @@ def load_event_variables(layout, entities=None, columns=None, scan_length=None,
         interp_method (str): Interpolation method to use when resampling
             recording files to the desired sampling rate. Can be any value
             recognized by scipy.interpolate.interp1d.
+        derivatives (str): How to handle derivative events. Passed to
+            BIDSLayout.get_events.
         selectors (dict): Optional keyword arguments passed onto the
             BIDSLayout instance's get() method; can be used to constrain
             which data are loaded.
@@ -129,7 +131,8 @@ def load_event_variables(layout, entities=None, columns=None, scan_length=None,
 
         # Process event files
         if extract_events:
-            _data = layout.get_events(img_f, return_type='df')
+            _data = layout.get_events(img_f, return_type='df',
+                                      derivatives=derivatives)
             if _data is not None:
                 # _data = pd.read_table(evf, sep='\t')
                 _data = _data.replace('n/a', np.nan)  # Replace BIDS' n/a
