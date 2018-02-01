@@ -3,7 +3,8 @@ import pandas as pd
 import nibabel as nb
 from os.path import join, dirname
 from bids.utils import listify
-from .base import (Dataset, SparseEventColumn, DenseEventColumn, SimpleColumn)
+from .base import Dataset
+from .variables import SparseEventColumn, DenseEventColumn, SimpleColumn
 
 
 BASE_ENTITIES = ['task', 'run', 'session', 'subject']

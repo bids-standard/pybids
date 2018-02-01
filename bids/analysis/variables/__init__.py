@@ -1,4 +1,4 @@
-from .base import (SimpleColumn, SparseEventColumn, DenseEventColumn)
+from .variables import (SimpleColumn, SparseEventColumn, DenseEventColumn)
 from .collections import BIDSVariableCollection, BIDSEventVariableCollection
 from .io import (load_variables)
 

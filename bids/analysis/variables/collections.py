@@ -3,7 +3,7 @@ from copy import copy
 from pandas.api.types import is_numeric_dtype
 import warnings
 import re
-from .base import SparseEventColumn, SimpleColumn
+from .variables import SparseEventColumn, SimpleColumn
 from .utils import _build_dense_index
 
 

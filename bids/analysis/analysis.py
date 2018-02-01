@@ -1,7 +1,7 @@
 import json
 from bids.grabbids import BIDSLayout
 from .variables import (load_variables, SimpleColumn, BIDSVariableCollection)
-from . import transform
+from . import transformations as transform
 from collections import namedtuple
 from six import string_types
 import pandas as pd

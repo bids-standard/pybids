@@ -1,4 +1,4 @@
-from .variables import load_variables, BIDSVariableCollection
-from .base import Analysis
+from .variables import load_variables
+from .analysis import Analysis
 
-__all__ = ['load_variables', 'BIDSVariableCollection', 'Analysis']
+__all__ = ['load_variables', 'Analysis']
