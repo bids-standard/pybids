@@ -58,9 +58,9 @@ class split(Transformation):
     _allow_categorical = ('by',)
 
     def _transform(self, col, by):
-        from bids.analysis.variables import SimpleColumn
+        from bids.analysis.variables import SimpleVariable
 
-        if not isinstance(col, SimpleColumn):
+        if not isinstance(col, SimpleVariable):
             self._densify_columns()
 
         # Set up all the splitting columns as a DF. Note that columns in 'by'
@@ -74,7 +74,7 @@ class split(Transformation):
         group_data.columns = listify(by)
 
         # For sparse data, we need to set up a 1D grouper
-        if isinstance(col, SimpleColumn):
+        if isinstance(col, SimpleVariable):
             # Create single grouping column by combining all 'by' columns
             if group_data.shape[1] == 1:
                 group_labels = group_data.iloc[:, 0].values
@@ -118,14 +118,14 @@ class assign(Transformation):
 
         # assign only makes sense for sparse columns; dense columns don't have
         # durations or onsets, and amplitudes can be copied by cloning
-        from bids.analysis.variables import DenseEventColumn
-        if isinstance(input, DenseEventColumn):
+        from bids.analysis.variables import DenseEventVariable
+        if isinstance(input, DenseEventVariable):
             raise ValueError("The 'assign' transformation can only be applied"
                              " to sparsely-coded event types. The input "
                              "column (%s) is dense." % input.name)
 
         target = self.collection.columns[target].clone()
-        if isinstance(target, DenseEventColumn):
+        if isinstance(target, DenseEventVariable):
             raise ValueError("The 'assign' transformation can only be applied"
                              " to sparsely-coded event types. The target "
                              "column (%s) is dense." % target.name)

@@ -13,6 +13,9 @@ class AnalysisLevel(object):
         self.children = children or {}
         self.variables = {}
 
+    def __getitem__(self, key):
+        return self.children[key]
+
     def _get_node(self, entities, *args, **kwargs):
         if self._child is None or self._child not in entities:
             return self
@@ -95,10 +98,8 @@ class Dataset(AnalysisLevel):
 
     def get_variables(self, level, ids=None, variables=None,
                       return_type='collection', merge=False):
-        results = self._get_variables(level, ids, variables)
 
-        if return_type == 'dict':
-            return results
+        results = self._get_variables(level, ids, variables)
 
         # Convert dicts to Collections here
         collections = None

@@ -24,7 +24,7 @@ class Transformation(object):
     _columns_used = ()
 
     # What data type to pass onto the core _transform() logic. Must be one
-    # of 'column' (the entire BIDSColumn object), 'pandas' (the extracted
+    # of 'column' (the entire BIDSVariable object), 'pandas' (the extracted
     # pandas DF stored in .values), or 'numpy' (just the numpy array inside
     # the .values property of the pandas DF). To minimize overhead and
     # simplify code, it is recommended to avoid using 'column' if possible.
@@ -148,7 +148,7 @@ class Transformation(object):
 
     def _densify_columns(self):
 
-        from bids.analysis.variables import SparseEventColumn
+        from bids.analysis.variables import SparseEventVariable
 
         cols = []
 
@@ -161,7 +161,7 @@ class Transformation(object):
 
         for c in cols:
             col = self._columns[c]
-            if isinstance(col, SparseEventColumn):
+            if isinstance(col, SparseEventVariable):
                 self._columns[c] = col.to_dense()
 
     def _regex_replace_columns(self, args):
@@ -313,8 +313,8 @@ class Transformation(object):
 
         def _align(cols):
             # If any column is dense, all columns must be dense
-            from bids.analysis.variables import SparseEventColumn
-            sparse = [c for c in cols if isinstance(c, SparseEventColumn)]
+            from bids.analysis.variables import SparseEventVariable
+            sparse = [c for c in cols if isinstance(c, SparseEventVariable)]
             if len(sparse) < len(cols):
                 if sparse:
                     sparse_names = [s.name for s in sparse]

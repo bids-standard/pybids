@@ -85,7 +85,7 @@ def test_split(collection):
 
     rt_pre_onsets = collection['RT'].onset
 
-    # Grouping SparseEventColumn by one column
+    # Grouping SparseEventVariable by one column
     transform.split(collection, ['RT'], ['respcat'])
     assert 'RT.0' in collection.columns.keys() and \
            'RT.-1' in collection.columns.keys()
@@ -94,12 +94,12 @@ def test_split(collection):
                            collection['RT.1'].onset]
     assert np.array_equal(rt_pre_onsets.sort(), rt_post_onsets.sort())
 
-    # Grouping SparseEventColumn by multiple columns
+    # Grouping SparseEventVariable by multiple columns
     transform.split(collection, cols=['RT_2'], by=['respcat', 'loss'])
     assert 'RT_2.-1_13' in collection.columns.keys() and \
            'RT_2.1_13' in collection.columns.keys()
 
-    # Grouping by DenseEventColumn
+    # Grouping by DenseEventVariable
     transform.split(collection, cols='RT_3', by='respcat')
     assert 'RT_3.respcat[0]' in collection.columns.keys()
     assert len(collection['RT_3.respcat[0]'].values) == \

@@ -3,8 +3,8 @@ import pandas as pd
 import nibabel as nb
 from os.path import join, dirname
 from bids.utils import listify
-from .base import Dataset
-from .variables import SparseEventColumn, DenseEventColumn, SimpleColumn
+from .entities import Dataset
+from .variables import SparseEventVariable, DenseEventVariable, SimpleVariable
 
 
 BASE_ENTITIES = ['task', 'run', 'session', 'subject']
@@ -150,7 +150,7 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
                         df = df.dropna(subset=['amplitude'])
 
                     # TODO: TRACK SOURCE FILENAME AND TYPE
-                    run.add_variable(SparseEventColumn(col, df))
+                    run.add_variable(SparseEventVariable(col, df))
 
         # Process confound files
         if confounds:
@@ -163,7 +163,7 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
                     conf_cols = list(set(_data.columns) & set(columns))
                     _data = _data.loc[:, conf_cols]
                 for col in _data.columns:
-                    run.add_variable(DenseEventColumn(col, _data[[col]]),
+                    run.add_variable(DenseEventVariable(col, _data[[col]]),
                                      sampling_rate=1. / run.repetition_time)
 
         # Process recordinging files
@@ -214,8 +214,8 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
 
                 df = pd.DataFrame(values, columns=rf_cols)
                 for col in df.columns:
-                    run.add_variable(DenseEventColumn(col, df[[col]],
-                                                      sampling_rate=freq))
+                    run.add_variable(DenseEventVariable(col, df[[col]],
+                                                        sampling_rate=freq))
     return dataset
 
 
@@ -301,6 +301,6 @@ def _load_tsv_variables(layout, type_, dataset=None, columns=None,
             if prepend_type:
                 col_name = '%s.%s' % (type_, col_name)
 
-            node.add_variable(SimpleColumn(col_name, df))
+            node.add_variable(SimpleVariable(col_name, df))
 
     return dataset

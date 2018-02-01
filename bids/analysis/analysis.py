@@ -1,6 +1,6 @@
 import json
 from bids.grabbids import BIDSLayout
-from .variables import (load_variables, SimpleColumn, BIDSVariableCollection)
+from .variables import (load_variables, SimpleVariable, BIDSVariableCollection)
 from . import transformations as transform
 from collections import namedtuple
 from six import string_types
@@ -251,7 +251,7 @@ class Block(object):
         for col_name in data.columns:
             col_data = data[col_name].reset_index()
             col_data = col_data.rename(columns={col_name: 'amplitude'})
-            col = SimpleColumn(collection, col_name, col_data)
+            col = SimpleVariable(collection, col_name, col_data)
             collection.columns[col_name] = col
 
         self.output_collection = collection

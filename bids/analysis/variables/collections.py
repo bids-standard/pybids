@@ -3,7 +3,7 @@ from copy import copy
 from pandas.api.types import is_numeric_dtype
 import warnings
 import re
-from .variables import SparseEventColumn, SimpleColumn
+from .variables import SparseEventVariable, SimpleVariable, DenseEventVariable
 from .utils import _build_dense_index
 
 
@@ -226,11 +226,11 @@ class BIDSEventVariableCollection(BIDSVariableCollection):
                                               self.sampling_rate)
 
     def _none_dense(self):
-        return all([isinstance(c, SimpleColumn)
+        return all([isinstance(c, SimpleVariable)
                     for c in self.columns.values()])
 
     def _all_dense(self):
-        return all([isinstance(c, DenseEventColumn)
+        return all([isinstance(c, DenseEventVariable)
                     for c in self.columns.values()])
 
     @property
@@ -267,7 +267,7 @@ class BIDSEventVariableCollection(BIDSVariableCollection):
         columns = {}
 
         for name, col in self.columns.items():
-            if isinstance(col, SparseEventColumn):
+            if isinstance(col, SparseEventVariable):
                 if force_dense and is_numeric_dtype(col.values):
                     columns[name] = col.to_dense(sampling_rate)
             else:

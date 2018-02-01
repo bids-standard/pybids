@@ -2,12 +2,12 @@ import numpy as np
 import pandas as pd
 import math
 from copy import deepcopy
-from abc import abstractproperty, abstractmethod, ABCMeta
+from abc import abstractproperty, abstractmethod, abstractclassmethod, ABCMeta
 from scipy.interpolate import interp1d
 from .utils import _build_dense_index
 
 
-class BIDSColumn(object):
+class BIDSVariable(object):
 
     ''' Base representation of a column in a BIDS project. '''
 
@@ -20,6 +20,7 @@ class BIDSColumn(object):
     def clone(self, data=None, **kwargs):
         ''' Clone (deep copy) the current column, optionally replacing its
         data and/or any other attributes.
+
         Args:
             data (DataFrame, ndarray): Optional new data to substitute into
                 the cloned column. Must have same dimensionality as the
@@ -48,6 +49,19 @@ class BIDSColumn(object):
     @abstractmethod
     def aggregate(self, unit, level, func):
         pass
+
+    @abstractclassmethod
+    def merge(cls, columns, name=None):
+
+        col_names = set([c.name for c in columns])
+        if len(col_names) > 1:
+            raise ValueError("Columns with different names cannot be merged. "
+                             "Column names provided: %s" % col_names)
+
+        if name is None:
+            name = columns[0].name
+
+        return cls._merge(columns, name)
 
     @abstractproperty
     def index(self):
@@ -78,9 +92,10 @@ class BIDSColumn(object):
         return self.values.groupby(grouper).apply(func, *args, **kwargs)
 
 
-class SimpleColumn(BIDSColumn):
+class SimpleVariable(BIDSVariable):
     ''' Represents a simple design matrix column that has no timing
     information.
+
     Args:
         name (str): Name of the column.
         data (DataFrame): A pandas DataFrame minimally containing a column
@@ -96,7 +111,7 @@ class SimpleColumn(BIDSColumn):
 
     # Columns that define special properties (e.g., onset, duration). These
     # will be stored separately from the main data object, and are accessible
-    # as properties on the SimpleColumn instance.
+    # as properties on the SimpleVariable instance.
     _property_columns = set()
     _entity_columns = {'condition', 'amplitude', 'factor'}
 
@@ -117,7 +132,7 @@ class SimpleColumn(BIDSColumn):
         values = data['amplitude'].reset_index(drop=True)
         values.name = name
 
-        super(SimpleColumn, self).__init__(name, values)
+        super(SimpleVariable, self).__init__(name, values)
 
     def aggregate(self, unit, func='mean'):
 
@@ -129,8 +144,8 @@ class SimpleColumn(BIDSColumn):
         values = pd.DataFrame({'amplitude': self.values.values})
         data = pd.concat([values, entities], axis=1)
         data = data.groupby(groupby, as_index=False).agg(func)
-        return SimpleColumn(self.name, data, self.factor_name,
-                            self.level_index, self.level_name)
+        return SimpleVariable(self.name, data, self.factor_name,
+                              self.level_index, self.level_name)
 
     def to_df(self, condition=True, entities=True):
         ''' Convert to a DataFrame, with columns for name and entities.
@@ -157,12 +172,13 @@ class SimpleColumn(BIDSColumn):
         return data
 
     def split(self, grouper):
-        ''' Split the current SparseEventColumn into multiple columns.
+        ''' Split the current SparseEventVariable into multiple columns.
         Args:
             grouper (iterable): list to groupby, where each unique value will
                 be taken as the name of the resulting column.
         Returns:
-            A list of SparseEventColumns, one per unique value in the grouper.
+            A list of SparseEventVariables, one per unique value in the
+            grouper.
         '''
         data = self.to_df(condition=True, entities=False)
         data = data.drop('condition', axis=1)
@@ -183,9 +199,18 @@ class SimpleColumn(BIDSColumn):
         ''' An index of all named entities. '''
         return self.entities
 
+    @classmethod
+    def _merge(cls, variables, name):
+        dfs = [v.to_df() for v in variables]
+        data = pd.concat(dfs, axis=0).reset_index(drop=True)
+        data = data.rename(columns={name: 'amplitude'})
+        return cls(name, data, variables[0].factor_name,
+                   variables[0].level_index, variables[0].level_name)
 
-class SparseEventColumn(SimpleColumn):
+
+class SparseEventVariable(SimpleVariable):
     ''' A sparse representation of a single column of events.
+
     Args:
         name (str): Name of the column.
         data (DataFrame): A pandas DataFrame minimally containing the columns
@@ -203,7 +228,7 @@ class SparseEventColumn(SimpleColumn):
 
     def to_dense(self, sampling_rate=None):
         ''' Convert the current sparse column to a dense representation.
-        Returns: A DenseEventColumn. '''
+        Returns: A DenseEventVariable. '''
         if sampling_rate is None:
             sampling_rate = self.collection.sampling_rate
         duration = int(sampling_rate * len(self.collection.dense_index) /
@@ -222,10 +247,10 @@ class SparseEventColumn(SimpleColumn):
 
         ts = pd.DataFrame(ts)
 
-        return DenseEventColumn(self.name, ts)
+        return DenseEventVariable(self.name, ts)
 
 
-class DenseEventColumn(BIDSColumn):
+class DenseEventVariable(BIDSVariable):
     ''' A dense representation of a single column.
 
     Args:
@@ -238,7 +263,7 @@ class DenseEventColumn(BIDSColumn):
 
     def __init__(self, name, values, sampling_rate):
         self.sampling_rate = sampling_rate
-        super(DenseEventColumn, self).__init__(name, values)
+        super(DenseEventVariable, self).__init__(name, values)
         self._index = _build_dense_index(sampling_rate)
 
     @property
@@ -247,19 +272,19 @@ class DenseEventColumn(BIDSColumn):
         return self._index
 
     def split(self, grouper):
-        ''' Split the current DenseEventColumn into multiple columns.
+        ''' Split the current DenseEventVariable into multiple columns.
         Args:
             grouper (DataFrame): binary DF specifying the design matrix to
                 use for splitting. Number of rows must match current
-                DenseEventColumn; a new DenseEventColumn will be generated
+                DenseEventVariable; a new DenseEventVariable will be generated
                 for each column in the grouper.
         Returns:
-            A list of DenseEventColumns, one per unique value in the grouper.
+            A list of DenseEventVariables, one per unique value in the grouper.
         '''
         df = grouper * self.values
         names = df.columns
-        return [DenseEventColumn('%s.%s' % (self.name, name),
-                                 df[name].values)
+        return [DenseEventVariable('%s.%s' % (self.name, name),
+                                   df[name].values)
                 for i, name in enumerate(names)]
 
     def aggregate(self, unit, func='mean'):
@@ -273,7 +298,7 @@ class DenseEventColumn(BIDSColumn):
         values = pd.DataFrame({'amplitude': self.values.values.ravel()})
         data = pd.concat([values, entities], axis=1)
         data = data.groupby(groupby, as_index=False).agg(func)
-        return SimpleColumn(self.name, data)
+        return SimpleVariable(self.name, data)
 
     def resample(self, sampling_rate, kind='linear'):
         ''' Resample the column to the specified sampling rate.
@@ -306,3 +331,11 @@ class DenseEventColumn(BIDSColumn):
         self.values = pd.DataFrame(f(x_new))
 
         self.sampling_rate = sampling_rate
+
+
+def merge_variables(variables):
+    classes = set([v.__class__ for v in variables])
+    if len(classes) > 1:
+        raise ValueError("Columns of different classes cannot be merged. "
+                         "Columns passed are of classes: %s" % classes)
+    return list(classes)[0].merge(variables)

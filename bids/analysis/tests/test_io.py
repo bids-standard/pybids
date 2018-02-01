@@ -1,5 +1,5 @@
 from bids.grabbids import BIDSLayout
-from bids.analysis.variables import (SparseEventColumn, SimpleColumn,
+from bids.analysis.variables import (SparseEventVariable, SimpleVariable,
                                      load_variables)
 from bids.analysis.variables.base import Run, Dataset
 import pytest
@@ -23,7 +23,7 @@ def test_load_events(layout):
     assert len(variables) == 10
     targ_cols = {'parametric gain', 'PTval', 'trial_type', 'respnum'}
     assert not (targ_cols - set(variables.keys()))
-    assert isinstance(variables['parametric gain'], SparseEventColumn)
+    assert isinstance(variables['parametric gain'], SparseEventVariable)
     assert variables['parametric gain'].entities.shape == (86, 4)
 
 
@@ -33,6 +33,6 @@ def test_load_participants(layout):
     assert len(dataset.variables) == 2
     assert {'age', 'sex'} == set(dataset.variables.keys())
     age = dataset.variables['age']
-    assert isinstance(age, SimpleColumn)
+    assert isinstance(age, SimpleVariable)
     assert age.entities.shape == (16, 1)
     assert age.values.shape == (16,)
