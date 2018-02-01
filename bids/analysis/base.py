@@ -1,7 +1,6 @@
 import json
 from bids.grabbids import BIDSLayout
-from .variables import (load_variables, SimpleColumn, BIDSVariableCollection,
-                        merge_collections)
+from .variables import (load_variables, SimpleColumn, BIDSVariableCollection)
 from . import transform
 from collections import namedtuple
 from six import string_types
@@ -65,7 +64,7 @@ class Analysis(object):
             block = Block(index=i, **block_args)
             self.blocks.append(block)
 
-    def setup(self, blocks=None, apply_transformations=True, agg_func='mean'):
+    def setup(self, blocks=None, agg_func='mean'):
         ''' Set up the sequence of blocks for analysis.
 
         Args:
@@ -74,9 +73,6 @@ class Analysis(object):
                 JSON config block list, or a str giving the (unique) name of
                 the block, as specified in the JSON config. Blocks that do not
                 match either index or name will be skipped.
-            apply_transformations (bool): If True, any transformations detected
-                in each block are applied. If False, transformations are
-                skipped.
             agg_func (str or Callable): The aggregation function to use when
                 combining rows from the previous level of analysis. E.g.,
                 when analyzing a 'subject'-level block, inputs coming from the
@@ -126,7 +122,7 @@ class Analysis(object):
             else:
                 raise ValueError("No variables provided as input!")
 
-            b.setup(collection, apply_transformations=apply_transformations)
+            b.setup(collection)
             # Clone output collection because it may be mutated in next block
             input_coll = b.output_collection.clone()
 
@@ -360,7 +356,7 @@ class Block(object):
         by get_Xy(). See get_Xy() for arguments and return format. '''
         return (t for t in self.get_Xy(**selectors))
 
-    def setup(self, input_collection, apply_transformations=True):
+    def setup(self, input_collection):
         ''' Set up the Block and construct the design matrix.
 
         Args:
@@ -368,16 +364,14 @@ class Block(object):
                 collection.
             last_level (str): The level of the previous Block in the analysis,
                 if any.
-            apply_transformations (bool): If True (default), apply any
-                transformations in the block before constructing the design
-                matrix.
         '''
 
         self.input_collection = input_collection
-        self.output_collection = None
 
-        if self.transformations and apply_transformations:
-            self.apply_transformations()
+        self._generate_dms()
+
+        # if self.transformations and apply_transformations:
+        #     self.apply_transformations()
 
         gb = self._get_groupby_cols()
 
