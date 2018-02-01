@@ -15,7 +15,6 @@ def model():
     
     models = auto_model(layout, scan_length=480)
     
-    
     return models[0]
 
 def test_auto_model_analysis(model):
