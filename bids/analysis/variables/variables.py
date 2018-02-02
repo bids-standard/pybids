@@ -112,11 +112,7 @@ class SimpleVariable(BIDSVariable):
 
     def __init__(self, name, data, source):
 
-        for sc in self._property_columns:
-            setattr(self, sc, data[sc].values)
-
-        ent_cols = list(set(data.columns) - self._entity_columns -
-                        self._property_columns)
+        ent_cols = list(set(data.columns) - self._entity_columns)
         self.entities = data.loc[:, ent_cols]
 
         values = data['amplitude'].reset_index(drop=True)
@@ -208,23 +204,31 @@ class SparseRunVariable(SimpleVariable):
     _property_columns = {'onset', 'duration'}
 
     def __init__(self, name, data, run_info, source):
-        self.run_info = listify(run_info)
+        if hasattr(run_info, 'duration'):
+            run_info = [run_info]
+        self.run_info = run_info
+        for sc in self._property_columns:
+            setattr(self, sc, data.pop(sc).values)
         super(SparseRunVariable, self).__init__(name, data, source)
+
+    def get_duration(self):
+        return sum([r.duration for r in self.run_info])
 
     def to_dense(self, sampling_rate):
         ''' Convert the current sparse column to a dense representation.
         Returns: A DenseRunVariable. '''
-        duration = math.ceil(sampling_rate * self.duration)
+        duration = math.ceil(sampling_rate * self.get_duration())
         ts = np.zeros(duration)
 
-        onsets = round(self.onset * sampling_rate).astype(int)
-        durations = round(self.duration * sampling_rate).astype(int)
+        onsets = np.round(self.onset * sampling_rate).astype(int)
+        durations = np.round(self.duration * sampling_rate).astype(int)
 
         for i, row in enumerate(self.values.values):
             ev_end = onsets[i] + durations[i]
             ts[onsets[i]:ev_end] = row
 
-        return DenseRunVariable(self.name, pd.DataFrame(ts))
+        return DenseRunVariable(self.name, ts, self.run_info,
+                                sampling_rate, self.source)
 
     @classmethod
     def _merge(cls, variables, name):
@@ -356,12 +360,6 @@ class DenseRunVariable(BIDSVariable):
         run_info = chain(*[v.run_info for v in variables])
         source = variables[0].source
         return DenseRunVariable(name, values, run_info, sampling_rate, source)
-
-    @classmethod
-    def harmonize(cls, variables, sampling_rate=None):
-        ''' Harmonize two or more DenseRunVariables so that they share the
-        same sampling rate. '''
-        pass
 
 
 def merge_variables(variables):

@@ -66,6 +66,17 @@ def test_merge_wrapper():
     assert "Variables of different classes" in str(e)
 
 
+def test_sparse_run_variable_to_dense(layout1):
+    dataset = load_variables(layout1, 'events', scan_length=480)
+    runs = dataset.get_runs(subject='01', session=1)
+    var = runs[0].variables['RT']
+    dense = var.to_dense(20)
+    assert isinstance(dense, DenseRunVariable)
+    assert dense.values.shape == (9600, )
+    assert len(dense.run_info) == len(var.run_info)
+    assert dense.source == 'events'
+
+
 def test_merge_simple_variables(layout2):
     dataset = load_variables(layout2, 'sessions')
     variables = [s.variables['panas_sad'] for s in dataset.children.values()]
