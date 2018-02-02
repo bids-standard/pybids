@@ -3,7 +3,7 @@ from copy import copy
 from pandas.api.types import is_numeric_dtype
 import warnings
 import re
-from .variables import SparseEventVariable, SimpleVariable, DenseEventVariable
+from .variables import SparseRunVariable, SimpleVariable, DenseRunVariable
 from .utils import _build_dense_index
 
 
@@ -188,7 +188,7 @@ class BIDSVariableCollection(object):
                                              **kwargs)
 
 
-class BIDSEventVariableCollection(BIDSVariableCollection):
+class BIDSRunVariableCollection(BIDSVariableCollection):
 
     ''' A container for one or more EventColumns--i.e., Columns that have a
     temporal dimension.
@@ -211,7 +211,7 @@ class BIDSEventVariableCollection(BIDSVariableCollection):
         self.repetition_time = repetition_time
         self.run_infos = []
         self.dense_index = None
-        super(BIDSEventVariableCollection, self).__init__(unit, entities)
+        super(BIDSRunVariableCollection, self).__init__(unit, entities)
 
     def _get_sampling_rate(self, sr):
         return self.repetition_time if sr == 'tr' else sr
@@ -230,7 +230,7 @@ class BIDSEventVariableCollection(BIDSVariableCollection):
                     for c in self.columns.values()])
 
     def _all_dense(self):
-        return all([isinstance(c, DenseEventVariable)
+        return all([isinstance(c, DenseRunVariable)
                     for c in self.columns.values()])
 
     @property
@@ -241,7 +241,7 @@ class BIDSEventVariableCollection(BIDSVariableCollection):
         ''' Returns a shallow copy of the current instance, except that all
         columns and the index are deep-cloned.
         '''
-        clone = super(BIDSEventVariableCollection, self).clone()
+        clone = super(BIDSRunVariableCollection, self).clone()
         clone.dense_index = self.dense_index.copy()
         return clone
 
@@ -267,7 +267,7 @@ class BIDSEventVariableCollection(BIDSVariableCollection):
         columns = {}
 
         for name, col in self.columns.items():
-            if isinstance(col, SparseEventVariable):
+            if isinstance(col, SparseRunVariable):
                 if force_dense and is_numeric_dtype(col.values):
                     columns[name] = col.to_dense(sampling_rate)
             else:
@@ -302,7 +302,7 @@ class BIDSEventVariableCollection(BIDSVariableCollection):
         '''
 
         if sparse and self._none_dense():
-            return super(BIDSEventVariableCollection,
+            return super(BIDSRunVariableCollection,
                          self).merge_columns(columns)
 
         sampling_rate = self._get_sampling_rate(sampling_rate)

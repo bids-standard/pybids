@@ -1,5 +1,6 @@
 from bids.utils import listify
 from itertools import chain
+from collections import namedtuple
 
 
 BASE_ENTITIES = ['subject', 'session', 'task', 'run']
@@ -61,6 +62,12 @@ class AnalysisLevel(object):
     def add_variable(self, variable):
         self.variables[variable.name] = variable
 
+    def get_entities(self):
+        entities = {} if self.parent is None else self.parent.get_entities()
+        if self._level != 'dataset':
+            entities[self._level] = self.id
+        return entities
+
 
 class Run(AnalysisLevel):
 
@@ -74,6 +81,13 @@ class Run(AnalysisLevel):
         self.repetition_time = repetition_time
         self.dense_index = None
         super(Run, self).__init__(id, parent)
+
+    def get_info(self):
+        return RunInfo(id=self.id, entities=self.get_entities(),
+                       duration=self.duration, tr=self.repetition_time)
+
+
+RunInfo = namedtuple('RunInfo', ['id', 'entities', 'duration', 'tr'])
 
 
 class Session(AnalysisLevel):

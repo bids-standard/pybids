@@ -4,7 +4,7 @@ import math
 from copy import deepcopy
 from abc import abstractproperty, abstractmethod, abstractclassmethod, ABCMeta
 from scipy.interpolate import interp1d
-from .utils import _build_dense_index
+from bids.utils import listify
 
 
 class BIDSVariable(object):
@@ -100,13 +100,6 @@ class SimpleVariable(BIDSVariable):
         name (str): Name of the column.
         data (DataFrame): A pandas DataFrame minimally containing a column
             named 'amplitude' as well as any identifying entities.
-        factor_name (str): If this column is derived from a categorical factor
-            (e.g., level 'A' in a 'trial_type' column), the name of the
-            originating factor.
-        level_index (int): The positional index of the current level in the
-            originating categorical factor. Ignored if factor_name is None.
-        level_name (str): The name of the current level in the originating
-            categorical factor, if applicable.
     '''
 
     # Columns that define special properties (e.g., onset, duration). These
@@ -115,12 +108,7 @@ class SimpleVariable(BIDSVariable):
     _property_columns = set()
     _entity_columns = {'condition', 'amplitude', 'factor'}
 
-    def __init__(self, name, data, factor_name=None,
-                 level_index=None, level_name=None):
-
-        self.factor_name = factor_name
-        self.level_index = level_index
-        self.level_name = level_name
+    def __init__(self, name, data):
 
         for sc in self._property_columns:
             setattr(self, sc, data[sc].values)
@@ -144,8 +132,7 @@ class SimpleVariable(BIDSVariable):
         values = pd.DataFrame({'amplitude': self.values.values})
         data = pd.concat([values, entities], axis=1)
         data = data.groupby(groupby, as_index=False).agg(func)
-        return SimpleVariable(self.name, data, self.factor_name,
-                              self.level_index, self.level_name)
+        return SimpleVariable(self.name, data)
 
     def to_df(self, condition=True, entities=True):
         ''' Convert to a DataFrame, with columns for name and entities.
@@ -172,12 +159,12 @@ class SimpleVariable(BIDSVariable):
         return data
 
     def split(self, grouper):
-        ''' Split the current SparseEventVariable into multiple columns.
+        ''' Split the current SparseRunVariable into multiple columns.
         Args:
             grouper (iterable): list to groupby, where each unique value will
                 be taken as the name of the resulting column.
         Returns:
-            A list of SparseEventVariables, one per unique value in the
+            A list of SparseRunVariables, one per unique value in the
             grouper.
         '''
         data = self.to_df(condition=True, entities=False)
@@ -189,8 +176,7 @@ class SimpleVariable(BIDSVariable):
         subsets = []
         for i, (name, g) in enumerate(data.groupby(grouper)):
             name = '%s.%s' % (self.name, name)
-            col = self.__class__(name, g, level_name=name,
-                                 factor_name=self.name, level_index=i)
+            col = self.__class__(name, g)
             subsets.append(col)
         return subsets
 
@@ -204,53 +190,42 @@ class SimpleVariable(BIDSVariable):
         dfs = [v.to_df() for v in variables]
         data = pd.concat(dfs, axis=0).reset_index(drop=True)
         data = data.rename(columns={name: 'amplitude'})
-        return cls(name, data, variables[0].factor_name,
-                   variables[0].level_index, variables[0].level_name)
+        return cls(name, data)
 
 
-class SparseEventVariable(SimpleVariable):
+class SparseRunVariable(SimpleVariable):
     ''' A sparse representation of a single column of events.
 
     Args:
         name (str): Name of the column.
         data (DataFrame): A pandas DataFrame minimally containing the columns
             'onset', 'duration', and 'amplitude'.
-        factor_name (str): If this column is derived from a categorical factor
-            (e.g., level 'A' in a 'trial_type' column), the name of the
-            originating factor.
-        level_index (int): The positional index of the current level in the
-            originating categorical factor. Ignored if factor_name is None.
-        level_name (str): The name of the current level in the originating
-            categorical factor, if applicable.
+        durations (float, list): ???
     '''
 
     _property_columns = {'onset', 'duration'}
 
-    def to_dense(self, sampling_rate=None):
+    def __init__(self, name, data, run_info):
+        self.run_info = listify(run_info)
+        super(SparseRunVariable, self).__init__(name, data)
+
+    def to_dense(self, sampling_rate):
         ''' Convert the current sparse column to a dense representation.
-        Returns: A DenseEventVariable. '''
-        if sampling_rate is None:
-            sampling_rate = self.collection.sampling_rate
-        duration = int(sampling_rate * len(self.collection.dense_index) /
-                       self.collection.sampling_rate)
+        Returns: A DenseRunVariable. '''
+        duration = math.ceil(sampling_rate * self.duration)
         ts = np.zeros(duration)
 
-        onsets = np.ceil(self.onset * sampling_rate).astype(int)
-        durations = np.round(self.duration * sampling_rate).astype(int)
+        onsets = round(self.onset * sampling_rate).astype(int)
+        durations = round(self.duration * sampling_rate).astype(int)
 
         for i, row in enumerate(self.values.values):
-            file_id = self.entities['unique_run_id'].values[i]
-            run_onset = self.collection.run_infos[file_id].start
-            ev_start = onsets[i] + int(math.ceil(run_onset * sampling_rate))
-            ev_end = ev_start + durations[i]
-            ts[ev_start:ev_end] = row
+            ev_end = onsets[i] + durations[i]
+            ts[onsets[i]:ev_end] = row
 
-        ts = pd.DataFrame(ts)
-
-        return DenseEventVariable(self.name, ts)
+        return DenseRunVariable(self.name, pd.DataFrame(ts))
 
 
-class DenseEventVariable(BIDSVariable):
+class DenseRunVariable(BIDSVariable):
     ''' A dense representation of a single column.
 
     Args:
@@ -261,29 +236,35 @@ class DenseEventVariable(BIDSVariable):
             the collection's sampling rate will be used.
     '''
 
-    def __init__(self, name, values, sampling_rate):
+    def __init__(self, name, values, run_info, sampling_rate):
+
+        values = pd.Series(values, name=name)
+        super(DenseRunVariable, self).__init__(name, values)
+
+        if hasattr(run_info, 'duration'):
+            run_info = [run_info]
+        self.run_info = run_info
         self.sampling_rate = sampling_rate
-        super(DenseEventVariable, self).__init__(name, values)
-        self._index = _build_dense_index(sampling_rate)
+        self.entities = self.build_entity_index(run_info, sampling_rate)
 
     @property
     def index(self):
         ''' An index of all named entities. '''
-        return self._index
+        return self.entities
 
     def split(self, grouper):
-        ''' Split the current DenseEventVariable into multiple columns.
+        ''' Split the current DenseRunVariable into multiple columns.
         Args:
             grouper (DataFrame): binary DF specifying the design matrix to
                 use for splitting. Number of rows must match current
-                DenseEventVariable; a new DenseEventVariable will be generated
+                DenseRunVariable; a new DenseRunVariable will be generated
                 for each column in the grouper.
         Returns:
-            A list of DenseEventVariables, one per unique value in the grouper.
+            A list of DenseRunVariables, one per unique value in the grouper.
         '''
         df = grouper * self.values
         names = df.columns
-        return [DenseEventVariable('%s.%s' % (self.name, name),
+        return [DenseRunVariable('%s.%s' % (self.name, name),
                                    df[name].values)
                 for i, name in enumerate(names)]
 
@@ -300,28 +281,41 @@ class DenseEventVariable(BIDSVariable):
         data = data.groupby(groupby, as_index=False).agg(func)
         return SimpleVariable(self.name, data)
 
-    def resample(self, sampling_rate, kind='linear'):
-        ''' Resample the column to the specified sampling rate.
+    @staticmethod
+    def build_entity_index(run_info, sampling_rate):
+        index = []
+        sr = int(round(1000. / sampling_rate))
+        for run in run_info:
+            reps = int(math.ceil(run.duration * sampling_rate))
+            ent_vals = list(run.entities.values())
+            data = np.broadcast_to(ent_vals, (reps, len(ent_vals)))
+            df = pd.DataFrame(data, columns=list(run.entities.keys()))
+            df['time'] = pd.date_range(0, periods=len(df), freq='%sms' % sr)
+            index.append(df)
+        return pd.concat(index, axis=0).reset_index(drop=True)
 
+    def resample(self, sampling_rate, inplace=False, kind='linear'):
+        ''' Resample the Variable to the specified sampling rate.
         Args:
             sampling_rate (int, float): Target sampling rate (in Hz)
+            inplace (bool): If True, performs resampling in-place. If False,
+                returns a resampled copy of the current Variable.
             kind (str): Argument to pass to scipy's interp1d; indicates the
                 kind of interpolation approach to use. See interp1d docs for
                 valid values.
         '''
+        if not inplace:
+            var = self.clone()
+            var.resample(sampling_rate, True, kind)
+            return var
 
         if sampling_rate == self.sampling_rate:
-            return
-
-        # Use the collection's index if possible
-        if sampling_rate == self.collection.sampling_rate:
-            self._index = self.collection.index
             return
 
         old_sr = self.sampling_rate
         n = len(self.index)
 
-        self._index = _build_dense_index(sampling_rate)
+        self.entities = self.build_entity_index(self.run_info, sampling_rate)
 
         x = np.arange(n)
         num = int(np.ceil(n * sampling_rate / old_sr))
@@ -331,6 +325,27 @@ class DenseEventVariable(BIDSVariable):
         self.values = pd.DataFrame(f(x_new))
 
         self.sampling_rate = sampling_rate
+
+    @classmethod
+    def _merge(cls, variables, name, sampling_rate=None):
+
+        # If no sampling rate was provided, default to the highest rate found
+        if sampling_rate is None:
+            rates = [v.sampling_rate for v in variables]
+            sampling_rate = max(set(rates))
+
+        variables = [v.clone().resample(sampling_rate) for v in variables]
+
+        dfs = [v.to_df() for v in variables]
+        data = pd.concat(dfs, axis=0).reset_index(drop=True)
+        data = data.rename(columns={name: 'amplitude'})
+        return cls(name, data)
+
+    @classmethod
+    def harmonize(cls, variables, sampling_rate=None):
+        ''' Harmonize two or more DenseRunVariables so that they share the
+        same sampling rate. '''
+        pass
 
 
 def merge_variables(variables):

@@ -4,7 +4,9 @@ import pytest
 from os.path import join, dirname, abspath
 from bids import grabbids
 from bids.analysis import load_variables
-from bids.analysis.variables import merge_variables
+from bids.analysis.variables import merge_variables, DenseRunVariable
+from bids.analysis.variables.entities import RunInfo
+import numpy as np
 # # from grabbit import merge_layouts
 # import tempfile
 # import shutil
@@ -24,6 +26,19 @@ def layout2():
     path = join(dirname(mod_file), 'tests', 'data', '7t_trt')
     layout = BIDSLayout(path)
     return layout
+
+
+def test_dense_event_variable():
+    sr, duration = 20, 480
+    n = duration * sr
+    values = np.random.normal(size=n)
+    entities = {'subject': '01', 'run': 1, 'session': 1, 'task': 'sit'}
+    run_info = RunInfo(1, entities, duration, 2)
+    dev = DenseRunVariable('test', values, run_info, sr)
+    assert len(dev.values) == len(dev.entities)
+    dev2 = dev.clone().resample(sampling_rate=40)
+    assert len(dev2.values) == len(dev2.entities)
+    assert len(dev2.values) == 2 * len(dev.values)
 
 
 def test_merge_simple_variables(layout2):

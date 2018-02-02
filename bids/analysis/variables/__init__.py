@@ -1,16 +1,16 @@
-from .variables import (SimpleVariable, SparseEventVariable,
-                        DenseEventVariable, merge_variables)
-from .collections import BIDSVariableCollection, BIDSEventVariableCollection
+from .variables import (SimpleVariable, SparseRunVariable,
+                        DenseRunVariable, merge_variables)
+from .collections import BIDSVariableCollection, BIDSRunVariableCollection
 from .io import (load_variables)
 
 
 __all__ = [
     'SimpleVariable',
-    'SparseEventVariable',
-    'DenseEventVariable',
+    'SparseRunVariable',
+    'DenseRunVariable',
     'BIDSRunInfo',
     'BIDSVariableCollection',
-    'BIDSEventVariableCollection',
+    'BIDSRunVariableCollection',
     'load_variables',
     'merge_variables'
 ]

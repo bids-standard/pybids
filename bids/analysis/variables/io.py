@@ -4,7 +4,7 @@ import nibabel as nb
 from os.path import join, dirname
 from bids.utils import listify
 from .entities import Dataset
-from .variables import SparseEventVariable, DenseEventVariable, SimpleVariable
+from .variables import SparseRunVariable, DenseRunVariable, SimpleVariable
 
 
 BASE_ENTITIES = ['task', 'run', 'session', 'subject']
@@ -124,6 +124,7 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
 
         run = dataset.get_or_create_node(entities, image_file=img_f,
                                          duration=duration, repetition_time=tr)
+        run_info = run.get_info()
 
         # Process event files
         if events:
@@ -150,7 +151,7 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
                         df = df.dropna(subset=['amplitude'])
 
                     # TODO: TRACK SOURCE FILENAME AND TYPE
-                    run.add_variable(SparseEventVariable(col, df))
+                    run.add_variable(SparseRunVariable(col, df, run_info))
 
         # Process confound files
         if confounds:
@@ -163,8 +164,9 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
                     conf_cols = list(set(_data.columns) & set(columns))
                     _data = _data.loc[:, conf_cols]
                 for col in _data.columns:
-                    run.add_variable(DenseEventVariable(col, _data[[col]]),
-                                     sampling_rate=1. / run.repetition_time)
+                    sr = 1. / run.repetition_time
+                    var = DenseRunVariable(col, _data[[col]], run_info, sr)
+                    run.add_variable(var)
 
         # Process recordinging files
         if physio or stim:
@@ -214,8 +216,8 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
 
                 df = pd.DataFrame(values, columns=rf_cols)
                 for col in df.columns:
-                    run.add_variable(DenseEventVariable(col, df[[col]],
-                                                        sampling_rate=freq))
+                    var = DenseRunVariable(col, df[[col]], run_info, freq)
+                    run.add_variable(var)
     return dataset
 
 
