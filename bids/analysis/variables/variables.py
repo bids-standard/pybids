@@ -5,6 +5,7 @@ from copy import deepcopy
 from abc import abstractproperty, abstractmethod, abstractclassmethod, ABCMeta
 from scipy.interpolate import interp1d
 from bids.utils import listify
+from itertools import chain
 
 
 class BIDSVariable(object):
@@ -106,7 +107,7 @@ class SimpleVariable(BIDSVariable):
     # will be stored separately from the main data object, and are accessible
     # as properties on the SimpleVariable instance.
     _property_columns = set()
-    _entity_columns = {'condition', 'amplitude', 'factor'}
+    _entity_columns = {'condition', 'amplitude'}
 
     def __init__(self, name, data):
 
@@ -186,11 +187,11 @@ class SimpleVariable(BIDSVariable):
         return self.entities
 
     @classmethod
-    def _merge(cls, variables, name):
+    def _merge(cls, variables, name, **kwargs):
         dfs = [v.to_df() for v in variables]
         data = pd.concat(dfs, axis=0).reset_index(drop=True)
         data = data.rename(columns={name: 'amplitude'})
-        return cls(name, data)
+        return cls(name, data, **kwargs)
 
 
 class SparseRunVariable(SimpleVariable):
@@ -223,6 +224,12 @@ class SparseRunVariable(SimpleVariable):
             ts[onsets[i]:ev_end] = row
 
         return DenseRunVariable(self.name, pd.DataFrame(ts))
+
+    @classmethod
+    def _merge(cls, variables, name):
+        run_info = [v.run_info for v in variables]
+        return super(SparseRunVariable, cls)._merge(variables, name,
+                                                    run_info=run_info)
 
 
 class DenseRunVariable(BIDSVariable):
@@ -264,8 +271,7 @@ class DenseRunVariable(BIDSVariable):
         '''
         df = grouper * self.values
         names = df.columns
-        return [DenseRunVariable('%s.%s' % (self.name, name),
-                                   df[name].values)
+        return [DenseRunVariable('%s.%s' % (self.name, name), df[name].values)
                 for i, name in enumerate(names)]
 
     def aggregate(self, unit, func='mean'):
@@ -329,17 +335,25 @@ class DenseRunVariable(BIDSVariable):
     @classmethod
     def _merge(cls, variables, name, sampling_rate=None):
 
-        # If no sampling rate was provided, default to the highest rate found
-        if sampling_rate is None:
-            rates = [v.sampling_rate for v in variables]
-            sampling_rate = max(set(rates))
+        if not isinstance(sampling_rate, int):
+            rates = set([v.sampling_rate for v in variables])
+            if len(rates) == 1:
+                sampling_rate = list(rates)[0]
+            else:
+                if sampling_rate is 'auto':
+                    sampling_rate = max(rates)
+                else:
+                    msg = ("Cannot merge DenseRunVariables with different "
+                           "sampling rates (%s). Either specify an integer "
+                           "sampling rate to use for all variables, or set "
+                           "sampling_rate='auto' to use the highest sampling "
+                           "rate found." % rates)
+                    raise ValueError(msg)
 
-        variables = [v.clone().resample(sampling_rate) for v in variables]
-
-        dfs = [v.to_df() for v in variables]
-        data = pd.concat(dfs, axis=0).reset_index(drop=True)
-        data = data.rename(columns={name: 'amplitude'})
-        return cls(name, data)
+        variables = [v.resample(sampling_rate) for v in variables]
+        values = pd.concat([v.values for v in variables], axis=0)
+        run_info = chain(*[v.run_info for v in variables])
+        return cls(name, values, run_info, sampling_rate)
 
     @classmethod
     def harmonize(cls, variables, sampling_rate=None):
@@ -351,6 +365,6 @@ class DenseRunVariable(BIDSVariable):
 def merge_variables(variables):
     classes = set([v.__class__ for v in variables])
     if len(classes) > 1:
-        raise ValueError("Columns of different classes cannot be merged. "
-                         "Columns passed are of classes: %s" % classes)
+        raise ValueError("Variables of different classes cannot be merged. "
+                         "Variables passed are of classes: %s" % classes)
     return list(classes)[0].merge(variables)

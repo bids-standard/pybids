@@ -79,15 +79,15 @@ class Run(AnalysisLevel):
         self.image_file = image_file
         self.duration = duration
         self.repetition_time = repetition_time
-        self.dense_index = None
         super(Run, self).__init__(id, parent)
 
     def get_info(self):
         return RunInfo(id=self.id, entities=self.get_entities(),
-                       duration=self.duration, tr=self.repetition_time)
+                       duration=self.duration, tr=self.repetition_time,
+                       image=self.image_file)
 
 
-RunInfo = namedtuple('RunInfo', ['id', 'entities', 'duration', 'tr'])
+RunInfo = namedtuple('RunInfo', ['id', 'entities', 'duration', 'tr', 'image'])
 
 
 class Session(AnalysisLevel):

@@ -4,7 +4,6 @@ from pandas.api.types import is_numeric_dtype
 import warnings
 import re
 from .variables import SparseRunVariable, SimpleVariable, DenseRunVariable
-from .utils import _build_dense_index
 
 
 class BIDSVariableCollection(object):

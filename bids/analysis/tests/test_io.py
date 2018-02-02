@@ -14,8 +14,16 @@ def layout():
     return BIDSLayout(path)
 
 
-def test_load_events(layout):
-    dataset = load_variables(layout, 'events', scan_length=480)
+@pytest.fixture(scope="module")
+def layout2():
+    mod_file = abspath(grabbids.__file__)
+    path = join(dirname(mod_file), 'tests', 'data', '7t_trt')
+    layout = BIDSLayout(path)
+    return layout
+
+
+def test_load_events(layout1):
+    dataset = load_variables(layout1, 'events', scan_length=480)
     runs = dataset.get_runs(subject='01')
     assert len(runs) == 3
     assert isinstance(runs[0], Run)
@@ -27,8 +35,12 @@ def test_load_events(layout):
     assert variables['parametric gain'].entities.shape == (86, 4)
 
 
-def test_load_participants(layout):
-    dataset = load_variables(layout, 'participants')
+def test_load_physio(layout2):
+    pass
+
+
+def test_load_participants(layout1):
+    dataset = load_variables(layout1, 'participants')
     assert isinstance(dataset, Dataset)
     assert len(dataset.variables) == 2
     assert {'age', 'sex'} == set(dataset.variables.keys())
