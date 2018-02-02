@@ -1,14 +1,14 @@
 from bids.grabbids import BIDSLayout
-from bids.analysis.variables import (SparseEventVariable, SimpleVariable,
+from bids.analysis.variables import (SparseRunVariable, SimpleVariable,
                                      load_variables)
-from bids.analysis.variables.base import Run, Dataset
+from bids.analysis.variables.entities import Run, Dataset
 import pytest
 from os.path import join, dirname, abspath
 from bids import grabbids
 
 
 @pytest.fixture
-def layout():
+def layout1():
     mod_file = abspath(grabbids.__file__)
     path = join(dirname(mod_file), 'tests', 'data', 'ds005')
     return BIDSLayout(path)
@@ -31,8 +31,9 @@ def test_load_events(layout1):
     assert len(variables) == 10
     targ_cols = {'parametric gain', 'PTval', 'trial_type', 'respnum'}
     assert not (targ_cols - set(variables.keys()))
-    assert isinstance(variables['parametric gain'], SparseEventVariable)
+    assert isinstance(variables['parametric gain'], SparseRunVariable)
     assert variables['parametric gain'].entities.shape == (86, 4)
+    assert variables['parametric gain'].source == 'events'
 
 
 def test_load_physio(layout2):

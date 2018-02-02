@@ -22,7 +22,7 @@ def generate_DEV(name='test', sr=20, duration=480):
     entities = {e: uuid.uuid4().hex for e in ent_names}
     image = uuid.uuid4().hex + '.nii.gz'
     run_info = RunInfo(1, entities, duration, 2, image)
-    return DenseRunVariable('test', values, run_info, sr)
+    return DenseRunVariable('test', values, run_info, sr, 'dummy')
 
 
 @pytest.fixture(scope="module")
@@ -45,6 +45,7 @@ def test_dense_event_variable_init():
     dev = generate_DEV()
     assert dev.sampling_rate == 20
     assert dev.run_info[0].duration == 480
+    assert dev.source == 'dummy'
     assert len(dev.values) == len(dev.entities)
 
 
@@ -58,7 +59,7 @@ def test_dense_event_variable_resample():
 def test_merge_wrapper():
     dev = generate_DEV()
     data = pd.DataFrame({'amplitude': [4, 3, 2, 5]})
-    sev = SimpleVariable('simple', data)
+    sev = SimpleVariable('simple', data, 'dummy')
     # Should break if asked to merge different classes
     with pytest.raises(ValueError) as e:
         merge_variables([dev, sev])

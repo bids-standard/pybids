@@ -14,9 +14,10 @@ class BIDSVariable(object):
 
     __metaclass__ = ABCMeta
 
-    def __init__(self, name, values):
+    def __init__(self, name, values, source):
         self.name = name
         self.values = values
+        self.source = source
 
     def clone(self, data=None, **kwargs):
         ''' Clone (deep copy) the current column, optionally replacing its
@@ -109,7 +110,7 @@ class SimpleVariable(BIDSVariable):
     _property_columns = set()
     _entity_columns = {'condition', 'amplitude'}
 
-    def __init__(self, name, data):
+    def __init__(self, name, data, source):
 
         for sc in self._property_columns:
             setattr(self, sc, data[sc].values)
@@ -121,7 +122,7 @@ class SimpleVariable(BIDSVariable):
         values = data['amplitude'].reset_index(drop=True)
         values.name = name
 
-        super(SimpleVariable, self).__init__(name, values)
+        super(SimpleVariable, self).__init__(name, values, source)
 
     def aggregate(self, unit, func='mean'):
 
@@ -191,7 +192,7 @@ class SimpleVariable(BIDSVariable):
         dfs = [v.to_df() for v in variables]
         data = pd.concat(dfs, axis=0).reset_index(drop=True)
         data = data.rename(columns={name: 'amplitude'})
-        return cls(name, data, **kwargs)
+        return cls(name, data, source=variables[0].source, **kwargs)
 
 
 class SparseRunVariable(SimpleVariable):
@@ -206,9 +207,9 @@ class SparseRunVariable(SimpleVariable):
 
     _property_columns = {'onset', 'duration'}
 
-    def __init__(self, name, data, run_info):
+    def __init__(self, name, data, run_info, source):
         self.run_info = listify(run_info)
-        super(SparseRunVariable, self).__init__(name, data)
+        super(SparseRunVariable, self).__init__(name, data, source)
 
     def to_dense(self, sampling_rate):
         ''' Convert the current sparse column to a dense representation.
@@ -243,10 +244,10 @@ class DenseRunVariable(BIDSVariable):
             the collection's sampling rate will be used.
     '''
 
-    def __init__(self, name, values, run_info, sampling_rate):
+    def __init__(self, name, values, run_info, sampling_rate, source):
 
         values = pd.Series(values, name=name)
-        super(DenseRunVariable, self).__init__(name, values)
+        super(DenseRunVariable, self).__init__(name, values, source)
 
         if hasattr(run_info, 'duration'):
             run_info = [run_info]
@@ -353,7 +354,8 @@ class DenseRunVariable(BIDSVariable):
         variables = [v.resample(sampling_rate) for v in variables]
         values = pd.concat([v.values for v in variables], axis=0)
         run_info = chain(*[v.run_info for v in variables])
-        return cls(name, values, run_info, sampling_rate)
+        source = variables[0].source
+        return DenseRunVariable(name, values, run_info, sampling_rate, source)
 
     @classmethod
     def harmonize(cls, variables, sampling_rate=None):
@@ -367,4 +369,11 @@ def merge_variables(variables):
     if len(classes) > 1:
         raise ValueError("Variables of different classes cannot be merged. "
                          "Variables passed are of classes: %s" % classes)
+
+    sources = set([v.source for v in variables])
+    if len(sources) > 1:
+        raise ValueError("Variables extracted from different types of files "
+                         "cannot be merged. Sources found: %s" % sources)
+
     return list(classes)[0].merge(variables)
+

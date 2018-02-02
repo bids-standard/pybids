@@ -11,6 +11,7 @@ class BIDSVariableCollection(object):
     ''' A container for one or more variables extracted from variable files
     at a single level of analysis defined in the BIDS spec (i.e., 'run',
     'session', 'subject', or 'dataset').
+
     Args:
         unit (str): The unit of analysis. Each row in the stored column(s)
             is taken to reflect a single unit. Must be one of 'time', 'run',
@@ -26,11 +27,13 @@ class BIDSVariableCollection(object):
         self.columns = {}
         self.dense_index = None
 
-    def merge_columns(self, columns=None):
-        ''' Merge columns into one DF.
+    def to_df(self, columns=None):
+        ''' Merge columns into a single pandas DataFrame.
+
         Args:
             columns (list): Optional list of column names to retain; if None,
                 all columns are written out.
+
         Returns: A pandas DataFrame.
         '''
 
@@ -52,6 +55,7 @@ class BIDSVariableCollection(object):
 
     def aggregate(self, unit, agg_func='mean', categorical_agg_func=None):
         ''' Aggregate variable values from a lower level at a higher level.
+
         Args:
             unit (str): The unit of aggregation. The returned collection will
                 have one row per value of this unit.
@@ -98,6 +102,7 @@ class BIDSVariableCollection(object):
 
     def match_columns(self, pattern, return_type='name'):
         ''' Return columns whose names match the provided regex pattern.
+
         Args:
             pattern (str): A regex pattern to match all column names against.
             return_type (str): What to return. Must be one of:
@@ -149,6 +154,7 @@ class BIDSVariableCollection(object):
                           add_intercept=False, drop_entities=False, **kwargs):
         ''' Returns a design matrix constructed by combining the current
         BIDSVariableCollection's columns.
+
         Args:
             columns (list): Optional list naming columns to include in the
                 design matrix. If None (default), all columns are included.
@@ -221,9 +227,6 @@ class BIDSRunVariableCollection(BIDSVariableCollection):
         if not self.run_infos:
             return
 
-        self.dense_index = _build_dense_index(self.run_infos,
-                                              self.sampling_rate)
-
     def _none_dense(self):
         return all([isinstance(c, SimpleVariable)
                     for c in self.columns.values()])
@@ -284,8 +287,9 @@ class BIDSRunVariableCollection(BIDSVariableCollection):
         else:
             return columns
 
-    def merge_columns(self, columns=None, sparse=True, sampling_rate='tr'):
-        ''' Merge columns into one DF.
+    def to_df(self, columns=None, sparse=True, sampling_rate='tr'):
+        ''' Merge columns into a single pandas DataFrame.
+
         Args:
             columns (list): Optional list of column names to retain; if None,
                 all columns are written out.
