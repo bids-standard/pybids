@@ -1,5 +1,7 @@
 from bids.grabbids import BIDSLayout
-from bids.analysis.variables.base import Run, Session, Subject, Dataset
+from bids.analysis.variables.entities import Run, Session, Dataset
+from bids.analysis.variables import load_variables
+from bids.analysis.variables import BIDSRunVariableCollection
 import pytest
 from os.path import join, dirname, abspath
 from bids import grabbids
@@ -50,3 +52,32 @@ def test_get_or_create_node(layout1):
     assert run.__class__ == Run
     assert run.parent == sess
     assert run.duration == 480
+
+
+def test_get_nodes(layout1):
+    dataset = load_variables(layout1, scan_length=480)
+    nodes = dataset.get_nodes('session')
+    assert len(nodes) == 16
+    assert all([isinstance(n, Session) for n in nodes])
+    nodes = dataset.get_nodes('run', subject=['01', '02', '03'])
+    assert len(nodes) == 9
+    assert all([isinstance(n, Run) for n in nodes])
+
+
+def test_get_variables_merged(layout1):
+    dataset = load_variables(layout1, scan_length=480)
+    collection = dataset.get_variables('run', merge=True)
+    assert isinstance(collection, BIDSRunVariableCollection)
+    assert len(collection.variables) == 10
+    vals = collection.variables['RT'].values
+    ents = collection.variables['RT'].entities
+    assert len(ents) == len(vals) == 4096
+    assert set(ents.columns) == {'task', 'run', 'session', 'subject'}
+
+
+def test_get_variables_unmerged(layout2):
+    dataset = load_variables(layout2, types=['sessions'], scan_length=480)
+    colls = dataset.get_variables('subject', merge=False)
+    assert len(colls) == 10
+    assert len(colls[0].variables) == 94
+    assert colls[0]['panas_at_ease'].values.shape == (2,)

@@ -53,17 +53,21 @@ class BIDSVariable(object):
         pass
 
     @abstractclassmethod
-    def merge(cls, columns, name=None):
+    def merge(cls, variables, name=None):
 
-        col_names = set([c.name for c in columns])
-        if len(col_names) > 1:
+        variables = listify(variables)
+        if len(variables) == 1:
+            return variables[0]
+
+        var_names = set([v.name for v in variables])
+        if len(var_names) > 1:
             raise ValueError("Columns with different names cannot be merged. "
-                             "Column names provided: %s" % col_names)
+                             "Column names provided: %s" % var_names)
 
         if name is None:
-            name = columns[0].name
+            name = variables[0].name
 
-        return cls._merge(columns, name)
+        return cls._merge(variables, name)
 
     @abstractproperty
     def index(self):
@@ -363,6 +367,7 @@ class DenseRunVariable(BIDSVariable):
 
 
 def merge_variables(variables):
+
     classes = set([v.__class__ for v in variables])
     if len(classes) > 1:
         raise ValueError("Variables of different classes cannot be merged. "

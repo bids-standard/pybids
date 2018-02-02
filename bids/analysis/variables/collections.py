@@ -3,62 +3,93 @@ from copy import copy
 from pandas.api.types import is_numeric_dtype
 import warnings
 import re
-from .variables import SparseRunVariable, SimpleVariable, DenseRunVariable
+from .variables import (SparseRunVariable, SimpleVariable, DenseRunVariable,
+                        merge_variables)
+from collections import defaultdict
 
 
 class BIDSVariableCollection(object):
 
     ''' A container for one or more variables extracted from variable files
-    at a single level of analysis defined in the BIDS spec (i.e., 'run',
-    'session', 'subject', or 'dataset').
+    at a single level of analysis.
 
     Args:
-        unit (str): The unit of analysis. Each row in the stored column(s)
-            is taken to reflect a single unit. Must be one of 'time', 'run',
+        level (str): The level of analysis. Each row in the stored column(s)
+            is taken to reflect a single level. Must be one of 'run',
             'session', 'subject', or 'dataset'.
-        entities (list): A list of entities defined for all variables in this
-            collection.
+        variables (list): A list of Variables.
     '''
 
-    def __init__(self, unit, entities):
+    def __init__(self, variables):
 
-        self.unit = unit
-        self.entities = entities
-        self.columns = {}
-        self.dense_index = None
+        SOURCE_TO_LEVEL = {
+            'events': 'run',
+            'physio': 'run',
+            'stim': 'run',
+            'confounds': 'run',
+            'scans': 'session',
+            'sessions': 'subject',
+            'participants': 'dataset'
+        }
 
-    def to_df(self, columns=None):
-        ''' Merge columns into a single pandas DataFrame.
+        var_levels = set([SOURCE_TO_LEVEL[v.source] for v in variables])
+
+        # TODO: relax this requirement & allow implicit merging between levels
+        if len(var_levels) > 1:
+            raise ValueError("A Collection cannot be initialized from "
+                             "variables at more than one level of analysis. "
+                             "Levels found in input variables: %s" %
+                             var_levels)
+
+        self.level = list(var_levels)[0]
+        variables = self.merge_variables(variables)
+        self.variables = {v.name: v for v in variables}
+
+    @staticmethod
+    def merge_variables(variables):
+        # Concatenates Variables along row axis (i.e., in cases where the same
+        # Variable has multiple replicates for different Runs, Sessions, etc.)
+        var_dict = defaultdict(list)
+        for v in variables:
+            var_dict[v.name].append(v)
+        return [merge_variables(vars_) for vars_ in list(var_dict.values())]
+
+    def to_df(self, variables=None, format='wide'):
+        ''' Merge variables into a single pandas DataFrame.
 
         Args:
-            columns (list): Optional list of column names to retain; if None,
-                all columns are written out.
+            variables (list): Optional list of column names to retain; if None,
+                all variables are returned.
+            format (str): Whether to return a DataFrame in 'wide' or 'long'
+                format.
 
         Returns: A pandas DataFrame.
         '''
 
-        _cols = self.columns.values()
+        _vars = self.variables
+        if variables is not None:
+            _vars = [v for v in variables if v.name in variables]
 
-        # Retain only specific columns if desired
-        if columns is not None:
-            _cols = [c for c in _cols if c.name in columns]
+        # _vars = self.variables.values()
 
-        return pd.concat([c.to_df() for c in _cols], axis=0)
+        # Need to index by entities
+
+        return pd.concat([v.to_df() for v in _vars], axis=1)
 
     def clone(self):
         ''' Returns a shallow copy of the current instance, except that all
-        columns are deep-cloned.
+        variables are deep-cloned.
         '''
         clone = copy(self)
-        clone.columns = {k: v.clone() for (k, v) in self.columns.items()}
+        clone.variables = {k: v.clone() for (k, v) in self.variables.items()}
         return clone
 
-    def aggregate(self, unit, agg_func='mean', categorical_agg_func=None):
+    def aggregate(self, level, agg_func='mean', categorical_agg_func=None):
         ''' Aggregate variable values from a lower level at a higher level.
 
         Args:
-            unit (str): The unit of aggregation. The returned collection will
-                have one row per value of this unit.
+            level (str): The level of aggregation. The returned collection will
+                have one row per value of this level.
             agg_func (str, Callable): Aggregation function to use. Must be
                 either a named function recognized by apply() in pandas, or a
                 Callable that takes a DataFrame and returns a Series or
@@ -70,13 +101,13 @@ class BIDSVariableCollection(object):
                 unique value.
         '''
 
-        for col in self.columns.values():
-            if is_numeric_dtype(col.values):
+        for var in self.variables.values():
+            if is_numeric_dtype(var.values):
                 _func = agg_func
             else:
                 if categorical_agg_func is not None:
                     _func = categorical_agg_func
-                elif col.values.nunique() > 1:
+                elif var.values.nunique() > 1:
                     msg = ("Column %s is categorical and has more than one "
                            "unique value. You must explicitly specify an "
                            "aggregation function in the categorical_agg_func "
@@ -85,34 +116,35 @@ class BIDSVariableCollection(object):
                 else:
                     _func = 'first'
 
-            self[col.name] = col.aggregate(unit, _func)
+            self[var.name] = var.aggregate(level, _func)
 
-    def __getitem__(self, col):
-        return self.columns[col]
+    def __getitem__(self, var):
+        return self.variables[var]
 
-    def __setitem__(self, col, obj):
+    def __setitem__(self, var, obj):
         # Ensure name matches collection key, but raise warning if needed.
-        if obj.name != col:
+        if obj.name != var:
             warnings.warn("The provided key to use in the collection ('%s') "
                           "does not match the passed Column object's existing "
                           "name ('%s'). The Column name will be set to match "
-                          "the provided key." % (col, obj.name))
-            obj.name = col
-        self.columns[col] = obj
+                          "the provided key." % (var, obj.name))
+            obj.name = var
+        self.variables[var] = obj
 
     def match_columns(self, pattern, return_type='name'):
         ''' Return columns whose names match the provided regex pattern.
 
         Args:
-            pattern (str): A regex pattern to match all column names against.
+            pattern (str): A regex pattern to match all variable names against.
             return_type (str): What to return. Must be one of:
-                'name': Returns a list of names of matching columns.
-                'column': Returns a list of Column objects whose names match.
+                'name': Returns a list of names of matching variables.
+                'variable': Returns a list of Variable objects whose names
+                match.
         '''
         pattern = re.compile(pattern)
-        cols = [c for c in self.columns.values() if pattern.search(c.name)]
-        return cols if return_type.startswith('col') \
-            else [c.name for c in cols]
+        vars_ = [v for v in self.variables.values() if pattern.search(v.name)]
+        return vars_ if return_type.startswith('var') \
+            else [v.name for v in vars_]
 
     def _construct_design_matrix(self, data, groupby=None, aggregate=None,
                                  add_intercept=None, drop_entities=False,
@@ -150,14 +182,14 @@ class BIDSVariableCollection(object):
         data = data.drop(drop_cols, axis=1).reset_index(drop=True)
         return data
 
-    def get_design_matrix(self, columns=None, groupby=None, aggregate=None,
+    def get_design_matrix(self, variables=None, groupby=None, aggregate=None,
                           add_intercept=False, drop_entities=False, **kwargs):
         ''' Returns a design matrix constructed by combining the current
-        BIDSVariableCollection's columns.
+        BIDSVariableCollection's variables.
 
         Args:
-            columns (list): Optional list naming columns to include in the
-                design matrix. If None (default), all columns are included.
+            variables (list): Optional list naming variables to include in the
+                design matrix. If None (default), all variables are included.
             groupby (str, list): Optional name (or list of names) of design
                 variables to group by.
             aggregate (str, Callable): Optional aggregation function to apply
@@ -175,18 +207,18 @@ class BIDSVariableCollection(object):
                 e.g., passing subject=['01', '02', '03'] would return only
                 rows that match the first 3 subjects.
 
-        Returns: A pandas DataFrame, where units of analysis (seconds, runs,
+        Returns: A pandas DataFrame, where levels of analysis (seconds, runs,
             etc.) are in rows, and variables/columns are in columns.
 
         '''
 
-        if columns is None:
-            columns = list(self.columns.keys())
+        if variables is None:
+            variables = list(self.variables.keys())
 
         if groupby is None:
             groupby = []
 
-        data = self.merge_columns(columns=columns)
+        data = self.merge_columns(variables=variables)
 
         return self._construct_design_matrix(data, groupby, aggregate,
                                              add_intercept, drop_entities,
@@ -195,28 +227,22 @@ class BIDSVariableCollection(object):
 
 class BIDSRunVariableCollection(BIDSVariableCollection):
 
-    ''' A container for one or more EventColumns--i.e., Columns that have a
+    ''' A container for one or more RunVariables--i.e., Variables that have a
     temporal dimension.
 
     Args:
-        unit (str): The unit of analysis. Each row in the stored column(s)
-            is taken to reflect a single unit. Must be one of 'time', 'run',
-            'session', 'subject', or 'dataset'.
-        entities (list): A list of entities defined for all variables in this
-            collection.
+        variables (list): A list of Variables.
         sampling_rate (float): Sampling rate (in Hz) to use when working with
             dense representations of variables.
         repetition_time (float): TR of corresponding image(s) in seconds.
     '''
 
-    def __init__(self, unit, entities, sampling_rate=None,
+    def __init__(self, variables, sampling_rate=None,
                  repetition_time=None):
 
         self.sampling_rate = sampling_rate
         self.repetition_time = repetition_time
-        self.run_infos = []
-        self.dense_index = None
-        super(BIDSRunVariableCollection, self).__init__(unit, entities)
+        super(BIDSRunVariableCollection, self).__init__(variables)
 
     def _get_sampling_rate(self, sr):
         return self.repetition_time if sr == 'tr' else sr
@@ -229,11 +255,11 @@ class BIDSRunVariableCollection(BIDSVariableCollection):
 
     def _none_dense(self):
         return all([isinstance(c, SimpleVariable)
-                    for c in self.columns.values()])
+                    for c in self.variables.values()])
 
     def _all_dense(self):
         return all([isinstance(c, DenseRunVariable)
-                    for c in self.columns.values()])
+                    for c in self.variables.values()])
 
     @property
     def index(self):
@@ -268,7 +294,7 @@ class BIDSRunVariableCollection(BIDSVariableCollection):
 
         columns = {}
 
-        for name, col in self.columns.items():
+        for name, col in self.variables.items():
             if isinstance(col, SparseRunVariable):
                 if force_dense and is_numeric_dtype(col.values):
                     columns[name] = col.to_dense(sampling_rate)
@@ -279,7 +305,7 @@ class BIDSRunVariableCollection(BIDSVariableCollection):
 
         if in_place:
             for k, v in columns.items():
-                self.columns[k] = v
+                self.variables[k] = v
             # Rebuild the dense index
             self.sampling_rate = sampling_rate
             self._build_dense_index()
@@ -362,12 +388,12 @@ class BIDSRunVariableCollection(BIDSVariableCollection):
                 e.g., passing subject=['01', '02', '03'] would return only
                 rows that match the first 3 subjects.
 
-        Returns: A pandas DataFrame, where units of analysis (seconds, runs,
+        Returns: A pandas DataFrame, where levels of analysis (seconds, runs,
             etc.) are in rows, and variables/columns are in columns.
 
         '''
         if columns is None:
-            columns = list(self.columns.keys())
+            columns = list(self.variables.keys())
 
         if groupby is None:
             groupby = []

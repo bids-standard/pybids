@@ -13,8 +13,8 @@ def collection():
     mod_file = abspath(grabbids.__file__)
     path = join(dirname(mod_file), 'tests', 'data', 'ds005')
     layout = BIDSLayout(path)
-    collection = load_event_variables(layout, scan_length=480,
-                                      extract_recordings=False)
+    # collection = load_event_variables(layout, scan_length=480,
+    #                                   extract_recordings=False)
     return collection
 
 

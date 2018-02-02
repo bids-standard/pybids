@@ -48,8 +48,9 @@ def load_variables(layout, types=None, **kwargs):
     run_types = list({'events', 'physio', 'stim', 'confounds'} - set(types))
     type_flags = {t: False for t in run_types}
     if len(type_flags) < 4:
-        kwargs.update(type_flags)
-        dataset = _load_time_variables(layout, dataset, **kwargs)
+        _kwargs = kwargs.copy()
+        _kwargs.update(type_flags)
+        dataset = _load_time_variables(layout, dataset, **_kwargs)
 
     for t in ({'scans', 'sessions', 'participants'} & set(types)):
         dataset = _load_tsv_variables(layout, t, dataset, **kwargs)
@@ -89,6 +90,8 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
 
     Returns: A Dataset instance.
     '''
+
+    selectors = {k: v for k, v in selectors.items() if k in BASE_ENTITIES}
 
     if dataset is None:
         dataset = Dataset()
@@ -244,6 +247,8 @@ def _load_tsv_variables(layout, type_, dataset=None, columns=None,
 
     Returns: A Dataset instance.
     '''
+
+    selectors = {k: v for k, v in selectors.items() if k in BASE_ENTITIES}
 
     if dataset is None:
         dataset = Dataset()

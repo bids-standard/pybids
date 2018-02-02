@@ -1,6 +1,7 @@
 from bids.utils import listify
 from itertools import chain
 from collections import namedtuple
+from . import collections as clc
 
 
 BASE_ENTITIES = ['subject', 'session', 'task', 'run']
@@ -33,31 +34,17 @@ class AnalysisLevel(object):
     def _level(self):
         return self.__class__.__name__.lower()
 
-    def _get_variables(self, level, ids=None, variables=None):
-
-        if self._level == level:
-            if variables is None:
-                variables = list(self.variables.keys())
-            return {k: v for k, v in self.variables.items() if k in variables}
-
-        if level != self._child or ids is None:
-            ids = self.children.keys()
-
-        results = [self.children[c]._get_variables(level, ids, variables)
-                   for c in ids]
-        return chain(*results)
-
-    def get_runs(self, **selectors):
-        ''' Return a flat list of all Runs that match the selection criteria.
+    def get_nodes(self, level, **selectors):
+        ''' Return a flat list of all entities at the specified level.
         '''
-        if self._child is None:
+        if self._level == level:
             return [self]
-        runs = []
+        nodes = []
         children = listify(selectors.get(self._child,
                                          list(self.children.keys())))
         for child_id in children:
-            runs.extend(self.children[child_id].get_runs(**selectors))
-        return runs
+            nodes.extend(self.children[child_id].get_nodes(level, **selectors))
+        return nodes
 
     def add_variable(self, variable):
         self.variables[variable.name] = variable
@@ -110,23 +97,50 @@ class Dataset(AnalysisLevel):
     def __init__(self):
         super(Dataset, self).__init__(1, None)
 
-    def get_variables(self, level, ids=None, variables=None,
-                      return_type='collection', merge=False):
+    def get_variables(self, unit, variables=None, return_type='collection',
+                      merge=False, **selectors):
+        ''' Retrieve variable data for a specified level in the Dataset.
 
-        results = self._get_variables(level, ids, variables)
+        Args:
+            unit (str): The unit of analysis to return variables for. Must be
+                one of 'run', 'session', 'subject', or 'dataset'.
+            variables (list): Optional list of variables names to return. If
+                None, all available variables are returned.
+            return_type (str): The type of returned object(s). Valid values:
+                'collection': Returns BIDSVariableCollection(s)
+                'df' or 'dataframe': Returns a pandas DataFrame
+            merge (bool): If True, variables are merged across all observations
+                of the current unit. E.g., if unit='subject' and return_type=
+                'collection', variablesfrom all subjects will be merged into a
+                single collection. If False, each observation is handled
+                separately, and the result is returned as a list.
+        '''
 
-        # Convert dicts to Collections here
-        collections = None
+        return_type = return_type.lower()
+
+        nodes = self.get_nodes(unit, **selectors)
+        var_sets = []
+        for n in nodes:
+            var_set = list(n.variables.values())
+            if variables is not None:
+                var_set = [v for v in var_set if v.name in variables]
+            var_sets.append(var_set)
 
         if merge:
-            pass
+            var_sets = [list(chain(*var_sets))]
 
-        if return_type == 'collection':
-            return collections
+        results = []
+        for vs in var_sets:
+            vs = clc.BIDSRunVariableCollection(vs) if unit == 'run' \
+                else clc.BIDSVariableCollection(vs)
+            if return_type in ['df', 'dataframe']:
+                vs = vs.to_df()
+            results.append(vs)
 
-        if return_type.lower() in ['df', 'dataframe']:
-            dfs = [coll.to_df() for coll in listify(collections)]
-            return dfs[0] if merge or level == 'dataset' else dfs
+        if merge:
+            return results[0]
+
+        return results
 
     def get_or_create_node(self, entities, *args, **kwargs):
 
