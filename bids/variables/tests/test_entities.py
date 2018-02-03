@@ -1,7 +1,7 @@
 from bids.grabbids import BIDSLayout
-from bids.analysis.variables.entities import Run, Session, Dataset
-from bids.analysis.variables import load_variables
-from bids.analysis.variables import BIDSRunVariableCollection
+from bids.variables.entities import Run, Session, Dataset
+from bids.variables import load_variables
+from bids.variables import BIDSRunVariableCollection
 import pytest
 from os.path import join, dirname, abspath
 from bids import grabbids

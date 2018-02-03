@@ -118,7 +118,7 @@ class or_(Transformation):
 
     def _transform(self, dfs):
         df = pd.concat(dfs, axis=1)
-        return pd.any(axis=1)
+        return df.any(axis=1)
 
 
 class and_(Transformation):
@@ -133,4 +133,4 @@ class and_(Transformation):
 
     def _transform(self, dfs):
         df = pd.concat(dfs, axis=1)
-        return pd.all(axis=1)
+        return df.all(axis=1)

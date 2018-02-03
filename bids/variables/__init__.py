@@ -1,7 +1,7 @@
 from .variables import (SimpleVariable, SparseRunVariable,
                         DenseRunVariable, merge_variables)
 from .collections import BIDSVariableCollection, BIDSRunVariableCollection
-from .io import (load_variables)
+from .io import load_variables
 
 
 __all__ = [

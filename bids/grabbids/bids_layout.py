@@ -239,7 +239,7 @@ class BIDSLayout(Layout):
     def get_variables(self, unit, types=None, variables=None,
                       return_type='collection', merge=False,
                       sampling_rate=None, **kwargs):
-        from bids.analysis.variables import load_variables
+        from bids.variables import load_variables
         dataset = load_variables(self, types, **kwargs)
         return dataset.get_variables(unit, variables, return_type, merge,
                                      sampling_rate=sampling_rate)

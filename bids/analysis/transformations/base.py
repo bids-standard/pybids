@@ -8,6 +8,7 @@ from abc import ABCMeta, abstractmethod
 from copy import deepcopy
 import itertools
 import inspect
+from bids.variables import SparseRunVariable
 
 
 class Transformation(object):
@@ -156,8 +157,6 @@ class Transformation(object):
                     raise ValueError(msg % (self.__class__.__name__, name))
 
     def _densify_variables(self):
-
-        from bids.analysis.variables import SparseRunVariable
 
         variables = []
 
@@ -323,7 +322,6 @@ class Transformation(object):
 
         def _align(variables):
             # If any variable is dense, all variables must be dense
-            from bids.analysis.variables import SparseRunVariable
             sparse = [c for c in variables
                       if isinstance(c, SparseRunVariable)]
             if len(sparse) < len(variables):

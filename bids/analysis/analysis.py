@@ -1,6 +1,7 @@
 import json
 from bids.grabbids import BIDSLayout
-from .variables import (load_variables, SimpleVariable, BIDSVariableCollection)
+from bids.variables import (load_variables, SimpleVariable,
+                            BIDSVariableCollection)
 from . import transformations as transform
 from collections import namedtuple
 from six import string_types

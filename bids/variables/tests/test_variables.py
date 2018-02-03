@@ -1,12 +1,10 @@
 from bids.grabbids import BIDSLayout
-# from bids.analysis.variables.base import Run, Session, Subject, Dataset
 import pytest
 from os.path import join, dirname, abspath
 from bids import grabbids
 from bids.analysis import load_variables
-from bids.analysis.variables import (merge_variables, DenseRunVariable,
-                                     SparseRunVariable, SimpleVariable)
-from bids.analysis.variables.entities import RunInfo
+from bids.variables import (merge_variables, DenseRunVariable, SimpleVariable)
+from bids.variables.entities import RunInfo
 import numpy as np
 import pandas as pd
 import uuid

@@ -8,6 +8,7 @@ from bids.utils import listify
 from .base import Transformation
 from patsy import dmatrix
 import re
+from bids.variables import DenseRunVariable, SimpleVariable
 
 
 class copy(Transformation):
@@ -60,7 +61,6 @@ class split(Transformation):
     _densify = ('variables', 'by')
 
     def _transform(self, var, by):
-        from bids.analysis.variables import SimpleVariable
 
         if not isinstance(var, SimpleVariable):
             self._densify_variables()
@@ -120,7 +120,6 @@ class assign(Transformation):
 
         # assign only makes sense for sparse variables; dense variables don't
         # have durations or onsets, and amplitudes can be copied by cloning
-        from bids.analysis.variables import DenseRunVariable
         if isinstance(input, DenseRunVariable):
             raise ValueError("The 'assign' transformation can only be applied"
                              " to sparsely-coded event types. The input "
