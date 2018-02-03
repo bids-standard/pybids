@@ -41,7 +41,7 @@
         },
         {
             "name": "run",
-            "pattern": "run-(\\d+)"
+            "pattern": "run-0*(\\d+)"
         },
         {
             "name": "mod",
