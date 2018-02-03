@@ -68,11 +68,11 @@ def test_merge_wrapper():
 
 def test_sparse_run_variable_to_dense(layout1):
     dataset = load_variables(layout1, 'events', scan_length=480)
-    runs = dataset.get_runs(subject='01', session=1)
+    runs = dataset.get_nodes('run', subject='01', session=1)
     var = runs[0].variables['RT']
     dense = var.to_dense(20)
     assert isinstance(dense, DenseRunVariable)
-    assert dense.values.shape == (9600, )
+    assert dense.values.shape == (9600, 1)
     assert len(dense.run_info) == len(var.run_info)
     assert dense.source == 'events'
 
@@ -89,7 +89,7 @@ def test_merge_simple_variables(layout2):
 
 def test_merge_sparse_run_variables(layout1):
     dataset = load_variables(layout1, 'events', scan_length=480)
-    runs = dataset.get_runs()
+    runs = dataset.get_nodes('run')
     variables = [r.variables['RT'] for r in runs]
     n_rows = sum([len(c.values) for c in variables])
     merged = merge_variables(variables)

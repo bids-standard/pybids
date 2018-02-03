@@ -233,19 +233,14 @@ class BIDSRunVariableCollection(BIDSVariableCollection):
     Args:
         variables (list): A list of Variables.
         sampling_rate (float): Sampling rate (in Hz) to use when working with
-            dense representations of variables.
-        repetition_time (float): TR of corresponding image(s) in seconds.
+            dense representations of variables. If None, defaults to 10.
     '''
 
-    def __init__(self, variables, sampling_rate=10,
-                 repetition_time=None):
-
-        self.sampling_rate = sampling_rate
-        self.repetition_time = repetition_time
+    def __init__(self, variables, sampling_rate=None):
+        # Don't put the default value in signature b/c None is passed from
+        # several places and we don't want multiple conflicting defaults.
+        self.sampling_rate = sampling_rate or 10
         super(BIDSRunVariableCollection, self).__init__(variables)
-
-    def _get_sampling_rate(self, sr):
-        return self.repetition_time if sr == 'tr' else sr
 
     def _build_dense_index(self):
         ''' Build an index of all tracked entities for all dense columns. '''
@@ -273,13 +268,14 @@ class BIDSRunVariableCollection(BIDSVariableCollection):
         clone.dense_index = self.dense_index.copy()
         return clone
 
-    def resample(self, sampling_rate='tr', force_dense=False, in_place=False,
+    def resample(self, sampling_rate=None, force_dense=False, in_place=False,
                  kind='linear'):
         ''' Resample all dense variables (and optionally, sparse ones) to the
         specified sampling rate.
 
         Args:
-            sampling_rate (int, float): Target sampling rate (in Hz)
+            sampling_rate (int, float): Target sampling rate (in Hz). If None,
+                uses the instance sampling rate.
             force_dense (bool): if True, all sparse variables will be forced to
                 dense.
             in_place (bool): When True, all variables are overwritten in-place.
@@ -290,7 +286,7 @@ class BIDSRunVariableCollection(BIDSVariableCollection):
         '''
 
         # Store old sampling rate-based variables
-        sampling_rate = self._get_sampling_rate(sampling_rate)
+        sampling_rate = sampling_rate or self.sampling_rate
 
         variables = {}
 
@@ -309,7 +305,7 @@ class BIDSRunVariableCollection(BIDSVariableCollection):
         else:
             return variables
 
-    def to_df(self, columns=None, sparse=True, sampling_rate='tr'):
+    def to_df(self, columns=None, sparse=True, sampling_rate=None):
         ''' Merge columns into a single pandas DataFrame.
 
         Args:
@@ -330,7 +326,7 @@ class BIDSRunVariableCollection(BIDSVariableCollection):
             return super(BIDSRunVariableCollection,
                          self).merge_columns(columns)
 
-        sampling_rate = self._get_sampling_rate(sampling_rate)
+        sampling_rate = sampling_rate or self.sampling_rate
 
         # Make sure all columns have the same sampling rate
         _cols = self.resample(sampling_rate, force_dense=True,
@@ -356,7 +352,7 @@ class BIDSRunVariableCollection(BIDSVariableCollection):
 
     def get_design_matrix(self, columns=None, groupby=None, aggregate=None,
                           add_intercept=False, drop_entities=False,
-                          drop_timing=False, sampling_rate='tr', **kwargs):
+                          drop_timing=False, sampling_rate=None, **kwargs):
         ''' Returns a design matrix constructed by combining the current
         BIDSVariableCollection's columns.
         Args:
@@ -394,8 +390,8 @@ class BIDSRunVariableCollection(BIDSVariableCollection):
         if groupby is None:
             groupby = []
 
-        data = self.merge_columns(columns=columns, sampling_rate=sampling_rate,
-                                  sparse=True)
+        data = self.to_df(columns=columns, sampling_rate=sampling_rate,
+                          sparse=True)
 
         return self._construct_design_matrix(data, groupby, aggregate,
                                              add_intercept, drop_entities,

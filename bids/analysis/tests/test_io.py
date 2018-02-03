@@ -24,7 +24,7 @@ def layout2():
 
 def test_load_events(layout1):
     dataset = load_variables(layout1, 'events', scan_length=480)
-    runs = dataset.get_runs(subject='01')
+    runs = dataset.get_nodes(level='run', subject='01')
     assert len(runs) == 3
     assert isinstance(runs[0], Run)
     variables = runs[0].variables

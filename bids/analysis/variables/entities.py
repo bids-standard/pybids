@@ -98,7 +98,7 @@ class Dataset(AnalysisLevel):
         super(Dataset, self).__init__(1, None)
 
     def get_variables(self, unit, variables=None, return_type='collection',
-                      merge=False, **selectors):
+                      merge=False, sampling_rate=None, **selectors):
         ''' Retrieve variable data for a specified level in the Dataset.
 
         Args:
@@ -131,8 +131,7 @@ class Dataset(AnalysisLevel):
 
         results = []
         for vs in var_sets:
-            vs = clc.BIDSRunVariableCollection(vs) if unit == 'run' \
-                else clc.BIDSVariableCollection(vs)
+            vs = clc.BIDSRunVariableCollection(vs, sampling_rate=sampling_rate) if unit == 'run' else clc.BIDSVariableCollection(vs)
             if return_type in ['df', 'dataframe']:
                 vs = vs.to_df()
             results.append(vs)
