@@ -68,13 +68,57 @@ def test_merge_wrapper():
 
 def test_sparse_run_variable_to_dense(layout1):
     dataset = load_variables(layout1, 'events', scan_length=480)
-    runs = dataset.get_nodes('run', subject='01', session=1)
-    var = runs[0].variables['RT']
-    dense = var.to_dense(20)
+    runs = dataset.get_nodes('run', subject=['01', '02'])
+
+    for i, run in enumerate(runs):
+        var = run.variables['RT']
+        dense = var.to_dense(20)
+
+        # Check that all unique values are identical
+        sparse_vals = set(np.unique(var.values.values)) | {0}
+        dense_vals = set(np.unique(dense.values.values))
+        assert sparse_vals == dense_vals
+
+        assert len(dense.values) > len(var.values)
+        assert isinstance(dense, DenseRunVariable)
+        assert dense.values.shape == (9600, 1)
+        assert len(dense.run_info) == len(var.run_info)
+        assert dense.source == 'events'
+
+
+def test_merge_densified_variables(layout1):
+    SR = 10
+    dataset = load_variables(layout1, 'events', scan_length=480)
+    runs = dataset.get_nodes('run')
+    vars_ = [r.variables['RT'].to_dense(SR) for r in runs]
+    dense = merge_variables(vars_)
     assert isinstance(dense, DenseRunVariable)
-    assert dense.values.shape == (9600, 1)
-    assert len(dense.run_info) == len(var.run_info)
-    assert dense.source == 'events'
+    n_rows = 480 * SR
+    assert dense.values.shape == (len(runs) * n_rows, 1)
+    for i in range(len(runs)):
+        onset = i * n_rows
+        offset = onset + n_rows
+        run_vals = vars_[i].values
+        dense_vals = dense.values.iloc[onset:offset].reset_index(drop=True)
+        assert dense_vals.equals(run_vals)
+
+
+def test_densify_merged_variables(layout1):
+    SR = 10
+    dataset = load_variables(layout1, 'events', scan_length=480)
+    runs = dataset.get_nodes('run')
+    vars_ = [r.variables['RT'] for r in runs]
+    var = merge_variables(vars_)
+    dense = var.to_dense(SR)
+    assert isinstance(dense, DenseRunVariable)
+    n_rows = 480 * SR
+    assert dense.values.shape == (len(runs) * n_rows, 1)
+    for i in range(len(runs)):
+        onset = i * n_rows
+        offset = onset + n_rows
+        run_vals = vars_[i].to_dense(SR).values
+        dense_vals = dense.values.iloc[onset:offset].reset_index(drop=True)
+        assert dense_vals.equals(run_vals)
 
 
 def test_merge_simple_variables(layout2):

@@ -14,6 +14,11 @@ class BIDSVariable(object):
 
     __metaclass__ = ABCMeta
 
+    # Columns that define special properties (e.g., onset, duration). These
+    # will be stored separately from the main data object, and are accessible
+    # as properties on the BIDSVariable instance.
+    _property_columns = set()
+
     def __init__(self, name, values, source):
         self.name = name
         self.values = values
@@ -97,45 +102,6 @@ class BIDSVariable(object):
         grouper = self.get_grouper(groupby)
         return self.values.groupby(grouper).apply(func, *args, **kwargs)
 
-
-class SimpleVariable(BIDSVariable):
-    ''' Represents a simple design matrix column that has no timing
-    information.
-
-    Args:
-        name (str): Name of the column.
-        data (DataFrame): A pandas DataFrame minimally containing a column
-            named 'amplitude' as well as any identifying entities.
-    '''
-
-    # Columns that define special properties (e.g., onset, duration). These
-    # will be stored separately from the main data object, and are accessible
-    # as properties on the SimpleVariable instance.
-    _property_columns = set()
-    _entity_columns = {'condition', 'amplitude'}
-
-    def __init__(self, name, data, source):
-
-        ent_cols = list(set(data.columns) - self._entity_columns)
-        self.entities = data.loc[:, ent_cols]
-
-        values = data['amplitude'].reset_index(drop=True)
-        values.name = name
-
-        super(SimpleVariable, self).__init__(name, values, source)
-
-    def aggregate(self, unit, func='mean'):
-
-        levels = ['run', 'session', 'subject']
-        groupby = set(levels[levels.index(unit):]) & set(self.entities.columns)
-        groupby = list(groupby)
-
-        entities = self.entities.loc[:, groupby].reset_index(drop=True)
-        values = pd.DataFrame({'amplitude': self.values.values})
-        data = pd.concat([values, entities], axis=1)
-        data = data.groupby(groupby, as_index=False).agg(func)
-        return SimpleVariable(self.name, data)
-
     def to_df(self, condition=True, entities=True):
         ''' Convert to a DataFrame, with columns for name and entities.
         Args:
@@ -159,6 +125,41 @@ class SimpleVariable(BIDSVariable):
             data = pd.concat([data, ent_data], axis=1)
 
         return data
+
+
+class SimpleVariable(BIDSVariable):
+    ''' Represents a simple design matrix column that has no timing
+    information.
+
+    Args:
+        name (str): Name of the column.
+        data (DataFrame): A pandas DataFrame minimally containing a column
+            named 'amplitude' as well as any identifying entities.
+    '''
+
+    _entity_columns = {'condition', 'amplitude'}
+
+    def __init__(self, name, data, source):
+
+        ent_cols = list(set(data.columns) - self._entity_columns)
+        self.entities = data.loc[:, ent_cols]
+
+        values = data['amplitude'].reset_index(drop=True)
+        values.name = name
+
+        super(SimpleVariable, self).__init__(name, values, source)
+
+    def aggregate(self, unit, func='mean'):
+
+        levels = ['run', 'session', 'subject']
+        groupby = set(levels[levels.index(unit):]) & set(self.entities.columns)
+        groupby = list(groupby)
+
+        entities = self.entities.loc[:, groupby].reset_index(drop=True)
+        values = pd.DataFrame({'amplitude': self.values.values})
+        data = pd.concat([values, entities], axis=1)
+        data = data.groupby(groupby, as_index=False).agg(func)
+        return SimpleVariable(self.name, data)
 
     def split(self, grouper):
         ''' Split the current SparseRunVariable into multiple columns.
@@ -233,14 +234,15 @@ class SparseRunVariable(SimpleVariable):
         run_i, start, last_ind = 0, 0, 0
         for i, val in enumerate(self.values.values):
             if onsets[i] < last_ind:
+                start += self.run_info[run_i].duration * sampling_rate
                 run_i += 1
-                start += self.run_info[run_i].duration
             _onset = start + onsets[i]
             _offset = _onset + durations[i]
             ts[_onset:_offset] = val
             last_ind = onsets[i]
 
-        return DenseRunVariable(self.name, ts, self.run_info, self.source,
+        run_info = self.run_info.copy()
+        return DenseRunVariable(self.name, ts, run_info, self.source,
                                 sampling_rate)
 
     @classmethod

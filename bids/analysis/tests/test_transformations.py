@@ -14,7 +14,7 @@ def collection():
     path = join(dirname(mod_file), 'tests', 'data', 'ds005')
     layout = BIDSLayout(path)
     collection = layout.get_variables('run', types=['events'], scan_length=480,
-                                      merge=True)
+                                      merge=True, sampling_rate=10)
     return collection
 
 
@@ -50,14 +50,24 @@ def test_scale(collection):
 
 def test_orthogonalize_dense(collection):
     transform.factor(collection, 'trial_type', sep='/')
-    pg_pre = collection['trial_type/parametric gain'].to_dense(10).values
-    rt = collection['RT'].to_dense(10).values
+
+    # Store pre-orth variables needed for tests
+    pg_pre = collection['trial_type/parametric gain'].to_dense(10)
+    rt = collection['RT'].to_dense(10)
+
+    # Orthogonalize and store result
     transform.orthogonalize(collection, variables='trial_type/parametric gain',
-                            other='RT', dense=True)
-    pg_post = collection['trial_type/parametric gain'].values
+                            other='RT', dense=True, groupby=['run','subject'])
+    pg_post = collection['trial_type/parametric gain']
+
+    # Verify that the to_dense() calls result in identical indexing
+    ent_cols = ['subject', 'session', 'run', 'time']
+    assert pg_pre.to_df()[ent_cols].equals(rt.to_df()[ent_cols])
+    assert pg_post.to_df()[ent_cols].equals(rt.to_df()[ent_cols])
+
     vals = np.c_[rt.values, pg_pre.values, pg_post.values]
     df = pd.DataFrame(vals, columns=['rt', 'pre', 'post'])
-    ents = collection['RT'].entities
+    ents = rt.entities
     groupby = pd.core.groupby._get_grouper(ents, ['run', 'subject'])[0]
     pre_r = df.groupby(groupby).apply(lambda x: x.corr().iloc[0, 1])
     post_r = df.groupby(groupby).apply(lambda x: x.corr().iloc[0, 2])
