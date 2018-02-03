@@ -66,15 +66,24 @@ class BIDSVariableCollection(object):
         Returns: A pandas DataFrame.
         '''
 
-        _vars = self.variables
-        if variables is not None:
-            _vars = [v for v in variables if v.name in variables]
+        if format not in ['wide', 'long']:
+            raise ValueError("Invalid format (%s) specified. Must be one of "
+                             "'wide' or 'long'." % format)
 
-        # _vars = self.variables.values()
+        if variables is None:
+            variables = list(self.variables.keys())
+        _vars = [v for v in self.variables.values() if v.name in variables]
 
-        # Need to index by entities
+        df = pd.concat([v.to_df() for v in _vars], axis=0)
 
-        return pd.concat([v.to_df() for v in _vars], axis=1)
+        if format == 'long':
+            return df.reset_index(drop=True)
+
+        ind_cols = list(set(df.columns) - {'condition', 'amplitude'})
+        df = df.pivot_table(index=ind_cols, columns='condition',
+                            values='amplitude', aggfunc='first')
+        return df.reset_index()
+
 
     def clone(self):
         ''' Returns a shallow copy of the current instance, except that all
@@ -287,47 +296,50 @@ class BIDSRunVariableCollection(BIDSVariableCollection):
         else:
             return variables
 
-    def to_df(self, columns=None, sparse=True, sampling_rate=None):
+    def to_df(self, variables=None, format='wide', sampling_rate=None,
+              sparse=True):
         ''' Merge columns into a single pandas DataFrame.
 
         Args:
-            columns (list): Optional list of column names to retain; if None,
-                all columns are written out.
-            sparse (bool): If True, columns will be kept in a sparse format
-                provided they are all internally represented as such. If False,
-                a dense matrix (i.e., uniform sampling rate for all events)
-                will be exported. Will be ignored if at least one column is
-                dense.
+            variables (list): Optional list of variable names to retain;
+                if None, all variables are written out.
+            format (str): Whether to return a DataFrame in 'wide' or 'long'
+                format.
             sampling_rate (float): If a dense matrix is written out, the
                 sampling rate (in Hz) to use for downsampling. Defaults to the
                 value currently set in the instance.
+            sparse (bool): If True, variables will be kept in a sparse format
+                provided they are all internally represented as such. If False,
+                a dense matrix (i.e., uniform sampling rate for all events)
+                will be exported. Will be ignored if at least one variable is
+                dense.
         Returns: A pandas DataFrame.
         '''
 
         if sparse and self._none_dense():
             return super(BIDSRunVariableCollection,
-                         self).merge_columns(columns)
+                         self).to_df(variables, format)
 
         sampling_rate = sampling_rate or self.sampling_rate
 
-        # Make sure all columns have the same sampling rate
-        _cols = self.resample(sampling_rate, force_dense=True,
+        # Make sure all variables have the same sampling rate
+        _vars = self.resample(sampling_rate, force_dense=True,
                               in_place=False).values()
 
-        # Retain only specific columns if desired
-        if columns is not None:
-            _cols = [c for c in _cols if c.name in columns]
+        # Retain only specific variables if desired
+        if variables is not None:
+            _vars = [v for v in _vars if v.name in variables]
 
-        _cols = [c for c in _cols if c.name not in ["event_file_id", "time"]]
+        _vars = [v for v in _vars if v.name != 'time']
 
         # Merge all data into one DF
-        dfs = [pd.Series(c.values.iloc[:, 0], name=c.name) for c in _cols]
+        dfs = [pd.Series(v.values.iloc[:, 0], name=v.name) for v in _vars]
         # Convert datetime to seconds and add duration column
-        dense_index = self.dense_index.copy()
-        onsets = self.dense_index.pop('time').values.astype(float) / 1e+9
+        index = _vars[0].entities.copy()
+        onsets = index.pop('time').values.astype(float) / 1e+9
         timing = pd.DataFrame({'onset': onsets})
         timing['duration'] = 1. / sampling_rate
-        dfs = [timing] + dfs + [dense_index]
+        dfs = [timing] + dfs + [index]
         data = pd.concat(dfs, axis=1)
 
         return data

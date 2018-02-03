@@ -35,10 +35,6 @@ def test_load_events(layout1):
     assert variables['parametric gain'].source == 'events'
 
 
-def test_load_physio(layout2):
-    pass
-
-
 def test_load_participants(layout1):
     dataset = load_variables(layout1, 'participants')
     assert isinstance(dataset, Dataset)
