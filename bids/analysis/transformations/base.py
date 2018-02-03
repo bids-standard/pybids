@@ -127,6 +127,11 @@ class Transformation(object):
         # Loop over argument names and clone all variable names in each one
         for var in self._variables_used:
             for v in listify(self.kwargs.get(var, [])):
+                # Kludge: we need to allow entity variables to be passed as
+                # names even though they don't exist as separate variables
+                if (v not in self.collection.variables and
+                        v in ['task', 'run', 'session', 'subject']):
+                    continue
                 self._variables[v] = deepcopy(self.collection[v])
 
     def _check_categorical_variables(self):

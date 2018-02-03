@@ -89,30 +89,32 @@ def test_split(collection):
 
     rt_pre_onsets = collection['RT'].onset
 
-    # # Grouping SparseEventVariable by one column
-    # transform.split(collection, ['RT'], ['respcat'])
-    # assert 'RT.0' in collection.variables.keys() and \
-    #        'RT.-1' in collection.variables.keys()
-    # rt_post_onsets = np.r_[collection['RT.0'].onset,
-    #                        collection['RT.-1'].onset,
-    #                        collection['RT.1'].onset]
-    # assert np.array_equal(rt_pre_onsets.sort(), rt_post_onsets.sort())
+    # Grouping SparseEventVariable by one column
+    transform.split(collection, ['RT'], ['respcat'])
+    assert 'RT.0' in collection.variables.keys() and \
+           'RT.-1' in collection.variables.keys()
+    rt_post_onsets = np.r_[collection['RT.0'].onset,
+                           collection['RT.-1'].onset,
+                           collection['RT.1'].onset]
+    assert np.array_equal(rt_pre_onsets.sort(), rt_post_onsets.sort())
 
-    # # Grouping SparseEventVariable by multiple columns
-    # transform.split(collection, variables=['RT_2'], by=['respcat', 'loss'])
-    # assert 'RT_2.-1_13' in collection.variables.keys() and \
-    #        'RT_2.1_13' in collection.variables.keys()
+    # Grouping SparseEventVariable by multiple columns
+    transform.split(collection, variables=['RT_2'], by=['respcat', 'loss'])
+    assert 'RT_2.-1_13' in collection.variables.keys() and \
+           'RT_2.1_13' in collection.variables.keys()
 
     # Grouping by DenseEventVariable
     transform.split(collection, variables='RT_3', by='respcat')
-    assert 'RT_3.respcat[0]' in collection.variables.keys()
-    assert len(collection['RT_3.respcat[0]'].values) == \
-        len(collection['RT_3'].values)
+    targets = ['RT_3.respcat[-1]', 'RT_3.respcat[0]', 'RT_3.respcat[1]']
+    assert not set(targets) - set(collection.variables.keys())
+    assert collection['respcat'].values.nunique() == 3
+    n_dense = len(collection['RT_3'].values)
+    assert len(collection['RT_3.respcat[-1]'].values) == n_dense
 
     # Grouping by entities in the index
     collection['RT_4'] = orig.clone(name='RT_4')
     transform.split(collection, variables=['RT_4'], by=['respcat', 'run'])
-    assert 'RT_4.-1_3' in collection.variables.keys()
+    assert 'RT_4.-1_03' in collection.variables.keys()
 
 
 def test_resample_dense(collection):

@@ -52,10 +52,12 @@ class split(Transformation):
         by (str, list): Name(s) of variable(s) to split on.
     '''
 
+    _variables_used = ('variables', 'by')
     _groupable = False
     _input_type = 'variable'
     _return_type = 'variable'
     _allow_categorical = ('by',)
+    _densify = ('variables', 'by')
 
     def _transform(self, var, by):
         from bids.analysis.variables import SimpleVariable
@@ -66,7 +68,7 @@ class split(Transformation):
         # Set up all the splitting variables as a DF. Note that variables in
         # 'by' can be either regular variables, or entities in the index--so
         # we need to check both places.
-        all_variables = self.collection.variables
+        all_variables = self._variables
         by_variables = [all_variables[v].values if v in all_variables
                         else var.index[v].reset_index(drop=True)
                         for v in listify(by)]

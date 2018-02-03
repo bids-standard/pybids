@@ -38,14 +38,14 @@ class BIDSVariable(object):
                 raise ValueError("Replacement data has shape %s; must have "
                                  "same shape as existing data %s." %
                                  (data.shape, self.values.shape))
-            result.values = pd.Series(data)
+            result.values = pd.DataFrame(data)
 
         if kwargs:
             for k, v in kwargs.items():
                 setattr(result, k, v)
 
         # Need to update name on Series as well
-        result.values.name = kwargs.get('name', self.name)
+        # result.values.name = kwargs.get('name', self.name)
         return result
 
     @abstractmethod
@@ -225,14 +225,20 @@ class SparseRunVariable(SimpleVariable):
         ''' Convert the current sparse column to a dense representation.
         Returns: A DenseRunVariable. '''
         duration = math.ceil(sampling_rate * self.get_duration())
-        ts = np.zeros(duration)
+        ts = np.zeros(duration, dtype=self.values.dtype)
 
         onsets = np.round(self.onset * sampling_rate).astype(int)
         durations = np.round(self.duration * sampling_rate).astype(int)
 
-        for i, row in enumerate(self.values.values):
-            ev_end = onsets[i] + durations[i]
-            ts[onsets[i]:ev_end] = row
+        run_i, start, last_ind = 0, 0, 0
+        for i, val in enumerate(self.values.values):
+            if onsets[i] < last_ind:
+                run_i += 1
+                start += self.run_info[run_i].duration
+            _onset = start + onsets[i]
+            _offset = _onset + durations[i]
+            ts[_onset:_offset] = val
+            last_ind = onsets[i]
 
         return DenseRunVariable(self.name, ts, self.run_info, self.source,
                                 sampling_rate)
@@ -257,7 +263,8 @@ class DenseRunVariable(BIDSVariable):
 
     def __init__(self, name, values, run_info, source, sampling_rate):
 
-        values = pd.Series(values, name=name)
+        values = pd.DataFrame(values)
+
         super(DenseRunVariable, self).__init__(name, values, source)
 
         if hasattr(run_info, 'duration'):
@@ -281,12 +288,12 @@ class DenseRunVariable(BIDSVariable):
         Returns:
             A list of DenseRunVariables, one per unique value in the grouper.
         '''
-        df = grouper * self.values
-        names = df.columns
+        values = grouper.values * self.values.values
+        df = pd.DataFrame(values, columns=grouper.columns)
         return [DenseRunVariable('%s.%s' % (self.name, name), df[name].values,
                                  self.run_info, self.source,
                                  self.sampling_rate)
-                for i, name in enumerate(names)]
+                for i, name in enumerate(df.columns)]
 
     def aggregate(self, unit, func='mean'):
 
