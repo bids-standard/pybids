@@ -242,31 +242,13 @@ class BIDSRunVariableCollection(BIDSVariableCollection):
         self.sampling_rate = sampling_rate or 10
         super(BIDSRunVariableCollection, self).__init__(variables)
 
-    def _build_dense_index(self):
-        ''' Build an index of all tracked entities for all dense columns. '''
-
-        if not self.run_info:
-            return
-
     def _none_dense(self):
-        return all([isinstance(c, SimpleVariable)
-                    for c in self.variables.values()])
+        return all([isinstance(v, SimpleVariable)
+                    for v in self.variables.values()])
 
     def _all_dense(self):
-        return all([isinstance(c, DenseRunVariable)
-                    for c in self.variables.values()])
-
-    @property
-    def index(self):
-        return self.dense_index
-
-    def clone(self):
-        ''' Returns a shallow copy of the current instance, except that all
-        columns and the index are deep-cloned.
-        '''
-        clone = super(BIDSRunVariableCollection, self).clone()
-        clone.dense_index = self.dense_index.copy()
-        return clone
+        return all([isinstance(v, DenseRunVariable)
+                    for v in self.variables.values()])
 
     def resample(self, sampling_rate=None, force_dense=False, in_place=False,
                  kind='linear'):

@@ -8,9 +8,6 @@ from bids.variables.entities import RunInfo
 import numpy as np
 import pandas as pd
 import uuid
-# # from grabbit import merge_layouts
-# import tempfile
-# import shutil
 
 
 def generate_DEV(name='test', sr=20, duration=480):
