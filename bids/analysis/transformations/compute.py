@@ -1,5 +1,5 @@
 '''
-Transformations that primarily involve numerical computation on columns.
+Transformations that primarily involve numerical computation on variables.
 '''
 
 import numpy as np
@@ -31,7 +31,7 @@ class sum(Transformation):
         else:
             if len(weights.ravel()) != data.shape[1]:
                 raise ValueError("If weights are passed to sum(), the number "
-                                 "of elements must equal the number of columns"
+                                 "of elements must equal number of variables"
                                  "being summed.")
         data = pd.concat(data, axis=1)
         return data.dot(weights)
@@ -51,28 +51,28 @@ class product(Transformation):
 
 class orthogonalize(Transformation):
 
-    _columns_used = ('cols', 'other')
-    _densify = ('cols', 'other')
+    _variables_used = ('variables', 'other')
+    _densify = ('variables', 'other')
     _align = ('other')
 
-    def _transform(self, col, other):
+    def _transform(self, var, other):
 
         other = listify(other)
 
-        # Set up X matrix and slice into it based on target column indices
-        X = np.array([self._columns[c].values.values.squeeze()
+        # Set up X matrix and slice into it based on target variable indices
+        X = np.array([self._variables[c].values.values.squeeze()
                       for c in other]).T
-        X = X[col.index, :]
-        assert len(X) == len(col)
-        y = col.values
+        X = X[var.index, :]
+        assert len(X) == len(var)
+        y = var.values
         _aX = np.c_[np.ones(len(y)), X]
         coefs, resids, rank, s = np.linalg.lstsq(_aX, y)
-        result = pd.DataFrame(y - X.dot(coefs[1:]), index=col.index)
+        result = pd.DataFrame(y - X.dot(coefs[1:]), index=var.index)
         return result
 
 
 class threshold(Transformation):
-    ''' Threshold and/or binarize a column.
+    ''' Threshold and/or binarize a variable.
     Args:
         data (Series/DF): The pandas structure to threshold.
         threshold (float): The value to binarize around (values above will
@@ -107,9 +107,9 @@ class threshold(Transformation):
 
 
 class or_(Transformation):
-    ''' Logical OR (inclusive) on two or more columns.
+    ''' Logical OR (inclusive) on two or more variables.
     Args:
-        dfs (list of DFs): Columns to enter into the disjunction.
+        dfs (list of DFs): variables to enter into the disjunction.
     '''
 
     _loopable = False
@@ -122,9 +122,9 @@ class or_(Transformation):
 
 
 class and_(Transformation):
-    ''' Logical AND on two or more columns.
+    ''' Logical AND on two or more variables.
     Args:
-        dfs (list of DFs): Columns to enter into the conjunction.
+        dfs (list of DFs): variables to enter into the conjunction.
     '''
 
     _loopable = False

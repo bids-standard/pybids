@@ -153,8 +153,8 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
                     if drop_na:
                         df = df.dropna(subset=['amplitude'])
 
-                    run.add_variable(SparseRunVariable(col, df, run_info,
-                                                       'events'))
+                    var = SparseRunVariable(col, df, run_info, 'events')
+                    run.add_variable(var)
 
         # Process confound files
         if confounds:
@@ -168,8 +168,8 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
                     _data = _data.loc[:, conf_cols]
                 for col in _data.columns:
                     sr = 1. / run.repetition_time
-                    var = DenseRunVariable(col, _data[[col]], run_info, sr,
-                                           'confounds')
+                    var = DenseRunVariable(col, _data[[col]], run_info,
+                                           'confounds', sr)
                     run.add_variable(var)
 
         # Process recordinging files
@@ -221,8 +221,8 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
                 df = pd.DataFrame(values, columns=rf_cols)
                 source = 'physio' if '_physio.tsv' in rf else 'stim'
                 for col in df.columns:
-                    var = DenseRunVariable(col, df[[col]], run_info, freq,
-                                           source)
+                    var = DenseRunVariable(col, df[[col]], run_info, source,
+                                           freq)
                     run.add_variable(var)
     return dataset
 

@@ -131,7 +131,7 @@ class BIDSVariableCollection(object):
             obj.name = var
         self.variables[var] = obj
 
-    def match_columns(self, pattern, return_type='name'):
+    def match_variables(self, pattern, return_type='name'):
         ''' Return columns whose names match the provided regex pattern.
 
         Args:
@@ -237,7 +237,7 @@ class BIDSRunVariableCollection(BIDSVariableCollection):
         repetition_time (float): TR of corresponding image(s) in seconds.
     '''
 
-    def __init__(self, variables, sampling_rate=None,
+    def __init__(self, variables, sampling_rate=10,
                  repetition_time=None):
 
         self.sampling_rate = sampling_rate
@@ -250,7 +250,7 @@ class BIDSRunVariableCollection(BIDSVariableCollection):
     def _build_dense_index(self):
         ''' Build an index of all tracked entities for all dense columns. '''
 
-        if not self.run_infos:
+        if not self.run_info:
             return
 
     def _none_dense(self):
@@ -275,15 +275,15 @@ class BIDSRunVariableCollection(BIDSVariableCollection):
 
     def resample(self, sampling_rate='tr', force_dense=False, in_place=False,
                  kind='linear'):
-        ''' Resample all dense columns (and optionally, sparse ones) to the
+        ''' Resample all dense variables (and optionally, sparse ones) to the
         specified sampling rate.
 
         Args:
             sampling_rate (int, float): Target sampling rate (in Hz)
-            force_dense (bool): if True, all sparse columns will be forced to
+            force_dense (bool): if True, all sparse variables will be forced to
                 dense.
-            in_place (bool): When True, all columns are overwritten in-place.
-                When False, returns resampled versions of all columns.
+            in_place (bool): When True, all variables are overwritten in-place.
+                When False, returns resampled versions of all variables.
             kind (str): Argument to pass to scipy's interp1d; indicates the
                 kind of interpolation approach to use. See interp1d docs for
                 valid values.
@@ -292,26 +292,22 @@ class BIDSRunVariableCollection(BIDSVariableCollection):
         # Store old sampling rate-based variables
         sampling_rate = self._get_sampling_rate(sampling_rate)
 
-        columns = {}
+        variables = {}
 
-        for name, col in self.variables.items():
-            if isinstance(col, SparseRunVariable):
-                if force_dense and is_numeric_dtype(col.values):
-                    columns[name] = col.to_dense(sampling_rate)
+        for name, var in self.variables.items():
+            if isinstance(var, SparseRunVariable):
+                if force_dense and is_numeric_dtype(var.values):
+                    variables[name] = var.to_dense(sampling_rate)
             else:
-                col = col.clone()
-                col.resample(sampling_rate, kind)
-                columns[name] = col
+                variables[name] = var.resample(sampling_rate, kind)
+                variables[name] = var
 
         if in_place:
-            for k, v in columns.items():
+            for k, v in variables.items():
                 self.variables[k] = v
-            # Rebuild the dense index
             self.sampling_rate = sampling_rate
-            self._build_dense_index()
-
         else:
-            return columns
+            return variables
 
     def to_df(self, columns=None, sparse=True, sampling_rate='tr'):
         ''' Merge columns into a single pandas DataFrame.

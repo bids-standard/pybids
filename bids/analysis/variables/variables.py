@@ -73,7 +73,7 @@ class BIDSVariable(object):
     def index(self):
         pass
 
-    def get_grouper(self, groupby='unique_run_id'):
+    def get_grouper(self, groupby='run'):
         ''' Return a pandas Grouper object suitable for use in groupby calls.
         Args:
             groupby (str, list): Name(s) of column(s) defining the grouper
@@ -85,7 +85,7 @@ class BIDSVariable(object):
         '''
         return pd.core.groupby._get_grouper(self.index, groupby)[0]
 
-    def apply(self, func, groupby='unique_run_id', *args, **kwargs):
+    def apply(self, func, groupby='run', *args, **kwargs):
         ''' Applies the passed function to the groups defined by the groupby
         argument. Works identically to the standard pandas df.groupby() call.
         Args:
@@ -178,7 +178,10 @@ class SimpleVariable(BIDSVariable):
         subsets = []
         for i, (name, g) in enumerate(data.groupby(grouper)):
             name = '%s.%s' % (self.name, name)
-            col = self.__class__(name, g)
+            args = [name, g, self.source]
+            if hasattr(self, 'run_info'):
+                args.append(self.run_info)
+            col = self.__class__(*args)
             subsets.append(col)
         return subsets
 
@@ -231,12 +234,12 @@ class SparseRunVariable(SimpleVariable):
             ev_end = onsets[i] + durations[i]
             ts[onsets[i]:ev_end] = row
 
-        return DenseRunVariable(self.name, ts, self.run_info,
-                                sampling_rate, self.source)
+        return DenseRunVariable(self.name, ts, self.run_info, self.source,
+                                sampling_rate)
 
     @classmethod
     def _merge(cls, variables, name):
-        run_info = [v.run_info for v in variables]
+        run_info = list(chain(*[v.run_info for v in variables]))
         return super(SparseRunVariable, cls)._merge(variables, name,
                                                     run_info=run_info)
 
@@ -252,7 +255,7 @@ class DenseRunVariable(BIDSVariable):
             the collection's sampling rate will be used.
     '''
 
-    def __init__(self, name, values, run_info, sampling_rate, source):
+    def __init__(self, name, values, run_info, source, sampling_rate):
 
         values = pd.Series(values, name=name)
         super(DenseRunVariable, self).__init__(name, values, source)
@@ -280,7 +283,9 @@ class DenseRunVariable(BIDSVariable):
         '''
         df = grouper * self.values
         names = df.columns
-        return [DenseRunVariable('%s.%s' % (self.name, name), df[name].values)
+        return [DenseRunVariable('%s.%s' % (self.name, name), df[name].values,
+                                 self.run_info, self.source,
+                                 self.sampling_rate)
                 for i, name in enumerate(names)]
 
     def aggregate(self, unit, func='mean'):
@@ -361,9 +366,9 @@ class DenseRunVariable(BIDSVariable):
 
         variables = [v.resample(sampling_rate) for v in variables]
         values = pd.concat([v.values for v in variables], axis=0)
-        run_info = chain(*[v.run_info for v in variables])
+        run_info = list(chain(*[v.run_info for v in variables]))
         source = variables[0].source
-        return DenseRunVariable(name, values, run_info, sampling_rate, source)
+        return DenseRunVariable(name, values, run_info, source, sampling_rate)
 
 
 def merge_variables(variables):
