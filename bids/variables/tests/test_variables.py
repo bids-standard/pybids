@@ -143,3 +143,15 @@ def test_merge_dense_run_variables(layout2):
     merged = merge_variables(variables)
     assert len(merged.values) == n_rows
     assert merged.entities.columns.equals(variables[0].entities.columns)
+
+
+def test_simple_variable_to_df(layout1):
+    pass
+
+
+def test_sparse_run_variable_to_df(layout1):
+    pass
+
+
+def test_dense_run_variable_to_df(layout1):
+    pass

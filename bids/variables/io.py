@@ -10,7 +10,7 @@ from .variables import SparseRunVariable, DenseRunVariable, SimpleVariable
 BASE_ENTITIES = ['task', 'run', 'session', 'subject']
 
 
-def load_variables(layout, types=None, **kwargs):
+def load_variables(layout, types=None, skip_empty=True, **kwargs):
     ''' A convenience wrapper for one or more load_*_variables() calls.
 
     Args:
@@ -19,6 +19,9 @@ def load_variables(layout, types=None, **kwargs):
             reflect the filename stipulated in the BIDS spec for each kind of
             variable. Valid values include: 'events', 'physio', 'stim',
             'scans', 'participants', 'sessions', and 'confounds'.
+        skip_empty (bool): Whether or not to skip empty Variables (i.e.,
+            where there are no rows/records in a file after applying any
+            filtering operations like dropping NaNs).
         kwargs: Optional keyword arguments to pass onto the individual
             load_*_variables() calls.
 
@@ -60,7 +63,8 @@ def load_variables(layout, types=None, **kwargs):
 
 def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
                          drop_na=True, events=True, physio=True, stim=True,
-                         confounds=True, derivatives=None, **selectors):
+                         confounds=True, derivatives=None, skip_empty=True,
+                         **selectors):
     ''' Loads all variables found in *_events.tsv files and returns them as a
     BIDSVariableCollection.
 
@@ -84,6 +88,9 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
         stim (bool): If True, extracts variables from _stim files.
         derivatives (str): How to handle derivative events. Passed to
             BIDSLayout.get_events.
+        skip_empty (bool): Whether or not to skip empty Variables (i.e.,
+            where there are no rows/records in a file, or all onsets,
+            durations, and amplitudes are 0).
         selectors (dict): Optional keyword arguments passed onto the
             BIDSLayout instance's get() method; can be used to constrain
             which data are loaded.
@@ -124,8 +131,9 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
                 raise ValueError(msg)
 
         tr = layout.get_metadata(img_f)['RepetitionTime']
+        task = entities['task']
 
-        run = dataset.get_or_create_node(entities, image_file=img_f,
+        run = dataset.get_or_create_node(entities, image_file=img_f, task=task,
                                          duration=duration, repetition_time=tr)
         run_info = run.get_info()
 
@@ -152,6 +160,9 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
 
                     if drop_na:
                         df = df.dropna(subset=['amplitude'])
+
+                    if df.empty:
+                        continue
 
                     var = SparseRunVariable(col, df, run_info, 'events')
                     run.add_variable(var)

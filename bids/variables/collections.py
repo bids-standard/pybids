@@ -4,7 +4,7 @@ from pandas.api.types import is_numeric_dtype
 import warnings
 import re
 from .variables import (SparseRunVariable, SimpleVariable, DenseRunVariable,
-                        merge_variables)
+                        merge_variables, BIDSVariable)
 from collections import defaultdict
 
 
@@ -66,15 +66,16 @@ class BIDSVariableCollection(object):
         Returns: A pandas DataFrame.
         '''
 
-        if format not in ['wide', 'long']:
-            raise ValueError("Invalid format (%s) specified. Must be one of "
-                             "'wide' or 'long'." % format)
-
         if variables is None:
             variables = list(self.variables.keys())
-        _vars = [v for v in self.variables.values() if v.name in variables]
 
-        df = pd.concat([v.to_df() for v in _vars], axis=0)
+        # Can receive already-selected Variables from sub-classes
+        if not isinstance(variables[0], BIDSVariable):
+            variables = [v for v in self.variables.values()
+                         if v.name in variables]
+
+        dfs = [v.to_df() for v in variables]
+        df = pd.concat(dfs, axis=0)
 
         if format == 'long':
             return df.reset_index(drop=True)
@@ -82,8 +83,8 @@ class BIDSVariableCollection(object):
         ind_cols = list(set(df.columns) - {'condition', 'amplitude'})
         df = df.pivot_table(index=ind_cols, columns='condition',
                             values='amplitude', aggfunc='first')
-        return df.reset_index()
 
+        return df.reset_index()
 
     def clone(self):
         ''' Returns a shallow copy of the current instance, except that all
@@ -296,8 +297,8 @@ class BIDSRunVariableCollection(BIDSVariableCollection):
         else:
             return variables
 
-    def to_df(self, variables=None, format='wide', sampling_rate=None,
-              sparse=True):
+    def to_df(self, variables=None, format='wide', sparse=True,
+              sampling_rate=None):
         ''' Merge columns into a single pandas DataFrame.
 
         Args:
@@ -305,44 +306,26 @@ class BIDSRunVariableCollection(BIDSVariableCollection):
                 if None, all variables are written out.
             format (str): Whether to return a DataFrame in 'wide' or 'long'
                 format.
-            sampling_rate (float): If a dense matrix is written out, the
-                sampling rate (in Hz) to use for downsampling. Defaults to the
-                value currently set in the instance.
             sparse (bool): If True, variables will be kept in a sparse format
                 provided they are all internally represented as such. If False,
                 a dense matrix (i.e., uniform sampling rate for all events)
                 will be exported. Will be ignored if at least one variable is
                 dense.
+            sampling_rate (float): If a dense matrix is written out, the
+                sampling rate (in Hz) to use for downsampling. Defaults to the
+                value currently set in the instance.
+
         Returns: A pandas DataFrame.
         '''
 
-        if sparse and self._none_dense():
-            return super(BIDSRunVariableCollection,
-                         self).to_df(variables, format)
+        if not (sparse and self._none_dense()):
+            sampling_rate = sampling_rate or self.sampling_rate
 
-        sampling_rate = sampling_rate or self.sampling_rate
+            # Make sure all variables have the same sampling rate
+            variables = list(self.resample(sampling_rate, force_dense=True,
+                                           in_place=False).values())
 
-        # Make sure all variables have the same sampling rate
-        _vars = self.resample(sampling_rate, force_dense=True,
-                              in_place=False).values()
-
-        # Retain only specific variables if desired
-        if variables is not None:
-            _vars = [v for v in _vars if v.name in variables]
-
-        _vars = [v for v in _vars if v.name != 'time']
-
-        # Merge all data into one DF
-        dfs = [pd.Series(v.values.iloc[:, 0], name=v.name) for v in _vars]
-        # Convert datetime to seconds and add duration column
-        index = _vars[0].entities.copy()
-        onsets = index.pop('time').values.astype(float) / 1e+9
-        timing = pd.DataFrame({'onset': onsets})
-        timing['duration'] = 1. / sampling_rate
-        dfs = [timing] + dfs + [index]
-        data = pd.concat(dfs, axis=1)
-
-        return data
+        return super(BIDSRunVariableCollection, self).to_df(variables, format)
 
     def get_design_matrix(self, columns=None, groupby=None, aggregate=None,
                           add_intercept=False, drop_entities=False,

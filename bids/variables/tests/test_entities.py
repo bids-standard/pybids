@@ -26,7 +26,7 @@ def layout2():
 def test_run(layout1):
     img = layout1.get(subject='01', task='mixedgamblestask', type='bold',
                       run=1, return_type='obj')[0]
-    run = Run(1, None, img.filename, 480, 2)
+    run = Run(1, None, img.filename, 480, 2, 'mixedgamblestask')
     assert run.image_file == img.filename
     assert run.duration == 480
     assert run.repetition_time == 2
@@ -38,7 +38,7 @@ def test_get_or_create_node(layout1):
                       run=1, return_type='obj')[0]
     dataset = Dataset()
 
-    entities = {'subject': '01', 'session': 1}
+    entities = {'subject': '01', 'session': 1, 'task': 'test'}
     sess = dataset.get_or_create_node(entities)
     assert sess.__class__ == Session
     assert sess.children == {}
@@ -48,7 +48,8 @@ def test_get_or_create_node(layout1):
     assert sess2 == sess
 
     run = dataset.get_or_create_node(img.entities, image_file=img.filename,
-                                     duration=480, repetition_time=2)
+                                     duration=480, repetition_time=2,
+                                     task='mixedgamblestask')
     assert run.__class__ == Run
     assert run.parent == sess
     assert run.duration == 480

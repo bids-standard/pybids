@@ -151,7 +151,7 @@ class SimpleVariable(BIDSVariable):
 
     def aggregate(self, unit, func='mean'):
 
-        levels = ['run', 'session', 'subject']
+        levels = ['task', 'run', 'session', 'subject']
         groupby = set(levels[levels.index(unit):]) & set(self.entities.columns)
         groupby = list(groupby)
 
@@ -299,7 +299,7 @@ class DenseRunVariable(BIDSVariable):
 
     def aggregate(self, unit, func='mean'):
 
-        levels = ['run', 'session', 'subject']
+        levels = ['task', 'run', 'session', 'subject']
         groupby = set(levels[levels.index(unit):]) & \
             set(self.index.columns)
         groupby = list(groupby)
@@ -354,6 +354,25 @@ class DenseRunVariable(BIDSVariable):
         self.values = pd.DataFrame(f(x_new))
 
         self.sampling_rate = sampling_rate
+
+    def to_df(self, condition=True, entities=True, timing=True):
+        ''' Convert to a DataFrame, with columns for name and entities.
+        Args:
+            condition (bool): If True, adds a column for condition name, and
+                names the amplitude column 'amplitude'. If False, returns just
+                onset, duration, and amplitude, and gives the amplitude column
+                the current column name.
+            entities (bool): If True, adds extra columns for all entities.
+            timing (bool): If True, includes onset and duration columns (even
+                though events are sampled uniformly). If False, omits them.
+        '''
+        df = super(DenseRunVariable, self).to_df(condition, entities)
+
+        if timing:
+            df['onset'] = df['time'].values.astype(float) / 1e+9
+            df['duration'] = 1. / self.sampling_rate
+
+        return df.drop('time', axis=1)
 
     @classmethod
     def _merge(cls, variables, name, sampling_rate=None):

@@ -62,16 +62,18 @@ class Run(AnalysisLevel):
     _child = None
 
     def __init__(self, id, parent, image_file, duration,
-                 repetition_time):
+                 repetition_time, task):
         self.image_file = image_file
         self.duration = duration
         self.repetition_time = repetition_time
+        self.task = task
         super(Run, self).__init__(id, parent)
 
     def get_info(self):
-        return RunInfo(id=self.id, entities=self.get_entities(),
-                       duration=self.duration, tr=self.repetition_time,
-                       image=self.image_file)
+        entities = self.get_entities()
+        entities['task'] = self.task
+        return RunInfo(self.id, entities, self.duration, self.repetition_time,
+                       self.image_file)
 
 
 RunInfo = namedtuple('RunInfo', ['id', 'entities', 'duration', 'tr', 'image'])
