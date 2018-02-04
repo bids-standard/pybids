@@ -2,7 +2,7 @@ from bids.grabbids import BIDSLayout
 import pytest
 from os.path import join, dirname, abspath
 from bids import grabbids
-from bids.variables import DenseRunVariable
+from bids.variables import DenseRunVariable, merge_collections
 
 
 @pytest.fixture(scope="module")
@@ -11,6 +11,15 @@ def run_coll():
     path = join(dirname(mod_file), 'tests', 'data', 'ds005')
     layout = BIDSLayout(path)
     return layout.get_variables('run', ['events'], merge=True, scan_length=480)
+
+
+@pytest.fixture(scope="module")
+def run_coll_list():
+    mod_file = abspath(grabbids.__file__)
+    path = join(dirname(mod_file), 'tests', 'data', 'ds005')
+    layout = BIDSLayout(path)
+    return layout.get_variables('run', ['events'], merge=False,
+                                scan_length=480)
 
 
 def test_run_variable_collection_init(run_coll):
@@ -71,3 +80,15 @@ def test_run_variable_collection_to_df(run_coll):
     df = run_coll.to_df(sparse=False, format='long')
     assert df.shape == (1612800, 8)
     assert set(df.columns) == long_cols
+
+
+def test_merge_collections(run_coll, run_coll_list):
+    df1 = run_coll.to_df().sort_values(['subject', 'run', 'onset'])
+    rcl = [c.clone() for c in run_coll_list]
+    coll = merge_collections(rcl)
+    df2 = coll.to_df().sort_values(['subject', 'run', 'onset'])
+    assert df1.equals(df2)
+
+    coll = merge_collections(rcl, sampling_rate=20)
+    df3 = coll.to_df()
+    assert len(df3) == 2 * len(df2)

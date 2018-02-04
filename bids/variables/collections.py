@@ -6,6 +6,8 @@ import re
 from .variables import (SparseRunVariable, SimpleVariable, DenseRunVariable,
                         merge_variables, BIDSVariable)
 from collections import defaultdict
+from itertools import chain
+from bids.utils import listify
 
 
 class BIDSVariableCollection(object):
@@ -46,13 +48,14 @@ class BIDSVariableCollection(object):
         self.variables = {v.name: v for v in variables}
 
     @staticmethod
-    def merge_variables(variables):
+    def merge_variables(variables, **kwargs):
         # Concatenates Variables along row axis (i.e., in cases where the same
         # Variable has multiple replicates for different Runs, Sessions, etc.)
         var_dict = defaultdict(list)
         for v in variables:
             var_dict[v.name].append(v)
-        return [merge_variables(vars_) for vars_ in list(var_dict.values())]
+        return [merge_variables(vars_, **kwargs)
+                for vars_ in list(var_dict.values())]
 
     def to_df(self, variables=None, format='wide'):
         ''' Merge variables into a single pandas DataFrame.
@@ -83,8 +86,9 @@ class BIDSVariableCollection(object):
         ind_cols = list(set(df.columns) - {'condition', 'amplitude'})
         df = df.pivot_table(index=ind_cols, columns='condition',
                             values='amplitude', aggfunc='first')
-
-        return df.reset_index()
+        df = df.reset_index()
+        df.columns.name = None
+        return df
 
     def clone(self):
         ''' Returns a shallow copy of the current instance, except that all
@@ -247,7 +251,7 @@ class BIDSRunVariableCollection(BIDSVariableCollection):
     '''
 
     def __init__(self, variables, sampling_rate=None):
-        # Don't put the default value in signature b/c None is passed from
+        # Don't put the default value in signature because None is passed from
         # several places and we don't want multiple conflicting defaults.
         self.sampling_rate = sampling_rate or 10
         super(BIDSRunVariableCollection, self).__init__(variables)
@@ -327,49 +331,35 @@ class BIDSRunVariableCollection(BIDSVariableCollection):
 
         return super(BIDSRunVariableCollection, self).to_df(variables, format)
 
-    def get_design_matrix(self, columns=None, groupby=None, aggregate=None,
-                          add_intercept=False, drop_entities=False,
-                          drop_timing=False, sampling_rate=None, **kwargs):
-        ''' Returns a design matrix constructed by combining the current
-        BIDSVariableCollection's columns.
-        Args:
-            columns (list): Optional list naming columns to include in the
-                design matrix. If None (default), all columns are included.
-            groupby (str, list): Optional name (or list of names) of design
-                variables to group by.
-            aggregate (str, Callable): Optional aggregation function to apply
-                to groups if groupby is not None (ignored otherwise). Must be
-                either a named function recognized by pandas, or a Callable
-                that takes a DataFrame and returns a Series or DataFrame.
-            add_intercept (bool): If True, adds an intercept column (i.e.,
-                constant column of 1's) to the returned design matrix.
-            drop_entities (bool): If True, entities are stripped from the
-                returned design matrix. When False, entities like 'subject' and
-                'run' are included as columns in the matrix, leaving it up to
-                the user to remove them if appropriate.
-            sampling_rate (float, str): The sampling rate to use for the
-                returned design matrix. Value must be either a float
-                expressed in seconds, or the special value 'tr', which
-                uses the associated scan's repetition time as the sampling
-                rate.
-            kwargs: Optional query constraints understood by
-                pd.DataFrame.query(). Must be compatible with the 'in' syntax;
-                e.g., passing subject=['01', '02', '03'] would return only
-                rows that match the first 3 subjects.
 
-        Returns: A pandas DataFrame, where levels of analysis (seconds, runs,
-            etc.) are in rows, and variables/columns are in columns.
+def merge_collections(collections, force_dense=False, sampling_rate='auto'):
+    ''' Merge two or more collections at the same level of analysis.
 
-        '''
-        if columns is None:
-            columns = list(self.variables.keys())
+    Args:
+        collections (list): List of Collections to merge.
+        sampling_rate (int, str): Sampling rate to use if it becomes necessary
+            to resample DenseRunVariables. Either an integer or 'auto' (see
+            merge_variables docstring for further explanation).
 
-        if groupby is None:
-            groupby = []
+    Returns:
+        A BIDSVariableCollection or BIDSRunVariableCollection, depending
+        on the type of the input collections.
+    '''
+    if len(listify(collections)) == 1:
+        return collections
 
-        data = self.to_df(columns=columns, sampling_rate=sampling_rate,
-                          sparse=True)
+    levels = set([c.level for c in collections])
+    if len(levels) > 1:
+        raise ValueError("At the moment, it's only possible to merge "
+                         "Collections at the same level of analysis. You "
+                         "passed collections at levels: %s." % levels)
 
-        return self._construct_design_matrix(data, groupby, aggregate,
-                                             add_intercept, drop_entities,
-                                             **kwargs)
+    variables = list(chain(*[c.variables.values() for c in collections]))
+    cls = collections[0].__class__
+
+    variables = cls.merge_variables(variables, sampling_rate=sampling_rate)
+
+    if isinstance(collections[0], BIDSRunVariableCollection):
+        return cls(variables, sampling_rate)
+
+    return cls(variables)

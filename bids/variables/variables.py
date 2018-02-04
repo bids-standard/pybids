@@ -56,8 +56,8 @@ class BIDSVariable(object):
     def aggregate(self, unit, level, func):
         pass
 
-    @abstractclassmethod
-    def merge(cls, variables, name=None):
+    @classmethod
+    def merge(cls, variables, name=None, **kwargs):
 
         variables = listify(variables)
         if len(variables) == 1:
@@ -71,7 +71,11 @@ class BIDSVariable(object):
         if name is None:
             name = variables[0].name
 
-        return cls._merge(variables, name)
+        return cls._merge(variables, name, **kwargs)
+
+    @abstractclassmethod
+    def _merge(cls, variables, name, **kwargs):
+        pass
 
     def get_grouper(self, groupby='run'):
         ''' Return a pandas Grouper object suitable for use in groupby calls.
@@ -134,7 +138,7 @@ class SimpleVariable(BIDSVariable):
 
     _entity_columns = {'condition', 'amplitude'}
 
-    def __init__(self, name, data, source):
+    def __init__(self, name, data, source, **kwargs):
 
         ent_cols = list(set(data.columns) - self._entity_columns)
         self.entities = data.loc[:, ent_cols]
@@ -198,13 +202,13 @@ class SparseRunVariable(SimpleVariable):
 
     _property_columns = {'onset', 'duration'}
 
-    def __init__(self, name, data, run_info, source):
+    def __init__(self, name, data, run_info, source, **kwargs):
         if hasattr(run_info, 'duration'):
             run_info = [run_info]
         self.run_info = run_info
         for sc in self._property_columns:
             setattr(self, sc, data.pop(sc).values)
-        super(SparseRunVariable, self).__init__(name, data, source)
+        super(SparseRunVariable, self).__init__(name, data, source, **kwargs)
 
     def get_duration(self):
         return sum([r.duration for r in self.run_info])
@@ -233,10 +237,11 @@ class SparseRunVariable(SimpleVariable):
                                 sampling_rate)
 
     @classmethod
-    def _merge(cls, variables, name):
+    def _merge(cls, variables, name, **kwargs):
         run_info = list(chain(*[v.run_info for v in variables]))
         return super(SparseRunVariable, cls)._merge(variables, name,
-                                                    run_info=run_info)
+                                                    run_info=run_info,
+                                                    **kwargs)
 
 
 class DenseRunVariable(BIDSVariable):
@@ -357,7 +362,7 @@ class DenseRunVariable(BIDSVariable):
         return df.drop('time', axis=1)
 
     @classmethod
-    def _merge(cls, variables, name, sampling_rate=None):
+    def _merge(cls, variables, name, sampling_rate=None, **kwargs):
 
         if not isinstance(sampling_rate, int):
             rates = set([v.sampling_rate for v in variables])
@@ -367,11 +372,11 @@ class DenseRunVariable(BIDSVariable):
                 if sampling_rate is 'auto':
                     sampling_rate = max(rates)
                 else:
-                    msg = ("Cannot merge DenseRunVariables with different "
-                           "sampling rates (%s). Either specify an integer "
+                    msg = ("Cannot merge DenseRunVariables (%s) with different"
+                           " sampling rates (%s). Either specify an integer "
                            "sampling rate to use for all variables, or set "
                            "sampling_rate='auto' to use the highest sampling "
-                           "rate found." % rates)
+                           "rate found." % (name, rates))
                     raise ValueError(msg)
 
         variables = [v.resample(sampling_rate) for v in variables]
@@ -381,7 +386,7 @@ class DenseRunVariable(BIDSVariable):
         return DenseRunVariable(name, values, run_info, source, sampling_rate)
 
 
-def merge_variables(variables):
+def merge_variables(variables, **kwargs):
 
     classes = set([v.__class__ for v in variables])
     if len(classes) > 1:
@@ -393,5 +398,4 @@ def merge_variables(variables):
         raise ValueError("Variables extracted from different types of files "
                          "cannot be merged. Sources found: %s" % sources)
 
-    return list(classes)[0].merge(variables)
-
+    return list(classes)[0].merge(variables, **kwargs)
