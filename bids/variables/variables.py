@@ -74,10 +74,6 @@ class BIDSVariable(object):
 
         return cls._merge(variables, name)
 
-    @abstractproperty
-    def index(self):
-        pass
-
     def get_grouper(self, groupby='run'):
         ''' Return a pandas Grouper object suitable for use in groupby calls.
         Args:
@@ -88,7 +84,7 @@ class BIDSVariable(object):
             A pandas Grouper object constructed from the specified columns
                 of the current index.
         '''
-        return pd.core.groupby._get_grouper(self.index, groupby)[0]
+        return pd.core.groupby._get_grouper(self.entities, groupby)[0]
 
     def apply(self, func, groupby='run', *args, **kwargs):
         ''' Applies the passed function to the groups defined by the groupby
@@ -172,9 +168,6 @@ class SimpleVariable(BIDSVariable):
         '''
         data = self.to_df(condition=True, entities=False)
         data = data.drop('condition', axis=1)
-        # data = pd.DataFrame(dict(onset=self.onset, duration=self.duration,
-        #                          amplitude=self.values.values))
-        # data = pd.concat([data, self.index.reset_index(drop=True)], axis=1)
 
         subsets = []
         for i, (name, g) in enumerate(data.groupby(grouper)):
@@ -185,11 +178,6 @@ class SimpleVariable(BIDSVariable):
             col = self.__class__(*args)
             subsets.append(col)
         return subsets
-
-    @property
-    def index(self):
-        ''' An index of all named entities. '''
-        return self.entities
 
     @classmethod
     def _merge(cls, variables, name, **kwargs):
@@ -275,11 +263,6 @@ class DenseRunVariable(BIDSVariable):
         self.sampling_rate = sampling_rate
         self.entities = self.build_entity_index(run_info, sampling_rate)
 
-    @property
-    def index(self):
-        ''' An index of all named entities. '''
-        return self.entities
-
     def split(self, grouper):
         ''' Split the current DenseRunVariable into multiple columns.
         Args:
@@ -301,7 +284,7 @@ class DenseRunVariable(BIDSVariable):
 
         levels = ['task', 'run', 'session', 'subject']
         groupby = set(levels[levels.index(unit):]) & \
-            set(self.index.columns)
+            set(self.entities.columns)
         groupby = list(groupby)
 
         entities = self._index.loc[:, groupby].reset_index(drop=True)
@@ -342,7 +325,7 @@ class DenseRunVariable(BIDSVariable):
             return
 
         old_sr = self.sampling_rate
-        n = len(self.index)
+        n = len(self.entities)
 
         self.entities = self.build_entity_index(self.run_info, sampling_rate)
 

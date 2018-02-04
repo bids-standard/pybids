@@ -27,7 +27,7 @@ def test_load_events(layout1):
     assert len(runs) == 3
     assert isinstance(runs[0], Run)
     variables = runs[0].variables
-    assert len(variables) == 10
+    assert len(variables) == 8
     targ_cols = {'parametric gain', 'PTval', 'trial_type', 'respnum'}
     assert not (targ_cols - set(variables.keys()))
     assert isinstance(variables['parametric gain'], SparseRunVariable)

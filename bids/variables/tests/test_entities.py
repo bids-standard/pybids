@@ -69,7 +69,7 @@ def test_get_variables_merged(layout1):
     dataset = load_variables(layout1, scan_length=480)
     collection = dataset.get_variables('run', merge=True)
     assert isinstance(collection, BIDSRunVariableCollection)
-    assert len(collection.variables) == 10
+    assert len(collection.variables) == 8
     vals = collection.variables['RT'].values
     ents = collection.variables['RT'].entities
     assert len(ents) == len(vals) == 4096
