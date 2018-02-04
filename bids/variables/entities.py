@@ -7,7 +7,16 @@ from . import collections as clc
 BASE_ENTITIES = ['subject', 'session', 'task', 'run']
 
 
-class AnalysisLevel(object):
+class Node(object):
+    ''' Base class for objects that represent a single object in the BIDS
+    hierarchy.
+
+    Args:
+        id (int, str): A value uniquely identifying this node. Typically the
+            entity value extracted from the filename via grabbids.
+        parent (Node): The parent Node.
+        children (list): A list of child nodes.
+    '''
 
     def __init__(self, id, parent=None, children=None, *args, **kwargs):
         self.id = id
@@ -35,7 +44,19 @@ class AnalysisLevel(object):
         return self.__class__.__name__.lower()
 
     def get_nodes(self, level, **selectors):
-        ''' Return a flat list of all entities at the specified level.
+        ''' Return a flat list of all Nodes at or below the current Node that
+        match the specified criteria.
+
+        Args:
+            level (str): The target level of Node to return. Must be one of
+                'dataset', 'subject', 'session', or 'run'.
+            selectors: Optional keyword arguments placing constraints on what
+                Nodes to return. Argument names be any of the standard
+                entities in the hierarchy--i.e., 'subject', 'session', or
+                'run'.
+
+        Returns:
+            A list of Nodes.
         '''
         if self._level == level:
             return [self]
@@ -47,16 +68,32 @@ class AnalysisLevel(object):
         return nodes
 
     def add_variable(self, variable):
+        ''' Adds a BIDSVariable to the current Node's list.
+
+        Args:
+            variable (BIDSVariable): The Variable to add to the list.
+        '''
         self.variables[variable.name] = variable
 
     def get_entities(self):
+        ''' Returns a dictionary of entities for the current Node. '''
         entities = {} if self.parent is None else self.parent.get_entities()
         if self._level != 'dataset':
             entities[self._level] = self.id
         return entities
 
 
-class Run(AnalysisLevel):
+class Run(Node):
+    ''' Represents a single Run in a BIDS project.
+
+    Args:
+        id (int): The index of the run.
+        parent (Node): The parent Session.
+        image_file (str): The full path to the corresponding nifti image.
+        duration (float): Duration of the run, in seconds.
+        repetition_time (float): TR for the run.
+        task (str): The task name for this run.
+    '''
 
     _parent = 'session'
     _child = None
@@ -76,23 +113,24 @@ class Run(AnalysisLevel):
                        self.image_file)
 
 
+# Stores key information for each Run.
 RunInfo = namedtuple('RunInfo', ['id', 'entities', 'duration', 'tr', 'image'])
 
 
-class Session(AnalysisLevel):
+class Session(Node):
 
     _parent = 'subject'
     _child = 'run'
 
 
-class Subject(AnalysisLevel):
+class Subject(Node):
 
     _parent = 'dataset'
     _child = 'session'
 
 
-class Dataset(AnalysisLevel):
-
+class Dataset(Node):
+    ''' Represents the top level in a BIDS hierarchy. '''
     _parent = None
     _child = 'subject'
 
@@ -108,14 +146,15 @@ class Dataset(AnalysisLevel):
                 one of 'run', 'session', 'subject', or 'dataset'.
             variables (list): Optional list of variables names to return. If
                 None, all available variables are returned.
-            return_type (str): The type of returned object(s). Valid values:
-                'collection': Returns BIDSVariableCollection(s)
-                'df' or 'dataframe': Returns a pandas DataFrame
             merge (bool): If True, variables are merged across all observations
                 of the current unit. E.g., if unit='subject' and return_type=
                 'collection', variablesfrom all subjects will be merged into a
                 single collection. If False, each observation is handled
                 separately, and the result is returned as a list.
+            sampling_rate (int, str): If level='run', the sampling rate to
+                pass onto the returned BIDSRunVariableCollection.
+            selectors: Optional constraints used to limit what gets returned.
+                Valid argument names are 'run', 'session', and 'subject'.
         '''
 
         return_type = return_type.lower()
@@ -133,9 +172,10 @@ class Dataset(AnalysisLevel):
 
         results = []
         for vs in var_sets:
-            vs = clc.BIDSRunVariableCollection(vs, sampling_rate=sampling_rate) if unit == 'run' else clc.BIDSVariableCollection(vs)
-            if return_type in ['df', 'dataframe']:
-                vs = vs.to_df()
+            if unit == 'run':
+                vs = clc.BIDSRunVariableCollection(vs, sampling_rate)
+            else:
+                vs = clc.BIDSVariableCollection(vs)
             results.append(vs)
 
         if merge:
@@ -144,6 +184,20 @@ class Dataset(AnalysisLevel):
         return results
 
     def get_or_create_node(self, entities, *args, **kwargs):
+        ''' Retrieves a child Node based on the specified criteria, creating a
+        new Node if necessary.
+
+        Args:
+            entities (dict): Dictionary of entities specifying which Node to
+                return.
+            args, kwargs: Optional positional or named arguments to pass onto
+                class-specific initializers. These arguments are only used if
+                a Node that matches the passed entities doesn't already exist,
+                and a new one must be created.
+
+        Returns:
+            A Node instance.
+        '''
 
         if 'run' in entities and 'session' not in entities:
             entities['session'] = 1

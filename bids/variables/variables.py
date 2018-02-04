@@ -438,7 +438,6 @@ def merge_variables(variables, name=None, **kwargs):
             default, uses the same name as the input variables.
         kwargs: Optional keyword arguments to pass onto the class-specific
             merge() call. Possible args:
-
             - sampling_rate (int, str): The sampling rate to use if resampling
               of DenseRunVariables is necessary for harmonization. If 'auto',
               the highest sampling rate found will be used. This argument is

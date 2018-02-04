@@ -282,8 +282,6 @@ def merge_collections(collections, force_dense=False, sampling_rate='auto'):
 
     Args:
         collections (list): List of Collections to merge.
-        force_dense (bool): If True, all SparseRunVariables will be converted
-            to DenseRunVariables.
         sampling_rate (int, str): Sampling rate to use if it becomes necessary
             to resample DenseRunVariables. Either an integer or 'auto' (see
             merge_variables docstring for further explanation).
