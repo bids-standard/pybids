@@ -2,17 +2,16 @@ import numpy as np
 import pandas as pd
 import math
 from copy import deepcopy
-from abc import abstractproperty, abstractmethod, abstractclassmethod, ABCMeta
+from abc import abstractmethod, abstractclassmethod, ABCMeta
 from scipy.interpolate import interp1d
 from bids.utils import listify
 from itertools import chain
+from six import add_metaclass
 
 
+@add_metaclass(ABCMeta)
 class BIDSVariable(object):
-
     ''' Base representation of a column in a BIDS project. '''
-
-    __metaclass__ = ABCMeta
 
     # Columns that define special properties (e.g., onset, duration). These
     # will be stored separately from the main data object, and are accessible

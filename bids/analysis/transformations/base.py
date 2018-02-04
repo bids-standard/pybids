@@ -9,8 +9,10 @@ from copy import deepcopy
 import itertools
 import inspect
 from bids.variables import SparseRunVariable
+from six import add_metaclass
 
 
+@add_metaclass(ABCMeta)
 class Transformation(object):
 
     ### Class-level settings ###
@@ -78,8 +80,6 @@ class Transformation(object):
     # Otherwise, a tuple giving the names of the arguments whose variables will
     # be passed through as-is even if categorical.
     _allow_categorical = None
-
-    __metaclass__ = ABCMeta
 
     def __new__(cls, collection, variables, *args, **kwargs):
         t = super(Transformation, cls).__new__(cls)
