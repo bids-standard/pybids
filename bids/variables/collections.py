@@ -16,10 +16,12 @@ class BIDSVariableCollection(object):
     at a single level of analysis.
 
     Args:
-        level (str): The level of analysis. Each row in the stored column(s)
-            is taken to reflect a single level. Must be one of 'run',
-            'session', 'subject', or 'dataset'.
-        variables (list): A list of Variables.
+        variables (list): A list of BIDSVariables or SimpleVariables.
+
+    Notes:
+        * Variables in the list must all share the same analysis level, which
+          must be one of 'session', 'subject', or 'dataset' level. For
+          run-level Variables, use the BIDSRunVariableCollection.
     '''
 
     def __init__(self, variables):
@@ -49,8 +51,16 @@ class BIDSVariableCollection(object):
 
     @staticmethod
     def merge_variables(variables, **kwargs):
-        # Concatenates Variables along row axis (i.e., in cases where the same
-        # Variable has multiple replicates for different Runs, Sessions, etc.)
+        ''' Concatenates Variables along row axis.
+
+        Args:
+            variables (list): List of Variables to merge. Variables can have
+                different names (and all Variables that share a name will be
+                concatenated together).
+
+        Returns:
+            A list of Variables.
+        '''
         var_dict = defaultdict(list)
         for v in variables:
             var_dict[v.name].append(v)
@@ -64,7 +74,11 @@ class BIDSVariableCollection(object):
             variables (list): Optional list of column names to retain; if None,
                 all variables are returned.
             format (str): Whether to return a DataFrame in 'wide' or 'long'
-                format.
+                format. In 'wide' format, each row is defined by a unique
+                onset/duration, and each variable is in a separate column. In
+                'long' format, each row is a unique combination of onset,
+                duration, and variable name, and a single 'amplitude' column
+                provides the value.
 
         Returns: A pandas DataFrame.
         '''
@@ -98,39 +112,39 @@ class BIDSVariableCollection(object):
         clone.variables = {k: v.clone() for (k, v) in self.variables.items()}
         return clone
 
-    def aggregate(self, level, agg_func='mean', categorical_agg_func=None):
-        ''' Aggregate variable values from a lower level at a higher level.
+    # def aggregate(self, level, agg_func='mean', categorical_agg_func=None):
+    #     ''' Aggregate variable values from a lower level at a higher level.
 
-        Args:
-            level (str): The level of aggregation. The returned collection will
-                have one row per value of this level.
-            agg_func (str, Callable): Aggregation function to use. Must be
-                either a named function recognized by apply() in pandas, or a
-                Callable that takes a DataFrame and returns a Series or
-                DataFrame.
-            categorical_agg_func (str, Callable): Aggregation function to use
-                for categorical variables. Must be a function that returns
-                valid output given categorical inputs. If None, aggregation
-                will only proceed if all categorical columns have exactly one
-                unique value.
-        '''
+    #     Args:
+    #         level (str): The level of aggregation. The returned collection will
+    #             have one row per value of this level.
+    #         agg_func (str, Callable): Aggregation function to use. Must be
+    #             either a named function recognized by apply() in pandas, or a
+    #             Callable that takes a DataFrame and returns a Series or
+    #             DataFrame.
+    #         categorical_agg_func (str, Callable): Aggregation function to use
+    #             for categorical variables. Must be a function that returns
+    #             valid output given categorical inputs. If None, aggregation
+    #             will only proceed if all categorical columns have exactly one
+    #             unique value.
+    #     '''
 
-        for var in self.variables.values():
-            if is_numeric_dtype(var.values):
-                _func = agg_func
-            else:
-                if categorical_agg_func is not None:
-                    _func = categorical_agg_func
-                elif var.values.nunique() > 1:
-                    msg = ("Column %s is categorical and has more than one "
-                           "unique value. You must explicitly specify an "
-                           "aggregation function in the categorical_agg_func "
-                           "argument.")
-                    raise ValueError(msg)
-                else:
-                    _func = 'first'
+    #     for var in self.variables.values():
+    #         if is_numeric_dtype(var.values):
+    #             _func = agg_func
+    #         else:
+    #             if categorical_agg_func is not None:
+    #                 _func = categorical_agg_func
+    #             elif var.values.nunique() > 1:
+    #                 msg = ("Column %s is categorical and has more than one "
+    #                        "unique value. You must explicitly specify an "
+    #                        "aggregation function in the categorical_agg_func "
+    #                        "argument.")
+    #                 raise ValueError(msg)
+    #             else:
+    #                 _func = 'first'
 
-            self[var.name] = var.aggregate(level, _func)
+    #         self[var.name] = var.aggregate(level, _func)
 
     def __getitem__(self, var):
         return self.variables[var]
@@ -160,84 +174,6 @@ class BIDSVariableCollection(object):
         return vars_ if return_type.startswith('var') \
             else [v.name for v in vars_]
 
-    def _construct_design_matrix(self, data, groupby=None, aggregate=None,
-                                 add_intercept=None, drop_entities=False,
-                                 drop_cols=None, **kwargs):
-
-        # subset the data if needed
-        if kwargs:
-            # TODO: make sure this handles constraints on int columns properly
-            bad_keys = list(set(kwargs.keys()) - set(data.columns))
-            if bad_keys:
-                raise ValueError("The following query constraints do not map "
-                                 "onto existing columns: %s." % bad_keys)
-            query = ' and '.join(["{} in {}".format(k, v)
-                                  for k, v in kwargs.items()])
-            data = data.query(query)
-
-        if groupby and aggregate is not None:
-            groupby = list(set(groupby) & set(data.columns))
-            data = data.groupby(groupby).agg(aggregate).reset_index()
-
-        if add_intercept:
-            data.insert(0, 'intercept', 1)
-
-        if drop_cols is None:
-            drop_cols = []
-
-        # Always drop columns meant for internal use
-        drop_cols += ['unique_run_id', 'time']
-
-        # Optionally drop entities
-        if drop_entities:
-            drop_cols += self.entities
-
-        drop_cols = list(set(drop_cols) & set(data.columns))
-        data = data.drop(drop_cols, axis=1).reset_index(drop=True)
-        return data
-
-    def get_design_matrix(self, variables=None, groupby=None, aggregate=None,
-                          add_intercept=False, drop_entities=False, **kwargs):
-        ''' Returns a design matrix constructed by combining the current
-        BIDSVariableCollection's variables.
-
-        Args:
-            variables (list): Optional list naming variables to include in the
-                design matrix. If None (default), all variables are included.
-            groupby (str, list): Optional name (or list of names) of design
-                variables to group by.
-            aggregate (str, Callable): Optional aggregation function to apply
-                to groups if groupby is not None (ignored otherwise). Must be
-                either a named function recognized by pandas, or a Callable
-                that takes a DataFrame and returns a Series or DataFrame.
-            add_intercept (bool): If True, adds an intercept column (i.e.,
-                constant column of 1's) to the returned design matrix.
-            drop_entities (bool): If True, entities are stripped from the
-                returned design matrix. When False, entities like 'subject' and
-                'run' are included as columns in the matrix, leaving it up to
-                the user to remove them if appropriate.
-            kwargs: Optional query constraints understood by
-                pd.DataFrame.query(). Must be compatible with the 'in' syntax;
-                e.g., passing subject=['01', '02', '03'] would return only
-                rows that match the first 3 subjects.
-
-        Returns: A pandas DataFrame, where levels of analysis (seconds, runs,
-            etc.) are in rows, and variables/columns are in columns.
-
-        '''
-
-        if variables is None:
-            variables = list(self.variables.keys())
-
-        if groupby is None:
-            groupby = []
-
-        data = self.merge_columns(variables=variables)
-
-        return self._construct_design_matrix(data, groupby, aggregate,
-                                             add_intercept, drop_entities,
-                                             **kwargs)
-
 
 class BIDSRunVariableCollection(BIDSVariableCollection):
 
@@ -245,9 +181,14 @@ class BIDSRunVariableCollection(BIDSVariableCollection):
     temporal dimension.
 
     Args:
-        variables (list): A list of Variables.
+        variables (list): A list of SparseRunVariable and/or DenseRunVariable.
         sampling_rate (float): Sampling rate (in Hz) to use when working with
             dense representations of variables. If None, defaults to 10.
+
+    Notes:
+        * Variables in the list must all be at the 'run' level. For other
+          levels (session, subject, or dataset), use the
+          BIDSVariableCollection.
     '''
 
     def __init__(self, variables, sampling_rate=None):
@@ -309,7 +250,11 @@ class BIDSRunVariableCollection(BIDSVariableCollection):
             variables (list): Optional list of variable names to retain;
                 if None, all variables are written out.
             format (str): Whether to return a DataFrame in 'wide' or 'long'
-                format.
+                format. In 'wide' format, each row is defined by a unique
+                onset/duration, and each variable is in a separate column. In
+                'long' format, each row is a unique combination of onset,
+                duration, and variable name, and a single 'amplitude' column
+                provides the value.
             sparse (bool): If True, variables will be kept in a sparse format
                 provided they are all internally represented as such. If False,
                 a dense matrix (i.e., uniform sampling rate for all events)
@@ -337,6 +282,8 @@ def merge_collections(collections, force_dense=False, sampling_rate='auto'):
 
     Args:
         collections (list): List of Collections to merge.
+        force_dense (bool): If True, all SparseRunVariables will be converted
+            to DenseRunVariables.
         sampling_rate (int, str): Sampling rate to use if it becomes necessary
             to resample DenseRunVariables. Either an integer or 'auto' (see
             merge_variables docstring for further explanation).

@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import math
 from copy import deepcopy
-from abc import abstractmethod, abstractclassmethod, ABCMeta
+from abc import abstractclassmethod, ABCMeta
 from scipy.interpolate import interp1d
 from bids.utils import listify
 from itertools import chain
@@ -52,12 +52,26 @@ class BIDSVariable(object):
         # result.values.name = kwargs.get('name', self.name)
         return result
 
-    @abstractmethod
-    def aggregate(self, unit, level, func):
-        pass
+    # @abstractmethod
+    # def aggregate(self, unit, level, func):
+    #     pass
 
     @classmethod
     def merge(cls, variables, name=None, **kwargs):
+        ''' Merge/concatenate a list of variables along the row axis.
+
+        Args:
+            variables (list): A list of Variables to merge.
+            name (str): Optional name to assign to the output Variable. By
+                default, uses the same name as the input variables.
+            kwargs: Optional keyword arguments to pass onto the class-specific
+                merge() call. See merge_variables docstring for details.
+
+        Returns:
+            A single BIDSVariable of the same class as the input variables.
+
+        Notes: see merge_variables docstring for additional details.
+        '''
 
         variables = listify(variables)
         if len(variables) == 1:
@@ -134,6 +148,10 @@ class SimpleVariable(BIDSVariable):
         name (str): Name of the column.
         data (DataFrame): A pandas DataFrame minimally containing a column
             named 'amplitude' as well as any identifying entities.
+        source (str): The type of BIDS variable file the data were extracted
+            from. Must be one of: 'events', 'physio', 'stim', 'confounds',
+            'scans', 'sessions', 'participants', or 'beh'.
+        kwargs: Optional keyword arguments passed onto superclass.
     '''
 
     _entity_columns = {'condition', 'amplitude'}
@@ -148,23 +166,25 @@ class SimpleVariable(BIDSVariable):
 
         super(SimpleVariable, self).__init__(name, values, source)
 
-    def aggregate(self, unit, func='mean'):
+    # def aggregate(self, unit, func='mean'):
 
-        levels = ['task', 'run', 'session', 'subject']
-        groupby = set(levels[levels.index(unit):]) & set(self.entities.columns)
-        groupby = list(groupby)
+    #     levels = ['task', 'run', 'session', 'subject']
+    #     groupby = set(levels[levels.index(unit):]) & set(self.entities.columns)
+    #     groupby = list(groupby)
 
-        entities = self.entities.loc[:, groupby].reset_index(drop=True)
-        values = pd.DataFrame({'amplitude': self.values.values})
-        data = pd.concat([values, entities], axis=1)
-        data = data.groupby(groupby, as_index=False).agg(func)
-        return SimpleVariable(self.name, data)
+    #     entities = self.entities.loc[:, groupby].reset_index(drop=True)
+    #     values = pd.DataFrame({'amplitude': self.values.values})
+    #     data = pd.concat([values, entities], axis=1)
+    #     data = data.groupby(groupby, as_index=False).agg(func)
+    #     return SimpleVariable(self.name, data)
 
     def split(self, grouper):
         ''' Split the current SparseRunVariable into multiple columns.
+
         Args:
             grouper (iterable): list to groupby, where each unique value will
                 be taken as the name of the resulting column.
+
         Returns:
             A list of SparseRunVariables, one per unique value in the
             grouper.
@@ -197,7 +217,12 @@ class SparseRunVariable(SimpleVariable):
         name (str): Name of the column.
         data (DataFrame): A pandas DataFrame minimally containing the columns
             'onset', 'duration', and 'amplitude'.
-        durations (float, list): ???
+        run_info (list): A list of RunInfo objects carrying information about
+            all runs represented in the Variable.
+        source (str): The type of BIDS variable file the data were extracted
+            from. Must be one of: 'events', 'physio', 'stim', 'confounds',
+            'scans', 'sessions', 'participants', or 'beh'.
+        kwargs: Optional keyword arguments passed onto superclass.
     '''
 
     _property_columns = {'onset', 'duration'}
@@ -211,11 +236,21 @@ class SparseRunVariable(SimpleVariable):
         super(SparseRunVariable, self).__init__(name, data, source, **kwargs)
 
     def get_duration(self):
+        ''' Return the total duration of the Variable's run(s). '''
         return sum([r.duration for r in self.run_info])
 
     def to_dense(self, sampling_rate):
         ''' Convert the current sparse column to a dense representation.
-        Returns: A DenseRunVariable. '''
+        Returns: A DenseRunVariable.
+
+        Args:
+            sampling_rate (int, str): Sampling rate (in Hz) to use when
+                constructing the DenseRunVariable.
+
+        Returns:
+            A DenseRunVariable.
+
+        '''
         duration = math.ceil(sampling_rate * self.get_duration())
         ts = np.zeros(duration, dtype=self.values.dtype)
 
@@ -248,8 +283,13 @@ class DenseRunVariable(BIDSVariable):
     ''' A dense representation of a single column.
 
     Args:
-        name (str): The name of the column
-        values (NDArray): The values/amplitudes to store
+        name (str): The name of the column.
+        values (NDArray): The values/amplitudes to store.
+        run_info (list): A list of RunInfo objects carrying information about
+            all runs represented in the Variable.
+        source (str): The type of BIDS variable file the data were extracted
+            from. Must be one of: 'events', 'physio', 'stim', 'confounds',
+            'scans', 'sessions', 'participants', or 'beh'.
         sampling_rate (float): Optional sampling rate (in Hz) to use. Must
             match the sampling rate used to generate the values. If None,
             the collection's sampling rate will be used.
@@ -265,15 +305,17 @@ class DenseRunVariable(BIDSVariable):
             run_info = [run_info]
         self.run_info = run_info
         self.sampling_rate = sampling_rate
-        self.entities = self.build_entity_index(run_info, sampling_rate)
+        self.entities = self._build_entity_index(run_info, sampling_rate)
 
     def split(self, grouper):
         ''' Split the current DenseRunVariable into multiple columns.
+
         Args:
             grouper (DataFrame): binary DF specifying the design matrix to
                 use for splitting. Number of rows must match current
                 DenseRunVariable; a new DenseRunVariable will be generated
                 for each column in the grouper.
+
         Returns:
             A list of DenseRunVariables, one per unique value in the grouper.
         '''
@@ -284,21 +326,22 @@ class DenseRunVariable(BIDSVariable):
                                  self.sampling_rate)
                 for i, name in enumerate(df.columns)]
 
-    def aggregate(self, unit, func='mean'):
+    # def aggregate(self, unit, func='mean'):
 
-        levels = ['task', 'run', 'session', 'subject']
-        groupby = set(levels[levels.index(unit):]) & \
-            set(self.entities.columns)
-        groupby = list(groupby)
+    #     levels = ['task', 'run', 'session', 'subject']
+    #     groupby = set(levels[levels.index(unit):]) & \
+    #         set(self.entities.columns)
+    #     groupby = list(groupby)
 
-        entities = self._index.loc[:, groupby].reset_index(drop=True)
-        values = pd.DataFrame({'amplitude': self.values.values.ravel()})
-        data = pd.concat([values, entities], axis=1)
-        data = data.groupby(groupby, as_index=False).agg(func)
-        return SimpleVariable(self.name, data)
+    #     entities = self._index.loc[:, groupby].reset_index(drop=True)
+    #     values = pd.DataFrame({'amplitude': self.values.values.ravel()})
+    #     data = pd.concat([values, entities], axis=1)
+    #     data = data.groupby(groupby, as_index=False).agg(func)
+    #     return SimpleVariable(self.name, data)
 
-    @staticmethod
-    def build_entity_index(run_info, sampling_rate):
+    def _build_entity_index(run_info, sampling_rate):
+        ''' Build the entity index from run information. '''
+
         index = []
         sr = int(round(1000. / sampling_rate))
         for run in run_info:
@@ -331,7 +374,7 @@ class DenseRunVariable(BIDSVariable):
         old_sr = self.sampling_rate
         n = len(self.entities)
 
-        self.entities = self.build_entity_index(self.run_info, sampling_rate)
+        self.entities = self._build_entity_index(self.run_info, sampling_rate)
 
         x = np.arange(n)
         num = int(np.ceil(n * sampling_rate / old_sr))
@@ -386,7 +429,30 @@ class DenseRunVariable(BIDSVariable):
         return DenseRunVariable(name, values, run_info, source, sampling_rate)
 
 
-def merge_variables(variables, **kwargs):
+def merge_variables(variables, name=None, **kwargs):
+    ''' Merge/concatenate a list of variables along the row axis.
+
+    Args:
+        variables (list): A list of Variables to merge.
+        name (str): Optional name to assign to the output Variable. By
+            default, uses the same name as the input variables.
+        kwargs: Optional keyword arguments to pass onto the class-specific
+            merge() call. Possible args:
+
+            - sampling_rate (int, str): The sampling rate to use if resampling
+              of DenseRunVariables is necessary for harmonization. If 'auto',
+              the highest sampling rate found will be used. This argument is
+              only used when passing DenseRunVariables in the variables list.
+
+    Returns:
+        A single BIDSVariable of the same class as the input variables.
+
+    Notes:
+        * Currently, this function only support homogenously-typed lists. In
+          future, it may be extended to support implicit conversion.
+        * Variables in the list must all share the same name (i.e., it is not
+          possible to merge two different variables into a single variable.)
+    '''
 
     classes = set([v.__class__ for v in variables])
     if len(classes) > 1:
