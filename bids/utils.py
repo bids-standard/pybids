@@ -10,4 +10,12 @@ def matches_entities(obj, entities, strict=False):
         return False
 
     comm_ents = list(set(obj.entities.keys()) & set(entities.keys()))
-    return all([obj.entities[k] == entities[k] for k in comm_ents])
+    for k in comm_ents:
+        current = obj.entities[k]
+        target = entities[k]
+        if isinstance(target, (list, tuple)):
+            if current not in target:
+                return False
+        elif current != target:
+            return False
+    return True
