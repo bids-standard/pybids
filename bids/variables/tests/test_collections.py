@@ -10,7 +10,8 @@ def run_coll():
     mod_file = abspath(grabbids.__file__)
     path = join(dirname(mod_file), 'tests', 'data', 'ds005')
     layout = BIDSLayout(path)
-    return layout.get_variables('run', ['events'], merge=True, scan_length=480)
+    return layout.get_collections('run', types=['events'], merge=True,
+                                  scan_length=480)
 
 
 @pytest.fixture(scope="module")
@@ -18,8 +19,8 @@ def run_coll_list():
     mod_file = abspath(grabbids.__file__)
     path = join(dirname(mod_file), 'tests', 'data', 'ds005')
     layout = BIDSLayout(path)
-    return layout.get_variables('run', ['events'], merge=False,
-                                scan_length=480)
+    return layout.get_collections('run', types=['events'], merge=False,
+                                  scan_length=480)
 
 
 def test_run_variable_collection_init(run_coll):
@@ -88,3 +89,20 @@ def test_merge_collections(run_coll, run_coll_list):
     coll = merge_collections(rcl)
     df2 = coll.to_df().sort_values(['subject', 'run', 'onset'])
     assert df1.equals(df2)
+
+
+def test_get_collection_entities(run_coll_list):
+    print("LEN LIST:", len(run_coll_list))
+    coll = run_coll_list[0]
+    ents = coll.get_entities()
+    assert {'run', 'task', 'session', 'subject'} == set(ents.keys())
+
+    merged = merge_collections(run_coll_list[:3])
+    ents = merged.get_entities()
+    assert {'task', 'session', 'subject'} == set(ents.keys())
+    assert ents['subject'] == '01'
+
+    merged = merge_collections(run_coll_list[3:6])
+    ents = merged.get_entities()
+    assert {'task', 'session', 'subject'} == set(ents.keys())
+    assert ents['subject'] == '02'

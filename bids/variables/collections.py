@@ -112,6 +112,23 @@ class BIDSVariableCollection(object):
         clone.variables = {k: v.clone() for (k, v) in self.variables.items()}
         return clone
 
+    def get_entities(self):
+        ''' Returns a dict of entities for the current Collection.
+
+        Note: Only entity key/value pairs common to all rows in all contained
+            Variables are returned. E.g., if a Collection contains Variables
+            extracted from runs 1, 2 and 3 from subject '01', the returned dict
+            will be {'subject': '01'}; the runs will be excluded as they vary
+            across the Collection contents.
+        '''
+
+        all_ents = pd.concat([v.entities
+                              for v in self.variables.values()], axis=0)
+        constant = all_ents.apply(lambda x: x.nunique() == 1)
+        keep = all_ents.columns[constant]
+        return {k: all_ents[k].iloc[0] for k in keep}
+
+
     # def aggregate(self, level, agg_func='mean', categorical_agg_func=None):
     #     ''' Aggregate variable values from a lower level at a higher level.
 
