@@ -88,7 +88,3 @@ def test_merge_collections(run_coll, run_coll_list):
     coll = merge_collections(rcl)
     df2 = coll.to_df().sort_values(['subject', 'run', 'onset'])
     assert df1.equals(df2)
-
-    coll = merge_collections(rcl, sampling_rate=20)
-    df3 = coll.to_df()
-    assert len(df3) == 2 * len(df2)

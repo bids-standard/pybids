@@ -339,7 +339,7 @@ class DenseRunVariable(BIDSVariable):
     #     data = data.groupby(groupby, as_index=False).agg(func)
     #     return SimpleVariable(self.name, data)
 
-    def _build_entity_index(run_info, sampling_rate):
+    def _build_entity_index(self, run_info, sampling_rate):
         ''' Build the entity index from run information. '''
 
         index = []
