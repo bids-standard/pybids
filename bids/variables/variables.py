@@ -101,7 +101,7 @@ class BIDSVariable(object):
             A pandas Grouper object constructed from the specified columns
                 of the current index.
         '''
-        return pd.core.groupby._get_grouper(self.entities, groupby)[0]
+        return pd.core.groupby._get_grouper(self.index, groupby)[0]
 
     def apply(self, func, groupby='run', *args, **kwargs):
         ''' Applies the passed function to the groups defined by the groupby
@@ -134,10 +134,23 @@ class BIDSVariable(object):
             data['condition'] = self.name
 
         if entities:
-            ent_data = self.entities.reset_index(drop=True)
+            ent_data = self.index.reset_index(drop=True)
             data = pd.concat([data, ent_data], axis=1)
 
         return data
+
+    def get_entities(self):
+        ''' Returns a dict of entities for the current Variable.
+
+        Note: Only entity key/value pairs common to all rows in the Variable
+            are returned. E.g., if a Variable contains events extracted from
+            runs 1, 2 and 3 from subject '01', the returned dict will be
+            {'subject': '01'}; the runs will be excluded as they vary across
+            the Variable contents.
+        '''
+        constant = self.index.apply(lambda x: x.nunique() == 1)
+        keep = self.index.columns[constant]
+        return {k: self.index[k].iloc[0] for k in keep}
 
 
 class SimpleVariable(BIDSVariable):
@@ -159,7 +172,7 @@ class SimpleVariable(BIDSVariable):
     def __init__(self, name, data, source, **kwargs):
 
         ent_cols = list(set(data.columns) - self._entity_columns)
-        self.entities = data.loc[:, ent_cols]
+        self.index = data.loc[:, ent_cols]
 
         values = data['amplitude'].reset_index(drop=True)
         values.name = name
@@ -169,10 +182,10 @@ class SimpleVariable(BIDSVariable):
     # def aggregate(self, unit, func='mean'):
 
     #     levels = ['task', 'run', 'session', 'subject']
-    #     groupby = set(levels[levels.index(unit):]) & set(self.entities.columns)
+    #     groupby = set(levels[levels.index(unit):]) & set(self.index.columns)
     #     groupby = list(groupby)
 
-    #     entities = self.entities.loc[:, groupby].reset_index(drop=True)
+    #     entities = self.index.loc[:, groupby].reset_index(drop=True)
     #     values = pd.DataFrame({'amplitude': self.values.values})
     #     data = pd.concat([values, entities], axis=1)
     #     data = data.groupby(groupby, as_index=False).agg(func)
@@ -305,7 +318,7 @@ class DenseRunVariable(BIDSVariable):
             run_info = [run_info]
         self.run_info = run_info
         self.sampling_rate = sampling_rate
-        self.entities = self._build_entity_index(run_info, sampling_rate)
+        self.index = self._build_entity_index(run_info, sampling_rate)
 
     def split(self, grouper):
         ''' Split the current DenseRunVariable into multiple columns.
@@ -330,7 +343,7 @@ class DenseRunVariable(BIDSVariable):
 
     #     levels = ['task', 'run', 'session', 'subject']
     #     groupby = set(levels[levels.index(unit):]) & \
-    #         set(self.entities.columns)
+    #         set(self.index.columns)
     #     groupby = list(groupby)
 
     #     entities = self._index.loc[:, groupby].reset_index(drop=True)
@@ -372,9 +385,9 @@ class DenseRunVariable(BIDSVariable):
             return
 
         old_sr = self.sampling_rate
-        n = len(self.entities)
+        n = len(self.index)
 
-        self.entities = self._build_entity_index(self.run_info, sampling_rate)
+        self.index = self._build_entity_index(self.run_info, sampling_rate)
 
         x = np.arange(n)
         num = int(np.ceil(n * sampling_rate / old_sr))
