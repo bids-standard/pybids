@@ -22,6 +22,7 @@ class BIDSVariable(object):
         self.name = name
         self.values = values
         self.source = source
+        self._index_entities()
 
     def clone(self, data=None, **kwargs):
         ''' Clone (deep copy) the current column, optionally replacing its
@@ -139,7 +140,7 @@ class BIDSVariable(object):
 
         return data
 
-    def get_entities(self):
+    def _index_entities(self):
         ''' Returns a dict of entities for the current Variable.
 
         Note: Only entity key/value pairs common to all rows in the Variable
@@ -150,7 +151,7 @@ class BIDSVariable(object):
         '''
         constant = self.index.apply(lambda x: x.nunique() == 1)
         keep = self.index.columns[constant]
-        return {k: self.index[k].iloc[0] for k in keep}
+        self.entities = {k: self.index[k].iloc[0] for k in keep}
 
 
 class SimpleVariable(BIDSVariable):
@@ -312,13 +313,13 @@ class DenseRunVariable(BIDSVariable):
 
         values = pd.DataFrame(values)
 
-        super(DenseRunVariable, self).__init__(name, values, source)
-
         if hasattr(run_info, 'duration'):
             run_info = [run_info]
         self.run_info = run_info
         self.sampling_rate = sampling_rate
         self.index = self._build_entity_index(run_info, sampling_rate)
+
+        super(DenseRunVariable, self).__init__(name, values, source)
 
     def split(self, grouper):
         ''' Split the current DenseRunVariable into multiple columns.

@@ -48,6 +48,7 @@ class BIDSVariableCollection(object):
         self.level = list(var_levels)[0]
         variables = self.merge_variables(variables)
         self.variables = {v.name: v for v in variables}
+        self._index_entities()
 
     @staticmethod
     def merge_variables(variables, **kwargs):
@@ -115,7 +116,7 @@ class BIDSVariableCollection(object):
         clone.variables = {k: v.clone() for (k, v) in self.variables.items()}
         return clone
 
-    def get_entities(self):
+    def _index_entities(self):
         ''' Returns a dict of entities for the current Collection.
 
         Note: Only entity key/value pairs common to all rows in all contained
@@ -124,12 +125,11 @@ class BIDSVariableCollection(object):
             will be {'subject': '01'}; the runs will be excluded as they vary
             across the Collection contents.
         '''
-
-        all_ents = pd.concat([v.entities
-                              for v in self.variables.values()], axis=0)
+        all_ents = pd.DataFrame.from_records(
+            [v.entities for v in self.variables.values()])
         constant = all_ents.apply(lambda x: x.nunique() == 1)
         keep = all_ents.columns[constant]
-        return {k: all_ents[k].iloc[0] for k in keep}
+        self.entities = {k: all_ents[k].iloc[0] for k in keep}
 
 
     # def aggregate(self, level, agg_func='mean', categorical_agg_func=None):
