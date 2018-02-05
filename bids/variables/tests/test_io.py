@@ -31,7 +31,7 @@ def test_load_events(layout1):
     targ_cols = {'parametric gain', 'PTval', 'trial_type', 'respnum'}
     assert not (targ_cols - set(variables.keys()))
     assert isinstance(variables['parametric gain'], SparseRunVariable)
-    assert variables['parametric gain'].entities.shape == (86, 4)
+    assert variables['parametric gain'].index.shape == (86, 4)
     assert variables['parametric gain'].source == 'events'
 
 
@@ -42,5 +42,5 @@ def test_load_participants(layout1):
     assert {'age', 'sex'} == set(dataset.variables.keys())
     age = dataset.variables['age']
     assert isinstance(age, SimpleVariable)
-    assert age.entities.shape == (16, 1)
+    assert age.index.shape == (16, 1)
     assert age.values.shape == (16,)

@@ -93,15 +93,15 @@ def test_merge_collections(run_coll, run_coll_list):
 
 def test_get_collection_entities(run_coll_list):
     coll = run_coll_list[0]
-    ents = coll.get_entities()
+    ents = coll.entities
     assert {'run', 'task', 'session', 'subject'} == set(ents.keys())
 
     merged = merge_collections(run_coll_list[:3])
-    ents = merged.get_entities()
+    ents = merged.entities
     assert {'task', 'session', 'subject'} == set(ents.keys())
     assert ents['subject'] == '01'
 
     merged = merge_collections(run_coll_list[3:6])
-    ents = merged.get_entities()
+    ents = merged.entities
     assert {'task', 'session', 'subject'} == set(ents.keys())
     assert ents['subject'] == '02'

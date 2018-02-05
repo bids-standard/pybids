@@ -1,4 +1,3 @@
-
 def _merge_event_files(events):
     """ Merge TSV event files sequentially, giving preference to values from
     event files higher in the hierarchy

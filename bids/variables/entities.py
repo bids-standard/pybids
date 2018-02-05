@@ -52,8 +52,8 @@ class Node(object):
                 'dataset', 'subject', 'session', or 'run'.
             selectors: Optional keyword arguments placing constraints on what
                 Nodes to return. Argument names be any of the standard
-                entities in the hierarchy--i.e., 'subject', 'session', or
-                'run'.
+                entities in the hierarchy--i.e., 'subject', 'session', 'run',
+                or 'task'.
 
         Returns:
             A list of Nodes.
@@ -65,6 +65,9 @@ class Node(object):
                                          list(self.children.keys())))
         for child_id in children:
             nodes.extend(self.children[child_id].get_nodes(level, **selectors))
+        # Filtering on task is a bit different
+        if level == 'run' and 'task' in selectors:
+            nodes = [n for n in nodes if n.task == selectors['task']]
         return nodes
 
     def add_variable(self, variable):
@@ -104,7 +107,7 @@ class Run(Node):
         self.duration = duration
         self.repetition_time = repetition_time
         self.task = task
-        super(Run, self).__init__(id, parent)
+        super(Run, self).__init__(id, parent, task=task)
 
     def get_info(self):
         entities = self.get_entities()
@@ -154,7 +157,6 @@ class Dataset(Node):
             sampling_rate (int, str): If level='run', the sampling rate to
                 pass onto the returned BIDSRunVariableCollection.
             selectors: Optional constraints used to limit what gets returned.
-                Valid argument names are 'run', 'session', and 'subject'.
 
         Returns:
 
@@ -163,8 +165,12 @@ class Dataset(Node):
         nodes = self.get_nodes(unit, **selectors)
         var_sets = []
 
+        node_ents = {'run', 'session', 'subject'}
+        entities = {k: v for k, v in selectors.items() if k not in node_ents}
+
         for n in nodes:
             var_set = list(n.variables.values())
+            var_set = [v for v in var_set if v.matches_entities(entities)]
             if variables is not None:
                 var_set = [v for v in var_set if v.name in variables]
             var_sets.append(var_set)

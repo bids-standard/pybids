@@ -1,6 +1,6 @@
 import json
 from bids.grabbids import BIDSLayout
-from bids.variables import load_variables
+from bids.utils import matches_entities
 from . import transformations as transform
 from collections import namedtuple
 from six import string_types
@@ -61,10 +61,10 @@ class Analysis(object):
     def _load_blocks(self, blocks):
         self.blocks = []
         for i, block_args in enumerate(blocks):
-            block = Block(index=i, **block_args)
+            block = Block(self.layout, index=i, **block_args)
             self.blocks.append(block)
 
-    def setup(self, blocks=None, agg_func='mean'):
+    def setup(self, blocks=None, agg_func='mean', **kwargs):
         ''' Set up the sequence of blocks for analysis.
 
         Args:
@@ -92,15 +92,7 @@ class Analysis(object):
             if blocks is not None and i not in blocks and b.name not in blocks:
                 continue
 
-            unit = b.level
-
-            # Get all variables for current level
-            if self.collections is not None and unit in self.collections:
-                collections = self.collections[unit]
-            else:
-                collections = load_variables(self.layout, **self.selectors)
-
-            b.setup(collections, input_nodes)
+            b.setup(input_nodes, **kwargs)
             input_nodes = b.output_nodes
 
 
@@ -109,6 +101,7 @@ class Block(object):
     ''' Represents a single analysis block from a BIDS-Model specification.
 
     Args:
+        layout (BIDSLayout): The BIDSLayout containing all project files.
         level (str): The BIDS keyword to use as the grouping variable; must be
             one of ['run', 'session', 'subject', or 'dataset'].
         index (int): The numerical index of the current Block within the
@@ -121,45 +114,52 @@ class Block(object):
             generated when the model is fit.
     '''
 
-    def __init__(self, level, index, name=None, transformations=None,
-                 model=None, contrasts=None, **kwargs):
+    def __init__(self, layout, level, index, name=None, transformations=None,
+                 model=None, contrasts=None, input_nodes=None):
 
+        self.layout = layout
         self.level = level
         self.index = index
         self.name = name
         self.transformations = transformations or []
         self.model = model or None
         self.contrasts = contrasts or []
-        self.input_nodes = None
+        self.input_nodes = input_nodes or []
         self.output_nodes = []
-        self.identity_contrasts = kwargs.pop('identity_contrasts', True)
-        self.kwargs = kwargs
 
-    def setup(self, collections, input_nodes):
+    def _filter_objects_by_entities(self, obj, kwargs):
+        valid_ents = {'run', 'session', 'subject', 'task'}
+        entities = {k: v for k, v in kwargs.items() if k in valid_ents}
+        return [o for o in obj if o.matches_entities(entities)]
+
+    def setup(self, input_nodes=None, **kwargs):
         ''' Set up the Block and construct the design matrix.
 
         Args:
-            collections (list): A list of BIDSVariableCollections--one per
-                observation at the current level.
-            input_nodes (list): A list of Node objects produced by the last
-                level of analysis.
+            input_nodes (list): Optional list of Node objects produced by
+                the preceding Block in the analysis. If None, uses any inputs
+                passed in at Block initialization.
+            kwargs: Optional keyword arguments to pass onto load_variables.
         '''
 
-        self.input_nodes = input_nodes
+        input_nodes = input_nodes or self.input_nodes
+        collections = self.layout.get_collections(self.level, **kwargs)
+
+        collections = self._filter_objects_by_entities(collections, kwargs)
 
         for coll in collections:
-            entities = coll.get_entities()
             coll = apply_transformations(coll, self.transformations)
-            node = AnalysisNode(self.level, coll, entities, self.contrasts)
+            node = AnalysisNode(self.level, coll, self.contrasts)
             self.output_nodes.append(node)
 
     def get_design_matrix(self, variables=None, format='long', **kwargs):
+        nodes = self._filter_objects_by_entities(self.output_nodes, kwargs)
         return [n.get_design_matrix(variables, format, **kwargs)
-                for n in self.output_nodes]
+                for n in nodes]
 
-    def get_contrasts(self, names=None, identity_contrasts=True):
-        return [n.get_contrasts(names, identity_contrasts)
-                for n in self.output_nodes]
+    def get_contrasts(self, names=None, identity_contrasts=True, **kwargs):
+        nodes = self._filter_objects_by_entities(self.output_nodes, kwargs)
+        return [n.get_contrasts(names, identity_contrasts) for n in nodes]
 
 
 DesignMatrixInfo = namedtuple('DesignMatrixInfo', ('data', 'entities'))
@@ -168,11 +168,14 @@ ContrastMatrixInfo = namedtuple('ContrastMatrixInfo', ('data', 'entities'))
 
 class AnalysisNode(object):
 
-    def __init__(self, level, collection, entities, contrasts=None):
+    def __init__(self, level, collection, contrasts=None):
         self.level = level
-        self.entities = entities
         self.collection = collection
         self.contrasts = contrasts
+
+    @property
+    def entities(self):
+        return self.collection.entities
 
     def get_design_matrix(self, variables=None, format='long', **kwargs):
         df = self.collection.to_df(variables, format, **kwargs)
@@ -208,9 +211,8 @@ class AnalysisNode(object):
         df.index = [c['name'] for c in contrasts]
         return ContrastMatrixInfo(df, self.entities)
 
-    def _match_entities(self, entities):
-        common_keys = list(set(entities.keys()) & set(self.entities.keys()))
-        return all([entities[k] == self.entities[k] for k in common_keys])
+    def matches_entities(self, entities, strict=False):
+        return matches_entities(self, entities, strict)
 
 
 def apply_transformations(collection, transformations, select=None):

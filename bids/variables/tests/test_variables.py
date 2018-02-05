@@ -41,13 +41,13 @@ def test_dense_event_variable_init():
     assert dev.sampling_rate == 20
     assert dev.run_info[0].duration == 480
     assert dev.source == 'dummy'
-    assert len(dev.values) == len(dev.entities)
+    assert len(dev.values) == len(dev.index)
 
 
 def test_dense_event_variable_resample():
     dev = generate_DEV()
     dev2 = dev.clone().resample(sampling_rate=40)
-    assert len(dev2.values) == len(dev2.entities)
+    assert len(dev2.values) == len(dev2.index)
     assert len(dev2.values) == 2 * len(dev.values)
 
 
@@ -122,7 +122,7 @@ def test_merge_simple_variables(layout2):
     n_rows = sum([len(c.values) for c in variables])
     merged = merge_variables(variables)
     assert len(merged.values) == n_rows
-    assert merged.entities.columns.equals(variables[0].entities.columns)
+    assert merged.index.columns.equals(variables[0].index.columns)
     assert variables[3].values.iloc[1] == merged.values.iloc[7]
 
 
@@ -133,7 +133,7 @@ def test_merge_sparse_run_variables(layout1):
     n_rows = sum([len(c.values) for c in variables])
     merged = merge_variables(variables)
     assert len(merged.values) == n_rows
-    assert merged.entities.columns.equals(variables[0].entities.columns)
+    assert merged.index.columns.equals(variables[0].index.columns)
 
 
 def test_merge_dense_run_variables(layout2):
@@ -142,7 +142,7 @@ def test_merge_dense_run_variables(layout2):
     n_rows = sum([len(c.values) for c in variables])
     merged = merge_variables(variables)
     assert len(merged.values) == n_rows
-    assert merged.entities.columns.equals(variables[0].entities.columns)
+    assert merged.index.columns.equals(variables[0].index.columns)
 
 
 def test_simple_variable_to_df(layout1):

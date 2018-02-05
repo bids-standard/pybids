@@ -7,7 +7,7 @@ from .variables import (SparseRunVariable, SimpleVariable, DenseRunVariable,
                         merge_variables, BIDSVariable)
 from collections import defaultdict
 from itertools import chain
-from bids.utils import listify
+from bids.utils import listify, matches_entities
 
 
 class BIDSVariableCollection(object):
@@ -115,6 +115,10 @@ class BIDSVariableCollection(object):
         clone = copy(self)
         clone.variables = {k: v.clone() for (k, v) in self.variables.items()}
         return clone
+
+    def matches_entities(self, entities, strict=False):
+        ''' Checks whether current Collection's entities match the input. '''
+        return matches_entities(self, entities, strict)
 
     def _index_entities(self):
         ''' Returns a dict of entities for the current Collection.

@@ -7,6 +7,7 @@ from scipy.interpolate import interp1d
 from bids.utils import listify
 from itertools import chain
 from six import add_metaclass
+from bids.utils import matches_entities
 
 
 @add_metaclass(ABCMeta)
@@ -140,6 +141,10 @@ class BIDSVariable(object):
 
         return data
 
+    def matches_entities(self, entities, strict=False):
+        ''' Checks whether current Variable's entities match the input. '''
+        return matches_entities(self, entities, strict)
+
     def _index_entities(self):
         ''' Returns a dict of entities for the current Variable.
 
@@ -150,8 +155,11 @@ class BIDSVariable(object):
             the Variable contents.
         '''
         constant = self.index.apply(lambda x: x.nunique() == 1)
-        keep = self.index.columns[constant]
-        self.entities = {k: self.index[k].iloc[0] for k in keep}
+        if constant.empty:
+            self.entities = {}
+        else:
+            keep = self.index.columns[constant]
+            self.entities = {k: self.index[k].iloc[0] for k in keep}
 
 
 class SimpleVariable(BIDSVariable):
