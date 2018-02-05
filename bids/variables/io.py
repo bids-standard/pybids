@@ -11,19 +11,19 @@ import warnings
 BASE_ENTITIES = ['task', 'run', 'session', 'subject']
 
 
-def load_variables(layout, levels=None, types=None, skip_empty=True, **kwargs):
+def load_variables(layout, types=None, levels=None, skip_empty=True, **kwargs):
     ''' A convenience wrapper for one or more load_*_variables() calls.
 
     Args:
         layout (BIDSLayout): BIDSLayout containing variable files.
-        levels (str, list): Optional level(s) of variables to load. Valid
-            values are 'run', 'session', 'subject', or 'dataset'. This is
-            simply a shorthand way to specify types--e.g., 'run' will be
-            converted to types=['events', 'physio', 'stim', 'confounds'].
         types (str, list): Types of variables to retrieve. All valid values
             reflect the filename stipulated in the BIDS spec for each kind of
             variable. Valid values include: 'events', 'physio', 'stim',
             'scans', 'participants', 'sessions', and 'confounds'.
+        levels (str, list): Optional level(s) of variables to load. Valid
+            values are 'run', 'session', 'subject', or 'dataset'. This is
+            simply a shorthand way to specify types--e.g., 'run' will be
+            converted to types=['events', 'physio', 'stim', 'confounds'].
         skip_empty (bool): Whether or not to skip empty Variables (i.e.,
             where there are no rows/records in a file after applying any
             filtering operations like dropping NaNs).

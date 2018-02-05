@@ -62,7 +62,7 @@ def test_merge_wrapper():
 
 
 def test_sparse_run_variable_to_dense(layout1):
-    dataset = load_variables(layout1, 'events', scan_length=480)
+    dataset = load_variables(layout1, types='events', scan_length=480)
     runs = dataset.get_nodes('run', subject=['01', '02'])
 
     for i, run in enumerate(runs):
@@ -83,7 +83,7 @@ def test_sparse_run_variable_to_dense(layout1):
 
 def test_merge_densified_variables(layout1):
     SR = 10
-    dataset = load_variables(layout1, 'events', scan_length=480)
+    dataset = load_variables(layout1, types='events', scan_length=480)
     runs = dataset.get_nodes('run')
     vars_ = [r.variables['RT'].to_dense(SR) for r in runs]
     dense = merge_variables(vars_)
@@ -100,7 +100,7 @@ def test_merge_densified_variables(layout1):
 
 def test_densify_merged_variables(layout1):
     SR = 10
-    dataset = load_variables(layout1, 'events', scan_length=480)
+    dataset = load_variables(layout1, types='events', scan_length=480)
     runs = dataset.get_nodes('run')
     vars_ = [r.variables['RT'] for r in runs]
     var = merge_variables(vars_)
@@ -117,7 +117,7 @@ def test_densify_merged_variables(layout1):
 
 
 def test_merge_simple_variables(layout2):
-    dataset = load_variables(layout2, 'sessions')
+    dataset = load_variables(layout2, types='sessions')
     variables = [s.variables['panas_sad'] for s in dataset.children.values()]
     n_rows = sum([len(c.values) for c in variables])
     merged = merge_variables(variables)
@@ -127,7 +127,7 @@ def test_merge_simple_variables(layout2):
 
 
 def test_merge_sparse_run_variables(layout1):
-    dataset = load_variables(layout1, 'events', scan_length=480)
+    dataset = load_variables(layout1, types='events', scan_length=480)
     runs = dataset.get_nodes('run')
     variables = [r.variables['RT'] for r in runs]
     n_rows = sum([len(c.values) for c in variables])

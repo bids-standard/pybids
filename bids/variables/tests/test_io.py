@@ -22,7 +22,7 @@ def layout2():
 
 
 def test_load_events(layout1):
-    dataset = load_variables(layout1, 'events', scan_length=480)
+    dataset = load_variables(layout1, types='events', scan_length=480)
     runs = dataset.get_nodes(level='run', subject='01')
     assert len(runs) == 3
     assert isinstance(runs[0], Run)
@@ -36,7 +36,7 @@ def test_load_events(layout1):
 
 
 def test_load_participants(layout1):
-    dataset = load_variables(layout1, 'participants')
+    dataset = load_variables(layout1, types='participants')
     assert isinstance(dataset, Dataset)
     assert len(dataset.variables) == 2
     assert {'age', 'sex'} == set(dataset.variables.keys())
