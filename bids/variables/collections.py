@@ -121,7 +121,7 @@ class BIDSVariableCollection(object):
         return matches_entities(self, entities, strict)
 
     def _index_entities(self):
-        ''' Returns a dict of entities for the current Collection.
+        ''' Sets current instance's entities based on the existing index.
 
         Note: Only entity key/value pairs common to all rows in all contained
             Variables are returned. E.g., if a Collection contains Variables
@@ -132,8 +132,11 @@ class BIDSVariableCollection(object):
         all_ents = pd.DataFrame.from_records(
             [v.entities for v in self.variables.values()])
         constant = all_ents.apply(lambda x: x.nunique() == 1)
-        keep = all_ents.columns[constant]
-        self.entities = {k: all_ents[k].iloc[0] for k in keep}
+        if constant.empty:
+            self.entities = {}
+        else:
+            keep = all_ents.columns[constant]
+            self.entities = {k: all_ents[k].iloc[0] for k in keep}
 
 
     # def aggregate(self, level, agg_func='mean', categorical_agg_func=None):
