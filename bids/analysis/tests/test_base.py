@@ -1,8 +1,7 @@
 from os.path import join, dirname, abspath
 from bids import grabbids
 from bids.grabbids import BIDSLayout
-from bids.analysis.base import Analysis
-from bids.analysis.variables import load_variables
+from bids.analysis import Analysis
 import pytest
 
 
@@ -12,18 +11,12 @@ def analysis():
     layout_path = join(dirname(mod_file), 'tests', 'data', 'ds005')
     layout = BIDSLayout(layout_path)
     json_file = join(layout_path, 'models', 'ds-005_type-test_model.json')
-
-    # Load variables manually because we need to specify the scan length
-    variables = load_variables(layout, levels=['run', 'session', 'subject'])
-    variables['time'] = load_event_variables(layout, scan_length=480)
-
-    analysis = Analysis(layout_path, json_file, variables=variables)
-    analysis.setup()
+    analysis = Analysis(layout, json_file)
+    analysis.setup(scan_length=480, subject=['01', '02'])
     return analysis
 
 
 def test_analysis_smoke_test(analysis):
-
     result = analysis['run'].get_design_matrix(subject=['01', '02'])
     assert len(result) == 6
     assert len(result[0]) == 2

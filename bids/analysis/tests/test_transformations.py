@@ -41,7 +41,7 @@ def test_product(collection):
 def test_scale(collection):
     transform.scale(collection, variables=['RT', 'parametric gain'],
                     output=['RT_Z', 'gain_Z'])
-    ents = collection['RT'].entities
+    ents = collection['RT'].index
     groupby = pd.core.groupby._get_grouper(ents, ['run', 'subject'])[0]
     z1 = collection['RT_Z'].values
     z2 = collection['RT'].values.groupby(
@@ -62,13 +62,13 @@ def test_orthogonalize_dense(collection):
     pg_post = collection['trial_type/parametric gain']
 
     # Verify that the to_dense() calls result in identical indexing
-    ent_cols = ['subject', 'session', 'run', 'time']
+    ent_cols = ['subject', 'session', 'run']
     assert pg_pre.to_df()[ent_cols].equals(rt.to_df()[ent_cols])
     assert pg_post.to_df()[ent_cols].equals(rt.to_df()[ent_cols])
 
     vals = np.c_[rt.values, pg_pre.values, pg_post.values]
     df = pd.DataFrame(vals, columns=['rt', 'pre', 'post'])
-    ents = rt.entities
+    ents = rt.index
     groupby = pd.core.groupby._get_grouper(ents, ['run', 'subject'])[0]
     pre_r = df.groupby(groupby).apply(lambda x: x.corr().iloc[0, 1])
     post_r = df.groupby(groupby).apply(lambda x: x.corr().iloc[0, 2])
@@ -84,7 +84,7 @@ def test_orthogonalize_sparse(collection):
     pg_post = collection['parametric gain'].values
     vals = np.c_[rt.values, pg_pre.values, pg_post.values]
     df = pd.DataFrame(vals, columns=['rt', 'pre', 'post'])
-    ents = collection['RT'].entities
+    ents = collection['RT'].index
     groupby = pd.core.groupby._get_grouper(ents, ['run', 'subject'])[0]
     pre_r = df.groupby(groupby).apply(lambda x: x.corr().iloc[0, 1])
     post_r = df.groupby(groupby).apply(lambda x: x.corr().iloc[0, 2])
@@ -125,7 +125,7 @@ def test_split(collection):
     # Grouping by entities in the index
     collection['RT_4'] = orig.clone(name='RT_4')
     transform.split(collection, variables=['RT_4'], by=['respcat', 'run'])
-    assert 'RT_4.-1_03' in collection.variables.keys()
+    assert 'RT_4.-1_3' in collection.variables.keys()
 
 
 def test_resample_dense(collection):
