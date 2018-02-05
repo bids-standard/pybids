@@ -129,8 +129,14 @@ class Block(object):
 
     def _filter_objects_by_entities(self, obj, kwargs):
         valid_ents = {'run', 'session', 'subject', 'task'}
-        entities = {k: v for k, v in kwargs.items() if k in valid_ents}
-        return [o for o in obj if o.matches_entities(entities)]
+        entities, rest = {}, {}
+        for k, v in kwargs.items():
+            if k in valid_ents:
+                entities[k] = v
+            else:
+                rest[k] = v
+        objs = [o for o in obj if o.matches_entities(entities)]
+        return (rest, objs)
 
     def setup(self, input_nodes=None, **kwargs):
         ''' Set up the Block and construct the design matrix.
@@ -145,7 +151,8 @@ class Block(object):
         input_nodes = input_nodes or self.input_nodes
         collections = self.layout.get_collections(self.level, **kwargs)
 
-        collections = self._filter_objects_by_entities(collections, kwargs)
+        kwargs, collections = self._filter_objects_by_entities(
+            collections, kwargs)
 
         for coll in collections:
             coll = apply_transformations(coll, self.transformations)
@@ -153,12 +160,13 @@ class Block(object):
             self.output_nodes.append(node)
 
     def get_design_matrix(self, variables=None, format='long', **kwargs):
-        nodes = self._filter_objects_by_entities(self.output_nodes, kwargs)
+        kwargs, nodes = self._filter_objects_by_entities(
+            self.output_nodes, kwargs)
         return [n.get_design_matrix(variables, format, **kwargs)
                 for n in nodes]
 
     def get_contrasts(self, names=None, identity_contrasts=True, **kwargs):
-        nodes = self._filter_objects_by_entities(self.output_nodes, kwargs)
+        nodes = self._filter_objects_by_entities(self.output_nodes, kwargs)[1]
         return [n.get_contrasts(names, identity_contrasts) for n in nodes]
 
 
