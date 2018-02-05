@@ -137,8 +137,8 @@ class Dataset(Node):
     def __init__(self):
         super(Dataset, self).__init__(1, None)
 
-    def get_variables(self, unit, variables=None, return_type='collection',
-                      merge=False, sampling_rate=None, **selectors):
+    def get_collections(self, unit, variables=None, merge=False,
+                        sampling_rate=None, **selectors):
         ''' Retrieve variable data for a specified level in the Dataset.
 
         Args:
@@ -155,12 +155,14 @@ class Dataset(Node):
                 pass onto the returned BIDSRunVariableCollection.
             selectors: Optional constraints used to limit what gets returned.
                 Valid argument names are 'run', 'session', and 'subject'.
-        '''
 
-        return_type = return_type.lower()
+        Returns:
+
+        '''
 
         nodes = self.get_nodes(unit, **selectors)
         var_sets = []
+
         for n in nodes:
             var_set = list(n.variables.values())
             if variables is not None:
@@ -172,6 +174,8 @@ class Dataset(Node):
 
         results = []
         for vs in var_sets:
+            if not vs:
+                continue
             if unit == 'run':
                 vs = clc.BIDSRunVariableCollection(vs, sampling_rate)
             else:

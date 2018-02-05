@@ -5,16 +5,21 @@ from os.path import join, dirname
 from bids.utils import listify
 from .entities import Dataset
 from .variables import SparseRunVariable, DenseRunVariable, SimpleVariable
+import warnings
 
 
 BASE_ENTITIES = ['task', 'run', 'session', 'subject']
 
 
-def load_variables(layout, types=None, skip_empty=True, **kwargs):
+def load_variables(layout, levels=None, types=None, skip_empty=True, **kwargs):
     ''' A convenience wrapper for one or more load_*_variables() calls.
 
     Args:
         layout (BIDSLayout): BIDSLayout containing variable files.
+        levels (str, list): Optional level(s) of variables to load. Valid
+            values are 'run', 'session', 'subject', or 'dataset'. This is
+            simply a shorthand way to specify types--e.g., 'run' will be
+            converted to types=['events', 'physio', 'stim', 'confounds'].
         types (str, list): Types of variables to retrieve. All valid values
             reflect the filename stipulated in the BIDS spec for each kind of
             variable. Valid values include: 'events', 'physio', 'stim',
@@ -40,7 +45,17 @@ def load_variables(layout, types=None, skip_empty=True, **kwargs):
     types = listify(types)
 
     if types is None:
-        types = TYPES
+        if levels is not None:
+            types = []
+            lev_map = {
+                'run': ['events', 'physio', 'stim', 'confounds'],
+                'session': ['scans'],
+                'subject': ['sessions'],
+                'dataset': ['participants']
+            }
+            [types.extend(lev_map[l]) for l in listify(levels)]
+        else:
+            types = TYPES
 
     bad_types = set(types) - set(TYPES)
     if bad_types:
@@ -114,6 +129,10 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
 
         entities = layout.files[img_f].entities.copy()
 
+        # Run is not mandatory, but we need a default for proper indexing
+        if 'run' not in entities:
+            entities['run'] = 1
+
         # Get duration of run: first try to get it directly from the image
         # header; if that fails, try to get NumberOfVolumes from the
         # run metadata; if that fails, look for a scan_length argument.
@@ -142,6 +161,20 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
             _data = layout.get_events(img_f, return_type='df',
                                       derivatives=derivatives)
             if _data is not None:
+
+                if 'amplitude' in _data.columns:
+                    if (_data['amplitude'].astype(int) == 1).all() and \
+                            'trial_type' in _data.columns:
+                        msg = ("Column 'amplitude' with constant value 1 is "
+                               "unnecessary in event files; ignoring it.")
+                        _data = _data.drop('amplitude', axis=1)
+                    else:
+                        msg = ("Column name 'amplitude' is reserved; renaming "
+                               "it to 'amplitude_'.")
+                        _data = _data.rename(
+                            columns={'amplitude': 'amplitude_'})
+                    warnings.warn(msg)
+
                 _data = _data.replace('n/a', np.nan)  # Replace BIDS' n/a
                 _data = _data.apply(pd.to_numeric, errors='ignore')
 

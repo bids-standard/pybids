@@ -13,8 +13,9 @@ def collection():
     mod_file = abspath(grabbids.__file__)
     path = join(dirname(mod_file), 'tests', 'data', 'ds005')
     layout = BIDSLayout(path)
-    collection = layout.get_variables('run', types=['events'], scan_length=480,
-                                      merge=True, sampling_rate=10)
+    collection = layout.get_collections('run', types=['events'],
+                                        scan_length=480, merge=True,
+                                        sampling_rate=10)
     return collection
 
 
@@ -57,7 +58,7 @@ def test_orthogonalize_dense(collection):
 
     # Orthogonalize and store result
     transform.orthogonalize(collection, variables='trial_type/parametric gain',
-                            other='RT', dense=True, groupby=['run','subject'])
+                            other='RT', dense=True, groupby=['run', 'subject'])
     pg_post = collection['trial_type/parametric gain']
 
     # Verify that the to_dense() calls result in identical indexing

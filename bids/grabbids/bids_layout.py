@@ -236,10 +236,9 @@ class BIDSLayout(Layout):
                     fieldmap_set.append(cur_fieldmap)
         return fieldmap_set
 
-    def get_variables(self, unit, types=None, variables=None,
-                      return_type='collection', merge=False,
-                      sampling_rate=None, **kwargs):
+    def get_collections(self, level, types=None, variables=None, merge=False,
+                        sampling_rate=None, **kwargs):
         from bids.variables import load_variables
-        dataset = load_variables(self, types, **kwargs)
-        return dataset.get_variables(unit, variables, return_type, merge,
-                                     sampling_rate=sampling_rate)
+        dataset = load_variables(self, leves=level, types=types, **kwargs)
+        return dataset.get_collections(level, variables, merge,
+                                       sampling_rate=sampling_rate)

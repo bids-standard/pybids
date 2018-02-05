@@ -1,19 +1,13 @@
 import json
 from bids.grabbids import BIDSLayout
-from bids.variables import (load_variables, SimpleVariable,
-                            BIDSVariableCollection)
+from bids.variables import load_variables
 from . import transformations as transform
 from collections import namedtuple
 from six import string_types
 import pandas as pd
-import numpy as np
-
-
-DesignMatrixInfo = namedtuple('DesignMatrixInfo', ('data', 'entities'))
 
 
 class Analysis(object):
-
     ''' Represents an entire BIDS-Model analysis.
 
     Args:
@@ -22,17 +16,22 @@ class Analysis(object):
         model (str or dict): a BIDS model specification. Can either be a
             string giving the path of the JSON model spec, or an already-loaded
             dict containing the model info.
-        variables (dict): An optional dictionary containing all variables to
-            use. Keys are level names ('time', 'run', 'session', or 'subject');
-            values are BIDSVariableCollections. If None, all variables will be
-            read from the current layout. Mainly useful for cases where custom
-            arguments need to be passed during variable-reading.
+        collections (dict): An optional dictionary containing all variable
+            collections to use. Keys are level names ('run', 'session', etc.);
+            values are lists of BIDSVariableCollections. If None, collections
+            will be read from the current layout.
+        sampling_rate (int): Optional sampling rate (in Hz) to use when
+            resampling variables internally. If None, the package-wide default
+            will be used.
     '''
 
-    def __init__(self, layout, model, variables=None, **selectors):
+    def __init__(self, layout, model, collections=None, sampling_rate=None,
+                 scan_length=None, **selectors):
 
-        self.variables = variables
+        self.sampling_rate = sampling_rate
+        self.collections = collections
         self.selectors = selectors
+        self.scan_length = scan_length
 
         if not isinstance(layout, BIDSLayout):
             layout = BIDSLayout(layout)
@@ -85,12 +84,7 @@ class Analysis(object):
         '''
 
         # In the beginning, there was nothing
-        input_coll = None
-
-        # Remap level names, because the BIDS-Model spec treats the level as
-        # the looping variable, whereas we need to treat it as the unit/row
-        # identifier for internal variable-reading purposes.
-        levels = ['time', 'run', 'session', 'subject', 'dataset']
+        input_nodes = None
 
         for i, b in enumerate(self.blocks):
 
@@ -98,34 +92,16 @@ class Analysis(object):
             if blocks is not None and i not in blocks and b.name not in blocks:
                 continue
 
-            lev_ind = levels.index(b.level)
-            unit = levels[lev_ind - 1]
+            unit = b.level
 
             # Get all variables for current level
-            if self.variables is not None and unit in self.variables:
-                curr_coll = self.variables[unit]
+            if self.collections is not None and unit in self.collections:
+                collections = self.collections[unit]
             else:
-                curr_coll = load_variables(self.layout, unit, **self.selectors)
+                collections = load_variables(self.layout, **self.selectors)
 
-            # Merge input collection and current collection
-            if input_coll is not None:
-                if input_coll.unit != unit:
-                    input_coll.aggregate(unit)
-
-                if curr_coll is not None:
-                    collection = merge_collections([input_coll, curr_coll])
-                else:
-                    collection = input_coll
-
-            elif curr_coll is not None:
-                collection = curr_coll
-
-            else:
-                raise ValueError("No variables provided as input!")
-
-            b.setup(collection)
-            # Clone output collection because it may be mutated in next block
-            input_coll = b.output_collection.clone()
+            b.setup(collections, input_nodes)
+            input_nodes = b.output_nodes
 
 
 class Block(object):
@@ -154,229 +130,104 @@ class Block(object):
         self.transformations = transformations or []
         self.model = model or None
         self.contrasts = contrasts or []
-        self._design_matrix = None
-        self.input_collection = None
-        self.output_collection = None
+        self.input_nodes = None
+        self.output_nodes = []
         self.identity_contrasts = kwargs.pop('identity_contrasts', True)
         self.kwargs = kwargs
 
-    def _get_dm(self, **selectors):
-        if self._design_matrix is None:
-            raise ValueError("Block hasn't been set up yet; please call "
-                             "setup() before you try to retrieve the DM.")
-        # subset the data if needed
-        data = self._design_matrix
-        if selectors:
-            # TODO: make sure this handles constraints on int columns properly
-            bad_keys = list(set(selectors.keys()) - set(data.columns))
-            if bad_keys:
-                raise ValueError("The following query constraints do not map "
-                                 "onto existing columns: %s." % bad_keys)
-            query = ' and '.join(["{} in {}".format(k, v)
-                                  for k, v in selectors.items()])
-            data = data.query(query)
-        return data
+    def setup(self, collections, input_nodes):
+        ''' Set up the Block and construct the design matrix.
 
-    def _drop_columns(self, data, drop_entities=True, drop_timing=False):
-
-        entities = []
-        if drop_entities:
-            entities += ['run', 'session', 'subject', 'task']
-        if drop_timing:
-            entities += ['onset', 'duration']
-        common_ents = list(set(entities) & set(data.columns))
-        return data.drop(common_ents, axis=1)
-
-    def _get_groupby_cols(self):
-        # Get a list of keywords that define the grouping at the current level.
-        # Note that we need to include all entities *above* the current one--
-        # e.g., if the block level is 'run', this means we actually want to
-        # groupby(['subject', 'session', 'run']), otherwise we would only
-        # end up with n(runs) groups.
-        hierarchy = ['subject', 'session', 'run']
-
-        if self.level is None:
-            return None
-        elif self.level not in hierarchy:  # e.g., for 'dataset'
-            return []
-        pos = hierarchy.index(self.level)
-        return hierarchy[:(pos + 1)]
-
-    def apply_transformations(self):
-        ''' Apply all transformations to the variables in the collection.
-        '''
-        for t in self.transformations:
-            kwargs = dict(t)
-            func = kwargs.pop('name')
-            cols = kwargs.pop('input', None)
-
-            if isinstance(func, string_types):
-                if not hasattr(transform, func):
-                    raise ValueError("No transformation '%s' found!" % func)
-                func = getattr(transform, func)
-                func(self.input_collection, cols, **kwargs)
-
-        # Also apply variable selection even if it's not represented in
-        # its own transformation.
-        if self.model is not None and 'variables' in self.model:
-            transform.select(self.input_collection, self.model['variables'])
-
-    def _generate_output_collection(self):
-        ''' Generate the output collection by applying contrasts.
+        Args:
+            collections (list): A list of BIDSVariableCollections--one per
+                observation at the current level.
+            input_nodes (list): A list of Node objects produced by the last
+                level of analysis.
         '''
 
-        data = self._get_dm()
+        self.input_nodes = input_nodes
 
-        # Figure out which column names to keep
-        contrast_names = [c['name'] for c in self.contrasts]
-        if self.identity_contrasts:
-            sel_cols = list(data['condition'].unique())
-            contrast_names = sel_cols + contrast_names
+        for coll in collections:
+            entities = coll.get_entities()
+            coll = apply_transformations(coll, self.transformations)
+            node = AnalysisNode(self.level, coll, entities, self.contrasts)
+            self.output_nodes.append(node)
 
-        ent_cols = self._get_groupby_cols()
-        ent_cols = list(set(ent_cols) & set(data.columns))
+    def get_design_matrix(self, variables=None, format='long', **kwargs):
+        return [n.get_design_matrix(variables, format, **kwargs)
+                for n in self.output_nodes]
 
-        contrast_names = list(set(contrast_names) -
-                              set(self.input_collection.entities))
+    def get_contrasts(self, names=None, identity_contrasts=True):
+        return [n.get_contrasts(names, identity_contrasts)
+                for n in self.output_nodes]
 
-        # Set the same (unit) weights for all rows
-        unit_weights = pd.Series(np.ones(len(contrast_names)),
-                                 index=contrast_names)
 
-        if ent_cols:
-            data = data.groupby(ent_cols).apply(lambda x: unit_weights)
+DesignMatrixInfo = namedtuple('DesignMatrixInfo', ('data', 'entities'))
+ContrastMatrixInfo = namedtuple('ContrastMatrixInfo', ('data', 'entities'))
 
-        # Generate a new BIDSVariableCollection to pass to next block
-        collection = BIDSVariableCollection(unit=self.level, entities=ent_cols)
 
-        for col_name in data.columns:
-            col_data = data[col_name].reset_index()
-            col_data = col_data.rename(columns={col_name: 'amplitude'})
-            col = SimpleVariable(collection, col_name, col_data)
-            collection.columns[col_name] = col
+class AnalysisNode(object):
 
-        self.output_collection = collection
+    def __init__(self, level, collection, entities, contrasts=None):
+        self.level = level
+        self.entities = entities
+        self.collection = collection
+        self.contrasts = contrasts
 
-    def get_contrasts(self, format='matrix', names=None,
-                      identity_contrasts=None):
+    def get_design_matrix(self, variables=None, format='long', **kwargs):
+        df = self.collection.to_df(variables, format, **kwargs)
+        return DesignMatrixInfo(df, self.entities)
+
+    def get_contrasts(self, names=None, identity_contrasts=True):
         ''' Return contrast information for the current block.
 
         Args:
-            format (str): What format to return the contrast specifications in.
-                Valid options are:
-                    'matrix' or 'df': Returns a pandas DataFrame with each
-                        contrast as a row and each of the existing design
-                        matrix columns as a column. This format makes it easy
-                        to matrix-multiply existing in-memory images by the
-                        contrast definition matrix in one shot.
-                    'dict': Returns the BIDS-Model contrast specification
-                        as a dict loaded from the original json.
-                    'json': Returns the json string containing the raw contrast
-                        specification found in the original BIDS-Model spec.
             names (list): Optional list of names of contrasts to return. If
                 None (default), all contrasts are returned.
             identity_contrasts (bool): If True, all columns in the output
                 design matrix are automatically assigned identity contrasts.
                 If None, falls back on the identity_contrasts flag defined at
                 the block level (which defaults to True).
-
-        Returns:
-            See format argument for returned object formats.
         '''
         contrasts = self.contrasts.copy()
+
         if names is not None:
             contrasts = [c for c in contrasts if c['name'] in names]
 
-        if identity_contrasts is None:
-            identity_contrasts = self.identity_contrasts
-
         if identity_contrasts:
-            if self._design_matrix is None:
-                raise ValueError("Block hasn't been set up yet; please call "
-                                 "setup() before you try to get_contrasts().")
-            for col_name in self.output_collection.columns.keys():
+            for col_name in self.collection.variables.keys():
                 contrasts.append({
                     'name': col_name,
                     'condition_list': [col_name],
                     'weights': [1],
                 })
 
-        if format == 'dict':
-            return contrasts
+        contrast_defs = [pd.Series(c['weights'], index=c['condition_list'])
+                         for c in contrasts]
+        df = pd.DataFrame(contrast_defs).fillna(0)
+        df.index = [c['name'] for c in contrasts]
+        return ContrastMatrixInfo(df, self.entities)
 
-        if format == 'json':
-            return json.dumps(contrasts)
+    def _match_entities(self, entities):
+        common_keys = list(set(entities.keys()) & set(self.entities.keys()))
+        return all([entities[k] == self.entities[k] for k in common_keys])
 
-        if format == 'matrix' or format == 'df':
-            contrast_defs = [pd.Series(c['weights'], index=c['condition_list'])
-                             for c in contrasts]
-            df = pd.DataFrame(contrast_defs).fillna(0)
-            df.index = [c['name'] for c in contrasts]
-            return df
 
-        raise ValueError("Invalid format argument specified for returned "
-                         "object. Format must be one of 'matrix', 'dict', or "
-                         "'json'.")
+def apply_transformations(collection, transformations, select=None):
+    ''' Apply all transformations to the variables in the collection.
+    '''
+    for t in transformations:
+        kwargs = dict(t)
+        func = kwargs.pop('name')
+        cols = kwargs.pop('input', None)
 
-    def get_design_matrix(self, drop_entities=True, **selectors):
-        ''' Return design matrices for all groups defined by the current level.
+        if isinstance(func, string_types):
+            if not hasattr(transform, func):
+                raise ValueError("No transformation '%s' found!" % func)
+            func = getattr(transform, func)
+            func(collection, cols, **kwargs)
 
-        Args:
-            selectors (dict): Optional keyword arguments to further constrain
-                the data retrieved.
-        Returns:
-            A list of namedtuples, where each tuple contains data for a single
-                group, and the elements reflect (in order):
-                    - .data: a pandas DataFrame containing the design matrix;
-                    - A dict of entities defining the current group (e.g.,
-                      {'subject': '03', 'run': 1})
-        '''
-        data = self._get_dm(**selectors)
-        ent_cols = self._get_groupby_cols()
+    if select is not None:
+        transform.select(collection, select)
 
-        tuples = []
-        ent_cols = list(set(ent_cols) & set(data.columns))
-
-        # If there are no entities to group on, return the whole dataset
-        if not ent_cols:
-            return [DesignMatrixInfo(data, {})]
-
-        # Otherwise loop over groups and construct a tuple for each one
-        for name, g in data.groupby(ent_cols):
-            ent_data = g[ent_cols].drop_duplicates().iloc[0, :]
-            ents = ent_data.to_dict()
-            group_data = self._drop_columns(g.copy(),
-                                            drop_entities=drop_entities)
-            group_data = group_data.reset_index(drop=True)
-            record = DesignMatrixInfo(group_data, ents)
-            tuples.append(record)
-        return tuples
-
-    def iter_design_matrix(self, **selectors):
-        ''' Convenience method that returns an iterator over tuples returned
-        by get_Xy(). See get_Xy() for arguments and return format. '''
-        return (t for t in self.get_Xy(**selectors))
-
-    def setup(self, input_collection):
-        ''' Set up the Block and construct the design matrix.
-
-        Args:
-            input_collection (BIDSVariableCollection): The input variable
-                collection.
-            last_level (str): The level of the previous Block in the analysis,
-                if any.
-        '''
-
-        self.input_collection = input_collection
-
-        self._generate_dms()
-
-        # if self.transformations and apply_transformations:
-        #     self.apply_transformations()
-
-        gb = self._get_groupby_cols()
-
-        dm = input_collection.get_design_matrix(groupby=gb)
-        self._design_matrix = dm.copy()
-
-        self._generate_output_collection()
+    return collection

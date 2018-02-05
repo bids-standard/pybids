@@ -92,7 +92,6 @@ def test_merge_collections(run_coll, run_coll_list):
 
 
 def test_get_collection_entities(run_coll_list):
-    print("LEN LIST:", len(run_coll_list))
     coll = run_coll_list[0]
     ents = coll.get_entities()
     assert {'run', 'task', 'session', 'subject'} == set(ents.keys())

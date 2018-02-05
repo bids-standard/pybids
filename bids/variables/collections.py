@@ -67,7 +67,7 @@ class BIDSVariableCollection(object):
         return [merge_variables(vars_, **kwargs)
                 for vars_ in list(var_dict.values())]
 
-    def to_df(self, variables=None, format='wide'):
+    def to_df(self, variables=None, format='wide', fillna=0, **kwargs):
         ''' Merge variables into a single pandas DataFrame.
 
         Args:
@@ -79,6 +79,9 @@ class BIDSVariableCollection(object):
                 'long' format, each row is a unique combination of onset,
                 duration, and variable name, and a single 'amplitude' column
                 provides the value.
+            fillna: Replace missing values with the specified value.
+            kwargs: Optional keyword arguments to pass onto each Variable's
+                to_df() call (e.g., condition, entities, and timing).
 
         Returns: A pandas DataFrame.
         '''
@@ -91,16 +94,16 @@ class BIDSVariableCollection(object):
             variables = [v for v in self.variables.values()
                          if v.name in variables]
 
-        dfs = [v.to_df() for v in variables]
+        dfs = [v.to_df(**kwargs) for v in variables]
         df = pd.concat(dfs, axis=0)
 
         if format == 'long':
-            return df.reset_index(drop=True)
+            return df.reset_index(drop=True).fillna(fillna)
 
         ind_cols = list(set(df.columns) - {'condition', 'amplitude'})
         df = df.pivot_table(index=ind_cols, columns='condition',
                             values='amplitude', aggfunc='first')
-        df = df.reset_index()
+        df = df.reset_index().fillna(fillna)
         df.columns.name = None
         return df
 
@@ -260,7 +263,7 @@ class BIDSRunVariableCollection(BIDSVariableCollection):
             return variables
 
     def to_df(self, variables=None, format='wide', sparse=True,
-              sampling_rate=None):
+              sampling_rate=None, **kwargs):
         ''' Merge columns into a single pandas DataFrame.
 
         Args:
@@ -280,6 +283,8 @@ class BIDSRunVariableCollection(BIDSVariableCollection):
             sampling_rate (float): If a dense matrix is written out, the
                 sampling rate (in Hz) to use for downsampling. Defaults to the
                 value currently set in the instance.
+            kwargs: Optional keyword arguments to pass onto each Variable's
+                to_df() call (e.g., condition, entities, and timing).
 
         Returns: A pandas DataFrame.
         '''
@@ -291,7 +296,8 @@ class BIDSRunVariableCollection(BIDSVariableCollection):
             variables = list(self.resample(sampling_rate, force_dense=True,
                                            in_place=False).values())
 
-        return super(BIDSRunVariableCollection, self).to_df(variables, format)
+        return super(BIDSRunVariableCollection, self).to_df(variables, format,
+                                                            **kwargs)
 
 
 def merge_collections(collections, force_dense=False, sampling_rate='auto'):

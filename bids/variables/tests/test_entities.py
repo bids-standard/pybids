@@ -65,9 +65,9 @@ def test_get_nodes(layout1):
     assert all([isinstance(n, Run) for n in nodes])
 
 
-def test_get_variables_merged(layout1):
+def test_get_collections_merged(layout1):
     dataset = load_variables(layout1, scan_length=480)
-    collection = dataset.get_variables('run', merge=True)
+    collection = dataset.get_collections('run', merge=True)
     assert isinstance(collection, BIDSRunVariableCollection)
     assert len(collection.variables) == 8
     vals = collection.variables['RT'].values
@@ -76,9 +76,9 @@ def test_get_variables_merged(layout1):
     assert set(ents.columns) == {'task', 'run', 'session', 'subject'}
 
 
-def test_get_variables_unmerged(layout2):
+def test_get_collections_unmerged(layout2):
     dataset = load_variables(layout2, types=['sessions'], scan_length=480)
-    colls = dataset.get_variables('subject', merge=False)
+    colls = dataset.get_collections('subject', merge=False)
     assert len(colls) == 10
     assert len(colls[0].variables) == 94
     assert colls[0]['panas_at_ease'].values.shape == (2,)
