@@ -108,6 +108,27 @@ class BIDSVariableCollection(object):
         df.columns.name = None
         return df
 
+    @classmethod
+    def from_df(cls, data, entities=None):
+        ''' Create a Collection from a pandas DataFrame.
+
+        Args:
+            df (DataFrame): The DataFrame to convert to a Collection. Each
+                column will be converted to a SimpleVariable.
+            entities (DataFrame): An optional second DataFrame containing
+                entity information.
+
+        Returns:
+            A BIDSVariableCollection.
+        '''
+        variables = []
+        for col in data.columns:
+            _data = pd.DataFrame(data[[col]], columns=['amplitude'])
+            if entities is not None:
+                _data = pd.concat([_data, entities], axis=1)
+            variables.append(SimpleVariable(col, _data, 'contrast'))
+        return BIDSVariableCollection(variables)
+
     def clone(self):
         ''' Returns a shallow copy of the current instance, except that all
         variables are deep-cloned.
