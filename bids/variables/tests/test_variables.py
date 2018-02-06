@@ -1,7 +1,7 @@
 from bids.grabbids import BIDSLayout
 import pytest
-from os.path import join, dirname, abspath
-from bids import grabbids
+from os.path import join
+from bids.tests import get_test_data_path
 from bids.analysis import load_variables
 from bids.variables import (merge_variables, DenseRunVariable, SimpleVariable)
 from bids.variables.entities import RunInfo
@@ -20,18 +20,16 @@ def generate_DEV(name='test', sr=20, duration=480):
     return DenseRunVariable('test', values, run_info, 'dummy', sr)
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture
 def layout1():
-    mod_file = abspath(grabbids.__file__)
-    path = join(dirname(mod_file), 'tests', 'data', 'ds005')
+    path = join(get_test_data_path(), 'ds005')
     layout = BIDSLayout(path)
     return layout
 
 
 @pytest.fixture(scope="module")
 def layout2():
-    mod_file = abspath(grabbids.__file__)
-    path = join(dirname(mod_file), 'tests', 'data', '7t_trt')
+    path = join(get_test_data_path(), '7t_trt')
     layout = BIDSLayout(path)
     return layout
 

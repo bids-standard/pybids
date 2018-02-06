@@ -3,22 +3,20 @@ from bids.variables.entities import Run, Session, Dataset
 from bids.variables import load_variables
 from bids.variables import BIDSRunVariableCollection
 import pytest
-from os.path import join, dirname, abspath
-from bids import grabbids
+from os.path import join
+from bids.tests import get_test_data_path
 
 
 @pytest.fixture(scope="module")
 def layout1():
-    mod_file = abspath(grabbids.__file__)
-    path = join(dirname(mod_file), 'tests', 'data', 'ds005')
+    path = join(get_test_data_path(), 'ds005')
     layout = BIDSLayout(path)
     return layout
 
 
 @pytest.fixture(scope="module")
 def layout2():
-    mod_file = abspath(grabbids.__file__)
-    path = join(dirname(mod_file), 'tests', 'data', '7t_trt')
+    path = join(get_test_data_path(), '7t_trt')
     layout = BIDSLayout(path)
     return layout
 

@@ -2,17 +2,16 @@
 from bids.analysis import transformations as transform
 from bids.grabbids import BIDSLayout
 import pytest
-from os.path import join, dirname, abspath
-from bids import grabbids
+from os.path import join
+from bids.tests import get_test_data_path
 import numpy as np
 import pandas as pd
 
 
 @pytest.fixture
 def collection():
-    mod_file = abspath(grabbids.__file__)
-    path = join(dirname(mod_file), 'tests', 'data', 'ds005')
-    layout = BIDSLayout(path)
+    layout_path = join(get_test_data_path(), 'ds005')
+    layout = BIDSLayout(layout_path)
     collection = layout.get_collections('run', types=['events'],
                                         scan_length=480, merge=True,
                                         sampling_rate=10)

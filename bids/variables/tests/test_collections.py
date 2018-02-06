@@ -1,14 +1,13 @@
 from bids.grabbids import BIDSLayout
 import pytest
 from os.path import join, dirname, abspath
-from bids import grabbids
+from bids.tests import get_test_data_path
 from bids.variables import DenseRunVariable, merge_collections
 
 
 @pytest.fixture(scope="module")
 def run_coll():
-    mod_file = abspath(grabbids.__file__)
-    path = join(dirname(mod_file), 'tests', 'data', 'ds005')
+    path = join(get_test_data_path(), 'ds005')
     layout = BIDSLayout(path)
     return layout.get_collections('run', types=['events'], merge=True,
                                   scan_length=480)
@@ -16,8 +15,7 @@ def run_coll():
 
 @pytest.fixture(scope="module")
 def run_coll_list():
-    mod_file = abspath(grabbids.__file__)
-    path = join(dirname(mod_file), 'tests', 'data', 'ds005')
+    path = join(get_test_data_path(), 'ds005')
     layout = BIDSLayout(path)
     return layout.get_collections('run', types=['events'], merge=False,
                                   scan_length=480)

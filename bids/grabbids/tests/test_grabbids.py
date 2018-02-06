@@ -3,31 +3,34 @@ functionality should go in the grabbit package. """
 
 import pytest
 from bids.grabbids import BIDSLayout
-from os.path import join, dirname, abspath, basename
+from os.path import join, abspath, basename
+from bids.tests import get_test_data_path
 
 
 # Fixture uses in the rest of the tests
 @pytest.fixture
 def testlayout1():
-    data_dir = join(dirname(__file__), 'data', '7t_trt')
+    data_dir = join(get_test_data_path(), '7t_trt')
     return BIDSLayout(data_dir)
 
 
 @pytest.fixture
 def testlayout2():
-    data_dir = join(dirname(__file__), 'data', 'ds005')
+    data_dir = join(get_test_data_path(), 'ds005')
     return BIDSLayout(data_dir)
+
 
 @pytest.fixture
 def testmergedlayout():
-    data_dir = [join(dirname(__file__), 'data', 'ds005'),
-                join(dirname(__file__), 'data', 'ds005',
+    data_dir = [join(get_test_data_path(), 'ds005'),
+                join(get_test_data_path(), 'ds005',
                      'derivatives', 'events')]
     return BIDSLayout(data_dir)
 
+
 @pytest.fixture
 def testlayout3():
-    data_dir = join(dirname(__file__), 'data', 'ds005')
+    data_dir = join(get_test_data_path(), 'ds005')
     return BIDSLayout(data_dir, extensions=['derivatives'])
 
 
