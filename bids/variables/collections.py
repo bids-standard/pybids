@@ -36,7 +36,8 @@ class BIDSVariableCollection(object):
             'participants': 'dataset'
         }
 
-        var_levels = set([SOURCE_TO_LEVEL[v.source] for v in variables])
+        var_levels = set([SOURCE_TO_LEVEL[v.source] if v.source in
+                          SOURCE_TO_LEVEL else v.source for v in variables])
 
         # TODO: relax this requirement & allow implicit merging between levels
         if len(var_levels) > 1:
@@ -109,7 +110,7 @@ class BIDSVariableCollection(object):
         return df
 
     @classmethod
-    def from_df(cls, data, entities=None):
+    def from_df(cls, data, entities=None, source='contrast'):
         ''' Create a Collection from a pandas DataFrame.
 
         Args:
@@ -117,16 +118,17 @@ class BIDSVariableCollection(object):
                 column will be converted to a SimpleVariable.
             entities (DataFrame): An optional second DataFrame containing
                 entity information.
+            source (str): The value to set as the source for all Variables.
 
         Returns:
             A BIDSVariableCollection.
         '''
         variables = []
         for col in data.columns:
-            _data = pd.DataFrame(data[[col]], columns=['amplitude'])
+            _data = pd.DataFrame(data[col].values, columns=['amplitude'])
             if entities is not None:
                 _data = pd.concat([_data, entities], axis=1)
-            variables.append(SimpleVariable(col, _data, 'contrast'))
+            variables.append(SimpleVariable(col, _data, source))
         return BIDSVariableCollection(variables)
 
     def clone(self):
