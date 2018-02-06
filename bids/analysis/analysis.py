@@ -207,9 +207,9 @@ class Block(object):
 
             self.output_nodes.append(node)
 
-    def get_design_matrix(self, variables=None, format='long', **kwargs):
+    def get_design_matrix(self, names=None, format='long', **kwargs):
         nodes, kwargs = self._filter_objects(self.output_nodes, kwargs)
-        return [n.get_design_matrix(variables, format, **kwargs)
+        return [n.get_design_matrix(names, format, **kwargs)
                 for n in nodes]
 
     def get_contrasts(self, names=None, **kwargs):
