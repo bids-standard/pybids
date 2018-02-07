@@ -211,7 +211,7 @@ class SimpleVariable(BIDSVariable):
             A list of SparseRunVariables, one per unique value in the
             grouper.
         '''
-        data = self.to_df(condition=True, entities=False)
+        data = self.to_df(condition=True, entities=True)
         data = data.drop('condition', axis=1)
 
         subsets = []
