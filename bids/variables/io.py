@@ -321,9 +321,9 @@ def _load_tsv_variables(layout, type_, dataset=None, columns=None,
         # Handling is a bit more convoluted for scans.tsv, because the first
         # column contains the run filename, which we also need to parse.
         if type_ == 'scans':
-            image = _data.iloc[:, 0]
-            _data = _data.drop(_data.columns[0], axis=1)
-            dn = dirname(f.filename)
+            image = _data['filename']
+            _data = _data.drop('filename', axis=1)
+            dn = f.dirname
             paths = [join(dn, p) for p in image.values]
             ent_recs = [layout.files[p].entities for p in paths
                         if p in layout.files]
