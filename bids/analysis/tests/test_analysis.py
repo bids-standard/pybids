@@ -46,12 +46,12 @@ def test_analysis_smoke_test(analysis):
     result = analysis['group'].get_design_matrix()
     assert len(result) == 1
     data = result[0].data
-    assert len(data) == 16
+    assert len(data) == 20
     assert data['subject'].nunique() == 2
 
     # # Make sure columns from different levels exist
-    # varset = {'sex', 'age', 'RT', 'respnum'}
-    # assert not (varset - set(data['condition'].unique()))
+    varset = {'sex', 'age', 'RT', 'respnum'}
+    assert not (varset - set(data['condition'].unique()))
 
     # Calling an invalid level name should raise an exception
     with pytest.raises(KeyError):

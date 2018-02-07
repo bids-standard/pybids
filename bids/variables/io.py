@@ -8,7 +8,7 @@ from .variables import SparseRunVariable, DenseRunVariable, SimpleVariable
 import warnings
 
 
-BASE_ENTITIES = ['task', 'run', 'session', 'subject']
+BASE_ENTITIES = ['subject', 'session', 'task', 'run']
 
 
 def load_variables(layout, types=None, levels=None, skip_empty=True, **kwargs):
@@ -292,13 +292,17 @@ def _load_tsv_variables(layout, type_, dataset=None, columns=None,
     Returns: A Dataset instance.
     '''
 
-    selectors = {k: v for k, v in selectors.items() if k in BASE_ENTITIES}
+    # Sanitize the selectors: only keep entities at current level or above
+    remap = {'scans': 'run', 'sessions': 'session', 'participants': 'subject'}
+    level = remap[type_]
+    valid_entities = BASE_ENTITIES[:BASE_ENTITIES.index(level)]
+    layout_kwargs = {k: v for k, v in selectors.items() if k in valid_entities}
 
     if dataset is None:
         dataset = Dataset()
 
     files = layout.get(extensions='.tsv', return_type='file', type=type_,
-                       **selectors)
+                       **layout_kwargs)
 
     for f in files:
 
@@ -337,6 +341,12 @@ def _load_tsv_variables(layout, type_, dataset=None, columns=None,
         elif type_ == 'participants':
             _data = _data.rename(columns={'participant_id': 'subject'})
             _data['subject'] = _data['subject'].str.replace('sub-', '')
+
+        # Filter rows on all selectors
+        comm_cols = list(set(_data.columns) & set(selectors.keys()))
+        for col in comm_cols:
+            vals = listify(selectors.get(col))
+            _data = _data.query('%s in @vals' % col)
 
         node = dataset.get_or_create_node(f.entities)
 

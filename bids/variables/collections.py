@@ -8,6 +8,7 @@ from .variables import (SparseRunVariable, SimpleVariable, DenseRunVariable,
 from collections import defaultdict
 from itertools import chain
 from bids.utils import listify, matches_entities
+import numpy as np
 
 
 class BIDSVariableCollection(object):
@@ -69,7 +70,7 @@ class BIDSVariableCollection(object):
         return [merge_variables(vars_, **kwargs)
                 for vars_ in list(var_dict.values())]
 
-    def to_df(self, variables=None, format='wide', fillna=0, **kwargs):
+    def to_df(self, variables=None, format='wide', fillna=np.nan, **kwargs):
         ''' Merge variables into a single pandas DataFrame.
 
         Args:
