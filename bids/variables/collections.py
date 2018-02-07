@@ -160,7 +160,8 @@ class BIDSVariableCollection(object):
             self.entities = {}
         else:
             keep = all_ents.columns[constant]
-            self.entities = {k: all_ents[k].iloc[0] for k in keep}
+            ents = {k: all_ents[k].iloc[0] for k in keep}
+            self.entities = {k: v for k, v in ents.items() if pd.notnull(v)}
 
 
     # def aggregate(self, level, agg_func='mean', categorical_agg_func=None):
