@@ -142,14 +142,14 @@ class Dataset(Node):
     def __init__(self):
         super(Dataset, self).__init__(1, None)
 
-    def get_collections(self, unit, variables=None, merge=False,
+    def get_collections(self, unit, names=None, merge=False,
                         sampling_rate=None, **selectors):
         ''' Retrieve variable data for a specified level in the Dataset.
 
         Args:
             unit (str): The unit of analysis to return variables for. Must be
                 one of 'run', 'session', 'subject', or 'dataset'.
-            variables (list): Optional list of variables names to return. If
+            names (list): Optional list of variables names to return. If
                 None, all available variables are returned.
             merge (bool): If True, variables are merged across all observations
                 of the current unit. E.g., if unit='subject' and return_type=
@@ -173,8 +173,8 @@ class Dataset(Node):
         for n in nodes:
             var_set = list(n.variables.values())
             var_set = [v for v in var_set if v.matches_entities(entities)]
-            if variables is not None:
-                var_set = [v for v in var_set if v.name in variables]
+            if names is not None:
+                var_set = [v for v in var_set if v.name in names]
             var_sets.append(var_set)
 
         if merge:

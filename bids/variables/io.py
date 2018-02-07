@@ -9,6 +9,7 @@ import warnings
 
 
 BASE_ENTITIES = ['subject', 'session', 'task', 'run']
+ALL_ENTITIES = BASE_ENTITIES + ['modality', 'type', 'acq']
 
 
 def load_variables(layout, types=None, levels=None, skip_empty=True, **kwargs):
@@ -350,7 +351,7 @@ def _load_tsv_variables(layout, type_, dataset=None, columns=None,
 
         node = dataset.get_or_create_node(f.entities)
 
-        ent_cols = list(set(BASE_ENTITIES) & set(_data.columns))
+        ent_cols = list(set(ALL_ENTITIES) & set(_data.columns))
         amp_cols = list(set(_data.columns) - set(ent_cols))
 
         if columns is not None:

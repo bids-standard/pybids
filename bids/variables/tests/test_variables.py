@@ -151,5 +151,12 @@ def test_sparse_run_variable_to_df(layout1):
     pass
 
 
-def test_dense_run_variable_to_df(layout1):
+def test_dense_run_variable_to_df(layout2):
     pass
+
+
+def test_filter_simple_variable(layout1):
+    dataset = load_variables(layout2, types='sessions')
+    variables = [s.variables['panas_sad'] for s in dataset.children.values()]
+    merged = merge_variables(variables)
+    print(merged.to_df())

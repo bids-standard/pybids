@@ -54,6 +54,52 @@ class BIDSVariable(object):
         # result.values.name = kwargs.get('name', self.name)
         return result
 
+    def filter_rows(self, filters=None, query=None, strict=False,
+                    inplace=False):
+        ''' Returns a copy of the current Variable with only rows that match
+        the filters retained.
+
+        Args:
+            filters (dict): Dictionary of filters to apply. Keys can be either
+                'amplitude' or any named entity. Values must be single values
+                or lists.
+            query (str): Optional query string to pass to df.query(). Will not
+                be validated in any way, so must have valid column names. Takes
+                precedence over filters in the event that both are passed.
+            strict (bool): By default, keys in 'filters' that cannot be found
+                in the Variable will be silently ignored. If strict=True, None
+                will be returned in such cases.
+            inplace (bool): If True, filtering is performed in place. If False,
+                a filtered copy of the Variable is returned.
+
+        Returns:
+            A BIDSVariable, or None if no rows are left after filtering.
+        '''
+
+        if filters is None and query is None:
+            raise ValueError("Either the 'filters' or the 'query' argument "
+                             "must be provided!")
+
+        if filters is not None and query is None:
+            query = []
+            for name, val in filters.items():
+                if name != 'amplitude' and name not in self.index.columns:
+                    if strict:
+                        return None
+                    continue
+                oper = 'in' if isinstance(val, (list, tuple)) else '='
+                q = '{name} {oper} {val}'.format(name=name, oper=oper,
+                                                 val=repr(val))
+                query.append(q)
+            query = ' and '.join(query)
+
+        inds = self.to_df().query(query).index
+        var = self.clone()
+        var.values = var.loc[inds]
+        var.index = var.index.loc[inds]
+        var._build_entity_index()
+        return var
+
     # @abstractmethod
     # def aggregate(self, unit, level, func):
     #     pass
