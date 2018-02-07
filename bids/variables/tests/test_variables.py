@@ -155,8 +155,19 @@ def test_dense_run_variable_to_df(layout2):
     pass
 
 
-def test_filter_simple_variable(layout1):
-    dataset = load_variables(layout2, types='sessions')
-    variables = [s.variables['panas_sad'] for s in dataset.children.values()]
+def test_filter_simple_variable(layout2):
+    dataset = load_variables(layout2, types=['scans'])
+    sessions = dataset.get_nodes('session')
+    variables = [s.variables['surroundings'] for s in sessions]
     merged = merge_variables(variables)
-    print(merged.to_df())
+    assert merged.to_df().shape == (60, 9)
+    filt = merged.filter({'acq': 'fullbrain'})
+    assert filt.to_df().shape == (40, 9)
+    flt1 = merged.filter({'acq': 'fullbrain', 'subject': ['01', '02']}).to_df()
+    assert flt1.shape == (8, 9)
+    flt2 = merged.filter(query='acq=="fullbrain" and subject in ["01", "02"]')
+    flt2 = flt2.to_df()
+    assert flt1.equals(flt2)
+    assert merged.filter({'nonexistent': 2}, strict=True) is None
+    merged.filter({'acq': 'fullbrain'}, inplace=True)
+    assert merged.to_df().shape == (40, 9)

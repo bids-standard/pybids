@@ -54,8 +54,7 @@ class BIDSVariable(object):
         # result.values.name = kwargs.get('name', self.name)
         return result
 
-    def filter_rows(self, filters=None, query=None, strict=False,
-                    inplace=False):
+    def filter(self, filters=None, query=None, strict=False, inplace=False):
         ''' Returns a copy of the current Variable with only rows that match
         the filters retained.
 
@@ -87,18 +86,25 @@ class BIDSVariable(object):
                     if strict:
                         return None
                     continue
-                oper = 'in' if isinstance(val, (list, tuple)) else '='
+                oper = 'in' if isinstance(val, (list, tuple)) else '=='
                 q = '{name} {oper} {val}'.format(name=name, oper=oper,
                                                  val=repr(val))
                 query.append(q)
             query = ' and '.join(query)
 
         inds = self.to_df().query(query).index
-        var = self.clone()
-        var.values = var.loc[inds]
+
+        if inplace:
+            var = self
+        else:
+            var = self.clone()
+        var.values = var.values.loc[inds]
         var.index = var.index.loc[inds]
-        var._build_entity_index()
-        return var
+        if hasattr(self, '_build_entity_index'):
+            var._build_entity_index()
+
+        if not inplace:
+            return var
 
     # @abstractmethod
     # def aggregate(self, unit, level, func):
