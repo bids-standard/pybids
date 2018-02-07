@@ -346,11 +346,15 @@ class BIDSRunVariableCollection(BIDSVariableCollection):
         if not variables:
             return None
 
-        if not (sparse and self._none_dense()):
+        if sparse and self._none_dense():
+            variables = [self.variables[v] for v in variables]
+
+        else:
             sampling_rate = sampling_rate or self.sampling_rate
 
             # Make sure all variables have the same sampling rate
-            variables = list(self.resample(sampling_rate, force_dense=True,
+            variables = list(self.resample(sampling_rate, variables,
+                                           force_dense=True,
                                            in_place=False).values())
 
         return super(BIDSRunVariableCollection, self).to_df(variables, format,

@@ -417,14 +417,16 @@ class DenseRunVariable(BIDSVariable):
 
         index = []
         sr = int(round(1000. / sampling_rate))
+        _timestamps = []
         for run in run_info:
             reps = int(math.ceil(run.duration * sampling_rate))
             ent_vals = list(run.entities.values())
             data = np.broadcast_to(ent_vals, (reps, len(ent_vals)))
             df = pd.DataFrame(data, columns=list(run.entities.keys()))
-            self.timestamps = pd.date_range(0, periods=len(df),
-                                            freq='%sms' % sr)
+            ts = pd.date_range(0, periods=len(df), freq='%sms' % sr)
+            _timestamps.append(ts.to_series())
             index.append(df)
+        self.timestamps = pd.concat(_timestamps, axis=0)
         return pd.concat(index, axis=0).reset_index(drop=True)
 
     def resample(self, sampling_rate, inplace=False, kind='linear'):

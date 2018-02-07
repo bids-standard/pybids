@@ -266,7 +266,7 @@ class AnalysisNode(object):
                           (mode, self.level))
             mode = 'sparse'
 
-        include_sparse = include_dense = ((mode != 'both') or force)
+        include_sparse = include_dense = ((mode == 'both') or force)
 
         # Sparse
         if mode in ['sparse', 'both']:
@@ -281,7 +281,8 @@ class AnalysisNode(object):
             kwargs['timing'] = True
             dense_df = coll.to_df(names, format='wide', sparse=False,
                                   include_sparse=include_sparse, **kwargs)
-            dense_df = dense_df.drop(['onset', 'duration'], axis=1)
+            if dense_df is not None:
+                dense_df = dense_df.drop(['onset', 'duration'], axis=1)
 
         return DesignMatrixInfo(sparse_df, dense_df, self.entities)
 
