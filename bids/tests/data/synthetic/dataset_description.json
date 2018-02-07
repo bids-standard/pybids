@@ -1,0 +1,6 @@
+{
+	"Name": "Synthetic dataset for inclusion in BIDS-examples",
+	"BIDSVersion": "1.0.2",
+	"License": "PD",
+	"Authors": ["Markiewicz, C. J."]
+}

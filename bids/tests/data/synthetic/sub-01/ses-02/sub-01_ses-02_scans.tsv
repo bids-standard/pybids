@@ -1,0 +1,5 @@
+filename	acq_time
+anat/sub-01_ses-02_T1w.nii.gz	1802-06-04T22:54:25
+func/sub-01_ses-02_task-nback_run-01_bold.nii.gz	1802-06-04T22:59:25
+func/sub-01_ses-02_task-nback_run-02_bold.nii.gz	1802-06-04T23:14:25
+func/sub-01_ses-02_task-rest_bold.nii.gz	1802-06-04T23:29:25
