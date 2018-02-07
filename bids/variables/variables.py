@@ -168,7 +168,7 @@ class BIDSVariable(object):
         grouper = self.get_grouper(groupby)
         return self.values.groupby(grouper).apply(func, *args, **kwargs)
 
-    def to_df(self, condition=True, entities=True):
+    def to_df(self, condition=True, entities=True, **kwargs):
         ''' Convert to a DataFrame, with columns for name and entities.
         Args:
             condition (bool): If True, adds a column for condition name, and
@@ -190,7 +190,7 @@ class BIDSVariable(object):
             ent_data = self.index.reset_index(drop=True)
             data = pd.concat([data, ent_data], axis=1)
 
-        return data
+        return data.reset_index(drop=True)
 
     def matches_entities(self, entities, strict=False):
         ''' Checks whether current Variable's entities match the input. '''
@@ -422,7 +422,8 @@ class DenseRunVariable(BIDSVariable):
             ent_vals = list(run.entities.values())
             data = np.broadcast_to(ent_vals, (reps, len(ent_vals)))
             df = pd.DataFrame(data, columns=list(run.entities.keys()))
-            df['time'] = pd.date_range(0, periods=len(df), freq='%sms' % sr)
+            self.timestamps = pd.date_range(0, periods=len(df),
+                                            freq='%sms' % sr)
             index.append(df)
         return pd.concat(index, axis=0).reset_index(drop=True)
 
@@ -472,10 +473,10 @@ class DenseRunVariable(BIDSVariable):
         df = super(DenseRunVariable, self).to_df(condition, entities)
 
         if timing:
-            df['onset'] = df['time'].values.astype(float) / 1e+9
+            df['onset'] = self.timestamps.values.astype(float) / 1e+9
             df['duration'] = 1. / self.sampling_rate
 
-        return df.drop('time', axis=1)
+        return df
 
     @classmethod
     def _merge(cls, variables, name, sampling_rate=None, **kwargs):

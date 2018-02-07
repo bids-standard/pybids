@@ -7,6 +7,7 @@ from collections import namedtuple, defaultdict
 from six import string_types
 import numpy as np
 import pandas as pd
+import warnings
 
 
 class Analysis(object):
@@ -207,9 +208,10 @@ class Block(object):
 
             self.output_nodes.append(node)
 
-    def get_design_matrix(self, names=None, format='long', **kwargs):
+    def get_design_matrix(self, names=None, format='long', mode='both',
+                          **kwargs):
         nodes, kwargs = self._filter_objects(self.output_nodes, kwargs)
-        return [n.get_design_matrix(names, format, **kwargs)
+        return [n.get_design_matrix(names, format, mode=mode, **kwargs)
                 for n in nodes]
 
     def get_contrasts(self, names=None, **kwargs):
@@ -217,7 +219,8 @@ class Block(object):
         return [n.get_contrasts(names) for n in nodes]
 
 
-DesignMatrixInfo = namedtuple('DesignMatrixInfo', ('data', 'entities'))
+DesignMatrixInfo = namedtuple('DesignMatrixInfo',
+                              ('sparse', 'dense', 'entities'))
 ContrastMatrixInfo = namedtuple('ContrastMatrixInfo', ('data', 'entities'))
 
 
@@ -251,9 +254,36 @@ class AnalysisNode(object):
             self.get_contrasts()
         return self._contrasts
 
-    def get_design_matrix(self, names=None, format='long', **kwargs):
-        df = self.collection.to_df(names, format, **kwargs)
-        return DesignMatrixInfo(df, self.entities)
+    def get_design_matrix(self, names=None, format='long', mode='both',
+                          force=False, **kwargs):
+
+        sparse_df, dense_df = None, None
+        coll = self.collection
+
+        if self.level != 'run' and mode != 'sparse':
+            warnings.warn("Mode '%s' is not valid for analysis level %s. "
+                          "Sparse outputs will be returned." %
+                          (mode, self.level))
+            mode = 'sparse'
+
+        include_sparse = include_dense = ((mode != 'both') or force)
+
+        # Sparse
+        if mode in ['sparse', 'both']:
+            sparse_df = coll.to_df(names, format, sparse=True,
+                                   include_dense=include_dense, **kwargs)
+
+        if mode in ['dense', 'both']:
+            # The current implementation of pivoting to wide in
+            # BIDSVariableCollection.to_df() breaks if we don't have the
+            # temporal columns to index on, so we force their inclusion first
+            # and then drop them afterwards.
+            kwargs['timing'] = True
+            dense_df = coll.to_df(names, format='wide', sparse=False,
+                                  include_sparse=include_sparse, **kwargs)
+            dense_df = dense_df.drop(['onset', 'duration'], axis=1)
+
+        return DesignMatrixInfo(sparse_df, dense_df, self.entities)
 
     def get_contrasts(self, names=None):
         ''' Return contrast information for the current block.
@@ -264,9 +294,6 @@ class AnalysisNode(object):
         '''
         contrasts = self._block_contrasts.copy()
 
-        if names is not None:
-            contrasts = [c for c in contrasts if c['name'] in names]
-
         if self.identity_contrasts:
             for col_name in self.collection.variables.keys():
                 contrasts.append({
@@ -274,6 +301,9 @@ class AnalysisNode(object):
                     'condition_list': [col_name],
                     'weights': [1],
                 })
+
+        if names is not None:
+            contrasts = [c for c in contrasts if c['name'] in names]
 
         contrast_defs = [pd.Series(c['weights'], index=c['condition_list'])
                          for c in contrasts]

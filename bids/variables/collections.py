@@ -257,14 +257,16 @@ class BIDSRunVariableCollection(BIDSVariableCollection):
         return all([isinstance(v, DenseRunVariable)
                     for v in self.variables.values()])
 
-    def resample(self, sampling_rate=None, force_dense=False, in_place=False,
-                 kind='linear'):
+    def resample(self, sampling_rate=None, variables=None, force_dense=False,
+                 in_place=False, kind='linear'):
         ''' Resample all dense variables (and optionally, sparse ones) to the
         specified sampling rate.
 
         Args:
             sampling_rate (int, float): Target sampling rate (in Hz). If None,
                 uses the instance sampling rate.
+            variables (list): Optional list of Variables to resample. If None,
+                all variables are resampled.
             force_dense (bool): if True, all sparse variables will be forced to
                 dense.
             in_place (bool): When True, all variables are overwritten in-place.
@@ -277,25 +279,28 @@ class BIDSRunVariableCollection(BIDSVariableCollection):
         # Store old sampling rate-based variables
         sampling_rate = sampling_rate or self.sampling_rate
 
-        variables = {}
+        _variables = {}
 
         for name, var in self.variables.items():
+            if variables is not None and name not in variables:
+                continue
             if isinstance(var, SparseRunVariable):
                 if force_dense and is_numeric_dtype(var.values):
-                    variables[name] = var.to_dense(sampling_rate)
+                    _variables[name] = var.to_dense(sampling_rate)
             else:
-                variables[name] = var.resample(sampling_rate, kind)
-                variables[name] = var
+                _variables[name] = var.resample(sampling_rate, kind)
+                _variables[name] = var
 
         if in_place:
-            for k, v in variables.items():
+            for k, v in _variables.items():
                 self.variables[k] = v
             self.sampling_rate = sampling_rate
         else:
-            return variables
+            return _variables
 
     def to_df(self, variables=None, format='wide', sparse=True,
-              sampling_rate=None, **kwargs):
+              sampling_rate=None, include_sparse=True, include_dense=True,
+              **kwargs):
         ''' Merge columns into a single pandas DataFrame.
 
         Args:
@@ -317,9 +322,29 @@ class BIDSRunVariableCollection(BIDSVariableCollection):
                 value currently set in the instance.
             kwargs: Optional keyword arguments to pass onto each Variable's
                 to_df() call (e.g., condition, entities, and timing).
+            include_sparse (bool): Whether or not to include sparse Variables.
+            include_dense (bool): Whether or not to include dense Variables.
 
         Returns: A pandas DataFrame.
         '''
+
+        if not include_sparse and not include_dense:
+            raise ValueError("You can't exclude both dense and sparse "
+                             "variables! That leaves nothing!")
+
+        if variables is None:
+            variables = list(self.variables.keys())
+
+        if not include_sparse:
+            variables = [v for v in variables if
+                         isinstance(self.variables[v], DenseRunVariable)]
+
+        if not include_dense:
+            variables = [v for v in variables if not
+                         isinstance(self.variables[v], DenseRunVariable)]
+
+        if not variables:
+            return None
 
         if not (sparse and self._none_dense()):
             sampling_rate = sampling_rate or self.sampling_rate
