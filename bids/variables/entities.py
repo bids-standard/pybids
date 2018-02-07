@@ -83,6 +83,8 @@ class Node(object):
         entities = {} if self.parent is None else self.parent.get_entities()
         if self._level != 'dataset':
             entities[self._level] = self.id
+        if self._level == 'run':
+            entities['task'] = self.task
         return entities
 
 
