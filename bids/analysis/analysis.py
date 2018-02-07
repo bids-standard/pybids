@@ -161,9 +161,9 @@ class Block(object):
             row = pd.Series(np.ones(len(contrasts)), index=contrasts.index)
             data.append(row)
             entities.append(pd.Series(n.entities))
-        data = pd.concat(data, axis=1)
-        entities = pd.concat(entities, axis=1)
-        return BIDSVariableCollection.from_df(data.T, entities.T, self.level)
+        data = pd.concat(data, axis=1).T
+        entities = pd.concat(entities, axis=1).T
+        return BIDSVariableCollection.from_df(data, entities, self.level)
 
     def setup(self, input_nodes=None, identity_contrasts=True, **kwargs):
         ''' Set up the Block and construct the design matrix.
