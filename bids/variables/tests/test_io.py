@@ -63,6 +63,10 @@ def test_load_synthetic_dataset(synthetic):
     sessions = synthetic.get_nodes('session', task='rest')
     assert len(sessions) == 5 * 2
     assert set(sessions[0].variables.keys()) == {'acq_time'}
-    data = sessions[0].variables['acq_time']
-    # assert len(data.values) == 1
-    print(data.to_df())
+    data = sessions[0].variables['acq_time'].filter({'task': 'nback'})
+    assert len(data.values) == 2
+
+    # Subjects
+    subs = synthetic.get_nodes('subject', task='nback')
+    assert len(subs) == 5
+    assert set(subs[0].variables.keys()) == {'systolic_blood_pressure'}

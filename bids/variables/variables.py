@@ -92,16 +92,15 @@ class BIDSVariable(object):
                 query.append(q)
             query = ' and '.join(query)
 
-        inds = self.to_df().query(query).index
+        var = self if inplace else self.clone()
 
-        if inplace:
-            var = self
-        else:
-            var = self.clone()
-        var.values = var.values.loc[inds]
-        var.index = var.index.loc[inds]
-        if hasattr(self, '_build_entity_index'):
-            var._build_entity_index()
+        if query:
+            inds = self.to_df().query(query).index
+
+            var.values = var.values.loc[inds]
+            var.index = var.index.loc[inds]
+            if hasattr(self, '_build_entity_index'):
+                var._build_entity_index()
 
         if not inplace:
             return var

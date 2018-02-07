@@ -175,6 +175,11 @@ class Dataset(Node):
             var_set = [v for v in var_set if v.matches_entities(entities)]
             if names is not None:
                 var_set = [v for v in var_set if v.name in names]
+            # Additional filtering on Variables past run level, because their
+            # contents are extracted from TSV files containing rows from
+            # multiple observations
+            if unit != 'run':
+                var_set = [v.filter(selectors) for v in var_set]
             var_sets.append(var_set)
 
         if merge:
