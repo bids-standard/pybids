@@ -163,41 +163,6 @@ class BIDSVariableCollection(object):
             ents = {k: all_ents[k].iloc[0] for k in keep}
             self.entities = {k: v for k, v in ents.items() if pd.notnull(v)}
 
-
-    # def aggregate(self, level, agg_func='mean', categorical_agg_func=None):
-    #     ''' Aggregate variable values from a lower level at a higher level.
-
-    #     Args:
-    #         level (str): The level of aggregation. The returned collection will
-    #             have one row per value of this level.
-    #         agg_func (str, Callable): Aggregation function to use. Must be
-    #             either a named function recognized by apply() in pandas, or a
-    #             Callable that takes a DataFrame and returns a Series or
-    #             DataFrame.
-    #         categorical_agg_func (str, Callable): Aggregation function to use
-    #             for categorical variables. Must be a function that returns
-    #             valid output given categorical inputs. If None, aggregation
-    #             will only proceed if all categorical columns have exactly one
-    #             unique value.
-    #     '''
-
-    #     for var in self.variables.values():
-    #         if is_numeric_dtype(var.values):
-    #             _func = agg_func
-    #         else:
-    #             if categorical_agg_func is not None:
-    #                 _func = categorical_agg_func
-    #             elif var.values.nunique() > 1:
-    #                 msg = ("Column %s is categorical and has more than one "
-    #                        "unique value. You must explicitly specify an "
-    #                        "aggregation function in the categorical_agg_func "
-    #                        "argument.")
-    #                 raise ValueError(msg)
-    #             else:
-    #                 _func = 'first'
-
-    #         self[var.name] = var.aggregate(level, _func)
-
     def __getitem__(self, var):
         return self.variables[var]
 

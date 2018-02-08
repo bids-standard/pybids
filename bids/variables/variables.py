@@ -105,10 +105,6 @@ class BIDSVariable(object):
         if not inplace:
             return var
 
-    # @abstractmethod
-    # def aggregate(self, unit, level, func):
-    #     pass
-
     @classmethod
     def merge(cls, variables, name=None, **kwargs):
         ''' Merge/concatenate a list of variables along the row axis.
@@ -238,18 +234,6 @@ class SimpleVariable(BIDSVariable):
         values.name = name
 
         super(SimpleVariable, self).__init__(name, values, source)
-
-    # def aggregate(self, unit, func='mean'):
-
-    #     levels = ['task', 'run', 'session', 'subject']
-    #     groupby = set(levels[levels.index(unit):]) & set(self.index.columns)
-    #     groupby = list(groupby)
-
-    #     entities = self.index.loc[:, groupby].reset_index(drop=True)
-    #     values = pd.DataFrame({'amplitude': self.values.values})
-    #     data = pd.concat([values, entities], axis=1)
-    #     data = data.groupby(groupby, as_index=False).agg(func)
-    #     return SimpleVariable(self.name, data)
 
     def split(self, grouper):
         ''' Split the current SparseRunVariable into multiple columns.
@@ -398,19 +382,6 @@ class DenseRunVariable(BIDSVariable):
                                  self.run_info, self.source,
                                  self.sampling_rate)
                 for i, name in enumerate(df.columns)]
-
-    # def aggregate(self, unit, func='mean'):
-
-    #     levels = ['task', 'run', 'session', 'subject']
-    #     groupby = set(levels[levels.index(unit):]) & \
-    #         set(self.index.columns)
-    #     groupby = list(groupby)
-
-    #     entities = self._index.loc[:, groupby].reset_index(drop=True)
-    #     values = pd.DataFrame({'amplitude': self.values.values.ravel()})
-    #     data = pd.concat([values, entities], axis=1)
-    #     data = data.groupby(groupby, as_index=False).agg(func)
-    #     return SimpleVariable(self.name, data)
 
     def _build_entity_index(self, run_info, sampling_rate):
         ''' Build the entity index from run information. '''

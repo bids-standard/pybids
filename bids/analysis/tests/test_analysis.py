@@ -87,7 +87,6 @@ def test_post_first_level_sparse_design_matrix(analysis):
     result = analysis['group'].get_design_matrix()
     assert len(result) == 1
     data = result[0].sparse
-    print(data)
     assert len(data) == 22
     assert data['subject'].nunique() == 2
 
@@ -110,4 +109,3 @@ def test_contrast_matrix_info(analysis):
 
 def test_get_contrasts(analysis):
     contrasts = analysis['run'].get_contrasts(subject='01')
-    # print("\n", contrasts)
