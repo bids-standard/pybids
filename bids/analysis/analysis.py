@@ -26,14 +26,16 @@ class Analysis(object):
         sampling_rate (int): Optional sampling rate (in Hz) to use when
             resampling variables internally. If None, the package-wide default
             will be used.
+        scan_length (float): Duration of scanning runs. Only necessary in
+            cases where the nifti image files or image headers are not locally
+            available.
     '''
 
     def __init__(self, layout, model, collections=None, sampling_rate=None,
-                 scan_length=None, **selectors):
+                 scan_length=None):
 
         self.sampling_rate = sampling_rate
         self.collections = collections
-        self.selectors = selectors
         self.scan_length = scan_length
 
         if not isinstance(layout, BIDSLayout):
@@ -43,9 +45,6 @@ class Analysis(object):
         if isinstance(model, str):
             model = json.load(open(model))
         self.model = model
-
-        if 'input' in model:
-            selectors.update(model['input'])
 
         self._load_blocks(model['blocks'])
 
@@ -118,6 +117,8 @@ class Block(object):
         model (dict): The 'model' part of the BIDS-Model block specification.
         contrasts (list): List of contrasts to apply to the parameter estimates
             generated when the model is fit.
+        input_nodes (list): Optional list of AnalysisNodes to use as input to
+            this Block (typically, the output from the preceding Block).
     '''
 
     def __init__(self, layout, level, index, name=None, transformations=None,
@@ -209,18 +210,66 @@ class Block(object):
             self.output_nodes.append(node)
 
     def get_design_matrix(self, names=None, format='long', mode='both',
-                          **kwargs):
+                          force=False, **kwargs):
+        ''' Get design matrix and associated information.
+
+        Args:
+            names (list): Optional list of names of variables to include in the
+                returned design matrix. If None, all variables are included.
+            format (str): Whether to return the design matrix in 'long' or
+                'wide' format. Note that dense design matrices are always
+                returned in 'wide' format.
+            mode (str): Specifies whether to return variables in a sparse
+                representation ('sparse'), dense representation ('dense'), or
+                both ('both').
+            force (bool): Indicates how to handle columns not of the type
+                indicated by the mode argument. When False, variables of the
+                non-selected type will be silently ignored. When True,
+                variables will be forced to the desired representation. For
+                example, if mode='dense' and force=True, sparse variables will
+                be converted to dense variables and included in the returned
+                design matrix in the .dense attribute. The force argument is
+                ignored entirely if mode='both'.
+            kwargs: Optional keyword arguments. Includes (1) selectors used
+                to constrain which of the available nodes get returned
+                (e.g., passing subject=['01', '02'] will return design
+                information only for subjects '01' and '02'), and (2) arguments
+                passed on to each Variable's to_df() call (e.g.,
+                sampling_rate, entities, timing, etc.).
+
+        Returns:
+            A list of DesignMatrixInfo namedtuples--one per unit of the current
+            analysis level (e.g., if level='run', each element in the list
+            represents the design matrix for a single run).
+        '''
         nodes, kwargs = self._filter_objects(self.output_nodes, kwargs)
-        return [n.get_design_matrix(names, format, mode=mode, **kwargs)
-                for n in nodes]
+        return [n.get_design_matrix(names, format, mode=mode, force=force,
+                                    **kwargs) for n in nodes]
 
     def get_contrasts(self, names=None, **kwargs):
+        ''' Return contrast information for the current block.
+
+        Args:
+            names (list): Optional list of names of contrasts to return. If
+                None (default), all contrasts are returned.
+            kwargs: Optional keyword arguments used to constrain which of the
+                available nodes get returned (e.g., passing subject=['01',
+                '02'] will return contrast  information only for subjects '01'
+                and '02').
+
+        Returns:
+            A list of ContrastMatrixInfo namedtuples--one per unit of the
+            current analysis level (e.g., if level='run', each element in the
+            list represents the design matrix for a single run).
+        '''
         nodes, kwargs = self._filter_objects(self.output_nodes, kwargs)
         return [n.get_contrasts(names) for n in nodes]
 
 
 DesignMatrixInfo = namedtuple('DesignMatrixInfo',
                               ('sparse', 'dense', 'entities'))
+
+
 ContrastMatrixInfo = namedtuple('ContrastMatrixInfo', ('data', 'entities'))
 
 
@@ -256,7 +305,31 @@ class AnalysisNode(object):
 
     def get_design_matrix(self, names=None, format='long', mode='both',
                           force=False, **kwargs):
+        ''' Get design matrix and associated information.
 
+        Args:
+            names (list): Optional list of names of variables to include in the
+                returned design matrix. If None, all variables are included.
+            format (str): Whether to return the design matrix in 'long' or
+                'wide' format. Note that dense design matrices are always
+                returned in 'wide' format.
+            mode (str): Specifies whether to return variables in a sparse
+                representation ('sparse'), dense representation ('dense'), or
+                both ('both').
+            force (bool): Indicates how to handle columns not of the type
+                indicated by the mode argument. When False, variables of the
+                non-selected type will be silently ignored. When True,
+                variables will be forced to the desired representation. For
+                example, if mode='dense' and force=True, sparse variables will
+                be converted to dense variables and included in the returned
+                design matrix in the .dense attribute. The force argument is
+                ignored entirely if mode='both'.
+            kwargs: Optional keyword arguments to pass onto each Variable's
+                to_df() call (e.g., sampling_rate, entities, timing, etc.).
+
+        Returns:
+            A DesignMatrixInfo namedtuple.
+        '''
         sparse_df, dense_df = None, None
         coll = self.collection
 
@@ -292,6 +365,9 @@ class AnalysisNode(object):
         Args:
             names (list): Optional list of names of contrasts to return. If
                 None (default), all contrasts are returned.
+
+        Returns:
+            A ContrastMatrixInfo namedtuple.
         '''
         contrasts = self._block_contrasts.copy()
 
@@ -314,11 +390,24 @@ class AnalysisNode(object):
         return self._contrasts
 
     def matches_entities(self, entities, strict=False):
+        ''' Determine whether current AnalysisNode matches passed entities.
+
+        Args:
+            entities (dict): Dictionary of entities to match. Keys are entity
+                names; values are single values or lists.
+            strict (bool): If True, _all_ entities in the current Node must
+                match in order to return True.
+        '''
         return matches_entities(self, entities, strict)
 
 
 def apply_transformations(collection, transformations, select=None):
     ''' Apply all transformations to the variables in the collection.
+
+    Args:
+        transformations (list): List of transformations to apply.
+        select (list): Optional list of names of variables to retain after all
+            transformations are applied.
     '''
     for t in transformations:
         kwargs = dict(t)
