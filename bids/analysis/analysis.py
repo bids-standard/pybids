@@ -158,7 +158,7 @@ class Block(object):
     def _concatenate_input_nodes(self, nodes):
         data, entities = [], []
         for n in nodes:
-            contrasts = n.contrasts.data
+            contrasts = n.contrasts.data.T
             row = pd.Series(np.ones(len(contrasts)), index=contrasts.index)
             data.append(row)
             entities.append(pd.Series(n.entities))
@@ -194,16 +194,16 @@ class Block(object):
 
         for grp in groups:
             # Split into separate lists of Collections and Nodes
-            nodes = [o for o in grp if isinstance(o, AnalysisNode)]
-            colls = list(set(grp) - set(nodes))
+            input_nodes = [o for o in grp if isinstance(o, AnalysisNode)]
+            colls = list(set(grp) - set(input_nodes))
 
-            if nodes:
-                node_coll = self._concatenate_input_nodes(nodes)
+            if input_nodes:
+                node_coll = self._concatenate_input_nodes(input_nodes)
                 colls.append(node_coll)
 
             coll = merge_collections(colls) if len(colls) > 1 else colls[0]
             coll = apply_transformations(coll, self.transformations)
-            node = AnalysisNode(self.level, coll, self.contrasts,
+            node = AnalysisNode(self.level, coll, self.contrasts, input_nodes,
                                 identity_contrasts)
 
             self.output_nodes.append(node)
@@ -285,10 +285,12 @@ class AnalysisNode(object):
             created for each column in the design matrix.
     '''
 
-    def __init__(self, level, collection, contrasts, identity_contrasts=True):
+    def __init__(self, level, collection, contrasts, input_nodes=None,
+                 identity_contrasts=True):
         self.level = level
         self.collection = collection
         self._block_contrasts = contrasts
+        self.input_nodes = input_nodes
         self.identity_contrasts = identity_contrasts
         self._contrasts = None
 
@@ -337,7 +339,6 @@ class AnalysisNode(object):
 
         include_sparse = include_dense = (force and mode != 'both')
 
-        # Sparse
         if mode in ['sparse', 'both']:
             kwargs['sparse'] = True
             sparse_df = coll.to_df(names, format, include_dense=include_dense,
@@ -357,12 +358,16 @@ class AnalysisNode(object):
 
         return DesignMatrixInfo(sparse_df, dense_df, self.entities)
 
-    def get_contrasts(self, names=None):
+    def get_contrasts(self, names=None, entities=False, normalize=True):
         ''' Return contrast information for the current block.
 
         Args:
             names (list): Optional list of names of contrasts to return. If
                 None (default), all contrasts are returned.
+            entities (bool): If True, concatenates entity columns to the
+                returned contrast matrix.
+            normalize (bool): If True, normalizes the returned contrast matrix
+                based on the number of input nodes.
 
         Returns:
             A ContrastMatrixInfo namedtuple.
@@ -382,9 +387,29 @@ class AnalysisNode(object):
 
         contrast_defs = [pd.Series(c['weights'], index=c['condition_list'])
                          for c in contrasts]
-        df = pd.DataFrame(contrast_defs).fillna(0)
-        df.index = [c['name'] for c in contrasts]
-        self._contrasts = ContrastMatrixInfo(df, self.entities)
+        con_mat = pd.DataFrame(contrast_defs).fillna(0).T
+        con_mat.columns = [c['name'] for c in contrasts]
+
+        # Get list of names present for each input node
+        inputs = []
+        common_vars = set(self.collection.variables.keys())
+
+        if self.input_nodes:
+            for node in self.input_nodes:
+                cols = list(set(node.contrasts[0].columns) | common_vars)
+                node_mat = con_mat.copy()
+                missing = ~node_mat.columns.isin(cols)
+                node_mat.loc[missing, :] = 0
+                inputs.append(node_mat)
+        else:
+            inputs.append(con_mat)
+
+        contrasts = pd.concat(inputs, axis=0)
+        # Normalize so contrasts sum to 1 over inputs
+        if normalize and self.input_nodes:
+            contrasts /= len(self.input_nodes)
+
+        self._contrasts = ContrastMatrixInfo(contrasts, self.entities)
         return self._contrasts
 
     def matches_entities(self, entities, strict=False):

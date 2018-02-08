@@ -10,6 +10,16 @@
           "name": "scale",
           "input": "RT"
         }
+      ],
+      "contrasts": [
+        {
+          "name": "RT-trial_type",
+          "condition_list": [
+            "RT",
+            "trial_type"
+          ],
+          "weights": [1, -1]
+        }
       ]
     },
     {
