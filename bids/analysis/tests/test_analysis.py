@@ -104,8 +104,8 @@ def test_contrast_matrix_info(analysis):
     assert len(contrasts) == 3
     for c in contrasts:
         assert isinstance(contrasts[0], ContrastMatrixInfo)
-        assert c._fields == ('data', 'entities')
+        assert c._fields == ('data', 'index', 'entities')
 
 
-def test_get_contrasts(analysis):
-    contrasts = analysis['run'].get_contrasts(subject='01')
+# def test_get_contrasts(analysis):
+#     contrasts = analysis['run'].get_contrasts(subject='01')

@@ -114,7 +114,8 @@ def test_split(collection):
            'RT_2.1_13' in collection.variables.keys()
 
     # Grouping by DenseEventVariable
-    transform.split(collection, variables='RT_3', by='respcat')
+    transform.split(collection, variables='RT_3', by='respcat',
+                    drop_orig=False)
     targets = ['RT_3.respcat[-1]', 'RT_3.respcat[0]', 'RT_3.respcat[1]']
     assert not set(targets) - set(collection.variables.keys())
     assert collection['respcat'].values.nunique() == 3
