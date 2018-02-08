@@ -360,7 +360,7 @@ class AnalysisNode(object):
 
         return DesignMatrixInfo(sparse_df, dense_df, self.entities)
 
-    def get_contrasts(self, names=None, entities=False, normalize=True):
+    def get_contrasts(self, names=None, entities=False):
         ''' Return contrast information for the current block.
 
         Args:
@@ -368,8 +368,6 @@ class AnalysisNode(object):
                 None (default), all contrasts are returned.
             entities (bool): If True, concatenates entity columns to the
                 returned contrast matrix.
-            normalize (bool): If True, normalizes the returned contrast matrix
-                based on the number of input nodes.
 
         Returns:
             A ContrastMatrixInfo namedtuple.
@@ -383,6 +381,7 @@ class AnalysisNode(object):
             raise ValueError("Invalid condition names passed in one or more "
                              " contrast condition lists: %s." % bad_conds)
 
+        # Construct a list of all contrasts, including identity contrasts
         contrasts = self._block_contrasts.copy()
 
         if self.identity_contrasts:
@@ -393,23 +392,32 @@ class AnalysisNode(object):
                     'weights': [1],
                 })
 
+        # Filter on desired contrast names if passed
         if names is not None:
             contrasts = [c for c in contrasts if c['name'] in names]
 
+        # Build a "maximal" contrast matrix that has all possible rows and
+        # columns. Then we'll proceed by knocking out invalid/missing rows and
+        # columns separately for each input node.
         contrast_defs = [pd.Series(c['weights'], index=c['condition_list'])
                          for c in contrasts]
         con_mat = pd.DataFrame(contrast_defs).fillna(0).T
         con_mat.columns = [c['name'] for c in contrasts]
 
-        # Get list of names present for each input node
+        # Identify all variable names in the current collection that don't show
+        # up in any of the input nodes. This will include any variables read in
+        # at the current level--e.g., if we're at session level, it might
+        # include run-by-run ratings of mood, etc.
         inputs = []
         node_cols = [set(n.contrasts[0].columns) for n in self.input_nodes]
         all_cols = set(chain(*node_cols))
         common_vars = set(self.collection.variables.keys()) - all_cols
 
-        # Also track entity index for all rows
+        # Also track entities for each row in each input node's contrast matrix
         ent_index = []
 
+        # Loop over input nodes. For each one, get all available columns, and
+        # use that to trim down the cloned maximal contrast matrix.
         if self.input_nodes:
             for node in self.input_nodes:
                 cols = list(set(node.contrasts[0].columns) | common_vars)
@@ -419,16 +427,14 @@ class AnalysisNode(object):
                 inputs.append(node_mat)
                 ent_index.extend([node.entities] * len(node_mat))
         else:
+            # If there are no input nodes, we're at run level, so just use
+            # the maximal contrast matrix.
             inputs.append(con_mat)
 
         contrasts = pd.concat(inputs, axis=0)
 
         # Drop rows that are all zeros
         contrasts = contrasts[(contrasts.T != 0.0).any()]
-
-        # Normalize so contrasts sum to 1 over inputs
-        if normalize and self.input_nodes:
-            contrasts /= len(self.input_nodes)
 
         index = pd.DataFrame.from_records(ent_index)
         self._contrasts = ContrastMatrixInfo(contrasts, index, self.entities)
