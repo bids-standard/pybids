@@ -7,7 +7,6 @@ from collections import namedtuple, defaultdict
 from six import string_types
 import numpy as np
 import pandas as pd
-import warnings
 
 
 class Analysis(object):
@@ -334,17 +333,15 @@ class AnalysisNode(object):
         coll = self.collection
 
         if self.level != 'run' and mode != 'sparse':
-            warnings.warn("Mode '%s' is not valid for analysis level %s. "
-                          "Sparse outputs will be returned." %
-                          (mode, self.level))
             mode = 'sparse'
 
-        include_sparse = include_dense = ((mode == 'both') or force)
+        include_sparse = include_dense = (force and mode != 'both')
 
         # Sparse
         if mode in ['sparse', 'both']:
-            sparse_df = coll.to_df(names, format, sparse=True,
-                                   include_dense=include_dense, **kwargs)
+            kwargs['sparse'] = True
+            sparse_df = coll.to_df(names, format, include_dense=include_dense,
+                                   **kwargs)
 
         if mode in ['dense', 'both']:
             # The current implementation of pivoting to wide in
@@ -352,7 +349,8 @@ class AnalysisNode(object):
             # temporal columns to index on, so we force their inclusion first
             # and then drop them afterwards.
             kwargs['timing'] = True
-            dense_df = coll.to_df(names, format='wide', sparse=False,
+            kwargs['sparse'] = False
+            dense_df = coll.to_df(names, format='wide',
                                   include_sparse=include_sparse, **kwargs)
             if dense_df is not None:
                 dense_df = dense_df.drop(['onset', 'duration'], axis=1)
