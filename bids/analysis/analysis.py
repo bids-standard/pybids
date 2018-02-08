@@ -7,6 +7,7 @@ from collections import namedtuple, defaultdict
 from six import string_types
 import numpy as np
 import pandas as pd
+from itertools import chain
 
 
 class Analysis(object):
@@ -269,7 +270,8 @@ DesignMatrixInfo = namedtuple('DesignMatrixInfo',
                               ('sparse', 'dense', 'entities'))
 
 
-ContrastMatrixInfo = namedtuple('ContrastMatrixInfo', ('data', 'entities'))
+ContrastMatrixInfo = namedtuple('ContrastMatrixInfo', ('data', 'index',
+                                                       'entities'))
 
 
 class AnalysisNode(object):
@@ -372,6 +374,15 @@ class AnalysisNode(object):
         Returns:
             A ContrastMatrixInfo namedtuple.
         '''
+
+        # Verify that there are no invalid columns in the condition_lists
+        all_conds = [c['condition_list'] for c in self._block_contrasts]
+        all_conds = set(chain(*all_conds))
+        bad_conds = all_conds - set(self.collection.variables.keys())
+        if bad_conds:
+            raise ValueError("Invalid condition names passed in one or more "
+                             " contrast condition lists: %s." % bad_conds)
+
         contrasts = self._block_contrasts.copy()
 
         if self.identity_contrasts:
@@ -392,24 +403,35 @@ class AnalysisNode(object):
 
         # Get list of names present for each input node
         inputs = []
-        common_vars = set(self.collection.variables.keys())
+        node_cols = [set(n.contrasts[0].columns) for n in self.input_nodes]
+        all_cols = set(chain(*node_cols))
+        common_vars = set(self.collection.variables.keys()) - all_cols
+
+        # Also track entity index for all rows
+        ent_index = []
 
         if self.input_nodes:
             for node in self.input_nodes:
                 cols = list(set(node.contrasts[0].columns) | common_vars)
                 node_mat = con_mat.copy()
-                missing = ~node_mat.columns.isin(cols)
-                node_mat.loc[missing, :] = 0
+                valid = node_mat.index.isin(cols)
+                node_mat = node_mat.loc[valid, :]
                 inputs.append(node_mat)
+                ent_index.extend([node.entities] * len(node_mat))
         else:
             inputs.append(con_mat)
 
         contrasts = pd.concat(inputs, axis=0)
+
+        # Drop rows that are all zeros
+        contrasts = contrasts[(contrasts.T != 0.0).any()]
+
         # Normalize so contrasts sum to 1 over inputs
         if normalize and self.input_nodes:
             contrasts /= len(self.input_nodes)
 
-        self._contrasts = ContrastMatrixInfo(contrasts, self.entities)
+        index = pd.DataFrame.from_records(ent_index)
+        self._contrasts = ContrastMatrixInfo(contrasts, index, self.entities)
         return self._contrasts
 
     def matches_entities(self, entities, strict=False):

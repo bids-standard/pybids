@@ -128,7 +128,8 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
     # Main loop over images
     for img_f in images:
 
-        entities = layout.files[img_f].entities.copy()
+        orig_entities = layout.files[img_f].entities
+        entities = orig_entities.copy()
 
         # Run is not mandatory, but we need a default for proper indexing
         if 'run' not in entities:
@@ -203,7 +204,7 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
 
         # Process confound files
         if confounds:
-            sub_ents = {k: v for k, v in entities.items()
+            sub_ents = {k: v for k, v in orig_entities.items()
                         if k in BASE_ENTITIES}
             confound_files = layout.get(type='confounds', **sub_ents)
             for cf in confound_files:

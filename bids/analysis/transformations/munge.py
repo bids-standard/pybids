@@ -60,7 +60,7 @@ class split(Transformation):
     _allow_categorical = ('by',)
     _densify = ('variables', 'by')
 
-    def _transform(self, var, by):
+    def _transform(self, var, by, drop_orig=True):
 
         if not isinstance(var, SimpleVariable):
             self._densify_variables()
@@ -84,7 +84,7 @@ class split(Transformation):
                 group_rows = group_data.astype(str).values.tolist()
                 group_labels = ['_'.join(r) for r in group_rows]
 
-            return var.split(group_labels)
+            result = var.split(group_labels)
 
         # For dense data, use patsy to create design matrix, then multiply
         # it by target variable
@@ -92,7 +92,12 @@ class split(Transformation):
             group_data = group_data.astype(str)
             formula = '0+' + '*'.join(listify(by))
             dm = dmatrix(formula, data=group_data, return_type='dataframe')
-            return var.split(dm)
+            result = var.split(dm)
+
+        if drop_orig:
+            self.collection.variables.pop(var.name)
+
+        return result
 
 
 class to_dense(Transformation):
