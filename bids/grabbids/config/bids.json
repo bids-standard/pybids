@@ -1,6 +1,7 @@
 {
     "index" : {
-      "exclude" : [".*derivatives$", ".*models$", ".*sourcedata$", ".*code$"]
+      "exclude" : [".*derivatives$", ".*models$", ".*sourcedata$", ".*code$",
+                   "^\\.", ".*[/\\\\]\\."]
     },
     "entities": [
         {
