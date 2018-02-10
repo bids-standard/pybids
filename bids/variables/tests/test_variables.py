@@ -141,7 +141,7 @@ def test_merge_dense_run_variables(layout2):
     n_rows = sum([len(c.values) for c in variables])
     merged = merge_variables(variables)
     assert len(merged.values) == n_rows
-    assert merged.index.columns.equals(variables[0].index.columns)
+    assert set(merged.index.columns) == set(variables[0].index.columns)
 
 
 def test_simple_variable_to_df(layout1):
