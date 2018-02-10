@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import math
 from copy import deepcopy
-from abc import abstractclassmethod, ABCMeta
+from abc import abstractmethod, ABCMeta
 from scipy.interpolate import interp1d
 from bids.utils import listify
 from itertools import chain
@@ -136,7 +136,8 @@ class BIDSVariable(object):
 
         return cls._merge(variables, name, **kwargs)
 
-    @abstractclassmethod
+    @classmethod
+    @abstractmethod
     def _merge(cls, variables, name, **kwargs):
         pass
 

@@ -1,10 +1,7 @@
-from bids.utils import listify
 from itertools import chain
 from collections import namedtuple
 from . import collections as clc
-
-
-BASE_ENTITIES = ['subject', 'session', 'task', 'run']
+import pandas as pd
 
 
 class Node(object):
@@ -14,62 +11,12 @@ class Node(object):
     Args:
         id (int, str): A value uniquely identifying this node. Typically the
             entity value extracted from the filename via grabbids.
-        parent (Node): The parent Node.
-        children (list): A list of child nodes.
     '''
 
-    def __init__(self, id, parent=None, children=None, *args, **kwargs):
-        self.id = id
-        self.parent = parent
-        self.children = children or {}
+    def __init__(self, level, entities):
+        self.level = level
+        self.entities = entities
         self.variables = {}
-
-    def __getitem__(self, key):
-        return self.children[key]
-
-    def _get_node(self, entities, *args, **kwargs):
-        if self._child is None or self._child not in entities:
-            return self
-
-        child_id = entities[self._child]
-        if child_id not in self.children:
-            NodeClass = globals()[self._child.capitalize()]
-            node = NodeClass(child_id, self, *args, **kwargs)
-            self.children[child_id] = node
-        node = self.children[child_id]
-        return node._get_node(entities, *args, **kwargs)
-
-    @property
-    def _level(self):
-        return self.__class__.__name__.lower()
-
-    def get_nodes(self, level, **selectors):
-        ''' Return a flat list of all Nodes at or below the current Node that
-        match the specified criteria.
-
-        Args:
-            level (str): The target level of Node to return. Must be one of
-                'dataset', 'subject', 'session', or 'run'.
-            selectors: Optional keyword arguments placing constraints on what
-                Nodes to return. Argument names be any of the standard
-                entities in the hierarchy--i.e., 'subject', 'session', 'run',
-                or 'task'.
-
-        Returns:
-            A list of Nodes.
-        '''
-        if self._level == level:
-            return [self]
-        nodes = []
-        children = selectors.get(self._child, list(self.children.keys()))
-        children = sorted(listify(children))
-        for child_id in children:
-            child_node = self.children[child_id].get_nodes(level, **selectors)
-            nodes.extend(child_node)
-        # Filtering on task is a bit different
-        if level == 'run' and 'task' in selectors:
-            nodes = [n for n in nodes if n.task == selectors['task']]
-        return nodes
 
     def add_variable(self, variable):
         ''' Adds a BIDSVariable to the current Node's list.
@@ -79,72 +26,45 @@ class Node(object):
         '''
         self.variables[variable.name] = variable
 
-    def get_entities(self):
-        ''' Returns a dictionary of entities for the current Node. '''
-        entities = {} if self.parent is None else self.parent.get_entities()
-        if self._level != 'dataset':
-            entities[self._level] = self.id
-        if self._level == 'run':
-            entities['task'] = self.task
-        return entities
 
-
-class Run(Node):
+class RunNode(Node):
     ''' Represents a single Run in a BIDS project.
 
     Args:
         id (int): The index of the run.
-        parent (Node): The parent Session.
+        entities (dict): Dictionary of entities for this Node.
         image_file (str): The full path to the corresponding nifti image.
         duration (float): Duration of the run, in seconds.
         repetition_time (float): TR for the run.
         task (str): The task name for this run.
     '''
 
-    _parent = 'session'
-    _child = None
-
-    def __init__(self, id, parent, image_file, duration,
-                 repetition_time, task):
+    def __init__(self, entities, image_file, duration, repetition_time):
         self.image_file = image_file
         self.duration = duration
         self.repetition_time = repetition_time
-        self.task = task
-        super(Run, self).__init__(id, parent, task=task)
+        super(RunNode, self).__init__('run', entities)
 
     def get_info(self):
-        entities = self.get_entities()
-        entities['task'] = self.task
-        return RunInfo(self.id, entities, self.duration, self.repetition_time,
+
+        return RunInfo(self.entities, self.duration, self.repetition_time,
                        self.image_file)
 
 
 # Stores key information for each Run.
-RunInfo = namedtuple('RunInfo', ['id', 'entities', 'duration', 'tr', 'image'])
+RunInfo = namedtuple('RunInfo', ['entities', 'duration', 'tr', 'image'])
 
 
-class Session(Node):
-
-    _parent = 'subject'
-    _child = 'run'
-
-
-class Subject(Node):
-
-    _parent = 'dataset'
-    _child = 'session'
-
-
-class Dataset(Node):
+class NodeIndex(Node):
     ''' Represents the top level in a BIDS hierarchy. '''
-    _parent = None
-    _child = 'subject'
 
     def __init__(self):
-        super(Dataset, self).__init__(1, None)
+        cols = ['subject', 'session', 'task', 'run', 'level', 'node_index']
+        self.index = pd.DataFrame(columns=cols)
+        self.nodes = []
 
     def get_collections(self, unit, names=None, merge=False,
-                        sampling_rate=None, **selectors):
+                        sampling_rate=None, **entities):
         ''' Retrieve variable data for a specified level in the Dataset.
 
         Args:
@@ -159,17 +79,14 @@ class Dataset(Node):
                 separately, and the result is returned as a list.
             sampling_rate (int, str): If level='run', the sampling rate to
                 pass onto the returned BIDSRunVariableCollection.
-            selectors: Optional constraints used to limit what gets returned.
+            entities: Optional constraints used to limit what gets returned.
 
         Returns:
 
         '''
 
-        nodes = self.get_nodes(unit, **selectors)
+        nodes = self.get_nodes(unit, entities)
         var_sets = []
-
-        node_ents = {'run', 'session', 'subject'}
-        entities = {k: v for k, v in selectors.items() if k not in node_ents}
 
         for n in nodes:
             var_set = list(n.variables.values())
@@ -180,7 +97,7 @@ class Dataset(Node):
             # contents are extracted from TSV files containing rows from
             # multiple observations
             if unit != 'run':
-                var_set = [v.filter(selectors) for v in var_set]
+                var_set = [v.filter(entities) for v in var_set]
             var_sets.append(var_set)
 
         if merge:
@@ -201,7 +118,40 @@ class Dataset(Node):
 
         return results
 
-    def get_or_create_node(self, entities, *args, **kwargs):
+    def get_nodes(self, level=None, entities=None, strict=False):
+
+        entities = {} if entities is None else entities.copy()
+
+        if level is not None:
+            entities['level'] = level
+
+        if entities is None:
+            return self.nodes
+
+        match_ents = set(entities.keys())
+        common_cols = list(match_ents & set(self.index.columns))
+
+        if strict and match_ents - common_cols:
+            raise ValueError("Invalid entities: ", match_ents - common_cols)
+
+        if not common_cols:
+            return self.nodes
+
+        # Construct query string that handles both single values and iterables
+        query = []
+        for col in common_cols:
+            oper = 'in' if isinstance(entities[col], (list, tuple)) else '=='
+            q = '{name} {oper} {val}'.format(name=col, oper=oper,
+                                             val=repr(entities[col]))
+            query.append(q)
+        query = ' and '.join(query)
+
+        inds = list(self.index.query(query)['node_index'])
+        if inds:
+            return [self.nodes[i] for i in inds]
+        return []
+
+    def get_or_create_node(self, level, entities, *args, **kwargs):
         ''' Retrieves a child Node based on the specified criteria, creating a
         new Node if necessary.
 
@@ -215,9 +165,28 @@ class Dataset(Node):
 
         Returns:
             A Node instance.
+
         '''
 
-        if 'run' in entities and 'session' not in entities:
-            entities['session'] = 1
+        result = self.get_nodes(level, entities)
 
-        return self._get_node(entities, *args, **kwargs)
+        if result:
+            if len(result) > 1:
+                raise ValueError("More than one matching Node found! If you're"
+                                 " expecting more than one Node, use "
+                                 "get_nodes() instead of get_or_create_node()."
+                                 )
+            return result[0]
+
+        # Create Node
+        if level == 'run':
+            node = RunNode(entities, *args, **kwargs)
+        else:
+            node = Node(level, entities)
+
+        entities = dict(entities, node_index=len(self.nodes), level=level)
+        self.nodes.append(node)
+        node_row = pd.Series(entities)
+        self.index = self.index.append(node_row, ignore_index=True)
+
+        return node

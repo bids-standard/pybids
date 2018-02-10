@@ -1,9 +1,9 @@
 import numpy as np
 import pandas as pd
 import nibabel as nb
-from os.path import join, dirname
+from os.path import join
 from bids.utils import listify
-from .entities import Dataset
+from .entities import NodeIndex
 from .variables import SparseRunVariable, DenseRunVariable, SimpleVariable
 import warnings
 
@@ -32,7 +32,7 @@ def load_variables(layout, types=None, levels=None, skip_empty=True, **kwargs):
             load_*_variables() calls.
 
     Returns:
-        A Dataset instance.
+        A NodeIndex instance.
 
     Example:
         >>> load_variables(layout, ['events', 'physio'], subject='01')
@@ -62,7 +62,7 @@ def load_variables(layout, types=None, levels=None, skip_empty=True, **kwargs):
     if bad_types:
         raise ValueError("Invalid variable types: %s" % bad_types)
 
-    dataset = Dataset()
+    dataset = NodeIndex()
 
     run_types = list({'events', 'physio', 'stim', 'confounds'} - set(types))
     type_flags = {t: False for t in run_types}
@@ -86,7 +86,7 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
 
     Args:
         layout (BIDSLayout): A BIDSLayout to scan.
-        dataset (Dataset): A BIDS Dataset container. If None, a new one is
+        dataset (NodeIndex): A BIDS NodeIndex container. If None, a new one is
             initialized.
         columns (list): Optional list of names specifying which columns in the
             event files to read. By default, reads all columns found.
@@ -111,13 +111,13 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
             BIDSLayout instance's get() method; can be used to constrain
             which data are loaded.
 
-    Returns: A Dataset instance.
+    Returns: A NodeIndex instance.
     '''
 
     selectors = {k: v for k, v in selectors.items() if k in BASE_ENTITIES}
 
     if dataset is None:
-        dataset = Dataset()
+        dataset = NodeIndex()
 
     images = layout.get(return_type='file', type='bold', modality='func',
                         extensions='.nii.gz', **selectors)
@@ -128,12 +128,11 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
     # Main loop over images
     for img_f in images:
 
-        orig_entities = layout.files[img_f].entities
-        entities = orig_entities.copy()
+        entities = layout.files[img_f].entities
 
         # Run is not mandatory, but we need a default for proper indexing
-        if 'run' not in entities:
-            entities['run'] = 1
+        if 'run' in entities:
+            entities['run'] = int(entities['run'])
 
         # Get duration of run: first try to get it directly from the image
         # header; if that fails, try to get NumberOfVolumes from the
@@ -152,9 +151,8 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
                 raise ValueError(msg)
 
         tr = layout.get_metadata(img_f)['RepetitionTime']
-        task = entities['task']
 
-        run = dataset.get_or_create_node(entities, image_file=img_f, task=task,
+        run = dataset.get_or_create_node('run', entities, image_file=img_f,
                                          duration=duration, repetition_time=tr)
         run_info = run.get_info()
 
@@ -204,7 +202,7 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
 
         # Process confound files
         if confounds:
-            sub_ents = {k: v for k, v in orig_entities.items()
+            sub_ents = {k: v for k, v in entities.items()
                         if k in BASE_ENTITIES}
             confound_files = layout.get(type='confounds', **sub_ents)
             for cf in confound_files:
@@ -281,7 +279,7 @@ def _load_tsv_variables(layout, type_, dataset=None, columns=None,
         layout (BIDSLayout): The BIDSLayout to use.
         type_ (str): The type of file to read from. Must be one of 'scans',
             'sessions', or 'participants'.
-        dataset (Dataset): A BIDS Dataset container. If None, a new one is
+        dataset (NodeIndex): A BIDS NodeIndex container. If None, a new one is
             initialized.
         columns (list): Optional list of names specifying which columns in the
             files to return. If None, all columns are returned.
@@ -291,7 +289,7 @@ def _load_tsv_variables(layout, type_, dataset=None, columns=None,
             BIDSLayout instance's get() method; can be used to constrain
             which data are loaded.
 
-    Returns: A Dataset instance.
+    Returns: A NodeIndex instance.
     '''
 
     # Sanitize the selectors: only keep entities at current level or above
@@ -301,7 +299,7 @@ def _load_tsv_variables(layout, type_, dataset=None, columns=None,
     layout_kwargs = {k: v for k, v in selectors.items() if k in valid_entities}
 
     if dataset is None:
-        dataset = Dataset()
+        dataset = NodeIndex()
 
     files = layout.get(extensions='.tsv', return_type='file', type=type_,
                        **layout_kwargs)
@@ -350,7 +348,9 @@ def _load_tsv_variables(layout, type_, dataset=None, columns=None,
             vals = listify(selectors.get(col))
             _data = _data.query('%s in @vals' % col)
 
-        node = dataset.get_or_create_node(f.entities)
+        level = {'scans': 'session', 'sessions': 'subject',
+                 'participants': 'dataset'}[type_]
+        node = dataset.get_or_create_node(level, f.entities)
 
         ent_cols = list(set(ALL_ENTITIES) & set(_data.columns))
         amp_cols = list(set(_data.columns) - set(ent_cols))
