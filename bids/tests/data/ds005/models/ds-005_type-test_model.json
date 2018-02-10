@@ -1,0 +1,38 @@
+{
+  "name": "test_model",
+  "description": "simple test model",
+  "blocks": [
+    {
+      "name": "run",
+      "level": "run",
+      "transformations": [
+        {
+          "name": "scale",
+          "input": "RT"
+        }
+      ],
+      "contrasts": [
+        {
+          "name": "RT-trial_type",
+          "condition_list": [
+            "RT",
+            "trial_type"
+          ],
+          "weights": [1, -1]
+        }
+      ]
+    },
+    {
+      "name": "session",
+      "level": "session"
+    },
+    {
+      "name": "participant",
+      "level": "subject"
+    },
+    {
+      "name": "group",
+      "level": "dataset"
+    }
+  ]
+}
