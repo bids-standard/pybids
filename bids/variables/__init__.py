@@ -1,6 +1,6 @@
 from .variables import (SimpleVariable, SparseRunVariable,
                         DenseRunVariable, merge_variables)
-from .collections import (BIDSVariableCollection, BIDSRunVariableCollection,
+from .kollekshuns import (BIDSVariableCollection, BIDSRunVariableCollection,
                           merge_collections)
 from .io import load_variables
 

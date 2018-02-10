@@ -1,6 +1,6 @@
 from itertools import chain
 from collections import namedtuple
-from . import collections as clc
+from . import kollekshuns as clc
 import pandas as pd
 
 

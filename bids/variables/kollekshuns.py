@@ -1,3 +1,10 @@
+''' Classes and functions related to the management of sets of BIDSVariables.
+
+Why 'kollekshuns'? Because 'collections' would conflict with the standard lib
+module of the same name on Python 2. We could go with something sensible but
+verbose like 'variable_collections', but that would make far too much sense.
+'''
+
 import pandas as pd
 from copy import copy
 from pandas.api.types import is_numeric_dtype
