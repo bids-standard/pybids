@@ -61,10 +61,11 @@ class Node(object):
         if self._level == level:
             return [self]
         nodes = []
-        children = listify(selectors.get(self._child,
-                                         list(self.children.keys())))
+        children = selectors.get(self._child, list(self.children.keys()))
+        children = sorted(listify(children))
         for child_id in children:
-            nodes.extend(self.children[child_id].get_nodes(level, **selectors))
+            child_node = self.children[child_id].get_nodes(level, **selectors)
+            nodes.extend(child_node)
         # Filtering on task is a bit different
         if level == 'run' and 'task' in selectors:
             nodes = [n for n in nodes if n.task == selectors['task']]
