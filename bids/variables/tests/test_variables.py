@@ -121,7 +121,7 @@ def test_merge_simple_variables(layout2):
     n_rows = sum([len(c.values) for c in variables])
     merged = merge_variables(variables)
     assert len(merged.values) == n_rows
-    assert merged.index.columns.equals(variables[0].index.columns)
+    assert set(merged.index.columns) == set(variables[0].index.columns)
     assert variables[3].values.iloc[1] == merged.values.iloc[7]
 
 
@@ -132,7 +132,7 @@ def test_merge_sparse_run_variables(layout1):
     n_rows = sum([len(c.values) for c in variables])
     merged = merge_variables(variables)
     assert len(merged.values) == n_rows
-    assert merged.index.columns.equals(variables[0].index.columns)
+    assert set(merged.index.columns) == set(variables[0].index.columns)
 
 
 def test_merge_dense_run_variables(layout2):
