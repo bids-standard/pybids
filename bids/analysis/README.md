@@ -10,20 +10,16 @@ A simple example of standard usage follows. We assume that we have a root folder
 
 ```python
 from bids.analysis import Analysis
+
+# Initialize the Analysis
 analysis = Analysis('/bidsproject', 'model1.json')
 
-# First-level model: we loop over subjects/runs
-for (design, entities) in analysis['run'].get_Xy():
-		
+# Setup constructs all the design matrices
+analysis.setup()
 
+# Sample query: retrieve first-level design matrix for one run
+dm = analysis[0].get_design_matrix(subject='01', run=1, task='taskA')
+
+# Sample query: retrieve session-level contrast matrix
+cm = analysis[1].get_contrasts(subject='01', session='retest')
 ```
-
-### The base `Analysis` object
-
-Most user interaction is expected to take place through the `Analysis` class. Initializing an `Analysis` instance is straightforward; we pass in two mandatory arguments: (1) a `BIDSLayout` (or path to a BIDS project), and (2) a path pointing to the BIDS-Model JSON spec containing the model specification.
-
-```python
-from bids.analysis import Analysis
-analysis = Analysis('/bidsproject', '/bidsproject/models/model1.json')
-```
-
