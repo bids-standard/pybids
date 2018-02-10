@@ -59,8 +59,7 @@ class NodeIndex(Node):
     ''' Represents the top level in a BIDS hierarchy. '''
 
     def __init__(self):
-        cols = ['subject', 'session', 'task', 'run', 'level', 'node_index']
-        self.index = pd.DataFrame(columns=cols)
+        self.index = pd.DataFrame()
         self.nodes = []
 
     def get_collections(self, unit, names=None, merge=False,
@@ -146,10 +145,17 @@ class NodeIndex(Node):
             query.append(q)
         query = ' and '.join(query)
 
-        inds = list(self.index.query(query)['node_index'])
-        if inds:
-            return [self.nodes[i] for i in inds]
-        return []
+        rows = self.index.query(query)
+        if rows.empty:
+            return []
+
+        # Sort and return
+        sort_cols = ['subject', 'session', 'task', 'run']
+        sort_cols = [sc for sc in sort_cols if sc in set(rows.columns)]
+        sort_cols += list(set(rows.columns) - set(sort_cols))
+        rows = rows.sort_values(sort_cols)
+        inds = rows['node_index'].astype(int)
+        return [self.nodes[i] for i in inds]
 
     def get_or_create_node(self, level, entities, *args, **kwargs):
         ''' Retrieves a child Node based on the specified criteria, creating a
