@@ -216,8 +216,10 @@ def test_filter(collection):
     assert np.all(collection['parametric gain'].values > 0)
 
     orig = collection['RT'].clone()
-    transform.filter(collection, 'RT', by='parametric gain', query=q)
-    assert len(orig.values) == 2 * len(collection['RT'].values)
+    q = 'parametric gain > 0.1'
+    transform.filter(collection, 'RT', query=q, by='parametric gain')
+    assert len(orig.values) != len(collection['RT'].values)
+    assert len(collection['RT'].values) == 1536
 
 
 def test_select(collection):
