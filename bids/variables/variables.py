@@ -309,7 +309,7 @@ class SparseRunVariable(SimpleVariable):
             A DenseRunVariable.
 
         '''
-        duration = math.ceil(sampling_rate * self.get_duration())
+        duration = int(math.ceil(sampling_rate * self.get_duration()))
         ts = np.zeros(duration, dtype=self.values.dtype)
 
         onsets = np.round(self.onset * sampling_rate).astype(int)
@@ -325,7 +325,7 @@ class SparseRunVariable(SimpleVariable):
             ts[_onset:_offset] = val
             last_ind = onsets[i]
 
-        run_info = self.run_info.copy()
+        run_info = list(self.run_info)
         return DenseRunVariable(self.name, ts, run_info, self.source,
                                 sampling_rate)
 

@@ -3,7 +3,7 @@ from bids.grabbids import BIDSLayout
 from bids.utils import matches_entities
 from bids.variables import BIDSVariableCollection, merge_collections
 from . import transformations as transform
-from collections import namedtuple, defaultdict
+from collections import namedtuple, OrderedDict
 from six import string_types
 import numpy as np
 import pandas as pd
@@ -147,12 +147,14 @@ class Block(object):
         # Block level or higher.
         if self.level == 'dataset':
             return [objects]
-        groups = defaultdict(list)
+        groups = OrderedDict()
         valid_ents = ['subject', 'session', 'task', 'run']
         valid_ents = valid_ents[:(valid_ents.index(self.level) + 1)]
         for o in objects:
             key = {k: v for k, v in o.entities.items() if k in valid_ents}
             key = tuple(sorted(key.items(), key=str))
+            if key not in groups:
+                groups[key] = []
             groups[key].append(o)
         return list(groups.values())
 
@@ -382,7 +384,7 @@ class AnalysisNode(object):
                              " contrast condition lists: %s." % bad_conds)
 
         # Construct a list of all contrasts, including identity contrasts
-        contrasts = self._block_contrasts.copy()
+        contrasts = list(self._block_contrasts)
 
         if self.identity_contrasts:
             for col_name in self.collection.variables.keys():
