@@ -60,8 +60,8 @@ def test_merge_wrapper():
 
 
 def test_sparse_run_variable_to_dense(layout1):
-    dataset = load_variables(layout1, types='events', scan_length=480)
-    runs = dataset.get_nodes('run', subject=['01', '02'])
+    index = load_variables(layout1, types='events', scan_length=480)
+    runs = index.get_nodes('run', {'subject': ['01', '02']})
 
     for i, run in enumerate(runs):
         var = run.variables['RT']
@@ -115,8 +115,9 @@ def test_densify_merged_variables(layout1):
 
 
 def test_merge_simple_variables(layout2):
-    dataset = load_variables(layout2, types='sessions')
-    variables = [s.variables['panas_sad'] for s in dataset.children.values()]
+    index = load_variables(layout2, types='sessions')
+    subjects = index.get_nodes('subject')
+    variables = [s.variables['panas_sad'] for s in subjects]
     n_rows = sum([len(c.values) for c in variables])
     merged = merge_variables(variables)
     assert len(merged.values) == n_rows

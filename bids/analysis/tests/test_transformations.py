@@ -61,7 +61,7 @@ def test_orthogonalize_dense(collection):
     pg_post = collection['trial_type/parametric gain']
 
     # Verify that the to_dense() calls result in identical indexing
-    ent_cols = ['subject', 'session', 'run']
+    ent_cols = ['subject', 'run']
     assert pg_pre.to_df()[ent_cols].equals(rt.to_df()[ent_cols])
     assert pg_post.to_df()[ent_cols].equals(rt.to_df()[ent_cols])
 

@@ -1,5 +1,5 @@
 from bids.grabbids import BIDSLayout
-from bids.variables.entities import Run, Session, Dataset
+from bids.variables.entities import RunNode, Node, NodeIndex
 from bids.variables import load_variables
 from bids.variables import BIDSRunVariableCollection
 import pytest
@@ -24,43 +24,41 @@ def layout2():
 def test_run(layout1):
     img = layout1.get(subject='01', task='mixedgamblestask', type='bold',
                       run=1, return_type='obj')[0]
-    run = Run(1, None, img.filename, 480, 2, 'mixedgamblestask')
+    run = RunNode(None, img.filename, 480, 2)
     assert run.image_file == img.filename
     assert run.duration == 480
     assert run.repetition_time == 2
-    assert run.parent is None
 
 
 def test_get_or_create_node(layout1):
     img = layout1.get(subject='01', task='mixedgamblestask', type='bold',
                       run=1, return_type='obj')[0]
-    dataset = Dataset()
+    index = NodeIndex()
 
-    entities = {'subject': '01', 'session': 1, 'task': 'test'}
-    sess = dataset.get_or_create_node(entities)
-    assert sess.__class__ == Session
-    assert sess.children == {}
-    assert len(dataset.children) == 1
+    entities = {'subject': '01', 'session': 1}
+    sess = index.get_or_create_node('session', entities)
+    assert sess.__class__ == Node
 
-    sess2 = dataset.get_or_create_node(entities)
+    sess2 = index.get_or_create_node('session', entities)
     assert sess2 == sess
 
-    run = dataset.get_or_create_node(img.entities, image_file=img.filename,
-                                     duration=480, repetition_time=2,
-                                     task='mixedgamblestask')
-    assert run.__class__ == Run
-    assert run.parent == sess
+    run = index.get_or_create_node('run', img.entities,
+                                   image_file=img.filename, duration=480,
+                                   repetition_time=2)
+    assert run.__class__ == RunNode
     assert run.duration == 480
 
 
 def test_get_nodes(layout1):
-    dataset = load_variables(layout1, scan_length=480)
-    nodes = dataset.get_nodes('session')
-    assert len(nodes) == 16
-    assert all([isinstance(n, Session) for n in nodes])
-    nodes = dataset.get_nodes('run', subject=['01', '02', '03'])
+    index = load_variables(layout1, scan_length=480)
+    nodes = index.get_nodes('session')
+    assert len(nodes) == 0
+    nodes = index.get_nodes('dataset')
+    assert len(nodes) == 1
+    assert all([isinstance(n, Node) for n in nodes])
+    nodes = index.get_nodes('run', {'subject': ['01', '02', '03']})
     assert len(nodes) == 9
-    assert all([isinstance(n, Run) for n in nodes])
+    assert all([isinstance(n, RunNode) for n in nodes])
 
 
 def test_get_collections_merged(layout1):
@@ -71,7 +69,7 @@ def test_get_collections_merged(layout1):
     vals = collection.variables['RT'].values
     ents = collection.variables['RT'].index
     assert len(ents) == len(vals) == 4096
-    assert set(ents.columns) == {'task', 'run', 'session', 'subject'}
+    assert set(ents.columns) == {'task', 'run', 'subject'}
 
 
 def test_get_collections_unmerged(layout2):
