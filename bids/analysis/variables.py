@@ -225,7 +225,7 @@ def load_event_variables(layout, entities=None, columns=None, scan_length=None,
                 # final Column, because in principle, the sampling rate of
                 # continuous recordings could differ across runs/subjects/etc.
                 x = np.arange(n_rows)
-                n_new = duration * sampling_rate
+                n_new = int(duration * sampling_rate)
                 x_new = np.linspace(0, n_rows - 1, num=n_new)
                 new_vals = np.zeros((n_new, n_cols))
 
