@@ -5,7 +5,7 @@ import warnings
 import re
 from .variables import (SparseRunVariable, SimpleVariable, DenseRunVariable,
                         merge_variables, BIDSVariable)
-from collections import defaultdict
+from collections import OrderedDict
 from itertools import chain
 from bids.utils import listify, matches_entities
 import numpy as np
@@ -64,8 +64,10 @@ class BIDSVariableCollection(object):
         Returns:
             A list of Variables.
         '''
-        var_dict = defaultdict(list)
+        var_dict = OrderedDict()
         for v in variables:
+            if v.name not in var_dict:
+                var_dict[v.name] = []
             var_dict[v.name].append(v)
         return [merge_variables(vars_, **kwargs)
                 for vars_ in list(var_dict.values())]
@@ -277,11 +279,11 @@ class BIDSRunVariableCollection(BIDSVariableCollection):
                 'long' format, each row is a unique combination of onset,
                 duration, and variable name, and a single 'amplitude' column
                 provides the value.
-            sparse (bool): If True, variables will be kept in a sparse format
-                provided they are all internally represented as such. If False,
-                a dense matrix (i.e., uniform sampling rate for all events)
-                will be exported. Will be ignored if at least one variable is
-                dense.
+            sparse (bool): If True, variables will be kept in a sparse
+                format provided they are all internally represented as such.
+                If False, a dense matrix (i.e., uniform sampling rate for all
+                events) will be exported. Will be ignored if at least one
+                variable is dense.
             sampling_rate (float): If a dense matrix is written out, the
                 sampling rate (in Hz) to use for downsampling. Defaults to the
                 value currently set in the instance.
