@@ -9,7 +9,8 @@ from os.path import abspath
 from os.path import join as pathjoin
 
 from .bids_validator import BIDSValidator
-from grabbit import Layout
+from .utils import _merge_event_files
+from grabbit import Layout, File
 
 __all__ = ['BIDSLayout']
 
@@ -29,11 +30,14 @@ class BIDSLayout(Layout):
             with open(config) as fobj:
                 config = json.load(fobj)
         for ext in extensions or []:
-            with open(pathjoin(root, 'config', '%s.json' % ext)) as fobj:
+            builtin_ext = pathjoin(root, 'config', '%s.json' % ext)
+            if os.path.exists(builtin_ext):
+                ext = builtin_ext
+            with open(ext) as fobj:
                 ext_config = json.load(fobj)
-                config['entities'].extend(ext_config['entities'])
+            config['entities'].extend(ext_config['entities'])
 
-        super(BIDSLayout, self).__init__(path, config,
+        super(BIDSLayout, self).__init__(path, config=config,
                                          dynamic_getters=True, **kwargs)
 
     def _validate_file(self, f):
@@ -55,11 +59,6 @@ class BIDSLayout(Layout):
     def _get_nearest_helper(self, path, extension, type=None, **kwargs):
         """ Helper function for grabbit get_nearest """
         path = abspath(path)
-
-        if path not in self.files:
-            raise ValueError(
-                "File '%s' does not match any specification in the current "
-                "BIDS project." % path)
 
         if not type:
             if 'type' not in self.files[path].entities:
@@ -124,12 +123,60 @@ class BIDSLayout(Layout):
         else:
             return tmp
 
-    def get_events(self, path, **kwargs):
-        tmp = self._get_nearest_helper(path, '.tsv', type='events', **kwargs)
-        if isinstance(tmp, list):
-            return tmp[0]
-        else:
-            return tmp
+    def get_events(self, path, return_type='file', derivatives='both',
+                   **kwargs):
+        """ For a given file in a BIDS project, finds corresponding event files
+        and optionally returns merged dataframe containing all variables.
+
+        Args:
+            path (str): Path to a file to match to events.
+            return_type (str): Type of output to return.
+                'file' returns list of files,
+                'df' merges events into a single DataFrame, giving precedence
+                to events closer to the file.
+            derivatives (str): How to handle derivative events.
+                'ignore' - Ignore any event files outside of root directory.
+                'only' - Only include event files from outside directories.
+                'both' - Include both. Derivative events have precedence.
+        Returns:
+            List of file or merged Pandas dataframe.
+        """
+
+        path = abspath(path)
+
+        # Get events in base Layout directory (ordered)
+        root_events = self._get_nearest_helper(
+            path, '.tsv', type='events', **kwargs) or []
+
+        entities = self.files[path].entities.copy()
+
+        if 'type' in entities:
+            entities.pop('type')
+        if 'modality' in entities and entities['modality'] == 'func':
+            entities.pop('modality')
+
+        entities.update(kwargs)
+
+        # Get all events
+        events = self.get(extensions='tsv', type='events',
+                          return_type='file', **entities) or []
+
+        deriv_events = list(set(events) - set(root_events))
+
+        if derivatives == 'only':
+            events = deriv_events
+        elif derivatives == 'ignore':
+            events = root_events
+        else: # Combine with order
+            events = deriv_events + root_events
+
+        if return_type == 'df':
+            events = _merge_event_files(events)
+        elif not events:
+            return None
+        elif len(events) == 1:
+            return events[0]
+        return events
 
     def get_fieldmap(self, path, return_list=False):
         fieldmaps = self._get_fieldmaps(path)
@@ -191,3 +238,19 @@ class BIDSLayout(Layout):
                         cur_fieldmap["type"] = "fieldmap"
                     fieldmap_set.append(cur_fieldmap)
         return fieldmap_set
+
+    def get_collections(self, level, types=None, variables=None, merge=False,
+                        sampling_rate=None, **kwargs):
+        from bids.variables import load_variables
+        index = load_variables(self, types=types, levels=level, **kwargs)
+        return index.get_collections(level, variables, merge,
+                                     sampling_rate=sampling_rate)
+
+    def parse_entities(self, filelike):
+        if not isinstance(filelike, File):
+            filelike = File(filelike)
+
+        for ent in self.entities.values():
+            ent.matches(filelike)
+
+        return filelike.entities

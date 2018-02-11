@@ -39,7 +39,8 @@ before_install:
 - conda install --quiet python=$PYTHON_VERSION $CONDA_DEPS
 
 install:
-- pip install -e .
+- pip install -e ".[analysis]"
+- pip install --upgrade git+https://github.com/grabbles/grabbit.git
 
 script:
 # - flake8 --ignore N802,N806 `find . -name \*.py | grep -v setup.py | grep -v /doc/`

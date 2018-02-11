@@ -3,25 +3,34 @@ functionality should go in the grabbit package. """
 
 import pytest
 from bids.grabbids import BIDSLayout
-from os.path import join, dirname, abspath
+from os.path import join, abspath, basename
+from bids.tests import get_test_data_path
 
 
 # Fixture uses in the rest of the tests
 @pytest.fixture
 def testlayout1():
-    data_dir = join(dirname(__file__), 'data', '7t_trt')
+    data_dir = join(get_test_data_path(), '7t_trt')
     return BIDSLayout(data_dir)
 
 
 @pytest.fixture
 def testlayout2():
-    data_dir = join(dirname(__file__), 'data', 'ds005')
+    data_dir = join(get_test_data_path(), 'ds005')
+    return BIDSLayout(data_dir)
+
+
+@pytest.fixture
+def testmergedlayout():
+    data_dir = [join(get_test_data_path(), 'ds005'),
+                join(get_test_data_path(), 'ds005',
+                     'derivatives', 'events')]
     return BIDSLayout(data_dir)
 
 
 @pytest.fixture
 def testlayout3():
-    data_dir = join(dirname(__file__), 'data', 'ds005')
+    data_dir = join(get_test_data_path(), 'ds005')
     return BIDSLayout(data_dir, extensions=['derivatives'])
 
 
@@ -67,13 +76,28 @@ def test_get_metadata5(testlayout1):
     assert result['acquisition'] == 'fullbrain'
 
 
-def test_get_events(testlayout2):
+def test_get_events(testmergedlayout):
     target = 'sub-01/func/sub-01_task-' \
-             'mixedgamblestask_run-03_bold.nii.gz'
-    result = testlayout2.get_events(join(testlayout2.root, target))
-    assert result == abspath(join(testlayout2.root,
-                                  target.replace('_bold.nii.gz',
-                                                 '_events.tsv')))
+             'mixedgamblestask_run-01_bold.nii.gz'
+    result = testmergedlayout.get_events(join(testmergedlayout.root, target))
+    assert len(result) == 2
+    expected1 = abspath(join(
+        testmergedlayout.root, target.replace('_bold.nii.gz', '_events.tsv')))
+    assert expected1 in result
+
+    expected2 = abspath(join(
+        testmergedlayout.root, 'derivatives/events/', basename(expected1)))
+
+    merged = testmergedlayout.get_events(join(testmergedlayout.root, target),
+                                         return_type='df')
+
+    assert 'response' in merged
+    assert 'trial_type' in merged
+    assert merged[merged.onset == 1].RT.values[0] == 1.0
+    assert merged[merged.onset == 18].RT.values[0] == 100.0
+    assert merged[merged.onset == 102].RT.values[0] > 1
+
+    assert expected2 in result
 
 
 def test_get_events2(testlayout2):
