@@ -5,6 +5,7 @@ methods section from a BIDS dataset.
 """
 from __future__ import print_function
 import re
+import logging
 from os.path import basename
 
 import numpy as np
@@ -12,6 +13,9 @@ import nibabel as nib
 from num2words import num2words
 
 from bids.version import __version__
+
+
+logger = logging.getLogger('pybids.reports.utils')
 
 
 def warnings():
@@ -529,7 +533,7 @@ def parse_niftis(layout, niftis, subj, ses, config):
         nii_file = nifti_struct.filename
         metadata = layout.get_metadata(nii_file)
         if not metadata:
-            print('No json file found for {0}'.format(nii_file))
+            logger.warning('No json file found for %s', nii_file)
         else:
             img = nib.load(nii_file)
 
