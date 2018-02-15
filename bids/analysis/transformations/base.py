@@ -250,9 +250,7 @@ class Transformation(object):
             # If we still have a list, pass all variables in one block
             if isinstance(col, (list, tuple)):
                 result = self._transform(data, **kwargs)
-                if self._return_type == 'variable':
-                    result = result.clone(name=self.output[0])
-                elif self._return_type not in ['none', None]:
+                if self._return_type not in ['none', None]:
                     col = col[0].clone(data=result, name=self.output[0])
             # Otherwise loop over variables individually
             else:

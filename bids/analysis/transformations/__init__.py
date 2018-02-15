@@ -5,6 +5,7 @@ __all__ = [
     'sum',
     'product',
     'and_',
+    'or_',
     'scale',
     'orthogonalize',
     'threshold',
