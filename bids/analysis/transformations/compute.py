@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 from bids.utils import listify
 from .base import Transformation
+from ...variables import SparseRunVariable
 
 
 class scale(Transformation):
@@ -127,10 +128,32 @@ class and_(Transformation):
         dfs (list of DFs): variables to enter into the conjunction.
     '''
 
+    _input_type = 'variable'
+    _return_type = 'variable'
     _loopable = False
     _groupable = False
     _output_required = True
 
-    def _transform(self, dfs):
-        df = pd.concat(dfs, axis=1)
+    def _transform(self, var):
+        if isinstance(var[0], SparseRunVariable):
+            onset = var[0].onset
+            for v in var[1:]:
+                onset = onset[np.in1d(onset, v.onset)]
+
+            selector = np.in1d(var[0].onset, onset)
+            duration = var[0].duration[selector]
+            values = var[0].values[selector]
+            for v in var:
+                selector = np.in1d(v.onset, onset)
+                if not (np.allclose(duration, v.duration[selector]) and
+                        np.allclose(values, v.values[selector])):
+                    raise ValueError("Mismatched onset/duration/weights")
+            return SparseRunVariable(
+                var[0].name,
+                pd.DataFrame({'onset': onset, 'duration': duration,
+                              'amplitude': values}),
+                run_info = var[0].run_info,
+                source = var[0].run_info)
+
+        df = pd.concat(var, axis=1)
         return df.all(axis=1)
