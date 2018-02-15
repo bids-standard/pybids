@@ -468,6 +468,8 @@ def apply_transformations(collection, transformations, select=None):
         cols = kwargs.pop('input', None)
 
         if isinstance(func, string_types):
+            if func in ('and', 'or'):
+                func += '_'
             if not hasattr(transform, func):
                 raise ValueError("No transformation '%s' found!" % func)
             func = getattr(transform, func)

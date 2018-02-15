@@ -1,4 +1,4 @@
-from .compute import (sum, product, scale, orthogonalize, threshold, and_)
+from .compute import (sum, product, scale, orthogonalize, threshold, and_, or_)
 from .munge import (split, rename, assign, copy, factor, filter, select)
 
 __all__ = [
