@@ -1,6 +1,6 @@
 from os.path import split
 from bids.grabbids import BIDSLayout
-from bids.analysis.variables import load_event_variables
+from bids.variables import load_variables
 from collections import OrderedDict
 import json
 import numpy as np
@@ -55,18 +55,19 @@ def auto_model(layout, scan_length=None):
         transformations = OrderedDict()
         transformations["name"] = "factor"
         transformations["input"] = ["trial_type"]
-        run["transformations"] =[transformations]
+        run["transformations"] = [transformations]
 
         # Get trial types
         try:
-            evs = load_event_variables(layout, task = task_name)
+            run_nodes = load_variables(layout, task=task_name, levels=['run'])
         except ValueError:
-            if scan_length is not None:
-                evs = load_event_variables(layout, task = task_name,
-                                           scan_length = scan_length)
-            else:
-                raise ValueError("Unable to extract scan duration from one or more BOLD runs, and no scan_length argument was provided as a fallback. Please check that the image files are available, or manually specify the scan duration.")
-        trial_types = np.unique(evs['trial_type'].values)
+            run_nodes = load_variables(layout, task=task_name, levels=['run'],
+                                       scan_length=scan_length)
+
+        evs = []
+        for n in run_nodes.nodes:
+            evs.extend(n.variables['trial_type'].values.values)
+        trial_types = np.unique(evs)
         trial_type_factors = ["trial_type." + tt for tt in trial_types]
 
         run_model = OrderedDict()
@@ -74,15 +75,14 @@ def auto_model(layout, scan_length=None):
         run_model["variables"] = trial_type_factors
         run["model"] = run_model
 
-
         #if there are multiple trial types, build contrasts
         contrasts = []
-        for i,tt in enumerate(trial_types):
+        for i, tt in enumerate(trial_types):
             cdict = OrderedDict()
             if len(trial_types) > 1:
-                cdict["name"] = tt + "_vs_others"
+                cdict["name"] = "run_" + tt + "_vs_others"
             else:
-                cdict["name"] = tt
+                cdict["name"] = "run_" + tt
             cdict["condition_list"] = trial_type_factors
 
             # Calculate weights for contrast
