@@ -202,10 +202,54 @@ def test_regex_variable_expansion(collection):
 
 
 def test_factor(collection):
-    transform.factor(collection, 'trial_type', sep='@')
-    assert 'trial_type@parametric gain' in collection.variables.keys()
-    pg = collection.variables['trial_type@parametric gain']
+    # Full-rank dummy-coding, only one unique value in variable
+    trial_type = collection.variables['trial_type'].clone()
+    coll = collection.clone()
+    transform.factor(coll, 'trial_type', sep='@')
+    assert 'trial_type@parametric gain' in coll.variables.keys()
+    pg = coll.variables['trial_type@parametric gain']
     assert pg.values.unique() == [1]
+    assert pg.values.shape == trial_type.values.shape
+
+    # Reduced-rank dummy-coding, only one unique value in variable
+    coll = collection.clone()
+    transform.factor(coll, 'trial_type', constraint='mean_zero')
+    assert 'trial_type.parametric gain' in coll.variables.keys()
+    pg = coll.variables['trial_type.parametric gain']
+    assert pg.values.unique() == [1]
+    assert pg.values.shape == trial_type.values.shape
+
+    # full-rank dummy-coding, multiple values
+    coll = collection.clone()
+    transform.factor(coll, 'respnum')
+    targets = set(['respnum.%d' % d for d in range(0, 5)])
+    assert not targets - set(coll.variables.keys())
+    assert all([set(coll.variables[t].values.unique()) == {0.0, 1.0}
+                for t in targets])
+    data = pd.concat([coll.variables[t].values for t in targets], axis=1)
+    assert (data.sum(1) == 1).all()
+
+    # reduced-rank dummy-coding, multiple values
+    coll = collection.clone()
+    transform.factor(coll, 'respnum', constraint='drop_one')
+    targets = set(['respnum.%d' % d for d in range(1, 5)])
+    assert not targets - set(coll.variables.keys())
+    assert 'respnum.0' not in coll.variables.keys()
+    assert all([set(coll.variables[t].values.unique()) == {0.0, 1.0}
+                for t in targets])
+    data = pd.concat([coll.variables[t].values for t in targets], axis=1)
+    assert set(np.unique(data.sum(1).values.ravel())) == {0., 1.}
+
+    # Effect coding, multiple values
+    coll = collection.clone()
+    transform.factor(coll, 'respnum', constraint='mean_zero')
+    targets = set(['respnum.%d' % d for d in range(1, 5)])
+    assert not targets - set(coll.variables.keys())
+    assert 'respnum.0' not in coll.variables.keys()
+    assert all([set(coll.variables[t].values.unique()) == {-0.25, 0.0, 1.0}
+                for t in targets])
+    data = pd.concat([coll.variables[t].values for t in targets], axis=1)
+    assert set(np.unique(data.sum(1).values.ravel())) == {-1., 1.}
 
 
 def test_filter(collection):
@@ -232,3 +276,29 @@ def test_select(collection):
     keep = ['RT', 'parametric gain', 'respcat']
     transform.select(collection, keep)
     assert set(collection.variables.keys()) == set(keep)
+
+
+def test_and(collection):
+    coll = collection.clone()
+    transform.factor(coll, 'respnum')
+    names = ['respnum.%d' % d for d in range(0, 5)]
+    transform.and_(coll, names, output='conjunction')
+    assert not coll.variables['conjunction'].values.sum()
+
+    coll['copy'] = coll.variables['respnum.0'].clone()
+    transform.and_(coll, ['respnum.0', 'copy'], output='conj')
+    assert coll.variables['conj'].values.astype(float).equals(
+        coll.variables['respnum.0'].values)
+
+
+def test_or(collection):
+    coll = collection.clone()
+    transform.factor(coll, 'respnum')
+    names = ['respnum.%d' % d for d in range(0, 5)]
+    transform.or_(coll, names, output='disjunction')
+    assert (coll.variables['disjunction'].values == 1).all()
+
+    coll['copy'] = coll.variables['respnum.0'].clone()
+    transform.or_(coll, ['respnum.0', 'copy'], output='or')
+    assert coll.variables['or'].values.astype(float).equals(
+        coll.variables['respnum.0'].values)
