@@ -197,7 +197,7 @@ class factor(Transformation):
                 continue
             name = ''.join([var.name, sep, str(lev)])
             lev_data = data.copy()
-            lev_data['amplitude'] = new_cols[lev]
+            lev_data['amplitude'] = new_cols[lev].astype(float)
             args = [name, lev_data, var.source]
             if hasattr(var, 'run_info'):
                 args.insert(2, var.run_info)
