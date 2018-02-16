@@ -276,3 +276,29 @@ def test_select(collection):
     keep = ['RT', 'parametric gain', 'respcat']
     transform.select(collection, keep)
     assert set(collection.variables.keys()) == set(keep)
+
+
+def test_and(collection):
+    coll = collection.clone()
+    transform.factor(coll, 'respnum')
+    names = ['respnum.%d' % d for d in range(0, 5)]
+    transform.and_(coll, names, output='conjunction')
+    assert not coll.variables['conjunction'].values.sum()
+
+    coll['copy'] = coll.variables['respnum.0'].clone()
+    transform.and_(coll, ['respnum.0', 'copy'], output='conj')
+    assert coll.variables['conj'].values.astype(float).equals(
+        coll.variables['respnum.0'].values)
+
+
+def test_or(collection):
+    coll = collection.clone()
+    transform.factor(coll, 'respnum')
+    names = ['respnum.%d' % d for d in range(0, 5)]
+    transform.or_(coll, names, output='disjunction')
+    assert (coll.variables['disjunction'].values == 1).all()
+
+    coll['copy'] = coll.variables['respnum.0'].clone()
+    transform.or_(coll, ['respnum.0', 'copy'], output='or')
+    assert coll.variables['or'].values.astype(float).equals(
+        coll.variables['respnum.0'].values)
