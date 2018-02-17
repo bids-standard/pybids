@@ -15,6 +15,7 @@ def model():
 
     return models[0]
 
+
 def test_auto_model_analysis(model):
 
     layout_path = join(get_test_data_path(), 'ds005')
