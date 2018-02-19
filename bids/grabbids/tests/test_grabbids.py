@@ -103,7 +103,7 @@ def test_get_events(testmergedlayout):
 def test_get_events2(testlayout2):
     target = 'sub-03/anat/sub-03_T1w.nii.gz'
     result = testlayout2.get_events(join(testlayout2.root, target))
-    assert result == None
+    assert result is None
 
 
 def test_get_bvals_bvecs(testlayout2):

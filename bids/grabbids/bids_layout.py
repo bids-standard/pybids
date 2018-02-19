@@ -200,8 +200,8 @@ class BIDSLayout(Layout):
         sub = os.path.split(path)[1].split("_")[0].split("sub-")[1]
         fieldmap_set = []
         type_ = '(phase1|phasediff|epi|fieldmap)'
-        for file in self.get(subject=sub, type=type_,
-                             extensions=['nii.gz', 'nii']):
+        files = self.get(subject=sub, type=type_, extensions=['nii.gz', 'nii'])
+        for file in files:
             metadata = self.get_metadata(file.filename)
             if metadata and "IntendedFor" in metadata.keys():
                 if isinstance(metadata["IntendedFor"], list):

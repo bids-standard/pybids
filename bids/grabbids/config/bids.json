@@ -1,4 +1,6 @@
 {
+    "name": "bids",
+    "root": ".",
     "index" : {
       "exclude" : [".*derivatives$", ".*models$", ".*sourcedata$", ".*code$",
                    "^\\.", ".*[/\\\\]\\."]
