@@ -3,6 +3,7 @@ Transformations that primarily involve manipulating/munging variables into
 other formats or shapes.
 '''
 
+import numpy as np
 import pandas as pd
 from bids.utils import listify
 from .base import Transformation
@@ -176,27 +177,28 @@ class factor(Transformation):
 
         result = []
         data = var.to_df()
-        grps = data.groupby('amplitude')
         orig_name = var.name
         variableClass = var.__class__
 
-        # Determine the reference level
-        if constraint in ['drop_one', 'mean_zero']:
-            levels = data['amplitude'].unique().sort_values()
+        levels = np.sort(data['amplitude'].unique())
+        new_cols = pd.get_dummies(data['amplitude'], drop_first=False)[levels]
+
+        if len(levels) > 1 and constraint in ('drop_one', 'mean_zero'):
             if ref_level is None:
                 ref_level = levels[0]
+            new_cols = new_cols.drop(ref_level, axis=1)
 
-        for i, (lev_name, lev_grp) in enumerate(grps):
-            # TODO: consider appending info about the constraint to the name,
-            # though this has the downside of making names very long and
-            # difficult to work with.
-            name = ''.join([var.name, sep, lev_name])
-            # TODO: implement constraint == 'mean_zero'
-            if constraint == 'drop_one' and lev_name == ref_level:
+            if constraint == 'mean_zero':
+                ref_inds = data['amplitude'] == ref_level
+                new_cols.loc[ref_inds, :] = -1. / (len(levels) - 1)
+
+        for lev in levels:
+            if ref_level is not None and lev == ref_level:
                 continue
-            lev_grp['amplitude'] = 1.0
-
-            args = [name, lev_grp, var.source]
+            name = ''.join([var.name, sep, str(lev)])
+            lev_data = data.copy()
+            lev_data['amplitude'] = new_cols[lev].astype(float)
+            args = [name, lev_data, var.source]
             if hasattr(var, 'run_info'):
                 args.insert(2, var.run_info)
             new_col = variableClass(*args)
