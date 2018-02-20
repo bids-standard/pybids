@@ -14,7 +14,7 @@ from num2words import num2words
 
 from bids.version import __version__
 
-
+logging.basicConfig()
 logger = logging.getLogger('pybids.reports.utils')
 
 
