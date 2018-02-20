@@ -223,6 +223,11 @@ def func_info(task, n_runs, metadata, img, config):
     else:
         mb_str = ''
 
+    if metadata.get('ParallelReductionFactorInPlane', 1) > 1:
+        pr_str = '; in-plane acceleration factor={}'.format(metadata['ParallelReductionFactorInPlane'])
+    else:
+        pr_str = ''
+
     seqs, variants = get_seqstr(config, metadata)
     n_slices, vs_str, ms_str, fov_str = get_sizestr(img)
 
@@ -242,7 +247,7 @@ def func_info(task, n_runs, metadata, img, config):
            ({n_slices} slices in {so} order; repetition time, TR={tr}ms;
            echo time, TE={te}ms; flip angle, FA={fa}<deg>;
            field of view, FOV={fov}mm; matrix size={ms};
-           voxel size={vs}mm{mb_str}).
+           voxel size={vs}mm{mb_str}{pr_str}).
            Each run was {length} minutes in length, during which
            {n_vols} functional volumes were acquired.
            '''.format(run_str=run_str,
@@ -259,7 +264,8 @@ def func_info(task, n_runs, metadata, img, config):
                       ms=ms_str,
                       length=length,
                       n_vols=n_tps,
-                      mb_str=mb_str
+                      mb_str=mb_str,
+                      pr_str=pr_str
                      )
     desc = desc.replace('\n', ' ').lstrip()
     while '  ' in desc:
