@@ -21,17 +21,17 @@ def testlayout2():
 
 
 @pytest.fixture
+def testlayout3():
+    data_dir = join(get_test_data_path(), 'ds005')
+    return BIDSLayout(data_dir, config=['bids', 'derivatives'])
+
+
+@pytest.fixture
 def testmergedlayout():
     data_dir = [join(get_test_data_path(), 'ds005'),
                 join(get_test_data_path(), 'ds005',
                      'derivatives', 'events')]
     return BIDSLayout(data_dir)
-
-
-@pytest.fixture
-def testlayout3():
-    data_dir = join(get_test_data_path(), 'ds005')
-    return BIDSLayout(data_dir, extensions=['derivatives'])
 
 
 def test_layout_init(testlayout1):
@@ -151,3 +151,9 @@ def test_exclude(testlayout2):
 
 def test_layout_with_derivs(testlayout3):
     assert isinstance(testlayout3.files, dict)
+    assert set(testlayout3.domains.keys()) == {'bids', 'derivatives'}
+    assert testlayout3.domains['bids'].files
+    assert testlayout3.domains['derivatives'].files
+    assert 'derivatives.roi' in testlayout3.entities
+    assert 'bids.roi' not in testlayout3.entities
+    assert 'bids.subject' in testlayout3.entities

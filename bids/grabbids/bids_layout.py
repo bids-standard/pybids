@@ -1,7 +1,7 @@
 import os
 import json
 import collections
-
+import warnings
 from io import open
 
 from os.path import dirname
@@ -11,31 +11,58 @@ from os.path import join as pathjoin
 from .bids_validator import BIDSValidator
 from .utils import _merge_event_files
 from grabbit import Layout, File
+from grabbit.external import six
+
 
 __all__ = ['BIDSLayout']
 
 
 class BIDSLayout(Layout):
+    ''' Layout class representing an entire BIDS project.
+
+    Args:
+        path (str): The path specifying the root directory of the BIDS project.
+        config (list, str): A string or list of string specifying which config
+            files to load. Each element in the list (or the value, if a string)
+            must be either a path to a JSON domain configuration file (see
+            grabbit docs for explanation), or the name of a built-in domain.
+            At present, built-in domains include 'bids' and 'derivatives'.
+        validate (bool): If True, all files are checked for BIDS compliance
+            when first indexed, and non-compliant files are ignored. Note that
+            the validator is experimental and may fail to perfectly detect
+            compliance.
+        index_associated (bool): Argument passed onto the BIDSValidator;
+            ignored if validate = False.
+        kwargs: Optional keyword arguments to pass onto the Layout initializer
+            in grabbit.
+    '''
 
     def __init__(self, path, config=None, validate=False,
-                 index_associated=True, extensions=None, **kwargs):
+                 index_associated=True, **kwargs):
         self.validator = BIDSValidator(index_associated=index_associated)
         self.validate = validate
-        if config is None:
-            root = dirname(abspath(__file__))
-            config = pathjoin(root, 'config', 'bids.json')
 
-        # Use dictionary config to allow extension augmentations
-        if not isinstance(config, collections.Mapping):
-            with open(config) as fobj:
-                config = json.load(fobj)
-        for ext in extensions or []:
-            builtin_ext = pathjoin(root, 'config', '%s.json' % ext)
-            if os.path.exists(builtin_ext):
-                ext = builtin_ext
-            with open(ext) as fobj:
-                ext_config = json.load(fobj)
-            config['entities'].extend(ext_config['entities'])
+        # Determine which configs to load
+        conf_path = pathjoin(dirname(abspath(__file__)), 'config', '%s.json')
+        _all_doms = ['bids', 'derivatives']
+        if config is None:
+            config = ['bids']
+
+        # If 'bids' isn't in the list, the user probably made a mistake...
+        if 'bids' not in config:
+            warnings.warn("The core BIDS configuration was not included in the"
+                          " config list. If you override the default value for"
+                          " config, you probably want to make sure 'bids' is "
+                          "included in the list of values.")
+
+        config = [conf_path % d if d in _all_doms else d for d in config]
+        config = [json.load(open(c, 'r')) for c in config]
+
+        # A bit hacky, but if derivatives are included, we need to make sure
+        # the derivatives directory isn't listed in excludes
+        if any([c['name'] == 'derivatives' for c in config]):
+            bids = [c for c in config if c['name'] == 'bids'][0]
+            bids['index']['exclude'].pop(0)
 
         super(BIDSLayout, self).__init__(path, config=config,
                                          dynamic_getters=True, **kwargs)
