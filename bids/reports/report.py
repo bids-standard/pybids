@@ -8,6 +8,7 @@ from os.path import join as pathjoin
 from collections import Counter
 
 from bids.reports import utils
+from bids.reports import parsing
 
 
 class BIDSReport(object):
@@ -23,12 +24,23 @@ class BIDSReport(object):
         Configuration info for methods generation. Can be a path to a file
         (str), a dictionary, or None. If None, loads and uses default
         configuration information.
+        Keys in the dictionary include:
+            'dir':      a dictionary for converting encoding direction strings
+                        (e.g., j-) to descriptions (e.g., anterior to posterior)
+            'seq':      a dictionary of sequence abbreviations (e.g., EP) and
+                        corresponding names (e.g., echo planar)
+            'seqvar':   a dictionary of sequence variant abbreviations
+                        (e.g., SP) and corresponding names (e.g., spoiled)
+            'task':     a dictionary of BIDS filename-based task identifiers
+                        (e.g., rest) and corresponding full names (e.g.,
+                        resting state). This field can be overwritten by users.
     """
     def __init__(self, layout, config=None):
         self.layout = layout
         if config is None:
-            root = dirname(abspath(__file__))
-            config = pathjoin(root, 'config', 'converters.json')
+            config = pathjoin(dirname(abspath(__file__)), 'config', 'converters.json')
+
+        if isinstance(config, str):
             with open(config) as fobj:
                 config = json.load(fobj)
 
@@ -38,37 +50,43 @@ class BIDSReport(object):
 
         self.config = config
 
-    def generate(self, task_converter=None):
+    def generate(self, task_converter=None, **kwargs):
         """Generate the methods section.
 
         Parameters
         ----------
-        task_converter : :obj:`dict`
+        task_converter : :obj:`dict`, optional
             A dictionary with information for converting task names from BIDS
-            filename format to human readable strings.
-        """
-        if task_converter is None:
-            task_converter = {'rest': 'resting state'}
+            filename format to human-readable strings.
 
-        self.config['task'] = task_converter
+        Examples
+        --------
+        >>> from bids.reports import BIDSReport
+        >>> report = BIDSReport('synthetic/')
+        >>> counter = report.generate()
+        'Number of patterns detected: 2'
+        >>> print(counter.most_common()[0][0])
+        """
+        if task_converter is not None:
+            self.config['task'] = task_converter
 
         descriptions = []
 
-        subjs = self.layout.get_subjects()
+        subjs = self.layout.get_subjects(**kwargs)
+        kwargs = {k:v for k, v in kwargs.items() if k != 'subject'}
         for sid in subjs:
-            description = self._report(subj=sid)
-            descriptions.append(description)
+            descriptions.append(self._report_subject(subject=sid, **kwargs))
         counter = Counter(descriptions)
         print('Number of patterns detected: {0}'.format(len(counter.keys())))
-        print(utils.warnings())
+        print(utils.reminder())
         return counter
 
-    def _report(self, subj):
-        """Write a report.
+    def _report_subject(self, subject, **kwargs):
+        """Write a report for a single subject.
 
         Parameters
         ----------
-        subj : :obj:`str`
+        subject : :obj:`str`
             Subject ID.
 
         Attributes
@@ -85,31 +103,30 @@ class BIDSReport(object):
             information. Each scan type is given its own paragraph.
         """
         description_list = []
-        sessions = self.layout.get_sessions()
-        if sessions:
-            for ses in sessions:
-                niftis = self.layout.get(subject=subj, session=ses, extensions='nii.gz')
+        # Remove session from kwargs if provided, else set sessions as all available
+        sessions = kwargs.pop('session', self.layout.get_sessions(subject=subject, **kwargs))
+        if not sessions:
+            sessions = [None]
+        elif not isinstance(sessions, list):
+            sessions = [sessions]
 
-                if niftis:
-                    description_list.append('For session {0}:'.format(ses))
-                    description_list += utils.parse_niftis(self.layout, niftis, subj,
-                                                           ses, self.config)
-                    metadata = self.layout.get_metadata(niftis[0].filename)
-        else:
-            niftis = self.layout.get(subject=subj, extensions='nii.gz')
+        for ses in sessions:
+            niftis = self.layout.get(subject=subject, extensions='nii.gz', **kwargs)
 
             if niftis:
-                description_list += utils.parse_niftis(self.layout, niftis, subj, None, self.config)
+                description_list.append('For session {0}:'.format(ses))
+                description_list += parsing.parse_niftis(self.layout, niftis, subject,
+                                                         self.config, session=ses)
                 metadata = self.layout.get_metadata(niftis[0].filename)
             else:
-                raise Exception('No niftis for subject {0}'.format(subj))
+                raise Exception('No niftis for subject {0}'.format(subject))
 
-        # Assume all data were converted the same way and use the first nifti file's
+        # Assume all data were converted the same way and use the last nifti file's
         # json for conversion information.
         if 'metadata' not in vars():
             raise Exception('No valid jsons found. Cannot generate final paragraph.')
 
         description = '\n\t'.join(description_list)
         description = description.replace('\tFor session', '\nFor session')
-        description += '\n\n{0}'.format(utils.final_paragraph(metadata))
+        description += '\n\n{0}'.format(parsing.final_paragraph(metadata))
         return description
