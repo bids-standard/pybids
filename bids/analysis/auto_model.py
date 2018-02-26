@@ -16,7 +16,7 @@ def _make_passthrough_contrast(level, contrast_names):
     return block
 
 
-def auto_model(layout, scan_length=None):
+def auto_model(layout, scan_length=None, one_vs_rest=False):
     '''Create a simple default model for each of the tasks in a BIDSLayout.
     Contrasts each trial type against all other trial types and trial types
     at the run level and then uses t-tests at each other level present to
@@ -64,49 +64,52 @@ def auto_model(layout, scan_length=None):
                                 variables=trial_type_factors)
         run["model"] = run_model
 
-        # if there are multiple trial types, build contrasts
-        contrasts = []
-        for i, tt in enumerate(trial_types):
-            cdict = OrderedDict()
-            if len(trial_types) > 1:
-                cdict["name"] = "run_" + tt + "_vs_others"
-            else:
-                cdict["name"] = "run_" + tt
-            cdict["condition_list"] = trial_type_factors
+        if one_vs_rest:
+            # if there are multiple trial types, build contrasts
+            contrasts = []
+            for i, tt in enumerate(trial_types):
+                cdict = OrderedDict()
+                if len(trial_types) > 1:
+                    cdict["name"] = "run_" + tt + "_vs_others"
+                else:
+                    cdict["name"] = "run_" + tt
+                cdict["condition_list"] = trial_type_factors
 
-            # Calculate weights for contrast
-            weights = np.ones(len(trial_types))
-            try:
-                weights[trial_types != tt] = -1.0 / (len(trial_types) - 1)
-            except ZeroDivisionError:
-                pass
-            cdict["weights"] = list(weights)
+                # Calculate weights for contrast
+                weights = np.ones(len(trial_types))
+                try:
+                    weights[trial_types != tt] = -1.0 / (len(trial_types) - 1)
+                except ZeroDivisionError:
+                    pass
+                cdict["weights"] = list(weights)
 
-            cdict["type"] = "T"
-            contrasts.append(cdict)
+                cdict["type"] = "T"
+                contrasts.append(cdict)
 
-        run["contrasts"] = contrasts
+            run["contrasts"] = contrasts
         blocks.append(run)
 
-        # if there are multiple sessions, t-test run level contrasts at
-        # session level
-        sessions = layout.get_sessions()
-        if len(sessions) > 1:
+        if one_vs_rest:
+            # if there are multiple sessions, t-test run level contrasts at
+            # session level
+            sessions = layout.get_sessions()
+            if len(sessions) > 1:
+                # get contrasts names from previous block
+                contrast_names = [cc["name"] for cc in blocks[-1]["contrasts"]]
+                blocks.append(_make_passthrough_contrast("session",
+                                                         contrast_names))
+
+            subjects = layout.get_subjects()
+            if len(subjects) > 1:
+                # get contrasts names from previous block
+                contrast_names = [cc["name"] for cc in blocks[-1]["contrasts"]]
+                blocks.append(_make_passthrough_contrast("subject",
+                                                         contrast_names))
+
             # get contrasts names from previous block
             contrast_names = [cc["name"] for cc in blocks[-1]["contrasts"]]
-            blocks.append(_make_passthrough_contrast("session",
+            blocks.append(_make_passthrough_contrast("dataset",
                                                      contrast_names))
-
-        subjects = layout.get_subjects()
-        if len(subjects) > 1:
-            # get contrasts names from previous block
-            contrast_names = [cc["name"] for cc in blocks[-1]["contrasts"]]
-            blocks.append(_make_passthrough_contrast("subject",
-                                                     contrast_names))
-
-        # get contrasts names from previous block
-        contrast_names = [cc["name"] for cc in blocks[-1]["contrasts"]]
-        blocks.append(_make_passthrough_contrast("dataset", contrast_names))
 
         model["blocks"] = blocks
         task_models.append(model)

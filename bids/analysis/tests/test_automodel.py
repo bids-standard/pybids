@@ -11,7 +11,7 @@ def model():
     layout_path = join(get_test_data_path(), 'ds005')
     layout = BIDSLayout(layout_path)
 
-    models = auto_model(layout, scan_length=480)
+    models = auto_model(layout, scan_length=480, one_vs_rest=True)
 
     return models[0]
 
