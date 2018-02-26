@@ -27,6 +27,8 @@ def auto_model(layout, scan_length=None, one_vs_rest=False):
         scan_length (Int) Scan length for loading event varibles in cases
              where the scan length can not be read from the nifti.
              Primarily for testing.
+        one_vs_rest (Bool) Set to True if you would like to autogenerate
+             contrasts of each trial type against everyother trialtype.
 
     Returns:
         models (list) list of model dictionaries for each task
