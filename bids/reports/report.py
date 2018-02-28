@@ -31,9 +31,6 @@ class BIDSReport(object):
                         corresponding names (e.g., echo planar)
             'seqvar':   a dictionary of sequence variant abbreviations
                         (e.g., SP) and corresponding names (e.g., spoiled)
-            'task':     a dictionary of BIDS filename-based task identifiers
-                        (e.g., rest) and corresponding full names (e.g.,
-                        resting state). This field can be overwritten by users.
     """
     def __init__(self, layout, config=None):
         self.layout = layout
@@ -50,7 +47,7 @@ class BIDSReport(object):
 
         self.config = config
 
-    def generate(self, task_converter=None, **kwargs):
+    def generate(self, **kwargs):
         """Generate the methods section.
 
         Parameters
@@ -67,9 +64,6 @@ class BIDSReport(object):
         'Number of patterns detected: 2'
         >>> print(counter.most_common()[0][0])
         """
-        if task_converter is not None:
-            self.config['task'] = task_converter
-
         descriptions = []
 
         subjs = self.layout.get_subjects(**kwargs)

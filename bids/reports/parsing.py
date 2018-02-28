@@ -4,7 +4,6 @@ Parsing functions for generating the MRI data acquisition portion of a
 methods section from a BIDS dataset.
 """
 from __future__ import print_function
-import re
 import logging
 from os.path import basename
 
@@ -38,9 +37,9 @@ def general_acquisition_info(metadata):
     """
     out_str = ('MR data were acquired using a {tesla}-Tesla {manu} {model} MRI '
                'scanner.')
-    out_str = out_str.format(tesla=metadata['MagneticFieldStrength'],
-                             manu=metadata['Manufacturer'],
-                             model=metadata['ManufacturersModelName'])
+    out_str = out_str.format(tesla=metadata.get('MagneticFieldStrength', 'UNKNOWN'),
+                             manu=metadata.get('Manufacturer', 'MANUFACTURER'),
+                             model=metadata.get('ManufacturersModelName', 'MODEL'))
     return out_str
 
 
@@ -77,6 +76,16 @@ def func_info(task, n_runs, metadata, img, config):
     else:
         pr_str = ''
 
+    if 'SliceTiming' in metadata.keys():
+        so_str = ' in {0} order'.format(get_slice_info(metadata['SliceTiming']))
+    else:
+        so_str = ''
+
+    if 'EchoTime' in metadata.keys():
+        te = num_to_str(metadata['EchoTime']*1000)
+    else:
+        te = 'UNKNOWN'
+
     task_name = metadata.get('TaskName', task+' task')
     seqs, variants = get_seqstr(config, metadata)
     n_slices, vs_str, ms_str, fov_str = get_sizestr(img)
@@ -94,7 +103,7 @@ def func_info(task, n_runs, metadata, img, config):
 
     desc = '''
            {run_str} of {task} {variants} {seqs} fMRI data were collected
-           ({n_slices} slices in {so} order; repetition time, TR={tr}ms;
+           ({n_slices} slices{so_str}; repetition time, TR={tr}ms;
            echo time, TE={te}ms; flip angle, FA={fa}<deg>;
            field of view, FOV={fov}mm; matrix size={ms};
            voxel size={vs}mm{mb_str}{pr_str}).
@@ -105,10 +114,10 @@ def func_info(task, n_runs, metadata, img, config):
                       variants=variants,
                       seqs=seqs,
                       n_slices=n_slices,
-                      so=get_slice_info(metadata['SliceTiming']),
+                      so_str=so_str,
                       tr=num_to_str(tr*1000),
-                      te=num_to_str(metadata['EchoTime']*1000),
-                      fa=metadata['FlipAngle'],
+                      te=te,
+                      fa=metadata.get('FlipAngle', 'UNKNOWN'),
                       vs=vs_str,
                       fov=fov_str,
                       ms=ms_str,
@@ -149,6 +158,11 @@ def anat_info(type_, metadata, img, config):
     n_slices, vs_str, ms_str, fov_str = get_sizestr(img)
     seqs, variants = get_seqstr(config, metadata)
 
+    if 'EchoTime' in metadata.keys():
+        te = num_to_str(metadata['EchoTime']*1000)
+    else:
+        te = 'UNKNOWN'
+
     desc = '''
            {type_} {variants} {seqs} structural MRI data were collected
            ({n_slices} slices; repetition time, TR={tr}ms;
@@ -159,8 +173,8 @@ def anat_info(type_, metadata, img, config):
                       seqs=seqs,
                       n_slices=n_slices,
                       tr=num_to_str(metadata['RepetitionTime']*1000),
-                      te=num_to_str(metadata['EchoTime']*1000),
-                      fa=metadata['FlipAngle'],
+                      te=te,
+                      fa=metadata.get('FlipAngle', 'UNKNOWN'),
                       vs=vs_str,
                       fov=fov_str,
                       ms=ms_str,
@@ -213,6 +227,16 @@ def dwi_info(bval_file, metadata, img, config):
     else:
         mb_str = ''
 
+    if 'SliceTiming' in metadata.keys():
+        so_str = ' in {0} order'.format(get_slice_info(metadata['SliceTiming']))
+    else:
+        so_str = ''
+
+    if 'EchoTime' in metadata.keys():
+        te = num_to_str(metadata['EchoTime']*1000)
+    else:
+        te = 'UNKNOWN'
+
     n_slices, vs_str, ms_str, fov_str = get_sizestr(img)
     n_vecs = img.shape[3]
     seqs, variants = get_seqstr(config, metadata)
@@ -220,7 +244,7 @@ def dwi_info(bval_file, metadata, img, config):
 
     desc = '''
            {variants} {seqs} diffusion-weighted (dMRI) data were collected
-           ({n_slices} slices in {so} order; repetition time, TR={tr}ms;
+           ({n_slices} slices{so_str}; repetition time, TR={tr}ms;
            echo time, TE={te}ms; flip angle, FA={fa}<deg>;
            field of view, FOV={fov}mm; matrix size={ms}; voxel size={vs}mm;
            b-values of {bval_str} acquired;
@@ -228,10 +252,10 @@ def dwi_info(bval_file, metadata, img, config):
            '''.format(variants=variants,
                       seqs=seqs,
                       n_slices=n_slices,
-                      so=get_slice_info(metadata['SliceTiming']),
+                      so_str=so_str,
                       tr=num_to_str(metadata['RepetitionTime']*1000),
-                      te=num_to_str(metadata['EchoTime']*1000),
-                      fa=metadata['FlipAngle'],
+                      te=te,
+                      fa=metadata.get('FlipAngle', 'UNKNOWN'),
                       vs=vs_str,
                       fov=fov_str,
                       ms=ms_str,
@@ -246,7 +270,7 @@ def dwi_info(bval_file, metadata, img, config):
     return desc
 
 
-def fmap_info(metadata, img, config):
+def fmap_info(metadata, img, config, layout):
     """
     Generate a paragraph describing field map acquisition information.
 
@@ -270,18 +294,22 @@ def fmap_info(metadata, img, config):
     n_slices, vs_str, ms_str, fov_str = get_sizestr(img)
     seqs, variants = get_seqstr(config, metadata)
 
+    if 'EchoTime' in metadata.keys():
+        te = num_to_str(metadata['EchoTime']*1000)
+    else:
+        te = 'UNKNOWN'
+
     if 'IntendedFor' in metadata.keys():
         scans = metadata['IntendedFor']
         run_dict = {}
         for scan in scans:
             fn = basename(scan)
-            run_search = re.search(r'.*_run-([0-9]+).*', fn)
-            run_num = int(run_search.groups()[0])
-            type_search = re.search(r'.*_([a-z0-9]+)\..*', fn)
-            ty = type_search.groups()[0].upper()
+            iff_file = [f for f in layout.get(extensions='nii.gz') if fn in f.filename][0]
+            run_num = int(iff_file.run)
+            ty = iff_file.type.upper()
             if ty == 'BOLD':
-                task_search = re.search(r'.*_task-([a-z0-9]+).*', fn)
-                task = config['task'].get(task_search.groups()[0], task_search.groups()[0])
+                iff_meta = layout.get_metadata(iff_file.filename)
+                task = iff_meta.get('TaskName', iff_file.task)
                 ty_str = '{0} {1} scan'.format(task, ty)
             else:
                 ty_str = '{0} scan'.format(ty)
@@ -320,7 +348,7 @@ def fmap_info(metadata, img, config):
                       for_str=for_str,
                       n_slices=n_slices,
                       tr=num_to_str(metadata['RepetitionTime']*1000),
-                      te=num_to_str(metadata['EchoTime']*1000),
+                      te=te,
                       fa=metadata['FlipAngle'],
                       vs=vs_str,
                       fov=fov_str,
@@ -414,6 +442,6 @@ def parse_niftis(layout, niftis, subj, config, **kwargs):
                 bval_file = nii_file.replace('.nii.gz', '.bval')
                 description_list.append(dwi_info(bval_file, metadata, img, config))
             elif nifti_struct.modality == 'fmap':
-                description_list.append(fmap_info(metadata, img, config))
+                description_list.append(fmap_info(metadata, img, config, layout))
 
     return description_list

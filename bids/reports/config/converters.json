@@ -23,6 +23,5 @@
         "SP": "spoiled",
         "SS": "steady state",
         "TRSS": "time reversed steady state"
-    },
-    "task": {"rest": "resting state"}
+    }
 }
