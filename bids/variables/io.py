@@ -245,7 +245,7 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
 
                 # Keep only in-scan samples
                 if st < 0:
-                    start_ind = np.floor(-st * freq)
+                    start_ind = int(np.floor(-st * freq))
                     values = data.values[start_ind:, :]
                 else:
                     values = data.values
