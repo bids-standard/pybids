@@ -240,10 +240,9 @@ def dwi_info(bval_file, metadata, img, config):
     n_slices, vs_str, ms_str, fov_str = get_sizestr(img)
     n_vecs = img.shape[3]
     seqs, variants = get_seqstr(config, metadata)
-    variants = variants[0].upper() + variants[1:]  # variants starts sentence
 
     desc = '''
-           {variants} {seqs} diffusion-weighted (dMRI) data were collected
+           One run of {variants} {seqs} diffusion-weighted (dMRI) data were collected
            ({n_slices} slices{so_str}; repetition time, TR={tr}ms;
            echo time, TE={te}ms; flip angle, FA={fa}<deg>;
            field of view, FOV={fov}mm; matrix size={ms}; voxel size={vs}mm;
@@ -349,7 +348,7 @@ def fmap_info(metadata, img, config, layout):
                       n_slices=n_slices,
                       tr=num_to_str(metadata['RepetitionTime']*1000),
                       te=te,
-                      fa=metadata['FlipAngle'],
+                      fa=metadata.get('FlipAngle', 'UNKNOWN'),
                       vs=vs_str,
                       fov=fov_str,
                       ms=ms_str)
