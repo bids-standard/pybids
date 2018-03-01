@@ -56,13 +56,22 @@ class BIDSReport(object):
             A dictionary with information for converting task names from BIDS
             filename format to human-readable strings.
 
+        Returns
+        -------
+        counter : :obj:`collections.Counter`
+            A dictionary of unique descriptions across subjects in the dataset,
+            along with the number of times each pattern occurred.
+
         Examples
         --------
+        >>> from os.path import join
+        >>> from bids.grabbids import BIDSLayout
         >>> from bids.reports import BIDSReport
-        >>> report = BIDSReport('synthetic/')
-        >>> counter = report.generate()
-        'Number of patterns detected: 2'
-        >>> print(counter.most_common()[0][0])
+        >>> from bids.tests import get_test_data_path
+        >>> layout = BIDSLayout(join(get_test_data_path(), 'synthetic'))
+        >>> report = BIDSReport(layout)
+        >>> counter = report.generate(session='01')
+        >>> counter.most_common()[0][0]
         """
         descriptions = []
 
