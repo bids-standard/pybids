@@ -1,10 +1,6 @@
 {
     "name": "bids",
     "root": ".",
-    "index" : {
-      "exclude" : [".*derivatives$", ".*models$", ".*sourcedata$", ".*code$",
-                   "^\\.", ".*[/\\\\]\\."]
-    },
     "entities": [
         {
             "name": "subject",

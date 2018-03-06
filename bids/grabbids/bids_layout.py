@@ -1,6 +1,5 @@
 import os
 import json
-import collections
 import warnings
 from io import open
 
@@ -12,6 +11,7 @@ from .bids_validator import BIDSValidator
 from .utils import _merge_event_files
 from grabbit import Layout, File
 from grabbit.external import six
+from grabbit.utils import listify
 
 
 __all__ = ['BIDSLayout']
@@ -22,23 +22,44 @@ class BIDSLayout(Layout):
 
     Args:
         path (str): The path specifying the root directory of the BIDS project.
-        config (list, str): A string or list of string specifying which config
-            files to load. Each element in the list (or the value, if a string)
-            must be either a path to a JSON domain configuration file (see
-            grabbit docs for explanation), or the name of a built-in domain.
+        config (list, str): An optional specification of the config(s) to
+            apply to the layout. If passed, must be one of:
+
+            - A dictionary containing config information.
+            - A string giving either the name of a valid built-in config (e.g.,
+              'bids' or 'derivatives'), or the path to a JSON file containing
+              the config.
+            - A tuple with 2 elements, where the first element is a string
+              that names the built-in config to use, and the second is either:
+                * A list or tuple of paths to which that config should apply
+                * A partial dictionary to merge into the named built-in config,
+                  and can contain any key normally found in the config.
+            - A list, where each element can be any of the above.
+
             At present, built-in domains include 'bids' and 'derivatives'.
+
         validate (bool): If True, all files are checked for BIDS compliance
             when first indexed, and non-compliant files are ignored. Note that
             the validator is experimental and may fail to perfectly detect
             compliance.
         index_associated (bool): Argument passed onto the BIDSValidator;
             ignored if validate = False.
+        include (str, list): String or list of strings giving paths to files or
+            directories to include in indexing. Note that if this argument is
+            passed, *only* files and directories that match at least one of the
+            patterns in the include list will be indexed. Cannot be used
+            together with 'exclude'.
+        include (str, list): String or list of strings giving paths to files or
+            directories to exclude from indexing. If this argument is passed,
+            all files and directories that match at least one of the patterns
+            in the include list will be ignored. Cannot be used together with
+            'include'.
         kwargs: Optional keyword arguments to pass onto the Layout initializer
             in grabbit.
     '''
 
     def __init__(self, path, config=None, validate=False,
-                 index_associated=True, **kwargs):
+                 index_associated=True, include=None, exclude=None, **kwargs):
         self.validator = BIDSValidator(index_associated=index_associated)
         self.validate = validate
 
@@ -46,26 +67,38 @@ class BIDSLayout(Layout):
         conf_path = pathjoin(dirname(abspath(__file__)), 'config', '%s.json')
         _all_doms = ['bids', 'derivatives']
         if config is None:
-            config = ['bids']
+            config = ['bids', 'derivatives']
+
+        configs = []
+
+        def _load_config(conf):
+            if isinstance(conf, six.string_types):
+                if conf in _all_doms:
+                    conf = conf_path % conf
+                conf = json.load(open(conf, 'r'))
+            return conf
+
+        for conf in listify(config):
+            if isinstance(conf, tuple):
+                _conf = _load_config(conf[0]).copy()
+                if isinstance(conf[1], dict):
+                    _conf.update(conf[1])
+                else:
+                    _conf['root'] = conf[1]
+                configs.append(_conf)
+            else:
+                configs.append(_load_config(conf))
 
         # If 'bids' isn't in the list, the user probably made a mistake...
-        if 'bids' not in config:
+        if not any([c['name'] != 'bids' for c in configs]):
             warnings.warn("The core BIDS configuration was not included in the"
                           " config list. If you override the default value for"
                           " config, you probably want to make sure 'bids' is "
                           "included in the list of values.")
 
-        config = [conf_path % d if d in _all_doms else d for d in config]
-        config = [json.load(open(c, 'r')) for c in config]
-
-        # A bit hacky, but if derivatives are included, we need to make sure
-        # the derivatives directory isn't listed in excludes
-        if any([c['name'] == 'derivatives' for c in config]):
-            bids = [c for c in config if c['name'] == 'bids'][0]
-            bids['index']['exclude'].pop(0)
-
-        super(BIDSLayout, self).__init__(path, config=config,
-                                         dynamic_getters=True, **kwargs)
+        super(BIDSLayout, self).__init__(path, config=configs,
+                                         dynamic_getters=True, include=include,
+                                         exclude=exclude, **kwargs)
 
     def _validate_file(self, f):
         # If validate=True then checks files according to BIDS and
