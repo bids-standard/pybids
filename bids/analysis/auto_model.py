@@ -35,7 +35,7 @@ def auto_model(layout, scan_length=None, one_vs_rest=False):
     '''
 
     base_name = split(layout.root)[-1]
-    tasks = layout.entities['task'].unique()
+    tasks = layout.entities['bids.task'].unique()
     task_models = []
 
     for task_name in tasks:
