@@ -10,14 +10,14 @@ from bids.tests import get_test_data_path
 @pytest.fixture
 def layout1():
     path = join(get_test_data_path(), 'ds005')
-    layout = BIDSLayout(path)
+    layout = BIDSLayout(path, exclude='derivatives/')
     return layout
 
 
 @pytest.fixture(scope="module")
 def synthetic():
     path = join(get_test_data_path(), 'synthetic')
-    layout = BIDSLayout(path)
+    layout = BIDSLayout(path, exclude='derivatives/')
     return load_variables(layout)
 
 
