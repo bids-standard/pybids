@@ -39,9 +39,11 @@ class BIDSLayout(Layout):
             At present, built-in domains include 'bids' and 'derivatives'.
 
         validate (bool): If True, all files are checked for BIDS compliance
-            when first indexed, and non-compliant files are ignored. Note that
-            the validator is experimental and may fail to perfectly detect
-            compliance.
+            when first indexed, and non-compliant files are ignored. This
+            provides a convenient way to restrict file indexing to only those
+            files defined in the "core" BIDS spec, as setting validate=True
+            will lead files in supplementary folders like derivatives/, code/,
+            etc. to be ignored.
         index_associated (bool): Argument passed onto the BIDSValidator;
             ignored if validate = False.
         include (str, list): String or list of strings giving paths to files or
