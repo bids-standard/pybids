@@ -8,30 +8,22 @@ from bids.tests import get_test_data_path
 
 
 # Fixture uses in the rest of the tests
-@pytest.fixture
+@pytest.fixture(scope='module')
 def testlayout1():
     data_dir = join(get_test_data_path(), '7t_trt')
     return BIDSLayout(data_dir)
 
 
-@pytest.fixture
+@pytest.fixture(scope='module')
 def testlayout2():
     data_dir = join(get_test_data_path(), 'ds005')
-    return BIDSLayout(data_dir)
+    return BIDSLayout(data_dir, exclude=['models/', 'derivatives/'])
 
 
-@pytest.fixture
-def testmergedlayout():
-    data_dir = [join(get_test_data_path(), 'ds005'),
-                join(get_test_data_path(), 'ds005',
-                     'derivatives', 'events')]
-    return BIDSLayout(data_dir)
-
-
-@pytest.fixture
+@pytest.fixture(scope='module')
 def testlayout3():
     data_dir = join(get_test_data_path(), 'ds005')
-    return BIDSLayout(data_dir, extensions=['derivatives'])
+    return BIDSLayout(data_dir, config=['bids', 'derivatives'])
 
 
 def test_layout_init(testlayout1):
@@ -76,20 +68,20 @@ def test_get_metadata5(testlayout1):
     assert result['acquisition'] == 'fullbrain'
 
 
-def test_get_events(testmergedlayout):
+def test_get_events(testlayout3):
     target = 'sub-01/func/sub-01_task-' \
              'mixedgamblestask_run-01_bold.nii.gz'
-    result = testmergedlayout.get_events(join(testmergedlayout.root, target))
+    result = testlayout3.get_events(join(testlayout3.root, target))
     assert len(result) == 2
     expected1 = abspath(join(
-        testmergedlayout.root, target.replace('_bold.nii.gz', '_events.tsv')))
+        testlayout3.root, target.replace('_bold.nii.gz', '_events.tsv')))
     assert expected1 in result
 
     expected2 = abspath(join(
-        testmergedlayout.root, 'derivatives/events/', basename(expected1)))
+        testlayout3.root, 'derivatives/events/', basename(expected1)))
 
-    merged = testmergedlayout.get_events(join(testmergedlayout.root, target),
-                                         return_type='df')
+    merged = testlayout3.get_events(join(testlayout3.root, target),
+                                    return_type='df')
 
     assert 'response' in merged
     assert 'trial_type' in merged
@@ -103,7 +95,7 @@ def test_get_events(testmergedlayout):
 def test_get_events2(testlayout2):
     target = 'sub-03/anat/sub-03_T1w.nii.gz'
     result = testlayout2.get_events(join(testlayout2.root, target))
-    assert result == None
+    assert result is None
 
 
 def test_get_bvals_bvecs(testlayout2):
@@ -151,3 +143,13 @@ def test_exclude(testlayout2):
 
 def test_layout_with_derivs(testlayout3):
     assert isinstance(testlayout3.files, dict)
+    assert set(testlayout3.domains.keys()) == {'bids', 'derivatives'}
+    assert testlayout3.domains['bids'].files
+    assert testlayout3.domains['derivatives'].files
+    assert 'derivatives.roi' in testlayout3.entities
+    assert 'bids.roi' not in testlayout3.entities
+    assert 'bids.subject' in testlayout3.entities
+
+
+def test_layout_with_custom_domain_options():
+    pass

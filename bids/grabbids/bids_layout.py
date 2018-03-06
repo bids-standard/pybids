@@ -1,7 +1,6 @@
 import os
 import json
-import collections
-
+import warnings
 from io import open
 
 from os.path import dirname
@@ -11,34 +10,97 @@ from os.path import join as pathjoin
 from .bids_validator import BIDSValidator
 from .utils import _merge_event_files
 from grabbit import Layout, File
+from grabbit.external import six
+from grabbit.utils import listify
+
 
 __all__ = ['BIDSLayout']
 
 
 class BIDSLayout(Layout):
+    ''' Layout class representing an entire BIDS project.
+
+    Args:
+        path (str): The path specifying the root directory of the BIDS project.
+        config (list, str): An optional specification of the config(s) to
+            apply to the layout. If passed, must be one of:
+
+            - A dictionary containing config information.
+            - A string giving either the name of a valid built-in config (e.g.,
+              'bids' or 'derivatives'), or the path to a JSON file containing
+              the config.
+            - A tuple with 2 elements, where the first element is a string
+              that names the built-in config to use, and the second is either:
+                * A list or tuple of paths to which that config should apply
+                * A partial dictionary to merge into the named built-in config,
+                  and can contain any key normally found in the config.
+            - A list, where each element can be any of the above.
+
+            At present, built-in domains include 'bids' and 'derivatives'.
+
+        validate (bool): If True, all files are checked for BIDS compliance
+            when first indexed, and non-compliant files are ignored. This
+            provides a convenient way to restrict file indexing to only those
+            files defined in the "core" BIDS spec, as setting validate=True
+            will lead files in supplementary folders like derivatives/, code/,
+            etc. to be ignored.
+        index_associated (bool): Argument passed onto the BIDSValidator;
+            ignored if validate = False.
+        include (str, list): String or list of strings giving paths to files or
+            directories to include in indexing. Note that if this argument is
+            passed, *only* files and directories that match at least one of the
+            patterns in the include list will be indexed. Cannot be used
+            together with 'exclude'.
+        include (str, list): String or list of strings giving paths to files or
+            directories to exclude from indexing. If this argument is passed,
+            all files and directories that match at least one of the patterns
+            in the include list will be ignored. Cannot be used together with
+            'include'.
+        kwargs: Optional keyword arguments to pass onto the Layout initializer
+            in grabbit.
+    '''
 
     def __init__(self, path, config=None, validate=False,
-                 index_associated=True, extensions=None, **kwargs):
+                 index_associated=True, include=None, exclude=None, **kwargs):
         self.validator = BIDSValidator(index_associated=index_associated)
         self.validate = validate
+
+        # Determine which configs to load
+        conf_path = pathjoin(dirname(abspath(__file__)), 'config', '%s.json')
+        _all_doms = ['bids', 'derivatives']
         if config is None:
-            root = dirname(abspath(__file__))
-            config = pathjoin(root, 'config', 'bids.json')
+            config = ['bids', 'derivatives']
 
-        # Use dictionary config to allow extension augmentations
-        if not isinstance(config, collections.Mapping):
-            with open(config) as fobj:
-                config = json.load(fobj)
-        for ext in extensions or []:
-            builtin_ext = pathjoin(root, 'config', '%s.json' % ext)
-            if os.path.exists(builtin_ext):
-                ext = builtin_ext
-            with open(ext) as fobj:
-                ext_config = json.load(fobj)
-            config['entities'].extend(ext_config['entities'])
+        configs = []
 
-        super(BIDSLayout, self).__init__(path, config=config,
-                                         dynamic_getters=True, **kwargs)
+        def _load_config(conf):
+            if isinstance(conf, six.string_types):
+                if conf in _all_doms:
+                    conf = conf_path % conf
+                conf = json.load(open(conf, 'r'))
+            return conf
+
+        for conf in listify(config):
+            if isinstance(conf, tuple):
+                _conf = _load_config(conf[0]).copy()
+                if isinstance(conf[1], dict):
+                    _conf.update(conf[1])
+                else:
+                    _conf['root'] = conf[1]
+                configs.append(_conf)
+            else:
+                configs.append(_load_config(conf))
+
+        # If 'bids' isn't in the list, the user probably made a mistake...
+        if not any([c['name'] != 'bids' for c in configs]):
+            warnings.warn("The core BIDS configuration was not included in the"
+                          " config list. If you override the default value for"
+                          " config, you probably want to make sure 'bids' is "
+                          "included in the list of values.")
+
+        super(BIDSLayout, self).__init__(path, config=configs,
+                                         dynamic_getters=True, include=include,
+                                         exclude=exclude, **kwargs)
 
     def _validate_file(self, f):
         # If validate=True then checks files according to BIDS and
@@ -200,8 +262,8 @@ class BIDSLayout(Layout):
         sub = os.path.split(path)[1].split("_")[0].split("sub-")[1]
         fieldmap_set = []
         type_ = '(phase1|phasediff|epi|fieldmap)'
-        for file in self.get(subject=sub, type=type_,
-                             extensions=['nii.gz', 'nii']):
+        files = self.get(subject=sub, type=type_, extensions=['nii.gz', 'nii'])
+        for file in files:
             metadata = self.get_metadata(file.filename)
             if metadata and "IntendedFor" in metadata.keys():
                 if isinstance(metadata["IntendedFor"], list):
