@@ -8,7 +8,7 @@ from bids.variables import DenseRunVariable, merge_collections
 @pytest.fixture(scope="module")
 def run_coll():
     path = join(get_test_data_path(), 'ds005')
-    layout = BIDSLayout(path)
+    layout = BIDSLayout(path, exclude='derivatives/')
     return layout.get_collections('run', types=['events'], merge=True,
                                   scan_length=480)
 
@@ -16,7 +16,7 @@ def run_coll():
 @pytest.fixture(scope="module")
 def run_coll_list():
     path = join(get_test_data_path(), 'ds005')
-    layout = BIDSLayout(path)
+    layout = BIDSLayout(path, exclude='derivatives/')
     return layout.get_collections('run', types=['events'], merge=False,
                                   scan_length=480)
 

@@ -9,7 +9,7 @@ import pytest
 @pytest.fixture
 def analysis():
     layout_path = join(get_test_data_path(), 'ds005')
-    layout = BIDSLayout(layout_path)
+    layout = BIDSLayout(layout_path, exclude='derivatives/')
     json_file = join(layout_path, 'models', 'ds-005_type-test_model.json')
     analysis = Analysis(layout, json_file)
     analysis.setup(scan_length=480, subject=['01', '02'])

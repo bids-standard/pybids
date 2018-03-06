@@ -26,7 +26,7 @@ def _merge_event_files(events):
                 keep_key = key[:-len(conf_suff)]
                 merged[keep_key] = merged[keep_key].combine_first(merged[key])
 
-            merged = merged.drop(columns=clash_keys)
+            merged = merged.drop(clash_keys, axis=1)
 
             return merged
 
