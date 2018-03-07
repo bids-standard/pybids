@@ -8,7 +8,7 @@ This is a major release that introduces the following features:
 	* `bids.variables.io.py`: Tools for loading variable data from BIDS projects.
 	* `bids.variables.kollekshuns`: Containers that facilitate aggregation and manipulation of `Variable` classes.
 * Extensions to the `BIDSLayout` class that make it easy to retrieve data/variables from the project (i.e., `Layout.get_collections`)
-* A new `auto_model` utility that generates simple BIDS-Model specifications from BIDS projects (thanks to @Shotgunosyne)
+* A new `auto_model` utility that generates simple BIDS-Model specifications from BIDS projects (thanks to @Shotgunosine)
 * A new `reports` module that generates methods sections from metadata in BIDS projects (thanks to @tsalo)
 * Experimental support for copying/writing out files in a BIDS-compliant way
 * Expand `bids.json` config file to include missing entity definitions
