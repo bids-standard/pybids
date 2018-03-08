@@ -69,3 +69,8 @@ REQUIRES = ["grabbit>=0.1.1", "six", "num2words"]
 EXTRAS_REQUIRE = {
     'analysis': ['numpy', 'scipy', 'pandas', 'nibabel', 'patsy'],
 }
+TESTS_REQUIRE = ["pytest>=3.3.0"]
+PACKAGE_DATA = {
+    'bids.grabbids': ['grabbids/config/*.json'],
+    'bids.reports': ['reports/config/*.json']
+}
