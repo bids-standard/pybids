@@ -1,0 +1,4 @@
+.. _examples-index:
+
+Examples
+===================

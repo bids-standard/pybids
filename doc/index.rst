@@ -14,6 +14,7 @@ Contents:
    :maxdepth: 2
 
    reference/index
+   auto_examples/index
 
 Indices and tables
 ==================

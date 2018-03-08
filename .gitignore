@@ -92,3 +92,9 @@ ENV/
 
 *.DS_Store
 *.orig
+
+# Sphinx
+doc/_build/
+doc/auto_examples/
+doc/gen_modules/
+

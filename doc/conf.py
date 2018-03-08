@@ -59,13 +59,29 @@ extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.intersphinx',
               'sphinx.ext.todo',
               'sphinx.ext.coverage',
-              'sphinx.ext.pngmath',
               'sphinx.ext.ifconfig',
               'sphinx.ext.autosummary',
               'sphinx.ext.mathjax',
               'math_dollar', # has to go before numpydoc
               'numpydoc',
-              'github']
+              'github',
+              'sphinx_gallery.gen_gallery',]
+
+
+sphinx_gallery_conf = {
+    # path to your examples scripts
+    'examples_dirs'     : '../examples',
+    # path where to save gallery generated examples
+    'gallery_dirs'      : 'auto_examples',
+    'backreferences_dir': 'gen_modules/backreferences',
+    # Modules for which function level galleries are created.  In
+    # this case sphinx_gallery and numpy in a tuple of strings.
+    'doc_module'        : ('pybids', 'numpy'),
+    }
+
+# Generate the plots for the gallery
+plot_gallery = True
+
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
