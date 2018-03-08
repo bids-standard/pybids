@@ -27,7 +27,7 @@ def writeapi(package, outdir, source_version, other_defines=True):
     try:
         __import__(package)
     except ImportError:
-        abort("Can not import " + package)
+        abort("Cannot import " + package)
 
     module = sys.modules[package]
 
@@ -44,6 +44,7 @@ def writeapi(package, outdir, source_version, other_defines=True):
                              other_defines=other_defines)
 
     docwriter.package_skip_patterns += [r'\.%s$' % package,
+                                        r'\.due',
                                         r'.*test.*$',
                                         r'\.version.*$']
     docwriter.write_api_docs(outdir)
