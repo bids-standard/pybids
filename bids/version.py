@@ -1,4 +1,5 @@
 from __future__ import absolute_import, division, print_function
+import os
 
 # Format expected by setup.py and doc/source/conf.py: string of form "X.Y.Z"
 _version_major = 0
@@ -64,13 +65,24 @@ MINOR = _version_minor
 MICRO = _version_micro
 VERSION = __version__
 # No data for now
-# PACKAGE_DATA = {'bids': [pjoin('data', '*')]}
 REQUIRES = ["grabbit>=0.1.1", "six", "num2words"]
 EXTRAS_REQUIRE = {
     'analysis': ['numpy', 'scipy', 'pandas', 'nibabel', 'patsy'],
 }
 TESTS_REQUIRE = ["pytest>=3.3.0"]
+
+
+def package_files(directory):
+    # from https://stackoverflow.com/questions/27664504/how-to-add-package-data-recursively-in-python-setup-py
+    paths = []
+    for (path, directories, filenames) in os.walk(directory):
+        for filename in filenames:
+            paths.append(os.path.join('..', path, filename))
+    return paths
+
+extra_files = package_files('path_to/extra_files_dir')
 PACKAGE_DATA = {
-    'bids.grabbids': ['grabbids/config/*.json'],
-    'bids.reports': ['reports/config/*.json']
+    'bids.grabbids': ['config/*.json'],
+    'bids.reports': ['config/*.json'],
+    'bids': package_files('bids/tests/data')
 }
