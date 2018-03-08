@@ -65,6 +65,18 @@ extensions = ['sphinx.ext.autodoc',
               'math_dollar', # has to go before numpydoc
               'numpydoc',]
 
+# library pointers.
+intersphinx_mapping = {
+    'http://docs.python.org/3.5': None,
+    'http://docs.scipy.org/doc/numpy': None,
+    'http://docs.scipy.org/doc/scipy/reference': None,
+    'http://matplotlib.org/': None,
+    'http://scikit-learn.org/0.17': None,
+    'http://nipy.org/nibabel/': None,
+    'http://pandas.pydata.org/pandas-docs/stable/': None,
+    'http://neurosynth.readthedocs.io/en/latest/': None,
+}
+
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
 
