@@ -39,7 +39,7 @@ before_install:
 - conda install --quiet python=$PYTHON_VERSION $CONDA_DEPS
 
 install:
-- pip install ".[analysis]"
+- pip install -e ".[analysis]"
 - pip install --upgrade git+https://github.com/grabbles/grabbit.git
 
 script:
