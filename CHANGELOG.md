@@ -1,5 +1,11 @@
 # Changelog
 
+## Version 0.5.1 (March 9, 2018)
+Hotfix release:
+
+* Includes data files omitted from 0.5.0 release.
+* Improves testing of installation.
+
 ## Version 0.5.0 (March 6, 2018)
 This is a major release that introduces the following features:
 * A new `bids.variables` module that adds the following submodules:
