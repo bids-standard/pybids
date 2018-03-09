@@ -63,7 +63,8 @@ extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.autosummary',
               'sphinx.ext.mathjax',
               'math_dollar', # has to go before numpydoc
-              'numpydoc',]
+              'numpydoc',
+              'm2r']
 
 # library pointers.
 intersphinx_mapping = {
@@ -81,7 +82,7 @@ intersphinx_mapping = {
 templates_path = ['_templates']
 
 # The suffix of source filenames.
-source_suffix = '.rst'
+source_suffix = ['.rst', '.md']
 
 # The encoding of source files.
 #source_encoding = 'utf-8-sig'
@@ -302,6 +303,3 @@ texinfo_domain_indices = False
 
 # If true, do not generate a @detailmenu in the "Top" node's menu.
 #texinfo_no_detailmenu = False
-
-# Example configuration for intersphinx: refer to the Python standard library.
-intersphinx_mapping = {'http://docs.python.org/': None}

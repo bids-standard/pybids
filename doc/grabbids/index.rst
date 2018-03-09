@@ -1,7 +1,7 @@
 .. _reports:
 
 =====================================================
-Parsing BIDS datasets
+``grabbids``: Querying BIDS datasets
 =====================================================
 
 .. contents:: **Contents**
@@ -12,72 +12,60 @@ Parsing BIDS datasets
 
 .. currentmodule:: pybids.grabbids
 
-.. _initializing_reports:
+.. _loading_datasets:
 
-Initializing reports
+Loading BIDS datasets
 ===========================================
 
-The :obj:`bids.reports.BIDSReport` class requires a :obj:`bids.grabbids.BIDSLayout` object as an argument::
+The :obj:`bids.layout.BIDSLayout` class requires the path to a valid BIDS dataset::
 
     >>> from os.path import join
     >>> from bids.grabbids import BIDSLayout
-    >>> from bids.reports import BIDSReport
     >>> from bids.tests import get_test_data_path
     >>> layout = BIDSLayout(join(get_test_data_path(), 'synthetic'))
-    >>> report = BIDSReport(layout)
 
-Generating reports
+The ``BIDSLayout`` instance is a lightweight container for all of the files in the
+BIDS project directory. It automatically detects any BIDS entities found in the
+file paths, and allows us to perform simple but relatively powerful queries over
+the file tree. By default, defined BIDS entities include things like "subject",
+"session", "run", and "type".
+
+.. _querying_datasets:
+
+Querying datasets
 ===========================================
 
-Pybids reports are then generated with the ``generate`` method, which returns a
-:obj:`collections.Counter` of reports::
+Pybids layouts can be queried according to a number of parameters, using
+grabbit's ``get`` functionality.
 
-    >>> counter = report.generate()
-    >>> main_report = counter.most_common()[0][0]
-    >>> print(main_report)
-    r"""
-    For session 01:
-    	MR data were acquired using a UNKNOWN-Tesla MANUFACTURER MODEL MRI scanner.
-    	Ten runs of N-Back fMRI data were collected (64 slices; repetition time, TR=2500ms;
-    echo time, TE=UNKNOWNms; flip angle, FA=UNKNOWN<deg>; field of view, FOV=128x128mm;
-    matrix size=64x64; voxel size=2x2x2mm). Each run was 2:40 minutes in length, during
-    which 64 functional volumes were acquired.
-    	Five runs of Rest fMRI data were collected (64 slices; repetition time, TR=2500ms;
-    echo time, TE=UNKNOWNms; flip angle, FA=UNKNOWN<deg>; field of view, FOV=128x128mm;
-    matrix size=64x64; voxel size=2x2x2mm). Each run was 2:40 minutes in length, during
-    which 64 functional volumes were acquired.
+For example, if we want to get a list of subjects in the dataset::
 
-    For session 02:
-    	MR data were acquired using a UNKNOWN-Tesla MANUFACTURER MODEL MRI scanner.
-    	Ten runs of N-Back fMRI data were collected (64 slices; repetition time, TR=2500ms;
-    echo time, TE=UNKNOWNms; flip angle, FA=UNKNOWN<deg>; field of view, FOV=128x128mm;
-    matrix size=64x64; voxel size=2x2x2mm). Each run was 2:40 minutes in length, during
-    which 64 functional volumes were acquired.
-    	Five runs of Rest fMRI data were collected (64 slices; repetition time, TR=2500ms;
-    echo time, TE=UNKNOWNms; flip angle, FA=UNKNOWN<deg>; field of view, FOV=128x128mm;
-    matrix size=64x64; voxel size=2x2x2mm). Each run was 2:40 minutes in length, during
-    which 64 functional volumes were acquired.
+    >>> layout.get_subjects()
+    ['01', '02', '03', '04', '05']
 
-    Dicoms were converted to NIfTI-1 format. This section was (in part) generated
-    automatically using pybids (0.5)."""
+We can also get a list of all available sessions::
 
-Generating reports on subsets of the data
--------------------------------------------
+    >>> layout.get_sessions()
+    ['01', '02']
 
-The ``generate`` method allows for keyword restrictions, just like
-:obj:`bids.grabbids.BIDSLayout`'s ``get`` method. For example, to
-generate a report only for ``nback`` task data in session ``01``::
+Or a list of tasks::
 
-    >>> counter = report.generate(session='01', task='nback')
-    >>> main_report = counter.most_common()[0][0]
-    >>> print(main_report)
-    r"""
-    For session 01:
-      MR data were acquired using a UNKNOWN-Tesla MANUFACTURER MODEL MRI scanner.
-      Ten runs of N-Back fMRI data were collected (64 slices; repetition time,
-    TR=2500ms; echo time, TE=UNKNOWNms; flip angle, FA=UNKNOWN<deg>; field of
-    view, FOV=128x128mm; matrix size=64x64; voxel size=2x2x2mm). Each run was
-    2:40 minutes in length, during which 64 functional volumes were acquired.
+    >>> layout.get_tasks()
+    ['nback', 'rest']
 
-    Dicoms were converted to NIfTI-1 format. This section was (in part)
-    generated automatically using pybids (0.5)."""
+.. extracting_metadata:
+
+Extracting metadata
+====================
+
+A number of ``BIDSLayout`` methods extract metadata associated with files.
+
+For example, if we want event (task timing) information for a given fMRI scan, we can use ``get_events``::
+
+    >>> f = layout.get(task='nback', run=1, extensions='nii.gz')[0].filename
+    >>> layout.get_events(f)
+
+We can also extract metadata from the json files associated with a scan file::
+
+    >>> f = layout.get(task='nback', run=1, extensions='nii.gz')[0].filename
+    >>> layout.get_metadata(f)

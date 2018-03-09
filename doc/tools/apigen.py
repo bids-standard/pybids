@@ -39,7 +39,7 @@ class ApiDocWriter(object):
                  rst_extension='.txt',
                  package_skip_patterns=None,
                  module_skip_patterns=None,
-                 other_defines = True
+                 other_defines=True
                  ):
         ''' Initialize package for parsing
 
@@ -68,7 +68,7 @@ class ApiDocWriter(object):
             ['\.setup$', '\._']
         other_defines : {True, False}, optional
             Whether to include classes and functions that are imported in a
-            particular module but not defined there.
+            particular module but not defined there. Currently disabled.
         '''
         if package_skip_patterns is None:
             package_skip_patterns = ['\\.tests$']
@@ -217,7 +217,8 @@ class ApiDocWriter(object):
                 continue
             obj = mod.__dict__[obj_str]
             # Check if function / class defined in module
-            if not self.other_defines and not getmodule(obj) == mod:
+            # other_defines is currently disabled because it didn't appear to be working
+            if not getmodule(obj) == mod: # and not self.other_defines:
                 continue
             # figure out if obj is a function or class
             if hasattr(obj, 'func_name') or \
@@ -436,13 +437,17 @@ class ApiDocWriter(object):
                 document_head.append(head)
                 document_body.append(body)
 
-            out_module = ulm + self.rst_extension
-            outfile = os.path.join(outdir, out_module)
-            fileobj = open(outfile, 'wt')
+            if any([dh is not None for dh in document_head]):
+                document_body = [db for i, db in enumerate(document_body) if \
+                                 document_head[i] is not None]
+                document_head = [dh for dh in document_head if dh is not None]
+                out_module = ulm + self.rst_extension
+                outfile = os.path.join(outdir, out_module)
+                fileobj = open(outfile, 'wt')
 
-            fileobj.writelines(document_head + document_body)
-            fileobj.close()
-            written_modules.append(out_module)
+                fileobj.writelines(document_head + document_body)
+                fileobj.close()
+                written_modules.append(out_module)
 
         self.written_modules = written_modules
 

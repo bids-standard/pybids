@@ -7,7 +7,7 @@ User guide: table of contents
 .. sidebar:: **Download for offline viewing**
 
    Download the `user guide and examples
-   <https://github.com/nilearn/nilearn.github.io/archive/master.zip>`_.
+   <https://github.com/INCF/pybids/archive/gh-pages.zip>`_.
 
 .. include:: includes/big_toc_css.rst
 
@@ -20,5 +20,5 @@ User guide: table of contents
 
    introduction.rst
    grabbids/index.rst
-   reports/index.rst
    analysis/index.rst
+   reports/index.rst

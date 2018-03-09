@@ -62,4 +62,4 @@ if __name__ == '__main__':
     else:
         other_defines = other_defines in ('True', 'true', '1')
 
-    writeapi(package, outdir, other_defines=other_defines)
+    writeapi(package, outdir, other_defines=False)

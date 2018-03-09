@@ -1,7 +1,7 @@
 .. _reports:
 
 =====================================================
-Analyzing stuff
+``analysis``: Model specification for BIDS datasets
 =====================================================
 
 .. contents:: **Contents**
@@ -12,72 +12,52 @@ Analyzing stuff
 
 .. currentmodule:: pybids.analysis
 
-.. _initializing_reports:
+.. _overview:
 
-Initializing reports
+An overview of the analysis module
 ===========================================
 
-The :obj:`bids.reports.BIDSReport` class requires a :obj:`bids.grabbids.BIDSLayout` object as an argument::
+.. topic:: **BIDS models**
 
-    >>> from os.path import join
-    >>> from bids.grabbids import BIDSLayout
-    >>> from bids.reports import BIDSReport
-    >>> from bids.tests import get_test_data_path
-    >>> layout = BIDSLayout(join(get_test_data_path(), 'synthetic'))
-    >>> report = BIDSReport(layout)
+  The `BIDS Models specification`_ is an extension to the BIDS standard for
+  describing and organizing general linear models (GLMs) or similar models
+  fitted to BIDS datasets.
 
-Generating reports
-===========================================
+  A GLM can be concisely described with a json file, regardless of the software
+  used to fit the model (e.g., `nistats`_, `AfNI`_, `FSL`_, `SPM`_).
 
-Pybids reports are then generated with the ``generate`` method, which returns a
-:obj:`collections.Counter` of reports::
+The PyBIDS analysis module provides high-level model specification functionality
+for BIDS datasets. It assumes that model information is represented in line with
+the (upcoming) BIDS-Model specification.
 
-    >>> counter = report.generate()
-    >>> main_report = counter.most_common()[0][0]
-    >>> print(main_report)
-    r"""
-    For session 01:
-    	MR data were acquired using a UNKNOWN-Tesla MANUFACTURER MODEL MRI scanner.
-    	Ten runs of N-Back fMRI data were collected (64 slices; repetition time, TR=2500ms;
-    echo time, TE=UNKNOWNms; flip angle, FA=UNKNOWN<deg>; field of view, FOV=128x128mm;
-    matrix size=64x64; voxel size=2x2x2mm). Each run was 2:40 minutes in length, during
-    which 64 functional volumes were acquired.
-    	Five runs of Rest fMRI data were collected (64 slices; repetition time, TR=2500ms;
-    echo time, TE=UNKNOWNms; flip angle, FA=UNKNOWN<deg>; field of view, FOV=128x128mm;
-    matrix size=64x64; voxel size=2x2x2mm). Each run was 2:40 minutes in length, during
-    which 64 functional volumes were acquired.
+Note that, at present, pybids.analysis does not provide a one-stop model-fitting
+solution. You will need to call some other package (e.g., `nistats`_, or a
+non-Python package like `FSL`_ or `SPM`_ via `Nipype`_) to handle model estimation.
+What pybids.analysis will do for you is automatically handle the loading and
+transformation of all variables, and the construction of design matrices and
+contrasts.
 
-    For session 02:
-    	MR data were acquired using a UNKNOWN-Tesla MANUFACTURER MODEL MRI scanner.
-    	Ten runs of N-Back fMRI data were collected (64 slices; repetition time, TR=2500ms;
-    echo time, TE=UNKNOWNms; flip angle, FA=UNKNOWN<deg>; field of view, FOV=128x128mm;
-    matrix size=64x64; voxel size=2x2x2mm). Each run was 2:40 minutes in length, during
-    which 64 functional volumes were acquired.
-    	Five runs of Rest fMRI data were collected (64 slices; repetition time, TR=2500ms;
-    echo time, TE=UNKNOWNms; flip angle, FA=UNKNOWN<deg>; field of view, FOV=128x128mm;
-    matrix size=64x64; voxel size=2x2x2mm). Each run was 2:40 minutes in length, during
-    which 64 functional volumes were acquired.
+.. _BIDS Models specification: https://docs.google.com/document/d/1bq5eNDHTb6Nkx3WUiOBgKvLNnaa5OMcGtD0AZ9yms2M/edit#heading=h.mqkmyp254xh6
+.. _nistats: https://nistats.github.io
+.. _AfNI: https://afni.nimh.nih.gov
+.. _FSL: https://fsl.fmrib.ox.ac.uk/fsl/fslwiki/
+.. _SPM: http://www.fil.ion.ucl.ac.uk/spm/
+.. _Nipype: http://nipype.readthedocs.io
 
-    Dicoms were converted to NIfTI-1 format. This section was (in part) generated
-    automatically using pybids (0.5)."""
+.. _quickstart:
 
-Generating reports on subsets of the data
--------------------------------------------
+Quickstart
+=============
+A simple example of standard usage follows. We assume that we have a root folder
+containing a BIDS-compliant project in ``/bidsproject``, as well as a BIDS-Models
+JSON specification in ``model.json``.
 
-The ``generate`` method allows for keyword restrictions, just like
-:obj:`bids.grabbids.BIDSLayout`'s ``get`` method. For example, to
-generate a report only for ``nback`` task data in session ``01``::
-
-    >>> counter = report.generate(session='01', task='nback')
-    >>> main_report = counter.most_common()[0][0]
-    >>> print(main_report)
-    r"""
-    For session 01:
-      MR data were acquired using a UNKNOWN-Tesla MANUFACTURER MODEL MRI scanner.
-      Ten runs of N-Back fMRI data were collected (64 slices; repetition time,
-    TR=2500ms; echo time, TE=UNKNOWNms; flip angle, FA=UNKNOWN<deg>; field of
-    view, FOV=128x128mm; matrix size=64x64; voxel size=2x2x2mm). Each run was
-    2:40 minutes in length, during which 64 functional volumes were acquired.
-
-    Dicoms were converted to NIfTI-1 format. This section was (in part)
-    generated automatically using pybids (0.5)."""
+    >>> from bids.analysis import Analysis
+    >>> # Initialize the Analysis
+    >>> analysis = Analysis('/bidsproject', 'model1.json')
+    >>> # Setup constructs all the design matrices
+    >>> analysis.setup()
+    >>> # Sample query: retrieve first-level design matrix for one run
+    >>> dm = analysis[0].get_design_matrix(subject='01', run=1, task='taskA')
+    >>> # Sample query: retrieve session-level contrast matrix
+    >>> cm = analysis[1].get_contrasts(subject='01', session='retest')

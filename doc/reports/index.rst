@@ -1,7 +1,7 @@
 .. _reports:
 
 =====================================================
-Data acquisition reports generation
+``reports``: Data acquisition report generation
 =====================================================
 
 .. contents:: **Contents**
