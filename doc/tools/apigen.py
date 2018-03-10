@@ -218,7 +218,7 @@ class ApiDocWriter(object):
             obj = mod.__dict__[obj_str]
             # Check if function / class defined in module
             # other_defines is currently disabled because it didn't appear to be working
-            if not getmodule(obj) == mod: # and not self.other_defines:
+            if len(uri.split('.')) > 2 and not getmodule(obj) == mod: # and not self.other_defines:
                 continue
             # figure out if obj is a function or class
             if hasattr(obj, 'func_name') or \

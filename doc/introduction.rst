@@ -4,8 +4,6 @@
 Introduction: What is pybids?
 =====================================================
 
-For more information on the Brain Imaging Data Structure (BIDS), visit http://bids.neuroimaging.io.
-
 .. contents:: **Contents**
     :local:
     :depth: 1
@@ -22,6 +20,8 @@ What is BIDS and why should you use it?
   means that being familiar with this structure will make it easier for you to
   analyze public data as well as your own.
 
+  For more information on the Brain Imaging Data Structure (BIDS), visit https://bids.neuroimaging.io.
+
 What is pybids and why should you use it?
 ==========================================
 
@@ -32,8 +32,17 @@ What is pybids and why should you use it?
   neuroimaging data, including `Nipype`_ and `nistats`_, are optimized to
   work with BIDS datasets.
 
-  .. _nistats: https://nistats.github.io
-  .. _Nipype: http://nipype.readthedocs.io
+Installing pybids
+=================
+Pybids is easy to install.
+To install the most recent release, use pip::
+
+>>> pip install pybids
+
+If you want the "bleeding-edge" version of pybids, you can install directly from
+the GitHub repository::
+
+>>> pip install git+https://github.com/INCF/pybids.git
 
 Finding help
 ==============
@@ -46,3 +55,10 @@ Finding help
     * You can find help with neuroimaging in Python (file I/O,
       neuroimaging-specific questions) via the nipy user group:
       https://groups.google.com/forum/?fromgroups#!forum/nipy-user
+
+    * If you notice a bug in the pybids code, please `open an issue`_ in the
+      pybids repository.
+
+.. _nistats: https://nistats.github.io
+.. _Nipype: http://nipype.readthedocs.io
+.. _open an issue: https://github.com/INCF/pybids/issues

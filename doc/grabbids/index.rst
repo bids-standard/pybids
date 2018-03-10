@@ -17,7 +17,7 @@
 Loading BIDS datasets
 ===========================================
 
-The :obj:`bids.layout.BIDSLayout` class requires the path to a valid BIDS dataset::
+The :obj:`bids.grabbids.BIDSLayout` class requires the path to a valid BIDS dataset::
 
     >>> from os.path import join
     >>> from bids.grabbids import BIDSLayout
