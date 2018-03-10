@@ -63,7 +63,7 @@ extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.autosummary',
               'sphinx.ext.mathjax',
               'math_dollar', # has to go before numpydoc
-              'numpydoc',
+              'sphinx.ext.napoleon',
               'm2r']
 
 # library pointers.
