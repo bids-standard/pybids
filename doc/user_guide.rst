@@ -9,12 +9,6 @@ User guide: table of contents
    Download the `user guide and examples
    <https://github.com/INCF/pybids/archive/gh-pages.zip>`_.
 
-.. include:: includes/big_toc_css.rst
-
-.. nice layout in the toc
-
-.. include:: tune_toc.rst
-
 .. toctree::
    :numbered:
 
