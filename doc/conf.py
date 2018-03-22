@@ -15,34 +15,40 @@
 
 import sys
 import os
+import sphinx_rtd_theme
+
+sys.path.insert(0, os.path.abspath('../'))
+
 
 # General information about the project.
 project = 'bids'
-copyright = '2015, BIDS'
+copyright = '2015 - 2018, Developers of pybids'
+author = 'Developers of pybids'
 
 currentdir = os.path.abspath(os.path.dirname(__file__))
 ver_file = os.path.join(currentdir, '..', project, 'version.py')
 with open(ver_file) as f:
     exec(f.read())
+
 source_version = __version__
 
 currentdir = os.path.abspath(os.path.dirname(__file__))
-sys.path.append(os.path.join(currentdir, 'tools'))
-import buildmodref
+# sys.path.append(os.path.join(currentdir, 'tools'))
+# import buildmodref
 
-# autogenerate api documentation
-# (see https://github.com/rtfd/readthedocs.org/issues/1139)
-def generateapidoc(_):
-    output_path = os.path.join(currentdir, 'reference')
-    buildmodref.writeapi(project, output_path, source_version, True)
+# # autogenerate api documentation
+# # (see https://github.com/rtfd/readthedocs.org/issues/1139)
+# def generateapidoc(_):
+#     output_path = os.path.join(currentdir, 'reference')
+#     buildmodref.writeapi(project, output_path, source_version, True)
 
-def setup(app):
-    app.connect('builder-inited', generateapidoc)
+# def setup(app):
+#     app.connect('builder-inited', generateapidoc)
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
-sys.path.insert(0, os.path.abspath('../'))
+
 
 # -- General configuration ------------------------------------------------
 
@@ -52,19 +58,29 @@ needs_sphinx = '1.0' # numpydoc requires sphinc >= 1.0
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
-sys.path.append(os.path.abspath('sphinxext'))
+# sys.path.append(os.path.abspath('sphinxext'))
+
+# extensions = ['sphinx.ext.autodoc',
+#               'sphinx.ext.doctest',
+#               'sphinx.ext.intersphinx',
+#               'sphinx.ext.todo',
+#               'sphinx.ext.coverage',
+#               'sphinx.ext.ifconfig',
+#               'sphinx.ext.autosummary',
+#               'sphinx.ext.mathjax',
+#               'math_dollar', # has to go before numpydoc
+#               'sphinx.ext.napoleon',
+#               'm2r']
 
 extensions = ['sphinx.ext.autodoc',
-              'sphinx.ext.doctest',
-              'sphinx.ext.intersphinx',
-              'sphinx.ext.todo',
-              'sphinx.ext.coverage',
-              'sphinx.ext.ifconfig',
               'sphinx.ext.autosummary',
+              'sphinx.ext.autosectionlabel',
+              'sphinx.ext.intersphinx',
+              'sphinx.ext.coverage',
               'sphinx.ext.mathjax',
-              'math_dollar', # has to go before numpydoc
-              'sphinx.ext.napoleon',
-              'm2r']
+              'sphinx.ext.viewcode',
+              'sphinx.ext.githubpages',
+              'sphinx.ext.napoleon']
 
 # library pointers.
 intersphinx_mapping = {
@@ -78,6 +94,9 @@ intersphinx_mapping = {
     'http://neurosynth.readthedocs.io/en/latest/': None,
 }
 
+# Generate stubs
+autosummary_generate = True
+
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
 
@@ -89,7 +108,6 @@ source_suffix = ['.rst', '.md']
 
 # The master toctree document.
 master_doc = 'index'
-
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -144,7 +162,8 @@ pygments_style = 'sphinx'
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
-html_theme = 'sphinxdoc'
+html_theme = "sphinx_rtd_theme"
+html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
@@ -244,7 +263,7 @@ latex_elements = {
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
   ('index', 'bids.tex', 'bids Documentation',
-   'Ariel Rokem', 'manual'),
+   author, 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
@@ -274,7 +293,7 @@ latex_documents = [
 # (source start file, name, description, authors, manual section).
 man_pages = [
     ('index', 'bids', 'bids Documentation',
-     ['Ariel Rokem'], 1)
+     [author], 1)
 ]
 
 # If true, show URL addresses after external links.
@@ -288,7 +307,7 @@ man_pages = [
 #  dir menu entry, description, category)
 texinfo_documents = [
   ('index', 'bids', 'bids Documentation',
-   'Ariel Rokem', 'bids', 'One line description of project.',
+   author, 'bids', 'One line description of project.',
    'Miscellaneous'),
 ]
 
