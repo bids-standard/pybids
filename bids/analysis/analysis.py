@@ -19,18 +19,9 @@ class Analysis(object):
         model (str or dict): a BIDS model specification. Can either be a
             string giving the path of the JSON model spec, or an already-loaded
             dict containing the model info.
-        sampling_rate (int): Optional sampling rate (in Hz) to use when
-            resampling variables internally. If None, the package-wide default
-            will be used.
-        scan_length (float): Duration of scanning runs. Only necessary in
-            cases where the nifti image files or image headers are not locally
-            available.
     '''
 
-    def __init__(self, layout, model, sampling_rate=None, scan_length=None):
-
-        self.sampling_rate = sampling_rate
-        self.scan_length = scan_length
+    def __init__(self, layout, model):
 
         if not isinstance(layout, BIDSLayout):
             layout = BIDSLayout(layout)
