@@ -2,8 +2,8 @@ from bids.grabbids import BIDSLayout
 import pytest
 from os.path import join
 from bids.tests import get_test_data_path
-from bids.analysis import load_variables
-from bids.variables import (merge_variables, DenseRunVariable, SimpleVariable)
+from bids.variables import (merge_variables, DenseRunVariable, SimpleVariable,
+                            load_variables)
 from bids.variables.entities import RunInfo
 import numpy as np
 import pandas as pd
