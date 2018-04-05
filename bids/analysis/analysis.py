@@ -165,7 +165,7 @@ class Block(object):
                 created for each column in the design matrix.
             kwargs: Optional keyword arguments to pass onto load_variables.
         '''
-
+        self.output_nodes = []
         input_nodes = input_nodes or self.input_nodes or []
 
         # TODO: remove the scan_length argument entirely once we switch tests
