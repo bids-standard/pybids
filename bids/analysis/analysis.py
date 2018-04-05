@@ -194,8 +194,6 @@ class Block(object):
                 colls.append(node_coll)
 
             coll = merge_collections(colls) if len(colls) > 1 else colls[0]
-            variables = self.model.get('variables', None) if self.model is not None else None
-            transform.select(coll, variables) # Filter using model 'variables'
 
             coll = apply_transformations(coll, self.transformations)
             node = AnalysisNode(self.level, coll, self.contrasts, input_nodes,
@@ -386,7 +384,6 @@ class AnalysisNode(object):
                     'condition_list': [col_name],
                     'weights': [1],
                 })
-
         # Filter on desired contrast names if passed
         if names is not None:
             contrasts = [c for c in contrasts if c['name'] in names]
