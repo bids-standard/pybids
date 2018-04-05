@@ -107,7 +107,7 @@ class Block(object):
     '''
 
     def __init__(self, layout, level, index, name=None, transformations=None,
-                 model=None, contrasts=None, input_nodes=None):
+                model=None, contrasts=None, input_nodes=None):
 
         self.layout = layout
         self.level = level
@@ -190,7 +190,8 @@ class Block(object):
                 colls.append(node_coll)
 
             coll = merge_collections(colls) if len(colls) > 1 else colls[0]
-            coll = apply_transformations(coll, self.transformations)
+            variables = self.model.get('variables', None) if self.model is not None else None
+            coll = apply_transformations(coll, self.transformations, select=variables)
             node = AnalysisNode(self.level, coll, self.contrasts, input_nodes,
                                 identity_contrasts)
 
@@ -371,6 +372,7 @@ class AnalysisNode(object):
         # Construct a list of all contrasts, including identity contrasts
         contrasts = list(self._block_contrasts)
 
+        ### Add ability to set different types of identity contrasts
         if self.identity_contrasts:
             for col_name in self.collection.variables.keys():
                 contrasts.append({
