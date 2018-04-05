@@ -76,13 +76,17 @@ class Analysis(object):
         # In the beginning, there was nothing
         input_nodes = None
 
+        # Use inputs from model, and update with kwargs
+        selectors = self.model.get('input', {})
+        selectors.update(kwargs)
+
         for i, b in enumerate(self.blocks):
 
             # Skip any blocks whose names or indexes don't match block list
             if blocks is not None and i not in blocks and b.name not in blocks:
                 continue
 
-            b.setup(input_nodes, identity_contrasts, **kwargs)
+            b.setup(input_nodes, identity_contrasts, **selectors)
             input_nodes = b.output_nodes
 
 
