@@ -195,7 +195,9 @@ class Block(object):
 
             coll = merge_collections(colls) if len(colls) > 1 else colls[0]
             variables = self.model.get('variables', None) if self.model is not None else None
-            coll = apply_transformations(coll, self.transformations, select=variables)
+            transform.select(coll, variables) # Filter using model 'variables'
+
+            coll = apply_transformations(coll, self.transformations)
             node = AnalysisNode(self.level, coll, self.contrasts, input_nodes,
                                 identity_contrasts)
 
