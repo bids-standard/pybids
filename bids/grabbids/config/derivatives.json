@@ -15,7 +15,7 @@
             "pattern": "res-([a-zA-Z0-9]+)"
         },
         {
-            "name": "class",
+            "name": "tissue_class",
             "pattern": "class-([a-zA-Z0-9]+)"
         },
         {
