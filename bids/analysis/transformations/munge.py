@@ -256,6 +256,7 @@ class select(Transformation):
     _loopable = False
     _input_type = 'variable'
     _return_type = 'none'
+    _allow_categorical = ('variables',)
 
     def _transform(self, variables):
         self.collection.variables = {c.name: c for c in variables}
