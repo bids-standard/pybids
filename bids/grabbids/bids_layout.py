@@ -3,8 +3,7 @@ import json
 import warnings
 from io import open
 
-from os.path import dirname
-from os.path import abspath
+from os.path import dirname, abspath, exists
 from os.path import join as pathjoin
 
 from .bids_validator import BIDSValidator
@@ -62,6 +61,19 @@ class BIDSLayout(Layout):
 
     def __init__(self, path, config=None, validate=False,
                  index_associated=True, include=None, exclude=None, **kwargs):
+
+        # Load and validate information in dataset_description.json
+        target = pathjoin(path, 'dataset_description.json')
+        if not exists(target):
+            raise ValueError("Mandatory 'dataset_description.json' file is "
+                             "missing from project root!")
+        self.description = json.load(open(target, 'r'))
+
+        for k in ['Name', 'BIDSVersion']:
+            if k not in self.description:
+                raise ValueError("Mandatory '%s' field missing from "
+                                 "dataset_description.json." % k)
+
         self.validator = BIDSValidator(index_associated=index_associated)
         self.validate = validate
 
