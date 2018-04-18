@@ -1,6 +1,7 @@
 {
     "name": "bids",
     "root": ".",
+    "description_required": true,
     "entities": [
         {
             "name": "subject",
