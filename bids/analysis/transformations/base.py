@@ -91,7 +91,7 @@ class Transformation(object):
         >= 3.3, we can't override both new and init. '''
         self.collection = collection
         self.variables = listify(variables)
-        self.groupby = kwargs.pop('groupby', ['run', 'subject'])
+        self.groupby = kwargs.pop('groupby', None)
         self.output = listify(kwargs.pop('output', None))
         self.output_prefix = kwargs.pop('output_prefix', None)
         self.output_suffix = kwargs.pop('output_suffix', None)

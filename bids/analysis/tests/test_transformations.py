@@ -39,7 +39,7 @@ def test_product(collection):
 
 def test_scale(collection):
     transform.scale(collection, variables=['RT', 'parametric gain'],
-                    output=['RT_Z', 'gain_Z'])
+                    output=['RT_Z', 'gain_Z'], groupby=['run', 'subject'])
     ents = collection['RT'].index
     groupby = pd.core.groupby._get_grouper(ents, ['run', 'subject'])[0]
     z1 = collection['RT_Z'].values
@@ -79,7 +79,7 @@ def test_orthogonalize_sparse(collection):
     pg_pre = collection['parametric gain'].values
     rt = collection['RT'].values
     transform.orthogonalize(collection, variables='parametric gain',
-                            other='RT')
+                            other='RT', groupby=['run', 'subject'])
     pg_post = collection['parametric gain'].values
     vals = np.c_[rt.values, pg_pre.values, pg_post.values]
     df = pd.DataFrame(vals, columns=['rt', 'pre', 'post'])
