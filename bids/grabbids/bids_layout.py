@@ -62,18 +62,6 @@ class BIDSLayout(Layout):
     def __init__(self, path, config=None, validate=False,
                  index_associated=True, include=None, exclude=None, **kwargs):
 
-        # Load and validate information in dataset_description.json
-        target = pathjoin(path, 'dataset_description.json')
-        if not exists(target):
-            raise ValueError("Mandatory 'dataset_description.json' file is "
-                             "missing from project root!")
-        self.description = json.load(open(target, 'r'))
-
-        for k in ['Name', 'BIDSVersion']:
-            if k not in self.description:
-                raise ValueError("Mandatory '%s' field missing from "
-                                 "dataset_description.json." % k)
-
         self.validator = BIDSValidator(index_associated=index_associated)
         self.validate = validate
 
@@ -104,11 +92,26 @@ class BIDSLayout(Layout):
                 configs.append(_load_config(conf))
 
         # If 'bids' isn't in the list, the user probably made a mistake...
-        if not any([c['name'] != 'bids' for c in configs]):
+        if any([c['name'] == 'bids' for c in configs]):
+            # Load and validate information in dataset_description.json
+            target = pathjoin(path, 'dataset_description.json')
+            if not exists(target):
+                if not exists(path):
+                    raise ValueError("Root directory does not exist.")                
+                raise ValueError("Mandatory 'dataset_description.json' file is "
+                                 "missing from project root!")
+            self.description = json.load(open(target, 'r'))
+
+            for k in ['Name', 'BIDSVersion']:
+                if k not in self.description:
+                    raise ValueError("Mandatory '%s' field missing from "
+                                     "dataset_description.json." % k)
+        else:
             warnings.warn("The core BIDS configuration was not included in the"
                           " config list. If you override the default value for"
                           " config, you probably want to make sure 'bids' is "
                           "included in the list of values.")
+
 
         super(BIDSLayout, self).__init__(path, config=configs,
                                          dynamic_getters=True, include=include,
