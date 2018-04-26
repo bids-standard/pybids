@@ -273,9 +273,18 @@ def test_filter(collection):
 
 
 def test_select(collection):
+    coll = collection.clone()
     keep = ['RT', 'parametric gain', 'respcat']
-    transform.select(collection, keep)
-    assert set(collection.variables.keys()) == set(keep)
+    transform.select(coll, keep)
+    assert set(coll.variables.keys()) == set(keep)
+
+
+def test_remove(collection):
+    coll = collection.clone()
+    all_cols = set(coll.variables.keys())
+    drop = ['RT', 'parametric gain', 'respcat']
+    transform.remove(coll, drop)
+    assert all_cols - set(coll.variables.keys()) == set(drop)
 
 
 def test_and(collection):

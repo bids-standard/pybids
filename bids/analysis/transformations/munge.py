@@ -259,7 +259,26 @@ class select(Transformation):
     _allow_categorical = ('variables',)
 
     def _transform(self, variables):
-        self.collection.variables = {c.name: c for c in variables}
+        self.collection.variables = {v.name: v for v in variables}
+
+
+class remove(Transformation):
+    ''' Remove variables from the namespace.
+
+    Args:
+        variables (list, str): Name(s) of variables to remove.
+    '''
+    _groupable = False
+    _loopable = False
+    _input_type = 'variable'
+    _return_type = 'none'
+    _allow_categorical = ('variables',)
+
+    def _transform(self, variables):
+        variables = set([v.name for v in variables])
+        self.collection.variables = {k: v for k, v in
+                                     self.collection.variables.items()
+                                     if k not in variables}
 
 
 class replace(Transformation):
