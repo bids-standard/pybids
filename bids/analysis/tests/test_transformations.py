@@ -302,3 +302,11 @@ def test_or(collection):
     transform.or_(coll, ['respnum.0', 'copy'], output='or')
     assert coll.variables['or'].values.astype(float).equals(
         coll.variables['respnum.0'].values)
+
+
+def test_not(collection):
+    coll = collection.clone()
+    pre_rt = coll.variables['RT'].values.values
+    transform.not_(coll, 'RT')
+    post_rt = coll.variables['RT'].values.values
+    assert (post_rt == ~pre_rt.astype(bool)).all()

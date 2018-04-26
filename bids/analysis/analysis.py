@@ -198,7 +198,7 @@ class Block(object):
             model = self.model or {}
             if model.get('variables'):
                 transform.select(coll, model['variables'])
-                
+
             coll = apply_transformations(coll, self.transformations)
             node = AnalysisNode(self.level, coll, self.contrasts, input_nodes,
                                 identity_contrasts)

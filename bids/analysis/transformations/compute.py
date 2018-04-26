@@ -121,6 +121,19 @@ class or_(Transformation):
         return df.any(axis=1).astype(int)
 
 
+class not_(Transformation):
+    ''' Logical negation of a variable.
+    Args:
+        var (Series): Variable to negate. Must be convertible to bool.
+    '''
+
+    _loopable = True
+    _groupable = False
+
+    def _transform(self, var):
+        return ~var.astype(bool)
+
+
 class and_(Transformation):
     ''' Logical AND on two or more variables.
     Args:
