@@ -65,9 +65,9 @@ MINOR = _version_minor
 MICRO = _version_micro
 VERSION = __version__
 # No data for now
-REQUIRES = ["grabbit>=0.1.1", "six", "num2words"]
+REQUIRES = ["grabbit>=0.1.1", "six", "num2words", 'scipy']
 EXTRAS_REQUIRE = {
-    'analysis': ['numpy', 'scipy', 'pandas', 'nibabel', 'patsy'],
+    'analysis': ['numpy', 'pandas', 'nibabel', 'patsy'],
 }
 TESTS_REQUIRE = ["pytest>=3.3.0"]
 
