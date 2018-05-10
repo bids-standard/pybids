@@ -347,7 +347,7 @@ def _load_tsv_variables(layout, type_, dataset=None, columns=None,
         for col in comm_cols:
             ix = [False] * _data.shape[0]
             for val in listify(selectors.get(col)):
-                if layout.regex_search:
+                if not layout.regex_search:
                     val = "^{}$".format(val)
                 ix = ix | _data[col].str.contains(val)
             _data = _data[ix]
