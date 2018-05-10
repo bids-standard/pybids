@@ -345,10 +345,12 @@ def _load_tsv_variables(layout, type_, dataset=None, columns=None,
         # Filter rows on all selectors
         comm_cols = list(set(_data.columns) & set(selectors.keys()))
         for col in comm_cols:
-            filter = [False] * _data.shape[0]
+            ix = [False] * _data.shape[0]
             for val in listify(selectors.get(col)):
-                filter = filter | _data[col].str.match(val)
-            _data = _data[filter]
+                if layout.regex_search:
+                    val = "^{}$".format(val)
+                ix = ix | _data[col].str.contains(val)
+            _data = _data[ix]
 
         level = {'scans': 'session', 'sessions': 'subject',
                  'participants': 'dataset'}[type_]
