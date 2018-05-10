@@ -47,6 +47,10 @@ def test_load_participants(layout1):
     assert age.index.shape == (16, 1)
     assert age.values.shape == (16,)
 
+    index = load_variables(layout1, types='participants', subject=['1.*'])
+    age = index.get_nodes(level='dataset')[0].variables['age']
+    assert age.index.shape == (7, 1)
+    assert age.values.shape == (7,)
 
 def test_load_synthetic_dataset(synthetic):
     # Runs
