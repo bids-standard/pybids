@@ -342,15 +342,25 @@ def _load_tsv_variables(layout, type_, dataset=None, columns=None,
             _data = _data.rename(columns={'participant_id': 'subject'})
             _data['subject'] = _data['subject'].str.replace('sub-', '')
 
+        def make_patt(x, regex_search=False):
+            patt = '%s' % x
+            if isinstance(x, (int, float)):
+                # allow for leading zeros if a number was specified
+                # regardless of regex_search
+                patt = '0*' + patt
+            if not regex_search:
+                patt = '^%s$' % patt
+            return patt
+
         # Filter rows on all selectors
         comm_cols = list(set(_data.columns) & set(selectors.keys()))
         for col in comm_cols:
-            ix = [False] * _data.shape[0]
             for val in listify(selectors.get(col)):
-                if not layout.regex_search:
-                    val = "^{}$".format(val)
-                ix = ix | _data[col].str.contains(val)
-            _data = _data[ix]
+                ent_patts = [make_patt(x, regex_search=layout.regex_search)
+                             for x in listify(selectors.get(col))]
+                patt = '|'.join(ent_patts)
+
+                _data = _data[_data[col].str.contains(patt)]
 
         level = {'scans': 'session', 'sessions': 'subject',
                  'participants': 'dataset'}[type_]
