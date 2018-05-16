@@ -48,6 +48,14 @@ def test_scale(collection):
     assert np.allclose(z1, z2)
 
 
+def test_demean(collection):
+    transform.demean(collection, variables=['RT'], output=['RT_dm'])
+    m1 = collection['RT_dm'].values
+    m2 = collection['RT'].values
+    m2 -= m2.values.mean()
+    assert np.allclose(m1, m2)
+
+
 def test_orthogonalize_dense(collection):
     transform.factor(collection, 'trial_type', sep='/')
 

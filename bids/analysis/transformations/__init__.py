@@ -1,12 +1,13 @@
 from .compute import (sum, product, scale, orthogonalize, threshold, and_, or_,
-                      not_)
+                      not_, demean)
 from .munge import (split, rename, assign, copy, factor, filter, select,
-                    remove)
+                    remove, to_dense)
 
 __all__ = [
     'and_',
     'assign',
     'copy',
+    'demean',
     'factor',
     'filter',
     'not_',
@@ -19,5 +20,6 @@ __all__ = [
     'select',
     'split',
     'sum',
-    'threshold'
+    'threshold',
+    'to_dense'
 ]

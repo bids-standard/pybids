@@ -18,6 +18,12 @@ class scale(Transformation):
         return data
 
 
+class demean(Transformation):
+
+    def _transform(self, data):
+        return data - data.mean()
+
+
 class sum(Transformation):
 
     _loopable = False
