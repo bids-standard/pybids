@@ -195,12 +195,11 @@ class Block(object):
 
             model = self.model or {}
 
-            if self.level == 'run':
-                variables = set(model.get('variables', []))
-                hrf_variables = set(model.get('HRF_variables', []))
-                if not  variables >= hrf_variables:
-                    raise ValueError("HRF_variables must be a subset ",
-                                     "of variables in BIDS model.")
+            variables = set(model.get('variables', []))
+            hrf_variables = set(model.get('HRF_variables', []))
+            if not variables >= hrf_variables:
+                raise ValueError("HRF_variables must be a subset ",
+                                 "of variables in BIDS model.")
 
             coll = merge_collections(colls) if len(colls) > 1 else colls[0]
 
