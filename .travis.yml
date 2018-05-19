@@ -63,7 +63,7 @@ install:
 - pip install $EXTRA_PIP_FLAGS ".[analysis]"
 
 script:
-- py.test -n auto
+- py.test -n 2
 
 after_success:
 - coveralls
