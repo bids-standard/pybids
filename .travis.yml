@@ -39,13 +39,13 @@ before_install:
     - source venv/bin/activate
     - python --version # just to check
     - travis_retry pip install -U pip wheel  # needed at one point
-    - travis_retry pip install coveralls codecov
+    - travis_retry pip install pytest pytest-xdist coveralls codecov
 
 install:
 - pip install $EXTRA_PIP_FLAGS ".[analysis]"
 
 script:
-- py.test
+- py.test -n auto
 
 after_success:
 - coveralls
