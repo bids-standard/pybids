@@ -55,17 +55,16 @@ before_install:
     - source venv/bin/activate
     - python --version # just to check
     - travis_retry pip install -U pip wheel  # needed at one point
-    - travis_retry pip install pytest pytest-xdist coveralls codecov
+    - travis_retry pip install pytest pytest-xdist pytest-cov codecov
 
 install:
 - pip install $EXTRA_PIP_FLAGS ".[analysis]"
 
 script:
-- py.test -n 2
+- py.test -n 2 -v --cov bids --cov-config .coveragerc --cov-report xml:cov.xml --doctest-modules bids
 
-after_success:
-- coveralls
-- bash <(curl -s https://codecov.io/bash)
+after_script:
+- codecov --file cov.xml --flags unittests
 
 cache: false
 
