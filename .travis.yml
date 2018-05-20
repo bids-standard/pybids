@@ -61,7 +61,7 @@ install:
 - pip install $EXTRA_PIP_FLAGS ".[analysis]"
 
 script:
-- py.test -n 2 -v --cov bids --cov-config .coveragerc --cov-report xml:cov.xml --doctest-modules bids
+- py.test -n 2 -v --cov bids --cov-config .coveragerc --cov-report xml:cov.xml bids
 
 after_script:
 - codecov --file cov.xml --flags unittests
