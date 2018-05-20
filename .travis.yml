@@ -7,7 +7,6 @@ cache:
     - $HOME/.cache/pip
 env:
   global:
-    - CONDA_DEPS="pip flake8 pytest numpy scipy"
     - EXTRA_WHEELS="https://5cf40426d9f06eb7461d-6fe47d9331aba7cd62fc36c7196769e4.ssl.cf2.rackcdn.com"
     - PRE_WHEELS="https://7933911d6844c6c53a7d-47bd50c35cd79bd838daf386af554a83.ssl.cf2.rackcdn.com"
     - EXTRA_PIP_FLAGS="--find-links=$EXTRA_WHEELS"
@@ -48,8 +47,7 @@ before_install:
         bash miniconda.sh -b -s -f -p $MINICONDA;
         conda config --set always_yes yes;
         conda info -a;
-        conda config --add channels conda-forge;
-        conda install --quiet python=$PYTHON_VERSION $CONDA_DEPS;
+        conda install --quiet python=$PYTHON_VERSION;
       fi
     - travis_retry pip install --upgrade pip
     - travis_retry pip install --upgrade virtualenv
