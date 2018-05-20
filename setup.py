@@ -1,7 +1,8 @@
 #!/usr/bin/env python
-
 import os
 from setuptools import setup, find_packages
+import versioneer
+
 PACKAGES = find_packages()
 
 # Get version and release info, which is all stored in bids/version.py
@@ -21,7 +22,8 @@ opts = dict(name=NAME,
             author=AUTHOR,
             author_email=AUTHOR_EMAIL,
             platforms=PLATFORMS,
-            version=VERSION,
+            version=versioneer.get_version(),
+            cmdclass=versioneer.get_cmdclass(),
             packages=PACKAGES,
             package_data=PACKAGE_DATA,
             install_requires=REQUIRES,
