@@ -30,6 +30,19 @@ def test_layout_init(testlayout1):
     assert isinstance(testlayout1.files, dict)
 
 
+def test_load_description(testlayout1):
+    with pytest.raises(ValueError) as e:
+        data_dir = join(get_test_data_path(), 'images')
+        layout = BIDSLayout(data_dir)
+        assert e.value.message.startswith("Mandatory 'dataset_description'")
+
+    # Should not raise an error
+    layout = BIDSLayout(data_dir, config='derivatives')
+    assert hasattr(testlayout1, 'description')
+    assert testlayout1.description['Name'] == '7t_trt'
+    assert testlayout1.description['BIDSVersion'] == "1.0.0rc3"
+
+
 def test_get_metadata(testlayout1):
     target = 'sub-03/ses-2/func/sub-03_ses-2_task-' \
              'rest_acq-fullbrain_run-2_bold.nii.gz'

@@ -1,52 +1,71 @@
+language: python
+
 sudo: false
 
+cache:
+  directories:
+    - $HOME/.cache/pip
+
+# python and global.matrix are crossed to create the base build matrix
+python:
+  - 2.7
+  - 3.5
+  - 3.6
 env:
   global:
-    - CONDA_DEPS="pip flake8 pytest numpy scipy"
+    - EXTRA_WHEELS="https://5cf40426d9f06eb7461d-6fe47d9331aba7cd62fc36c7196769e4.ssl.cf2.rackcdn.com"
+    - PRE_WHEELS="https://7933911d6844c6c53a7d-47bd50c35cd79bd838daf386af554a83.ssl.cf2.rackcdn.com"
+  matrix:
+    - EXTRA_PIP_FLAGS="--find-links=$EXTRA_WHEELS"
+    - EXTRA_PIP_FLAGS="--pre --find-links=$EXTRA_WHEELS --find-links $PRE_WHEELS"
 
+# Add OSX entries to the build matrix
 matrix:
   include:
     - os: osx
+      language: generic
       env:
-         - PYTHON_VERSION=2.7
-         - MINICONDA_URL="https://repo.continuum.io/miniconda/Miniconda2-latest-MacOSX-x86_64.sh"
+        - PYTHON_VERSION=2.7
+        - MINICONDA_URL="https://repo.continuum.io/miniconda/Miniconda2-latest-MacOSX-x86_64.sh"
     - os: osx
+      language: generic
       env:
-         - PYTHON_VERSION=3.5
-         - MINICONDA_URL="https://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-x86_64.sh"
-    - os: linux
+        - PYTHON_VERSION=3.5
+        - MINICONDA_URL="https://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-x86_64.sh"
+    - os: osx
+      language: generic
       env:
-         - PYTHON_VERSION=2.7
-         - MINICONDA_URL="https://repo.continuum.io/miniconda/Miniconda2-latest-Linux-x86_64.sh"
-    - os: linux
-      env:
-         - PYTHON_VERSION=3.5
-         - MINICONDA_URL="https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh"
+        - PYTHON_VERSION=3.6
+        - MINICONDA_URL="https://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-x86_64.sh"
 
 before_install:
-# https://github.com/travis-ci/travis-ci/issues/6522
-- if [[ "${TRAVIS_OS_NAME}" == "osx" ]]; then rvm get head || true; fi
-- export MINICONDA=$HOME/miniconda
-- export PATH="$MINICONDA/bin:$PATH"
-- hash -r
-- echo $MINICONDA_URL
-- wget $MINICONDA_URL -O miniconda.sh;
-- bash miniconda.sh -b -s -f -p $MINICONDA;
-- conda config --set always_yes yes
-- conda update conda
-- conda info -a
-- conda config --add channels conda-forge
-- conda install --quiet python=$PYTHON_VERSION $CONDA_DEPS
+    - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
+        export MINICONDA=$HOME/miniconda;
+        export PATH="$MINICONDA/bin:$PATH";
+        hash -r;
+        echo $MINICONDA_URL;
+        wget $MINICONDA_URL -O miniconda.sh;
+        bash miniconda.sh -b -s -f -p $MINICONDA;
+        conda config --set always_yes yes;
+        conda info -a;
+        conda install --quiet python=$PYTHON_VERSION;
+      fi
+    - travis_retry pip install --upgrade pip
+    - travis_retry pip install --upgrade virtualenv
+    - virtualenv --python=python venv
+    - source venv/bin/activate
+    - python --version # just to check
+    - travis_retry pip install -U pip wheel  # needed at one point
+    - travis_retry pip install pytest pytest-xdist pytest-cov codecov
 
 install:
-- pip install ".[analysis]"
+- pip install $EXTRA_PIP_FLAGS ".[analysis]"
 
 script:
-- py.test
+- py.test -n 2 -v --cov bids --cov-config .coveragerc --cov-report xml:cov.xml bids
 
-after_success:
-- coveralls
-- bash <(curl -s https://codecov.io/bash)
+after_script:
+- codecov --file cov.xml --flags unittests
 
 cache: false
 

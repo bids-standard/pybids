@@ -8,7 +8,7 @@ import logging
 
 import numpy as np
 
-from bids.version import __version__
+from .. import __version__
 
 logging.basicConfig()
 LOGGER = logging.getLogger('pybids.reports.utils')

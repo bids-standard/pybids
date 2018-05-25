@@ -76,13 +76,17 @@ class Analysis(object):
         # In the beginning, there was nothing
         input_nodes = None
 
+        # Use inputs from model, and update with kwargs
+        selectors = self.model.get('input', {})
+        selectors.update(kwargs)
+
         for i, b in enumerate(self.blocks):
 
             # Skip any blocks whose names or indexes don't match block list
             if blocks is not None and i not in blocks and b.name not in blocks:
                 continue
 
-            b.setup(input_nodes, identity_contrasts, **kwargs)
+            b.setup(input_nodes, identity_contrasts, **selectors)
             input_nodes = b.output_nodes
 
 
@@ -107,7 +111,7 @@ class Block(object):
     '''
 
     def __init__(self, layout, level, index, name=None, transformations=None,
-                 model=None, contrasts=None, input_nodes=None):
+                model=None, contrasts=None, input_nodes=None):
 
         self.layout = layout
         self.level = level
@@ -165,7 +169,7 @@ class Block(object):
                 created for each column in the design matrix.
             kwargs: Optional keyword arguments to pass onto load_variables.
         '''
-
+        self.output_nodes = []
         input_nodes = input_nodes or self.input_nodes or []
 
         # TODO: remove the scan_length argument entirely once we switch tests
@@ -189,8 +193,20 @@ class Block(object):
                 node_coll = self._concatenate_input_nodes(input_nodes)
                 colls.append(node_coll)
 
+            model = self.model or {}
+
+            variables = set(model.get('variables', []))
+            hrf_variables = set(model.get('HRF_variables', []))
+            if not variables >= hrf_variables:
+                raise ValueError("HRF_variables must be a subset ",
+                                 "of variables in BIDS model.")
+
             coll = merge_collections(colls) if len(colls) > 1 else colls[0]
+
             coll = apply_transformations(coll, self.transformations)
+            if model.get('variables'):
+                transform.select(coll, model['variables'])
+
             node = AnalysisNode(self.level, coll, self.contrasts, input_nodes,
                                 identity_contrasts)
 
@@ -371,6 +387,7 @@ class AnalysisNode(object):
         # Construct a list of all contrasts, including identity contrasts
         contrasts = list(self._block_contrasts)
 
+        ### Add ability to set different types of identity contrasts
         if self.identity_contrasts:
             for col_name in self.collection.variables.keys():
                 contrasts.append({
@@ -378,7 +395,6 @@ class AnalysisNode(object):
                     'condition_list': [col_name],
                     'weights': [1],
                 })
-
         # Filter on desired contrast names if passed
         if names is not None:
             contrasts = [c for c in contrasts if c['name'] in names]

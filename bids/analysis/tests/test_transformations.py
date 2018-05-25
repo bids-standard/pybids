@@ -7,6 +7,11 @@ from bids.tests import get_test_data_path
 import numpy as np
 import pandas as pd
 
+try:
+    from pandas.core.groupby import _get_grouper
+except ImportError:
+    from pandas.core.groupby.groupby import _get_grouper
+
 
 @pytest.fixture
 def collection():
@@ -39,9 +44,9 @@ def test_product(collection):
 
 def test_scale(collection):
     transform.scale(collection, variables=['RT', 'parametric gain'],
-                    output=['RT_Z', 'gain_Z'])
+                    output=['RT_Z', 'gain_Z'], groupby=['run', 'subject'])
     ents = collection['RT'].index
-    groupby = pd.core.groupby._get_grouper(ents, ['run', 'subject'])[0]
+    groupby = _get_grouper(ents, ['run', 'subject'])[0]
     z1 = collection['RT_Z'].values
     z2 = collection['RT'].values.groupby(
         groupby).apply(lambda x: (x - x.mean()) / x.std())
@@ -68,7 +73,7 @@ def test_orthogonalize_dense(collection):
     vals = np.c_[rt.values, pg_pre.values, pg_post.values]
     df = pd.DataFrame(vals, columns=['rt', 'pre', 'post'])
     ents = rt.index
-    groupby = pd.core.groupby._get_grouper(ents, ['run', 'subject'])[0]
+    groupby = _get_grouper(ents, ['run', 'subject'])[0]
     pre_r = df.groupby(groupby).apply(lambda x: x.corr().iloc[0, 1])
     post_r = df.groupby(groupby).apply(lambda x: x.corr().iloc[0, 2])
     assert (pre_r > 0.2).any()
@@ -79,12 +84,12 @@ def test_orthogonalize_sparse(collection):
     pg_pre = collection['parametric gain'].values
     rt = collection['RT'].values
     transform.orthogonalize(collection, variables='parametric gain',
-                            other='RT')
+                            other='RT', groupby=['run', 'subject'])
     pg_post = collection['parametric gain'].values
     vals = np.c_[rt.values, pg_pre.values, pg_post.values]
     df = pd.DataFrame(vals, columns=['rt', 'pre', 'post'])
     ents = collection['RT'].index
-    groupby = pd.core.groupby._get_grouper(ents, ['run', 'subject'])[0]
+    groupby = _get_grouper(ents, ['run', 'subject'])[0]
     pre_r = df.groupby(groupby).apply(lambda x: x.corr().iloc[0, 1])
     post_r = df.groupby(groupby).apply(lambda x: x.corr().iloc[0, 2])
     assert (pre_r > 0.2).any()
