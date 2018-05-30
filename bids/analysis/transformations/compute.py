@@ -22,14 +22,14 @@ class scale(Transformation):
 
     '''
 
-    def _transform(self, data, demean=True, rescale=True, replace_nan=None):
-        if replace_nan == 'before':
+    def _transform(self, data, demean=True, rescale=True, replace_na=None):
+        if replace_na == 'before':
             data = data.fillna(0.)
         if demean:
             data -= data.mean()
         if rescale:
             data /= data.std()
-        if replace_nan == 'after':
+        if replace_na == 'after':
             data = data.fillna(0.)
         return data
 
