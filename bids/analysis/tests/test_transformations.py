@@ -8,9 +8,9 @@ import numpy as np
 import pandas as pd
 
 try:
-    _get_grouper = pd.core.groupby._get_grouper
-except:
-    _get_grouper = pd.core.groupby.groupby.get_grouper
+    from pandas.core.groupby import _get_grouper
+except ImportError:
+    from pandas.core.groupby.groupby import _get_grouper
 
 
 @pytest.fixture
