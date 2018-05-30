@@ -284,12 +284,22 @@ class remove(Transformation):
 class replace(Transformation):
     ''' Replace values in the values, onset, or duration attributes.
 
-
     '''
     _groupable = False
     _input_type = 'variable'
     _return_type = 'variable'
     _allow_categorical = ('variables',)
 
-    def _transform(self, data, replace):
-        pass
+    def _transform(self, var, replace, attribute='value'):
+
+        if attribute == 'value':
+            var.values = var.values.replace(replace)
+        elif attribute == 'onset':
+            var.onset = pd.Series(var.onset).replace(replace).values
+        elif attribute == 'duration':
+            var.duration = pd.Series(var.duration).replace(replace).values
+        else:
+            raise ValueError("Invalid attribute. Must be one of 'value',"
+                             "'onset', or 'duration'.")
+
+        return var

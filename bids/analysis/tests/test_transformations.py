@@ -285,6 +285,25 @@ def test_filter(collection):
     assert len(collection['RT'].values) in [1536, 3909]
 
 
+def test_replace(collection):
+    orig = collection['parametric gain'].clone()
+    # Values
+    replace_dict = {0.0335: 2.0, -0.139: 2.0}
+    transform.replace(collection, 'parametric gain', replace_dict)
+    target = set(orig.values.unique()) - {0.0335, -0.139} | {2.0}
+    assert set(collection['parametric gain'].values.unique()) == target
+    # Durations
+    replace_dict = {3: 2}
+    transform.replace(collection, 'parametric gain', replace_dict, 'duration')
+    target = set(np.unique(orig.duration)) - {3} | {2.0}
+    assert set(np.unique(collection['parametric gain'].duration)) == target
+    # Onsets
+    replace_dict = {4.: 3., 476.: 475.5}
+    transform.replace(collection, 'parametric gain', replace_dict, 'onset')
+    target = set(np.unique(orig.onset)) - {4., 476.} | {3., 475.5}
+    assert set(np.unique(collection['parametric gain'].onset)) == target
+
+
 def test_select(collection):
     coll = collection.clone()
     keep = ['RT', 'parametric gain', 'respcat']
