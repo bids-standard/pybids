@@ -282,4 +282,14 @@ class remove(Transformation):
 
 
 class replace(Transformation):
-    pass
+    ''' Replace values in the values, onset, or duration attributes.
+
+
+    '''
+    _groupable = False
+    _input_type = 'variable'
+    _return_type = 'variable'
+    _allow_categorical = ('variables',)
+
+    def _transform(self, data, replace):
+        pass

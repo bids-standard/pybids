@@ -151,7 +151,11 @@ class BIDSVariable(object):
             A pandas Grouper object constructed from the specified columns
                 of the current index.
         '''
-        return pd.core.groupby._get_grouper(self.index, groupby)[0]
+        try:
+            gg = pd.core.groupby._get_grouper
+        except:
+            gg = pd.core.groupby.groupby._get_grouper
+        return gg(self.index, groupby)[0]
 
     def apply(self, func, groupby='run', *args, **kwargs):
         ''' Applies the passed function to the groups defined by the groupby
