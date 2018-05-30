@@ -320,8 +320,8 @@ class SparseRunVariable(SimpleVariable):
             if onsets[i] < last_ind:
                 start += self.run_info[run_i].duration * sampling_rate
                 run_i += 1
-            _onset = start + onsets[i]
-            _offset = _onset + durations[i]
+            _onset = int(start + onsets[i])
+            _offset = int(_onset + durations[i])
             ts[_onset:_offset] = val
             last_ind = onsets[i]
 
