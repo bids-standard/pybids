@@ -108,8 +108,8 @@ class to_dense(Transformation):
     _input_type = 'variable'
     _return_type = 'variable'
 
-    def _transform(self, var):
-        return var.to_dense()
+    def _transform(self, var, sampling_rate=10):
+        return var.to_dense(sampling_rate=sampling_rate)
 
 
 class assign(Transformation):
