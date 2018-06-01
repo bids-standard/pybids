@@ -259,8 +259,47 @@ class select(Transformation):
     _allow_categorical = ('variables',)
 
     def _transform(self, variables):
-        self.collection.variables = {c.name: c for c in variables}
+        self.collection.variables = {v.name: v for v in variables}
+
+
+class remove(Transformation):
+    ''' Remove variables from the namespace.
+
+    Args:
+        variables (list, str): Name(s) of variables to remove.
+    '''
+    _groupable = False
+    _loopable = False
+    _input_type = 'variable'
+    _return_type = 'none'
+    _allow_categorical = ('variables',)
+
+    def _transform(self, variables):
+        variables = set([v.name for v in variables])
+        self.collection.variables = {k: v for k, v in
+                                     self.collection.variables.items()
+                                     if k not in variables}
 
 
 class replace(Transformation):
-    pass
+    ''' Replace values in the values, onset, or duration attributes.
+
+    '''
+    _groupable = False
+    _input_type = 'variable'
+    _return_type = 'variable'
+    _allow_categorical = ('variables',)
+
+    def _transform(self, var, replace, attribute='value'):
+
+        if attribute == 'value':
+            var.values = var.values.replace(replace)
+        elif attribute == 'onset':
+            var.onset = pd.Series(var.onset).replace(replace).values
+        elif attribute == 'duration':
+            var.duration = pd.Series(var.duration).replace(replace).values
+        else:
+            raise ValueError("Invalid attribute. Must be one of 'value',"
+                             "'onset', or 'duration'.")
+
+        return var
