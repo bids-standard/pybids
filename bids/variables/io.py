@@ -158,7 +158,7 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
 
         # Process event files
         if events:
-            dfs = layout.get_events(img_f, derivatives=derivatives)
+            dfs = listify(layout.get_events(img_f, derivatives=derivatives))
             if dfs is not None:
                 for _data in dfs:
                     _data = pd.read_table(_data, sep='\t')
