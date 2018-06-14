@@ -11,7 +11,7 @@ __all__ = ['set_option', 'set_options', 'get_option']
 _config_name = 'pybids_config.json'
 
 _default_settings = {
-    '':''
+    'loop_preproc': False
 }
 
 
@@ -66,7 +66,6 @@ def _update_from_standard_locations():
     ]
     if 'PYBIDS_CONFIG' in os.environ:
         locs.insert(1, os.environ['PYBIDS_CONFIG'])
-
     from_file(locs, False)
 
 

@@ -5,7 +5,7 @@ from bids.variables.entities import Node, RunNode, NodeIndex
 import pytest
 from os.path import join
 from bids.tests import get_test_data_path
-
+from bids.config import set_option
 
 @pytest.fixture
 def layout1():
@@ -14,12 +14,13 @@ def layout1():
     return layout
 
 
-@pytest.fixture(scope="module")
-def synthetic():
+@pytest.fixture(scope="module", params=["events", "preproc"])
+def synthetic(request):
+    if request.param == "preproc":
+            set_option('loop_preproc', True)
     path = join(get_test_data_path(), 'synthetic')
-    layout = BIDSLayout(path, exclude='derivatives/')
+    layout = BIDSLayout(path)
     return load_variables(layout)
-
 
 def test_load_events(layout1):
     index = load_variables(layout1, types='events', scan_length=480)
@@ -59,10 +60,10 @@ def test_load_synthetic_dataset(synthetic):
     runs = synthetic.get_nodes('run', {'task': 'nback'})
     assert len(runs) == 5 * 2 * 2
     variables = runs[0].variables
-    assert {'trial_type', 'weight', 'respiratory', 'cardiac'} == \
-        set(variables.keys())
+    for v in ['trial_type', 'weight', 'respiratory', 'cardiac']:
+        assert v in variables.keys()
     assert sum([isinstance(v, DenseRunVariable)
-                for v in variables.values()]) == 2
+                for v in variables.values()]) == 54
     assert all([len(r.variables['weight'].values) == 42 for r in runs])
 
     # Sessions

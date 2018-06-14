@@ -6,6 +6,7 @@ from bids.utils import listify
 from .entities import NodeIndex
 from .variables import SparseRunVariable, DenseRunVariable, SimpleVariable
 import warnings
+from bids.config import _settings
 
 
 BASE_ENTITIES = ['subject', 'session', 'task', 'run']
@@ -119,8 +120,13 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
     if dataset is None:
         dataset = NodeIndex()
 
-    images = layout.get(return_type='file', type='bold', modality='func',
-                        extensions='.nii.gz', **selectors)
+    if _settings['loop_preproc']:
+        selectors['type'] = 'preproc'
+    else:
+        selectors['modality'] = 'func'
+        selectors['type'] = 'bold'
+
+    images = layout.get(return_type='file', extensions='.nii.gz', **selectors)
 
     if not images:
         raise ValueError("No functional images that match criteria found.")
