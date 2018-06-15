@@ -122,6 +122,9 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
 
     if _settings['loop_preproc']:
         selectors['type'] = 'preproc'
+        # Select any space, to only loop over each run once
+        selectors['space'] = layout.get_spaces(type='preproc')[0]
+
     else:
         selectors['modality'] = 'func'
         selectors['type'] = 'bold'
