@@ -1,5 +1,4 @@
 from __future__ import absolute_import, division, print_function
-from .version import __version__  # noqa
 from .due import due, Doi
 from . import config
 
@@ -11,3 +10,7 @@ due.cite(Doi("10.1038/sdata.2016.44"),
          path='bids')
 
 del due, Doi
+
+from ._version import get_versions
+__version__ = get_versions()['version']
+del get_versions

@@ -11,9 +11,9 @@ import numpy as np
 import nibabel as nib
 from num2words import num2words
 
-from bids.version import __version__
-from bids.reports.utils import (num_to_str, list_to_str, get_slice_info,
-                                get_seqstr, get_sizestr)
+from .. import __version__
+from .utils import (num_to_str, list_to_str, get_slice_info,
+                    get_seqstr, get_sizestr)
 
 logging.basicConfig()
 LOGGER = logging.getLogger('pybids.reports.parsing')

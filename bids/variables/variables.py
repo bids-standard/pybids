@@ -9,6 +9,11 @@ from itertools import chain
 from six import add_metaclass
 from bids.utils import matches_entities
 
+try:
+    from pandas.core.groupby import _get_grouper
+except ImportError:
+    from pandas.core.groupby.groupby import _get_grouper
+
 
 @add_metaclass(ABCMeta)
 class BIDSVariable(object):
@@ -151,7 +156,7 @@ class BIDSVariable(object):
             A pandas Grouper object constructed from the specified columns
                 of the current index.
         '''
-        return pd.core.groupby._get_grouper(self.index, groupby)[0]
+        return _get_grouper(self.index, groupby)[0]
 
     def apply(self, func, groupby='run', *args, **kwargs):
         ''' Applies the passed function to the groups defined by the groupby
@@ -320,8 +325,8 @@ class SparseRunVariable(SimpleVariable):
             if onsets[i] < last_ind:
                 start += self.run_info[run_i].duration * sampling_rate
                 run_i += 1
-            _onset = start + onsets[i]
-            _offset = _onset + durations[i]
+            _onset = int(start + onsets[i])
+            _offset = int(_onset + durations[i])
             ts[_onset:_offset] = val
             last_ind = onsets[i]
 

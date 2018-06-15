@@ -193,13 +193,20 @@ class Block(object):
                 node_coll = self._concatenate_input_nodes(input_nodes)
                 colls.append(node_coll)
 
+            model = self.model or {}
+
+            variables = set(model.get('variables', []))
+            hrf_variables = set(model.get('HRF_variables', []))
+            if not variables >= hrf_variables:
+                raise ValueError("HRF_variables must be a subset ",
+                                 "of variables in BIDS model.")
+
             coll = merge_collections(colls) if len(colls) > 1 else colls[0]
 
-            model = self.model or {}
+            coll = apply_transformations(coll, self.transformations)
             if model.get('variables'):
                 transform.select(coll, model['variables'])
-                
-            coll = apply_transformations(coll, self.transformations)
+
             node = AnalysisNode(self.level, coll, self.contrasts, input_nodes,
                                 identity_contrasts)
 

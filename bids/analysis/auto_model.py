@@ -63,7 +63,7 @@ def auto_model(layout, scan_length=None, one_vs_rest=False):
         trial_type_factors = ["trial_type." + tt for tt in trial_types]
 
         run_model = OrderedDict(HRF_variables=trial_type_factors,
-                                variables=['trial_type'])
+                                variables=trial_type_factors)
         run["model"] = run_model
 
         if one_vs_rest:

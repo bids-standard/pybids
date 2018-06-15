@@ -9,13 +9,35 @@ from .base import Transformation
 
 
 class scale(Transformation):
+    ''' Scale a variable.
 
-    def _transform(self, data, demean=True, rescale=True):
+    Args:
+        data (Series/DF): The variables to scale.
+        demean (bool): If True, demean each column.
+        rescale (bool): If True, divide variables by their standard deviation.
+        replace_na (str): Whether/when to replace missing values with 0. If
+            None, no replacement is performed. If 'before', missing values are
+            replaced with 0's before scaling. If 'after', missing values are
+            replaced with 0 after scaling.
+
+    '''
+
+    def _transform(self, data, demean=True, rescale=True, replace_na=None):
+        if replace_na == 'before':
+            data = data.fillna(0.)
         if demean:
             data -= data.mean()
         if rescale:
             data /= data.std()
+        if replace_na == 'after':
+            data = data.fillna(0.)
         return data
+
+
+class demean(Transformation):
+
+    def _transform(self, data):
+        return data - data.mean()
 
 
 class sum(Transformation):
@@ -73,6 +95,7 @@ class orthogonalize(Transformation):
 
 class threshold(Transformation):
     ''' Threshold and/or binarize a variable.
+
     Args:
         data (Series/DF): The pandas structure to threshold.
         threshold (float): The value to binarize around (values above will
@@ -108,6 +131,7 @@ class threshold(Transformation):
 
 class or_(Transformation):
     ''' Logical OR (inclusive) on two or more variables.
+
     Args:
         dfs (list of DFs): variables to enter into the disjunction.
     '''
@@ -121,8 +145,23 @@ class or_(Transformation):
         return df.any(axis=1).astype(int)
 
 
+class not_(Transformation):
+    ''' Logical negation of a variable.
+
+    Args:
+        var (Series): Variable to negate. Must be convertible to bool.
+    '''
+
+    _loopable = True
+    _groupable = False
+
+    def _transform(self, var):
+        return ~var.astype(bool)
+
+
 class and_(Transformation):
     ''' Logical AND on two or more variables.
+
     Args:
         dfs (list of DFs): variables to enter into the conjunction.
     '''
