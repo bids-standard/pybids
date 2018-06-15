@@ -97,7 +97,7 @@ class BIDSLayout(Layout):
             target = pathjoin(path, 'dataset_description.json')
             if not exists(target):
                 if not exists(path):
-                    raise ValueError("Root directory does not exist.")                
+                    raise ValueError("Root directory does not exist.")
                 raise ValueError("Mandatory 'dataset_description.json' file is "
                                  "missing from project root!")
             self.description = json.load(open(target, 'r'))
