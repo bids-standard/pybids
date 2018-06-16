@@ -59,12 +59,17 @@ class BIDSLayout(Layout):
             all files and directories that match at least one of the patterns
             in the include list will be ignored. Cannot be used together with
             'include'.
+        absolute_paths (bool): If True, queries always return absolute paths.
+            If False, queries return relative paths, unless the root argument
+            was left empty (in which case the root defaults to the file system
+            root).
         kwargs: Optional keyword arguments to pass onto the Layout initializer
             in grabbit.
     '''
 
     def __init__(self, paths, root=None, validate=False,
-                 index_associated=True, include=None, exclude=None, **kwargs):
+                 index_associated=True, include=None, exclude=None,
+                 absolute_paths=True, **kwargs):
 
         self.validator = BIDSValidator(index_associated=index_associated)
         self.validate = validate
@@ -106,7 +111,9 @@ class BIDSLayout(Layout):
 
         super(BIDSLayout, self).__init__(paths, root=root,
                                          dynamic_getters=True, include=include,
-                                         exclude=exclude, **kwargs)
+                                         exclude=exclude,
+                                         absolute_paths=absolute_paths,
+                                         **kwargs)
 
     def __repr__(self):
         n_sessions = len([session for isub in self.get_subjects()
