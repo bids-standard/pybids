@@ -25,7 +25,7 @@ class BIDSLayout(Layout):
 
                 - A string giving the name of a built-in config (e.g., 'bids')
                 - A path to a directory containing files to index
-                - A list of paths to directories to index
+                - A list of paths to directories to be indexed
                 - A list of 2-tuples where each tuple encodes a mapping from
                   directories to domains. The first element is a string or
                   list giving the paths to one or more directories to index.
