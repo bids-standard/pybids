@@ -42,7 +42,7 @@ URL = "http://github.com/INCF/pybids"
 DOWNLOAD_URL = ""
 LICENSE = "MIT"
 AUTHOR = "PyBIDS developers"
-AUTHOR_EMAIL = "http://github.com/INCF/pybids"
+AUTHOR_EMAIL = "bids-discussion@googlegroups.com"
 PLATFORMS = "OS Independent"
 # No data for now
 REQUIRES = ["grabbit>=0.2.0", "six", "num2words"]
