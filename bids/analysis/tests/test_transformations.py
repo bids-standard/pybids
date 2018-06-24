@@ -53,6 +53,14 @@ def test_scale(collection):
     assert np.allclose(z1, z2)
 
 
+def test_demean(collection):
+    transform.demean(collection, variables=['RT'], output=['RT_dm'])
+    m1 = collection['RT_dm'].values
+    m2 = collection['RT'].values
+    m2 -= m2.values.mean()
+    assert np.allclose(m1, m2)
+
+
 def test_orthogonalize_dense(collection):
     transform.factor(collection, 'trial_type', sep='/')
 
@@ -277,10 +285,38 @@ def test_filter(collection):
     assert len(collection['RT'].values) in [1536, 3909]
 
 
+def test_replace(collection):
+    orig = collection['parametric gain'].clone()
+    # Values
+    replace_dict = {0.0335: 2.0, -0.139: 2.0}
+    transform.replace(collection, 'parametric gain', replace_dict)
+    target = set(orig.values.unique()) - {0.0335, -0.139} | {2.0}
+    assert set(collection['parametric gain'].values.unique()) == target
+    # Durations
+    replace_dict = {3: 2}
+    transform.replace(collection, 'parametric gain', replace_dict, 'duration')
+    target = set(np.unique(orig.duration)) - {3} | {2.0}
+    assert set(np.unique(collection['parametric gain'].duration)) == target
+    # Onsets
+    replace_dict = {4.: 3., 476.: 475.5}
+    transform.replace(collection, 'parametric gain', replace_dict, 'onset')
+    target = set(np.unique(orig.onset)) - {4., 476.} | {3., 475.5}
+    assert set(np.unique(collection['parametric gain'].onset)) == target
+
+
 def test_select(collection):
+    coll = collection.clone()
     keep = ['RT', 'parametric gain', 'respcat']
-    transform.select(collection, keep)
-    assert set(collection.variables.keys()) == set(keep)
+    transform.select(coll, keep)
+    assert set(coll.variables.keys()) == set(keep)
+
+
+def test_remove(collection):
+    coll = collection.clone()
+    all_cols = set(coll.variables.keys())
+    drop = ['RT', 'parametric gain', 'respcat']
+    transform.remove(coll, drop)
+    assert all_cols - set(coll.variables.keys()) == set(drop)
 
 
 def test_and(collection):
@@ -307,3 +343,11 @@ def test_or(collection):
     transform.or_(coll, ['respnum.0', 'copy'], output='or')
     assert coll.variables['or'].values.astype(float).equals(
         coll.variables['respnum.0'].values)
+
+
+def test_not(collection):
+    coll = collection.clone()
+    pre_rt = coll.variables['RT'].values.values
+    transform.not_(coll, 'RT')
+    post_rt = coll.variables['RT'].values.values
+    assert (post_rt == ~pre_rt.astype(bool)).all()

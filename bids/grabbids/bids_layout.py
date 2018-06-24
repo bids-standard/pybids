@@ -20,23 +20,27 @@ class BIDSLayout(Layout):
     ''' Layout class representing an entire BIDS project.
 
     Args:
-        path (str): The path specifying the root directory of the BIDS project.
-        config (list, str): An optional specification of the config(s) to
-            apply to the layout. If passed, must be one of:
+        paths (str, list): The path(s) where project files are located.
+                Must be one of:
 
-            - A dictionary containing config information.
-            - A string giving either the name of a valid built-in config (e.g.,
-              'bids' or 'derivatives'), or the path to a JSON file containing
-              the config.
-            - A tuple with 2 elements, where the first element is a string
-              that names the built-in config to use, and the second is either:
-                * A list or tuple of paths to which that config should apply
-                * A partial dictionary to merge into the named built-in config,
-                  and can contain any key normally found in the config.
-            - A list, where each element can be any of the above.
+                - A string giving the name of a built-in config (e.g., 'bids')
+                - A path to a directory containing files to index
+                - A list of paths to directories to be indexed
+                - A list of 2-tuples where each tuple encodes a mapping from
+                  directories to domains. The first element is a string or
+                  list giving the paths to one or more directories to index.
+                  The second element specifies which domains to apply to the
+                  specified files, and can be one of:
+                    * A string giving the name of a built-in config
+                    * A string giving the path to a JSON config file
+                    * A dictionary containing config information
+                    * A list of any combination of strings or dicts
 
             At present, built-in domains include 'bids' and 'derivatives'.
 
+        root (str): The root directory of the BIDS project. All other paths
+            will be set relative to this if absolute_paths is False. If None,
+            filesystem root ('/') is used.
         validate (bool): If True, all files are checked for BIDS compliance
             when first indexed, and non-compliant files are ignored. This
             provides a convenient way to restrict file indexing to only those
@@ -55,77 +59,71 @@ class BIDSLayout(Layout):
             all files and directories that match at least one of the patterns
             in the include list will be ignored. Cannot be used together with
             'include'.
+        absolute_paths (bool): If True, queries always return absolute paths.
+            If False, queries return relative paths, unless the root argument
+            was left empty (in which case the root defaults to the file system
+            root).
         kwargs: Optional keyword arguments to pass onto the Layout initializer
             in grabbit.
     '''
 
-    def __init__(self, path, config=None, validate=False,
-                 index_associated=True, include=None, exclude=None, **kwargs):
+    def __init__(self, paths, root=None, validate=False,
+                 index_associated=True, include=None, exclude=None,
+                 absolute_paths=True, **kwargs):
 
         self.validator = BIDSValidator(index_associated=index_associated)
         self.validate = validate
 
         # Determine which configs to load
         conf_path = pathjoin(dirname(abspath(__file__)), 'config', '%s.json')
-        _all_doms = ['bids', 'derivatives']
-        if config is None:
-            config = ['bids', 'derivatives']
+        all_confs = ['bids', 'derivatives']
 
-        configs = []
+        def map_conf(x):
+            if isinstance(x, six.string_types) and x in all_confs:
+                return conf_path % x
+            return x
 
-        def _load_config(conf):
-            if isinstance(conf, six.string_types):
-                if conf in _all_doms:
-                    conf = conf_path % conf
-                conf = json.load(open(conf, 'r'))
-            return conf
+        paths = listify(paths, ignore=list)
 
-        for conf in listify(config):
-            if isinstance(conf, tuple):
-                _conf = _load_config(conf[0]).copy()
-                if isinstance(conf[1], dict):
-                    _conf.update(conf[1])
-                else:
-                    _conf['root'] = conf[1]
-                configs.append(_conf)
-            else:
-                configs.append(_load_config(conf))
+        for i, p in enumerate(paths):
+            if isinstance(p, six.string_types):
+                paths[i] = (p, conf_path % 'bids')
+                if len(paths) == 1 and root is None:
+                    root = p
+            elif isinstance(p, tuple):
+                doms = [map_conf(d) for d in listify(p[1])]
+                paths[i] = (p[0], doms)
 
-        # If 'bids' isn't in the list, the user probably made a mistake...
-        if any([c['name'] == 'bids' for c in configs]):
-            # Load and validate information in dataset_description.json
-            target = pathjoin(path, 'dataset_description.json')
-            if not exists(target):
-                if not exists(path):
-                    raise ValueError("Root directory does not exist.")                
-                raise ValueError("Mandatory 'dataset_description.json' file is "
-                                 "missing from project root!")
+        self.root = '/' if root is None else root
+
+        target = pathjoin(self.root, 'dataset_description.json')
+        if not exists(target):
+            warnings.warn("'dataset_description.json' file is missing from "
+                          "project root. You may want to set the root path to "
+                          "a valid BIDS project.")
+            self.description = None
+        else:
             self.description = json.load(open(target, 'r'))
-
             for k in ['Name', 'BIDSVersion']:
                 if k not in self.description:
                     raise ValueError("Mandatory '%s' field missing from "
                                      "dataset_description.json." % k)
-        else:
-            warnings.warn("The core BIDS configuration was not included in the"
-                          " config list. If you override the default value for"
-                          " config, you probably want to make sure 'bids' is "
-                          "included in the list of values.")
 
-
-        super(BIDSLayout, self).__init__(path, config=configs,
+        super(BIDSLayout, self).__init__(paths, root=root,
                                          dynamic_getters=True, include=include,
-                                         exclude=exclude, **kwargs)
+                                         exclude=exclude,
+                                         absolute_paths=absolute_paths,
+                                         **kwargs)
 
     def __repr__(self):
         n_sessions = len([session for isub in self.get_subjects()
                           for session in self.get_sessions(subject=isub)])
         n_runs = len([run for isub in self.get_subjects()
-                          for run in self.get_runs(subject=isub)])
+                      for run in self.get_runs(subject=isub)])
         n_subjects = len(self.get_subjects())
         root = self.root[-30:]
-        s = "BIDS Layout: ...{} | Subjects: {} | Sessions: {} | Runs: {}".format(
-            root, n_subjects, n_sessions, n_runs)
+        s = ("BIDS Layout: ...{} | Subjects: {} | Sessions: {} | "
+             "Runs: {}".format(root, n_subjects, n_sessions, n_runs))
         return s
 
     def _validate_file(self, f):

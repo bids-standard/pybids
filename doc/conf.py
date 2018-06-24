@@ -26,9 +26,8 @@ copyright = '2015 - 2018, Developers of pybids'
 author = 'Developers of pybids'
 
 currentdir = os.path.abspath(os.path.dirname(__file__))
-ver_file = os.path.join(currentdir, '..', project, 'version.py')
-with open(ver_file) as f:
-    exec(f.read())
+from bids._version import get_versions
+__version__ = get_versions()['version']
 
 source_version = __version__
 
@@ -42,8 +41,8 @@ currentdir = os.path.abspath(os.path.dirname(__file__))
 #     output_path = os.path.join(currentdir, 'reference')
 #     buildmodref.writeapi(project, output_path, source_version, True)
 
-# def setup(app):
-#     app.connect('builder-inited', generateapidoc)
+def setup(app):
+    app.add_stylesheet('theme_overrides.css')
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
@@ -53,7 +52,7 @@ currentdir = os.path.abspath(os.path.dirname(__file__))
 # -- General configuration ------------------------------------------------
 
 # If your documentation needs a minimal Sphinx version, state it here.
-needs_sphinx = '1.0' # numpydoc requires sphinc >= 1.0
+needs_sphinx = '1.2' # numpydoc requires sphinc >= 1.0
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
@@ -80,7 +79,9 @@ extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.mathjax',
               'sphinx.ext.viewcode',
               'sphinx.ext.githubpages',
-              'sphinx.ext.napoleon']
+              'sphinx.ext.napoleon',
+              'm2r',
+              'numpydoc']
 
 # library pointers.
 intersphinx_mapping = {
@@ -96,6 +97,8 @@ intersphinx_mapping = {
 
 # Generate stubs
 autosummary_generate = True
+autodoc_default_flags = ['members', 'inherited-members']
+add_module_names = False
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']

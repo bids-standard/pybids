@@ -151,7 +151,7 @@ class Transformation(object):
             if name not in pass_thru:
                 if col.values.values.dtype.kind not in 'bifc':
                     msg = ("The %s transformation does not allow variable '%s'"
-                           "to be categorical. Either pass a different "
+                           " to be categorical. Either pass a different "
                            "variable or explicitly convert to a set of binary "
                            "indicators via the 'factor' transformation.")
                     raise ValueError(msg % (self.__class__.__name__, name))
