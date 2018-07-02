@@ -16,9 +16,10 @@ def layout1():
 
 @pytest.fixture(scope="module", params=["events", "preproc"])
 def synthetic(request):
+    path = join(get_test_data_path(), 'synthetic')
     if request.param == "preproc":
         set_option('loop_preproc', True)
-    path = join(get_test_data_path(), 'synthetic')
+        path = (path, ['bids', 'derivatives'])
     layout = BIDSLayout(path)
     return request.param, load_variables(layout)
 
