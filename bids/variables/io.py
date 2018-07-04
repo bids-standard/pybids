@@ -161,7 +161,7 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
                        "available, or manually specify the scan duration.")
                 raise ValueError(msg)
 
-        tr = layout.get_metadata(img_f, type='bold', full_search=True)['RepetitionTime']
+        tr = layout.get_metadata(img_f, type='bold')['RepetitionTime']
 
         run = dataset.get_or_create_node('run', entities, image_file=img_f,
                                          duration=duration, repetition_time=tr)

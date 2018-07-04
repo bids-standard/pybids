@@ -51,7 +51,7 @@ class Analysis(object):
             block = Block(self.layout, index=i, **block_args)
             self.blocks.append(block)
 
-    def setup(self, blocks=None, agg_func='mean', identity_contrasts=True,
+    def setup(self, blocks=None, agg_func='mean', auto_contrasts=True,
               **kwargs):
         ''' Set up the sequence of blocks for analysis.
 
@@ -69,7 +69,7 @@ class Analysis(object):
                 name of a function recognized by apply() in pandas, or a
                 Callable that takes a DataFrame as input and returns a Series
                 or a DataFrame. NOTE: CURRENTLY UNIMPLEMENTED.
-            identity_contrasts (bool): If True, a contrast is automatically
+            auto_contrasts (bool): If True, a contrast is automatically
                 created for each column in the design matrix.
         '''
 
@@ -86,7 +86,7 @@ class Analysis(object):
             if blocks is not None and i not in blocks and b.name not in blocks:
                 continue
 
-            b.setup(input_nodes, identity_contrasts, **selectors)
+            b.setup(input_nodes, auto_contrasts, **selectors)
             input_nodes = b.output_nodes
 
 
@@ -108,10 +108,14 @@ class Block(object):
             generated when the model is fit.
         input_nodes (list): Optional list of AnalysisNodes to use as input to
             this Block (typically, the output from the preceding Block).
+        auto_contrasts (bool): If True, a contrast is automatically
+            created for each column in the design matrix. This parameter is
+            over-written by the setting in setup(). Default is True.
     '''
 
     def __init__(self, layout, level, index, name=None, transformations=None,
-                model=None, contrasts=None, input_nodes=None):
+                model=None, contrasts=None, input_nodes=None,
+                auto_contrasts=True):
 
         self.layout = layout
         self.level = level
@@ -122,6 +126,7 @@ class Block(object):
         self.contrasts = contrasts or []
         self.input_nodes = input_nodes or []
         self.output_nodes = []
+        self.auto_contrasts = auto_contrasts
 
     def _filter_objects(self, objects, kwargs):
         # Keeps only objects that match target entities, and also removes those
@@ -158,19 +163,22 @@ class Block(object):
         entities = pd.concat(entities, axis=1).T
         return BIDSVariableCollection.from_df(data, entities, self.level)
 
-    def setup(self, input_nodes=None, identity_contrasts=True, **kwargs):
+    def setup(self, input_nodes=None, auto_contrasts=None, **kwargs):
         ''' Set up the Block and construct the design matrix.
 
         Args:
             input_nodes (list): Optional list of Node objects produced by
                 the preceding Block in the analysis. If None, uses any inputs
                 passed in at Block initialization.
-            identity_contrasts (bool): If True, a contrast is automatically
+            auto_contrasts (bool): If True, a contrast is automatically
                 created for each column in the design matrix.
             kwargs: Optional keyword arguments to pass onto load_variables.
         '''
         self.output_nodes = []
         input_nodes = input_nodes or self.input_nodes or []
+
+        if auto_contrasts is not None:
+            self.auto_contrasts = auto_contrasts
 
         # TODO: remove the scan_length argument entirely once we switch tests
         # to use the synthetic dataset with image headers.
@@ -208,7 +216,7 @@ class Block(object):
                 transform.select(coll, model['variables'])
 
             node = AnalysisNode(self.level, coll, self.contrasts, input_nodes,
-                                identity_contrasts)
+                                self.auto_contrasts)
 
             self.output_nodes.append(node)
 
@@ -286,17 +294,17 @@ class AnalysisNode(object):
         collection (BIDSVariableCollection): The BIDSVariableCollection
             containing variables at this Node.
         contrasts (list): A list of contrasts defined in the originating Block.
-        identity_contrasts (bool): If True, a contrast is automatically
+        auto_contrasts (bool): If True, a contrast is automatically
             created for each column in the design matrix.
     '''
 
     def __init__(self, level, collection, contrasts, input_nodes=None,
-                 identity_contrasts=True):
+                 auto_contrasts=True):
         self.level = level
         self.collection = collection
         self._block_contrasts = contrasts
         self.input_nodes = input_nodes
-        self.identity_contrasts = identity_contrasts
+        self.auto_contrasts = auto_contrasts
         self._contrasts = None
 
     @property
@@ -387,14 +395,22 @@ class AnalysisNode(object):
         # Construct a list of all contrasts, including identity contrasts
         contrasts = list(self._block_contrasts)
 
+        # Check that all contrasts have unique name
+        contrast_names = [c['name'] for c in contrasts]
+        if len(set(contrast_names)) < len(contrast_names):
+            raise ValueError("One or more contrasts have the same name")
+        contrast_names = list(set(contrast_names))
+
         ### Add ability to set different types of identity contrasts
-        if self.identity_contrasts:
+        if self.auto_contrasts:
             for col_name in self.collection.variables.keys():
-                contrasts.append({
-                    'name': col_name,
-                    'condition_list': [col_name],
-                    'weights': [1],
-                })
+                if col_name not in contrast_names:
+                    contrasts.append({
+                        'name': col_name,
+                        'condition_list': [col_name],
+                        'weights': [1],
+                    })
+
         # Filter on desired contrast names if passed
         if names is not None:
             contrasts = [c for c in contrasts if c['name'] in names]
