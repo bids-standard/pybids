@@ -51,7 +51,7 @@ class Analysis(object):
             block = Block(self.layout, index=i, **block_args)
             self.blocks.append(block)
 
-    def setup(self, blocks=None, agg_func='mean', auto_contrasts=True,
+    def setup(self, blocks=None, agg_func='mean', auto_contrasts=None,
               **kwargs):
         ''' Set up the sequence of blocks for analysis.
 
