@@ -15,6 +15,14 @@ def analysis():
     analysis.setup(scan_length=480, subject=['01', '02'])
     return analysis
 
+@pytest.fixture
+def analysis_no_auto_contrasts():
+    layout_path = join(get_test_data_path(), 'ds005')
+    layout = BIDSLayout(layout_path, exclude='derivatives/')
+    json_file = join(layout_path, 'models', 'ds-005_type-test_model.json')
+    analysis = Analysis(layout, json_file)
+    analysis.setup(scan_length=480, subject=['01', '02'], auto_contrasts=False)
+    return analysis
 
 def test_design_matrix_info(analysis):
     result = analysis['run'].get_design_matrix(subject=['01', '02', '03'])
@@ -105,6 +113,10 @@ def test_contrast_matrix_info(analysis):
     for c in contrasts:
         assert isinstance(contrasts[0], ContrastMatrixInfo)
         assert c._fields == ('data', 'index', 'entities')
+
+def test_no_auto_contrasts(analysis_no_auto_contrasts):
+    contrasts = analysis_no_auto_contrasts['run'].get_contrasts(subject='01')
+    assert len(contrasts) == 1
 
 
 # def test_get_contrasts(analysis):
