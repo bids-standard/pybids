@@ -6,7 +6,7 @@ from bids.utils import listify
 from .entities import NodeIndex
 from .variables import SparseRunVariable, DenseRunVariable, SimpleVariable
 import warnings
-from bids.config import _settings
+from bids.config import get_option
 
 
 BASE_ENTITIES = ['subject', 'session', 'task', 'run']
@@ -120,7 +120,7 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
     if dataset is None:
         dataset = NodeIndex()
 
-    if _settings['loop_preproc']:
+    if get_option('loop_preproc'):
         selectors['type'] = 'preproc'
         # Select any space, to only loop over each run once
         spaces = layout.get_spaces(type='preproc')
