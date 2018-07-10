@@ -21,7 +21,8 @@ def synthetic(request):
         set_option('loop_preproc', True)
         path = (path, ['bids', 'derivatives'])
     layout = BIDSLayout(path)
-    return request.param, load_variables(layout)
+    yield request.param, load_variables(layout)
+    set_option('loop_preproc', False)
 
 def test_load_events(layout1):
     index = load_variables(layout1, types='events', scan_length=480)
