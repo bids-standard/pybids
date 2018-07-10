@@ -123,6 +123,8 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
     if get_option('loop_preproc'):
         selectors['type'] = 'preproc'
         # Select any space, to only loop over each run once
+        # Warning: If some spaces only apply to some runs, this may result in
+        # unexpected behavior, althought his scenario is rare.
         spaces = layout.get_spaces(type='preproc')
         if len(spaces) > 1:
             selectors['space'] = spaces[0]
