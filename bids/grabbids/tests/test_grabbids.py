@@ -85,7 +85,7 @@ def test_get_events(testlayout3):
     assert expected1 in result
 
     expected2 = abspath(join(
-        testlayout3.root, 'derivatives/events/', basename(expected1)))
+        testlayout3.root, 'derivatives/events/func/', basename(expected1)))
 
     merged = testlayout3.get_events(join(testlayout3.root, target),
                                     return_type='df')
