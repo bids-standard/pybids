@@ -15,6 +15,14 @@ def analysis():
     analysis.setup(scan_length=480, subject=['01', '02'])
     return analysis
 
+@pytest.fixture
+def analysis_force_auto_contrasts():
+    layout_path = join(get_test_data_path(), 'ds005')
+    layout = BIDSLayout(layout_path, exclude='derivatives/')
+    json_file = join(layout_path, 'models', 'ds-005_type-test_model.json')
+    analysis = Analysis(layout, json_file)
+    analysis.setup(scan_length=480, subject=['01', '02'], auto_contrasts=True)
+    return analysis
 
 def test_design_matrix_info(analysis):
     result = analysis['run'].get_design_matrix(subject=['01', '02', '03'])
@@ -73,7 +81,7 @@ def test_post_first_level_sparse_design_matrix(analysis):
     result = analysis['session'].get_design_matrix(entities=False)
     assert len(result) == 2
     assert len(result[0]) == 3
-    assert result[0].sparse.shape == (27, 2)
+    assert result[0].sparse.shape == (3, 2)
     assert result[0].entities == {
         'subject': '01',
         'task': 'mixedgamblestask'}
@@ -87,11 +95,11 @@ def test_post_first_level_sparse_design_matrix(analysis):
     result = analysis['group'].get_design_matrix()
     assert len(result) == 1
     data = result[0].sparse
-    assert len(data) == 22
+    assert len(data) == 6
     assert data['subject'].nunique() == 2
 
     # # Make sure columns from different levels exist
-    varset = {'sex', 'age', 'RT', 'respnum'}
+    varset = {'sex', 'age', 'RT-trial_type'}
     assert not (varset - set(data['condition'].unique()))
 
     # Calling an invalid level name should raise an exception
@@ -105,6 +113,10 @@ def test_contrast_matrix_info(analysis):
     for c in contrasts:
         assert isinstance(contrasts[0], ContrastMatrixInfo)
         assert c._fields == ('data', 'index', 'entities')
+
+def test_force_auto_contrasts(analysis_force_auto_contrasts):
+    contrasts = analysis_force_auto_contrasts['run'].get_contrasts(subject='01')
+    assert contrasts[0][0].shape == (8, 9)
 
 
 # def test_get_contrasts(analysis):
