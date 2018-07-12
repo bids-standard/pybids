@@ -235,11 +235,7 @@ class BIDSLayout(Layout):
             path, '.tsv', type='events', **kwargs) or []
 
         entities = self.files[path].entities.copy()
-
-        if 'type' in entities:
-            entities.pop('type')
-        if 'modality' in entities and entities['modality'] == 'func':
-            entities.pop('modality')
+        entities = {e:v for e,v in entities.items() if e in ['modality', 'subject', 'task', 'run']}
 
         entities.update(kwargs)
 
