@@ -4,6 +4,7 @@
   "blocks": [
     {
       "name": "run",
+      "auto_contrasts": false,
       "level": "run",
       "transformations": [
         {

@@ -6,6 +6,7 @@ from bids.utils import listify
 from .entities import NodeIndex
 from .variables import SparseRunVariable, DenseRunVariable, SimpleVariable
 import warnings
+from bids.config import get_option
 
 
 BASE_ENTITIES = ['subject', 'session', 'task', 'run']
@@ -119,8 +120,20 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
     if dataset is None:
         dataset = NodeIndex()
 
-    images = layout.get(return_type='file', type='bold', modality='func',
-                        extensions='.nii.gz', **selectors)
+    if get_option('loop_preproc'):
+        selectors['type'] = 'preproc'
+        # Select any space, to only loop over each run once
+        # Warning: If some spaces only apply to some runs, this may result in
+        # unexpected behavior, althought his scenario is rare.
+        spaces = layout.get_spaces(type='preproc')
+        if len(spaces) > 1:
+            selectors['space'] = spaces[0]
+
+    else:
+        selectors['modality'] = 'func'
+        selectors['type'] = 'bold'
+
+    images = layout.get(return_type='file', extensions='.nii.gz', **selectors)
 
     if not images:
         raise ValueError("No functional images that match criteria found.")
@@ -150,7 +163,7 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
                        "available, or manually specify the scan duration.")
                 raise ValueError(msg)
 
-        tr = layout.get_metadata(img_f)['RepetitionTime']
+        tr = layout.get_metadata(img_f, type='bold', full_search=True)['RepetitionTime']
 
         run = dataset.get_or_create_node('run', entities, image_file=img_f,
                                          duration=duration, repetition_time=tr)
