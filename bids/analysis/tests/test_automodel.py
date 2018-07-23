@@ -1,10 +1,12 @@
 from os.path import join
 from bids.grabbids import BIDSLayout
-from bids.analysis.auto_model import auto_model
-from bids.analysis import Analysis
 from bids.tests import get_test_data_path
 import pytest
 
+skip = pytest.importorskip("bids.analysis")
+
+from bids.analysis.auto_model import auto_model
+from bids.analysis import Analysis
 
 @pytest.fixture
 def model():

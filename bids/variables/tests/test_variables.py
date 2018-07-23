@@ -1,7 +1,10 @@
 from bids.grabbids import BIDSLayout
-import pytest
 from os.path import join
 from bids.tests import get_test_data_path
+import pytest
+
+skip = pytest.importorskip('bids.variables')
+
 from bids.variables import (merge_variables, DenseRunVariable, SimpleVariable,
                             load_variables)
 from bids.variables.entities import RunInfo

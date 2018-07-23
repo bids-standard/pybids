@@ -1,12 +1,14 @@
 # from bids.analysis.variables import load_variables
-from bids.analysis import transformations as transform
-from bids.grabbids import BIDSLayout
 import pytest
 from os.path import join
 from bids.tests import get_test_data_path
+
+skip_analysis = pytest.importorskip("bids.analysis")
+
 import numpy as np
 import pandas as pd
-
+from bids.analysis import transformations as transform
+from bids.grabbids import BIDSLayout
 try:
     from pandas.core.groupby import _get_grouper
 except ImportError:

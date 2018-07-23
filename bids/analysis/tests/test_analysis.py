@@ -1,10 +1,15 @@
 from os.path import join
 from bids.grabbids import BIDSLayout
-from bids.analysis import Analysis
-from bids.analysis.analysis import ContrastMatrixInfo, DesignMatrixInfo
+
 from bids.tests import get_test_data_path
 import pytest
 
+skip = pytest.importorskip("bids.analysis")
+
+from bids.analysis import Analysis
+from bids.analysis.analysis import ContrastMatrixInfo, DesignMatrixInfo
+# except ImportError:
+#     has_analysis = True
 
 @pytest.fixture
 def analysis():

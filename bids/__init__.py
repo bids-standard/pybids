@@ -3,8 +3,13 @@ from .due import due, Doi
 from . import config
 
 from .grabbids import BIDSLayout, BIDSValidator
-from .analysis import Analysis
-from .variables.io import load_variables
+
+try:
+    from .analysis import Analysis
+    from .variables.io import load_variables
+except ImportError as e:
+    pass
+
 
 
 __all__ = [

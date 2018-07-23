@@ -6,6 +6,11 @@ from bids.grabbids import BIDSLayout
 from os.path import join, abspath, basename
 from bids.tests import get_test_data_path
 
+has_pandas = True
+try:
+    import pandas
+except ImportError:
+    has_pandas = False
 
 # Fixture uses in the rest of the tests
 @pytest.fixture(scope='module')
@@ -75,6 +80,7 @@ def test_get_metadata5(testlayout1):
     assert result['acquisition'] == 'fullbrain'
 
 
+@pytest.mark.skipif(not has_pandas, reason="Pandas not installed")
 def test_get_events(testlayout3):
     target = ('sub-01/func/sub-01_task-'
               'mixedgamblestask_run-01_bold.nii.gz')
