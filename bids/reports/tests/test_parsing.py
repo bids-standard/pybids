@@ -2,9 +2,11 @@ import json
 from os.path import abspath, join
 import pytest
 
-import nibabel as nib
+skip = pytest.importorskip("bids.reports.parsing")
 
 from bids.reports import parsing
+import nibabel as nib
+
 from bids.grabbids import BIDSLayout
 from bids.tests import get_test_data_path
 

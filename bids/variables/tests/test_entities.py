@@ -1,11 +1,12 @@
 from bids.grabbids import BIDSLayout
-from bids.variables.entities import RunNode, Node, NodeIndex
-from bids.variables import load_variables
-from bids.variables import BIDSRunVariableCollection
 import pytest
 from os.path import join
 from bids.tests import get_test_data_path
 
+skip = pytest.importorskip("bids.variables")
+
+from bids.variables.entities import RunNode, Node, NodeIndex
+from bids.variables import load_variables, BIDSRunVariableCollection
 
 @pytest.fixture(scope="module")
 def layout1():

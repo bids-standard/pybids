@@ -2,8 +2,10 @@ from bids.grabbids import BIDSLayout
 import pytest
 from os.path import join, dirname, abspath
 from bids.tests import get_test_data_path
-from bids.variables import DenseRunVariable, merge_collections
 
+skip = pytest.importorskip("bids.variables")
+
+from bids.variables import DenseRunVariable, merge_collections
 
 @pytest.fixture(scope="module")
 def run_coll():

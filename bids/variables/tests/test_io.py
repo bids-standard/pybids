@@ -1,12 +1,14 @@
 from bids.grabbids import BIDSLayout
-from bids.variables import (SparseRunVariable, SimpleVariable,
-                            DenseRunVariable, load_variables)
-from bids.variables.entities import Node, RunNode, NodeIndex
 import pytest
 from os.path import join
 from bids.tests import get_test_data_path
 from bids.config import set_option
 
+skip = pytest.importorskip("bids.variables")
+
+from bids.variables import (SparseRunVariable, SimpleVariable,
+                            DenseRunVariable, load_variables)
+from bids.variables.entities import Node, RunNode, NodeIndex
 @pytest.fixture
 def layout1():
     path = join(get_test_data_path(), 'ds005')
