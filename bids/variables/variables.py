@@ -478,7 +478,7 @@ class DenseRunVariable(BIDSVariable):
             if len(rates) == 1:
                 sampling_rate = list(rates)[0]
             else:
-                if sampling_rate is 'auto':
+                if sampling_rate == 'auto':
                     sampling_rate = max(rates)
                 else:
                     msg = ("Cannot merge DenseRunVariables (%s) with different"
