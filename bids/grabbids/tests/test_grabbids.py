@@ -21,9 +21,11 @@ def testlayout2():
 
 
 @pytest.fixture(scope='module')
-def testlayout3():
+def deriv_layout():
     data_dir = join(get_test_data_path(), 'ds005')
-    return BIDSLayout([(data_dir, ['bids', 'derivatives'])], root=data_dir)
+    deriv_dir = join(data_dir, 'derivatives')
+    return BIDSLayout([(data_dir, 'bids'),
+                       (deriv_dir, ['bids', 'derivatives'])])
 
 
 def test_layout_init(testlayout1):
@@ -118,15 +120,21 @@ def test_exclude(testlayout2):
     assert 'all' not in testlayout2.get_subjects()
 
 
-def test_layout_with_derivs(testlayout3):
-    assert isinstance(testlayout3.files, dict)
-    assert set(testlayout3.domains.keys()) == {'bids', 'derivatives'}
-    assert testlayout3.domains['bids'].files
-    assert testlayout3.domains['derivatives'].files
-    assert 'derivatives.roi' in testlayout3.entities
-    assert 'bids.roi' not in testlayout3.entities
-    assert 'bids.subject' in testlayout3.entities
+def test_layout_with_derivs(deriv_layout):
+    assert deriv_layout.root == join(get_test_data_path(), 'ds005')
+    assert isinstance(deriv_layout.files, dict)
+    assert set(deriv_layout.domains.keys()) == {'bids', 'derivatives'}
+    assert deriv_layout.domains['bids'].files
+    assert deriv_layout.domains['derivatives'].files
+    assert 'derivatives.roi' in deriv_layout.entities
+    assert 'bids.roi' not in deriv_layout.entities
+    assert 'bids.subject' in deriv_layout.entities
 
 
-def test_layout_with_custom_domain_options():
-    pass
+def test_query_derivatives(deriv_layout):
+    result = deriv_layout.get(type='events', return_type='object',
+                              domains='derivatives')
+    # print([r.path for r in result])
+    print([(dom.name, len(dom.files))    for dom in deriv_layout.domains.values()])
+    assert len(result) == 1
+    assert result[0].filename == 'sub-01_task-mixedgamblestask_run-01_events.tsv'
