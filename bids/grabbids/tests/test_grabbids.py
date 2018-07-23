@@ -134,7 +134,5 @@ def test_layout_with_derivs(deriv_layout):
 def test_query_derivatives(deriv_layout):
     result = deriv_layout.get(type='events', return_type='object',
                               domains='derivatives')
-    # print([r.path for r in result])
-    print([(dom.name, len(dom.files))    for dom in deriv_layout.domains.values()])
     assert len(result) == 1
     assert result[0].filename == 'sub-01_task-mixedgamblestask_run-01_events.tsv'
