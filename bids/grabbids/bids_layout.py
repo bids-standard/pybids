@@ -4,7 +4,7 @@ import warnings
 from io import open
 
 from os.path import dirname, abspath, exists
-from os.path import join as pathjoin
+from os.path import join as pathjoin, commonpath
 
 from .bids_validator import BIDSValidator
 from grabbit import Layout, File
@@ -87,13 +87,20 @@ class BIDSLayout(Layout):
         for i, p in enumerate(paths):
             if isinstance(p, six.string_types):
                 paths[i] = (p, conf_path % 'bids')
-                if len(paths) == 1 and root is None:
-                    root = p
             elif isinstance(p, tuple):
                 doms = [map_conf(d) for d in listify(p[1])]
                 paths[i] = (p[0], doms)
 
-        self.root = '/' if root is None else root
+        # Set root to longest valid common parent if it isn't explicitly set
+        if root is None:
+            abs_paths = [abspath(p[0]) for p in paths]
+            root = commonpath(abs_paths)
+            if not root:
+                raise ValueError("One or more invalid paths passed; could not "
+                                 "find a common parent directory of %s." %
+                                 abs_paths)
+
+        self.root = root
 
         target = pathjoin(self.root, 'dataset_description.json')
         if not exists(target):
@@ -207,57 +214,6 @@ class BIDSLayout(Layout):
             return tmp[0]
         else:
             return tmp
-
-    def get_events(self, path, return_type='file', derivatives='both',
-                   **kwargs):
-        """ For a given file in a BIDS project, finds corresponding event files
-        and optionally returns merged dataframe containing all variables.
-
-        Args:
-            path (str): Path to a file to match to events.
-            return_type (str): Type of output to return.
-                'file' returns list of files,
-                'df' merges events into a single DataFrame, giving precedence
-                to events closer to the file.
-            derivatives (str): How to handle derivative events.
-                'ignore' - Ignore any event files outside of root directory.
-                'only' - Only include event files from outside directories.
-                'both' - Include both. Derivative events have precedence.
-        Returns:
-            List of file or merged Pandas dataframe.
-        """
-
-        path = abspath(path)
-
-        # Get events in base Layout directory (ordered)
-        root_events = self._get_nearest_helper(
-            path, '.tsv', type='events', **kwargs) or []
-
-        entities = self.files[path].entities.copy()
-        entities = {e:v for e,v in entities.items() if e in ['modality', 'subject', 'task', 'run']}
-
-        entities.update(kwargs)
-
-        # Get all events
-        events = self.get(extensions='tsv', type='events',
-                          return_type='file', **entities) or []
-
-        deriv_events = list(set(events) - set(root_events))
-
-        if derivatives == 'only':
-            events = deriv_events
-        elif derivatives == 'ignore':
-            events = root_events
-        else: # Combine with order
-            events = deriv_events + root_events
-
-        if return_type == 'df':
-            events = _merge_event_files(events)
-        elif not events:
-            return None
-        elif len(events) == 1:
-            return events[0]
-        return events
 
     def get_fieldmap(self, path, return_list=False):
         fieldmaps = self._get_fieldmaps(path)
