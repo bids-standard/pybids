@@ -75,36 +75,6 @@ def test_get_metadata5(testlayout1):
     assert result['acquisition'] == 'fullbrain'
 
 
-def test_get_events(testlayout3):
-    target = ('sub-01/func/sub-01_task-'
-              'mixedgamblestask_run-01_bold.nii.gz')
-    result = testlayout3.get_events(join(testlayout3.root, target))
-    assert len(result) == 2
-    expected1 = abspath(join(
-        testlayout3.root, target.replace('_bold.nii.gz', '_events.tsv')))
-    assert expected1 in result
-
-    expected2 = abspath(join(
-        testlayout3.root, 'derivatives/events/func/', basename(expected1)))
-
-    merged = testlayout3.get_events(join(testlayout3.root, target),
-                                    return_type='df')
-
-    assert 'response' in merged
-    assert 'trial_type' in merged
-    assert merged[merged.onset == 1].RT.values[0] == 1.0
-    assert merged[merged.onset == 18].RT.values[0] == 100.0
-    assert merged[merged.onset == 102].RT.values[0] > 1
-
-    assert expected2 in result
-
-
-def test_get_events2(testlayout2):
-    target = 'sub-03/anat/sub-03_T1w.nii.gz'
-    result = testlayout2.get_events(join(testlayout2.root, target))
-    assert result is None
-
-
 def test_get_bvals_bvecs(testlayout2):
     dwifile = testlayout2.get(subject="01", modality="dwi")[0]
     result = testlayout2.get_bval(dwifile.filename)

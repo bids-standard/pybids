@@ -7,7 +7,6 @@ from os.path import dirname, abspath, exists
 from os.path import join as pathjoin
 
 from .bids_validator import BIDSValidator
-from .utils import _merge_event_files
 from grabbit import Layout, File
 from grabbit.external import six
 from grabbit.utils import listify

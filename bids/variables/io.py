@@ -80,7 +80,7 @@ def load_variables(layout, types=None, levels=None, skip_empty=True, **kwargs):
 
 def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
                          drop_na=True, events=True, physio=True, stim=True,
-                         confounds=True, derivatives=None, skip_empty=True,
+                         confounds=True, derivatives='ignore', skip_empty=True,
                          **selectors):
     ''' Loads all variables found in *_events.tsv files and returns them as a
     BIDSVariableCollection.
@@ -103,8 +103,10 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
             files.
         physio (bool): If True, extracts variables from _physio files.
         stim (bool): If True, extracts variables from _stim files.
-        derivatives (str): How to handle derivative events. Passed to
-            BIDSLayout.get_events.
+        derivatives (str): How to handle derivative events. Must be one of:
+            'ignore' (default): Ignore event files in derivatives folders
+            'only': Only return event files in derivative folders
+            'both': Return both derivative and non-derivative event files
         skip_empty (bool): Whether or not to skip empty Variables (i.e.,
             where there are no rows/records in a file, or all onsets,
             durations, and amplitudes are 0).
@@ -171,7 +173,11 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
 
         # Process event files
         if events:
-            dfs = listify(layout.get_events(img_f, derivatives=derivatives))
+            domains = {'ignore': 'bids', 'only': 'derivatives',
+                      'both': ['bids', 'derivatives']}[derivatives]
+            dfs = layout._get_nearest_helper(img_f, '.tsv', type='events',
+                                             domains=domains)
+            # dfs = listify(layout.get_events(img_f, derivatives=derivatives))
             if dfs is not None:
                 for _data in dfs:
                     _data = pd.read_table(_data, sep='\t')
