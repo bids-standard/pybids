@@ -277,9 +277,35 @@ class BIDSLayout(Layout):
         return fieldmap_set
 
     def get_collections(self, level, types=None, variables=None, merge=False,
-                        sampling_rate=None, **kwargs):
+                        sampling_rate=None, skip_empty=False, **kwargs):
+        ''' Return one or more Collections containing variables found in the
+        BIDS project.
+
+        Args:
+            level (str): The level of analysis to return variables for. Must be
+                one of 'run', 'session', 'subject', or 'dataset'.
+            types (str, list): Types of variables to retrieve. All valid values
+            reflect the filename stipulated in the BIDS spec for each kind of
+            variable. Valid values include: 'events', 'physio', 'stim',
+            'scans', 'participants', 'sessions', and 'confounds'.
+            variables (list): Optional list of variables names to return. If
+                None, all available variables are returned.
+            merge (bool): If True, variables are merged across all observations
+                of the current level. E.g., if level='subject', variables from
+                all subjects will be merged into a single collection. If False,
+                each observation is handled separately, and the result is
+                returned as a list.
+            sampling_rate (int, str): If level='run', the sampling rate to
+                pass onto the returned BIDSRunVariableCollection.
+            skip_empty (bool): Whether or not to skip empty Variables (i.e.,
+                where there are no rows/records in a file after applying any
+                filtering operations like dropping NaNs).
+            kwargs: Optional additional arguments to pass onto load_variables.
+
+        '''
         from bids.variables import load_variables
-        index = load_variables(self, types=types, levels=level, **kwargs)
+        index = load_variables(self, types=types, levels=level,
+                               skip_empty=skip_empty, **kwargs)
         return index.get_collections(level, variables, merge,
                                      sampling_rate=sampling_rate)
 
