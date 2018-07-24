@@ -118,6 +118,8 @@ def test_exclude(testlayout2):
         testlayout2.root, 'models/ds-005_type-russ_sub-all_model.json') \
         not in testlayout2.files
     assert 'all' not in testlayout2.get_subjects()
+    for f in testlayout2.files.values():
+        assert 'derivatives' not in f.path
 
 
 def test_layout_with_derivs(deriv_layout):

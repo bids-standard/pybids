@@ -5,7 +5,8 @@ from bids.variables.entities import Node, RunNode, NodeIndex
 import pytest
 from os.path import join
 from bids.tests import get_test_data_path
-from bids.config import set_option
+from bids.config import set_option, get_option
+
 
 @pytest.fixture
 def layout1():
@@ -16,13 +17,17 @@ def layout1():
 
 @pytest.fixture(scope="module", params=["events", "preproc"])
 def synthetic(request):
-    path = join(get_test_data_path(), 'synthetic')
-    if request.param == "preproc":
+    root = join(get_test_data_path(), 'synthetic')
+    default_preproc = get_option('loop_preproc')
+    if request.param == 'preproc':
         set_option('loop_preproc', True)
-        path = (path, ['bids', 'derivatives'])
-    layout = BIDSLayout(path)
+        layout = BIDSLayout((root, ['bids', 'derivatives']))
+    else:
+        set_option('loop_preproc', default_preproc)
+        layout = BIDSLayout(root, exclude='derivatives')
     yield request.param, load_variables(layout)
-    set_option('loop_preproc', False)
+    set_option('loop_preproc', default_preproc)
+
 
 def test_load_events(layout1):
     index = load_variables(layout1, types='events', scan_length=480)
@@ -54,6 +59,7 @@ def test_load_participants(layout1):
     age = index.get_nodes(level='dataset')[0].variables['age']
     assert age.index.shape == (7, 1)
     assert age.values.shape == (7,)
+
 
 def test_load_synthetic_dataset(synthetic):
     param, index = synthetic

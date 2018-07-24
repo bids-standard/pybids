@@ -80,8 +80,7 @@ def load_variables(layout, types=None, levels=None, skip_empty=True, **kwargs):
 
 def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
                          drop_na=True, events=True, physio=True, stim=True,
-                         confounds=True, derivatives='ignore', skip_empty=True,
-                         **selectors):
+                         confounds=True, skip_empty=True, **selectors):
     ''' Loads all variables found in *_events.tsv files and returns them as a
     BIDSVariableCollection.
 
@@ -103,10 +102,6 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
             files.
         physio (bool): If True, extracts variables from _physio files.
         stim (bool): If True, extracts variables from _stim files.
-        derivatives (str): How to handle derivative events. Must be one of:
-            'ignore' (default): Ignore event files in derivatives folders
-            'only': Only return event files in derivative folders
-            'both': Return both derivative and non-derivative event files
         skip_empty (bool): Whether or not to skip empty Variables (i.e.,
             where there are no rows/records in a file, or all onsets,
             durations, and amplitudes are 0).
@@ -117,6 +112,11 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
     Returns: A NodeIndex instance.
     '''
 
+    # Extract any non-keyword arguments
+    kwargs = selectors.copy()
+    domains = kwargs.get('domains', None)
+
+    # Filter keyword args
     selectors = {k: v for k, v in selectors.items() if k in BASE_ENTITIES}
 
     if dataset is None:
@@ -165,7 +165,8 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
                        "available, or manually specify the scan duration.")
                 raise ValueError(msg)
 
-        tr = layout.get_metadata(img_f, type='bold', full_search=True)['RepetitionTime']
+        tr = layout.get_metadata(img_f, type='bold', domains=domains,
+                                 full_search=True)['RepetitionTime']
 
         run = dataset.get_or_create_node('run', entities, image_file=img_f,
                                          duration=duration, repetition_time=tr)
@@ -173,22 +174,21 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
 
         # Process event files
         if events:
-            domains = {'ignore': 'bids', 'only': 'derivatives',
-                      'both': ['bids', 'derivatives']}[derivatives]
             dfs = layout._get_nearest_helper(img_f, '.tsv', type='events',
-                                             domains=domains)
-            # dfs = listify(layout.get_events(img_f, derivatives=derivatives))
+                                             full_search=True, domains=domains)
             if dfs is not None:
                 for _data in dfs:
                     _data = pd.read_table(_data, sep='\t')
                     if 'amplitude' in _data.columns:
                         if (_data['amplitude'].astype(int) == 1).all() and \
                                 'trial_type' in _data.columns:
-                            msg = ("Column 'amplitude' with constant value 1 is "
-                                   "unnecessary in event files; ignoring it.")
+                            msg = ("Column 'amplitude' with constant value 1 "
+                                   "is unnecessary in event files; ignoring "
+                                   "it.")
                             _data = _data.drop('amplitude', axis=1)
                         else:
-                            msg = ("Column name 'amplitude' is reserved; renaming "
+                            msg = ("Column name 'amplitude' is reserved; "
+                                   "renaming "
                                    "it to 'amplitude_'.")
                             _data = _data.rename(
                                 columns={'amplitude': 'amplitude_'})
@@ -205,7 +205,8 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
                         df = _data[['onset', 'duration']].copy()
                         df['amplitude'] = _data[col].values
 
-                        # Add in all of the run's entities as new columns for index
+                        # Add in all of the run's entities as new columns for
+                        # index
                         for entity, value in entities.items():
                             if entity in BASE_ENTITIES:
                                 df[entity] = value
@@ -242,7 +243,8 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
                 rec_types.append('stim')
             rec_files = layout.get_nearest(img_f, extensions='.tsv.gz',
                                            all_=True, type=rec_types,
-                                           ignore_strict_entities=['type'])
+                                           ignore_strict_entities=['type'],
+                                           full_search=True, domains=domains)
             for rf in rec_files:
                 metadata = layout.get_metadata(rf)
                 if not metadata:
