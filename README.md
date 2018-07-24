@@ -8,3 +8,5 @@ BIDS (Brain Imaging Data Structure) format.  For more information about BIDS
 visit http://bids.neuroimaging.io.
 
 [Get started!](bids/grabbids)
+
+[Check out our tutorial!](examples/pybids\ tutorial.ipynb)
