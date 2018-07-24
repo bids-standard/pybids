@@ -2,10 +2,6 @@ import os
 import json
 import warnings
 from io import open
-
-from os.path import dirname, abspath, exists
-from os.path import join as pathjoin, commonpath
-
 from .bids_validator import BIDSValidator
 from grabbit import Layout, File
 from grabbit.external import six
@@ -74,7 +70,8 @@ class BIDSLayout(Layout):
         self.validate = validate
 
         # Determine which configs to load
-        conf_path = pathjoin(dirname(abspath(__file__)), 'config', '%s.json')
+        conf_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                 'config', '%s.json')
         all_confs = ['bids', 'derivatives']
 
         def map_conf(x):
@@ -93,17 +90,19 @@ class BIDSLayout(Layout):
 
         # Set root to longest valid common parent if it isn't explicitly set
         if root is None:
-            abs_paths = [abspath(p[0]) for p in paths]
-            root = commonpath(abs_paths)
+            abs_paths = [os.path.abspath(p[0]) for p in paths]
+            root = os.path.commonprefix(abs_paths)
             if not root:
                 raise ValueError("One or more invalid paths passed; could not "
                                  "find a common parent directory of %s." %
                                  abs_paths)
+            elif not os.path.isdir(root):
+                root = os.path.dirname(root)
 
         self.root = root
 
-        target = pathjoin(self.root, 'dataset_description.json')
-        if not exists(target):
+        target = os.path.join(self.root, 'dataset_description.json')
+        if not os.path.exists(target):
             warnings.warn("'dataset_description.json' file is missing from "
                           "project root. You may want to set the root path to "
                           "a valid BIDS project.")
@@ -150,7 +149,7 @@ class BIDSLayout(Layout):
 
     def _get_nearest_helper(self, path, extension, type=None, **kwargs):
         """ Helper function for grabbit get_nearest """
-        path = abspath(path)
+        path = os.path.abspath(path)
 
         if not type:
             if 'type' not in self.files[path].entities:
@@ -183,7 +182,7 @@ class BIDSLayout(Layout):
         '''
 
         if include_entities:
-            entities = self.files[abspath(path)].entities
+            entities = self.files[os.path.abspath(path)].entities
             merged_param_dict = entities
         else:
             merged_param_dict = {}
