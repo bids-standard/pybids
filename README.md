@@ -9,4 +9,4 @@ visit http://bids.neuroimaging.io.
 
 [Get started!](bids/grabbids)
 
-[Check out our tutorial!](examples/pybids\ tutorial.ipynb)
+[Check out our tutorial!](examples/pybids%20tutorial.ipynb)
