@@ -9,11 +9,6 @@ from itertools import chain
 from six import add_metaclass
 from bids.utils import matches_entities
 
-try:
-    from pandas.core.groupby import _get_grouper
-except ImportError:
-    from pandas.core.groupby.groupby import _get_grouper
-
 
 @add_metaclass(ABCMeta)
 class BIDSVariable(object):
@@ -147,16 +142,17 @@ class BIDSVariable(object):
         pass
 
     def get_grouper(self, groupby='run'):
-        ''' Return a pandas Grouper object suitable for use in groupby calls.
+        ''' Return a list suitable for use in groupby calls.
         Args:
             groupby (str, list): Name(s) of column(s) defining the grouper
                 object. Anything that would be valid inside a .groupby() call
                 on a pandas structure.
         Returns:
-            A pandas Grouper object constructed from the specified columns
-                of the current index.
+            A list defining the groups.
         '''
-        return _get_grouper(self.index, groupby)[0]
+        grouper = self.index.loc[:, groupby]
+        return grouper.apply(lambda x: '@@@'.join(x.astype(str).values),
+                             axis=1)
 
     def apply(self, func, groupby='run', *args, **kwargs):
         ''' Applies the passed function to the groups defined by the groupby
