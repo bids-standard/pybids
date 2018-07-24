@@ -25,7 +25,7 @@ def synthetic(request):
     else:
         set_option('loop_preproc', default_preproc)
         layout = BIDSLayout(root, exclude='derivatives')
-    yield request.param, load_variables(layout)
+    yield request.param, load_variables(layout, skip_empty=True)
     set_option('loop_preproc', default_preproc)
 
 
@@ -73,10 +73,10 @@ def test_load_synthetic_dataset(synthetic):
     if param == 'preproc':
         # non-exhaustive
         match = ['Cosine01', 'stdDVARS', 'RotZ', 'FramewiseDisplacement']
-        sum_dense = 52
+        sum_dense = 54
     else:
         match = ['trial_type', 'weight', 'respiratory', 'cardiac']
-        sum_dense = 54
+        sum_dense = 2
 
     for v in match:
         assert v in variables.keys()
