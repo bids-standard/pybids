@@ -1,6 +1,5 @@
 {
     "name": "derivatives",
-    "root": ".",
     "entities": [
         {
             "name": "target",

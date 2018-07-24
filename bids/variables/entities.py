@@ -76,7 +76,7 @@ class NodeIndex(Node):
                 'collection', variablesfrom all subjects will be merged into a
                 single collection. If False, each observation is handled
                 separately, and the result is returned as a list.
-            sampling_rate (int, str): If level='run', the sampling rate to
+            sampling_rate (int, str): If unit='run', the sampling rate to
                 pass onto the returned BIDSRunVariableCollection.
             entities: Optional constraints used to limit what gets returned.
 

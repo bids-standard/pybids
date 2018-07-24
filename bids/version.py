@@ -45,10 +45,9 @@ AUTHOR = "PyBIDS developers"
 AUTHOR_EMAIL = "bids-discussion@googlegroups.com"
 PLATFORMS = "OS Independent"
 # No data for now
-REQUIRES = ["grabbit>=0.2.0", "six", "num2words"]
-EXTRAS_REQUIRE = {
-    'analysis': ['numpy', 'scipy', 'pandas', 'nibabel', 'patsy'],
-}
+REQUIRES = ["grabbit>=0.2.2", "six", "num2words", "numpy", "scipy", "pandas",
+            "nibabel", "patsy"]
+EXTRAS_REQUIRE = {}
 TESTS_REQUIRE = ["pytest>=3.3.0"]
 
 

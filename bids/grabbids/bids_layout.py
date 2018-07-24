@@ -2,15 +2,20 @@ import os
 import json
 import warnings
 from io import open
-
-from os.path import dirname, abspath, exists
-from os.path import join as pathjoin
-
 from .bids_validator import BIDSValidator
-from .utils import _merge_event_files
 from grabbit import Layout, File
 from grabbit.external import six
 from grabbit.utils import listify
+
+
+try:
+    from os.path import commonpath
+except ImportError:
+    def commonpath(paths):
+        prefix = os.path.commonprefix(paths)
+        if not os.path.isdir(prefix):
+            prefix = os.path.dirname(prefix)
+        return prefix
 
 
 __all__ = ['BIDSLayout']
@@ -75,7 +80,8 @@ class BIDSLayout(Layout):
         self.validate = validate
 
         # Determine which configs to load
-        conf_path = pathjoin(dirname(abspath(__file__)), 'config', '%s.json')
+        conf_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                 'config', '%s.json')
         all_confs = ['bids', 'derivatives']
 
         def map_conf(x):
@@ -88,16 +94,25 @@ class BIDSLayout(Layout):
         for i, p in enumerate(paths):
             if isinstance(p, six.string_types):
                 paths[i] = (p, conf_path % 'bids')
-                if len(paths) == 1 and root is None:
-                    root = p
             elif isinstance(p, tuple):
                 doms = [map_conf(d) for d in listify(p[1])]
                 paths[i] = (p[0], doms)
 
-        self.root = '/' if root is None else root
+        # Set root to longest valid common parent if it isn't explicitly set
+        if root is None:
+            abs_paths = [os.path.abspath(p[0]) for p in paths]
+            root = commonpath(abs_paths)
+            if not root:
+                raise ValueError("One or more invalid paths passed; could not "
+                                 "find a common parent directory of %s. Either"
+                                 " make sure the paths are correct, or "
+                                 "explicitly set the root using the 'root' "
+                                 "argument." % abs_paths)
 
-        target = pathjoin(self.root, 'dataset_description.json')
-        if not exists(target):
+        self.root = root
+
+        target = os.path.join(self.root, 'dataset_description.json')
+        if not os.path.exists(target):
             warnings.warn("'dataset_description.json' file is missing from "
                           "project root. You may want to set the root path to "
                           "a valid BIDS project.")
@@ -144,7 +159,7 @@ class BIDSLayout(Layout):
 
     def _get_nearest_helper(self, path, extension, type=None, **kwargs):
         """ Helper function for grabbit get_nearest """
-        path = abspath(path)
+        path = os.path.abspath(path)
 
         if not type:
             if 'type' not in self.files[path].entities:
@@ -177,7 +192,7 @@ class BIDSLayout(Layout):
         '''
 
         if include_entities:
-            entities = self.files[abspath(path)].entities
+            entities = self.files[os.path.abspath(path)].entities
             merged_param_dict = entities
         else:
             merged_param_dict = {}
@@ -208,57 +223,6 @@ class BIDSLayout(Layout):
             return tmp[0]
         else:
             return tmp
-
-    def get_events(self, path, return_type='file', derivatives='both',
-                   **kwargs):
-        """ For a given file in a BIDS project, finds corresponding event files
-        and optionally returns merged dataframe containing all variables.
-
-        Args:
-            path (str): Path to a file to match to events.
-            return_type (str): Type of output to return.
-                'file' returns list of files,
-                'df' merges events into a single DataFrame, giving precedence
-                to events closer to the file.
-            derivatives (str): How to handle derivative events.
-                'ignore' - Ignore any event files outside of root directory.
-                'only' - Only include event files from outside directories.
-                'both' - Include both. Derivative events have precedence.
-        Returns:
-            List of file or merged Pandas dataframe.
-        """
-
-        path = abspath(path)
-
-        # Get events in base Layout directory (ordered)
-        root_events = self._get_nearest_helper(
-            path, '.tsv', type='events', **kwargs) or []
-
-        entities = self.files[path].entities.copy()
-        entities = {e:v for e,v in entities.items() if e in ['modality', 'subject', 'task', 'run']}
-
-        entities.update(kwargs)
-
-        # Get all events
-        events = self.get(extensions='tsv', type='events',
-                          return_type='file', **entities) or []
-
-        deriv_events = list(set(events) - set(root_events))
-
-        if derivatives == 'only':
-            events = deriv_events
-        elif derivatives == 'ignore':
-            events = root_events
-        else: # Combine with order
-            events = deriv_events + root_events
-
-        if return_type == 'df':
-            events = _merge_event_files(events)
-        elif not events:
-            return None
-        elif len(events) == 1:
-            return events[0]
-        return events
 
     def get_fieldmap(self, path, return_list=False):
         fieldmaps = self._get_fieldmaps(path)
@@ -322,9 +286,35 @@ class BIDSLayout(Layout):
         return fieldmap_set
 
     def get_collections(self, level, types=None, variables=None, merge=False,
-                        sampling_rate=None, **kwargs):
+                        sampling_rate=None, skip_empty=False, **kwargs):
+        ''' Return one or more Collections containing variables found in the
+        BIDS project.
+
+        Args:
+            level (str): The level of analysis to return variables for. Must be
+                one of 'run', 'session', 'subject', or 'dataset'.
+            types (str, list): Types of variables to retrieve. All valid values
+            reflect the filename stipulated in the BIDS spec for each kind of
+            variable. Valid values include: 'events', 'physio', 'stim',
+            'scans', 'participants', 'sessions', and 'confounds'.
+            variables (list): Optional list of variables names to return. If
+                None, all available variables are returned.
+            merge (bool): If True, variables are merged across all observations
+                of the current level. E.g., if level='subject', variables from
+                all subjects will be merged into a single collection. If False,
+                each observation is handled separately, and the result is
+                returned as a list.
+            sampling_rate (int, str): If level='run', the sampling rate to
+                pass onto the returned BIDSRunVariableCollection.
+            skip_empty (bool): Whether or not to skip empty Variables (i.e.,
+                where there are no rows/records in a file after applying any
+                filtering operations like dropping NaNs).
+            kwargs: Optional additional arguments to pass onto load_variables.
+
+        '''
         from bids.variables import load_variables
-        index = load_variables(self, types=types, levels=level, **kwargs)
+        index = load_variables(self, types=types, levels=level,
+                               skip_empty=skip_empty, **kwargs)
         return index.get_collections(level, variables, merge,
                                      sampling_rate=sampling_rate)
 

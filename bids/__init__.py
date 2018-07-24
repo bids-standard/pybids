@@ -1,6 +1,5 @@
 from __future__ import absolute_import, division, print_function
 from .due import due, Doi
-from . import config
 
 from .grabbids import BIDSLayout, BIDSValidator
 from .analysis import Analysis
@@ -9,7 +8,6 @@ from .variables.io import load_variables
 
 __all__ = [
     "grabbids",
-    "config",
     "analysis",
     "reports",
     "BIDSLayout",

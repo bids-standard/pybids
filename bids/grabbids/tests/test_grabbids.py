@@ -3,7 +3,7 @@ functionality should go in the grabbit package. """
 
 import pytest
 from bids.grabbids import BIDSLayout
-from os.path import join, abspath, basename
+from os.path import join, abspath
 from bids.tests import get_test_data_path
 
 
@@ -21,9 +21,11 @@ def testlayout2():
 
 
 @pytest.fixture(scope='module')
-def testlayout3():
+def deriv_layout():
     data_dir = join(get_test_data_path(), 'ds005')
-    return BIDSLayout([(data_dir, ['bids', 'derivatives'])], root=data_dir)
+    deriv_dir = join(data_dir, 'derivatives')
+    return BIDSLayout([(data_dir, 'bids'),
+                       (deriv_dir, ['bids', 'derivatives'])])
 
 
 def test_layout_init(testlayout1):
@@ -75,36 +77,6 @@ def test_get_metadata5(testlayout1):
     assert result['acquisition'] == 'fullbrain'
 
 
-def test_get_events(testlayout3):
-    target = ('sub-01/func/sub-01_task-'
-              'mixedgamblestask_run-01_bold.nii.gz')
-    result = testlayout3.get_events(join(testlayout3.root, target))
-    assert len(result) == 2
-    expected1 = abspath(join(
-        testlayout3.root, target.replace('_bold.nii.gz', '_events.tsv')))
-    assert expected1 in result
-
-    expected2 = abspath(join(
-        testlayout3.root, 'derivatives/events/func/', basename(expected1)))
-
-    merged = testlayout3.get_events(join(testlayout3.root, target),
-                                    return_type='df')
-
-    assert 'response' in merged
-    assert 'trial_type' in merged
-    assert merged[merged.onset == 1].RT.values[0] == 1.0
-    assert merged[merged.onset == 18].RT.values[0] == 100.0
-    assert merged[merged.onset == 102].RT.values[0] > 1
-
-    assert expected2 in result
-
-
-def test_get_events2(testlayout2):
-    target = 'sub-03/anat/sub-03_T1w.nii.gz'
-    result = testlayout2.get_events(join(testlayout2.root, target))
-    assert result is None
-
-
 def test_get_bvals_bvecs(testlayout2):
     dwifile = testlayout2.get(subject="01", modality="dwi")[0]
     result = testlayout2.get_bval(dwifile.filename)
@@ -146,17 +118,23 @@ def test_exclude(testlayout2):
         testlayout2.root, 'models/ds-005_type-russ_sub-all_model.json') \
         not in testlayout2.files
     assert 'all' not in testlayout2.get_subjects()
+    for f in testlayout2.files.values():
+        assert 'derivatives' not in f.path
 
 
-def test_layout_with_derivs(testlayout3):
-    assert isinstance(testlayout3.files, dict)
-    assert set(testlayout3.domains.keys()) == {'bids', 'derivatives'}
-    assert testlayout3.domains['bids'].files
-    assert testlayout3.domains['derivatives'].files
-    assert 'derivatives.roi' in testlayout3.entities
-    assert 'bids.roi' not in testlayout3.entities
-    assert 'bids.subject' in testlayout3.entities
+def test_layout_with_derivs(deriv_layout):
+    assert deriv_layout.root == join(get_test_data_path(), 'ds005')
+    assert isinstance(deriv_layout.files, dict)
+    assert set(deriv_layout.domains.keys()) == {'bids', 'derivatives'}
+    assert deriv_layout.domains['bids'].files
+    assert deriv_layout.domains['derivatives'].files
+    assert 'derivatives.roi' in deriv_layout.entities
+    assert 'bids.roi' not in deriv_layout.entities
+    assert 'bids.subject' in deriv_layout.entities
 
 
-def test_layout_with_custom_domain_options():
-    pass
+def test_query_derivatives(deriv_layout):
+    result = deriv_layout.get(type='events', return_type='object',
+                              domains='derivatives')
+    assert len(result) == 1
+    assert result[0].filename == 'sub-01_task-mixedgamblestask_run-01_events.tsv'
