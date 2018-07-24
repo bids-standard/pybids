@@ -8,6 +8,16 @@ from grabbit.external import six
 from grabbit.utils import listify
 
 
+try:
+    from os.path import commonpath
+except ImportError:
+    def commonpath(paths):
+        prefix = os.path.commonprefix(paths)
+        if not os.path.isdir(prefix):
+            prefix = os.path.dirname(prefix)
+        return prefix
+
+
 __all__ = ['BIDSLayout']
 
 
@@ -91,13 +101,13 @@ class BIDSLayout(Layout):
         # Set root to longest valid common parent if it isn't explicitly set
         if root is None:
             abs_paths = [os.path.abspath(p[0]) for p in paths]
-            root = os.path.commonprefix(abs_paths)
+            root = commonpath(abs_paths)
             if not root:
                 raise ValueError("One or more invalid paths passed; could not "
-                                 "find a common parent directory of %s." %
-                                 abs_paths)
-            elif not os.path.isdir(root):
-                root = os.path.dirname(root)
+                                 "find a common parent directory of %s. Either"
+                                 " make sure the paths are correct, or "
+                                 "explicitly set the root using the 'root' "
+                                 "argument." % abs_paths)
 
         self.root = root
 
