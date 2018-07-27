@@ -97,7 +97,7 @@ class BIDSVariableCollection(object):
 
         Returns: A pandas DataFrame.
         '''
-
+        
         if variables is None:
             variables = list(self.variables.keys())
 
@@ -114,7 +114,7 @@ class BIDSVariableCollection(object):
 
         ind_cols = list(set(df.columns) - {'condition', 'amplitude'})
         df = df.pivot_table(index=ind_cols, columns='condition',
-                            values='amplitude', aggfunc='first')
+                            values='amplitude', aggfunc='first', dropna=False)
         df = df.reset_index().fillna(fillna)
         df.columns.name = None
         return df
