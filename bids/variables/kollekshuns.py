@@ -113,9 +113,11 @@ class BIDSVariableCollection(object):
             return df.reset_index(drop=True).fillna(fillna)
 
         ind_cols = list(set(df.columns) - {'condition', 'amplitude'})
+
+        df['amplitude'] = df['amplitude'].fillna('n/a')
         df = df.pivot_table(index=ind_cols, columns='condition',
                             values='amplitude', aggfunc='first')
-        df = df.reset_index().fillna(fillna)
+        df = df.reset_index().replace('n/a', fillna)
         df.columns.name = None
         return df
 
