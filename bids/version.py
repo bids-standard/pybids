@@ -47,7 +47,11 @@ PLATFORMS = "OS Independent"
 # No data for now
 REQUIRES = ["grabbit>=0.2.2", "six", "num2words", "numpy", "scipy", "pandas",
             "nibabel", "patsy"]
-EXTRAS_REQUIRE = {}
+EXTRAS_REQUIRE = {
+   # Just to not break compatibility with externals requiring
+   # now deprecated installation schemes
+   'analysis': []
+}
 TESTS_REQUIRE = ["pytest>=3.3.0"]
 
 
