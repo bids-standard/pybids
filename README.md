@@ -7,6 +7,6 @@ PyBIDS is a Python library to centralize interactions with datasets conforming
 BIDS (Brain Imaging Data Structure) format.  For more information about BIDS
 visit http://bids.neuroimaging.io.
 
-[Get started!](bids/grabbids)
+Get started by checking out [the documentation!](https://incf.github.io/pybids)
 
 [Check out our tutorial!](examples/pybids%20tutorial.ipynb)
