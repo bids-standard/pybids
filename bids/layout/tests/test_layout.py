@@ -21,6 +21,12 @@ def testlayout2():
 
 
 @pytest.fixture(scope='module')
+def testlayout3():
+    data_dir = join(get_test_data_path(), 'ds000117')
+    return BIDSLayout(data_dir, exclude=['derivatives/'])
+
+
+@pytest.fixture(scope='module')
 def deriv_layout():
     data_dir = join(get_test_data_path(), 'ds005')
     deriv_dir = join(data_dir, 'derivatives')
@@ -67,6 +73,10 @@ def test_get_metadata4(testlayout2):
     result = testlayout2.get_metadata(join(testlayout2.root, target))
     assert result == {}
 
+
+def test_get_metadata_meg(testlayout3):
+    target = 'sub-03/ses-meg/meg/sub-03_ses-meg_task-facerecognition_run-01_meg.fif.gz'
+    result = testlayout3.get_metadata(join(testlayout3.root, target))
 
 def test_get_metadata5(testlayout1):
     target = 'sub-01/ses-1/func/sub-01_ses-1_task-rest_acq-fullbrain_run-1_bold.nii.gz'

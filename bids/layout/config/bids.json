@@ -42,6 +42,10 @@
             "pattern": "[_/\\\\]run-0*(\\d+)"
         },
         {
+            "name": "acq",
+            "pattern": "[_/\\\\]acq-([a-zA-Z0-9]+)"
+        },
+        {
             "name": "mod",
             "pattern": "[_/\\\\]mod-([a-zA-Z0-9]+)"
         },
