@@ -75,10 +75,14 @@ def test_get_metadata4(testlayout2):
 
 
 def test_get_metadata_meg(testlayout3):
-    funcs = ['get_subjects', 'get_sessions', 'get_tasks', 'get_runs', 'get_acqs']
+    funcs = ['get_subjects', 'get_sessions', 'get_tasks', 'get_runs', 'get_acqs', 'get_procs']
     assert all([hasattr(testlayout3, f) for f in funcs])
+    procs = testlayout3.get_procs()
+    assert procs == ['sss']
     target = 'sub-02/ses-meg/meg/sub-02_ses-meg_task-facerecognition_run-01_meg.fif.gz'
     result = testlayout3.get_metadata(join(testlayout3.root, target))
+    metadata_keys = ['MEGChannelCount', 'SoftwareFilters', 'SubjectArtefactDescription']
+    assert all([k in result for k in metadata_keys])
 
 def test_get_metadata5(testlayout1):
     target = 'sub-01/ses-1/func/sub-01_ses-1_task-rest_acq-fullbrain_run-1_bold.nii.gz'
