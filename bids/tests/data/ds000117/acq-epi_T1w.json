@@ -1,0 +1,9 @@
+{
+  "RepetitionTime": 2,
+  "EchoTime": 0.095,
+  "FlipAngle": 90,
+  "Manufacturer": "Siemens",
+  "ManufacturersModelName": "TIM TRIO",
+  "MagneticFieldStrength": 3,
+  "PulseSequenceType": "EPI"
+}

@@ -1,0 +1,17 @@
+{
+ "RepetitionTime": 0.4,
+ "EchoTime1": 0.00519,
+ "EchoTime2": 0.00765,
+ "FlipAngle": 60,
+ "IntendedFor": [
+  "ses-mri/func/sub-01_ses-mri_task-facerecognition_run-01_bold.nii.gz",
+  "ses-mri/func/sub-01_ses-mri_task-facerecognition_run-02_bold.nii.gz",
+  "ses-mri/func/sub-01_ses-mri_task-facerecognition_run-03_bold.nii.gz",
+  "ses-mri/func/sub-01_ses-mri_task-facerecognition_run-04_bold.nii.gz",
+  "ses-mri/func/sub-01_ses-mri_task-facerecognition_run-05_bold.nii.gz",
+  "ses-mri/func/sub-01_ses-mri_task-facerecognition_run-06_bold.nii.gz",
+  "ses-mri/func/sub-01_ses-mri_task-facerecognition_run-07_bold.nii.gz",
+  "ses-mri/func/sub-01_ses-mri_task-facerecognition_run-08_bold.nii.gz",
+  "ses-mri/func/sub-01_ses-mri_task-facerecognition_run-09_bold.nii.gz"
+ ]
+}

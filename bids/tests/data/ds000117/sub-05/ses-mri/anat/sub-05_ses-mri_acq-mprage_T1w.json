@@ -1,0 +1,9 @@
+{
+ "AnatomicalMRICoordinateSystem": "NIfTI",
+ "AnatomicalMRICoordinateUnits": "voxels",
+ "AnatomicalLandmarkCoordinates": {
+  "Nasion": [36,111,94],
+  "LPA": [126,82,26],
+  "RPA": [127,85,160]
+ }
+}
