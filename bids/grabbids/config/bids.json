@@ -4,14 +4,16 @@
         {
             "name": "subject",
             "pattern": "[/\\\\]sub-([a-zA-Z0-9]+)",
-            "directory": "{{root}}/{subject}"
+            "directory": "{{root}}/{subject}",
+            "aliases": ["sub"]
         },
         {
             "name": "session",
             "pattern": "[_/\\\\]ses-([a-zA-Z0-9]+)",
             "mandatory": false,
             "directory": "{{root}}/{subject}/{session}",
-            "missing_value": "ses-1"
+            "missing_value": "ses-1",
+            "aliases": ["ses"]
         },
         {
             "name": "task",
@@ -19,11 +21,8 @@
         },
         {
             "name": "acquisition",
-            "pattern": "[_/\\\\]acq-([a-zA-Z0-9]+)"
-        },
-        {
-            "name": "acq",
-            "pattern": "[_/\\\\]acq-([a-zA-Z0-9]+)"
+            "pattern": "[_/\\\\]acq-([a-zA-Z0-9]+)",
+            "aliases": ["acq"]
         },
         {
             "name": "ce",
@@ -31,11 +30,13 @@
         },
         {
             "name": "reconstruction",
-            "pattern": "[_/\\\\]rec-([a-zA-Z0-9]+)"
+            "pattern": "[_/\\\\]rec-([a-zA-Z0-9]+)",
+            "aliases": ["rec"]
         },
         {
-            "name": "dir",
-            "pattern": "[_/\\\\]dir-([a-zA-Z0-9]+)"
+            "name": "direction",
+            "pattern": "[_/\\\\]dir-([a-zA-Z0-9]+)",
+            "aliases": ["dir"]
         },
         {
             "name": "run",
