@@ -252,3 +252,41 @@ class BIDSValidator():
                 return False
         else:
             return False
+
+
+def validate_sequences(layout, config):
+    """
+    """
+    # Create dictionary that groups duplicate files
+    def md5(fname):
+    hash_md5 = hashlib.md5()
+    with open(fname, "rb") as f:
+        for chunk in iter(lambda: f.read(4096), b""):
+            hash_md5.update(chunk)
+    return hash_md5.hexdigest()
+    hash_map = {}
+    all_niftis = layout.get(return_type="file", extensions='.nii.gz')
+    for nifti_file in all_niftis:
+        md5sum = md5(nifti_file)
+        if md5sum in hash_map:
+            hash_map[md5sum].append(nifti_file)
+            # print(os.path.basename(nifti_file))    # only need during testing
+            print('duplicate')
+        else:
+            print('unique')
+            # print(os.path.basename(nifti_file))    # only need during testing
+            hash_map[md5sum] = [nifti_file]
+    # Turn the dictionary into a pandas data frame
+    df = pd.DataFrame.from_dict(hash_map, orient='index') 
+    out_df = df.stack().reset_index().drop(columns='level_1').rename(columns={'level_0': 'hash', 0: 'filename'}) # Return this df to the user
+    # Check number of sessions and/or tasks and/or runs against user input
+    subjects = layout.get_subjects()
+    for sub in subjects: # check sessions    
+        sub_sessions = layout.get_sessions(subject=sub)
+        print("Num sessions for subject %s: %s" % (sub, (len(sub_sessions))))
+        for sub_ses in sub_sessions: # check tasks
+            session_tasks = layout.get_tasks(subject=sub, session=sub_ses)
+            print("Num tasks for subject %s: %s" % (sub, len(session_tasks)))    
+            for task in session_tasks: # check runs
+                sub_runs = layout.get_runs(subject=sub, session=sub_ses)
+                print("Subject %s task %s: %s runs" % (sub, task, len(sub_runs)))    
