@@ -1,4 +1,6 @@
 import re
+import hashlib
+import pandas as pd
 
 __all__ = ['BIDSValidator']
 
@@ -258,12 +260,19 @@ def validate_sequences(layout, config):
     """
     """
     # Create dictionary that groups duplicate files
+    duplicates_df = duplicate_check(layout)
+    expected_file_check(layout, config)
+    return duplicates_df
+
+
+def duplicate_check(layout):
     def md5(fname):
-    hash_md5 = hashlib.md5()
-    with open(fname, "rb") as f:
-        for chunk in iter(lambda: f.read(4096), b""):
-            hash_md5.update(chunk)
-    return hash_md5.hexdigest()
+        hash_md5 = hashlib.md5()
+        with open(fname, "rb") as f:
+            for chunk in iter(lambda: f.read(4096), b""):
+                hash_md5.update(chunk)
+        return hash_md5.hexdigest()
+
     hash_map = {}
     all_niftis = layout.get(return_type="file", extensions='.nii.gz')
     for nifti_file in all_niftis:
@@ -279,6 +288,10 @@ def validate_sequences(layout, config):
     # Turn the dictionary into a pandas data frame
     df = pd.DataFrame.from_dict(hash_map, orient='index') 
     out_df = df.stack().reset_index().drop(columns='level_1').rename(columns={'level_0': 'hash', 0: 'filename'}) # Return this df to the user
+    return out_df
+    
+    
+def expected_file_check(layout, config):
     # Check number of sessions and/or tasks and/or runs against user input
     subjects = layout.get_subjects()
     for sub in subjects: # check sessions    
