@@ -9,7 +9,7 @@ NOTE: The reports module is experimental and currently under active development,
 A simple example of standard usage follows. We assume that we have a root folder containing a BIDS-compliant project in `/bidsproject`.
 
 ```python
-from bids.grabbids import BIDSLayout
+from bids.layout import BIDSLayout
 from bids.reports import BIDSReport
 
 # Load the BIDS dataset

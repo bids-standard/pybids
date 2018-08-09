@@ -10,7 +10,7 @@ class Node(object):
 
     Args:
         id (int, str): A value uniquely identifying this node. Typically the
-            entity value extracted from the filename via grabbids.
+            entity value extracted from the filename via layout.
     '''
 
     def __init__(self, level, entities):

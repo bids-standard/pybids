@@ -1,4 +1,4 @@
-from bids.grabbids import BIDSLayout
+from bids.layout import BIDSLayout
 import pytest
 from os.path import join, dirname, abspath
 from bids.tests import get_test_data_path
