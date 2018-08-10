@@ -263,7 +263,7 @@ def validate_sequences(layout, config):
     """
     # Create dictionary that groups duplicate files
     duplicate_file_df = duplicate_check(layout)
-    summary_df, problems_df = expected_file_check(layout, config)
+    summary_df, problem_df = expected_file_check(layout, config)
     return duplicate_file_df, summary_df, problem_df
     
     
