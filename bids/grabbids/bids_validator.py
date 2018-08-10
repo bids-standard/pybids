@@ -288,7 +288,7 @@ def validate_sequences(layout, config):
     >>> problem_df
     # Put example output here
     """
-    # Create dictionary that groups duplicate files
+    
     duplicate_file_df = duplicate_check(layout)
     summary_df, problem_df = expected_file_check(layout, config)
     return duplicate_file_df, summary_df, problem_df
@@ -314,6 +314,7 @@ def duplicate_check(layout):
     >>> duplicate_file_df
     # Put example output here
     """
+    
     def md5(fname):
         hash_md5 = hashlib.md5()
         with open(fname, "rb") as f:
@@ -328,9 +329,8 @@ def duplicate_check(layout):
             hash_map[md5sum].append(nifti_file)
         else:
             hash_map[md5sum] = [nifti_file]
-    # Turn the dictionary into a pandas data frame
     df = pd.DataFrame.from_dict(hash_map, orient='index') 
-    out_df = df.stack().reset_index().drop(columns='level_1').rename(columns={'level_0': 'hash', 0: 'filename'}) # Return this df to the user 
+    out_df = df.stack().reset_index().drop(columns='level_1').rename(columns={'level_0': 'hash', 0: 'filename'}) 
     return out_df
     
     
@@ -359,16 +359,15 @@ def expected_file_check(layout, config):
     >>> problem_df
     # Put example output here
     """
+
     summary_df = pd.DataFrame(columns=['subject', 'session', 'modality', 'task', 'runs', 'runs_found', 'problem'])
-    # Check number of sessions and/or tasks and/or runs against user input
     with open(config) as f:
         json_data = json.load(f)
         subjects = layout.get_subjects()
-    for sub in subjects: # check sessions  
+    for sub in subjects: 
         scan_params={}
         for scan_params_d in json_data['entities']:
             scan_params = deepcopy(scan_params_d)
-            #print('scan_params: {:}'.format(scan_params))
             seq_params = {i: scan_params[i] for i in scan_params if i != 'runs'}
             actual_runs = layout.get(return_type='obj', subject=sub, extensions='.nii.gz', **seq_params)
             if len(actual_runs) != scan_params['runs']:
