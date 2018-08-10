@@ -284,7 +284,9 @@ def validate_sequences(layout, config):
     >>> duplicate_file_df
     # Put example output here
     >>> summary_df
+    # Put example output here
     >>> problem_df
+    # Put example output here
     """
     # Create dictionary that groups duplicate files
     duplicate_file_df = duplicate_check(layout)
@@ -293,8 +295,24 @@ def validate_sequences(layout, config):
     
     
 def duplicate_check(layout):
-    """
+    """Checks images in BIDS project are not duplicated.
 
+    Check whether any files have duplicate content within the 
+    BIDS data set. Returns a data frame: duplicate_file_df.
+
+
+    Parameters
+    ----------
+        layout: BIDSLayout class
+            A BIDSLayout path of a data set.
+
+
+    Examples
+    --------
+    >>> layout = bids.grabbids.BIDSLayout('/path/to/sample/project_root')
+    >>> validate_sequences(layout, '/path/to/sample/config.json')
+    >>> duplicate_file_df
+    # Put example output here
     """
     def md5(fname):
         hash_md5 = hashlib.md5()
@@ -317,8 +335,29 @@ def duplicate_check(layout):
     
     
 def expected_file_check(layout, config):
-    """
+    """Checks files in BIDS project match user defined expectations.
 
+    This method checks the number of data set files against a user customized 
+    configuration file. Returns two data frames: summary_df, problem_df.
+
+
+    Parameters
+    ----------
+        layout: BIDSLayout class
+            A BIDSLayout path of a data set.
+
+        config: string
+            Path to customized configuration file.
+
+
+    Examples
+    --------
+    >>> layout = bids.grabbids.BIDSLayout('/path/to/sample/project_root')
+    >>> validate_sequences(layout, '/path/to/sample/config.json')
+    >>> summary_df
+    # Put example output here
+    >>> problem_df
+    # Put example output here
     """
     summary_df = pd.DataFrame(columns=['subject', 'session', 'modality', 'task', 'runs', 'runs_found', 'problem'])
     # Check number of sessions and/or tasks and/or runs against user input
