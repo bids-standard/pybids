@@ -1,7 +1,7 @@
 from os.path import join
-from bids.grabbids import BIDSLayout
 from bids.analysis import Analysis
 from bids.analysis.analysis import ContrastMatrixInfo, DesignMatrixInfo
+from bids.layout import BIDSLayout
 from bids.tests import get_test_data_path
 import pytest
 

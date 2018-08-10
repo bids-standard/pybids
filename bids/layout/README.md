@@ -1,9 +1,9 @@
-# grabbids
-Get grabby with BIDS projects
+# layout
+Use grabbit to interact with BIDS projects
 
 ## Overview
 
-[Grabbit](https://github.com/grabbles/grabbit) is a lightweight Python 2 and 3 package for simple queries over filenames within a project. It's geared towards projects or applications with highly structured filenames that allow useful queries to be performed without having to inspect the file metadata or contents. Grabbids is a BIDS-specific extension of grabbit that makes it particularly easy to work with BIDS projects, and provides additional functionality.
+[Grabbit](https://github.com/grabbles/grabbit) is a lightweight Python 2 and 3 package for simple queries over filenames within a project. It's geared towards projects or applications with highly structured filenames that allow useful queries to be performed without having to inspect the file metadata or contents. Layout is a BIDS-specific extension of grabbit that makes it particularly easy to work with BIDS projects, and provides additional functionality.
 
 ## Quickstart
 
@@ -46,10 +46,10 @@ Suppose we have a BIDS project directory that looks like this (partial listing):
 │   │   │   └── sub-01_ses-2_run-2_phasediff.nii.gz
 ```
 
-We can initialize a grabbids Layout object like so:
+We can initialize a `layout` Layout object like so:
 
 ```python
-from bids.grabbids import BIDSLayout
+from bids.layout import BIDSLayout
 project_root = '/my_bids_project'
 layout = BIDSLayout(project_root)
 ```
@@ -141,7 +141,7 @@ Some other examples of `get()` requests:
 ```
 
 ### For DIYers
-If you want to run more complex queries, grabbids provides an easy way to return the full project tree (or a subset of it) as a pandas DataFrame:
+If you want to run more complex queries, `layout` provides an easy way to return the full project tree (or a subset of it) as a pandas DataFrame:
 
 ```python
 >>> # Return all session 1 files as a pandas DF

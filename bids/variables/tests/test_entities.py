@@ -1,4 +1,4 @@
-from bids.grabbids import BIDSLayout
+from bids.layout import BIDSLayout
 from bids.variables.entities import RunNode, Node, NodeIndex
 from bids.variables import load_variables
 from bids.variables import BIDSRunVariableCollection

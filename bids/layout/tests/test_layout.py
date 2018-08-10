@@ -2,7 +2,7 @@
 functionality should go in the grabbit package. """
 
 import pytest
-from bids.grabbids import BIDSLayout
+from bids.layout import BIDSLayout
 from os.path import join, abspath
 from bids.tests import get_test_data_path
 
