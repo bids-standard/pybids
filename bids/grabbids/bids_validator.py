@@ -259,7 +259,32 @@ class BIDSValidator():
 
 
 def validate_sequences(layout, config):
-    """
+    """Checks files in BIDS project match user defined expectations.
+
+    This method is a wrapper for the duplicate_check() and 
+    expected_file_check() methods. Use it to check whether there are
+    files with duplicate content within the BIDS data set and to check
+    the number of data set files against a user customized configuration
+    file. Returns three data frames: duplicate_file_df, summary_df, problem_df.
+
+
+    Parameters
+    ----------
+        layout: BIDSLayout class
+            A BIDSLayout path of a data set.
+
+        config: string
+            Path to customized configuration file.
+
+
+    Examples
+    --------
+    >>> layout = bids.grabbids.BIDSLayout('/path/to/sample/project_root')
+    >>> validate_sequences(layout, '/path/to/sample/config.json')
+    >>> duplicate_file_df
+    # Put example output here
+    >>> summary_df
+    >>> problem_df
     """
     # Create dictionary that groups duplicate files
     duplicate_file_df = duplicate_check(layout)
@@ -268,6 +293,9 @@ def validate_sequences(layout, config):
     
     
 def duplicate_check(layout):
+    """
+
+    """
     def md5(fname):
         hash_md5 = hashlib.md5()
         with open(fname, "rb") as f:
@@ -289,6 +317,9 @@ def duplicate_check(layout):
     
     
 def expected_file_check(layout, config):
+    """
+
+    """
     summary_df = pd.DataFrame(columns=['subject', 'session', 'modality', 'task', 'runs', 'runs_found', 'problem'])
     # Check number of sessions and/or tasks and/or runs against user input
     with open(config) as f:
