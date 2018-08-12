@@ -1,0 +1,11 @@
+{
+	"BIDSVersion": "1.0.2",
+	"License": "CC0",
+	"Name": "A multi-subject, multi-modal human neuroimaging dataset",
+	"Authors": ["Wakeman, DG", "Henson, RN"],
+	"Acknowledgements": "This work was supported by the UK Medical Research Council (MC_A060_5PR10) and Elekta Ltd. We would also like to acknowledge the contribution of Andre van der Kouwe and the A.A. Martinos Center for Biomedical Imaging (MGH) for providing the Multi-Echo FLASH sequences used in this work.",
+	"HowToAcknowledge": "Cite this paper: https://www.ncbi.nlm.nih.gov/pubmed/25977808 and consider including the following message: 'This data was obtained from the OpenfMRI database. Its accession number is ds000117'",
+	"ReferencesAndLinks": ["https://www.ncbi.nlm.nih.gov/pubmed/25977808", "https://openfmri.org/dataset/ds000117/"],
+	"Funding": ["UK Medical Research Council (MC_A060_5PR10)","Elekta Ltd."]
+}
+
