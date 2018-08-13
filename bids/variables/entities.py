@@ -10,7 +10,7 @@ class Node(object):
 
     Args:
         id (int, str): A value uniquely identifying this node. Typically the
-            entity value extracted from the filename via grabbids.
+            entity value extracted from the filename via layout.
     '''
 
     def __init__(self, level, entities):
@@ -76,7 +76,7 @@ class NodeIndex(Node):
                 'collection', variablesfrom all subjects will be merged into a
                 single collection. If False, each observation is handled
                 separately, and the result is returned as a list.
-            sampling_rate (int, str): If level='run', the sampling rate to
+            sampling_rate (int, str): If unit='run', the sampling rate to
                 pass onto the returned BIDSRunVariableCollection.
             entities: Optional constraints used to limit what gets returned.
 

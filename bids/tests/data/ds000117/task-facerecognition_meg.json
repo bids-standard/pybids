@@ -1,0 +1,34 @@
+{
+ "TaskName": "facerecognition",
+ "SamplingFrequency": 1100,
+ "Manufacturer": "Elekta",
+ "ManufacturersModelName": "Neuromag Vectorview 306",
+ "MEGChannelCount": 306,
+ "MEGREFChannelCount": 0,
+ "EEGChannelCount": 70,
+ "EOGChannelCount": 2,
+ "ECGChannelCount": 1,
+ "EMGChannelCount": 0,
+ "MiscChannelCount": 12,
+ "TriggerChannelCount": 3,
+ "PowerLineFrequency": 50,
+ "HeadCoilFrequency": [293,307,314,321,328],
+ "EEGPlacementScheme": "extended 10-10% system",
+ "EEGReference": "nose",
+ "DewarPosition": "upright",
+ "RecordingType": "continuous",
+ "EpochLength": "Inf",
+ "TaskDescription": "Subjects viewed stimuli on a screen during six, 7.5 minute runs. The stimuli were photographs of either a face or a scrambled face, and appeared for a random duration between 800 and 1,000 ms. Subjects were instructed to fixate centrally throughout the experiment. To ensure attention to each stimulus, participants were asked to press one of two keys with either their left or right index finger (assignment counter-balanced across participants). Their key-press was based on how symmetric they regarded each image: pressing one or the other key depending whether they thought the image was 'more' or 'less symmetric' than average. See publication for more detailed information.",
+ "ContinuousHeadLocalization": true,
+ "SubjectArtefactDescription": "None",
+ "DigitizedLandmarks": true,
+ "DigitizedHeadPoints": true,
+ "SoftwareFilters": {
+  "SpatialCompensation": {
+   "None": []
+  }
+ },
+ "InstitutionName": "MRC Cognition & Brain Sciences Unit",
+ "InstitutionAddress": "15 Chaucer Road, Cambridge, UK",
+ "AssociatedEmptyRoom": "sub-emptyroom/ses-20090409/meg/sub-emptyroom_ses-20090409_task-noise_meg.fif.gz"
+}

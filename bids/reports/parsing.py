@@ -399,7 +399,7 @@ def parse_niftis(layout, niftis, subj, config, **kwargs):
 
     Parameters
     ----------
-    layout : :obj:`bids.grabbids.BIDSLayout`
+    layout : :obj:`bids.layout.BIDSLayout`
         Layout object for a BIDS dataset.
     niftis : :obj:`list` or :obj:`grabbit.core.File`
         List of nifti files in layout corresponding to subject/session combo.

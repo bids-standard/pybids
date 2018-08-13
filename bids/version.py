@@ -45,9 +45,12 @@ AUTHOR = "PyBIDS developers"
 AUTHOR_EMAIL = "bids-discussion@googlegroups.com"
 PLATFORMS = "OS Independent"
 # No data for now
-REQUIRES = ["grabbit>=0.2.0", "six", "num2words"]
+REQUIRES = ["grabbit>=0.2.2", "six", "num2words", "numpy", "scipy", "pandas",
+            "nibabel", "patsy"]
 EXTRAS_REQUIRE = {
-    'analysis': ['numpy', 'scipy', 'pandas', 'nibabel', 'patsy'],
+   # Just to not break compatibility with externals requiring
+   # now deprecated installation schemes
+   'analysis': []
 }
 TESTS_REQUIRE = ["pytest>=3.3.0"]
 
@@ -62,7 +65,7 @@ def package_files(directory):
 
 extra_files = package_files('path_to/extra_files_dir')
 PACKAGE_DATA = {
-    'bids.grabbids': ['config/*.json'],
+    'bids.layout': ['config/*.json'],
     'bids.reports': ['config/*.json'],
     'bids': package_files('bids/tests/data')
 }
