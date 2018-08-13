@@ -298,6 +298,9 @@ def duplicate_check(layout):
 
     Check whether any files have duplicate content within the 
     BIDS data set. Returns a data frame: duplicate_file_df.
+    Returns a data frame in which the first column is the file
+    identifier and the second column is the path to the file.
+    Files with matching identifiers have the same content.
 
 
     Parameters
@@ -380,7 +383,7 @@ def expected_file_check(layout, config):
         subjects = layout.get_subjects()
     for sub in subjects: 
         for scan_params_d in json_data['sequences']:
-            scan_params = dict.copy(scan_params_d)
+            scan_params = scan_params_d.copy()
             seq_params = {i: scan_params[i] for i in scan_params if i != 'runs'}
             actual_runs = layout.get(return_type='obj', subject=sub, extensions='.nii.gz', **seq_params)
             scan_params['subject'] = sub
