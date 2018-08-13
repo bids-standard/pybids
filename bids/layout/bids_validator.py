@@ -265,7 +265,7 @@ def validate_sequences(layout, config):
     expected_file_check() methods. Use it to check whether there are
     files with duplicate content within the BIDS data set and to check
     the number of data set files against a user customized configuration
-    file. Returns three data frames: duplicate_file_df, summary_df, problem_df.
+    file. Returns a named tuple of three data frames: duplicates, summary, and problems.
 
 
     Parameters
@@ -338,7 +338,8 @@ def duplicate_check(layout):
         else:
             hash_map[md5sum] = [nifti_file]
     df = pd.DataFrame.from_dict(hash_map, orient='index') 
-    out_df = df.stack().reset_index().drop(columns='level_1').rename(columns={'level_0': 'hash', 0: 'filename'}) 
+    pruned_df = df.stack().reset_index().drop(columns='level_1')
+    out_df = pruned_df.rename(columns={'level_0': 'hash', 0: 'filename'})
     return out_df
     
     
