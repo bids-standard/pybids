@@ -2,6 +2,7 @@ import re
 import hashlib
 import pandas as pd
 import json
+from collections import namedtuple
 
 __all__ = ['BIDSValidator']
 
@@ -290,7 +291,8 @@ def validate_sequences(layout, config):
     
     duplicate_file_df = duplicate_check(layout)
     summary_df, problem_df = expected_file_check(layout, config)
-    return duplicate_file_df, summary_df, problem_df
+    output = namedtuple('output', ['duplicates', 'summary', 'problems'])
+    return output(duplicate_file_df, summary_df, problem_df)
     
     
 def duplicate_check(layout):
@@ -298,9 +300,6 @@ def duplicate_check(layout):
 
     Check whether any files have duplicate content within the 
     BIDS data set. Returns a data frame: duplicate_file_df.
-    Returns a data frame in which the first column is the file
-    identifier and the second column is the path to the file.
-    Files with matching identifiers have the same content.
 
 
     Parameters
@@ -315,6 +314,13 @@ def duplicate_check(layout):
     >>> validate_sequences(layout, '/path/to/sample/config.json')
     >>> duplicate_file_df
     # Put example output here
+
+
+    Notes
+    ------
+    Returns a data frame in which the first column is the file
+    identifier and the second column is the path to the file.
+    Files with matching identifiers have the same content.
     """
     
     def md5(fname):
