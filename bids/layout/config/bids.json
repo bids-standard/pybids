@@ -1,0 +1,93 @@
+{
+    "name": "bids",
+    "entities": [
+        {
+            "name": "subject",
+            "pattern": "[/\\\\]sub-([a-zA-Z0-9]+)",
+            "directory": "{{root}}/{subject}"
+        },
+        {
+            "name": "session",
+            "pattern": "[_/\\\\]ses-([a-zA-Z0-9]+)",
+            "mandatory": false,
+            "directory": "{{root}}/{subject}/{session}",
+            "missing_value": "ses-1"
+        },
+        {
+            "name": "task",
+            "pattern": "[_/\\\\]task-([a-zA-Z0-9]+)"
+        },
+        {
+            "name": "acquisition",
+            "pattern": "[_/\\\\]acq-([a-zA-Z0-9]+)"
+        },
+        {
+            "name": "acq",
+            "pattern": "[_/\\\\]acq-([a-zA-Z0-9]+)"
+        },
+        {
+            "name": "ce",
+            "pattern": "[_/\\\\]ce-([a-zA-Z0-9]+)"
+        },
+        {
+            "name": "reconstruction",
+            "pattern": "[_/\\\\]rec-([a-zA-Z0-9]+)"
+        },
+        {
+            "name": "dir",
+            "pattern": "[_/\\\\]dir-([a-zA-Z0-9]+)"
+        },
+        {
+            "name": "run",
+            "pattern": "[_/\\\\]run-0*(\\d+)"
+        },
+        {
+            "name": "proc",
+            "pattern": "[_/\\\\]proc-([a-zA-Z0-9]+)"
+        },
+        {
+            "name": "mod",
+            "pattern": "[_/\\\\]mod-([a-zA-Z0-9]+)"
+        },
+        {
+            "name": "echo",
+            "pattern": "[_/\\\\]echo-([0-9]+)\\_bold."
+        },
+        {
+            "name": "recording",
+            "pattern": "[_/\\\\]recording-([a-zA-Z0-9]+)"
+        },
+        {
+            "name": "type",
+            "pattern": "[._]*([a-zA-Z0-9]*?)\\.[^/\\\\]+$"
+        },
+        {
+            "name": "scans",
+            "pattern": "(.*\\_scans.tsv)$"
+        },
+        {
+            "name": "bval",
+            "pattern": "(.*\\.bval)$"
+        },
+        {
+            "name": "bvec",
+            "pattern": "(.*\\.bvec)$"
+        },
+        {
+            "name": "fmap",
+            "pattern": "(phasediff|magnitude[1-2]|phase[1-2]|fieldmap|epi)\\.nii"
+        },
+        {
+            "name": "modality",
+            "pattern": "[/\\\\](func|anat|fmap|dwi)[/\\\\]"
+        }
+    ],
+    "default_path_patterns": [
+        "sub-{subject}[/ses-{session}]/anat/sub-{subject}[_ses-{session}][_acq-{acquisition}][_ce-{contrast}][_rec-{reconstruction}]_{type}.nii.gz",
+        "sub-{subject}[/ses-{session}]/anat/sub-{subject}[_ses-{session}][_acq-{acquisition}][_ce-{contrast}][_rec-{reconstruction}][_mod-{modality}]_defacemask.nii.gz",
+        "sub-{subject}[/ses-{session}]/func/sub-{subject}[_ses-{session}]_task-{task}[_acq-{acquisition}][_rec-{reconstruction}][_run-{run}][_echo-{echo}]_{type}.nii.gz",
+        "sub-{subject}[/ses-{session}]/dwi/sub-{subject}[_ses-{session}][_acq-{acquisition}]_{type}.nii.gz",
+        "sub-{subject}[/ses-{session}]/fmap/sub-{subject}[_ses-{session}][_acq-{acquisition}][_dir-{direction}][_run-{run}]_{type}.nii.gz",
+        "sub-{subject}[/ses-{session}]/func/sub-{subject}[_ses-{session}]_task-{task}[_acq-{acquisition}][_rec-{reconstruction}][_run-{run}][_echo-{echo}][_recording-{recording}]_physio.tsv"
+    ]
+}

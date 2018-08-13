@@ -18,7 +18,7 @@ class BIDSReport(object):
 
     Parameters
     ----------
-    layout : :obj:`bids.grabbids.BIDSLayout`
+    layout : :obj:`bids.layout.BIDSLayout`
         Layout object for a BIDS dataset.
     config : :obj:`str` or :obj:`dict`, optional
         Configuration info for methods generation. Can be a path to a file
@@ -65,7 +65,7 @@ class BIDSReport(object):
         Examples
         --------
         >>> from os.path import join
-        >>> from bids.grabbids import BIDSLayout
+        >>> from bids.layout import BIDSLayout
         >>> from bids.reports import BIDSReport
         >>> from bids.tests import get_test_data_path
         >>> layout = BIDSLayout(join(get_test_data_path(), 'synthetic'))
@@ -94,7 +94,7 @@ class BIDSReport(object):
 
         Attributes
         ----------
-        layout : :obj:`bids.grabbids.BIDSLayout`
+        layout : :obj:`bids.layout.BIDSLayout`
             Layout object for a BIDS dataset.
         config : :obj:`dict`
             Configuration info for methods generation.

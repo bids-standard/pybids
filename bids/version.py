@@ -65,7 +65,7 @@ def package_files(directory):
 
 extra_files = package_files('path_to/extra_files_dir')
 PACKAGE_DATA = {
-    'bids.grabbids': ['config/*.json'],
+    'bids.layout': ['config/*.json'],
     'bids.reports': ['config/*.json'],
     'bids': package_files('bids/tests/data')
 }

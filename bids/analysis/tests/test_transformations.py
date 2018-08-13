@@ -1,6 +1,6 @@
 # from bids.analysis.variables import load_variables
 from bids.analysis import transformations as transform
-from bids.grabbids import BIDSLayout
+from bids.layout import BIDSLayout
 import pytest
 from os.path import join
 from bids.tests import get_test_data_path

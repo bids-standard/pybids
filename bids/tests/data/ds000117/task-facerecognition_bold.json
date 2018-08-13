@@ -1,0 +1,10 @@
+{
+  "RepetitionTime": 2.0,
+  "TaskName": "facerecognition",
+  "EchoTime": 0.030,
+  "FlipAngle": 78,
+  "PulseSequenceType": "EPI",
+  "Manufacturer": "Siemens",
+  "ManufacturersModelName": "TIM TRIO",
+  "MagneticFieldStrength": 3
+}

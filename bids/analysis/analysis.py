@@ -1,5 +1,5 @@
 import json
-from bids.grabbids import BIDSLayout
+from bids.layout import BIDSLayout
 from bids.utils import matches_entities
 from bids.variables import BIDSVariableCollection, merge_collections
 from . import transformations as transform

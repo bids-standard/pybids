@@ -1,0 +1,14 @@
+Revision history for OpenfMRI dataset ds000117
+
+1.0.0 2017-11-08
+
+  - Converted to BIDS format
+  - Changed subject order (see README)
+
+0.1.1 2016-09-17
+
+  - Replaced ds117_R0.1.0/sub004/MEG/run_02_sss.fif and ds117_R0.1.0/sub006/MEG/run_03_sss.fif since the original versions were corrupted
+
+0.1.0 2014-11-03
+
+  - Initial Release
