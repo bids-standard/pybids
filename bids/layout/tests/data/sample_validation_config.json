@@ -1,6 +1,6 @@
 {
     "name": "user_sequences",
-    "entities": [
+    "sequences": [
         {
             "modality": "func",
             "runs": 2,
