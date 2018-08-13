@@ -1,4 +1,3 @@
-from copy import deepcopy
 import re
 import hashlib
 import pandas as pd
@@ -380,9 +379,8 @@ def expected_file_check(layout, config):
         json_data = json.load(f)
         subjects = layout.get_subjects()
     for sub in subjects: 
-        scan_params={}
         for scan_params_d in json_data['sequences']:
-            scan_params = deepcopy(scan_params_d)
+            scan_params = dict.copy(scan_params_d)
             seq_params = {i: scan_params[i] for i in scan_params if i != 'runs'}
             actual_runs = layout.get(return_type='obj', subject=sub, extensions='.nii.gz', **seq_params)
             scan_params['subject'] = sub
