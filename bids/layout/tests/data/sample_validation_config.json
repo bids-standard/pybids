@@ -3,24 +3,24 @@
     "sequences": [
         {
             "modality": "func",
-            "runs": 2,
             "session": "wave1",
             "type": "bold",
-            "task": "sst"
+            "task": "sst",
+            "runs": 2
         },
         {
             "modality": "func",
-            "runs": 2,
             "session": "wave1",
             "type": "bold",
-            "task": "gng"
+            "task": "gng",
+            "runs": 2
         },
         {
             "modality": "func",
-            "runs": 2,
             "session": "wave1",
             "type": "bold",
-            "task": "react"
+            "task": "react",
+            "runs": 2
         },
         {
             "modality": "fmap",
@@ -48,24 +48,24 @@
         },
         {
             "modality": "func",
-            "runs": 2,
             "session": "wave2",
             "type": "bold",
-            "task": "sst"
+            "task": "sst",
+            "runs": 2
         },
         {
             "modality": "func",
-            "runs": 2,
             "session": "wave2",
             "type": "bold", 
-            "task": "gng"
+            "task": "gng",
+            "runs": 2
         },
         {
             "modality": "func",
-            "runs": 2,
             "session": "wave2",
             "type": "bold",
-            "task": "react"
+            "task": "react",
+            "runs": 2
         },
         {
             "modality": "fmap",
