@@ -279,13 +279,13 @@ def validate_sequences(layout, config):
 
     Examples
     --------
-    >>> layout = bids.grabbids.BIDSLayout('/path/to/sample/project_root')
-    >>> validate_sequences(layout, '/path/to/sample/config.json')
-    >>> duplicate_file_df
+    >>> layout = bids.grabbids.BIDSLayout('/path_to/sample_project_root')
+    >>> dfs = validate_sequences(layout, 'pybids/bids/layout/tests/data/sample_validation_config.json')
+    >>> dfs.duplicates
     # Put example output here
-    >>> summary_df
+    >>> df.summary
     # Put example output here
-    >>> problem_df
+    >>> df.problems
     # Put example output here
     """
     
@@ -310,8 +310,8 @@ def duplicate_check(layout):
 
     Examples
     --------
-    >>> layout = bids.grabbids.BIDSLayout('/path/to/sample/project_root')
-    >>> validate_sequences(layout, '/path/to/sample/config.json')
+    >>> layout = bids.grabbids.BIDSLayout('/path_to/sample_project_root')
+    >>> duplicate_file_df = duplicate_check(layout)
     >>> duplicate_file_df
     # Put example output here
 
@@ -361,8 +361,8 @@ def expected_file_check(layout, config):
 
     Examples
     --------
-    >>> layout = bids.grabbids.BIDSLayout('/path/to/sample/project_root')
-    >>> validate_sequences(layout, '/path/to/sample/config.json')
+    >>> layout = bids.grabbids.BIDSLayout('/path_to/sample_project_root')
+    >>> summary_df, problem_df = expected_file_check(layout, 'pybids/bids/layout/tests/data/sample_validation_config.json')
     >>> summary_df
     # Put example output here
     >>> problem_df
