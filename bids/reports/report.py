@@ -1,4 +1,5 @@
-"""Generate publication-quality data acquisition methods section from BIDS dataset.
+"""Generate publication-quality data acquisition methods section from BIDS
+dataset.
 """
 from __future__ import print_function
 import json
@@ -26,7 +27,8 @@ class BIDSReport(object):
         configuration information.
         Keys in the dictionary include:
             'dir':      a dictionary for converting encoding direction strings
-                        (e.g., j-) to descriptions (e.g., anterior to posterior)
+                        (e.g., j-) to descriptions (e.g., anterior to
+                        posterior)
             'seq':      a dictionary of sequence abbreviations (e.g., EP) and
                         corresponding names (e.g., echo planar)
             'seqvar':   a dictionary of sequence variant abbreviations
@@ -35,15 +37,16 @@ class BIDSReport(object):
     def __init__(self, layout, config=None):
         self.layout = layout
         if config is None:
-            config = pathjoin(dirname(abspath(__file__)), 'config', 'converters.json')
+            config = pathjoin(dirname(abspath(__file__)), 'config',
+                              'converters.json')
 
         if isinstance(config, str):
             with open(config) as fobj:
                 config = json.load(fobj)
 
         if not isinstance(config, dict):
-            raise ValueError('Input config must be None, dict, or path to json '
-                             'file containing dict.')
+            raise ValueError('Input config must be None, dict, or path to '
+                             'json file containing dict.')
 
         self.config = config
 
@@ -76,7 +79,7 @@ class BIDSReport(object):
         descriptions = []
 
         subjs = self.layout.get_subjects(**kwargs)
-        kwargs = {k:v for k, v in kwargs.items() if k != 'subject'}
+        kwargs = {k: v for k, v in kwargs.items() if k != 'subject'}
         for sid in subjs:
             descriptions.append(self._report_subject(subject=sid, **kwargs))
         counter = Counter(descriptions)
@@ -106,28 +109,33 @@ class BIDSReport(object):
             information. Each scan type is given its own paragraph.
         """
         description_list = []
-        # Remove session from kwargs if provided, else set sessions as all available
-        sessions = kwargs.pop('session', self.layout.get_sessions(subject=subject, **kwargs))
+        # Remove sess from kwargs if provided, else set sess as all available
+        sessions = kwargs.pop('session',
+                              self.layout.get_sessions(subject=subject,
+                                                       **kwargs))
         if not sessions:
             sessions = [None]
         elif not isinstance(sessions, list):
             sessions = [sessions]
 
         for ses in sessions:
-            niftis = self.layout.get(subject=subject, extensions='nii.gz', **kwargs)
+            niftis = self.layout.get(subject=subject, extensions='nii.gz',
+                                     **kwargs)
 
             if niftis:
                 description_list.append('For session {0}:'.format(ses))
-                description_list += parsing.parse_niftis(self.layout, niftis, subject,
-                                                         self.config, session=ses)
+                description_list += parsing.parse_niftis(self.layout, niftis,
+                                                         subject, self.config,
+                                                         session=ses)
                 metadata = self.layout.get_metadata(niftis[0].filename)
             else:
                 raise Exception('No niftis for subject {0}'.format(subject))
 
-        # Assume all data were converted the same way and use the last nifti file's
-        # json for conversion information.
+        # Assume all data were converted the same way and use the last nifti
+        # file's json for conversion information.
         if 'metadata' not in vars():
-            raise Exception('No valid jsons found. Cannot generate final paragraph.')
+            raise Exception('No valid jsons found. Cannot generate final '
+                            'paragraph.')
 
         description = '\n\t'.join(description_list)
         description = description.replace('\tFor session', '\nFor session')
