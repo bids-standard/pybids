@@ -392,7 +392,7 @@ def expected_file_check(layout, config):
         for scan_params_d in json_data['sequences']:
             scan_params = scan_params_d.copy()
             seq_params = {i: scan_params[i] for i in scan_params if i != 'runs'}
-            actual_runs = layout.get(return_type='obj', subject=sub, extensions='.nii.gz', **seq_params)            
+            actual_runs = layout.get(return_type='obj', subject=sub, extensions='.nii.gz', **seq_params)
             scan_params['subject'] = sub
             scan_params['runs_found'] = len(actual_runs)
             if len(actual_runs) != scan_params['runs']:
