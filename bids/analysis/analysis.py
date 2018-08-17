@@ -203,17 +203,29 @@ class Block(object):
 
             model = self.model or {}
 
-            variables = set(model.get('variables', []))
             hrf_variables = set(model.get('HRF_variables', []))
-            if not variables >= hrf_variables:
+            if 'explanatory_variables' in model:
+                evs = model['explanatory_variables']
+                nuisance = model.get('nuisance_variables', [])
+                if set(evs) & set(nuisance):
+                    raise ValueError("Explanatory and nuisance variables "
+                                     "are mutually exclusive.")
+                variables = evs + nuisance
+            else:
+                # Legacy behavior
+                variables = model.get('variables', [])
+                # evs = hrf_variables
+                # nuisance = [var for var in variables if var not in evs]
+
+            if not set(variables) >= hrf_variables:
                 raise ValueError("HRF_variables must be a subset ",
                                  "of variables in BIDS model.")
 
             coll = merge_collections(colls) if len(colls) > 1 else colls[0]
 
             coll = apply_transformations(coll, self.transformations)
-            if model.get('variables'):
-                transform.select(coll, model['variables'])
+            if variables:
+                transform.select(coll, variables)
 
             node = AnalysisNode(self.level, coll, self.contrasts, input_nodes,
                                 self.auto_contrasts)
