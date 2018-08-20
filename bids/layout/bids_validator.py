@@ -390,12 +390,8 @@ def check_expected_files(layout, config):
             actual_runs = layout.get(return_type='obj', subject=sub, extensions='.nii.gz', **seq_params)
             scan_params['subject'] = sub
             scan_params['runs_found'] = len(actual_runs)
-            if len(actual_runs) != scan_params['runs']:
-                scan_params['problem'] = True
-            else:
-                scan_params['problem'] = False
+            scan_params['problem'] = len(actual_runs) != scan_params['runs']
             dictlist.append(scan_params)
-        print('sub {:}: done'.format(sub))
     summary_df = pd.DataFrame(dictlist)
     problem_df = summary_df.loc[summary_df['problem'] == True]
     return summary_df, problem_df
