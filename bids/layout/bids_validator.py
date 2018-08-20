@@ -261,8 +261,8 @@ class BIDSValidator():
 def validate_sequences(layout, config):
     """Checks files in BIDS project match user defined expectations.
 
-    This method is a wrapper for the duplicate_check() and 
-    expected_file_check() methods. Use it to check whether there are
+    This method is a wrapper for the check_duplicate_files() and 
+    check_expected_files() methods. Use it to check whether there are
     files with duplicate content within the BIDS data set and to check
     the number of data set files against a user customized configuration
     file. Returns a named tuple of three data frames: duplicates, summary, and problems.
@@ -289,13 +289,13 @@ def validate_sequences(layout, config):
     # Put example output here
     """
     
-    duplicate_file_df = duplicate_check(layout)
-    summary_df, problem_df = expected_file_check(layout, config)
+    duplicate_file_df = check_duplicate_files(layout)
+    summary_df, problem_df = check_expected_files(layout, config)
     output = namedtuple('output', ['duplicates', 'summary', 'problems'])
     return output(duplicate_file_df, summary_df, problem_df)
     
     
-def duplicate_check(layout):
+def check_duplicate_files(layout):
     """Checks images in BIDS project are not duplicated.
 
     Check whether any files have duplicate content within the 
@@ -311,7 +311,7 @@ def duplicate_check(layout):
     Examples
     --------
     >>> layout = bids.grabbids.BIDSLayout('/path_to/sample_project_root')
-    >>> duplicate_file_df = duplicate_check(layout)
+    >>> duplicate_file_df = check_duplicate_files(layout)
     >>> duplicate_file_df
     # Put example output here
 
@@ -343,7 +343,7 @@ def duplicate_check(layout):
     return out_df
     
     
-def expected_file_check(layout, config):
+def check_expected_files(layout, config):
     """Checks files in BIDS project match user defined expectations.
 
     This method checks the number of data set files against a user customized 
@@ -362,7 +362,7 @@ def expected_file_check(layout, config):
     Examples
     --------
     >>> layout = bids.grabbids.BIDSLayout('/path_to/sample_project_root')
-    >>> summary_df, problem_df = expected_file_check(layout, 'pybids/bids/layout/tests/data/sample_validation_config.json')
+    >>> summary_df, problem_df = check_expected_files(layout, 'pybids/bids/layout/tests/data/sample_validation_config.json')
     >>> summary_df
     # Put example output here
     >>> problem_df
