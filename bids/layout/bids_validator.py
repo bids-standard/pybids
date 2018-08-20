@@ -371,16 +371,11 @@ def expected_file_check(layout, config):
 
     Notes
     --------
-    The configuration file must contain the following keys: 
-        "modality"
-        "session"
-        "type"
-        "runs"
     
-    Additional keys matching the inputs for `layout.get` may also be added 
-    (e.g. 'task' for functionals).
-    Values shoud match those in the BIDS file names. See the sample config 
-    for an example (bids/layout/tests/data/sample_validation_config.json)
+    The configuration file can take any keys that are valid arguments for
+    pybids `layout.get()` Values shoud match those in the BIDS file names. 
+    See the sample config for an example (bids/layout/tests/data/sample_validation_config.json).
+    The more specific keys are provided, the more informative the output will be.
 
     """
 
