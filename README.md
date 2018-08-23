@@ -9,4 +9,4 @@ visit http://bids.neuroimaging.io.
 
 Get started by checking out [the documentation](https://incf.github.io/pybids)!
 
-Or you can start at [our tutorial!](examples/pybids%20tutorial.ipynb) You can run it interactively without installing anything via [binder](https://mybinder.org/v2/gh/INCF/pybids/master). Click on the link and then navigate to `examples/pybids_tutorial.ipynb` to explore.
+Or you can start at [our tutorial](examples/pybids%20tutorial.ipynb)! You can run it interactively without installing anything via [binder](https://mybinder.org/v2/gh/INCF/pybids/master). Click on the link and then navigate to `examples/pybids_tutorial.ipynb` to explore.
