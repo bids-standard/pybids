@@ -40,22 +40,22 @@ Pybids reports are then generated with the ``generate`` method, which returns a
     r"""
     For session 01:
     	MR data were acquired using a UNKNOWN-Tesla MANUFACTURER MODEL MRI scanner.
-    	Ten runs of N-Back fMRI data were collected (64 slices; repetition time, TR=2500ms;
+    	Ten runs of N-Back UNKNOWN-echo fMRI data were collected (64 slices; repetition time, TR=2500ms;
     echo time, TE=UNKNOWNms; flip angle, FA=UNKNOWN<deg>; field of view, FOV=128x128mm;
     matrix size=64x64; voxel size=2x2x2mm). Each run was 2:40 minutes in length, during
     which 64 functional volumes were acquired.
-    	Five runs of Rest fMRI data were collected (64 slices; repetition time, TR=2500ms;
+    	Five runs of Rest UNKNOWN-echo fMRI data were collected (64 slices; repetition time, TR=2500ms;
     echo time, TE=UNKNOWNms; flip angle, FA=UNKNOWN<deg>; field of view, FOV=128x128mm;
     matrix size=64x64; voxel size=2x2x2mm). Each run was 2:40 minutes in length, during
     which 64 functional volumes were acquired.
 
     For session 02:
     	MR data were acquired using a UNKNOWN-Tesla MANUFACTURER MODEL MRI scanner.
-    	Ten runs of N-Back fMRI data were collected (64 slices; repetition time, TR=2500ms;
+    	Ten runs of N-Back UNKNOWN-echo fMRI data were collected (64 slices; repetition time, TR=2500ms;
     echo time, TE=UNKNOWNms; flip angle, FA=UNKNOWN<deg>; field of view, FOV=128x128mm;
     matrix size=64x64; voxel size=2x2x2mm). Each run was 2:40 minutes in length, during
     which 64 functional volumes were acquired.
-    	Five runs of Rest fMRI data were collected (64 slices; repetition time, TR=2500ms;
+    	Five runs of Rest UNKNOWN-echo fMRI data were collected (64 slices; repetition time, TR=2500ms;
     echo time, TE=UNKNOWNms; flip angle, FA=UNKNOWN<deg>; field of view, FOV=128x128mm;
     matrix size=64x64; voxel size=2x2x2mm). Each run was 2:40 minutes in length, during
     which 64 functional volumes were acquired.
