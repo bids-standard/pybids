@@ -47,7 +47,7 @@
             "pattern": "[_/\\\\]proc-([a-zA-Z0-9]+)"
         },
         {
-            "name": "mod",
+            "name": "modality",
             "pattern": "[_/\\\\]mod-([a-zA-Z0-9]+)"
         },
         {
@@ -59,7 +59,7 @@
             "pattern": "[_/\\\\]recording-([a-zA-Z0-9]+)"
         },
         {
-            "name": "type",
+            "name": "suffix",
             "pattern": "[._]*([a-zA-Z0-9]*?)\\.[^/\\\\]+$"
         },
         {
@@ -79,16 +79,16 @@
             "pattern": "(phasediff|magnitude[1-2]|phase[1-2]|fieldmap|epi)\\.nii"
         },
         {
-            "name": "modality",
-            "pattern": "[/\\\\](func|anat|fmap|dwi)[/\\\\]"
+            "name": "datatype",
+            "pattern": "[/\\\\](func|anat|fmap|dwi|meg)[/\\\\]"
         }
     ],
     "default_path_patterns": [
-        "sub-{subject}[/ses-{session}]/anat/sub-{subject}[_ses-{session}][_acq-{acquisition}][_ce-{contrast}][_rec-{reconstruction}]_{type}.nii.gz",
-        "sub-{subject}[/ses-{session}]/anat/sub-{subject}[_ses-{session}][_acq-{acquisition}][_ce-{contrast}][_rec-{reconstruction}][_mod-{modality}]_defacemask.nii.gz",
-        "sub-{subject}[/ses-{session}]/func/sub-{subject}[_ses-{session}]_task-{task}[_acq-{acquisition}][_rec-{reconstruction}][_run-{run}][_echo-{echo}]_{type}.nii.gz",
-        "sub-{subject}[/ses-{session}]/dwi/sub-{subject}[_ses-{session}][_acq-{acquisition}]_{type}.nii.gz",
-        "sub-{subject}[/ses-{session}]/fmap/sub-{subject}[_ses-{session}][_acq-{acquisition}][_dir-{direction}][_run-{run}]_{type}.nii.gz",
-        "sub-{subject}[/ses-{session}]/func/sub-{subject}[_ses-{session}]_task-{task}[_acq-{acquisition}][_rec-{reconstruction}][_run-{run}][_echo-{echo}][_recording-{recording}]_physio.tsv"
+        "sub-{subject}[/ses-{session}]/anat/sub-{subject}[_ses-{session}][_acq-{acquisition}][_ce-{contrast}][_rec-{reconstruction}]_{suffix<T1w|T2w|T1rho|T1map|T2map|T2star|FLAIR|FLASH|PDmap|PD|PDT2|inplaneT1|inplaneT2|angio>}.nii.gz",
+        "sub-{subject}[/ses-{session}]/anat/sub-{subject}[_ses-{session}][_acq-{acquisition}][_ce-{contrast}][_rec-{reconstruction}][_mod-{modality}]_{suffix<defacemask>}.nii.gz",
+        "sub-{subject}[/ses-{session}]/func/sub-{subject}[_ses-{session}]_task-{task}[_acq-{acquisition}][_rec-{reconstruction}][_run-{run}][_echo-{echo}]_{suffix<bold>}.nii.gz",
+        "sub-{subject}[/ses-{session}]/dwi/sub-{subject}[_ses-{session}][_acq-{acquisition}]_{suffix<dwi>}{extension<bval|bvec|json|nii\\.gz|nii>}",
+        "sub-{subject}[/ses-{session}]/fmap/sub-{subject}[_ses-{session}][_acq-{acquisition}][_dir-{direction}][_run-{run}]_{fmap}.nii.gz",
+        "sub-{subject}[/ses-{session}]/func/sub-{subject}[_ses-{session}]_task-{task}[_acq-{acquisition}][_rec-{reconstruction}][_run-{run}][_echo-{echo}][_recording-{recording}]_{suffix<physio|stim}{extension<tsv\\.gz|json}"
     ]
 }
