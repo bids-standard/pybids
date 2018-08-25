@@ -113,7 +113,7 @@ class NodeIndex(Node):
             results.append(vs)
 
         if merge:
-            return results[0]
+            return results[0] if results else None
 
         return results
 
