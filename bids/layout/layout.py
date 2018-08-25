@@ -6,6 +6,7 @@ from .validation import BIDSValidator
 from grabbit import Layout, File
 from grabbit.external import six
 from grabbit.utils import listify
+import nibabel as nb
 
 
 try:
@@ -19,6 +20,27 @@ except ImportError:
 
 
 __all__ = ['BIDSLayout']
+
+
+class BIDSFile(File):
+
+    def __init__(self, filename, layout):
+        super(BIDSFile, self).__init__(filename)
+        self.layout = layout
+
+    @property
+    def image(self):
+        ''' Return the associated image file (if it exists) as a NiBabel object.
+        '''
+        try:
+            return nb.load(self.path)
+        except Exception as e:
+            return None
+
+    @property
+    def metadata(self):
+        ''' Return all associated metadata. '''
+        return self.layout.get_metadata(self.path)
 
 
 class BIDSLayout(Layout):
@@ -181,6 +203,9 @@ class BIDSLayout(Layout):
         ''' Returns metadata found in JSON sidecars for the specified file.
         Args:
             path (str): Path to the file to get metadata for.
+            include_entities (bool): If True, all available entities extracted
+                from the filename (rather than JSON sidecars) are included in
+                the returned metadata dictionary.
             kwargs (dict): Optional keyword arguments to pass onto
                 get_nearest().
         Notes:
@@ -322,3 +347,7 @@ class BIDSLayout(Layout):
             ent.matches(filelike)
 
         return filelike.entities
+
+    def _make_file_object(self, root, f):
+        ''' Overrides grabbit's File with a BIDSFile. '''
+        return BIDSFile(os.path.join(root, f), self)

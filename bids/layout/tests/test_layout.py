@@ -3,7 +3,8 @@ functionality should go in the grabbit package. """
 
 import pytest
 from bids.layout import BIDSLayout
-from os.path import join, abspath
+from bids.layout.layout import BIDSFile
+from os.path import join, abspath, sep
 from bids.tests import get_test_data_path
 
 
@@ -17,7 +18,9 @@ def testlayout1():
 @pytest.fixture(scope='module')
 def testlayout2():
     data_dir = join(get_test_data_path(), 'ds005')
-    return BIDSLayout(data_dir, exclude=['models/', 'derivatives/'])
+    exclude = ['models', 'derivatives']
+    exclude = [ex + sep for ex in exclude]
+    return BIDSLayout(data_dir, exclude=exclude)
 
 
 @pytest.fixture(scope='module')
@@ -48,49 +51,68 @@ def test_load_description(testlayout1):
 def test_get_metadata(testlayout1):
     target = 'sub-03/ses-2/func/sub-03_ses-2_task-' \
              'rest_acq-fullbrain_run-2_bold.nii.gz'
-    result = testlayout1.get_metadata(join(testlayout1.root, target))
+    target = target.split('/')
+    result = testlayout1.get_metadata(join(testlayout1.root, *target))
     assert result['RepetitionTime'] == 3.0
 
 
 def test_get_metadata2(testlayout1):
     target = 'sub-03/ses-1/fmap/sub-03_ses-1_run-1_phasediff.nii.gz'
-    result = testlayout1.get_metadata(join(testlayout1.root, target))
+    target = target.split('/')
+    result = testlayout1.get_metadata(join(testlayout1.root, *target))
     assert result['EchoTime1'] == 0.006
 
 
 def test_get_metadata3(testlayout1):
     target = 'sub-01/ses-1/func/sub-01_ses-1_task-rest_acq-fullbrain_run-1_bold.nii.gz'
-    result = testlayout1.get_metadata(join(testlayout1.root, target))
+    target = target.split('/')
+    result = testlayout1.get_metadata(join(testlayout1.root, *target))
     assert result['EchoTime'] == 0.020
 
     target = 'sub-01/ses-1/func/sub-01_ses-1_task-rest_acq-fullbrain_run-2_bold.nii.gz'
-    result = testlayout1.get_metadata(join(testlayout1.root, target))
+    target = target.split('/')
+    result = testlayout1.get_metadata(join(testlayout1.root, *target))
     assert result['EchoTime'] == 0.017
 
 
 def test_get_metadata4(testlayout2):
     target = 'sub-03/anat/sub-03_T1w.nii.gz'
-    result = testlayout2.get_metadata(join(testlayout2.root, target))
+    target = target.split('/')
+    result = testlayout2.get_metadata(join(testlayout2.root, *target))
     assert result == {}
 
 
 def test_get_metadata_meg(testlayout3):
-    funcs = ['get_subjects', 'get_sessions', 'get_tasks', 'get_runs', 'get_acqs', 'get_procs']
+    funcs = ['get_subjects', 'get_sessions', 'get_tasks', 'get_runs',
+             'get_acqs', 'get_procs']
     assert all([hasattr(testlayout3, f) for f in funcs])
     procs = testlayout3.get_procs()
     assert procs == ['sss']
     target = 'sub-02/ses-meg/meg/sub-02_ses-meg_task-facerecognition_run-01_meg.fif.gz'
-    result = testlayout3.get_metadata(join(testlayout3.root, target))
+    target = target.split('/')
+    result = testlayout3.get_metadata(join(testlayout3.root, *target))
     metadata_keys = ['MEGChannelCount', 'SoftwareFilters', 'SubjectArtefactDescription']
     assert all([k in result for k in metadata_keys])
 
 def test_get_metadata5(testlayout1):
     target = 'sub-01/ses-1/func/sub-01_ses-1_task-rest_acq-fullbrain_run-1_bold.nii.gz'
-    result = testlayout1.get_metadata(join(testlayout1.root, target),
+    target = target.split('/')
+    result = testlayout1.get_metadata(join(testlayout1.root, *target),
                                       include_entities=True)
     assert result['EchoTime'] == 0.020
     assert result['subject'] == '01'
     assert result['acquisition'] == 'fullbrain'
+
+
+def test_get_metadata_via_bidsfile(testlayout1):
+    ''' Same as test_get_metadata5, but called through BIDSFile. '''
+    target = 'sub-01/ses-1/func/sub-01_ses-1_task-rest_acq-fullbrain_run-1_bold.nii.gz'
+    target = target.split('/')
+    path = join(testlayout1.root, *target)
+    result = testlayout1.files[path].metadata
+    assert result['EchoTime'] == 0.020
+    # include_entities is False when called through a BIDSFile
+    assert 'subject' not in result
 
 
 def test_get_bvals_bvecs(testlayout2):
@@ -111,7 +133,8 @@ def test_get_subjects(testlayout1):
 def test_get_fieldmap(testlayout1):
     target = 'sub-03/ses-1/func/sub-03_ses-1_task-' \
              'rest_acq-fullbrain_run-1_bold.nii.gz'
-    result = testlayout1.get_fieldmap(join(testlayout1.root, target))
+    target = target.split('/')
+    result = testlayout1.get_fieldmap(join(testlayout1.root, *target))
     assert result["suffix"] == "phasediff"
     assert result["phasediff"].endswith('sub-03_ses-1_run-1_phasediff.nii.gz')
 
@@ -119,7 +142,8 @@ def test_get_fieldmap(testlayout1):
 def test_get_fieldmap2(testlayout1):
     target = 'sub-03/ses-2/func/sub-03_ses-2_task-' \
              'rest_acq-fullbrain_run-2_bold.nii.gz'
-    result = testlayout1.get_fieldmap(join(testlayout1.root, target))
+    target = target.split('/')
+    result = testlayout1.get_fieldmap(join(testlayout1.root, *target))
     assert result["suffix"] == "phasediff"
     assert result["phasediff"].endswith('sub-03_ses-2_run-2_phasediff.nii.gz')
 
@@ -131,7 +155,7 @@ def test_bids_json(testlayout1):
 
 def test_exclude(testlayout2):
     assert join(
-        testlayout2.root, 'models/ds-005_type-russ_sub-all_model.json') \
+        testlayout2.root, 'models', 'ds-005_type-russ_sub-all_model.json') \
         not in testlayout2.files
     assert 'all' not in testlayout2.get_subjects()
     for f in testlayout2.files.values():
@@ -154,3 +178,12 @@ def test_query_derivatives(deriv_layout):
                               domains='derivatives')
     assert len(result) == 1
     assert result[0].filename == 'sub-01_task-mixedgamblestask_run-01_events.tsv'
+
+
+def test_get_bidsfile_image_prop():
+    path = "synthetic/sub-01/ses-01/func/sub-01_ses-01_task-nback_run-01_bold.nii.gz"
+    path = path.split('/')
+    path = join(get_test_data_path(), *path)
+    bf = BIDSFile(path, None)
+    assert bf.image is not None
+    assert bf.image.shape == (64, 64, 64, 64)
