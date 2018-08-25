@@ -94,7 +94,7 @@ def test_get_metadata5(testlayout1):
 
 
 def test_get_bvals_bvecs(testlayout2):
-    dwifile = testlayout2.get(subject="01", modality="dwi")[0]
+    dwifile = testlayout2.get(subject="01", datatype="dwi")[0]
     result = testlayout2.get_bval(dwifile.filename)
     assert result == abspath(join(testlayout2.root, 'dwi.bval'))
 
@@ -112,7 +112,7 @@ def test_get_fieldmap(testlayout1):
     target = 'sub-03/ses-1/func/sub-03_ses-1_task-' \
              'rest_acq-fullbrain_run-1_bold.nii.gz'
     result = testlayout1.get_fieldmap(join(testlayout1.root, target))
-    assert result["type"] == "phasediff"
+    assert result["suffix"] == "phasediff"
     assert result["phasediff"].endswith('sub-03_ses-1_run-1_phasediff.nii.gz')
 
 
@@ -120,7 +120,7 @@ def test_get_fieldmap2(testlayout1):
     target = 'sub-03/ses-2/func/sub-03_ses-2_task-' \
              'rest_acq-fullbrain_run-2_bold.nii.gz'
     result = testlayout1.get_fieldmap(join(testlayout1.root, target))
-    assert result["type"] == "phasediff"
+    assert result["suffix"] == "phasediff"
     assert result["phasediff"].endswith('sub-03_ses-2_run-2_phasediff.nii.gz')
 
 
@@ -150,7 +150,7 @@ def test_layout_with_derivs(deriv_layout):
 
 
 def test_query_derivatives(deriv_layout):
-    result = deriv_layout.get(type='events', return_type='object',
+    result = deriv_layout.get(suffix='events', return_type='object',
                               domains='derivatives')
     assert len(result) == 1
     assert result[0].filename == 'sub-01_task-mixedgamblestask_run-01_events.tsv'

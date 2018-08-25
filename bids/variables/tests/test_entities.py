@@ -22,7 +22,7 @@ def layout2():
 
 
 def test_run(layout1):
-    img = layout1.get(subject='01', task='mixedgamblestask', type='bold',
+    img = layout1.get(subject='01', task='mixedgamblestask', suffix='bold',
                       run=1, return_type='obj')[0]
     run = RunNode(None, img.filename, 480, 2)
     assert run.image_file == img.filename
@@ -31,7 +31,7 @@ def test_run(layout1):
 
 
 def test_get_or_create_node(layout1):
-    img = layout1.get(subject='01', task='mixedgamblestask', type='bold',
+    img = layout1.get(subject='01', task='mixedgamblestask', suffix='bold',
                       run=1, return_type='obj')[0]
     index = NodeIndex()
 

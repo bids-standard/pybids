@@ -59,7 +59,7 @@ class BIDSLayout(Layout):
             passed, *only* files and directories that match at least one of the
             patterns in the include list will be indexed. Cannot be used
             together with 'exclude'.
-        include (str, list): String or list of strings giving paths to files or
+        exclude (str, list): String or list of strings giving paths to files or
             directories to exclude from indexing. If this argument is passed,
             all files and directories that match at least one of the patterns
             in the include list will be ignored. Cannot be used together with
@@ -71,6 +71,8 @@ class BIDSLayout(Layout):
         kwargs: Optional keyword arguments to pass onto the Layout initializer
             in grabbit.
     '''
+
+    DEFAULT_EXCLUSIONS = ['derivatives', 'code', 'stimuli', 'sourcedata']
 
     def __init__(self, paths, root=None, validate=False,
                  index_associated=True, include=None, exclude=None,
@@ -157,20 +159,20 @@ class BIDSLayout(Layout):
 
         return self.validator.is_bids(to_check)
 
-    def _get_nearest_helper(self, path, extension, type=None, **kwargs):
+    def _get_nearest_helper(self, path, extension, suffix=None, **kwargs):
         """ Helper function for grabbit get_nearest """
         path = os.path.abspath(path)
 
-        if not type:
-            if 'type' not in self.files[path].entities:
+        if not suffix:
+            if 'suffix' not in self.files[path].entities:
                 raise ValueError(
-                    "File '%s' does not have a valid type definition, most "
+                    "File '%s' does not have a valid suffix, most "
                     "likely because it is not a valid BIDS file." % path
                 )
-            type = self.files[path].entities['type']
+            suffix = self.files[path].entities['suffix']
 
         tmp = self.get_nearest(path, extensions=extension, all_=True,
-                               type=type, ignore_strict_entities=['type'],
+                               suffix=suffix, ignore_strict_entities=['suffix'],
                                **kwargs)
 
         if len(tmp):
@@ -211,14 +213,14 @@ class BIDSLayout(Layout):
         return merged_param_dict
 
     def get_bvec(self, path, **kwargs):
-        tmp = self._get_nearest_helper(path, 'bvec', type='dwi', **kwargs)[0]
+        tmp = self._get_nearest_helper(path, 'bvec', suffix='dwi', **kwargs)[0]
         if isinstance(tmp, list):
             return tmp[0]
         else:
             return tmp
 
     def get_bval(self, path, **kwargs):
-        tmp = self._get_nearest_helper(path, 'bval', type='dwi', **kwargs)[0]
+        tmp = self._get_nearest_helper(path, 'bval', suffix='dwi', **kwargs)[0]
         if isinstance(tmp, list):
             return tmp[0]
         else:
@@ -245,27 +247,24 @@ class BIDSLayout(Layout):
     def _get_fieldmaps(self, path):
         sub = os.path.split(path)[1].split("_")[0].split("sub-")[1]
         fieldmap_set = []
-        type_ = '(phase1|phasediff|epi|fieldmap)'
-        files = self.get(subject=sub, type=type_, extensions=['nii.gz', 'nii'])
+        suffix = '(phase1|phasediff|epi|fieldmap)'
+        files = self.get(subject=sub, suffix=suffix, extensions=['nii.gz', 'nii'])
         for file in files:
             metadata = self.get_metadata(file.filename)
             if metadata and "IntendedFor" in metadata.keys():
-                if isinstance(metadata["IntendedFor"], list):
-                    intended_for = metadata["IntendedFor"]
-                else:
-                    intended_for = [metadata["IntendedFor"]]
-                if any([path.endswith(suffix) for suffix in intended_for]):
+                intended_for = listify(metadata["IntendedFor"])
+                if any([path.endswith(_suff) for _suff in intended_for]):
                     cur_fieldmap = {}
-                    if file.type == "phasediff":
+                    if file.suffix == "phasediff":
                         cur_fieldmap = {"phasediff": file.filename,
                                         "magnitude1": file.filename.replace(
                                             "phasediff", "magnitude1"),
-                                        "type": "phasediff"}
+                                        "suffix": "phasediff"}
                         magnitude2 = file.filename.replace(
                             "phasediff", "magnitude2")
                         if os.path.isfile(magnitude2):
                             cur_fieldmap['magnitude2'] = magnitude2
-                    elif file.type == "phase1":
+                    elif file.suffix == "phase1":
                         cur_fieldmap["phase1"] = file.filename
                         cur_fieldmap["magnitude1"] = \
                             file.filename.replace("phase1", "magnitude1")
@@ -273,15 +272,15 @@ class BIDSLayout(Layout):
                             file.filename.replace("phase1", "phase2")
                         cur_fieldmap["magnitude2"] = \
                             file.filename.replace("phase1", "magnitude2")
-                        cur_fieldmap["type"] = "phase"
-                    elif file.type == "epi":
+                        cur_fieldmap["suffix"] = "phase"
+                    elif file.suffix == "epi":
                         cur_fieldmap["epi"] = file.filename
-                        cur_fieldmap["type"] = "epi"
-                    elif file.type == "fieldmap":
+                        cur_fieldmap["suffix"] = "epi"
+                    elif file.suffix == "fieldmap":
                         cur_fieldmap["fieldmap"] = file.filename
                         cur_fieldmap["magnitude"] = \
                             file.filename.replace("fieldmap", "magnitude")
-                        cur_fieldmap["type"] = "fieldmap"
+                        cur_fieldmap["suffix"] = "fieldmap"
                     fieldmap_set.append(cur_fieldmap)
         return fieldmap_set
 
