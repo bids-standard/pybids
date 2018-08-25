@@ -72,8 +72,6 @@ class BIDSLayout(Layout):
             in grabbit.
     '''
 
-    DEFAULT_EXCLUSIONS = ['derivatives', 'code', 'stimuli', 'sourcedata']
-
     def __init__(self, paths, root=None, validate=False,
                  index_associated=True, include=None, exclude=None,
                  absolute_paths=True, **kwargs):
@@ -148,8 +146,7 @@ class BIDSLayout(Layout):
         # returns False if file doesn't fit BIDS specification
         if not self.validate:
             return True
-        to_check = f.path
-        to_check = to_check.split(os.path.abspath(self.root), maxsplit=1)[1]
+        to_check = f.split(os.path.abspath(self.root), maxsplit=1)[1]
 
         sep = os.path.sep
         if to_check[:len(sep)] != sep:
