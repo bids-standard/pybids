@@ -2,7 +2,7 @@ import os
 import json
 import warnings
 from io import open
-from .bids_validator import BIDSValidator
+from .validation import BIDSValidator
 from grabbit import Layout, File
 from grabbit.external import six
 from grabbit.utils import listify
