@@ -362,18 +362,21 @@ class BIDSLayout(Layout):
         # Override grabbit's File with a BIDSFile.
         return BIDSFile(os.path.join(root, f), self)
 
-    def search_metadata(self, *args, **kwargs):
+    def search_metadata(self, files=None, regex_search=None, keys_exist=None,
+                        **kwargs):
         if self.metadata_index is None:
             warnings.warn("No metadata index found; building a new one.")
             self.metadata_index = MetadataIndex(self)
-        return self.metadata_index.search(*args, **kwargs)
+        return self.metadata_index.search(files, regex_search, keys_exist,
+                                          **kwargs)
 
 
 class MetadataIndex(object):
     """A simple dict-based index for key/value pairs in JSON metadata."""
 
-    def __init__(self, layout, regex_search=False, force_string=False):
+    def __init__(self, layout, regex_search=False, preserve_dtypes=True):
         self.regex_search = regex_search
+        self.preserve_dtypes = preserve_dtypes
         self.key_index = defaultdict(dict)
         self.file_index = defaultdict(dict)
         for f_name, f in layout.files.items():
@@ -381,20 +384,30 @@ class MetadataIndex(object):
                 continue
             md = f.metadata
             for md_key, md_val in md.items():
+                if not preserve_dtypes:
+                    md_val = str(md_val)
                 self.key_index[md_key][f_name] = md_val
                 self.file_index[f_name][md_key] = md_val
 
-    def search(self, *args, **kwargs):
+    def search(self, files=None, regex_search=None, keys_exist=None,
+               **kwargs):
 
-        regex_search = kwargs.get('regex_search', self.regex_search)
+        if regex_search is None:
+            regex_search = self.regex_search
 
-        if not args and not kwargs:
+        if keys_exist is None:
+            keys_exist = []
+
+        all_keys = set(keys_exist) | set(kwargs.keys())
+        if not all_keys:
             raise ValueError("At least one field to search on must be passed.")
 
-        # Get file intersection of all args/kwargs--this is fast
-        all_keys = set(args) | set(kwargs.keys())
+        # Get file intersection of all kwargs keys--this is fast
         filesets = [set(self.key_index[k]) for k in all_keys]
         matches = reduce(lambda x, y: x & y, filesets)
+
+        if files is not None:
+            matches &= set(files)
 
         if not matches:
             return []
@@ -406,8 +419,10 @@ class MetadataIndex(object):
                 return val == self.file_index[f][key]
 
         # Serially check matches against each pattern, with early termination
-        for k, v in kwargs.items():
-            matches = list(filter(lambda x: check_matches(x, k, v), matches))
+        for k, val in kwargs.items():
+            if not self.preserve_dtypes:
+                val = str(val)
+            matches = list(filter(lambda x: check_matches(x, k, val), matches))
             if not matches:
                 return []
 
