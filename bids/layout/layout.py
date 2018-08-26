@@ -156,7 +156,7 @@ class BIDSLayout(Layout):
                                          **kwargs)
 
         if index_metadata:
-            self.metadata_index = MetadataIndex(self)
+            self.build_metadata_index()
 
     def __repr__(self):
         n_sessions = len([session for isub in self.get_subjects()
@@ -362,11 +362,18 @@ class BIDSLayout(Layout):
         # Override grabbit's File with a BIDSFile.
         return BIDSFile(os.path.join(root, f), self)
 
+    def build_metadata_index(self, regex_search=False, preserve_dtypes=True):
+        self.metadata_index = MetadataIndex(self, regex_search,
+                                            preserve_dtypes)
+
     def search_metadata(self, files=None, regex_search=None, keys_exist=None,
                         **kwargs):
         if self.metadata_index is None:
-            warnings.warn("No metadata index found; building a new one.")
-            self.metadata_index = MetadataIndex(self)
+            raise ValueError("No metadata index was found. Before you can "
+                             "search on file metadata, you need to either "
+                             "pass index_metadata=True when initializing "
+                             "the BIDSLayout, or explicitly call "
+                             "build_metadata_index() on the BIDSLayout.")
         return self.metadata_index.search(files, regex_search, keys_exist,
                                           **kwargs)
 
