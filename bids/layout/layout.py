@@ -7,6 +7,9 @@ from grabbit import Layout, File
 from grabbit.external import six
 from grabbit.utils import listify
 import nibabel as nb
+from collections import defaultdict
+from functools import reduce
+import re
 
 
 try:
@@ -23,15 +26,15 @@ __all__ = ['BIDSLayout']
 
 
 class BIDSFile(File):
-
+    """ Represents a single BIDS file. """
     def __init__(self, filename, layout):
         super(BIDSFile, self).__init__(filename)
         self.layout = layout
 
     @property
     def image(self):
-        ''' Return the associated image file (if it exists) as a NiBabel object.
-        '''
+        """ Return the associated image file (if it exists) as a NiBabel object.
+        """
         try:
             return nb.load(self.path)
         except Exception as e:
@@ -39,18 +42,17 @@ class BIDSFile(File):
 
     @property
     def metadata(self):
-        ''' Return all associated metadata. '''
+        """ Return all associated metadata. """
         return self.layout.get_metadata(self.path)
 
 
 class BIDSLayout(Layout):
-    ''' Layout class representing an entire BIDS project.
+    """ Layout class representing an entire BIDS project.
 
     Args:
         paths (str, list): The path(s) where project files are located.
                 Must be one of:
 
-                - A string giving the name of a built-in config (e.g., 'bids')
                 - A path to a directory containing files to index
                 - A list of paths to directories to be indexed
                 - A list of 2-tuples where each tuple encodes a mapping from
@@ -92,14 +94,15 @@ class BIDSLayout(Layout):
             root).
         kwargs: Optional keyword arguments to pass onto the Layout initializer
             in grabbit.
-    '''
+    """
 
     def __init__(self, paths, root=None, validate=False,
                  index_associated=True, include=None, exclude=None,
-                 absolute_paths=True, **kwargs):
+                 absolute_paths=True, index_metadata=False, **kwargs):
 
         self.validator = BIDSValidator(index_associated=index_associated)
         self.validate = validate
+        self.metadata_index = None
 
         # Determine which configs to load
         conf_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
@@ -152,6 +155,9 @@ class BIDSLayout(Layout):
                                          absolute_paths=absolute_paths,
                                          **kwargs)
 
+        if index_metadata:
+            self.metadata_index = MetadataIndex(self)
+
     def __repr__(self):
         n_sessions = len([session for isub in self.get_subjects()
                           for session in self.get_sessions(subject=isub)])
@@ -200,7 +206,8 @@ class BIDSLayout(Layout):
             return None
 
     def get_metadata(self, path, include_entities=False, **kwargs):
-        ''' Returns metadata found in JSON sidecars for the specified file.
+        """Return metadata found in JSON sidecars for the specified file.
+
         Args:
             path (str): Path to the file to get metadata for.
             include_entities (bool): If True, all available entities extracted
@@ -213,20 +220,20 @@ class BIDSLayout(Layout):
             files is returned. In cases where the same key is found in multiple
             files, the values in files closer to the input filename will take
             precedence, per the inheritance rules in the BIDS specification.
-        '''
 
+        """
         if include_entities:
             entities = self.files[os.path.abspath(path)].entities
             merged_param_dict = entities
         else:
             merged_param_dict = {}
 
-        potentialJSONs = self._get_nearest_helper(path, '.json', **kwargs)
+        potential_jsons = self._get_nearest_helper(path, '.json', **kwargs)
 
-        if potentialJSONs is None:
+        if potential_jsons is None:
             return merged_param_dict
 
-        for json_file_path in reversed(potentialJSONs):
+        for json_file_path in reversed(potential_jsons):
             if os.path.exists(json_file_path):
                 param_dict = json.load(open(json_file_path, "r",
                                             encoding='utf-8'))
@@ -235,6 +242,7 @@ class BIDSLayout(Layout):
         return merged_param_dict
 
     def get_bvec(self, path, **kwargs):
+        """Get bvec file for passed path."""
         tmp = self._get_nearest_helper(path, 'bvec', suffix='dwi', **kwargs)[0]
         if isinstance(tmp, list):
             return tmp[0]
@@ -242,6 +250,7 @@ class BIDSLayout(Layout):
             return tmp
 
     def get_bval(self, path, **kwargs):
+        """Get bval file for passed path."""
         tmp = self._get_nearest_helper(path, 'bval', suffix='dwi', **kwargs)[0]
         if isinstance(tmp, list):
             return tmp[0]
@@ -249,6 +258,7 @@ class BIDSLayout(Layout):
             return tmp
 
     def get_fieldmap(self, path, return_list=False):
+        """Get fieldmap(s) for specified path."""
         fieldmaps = self._get_fieldmaps(path)
 
         if return_list:
@@ -270,7 +280,8 @@ class BIDSLayout(Layout):
         sub = os.path.split(path)[1].split("_")[0].split("sub-")[1]
         fieldmap_set = []
         suffix = '(phase1|phasediff|epi|fieldmap)'
-        files = self.get(subject=sub, suffix=suffix, extensions=['nii.gz', 'nii'])
+        files = self.get(subject=sub, suffix=suffix,
+                         extensions=['nii.gz', 'nii'])
         for file in files:
             metadata = self.get_metadata(file.filename)
             if metadata and "IntendedFor" in metadata.keys():
@@ -308,8 +319,7 @@ class BIDSLayout(Layout):
 
     def get_collections(self, level, types=None, variables=None, merge=False,
                         sampling_rate=None, skip_empty=False, **kwargs):
-        ''' Return one or more Collections containing variables found in the
-        BIDS project.
+        """Return one or more variable Collections in the BIDS project.
 
         Args:
             level (str): The level of analysis to return variables for. Must be
@@ -331,8 +341,7 @@ class BIDSLayout(Layout):
                 where there are no rows/records in a file after applying any
                 filtering operations like dropping NaNs).
             kwargs: Optional additional arguments to pass onto load_variables.
-
-        '''
+        """
         from bids.variables import load_variables
         index = load_variables(self, types=types, levels=level,
                                skip_empty=skip_empty, **kwargs)
@@ -340,6 +349,7 @@ class BIDSLayout(Layout):
                                      sampling_rate=sampling_rate)
 
     def parse_entities(self, filelike):
+        """Extract entities from a filelike-object (e.g., a string)."""
         if not isinstance(filelike, File):
             filelike = File(filelike)
 
@@ -349,5 +359,56 @@ class BIDSLayout(Layout):
         return filelike.entities
 
     def _make_file_object(self, root, f):
-        ''' Overrides grabbit's File with a BIDSFile. '''
+        # Override grabbit's File with a BIDSFile.
         return BIDSFile(os.path.join(root, f), self)
+
+    def search_metadata(self, *args, **kwargs):
+        if self.metadata_index is None:
+            warnings.warn("No metadata index found; building a new one.")
+            self.metadata_index = MetadataIndex(self)
+        return self.metadata_index.search(*args, **kwargs)
+
+
+class MetadataIndex(object):
+    """A simple dict-based index for key/value pairs in JSON metadata."""
+
+    def __init__(self, layout, regex_search=False, force_string=False):
+        self.regex_search = regex_search
+        self.key_index = defaultdict(dict)
+        self.file_index = defaultdict(dict)
+        for f_name, f in layout.files.items():
+            if f_name.endswith('.json'):
+                continue
+            md = f.metadata
+            for md_key, md_val in md.items():
+                self.key_index[md_key][f_name] = md_val
+                self.file_index[f_name][md_key] = md_val
+
+    def search(self, *args, **kwargs):
+
+        regex_search = kwargs.get('regex_search', self.regex_search)
+
+        if not args and not kwargs:
+            raise ValueError("At least one field to search on must be passed.")
+
+        # Get file intersection of all args/kwargs--this is fast
+        all_keys = set(args) | set(kwargs.keys())
+        filesets = [set(self.key_index[k]) for k in all_keys]
+        matches = reduce(lambda x, y: x & y, filesets)
+
+        if not matches:
+            return []
+
+        def check_matches(f, key, val):
+            if regex_search:
+                return re.search(str(self.file_index[f][key]), val) is not None
+            else:
+                return val == self.file_index[f][key]
+
+        # Serially check matches against each pattern, with early termination
+        for k, v in kwargs.items():
+            matches = list(filter(lambda x: check_matches(x, k, v), matches))
+            if not matches:
+                return []
+
+        return matches
