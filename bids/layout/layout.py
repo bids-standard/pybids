@@ -174,7 +174,7 @@ class BIDSLayout(Layout):
         # returns False if file doesn't fit BIDS specification
         if not self.validate:
             return True
-        to_check = f.split(os.path.abspath(self.root), maxsplit=1)[1]
+        to_check = f.split(os.path.abspath(self.root), 1)[1]
 
         sep = os.path.sep
         if to_check[:len(sep)] != sep:
