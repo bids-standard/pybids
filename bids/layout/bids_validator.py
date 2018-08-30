@@ -274,7 +274,8 @@ def validate_sequences(layout, config):
             A BIDSLayout path of a data set.
 
         config: string
-            Path to customized configuration file.
+            Path to customized configuration file. Requires `runs` as an input.
+            See the sample config for an example (bids/layout/tests/data/sample_validation_config.json).
 
 
     Examples
@@ -371,6 +372,8 @@ def check_expected_files(layout, config):
 
     Notes
     --------
+
+    `runs` is a mandatory field in the config file.
     
     The configuration file can take any keys that are valid arguments for
     pybids `layout.get()` Values shoud match those in the BIDS file names. 
