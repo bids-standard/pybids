@@ -125,7 +125,7 @@ def test_get_fieldmap2(testlayout1):
 
 
 def test_bids_json(testlayout1):
-    assert testlayout1.get(return_type='id', target='run') == ['1', '2']
+    assert testlayout1.get(return_type='id', target='run') == [1, 2]
     assert testlayout1.get(return_type='id', target='session') == ['1', '2']
 
 

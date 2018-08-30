@@ -39,7 +39,8 @@
         },
         {
             "name": "run",
-            "pattern": "[_/\\\\]run-0*(\\d+)"
+            "pattern": "[_/\\\\]run-0*(\\d+)",
+            "dtype": "int"
         },
         {
             "name": "proc",

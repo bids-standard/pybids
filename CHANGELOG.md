@@ -1,5 +1,17 @@
 # Changelog
 
+## Version 0.6.5 (August 21, 2018)
+
+* FIX: Do not drop rows of NaNs (#217) @adelavega
+* FIX: Declare run as having integer type (#236) @effigies
+* ENH: MEG support (#229) @jasmainak
+* REF: rename grabbids to layout, closes #228 (#230) @ltirrell
+* DOC: add .get_collection examples to tutorial (#219) @Shotgunosine
+* DOC: Fix link in README to point to documentation (#223) @KirstieJane
+* DOC: Add binder link for tutorial (#225) @KirstieJane
+* MAINT: Restore "analysis" installation extra (#218) @yarikoptic
+* MAINT: Do not import tests in \_\_init\_\_.py (#226) @tyarkoni
+
 ## Version 0.5.1 (March 9, 2018)
 Hotfix release:
 

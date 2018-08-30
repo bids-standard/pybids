@@ -1,4 +1,5 @@
-"""Generate publication-quality data acquisition methods section from BIDS dataset.
+"""Generate publication-quality data acquisition methods section from BIDS
+dataset.
 
 Parsing functions for generating the MRI data acquisition portion of a
 methods section from a BIDS dataset.
@@ -19,7 +20,6 @@ logging.basicConfig()
 LOGGER = logging.getLogger('pybids.reports.parsing')
 
 
-
 def general_acquisition_info(metadata):
     """
     General sentence on data acquisition. Should be first sentence in MRI data
@@ -35,11 +35,13 @@ def general_acquisition_info(metadata):
     out_str : :obj:`str`
         Output string with scanner information.
     """
-    out_str = ('MR data were acquired using a {tesla}-Tesla {manu} {model} MRI '
-               'scanner.')
-    out_str = out_str.format(tesla=metadata.get('MagneticFieldStrength', 'UNKNOWN'),
+    out_str = ('MR data were acquired using a {tesla}-Tesla {manu} {model} '
+               'MRI scanner.')
+    out_str = out_str.format(tesla=metadata.get('MagneticFieldStrength',
+                                                'UNKNOWN'),
                              manu=metadata.get('Manufacturer', 'MANUFACTURER'),
-                             model=metadata.get('ManufacturersModelName', 'MODEL'))
+                             model=metadata.get('ManufacturersModelName',
+                                                'MODEL'))
     return out_str
 
 
@@ -67,12 +69,13 @@ def func_info(task, n_runs, metadata, img, config):
         A description of the scan's acquisition information.
     """
     if metadata.get('MultibandAccelerationFactor', 1) > 1:
-        mb_str = '; MB factor={0}'.format(metadata['MultibandAccelerationFactor'])
+        mb_str = '; MB factor={}'.format(metadata['MultibandAccelerationFactor'])
     else:
         mb_str = ''
 
     if metadata.get('ParallelReductionFactorInPlane', 1) > 1:
-        pr_str = '; in-plane acceleration factor={}'.format(metadata['ParallelReductionFactorInPlane'])
+        pr_str = ('; in-plane acceleration factor='
+                  '{}'.format(metadata['ParallelReductionFactorInPlane']))
     else:
         pr_str = ''
 
@@ -82,9 +85,18 @@ def func_info(task, n_runs, metadata, img, config):
         so_str = ''
 
     if 'EchoTime' in metadata.keys():
-        te = num_to_str(metadata['EchoTime']*1000)
+        if isinstance(metadata['EchoTime'], list):
+            te = [num_to_str(t*1000) for t in metadata['EchoTime']]
+            te_temp = ', '.join(te[:-1])
+            te_temp += ', and {}'.format(te[-1])
+            te = te_temp
+            me_str = 'multi-echo '
+        else:
+            te = num_to_str(metadata['EchoTime']*1000)
+            me_str = 'single-echo '
     else:
         te = 'UNKNOWN'
+        me_str = 'UNKNOWN-echo'
 
     task_name = metadata.get('TaskName', task+' task')
     seqs, variants = get_seqstr(config, metadata)
@@ -102,8 +114,8 @@ def func_info(task, n_runs, metadata, img, config):
         run_str = '{0} runs'.format(num2words(n_runs).title())
 
     desc = '''
-           {run_str} of {task} {variants} {seqs} fMRI data were collected
-           ({n_slices} slices{so_str}; repetition time, TR={tr}ms;
+           {run_str} of {task} {variants} {seqs} {me_str} fMRI data were
+           collected ({n_slices} slices{so_str}; repetition time, TR={tr}ms;
            echo time, TE={te}ms; flip angle, FA={fa}<deg>;
            field of view, FOV={fov}mm; matrix size={ms};
            voxel size={vs}mm{mb_str}{pr_str}).
@@ -113,6 +125,7 @@ def func_info(task, n_runs, metadata, img, config):
                       task=task_name,
                       variants=variants,
                       seqs=seqs,
+                      me_str=me_str,
                       n_slices=n_slices,
                       so_str=so_str,
                       tr=num_to_str(tr*1000),
@@ -408,7 +421,7 @@ def parse_niftis(layout, niftis, subj, config, **kwargs):
     config : :obj:`dict`
         Configuration info for methods generation.
     """
-    kwargs = {k:v for k, v in kwargs.items() if v is not None}
+    kwargs = {k: v for k, v in kwargs.items() if v is not None}
 
     description_list = []
     skip_task = {}  # Only report each task once
@@ -426,21 +439,40 @@ def parse_niftis(layout, niftis, subj, config, **kwargs):
 
             if nifti_struct.modality == 'func':
                 if not skip_task.get(nifti_struct.task, False):
-                    n_runs = len(layout.get(subject=subj, extensions='nii.gz',
-                                            task=nifti_struct.task, **kwargs))
-                    description_list.append(func_info(nifti_struct.task, n_runs,
-                                                      metadata, img, config))
+                    echos = layout.get_echoes(subject=subj, extensions='nii.gz',
+                                              task=nifti_struct.task, **kwargs)
+                    n_echos = len(echos)
+                    if n_echos > 0:
+                        metadata['EchoTime'] = []
+                        for echo in sorted(echos):
+                            echo_struct = layout.get(subject=subj, echo=echo,
+                                                     extensions='nii.gz',
+                                                     task=nifti_struct.task,
+                                                     **kwargs)[0]
+                            echo_file = echo_struct.filename
+                            echo_meta = layout.get_metadata(echo_file)
+                            metadata['EchoTime'].append(echo_meta['EchoTime'])
+
+                    n_runs = len(layout.get_runs(subject=subj,
+                                                 task=nifti_struct.task,
+                                                 **kwargs))
+                    description_list.append(func_info(nifti_struct.task,
+                                                      n_runs, metadata, img,
+                                                      config))
                     skip_task[nifti_struct.task] = True
 
             elif nifti_struct.modality == 'anat':
                 type_ = nifti_struct.type
                 if type_.endswith('w'):
                     type_ = type_[:-1] + '-weighted'
-                description_list.append(anat_info(type_, metadata, img, config))
+                description_list.append(anat_info(type_, metadata, img,
+                                                  config))
             elif nifti_struct.modality == 'dwi':
                 bval_file = nii_file.replace('.nii.gz', '.bval')
-                description_list.append(dwi_info(bval_file, metadata, img, config))
+                description_list.append(dwi_info(bval_file, metadata, img,
+                                                 config))
             elif nifti_struct.modality == 'fmap':
-                description_list.append(fmap_info(metadata, img, config, layout))
+                description_list.append(fmap_info(metadata, img, config,
+                                                  layout))
 
     return description_list
