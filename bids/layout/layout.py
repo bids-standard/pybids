@@ -96,7 +96,7 @@ class BIDSLayout(Layout):
             in grabbit.
     """
 
-    def __init__(self, paths, root=None, validate=False,
+    def __init__(self, paths, root=None, validate=True,
                  index_associated=True, include=None, exclude=None,
                  absolute_paths=True, index_metadata=False, **kwargs):
 
