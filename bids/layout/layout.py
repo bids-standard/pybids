@@ -78,16 +78,12 @@ class BIDSLayout(Layout):
             etc. to be ignored.
         index_associated (bool): Argument passed onto the BIDSValidator;
             ignored if validate = False.
-        include (str, list): String or list of strings giving paths to files or
-            directories to include in indexing. Note that if this argument is
-            passed, *only* files and directories that match at least one of the
-            patterns in the include list will be indexed. Cannot be used
-            together with 'exclude'.
-        exclude (str, list): String or list of strings giving paths to files or
-            directories to exclude from indexing. If this argument is passed,
-            all files and directories that match at least one of the patterns
-            in the include list will be ignored. Cannot be used together with
-            'include'.
+        include (str, list): String or list of strings specifying which of the
+            directories that are by default excluded from indexing should be
+            included. The default exclusion list is ['derivatives', 'code',
+            'stimuli', 'sourcedata', 'models']. Note that if directories are
+            specified in the paths argument, they do not also need to be
+            included here again.
         absolute_paths (bool): If True, queries always return absolute paths.
             If False, queries return relative paths, unless the root argument
             was left empty (in which case the root defaults to the file system
@@ -96,9 +92,9 @@ class BIDSLayout(Layout):
             in grabbit.
     """
 
-    def __init__(self, paths, root=None, validate=True,
-                 index_associated=True, include=None, exclude=None,
-                 absolute_paths=True, index_metadata=False, **kwargs):
+    def __init__(self, paths, root=None, validate=False,
+                 index_associated=True, include=None, absolute_paths=True,
+                 index_metadata=False, **kwargs):
 
         self.validator = BIDSValidator(index_associated=index_associated)
         self.validate = validate
@@ -122,6 +118,12 @@ class BIDSLayout(Layout):
             elif isinstance(p, tuple):
                 doms = [map_conf(d) for d in listify(p[1])]
                 paths[i] = (p[0], doms)
+
+        # Determine which subdirectories to exclude from indexing
+        excludes = {"derivatives", "code", "stimuli", "sourcedata", "models"}
+        if include is not None:
+            excludes -= set([d.strip(os.path.sep) for d in include])
+        self._exclude_dirs = list(excludes)
 
         # Set root to longest valid common parent if it isn't explicitly set
         if root is None:
@@ -150,8 +152,7 @@ class BIDSLayout(Layout):
                                      "dataset_description.json." % k)
 
         super(BIDSLayout, self).__init__(paths, root=root,
-                                         dynamic_getters=True, include=include,
-                                         exclude=exclude,
+                                         dynamic_getters=True,
                                          absolute_paths=absolute_paths,
                                          **kwargs)
 
@@ -169,9 +170,20 @@ class BIDSLayout(Layout):
              "Runs: {}".format(root, n_subjects, n_sessions, n_runs))
         return s
 
+    def _validate_dir(self, d):
+        # Callback from grabbit. Exclude special directories like derivatives/
+        # and code/ from indexing unless they were explicitly included at
+        # initialization in either the include or paths arguments.
+        no_root = os.path.relpath(d, self.root).split(os.path.sep)[0]
+        if no_root in self._exclude_dirs:
+            check_paths = set(self._paths_to_index) - {self.root}
+            if not any([d.startswith(p) for p in check_paths]):
+                return False
+        return True
+
     def _validate_file(self, f):
-        # If validate=True then checks files according to BIDS and
-        # returns False if file doesn't fit BIDS specification
+        # Callback from grabbit. Files are excluded from indexing if validation
+        # is enabled and fails (i.e., file is not a valid BIDS file).
         if not self.validate:
             return True
         to_check = f.split(os.path.abspath(self.root), 1)[1]
