@@ -38,7 +38,7 @@ def layout_ds005_derivs():
 @pytest.fixture(scope='module')
 def layout_ds005_models():
     data_dir = join(get_test_data_path(), 'ds005')
-    return BIDSLayout((data_dir, 'bids'), include=['models/'])
+    return BIDSLayout((data_dir, 'bids'), validate=False, include=['models/'])
 
 
 def test_layout_init(layout_7t_trt):

@@ -92,9 +92,9 @@ class BIDSLayout(Layout):
             in grabbit.
     """
 
-    def __init__(self, paths, root=None, validate=False,
-                 index_associated=True, include=None, absolute_paths=True,
-                 index_metadata=False, **kwargs):
+    def __init__(self, paths, root=None, validate=True, index_associated=True,
+                 include=None, absolute_paths=True, index_metadata=False,
+                 **kwargs):
 
         self.validator = BIDSValidator(index_associated=index_associated)
         self.validate = validate
