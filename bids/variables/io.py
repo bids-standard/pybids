@@ -13,7 +13,8 @@ BASE_ENTITIES = ['subject', 'session', 'task', 'run']
 ALL_ENTITIES = BASE_ENTITIES + ['datatype', 'suffix', 'acq']
 
 
-def load_variables(layout, types=None, levels=None, skip_empty=True, **kwargs):
+def load_variables(layout, types=None, levels=None, skip_empty=True,
+                   dataset=None, **kwargs):
     ''' A convenience wrapper for one or more load_*_variables() calls.
 
     Args:
@@ -29,6 +30,10 @@ def load_variables(layout, types=None, levels=None, skip_empty=True, **kwargs):
         skip_empty (bool): Whether or not to skip empty Variables (i.e.,
             where there are no rows/records in a file after applying any
             filtering operations like dropping NaNs).
+        dataset (NodeIndex): An existing NodeIndex container to store the
+            loaded data in. Can be used to iteratively construct a dataset
+            that contains otherwise heterogeneous sets of variables. If None,
+            a new NodeIndex is used.
         kwargs: Optional keyword arguments to pass onto the individual
             load_*_variables() calls.
 
@@ -63,7 +68,7 @@ def load_variables(layout, types=None, levels=None, skip_empty=True, **kwargs):
     if bad_types:
         raise ValueError("Invalid variable types: %s" % bad_types)
 
-    dataset = NodeIndex()
+    dataset = dataset or NodeIndex()
 
     run_types = list({'events', 'physio', 'stim', 'confounds'} - set(types))
     type_flags = {t: False for t in run_types}
@@ -122,18 +127,8 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
     if dataset is None:
         dataset = NodeIndex()
 
-    if get_option('loop_preproc'):
-        selectors['suffix'] = 'preproc'
-        # Select any space, to only loop over each run once
-        # Warning: If some spaces only apply to some runs, this may result in
-        # unexpected behavior, althought his scenario is rare.
-        spaces = layout.get_spaces(suffix='preproc')
-        if len(spaces) > 1:
-            selectors['space'] = spaces[0]
-
-    else:
-        selectors['datatype'] = 'func'
-        selectors['suffix'] = 'bold'
+    selectors['datatype'] = 'func'
+    selectors['suffix'] = 'bold'
 
     images = layout.get(return_type='file', extensions='.nii.gz', **selectors)
 
