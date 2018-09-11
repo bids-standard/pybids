@@ -108,14 +108,14 @@ class Block(object):
             generated when the model is fit.
         input_nodes (list): Optional list of AnalysisNodes to use as input to
             this Block (typically, the output from the preceding Block).
-        auto_contrasts (bool): If True, a contrast is automatically
-            created for each column in the design matrix. This parameter is
-            over-written by the setting in setup(). Default is True.
+        auto_contrasts (list): Optional list of variable names to create an
+            indicator contrast for. This parameter is over-written by the
+            setting in setup() if the latter is passed.
     '''
 
     def __init__(self, layout, level, index, name=None, transformations=None,
                 model=None, contrasts=None, input_nodes=None,
-                auto_contrasts=True):
+                auto_contrasts=None):
 
         self.layout = layout
         self.level = level
@@ -125,8 +125,8 @@ class Block(object):
         self.model = model or None
         self.contrasts = contrasts or []
         self.input_nodes = input_nodes or []
+        self.auto_contrasts = auto_contrasts or []
         self.output_nodes = []
-        self.auto_contrasts = auto_contrasts
 
     def _filter_objects(self, objects, kwargs):
         # Keeps only objects that match target entities, and also removes those
@@ -170,8 +170,8 @@ class Block(object):
             input_nodes (list): Optional list of Node objects produced by
                 the preceding Block in the analysis. If None, uses any inputs
                 passed in at Block initialization.
-            auto_contrasts (bool): If True, a contrast is automatically
-                created for each column in the design matrix.
+            auto_contrasts (bool): Optional list of variable names to create an
+            indicator contrast for.
             kwargs: Optional keyword arguments to pass onto load_variables.
         '''
         self.output_nodes = []
@@ -192,6 +192,14 @@ class Block(object):
         objects, kwargs = self._filter_objects(objects, kwargs)
         groups = self._group_objects(objects)
 
+        # Set up and validate variable lists
+        model = self.model or {}
+        variables = set(model.get('variables', []))
+        hrf_variables = set(model.get('HRF_variables', []))
+        if not variables >= hrf_variables:
+            raise ValueError("HRF_variables must be a subset ",
+                                "of variables in BIDS model.")
+
         for grp in groups:
             # Split into separate lists of Collections and Nodes
             input_nodes = [o for o in grp if isinstance(o, AnalysisNode)]
@@ -201,19 +209,11 @@ class Block(object):
                 node_coll = self._concatenate_input_nodes(input_nodes)
                 colls.append(node_coll)
 
-            model = self.model or {}
-
-            variables = set(model.get('variables', []))
-            hrf_variables = set(model.get('HRF_variables', []))
-            if not variables >= hrf_variables:
-                raise ValueError("HRF_variables must be a subset ",
-                                 "of variables in BIDS model.")
-
             coll = merge_collections(colls) if len(colls) > 1 else colls[0]
 
             coll = apply_transformations(coll, self.transformations)
-            if model.get('variables'):
-                transform.select(coll, model['variables'])
+            if variables:
+                transform.select(coll, variables)
 
             node = AnalysisNode(self.level, coll, self.contrasts, input_nodes,
                                 self.auto_contrasts)
@@ -294,17 +294,17 @@ class AnalysisNode(object):
         collection (BIDSVariableCollection): The BIDSVariableCollection
             containing variables at this Node.
         contrasts (list): A list of contrasts defined in the originating Block.
-        auto_contrasts (bool): If True, a contrast is automatically
-            created for each column in the design matrix.
+        auto_contrasts (list): A list of variable names to automatically create
+            an indicator contrast for.
     '''
 
     def __init__(self, level, collection, contrasts, input_nodes=None,
-                 auto_contrasts=True):
+                 auto_contrasts=None):
         self.level = level
         self.collection = collection
         self._block_contrasts = contrasts
         self.input_nodes = input_nodes
-        self.auto_contrasts = auto_contrasts
+        self.auto_contrasts = auto_contrasts or []
         self._contrasts = None
 
     @property
@@ -403,8 +403,9 @@ class AnalysisNode(object):
 
         ### Add ability to set different types of identity contrasts
         if self.auto_contrasts:
-            for col_name in self.collection.variables.keys():
-                if col_name not in contrast_names:
+            for col_name in self.auto_contrasts:
+                if (col_name in self.collection.variables.keys()
+                    and col_name not in contrast_names):
                     contrasts.append({
                         'name': col_name,
                         'condition_list': [col_name],
