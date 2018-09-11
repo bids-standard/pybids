@@ -75,9 +75,7 @@
             "pattern": "[/\\\\](func|anat|fmap|dwi|meg)[/\\\\]"
         }
     ],
-    "default_exclusions": [
-      "derivatives", "code", "stimuli", "sourcedata"
-    ],
+
     "default_path_patterns": [
         "sub-{subject}[/ses-{session}]/anat/sub-{subject}[_ses-{session}][_acq-{acquisition}][_ce-{contrast}][_rec-{reconstruction}]_{suffix<T1w|T2w|T1rho|T1map|T2map|T2star|FLAIR|FLASH|PDmap|PD|PDT2|inplaneT[12]|angio>}.nii.gz",
         "sub-{subject}[/ses-{session}]/anat/sub-{subject}[_ses-{session}][_acq-{acquisition}][_ce-{contrast}][_rec-{reconstruction}][_mod-{modality}]_{suffix<defacemask>}.nii.gz",
