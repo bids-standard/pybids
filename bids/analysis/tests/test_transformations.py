@@ -11,7 +11,7 @@ import pandas as pd
 @pytest.fixture
 def collection():
     layout_path = join(get_test_data_path(), 'ds005')
-    layout = BIDSLayout(layout_path, exclude='derivatives/')
+    layout = BIDSLayout(layout_path)
     collection = layout.get_collections('run', types=['events'],
                                         scan_length=480, merge=True,
                                         sampling_rate=10)
