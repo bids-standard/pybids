@@ -1,0 +1,13 @@
+{
+    "associated_data" : {
+        "regexp" : "^\\/(?:@@@_associated_data_type_@@@)\\/(?:.*)$",
+        "tokens" : {
+            "@@@_associated_data_type_@@@" : [
+                "code",
+                "derivatives",
+                "sourcedata",
+                "stimuli"
+            ]
+        }
+    }
+}

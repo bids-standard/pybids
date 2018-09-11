@@ -1,0 +1,105 @@
+{
+    "func_top" : {
+        "regexp" : "^\\/(?:ses-[a-zA-Z0-9]+_)?(?:recording-[a-zA-Z0-9]+_)?task-[a-zA-Z0-9]+(?:_acq-[a-zA-Z0-9]+)?(?:_rec-[a-zA-Z0-9]+)?(?:_run-[0-9]+)?(?:_echo-[0-9]+)?(@@@_func_top_ext_@@@)$",
+        "tokens" : {
+            "@@@_func_top_ext_@@@" : [
+                "_bold.json",
+                "_sbref.json",
+                "_events.json",
+                "_events.tsv",
+                "_physio.json",
+                "_stim.json",
+                "_beh.json"
+            ]
+        }
+    },
+
+    "anat_top" :
+    {
+        "regexp" : "^\\/(?:ses-[a-zA-Z0-9]+_)?(?:acq-[a-zA-Z0-9]+_)?(?:rec-[a-zA-Z0-9]+_)?(?:run-[0-9]+_)?(@@@_anat_suffixes_@@@).json$",
+        "tokens" : {
+            "@@@_anat_suffixes_@@@" : [
+                "T1w",
+                "T2w",
+                "T1map",
+                "T2map",
+                "T1rho",
+                "FLAIR",
+                "PD",
+                "PDT2",
+                "inplaneT1",
+                "inplaneT2",
+                "angio",
+                "SWImagandphase",
+                "T2star",
+                "FLASH",
+                "PDmap",
+                "photo"
+            ]
+        }
+    },
+
+    "dwi_top" :
+    {
+        "regexp" : "^\\/(?:ses-[a-zA-Z0-9]+_)?(?:acq-[a-zA-Z0-9]+_)?(?:rec-[a-zA-Z0-9]+_)?(?:run-[0-9]+_)?dwi.(?:@@@_dwi_top_ext_@@@)$",
+        "tokens" : {
+            "@@@_dwi_top_ext_@@@" : [
+                "json",
+                "bval",
+                "bvec"
+            ]
+        }
+    },
+    "eeg_top" :
+    {
+        "regexp" : "^\\/(?:ses-[a-zA-Z0-9]+_)?task-[a-zA-Z0-9]+(?:_acq-[a-zA-Z0-9]+)?(?:_proc-[a-zA-Z0-9]+)?(?:@@@_eeg_top_ext_@@@)$",
+        "tokens" : {
+            "@@@_eeg_top_ext_@@@" : [
+                "_eeg.json",
+                "_channels.tsv",
+                "_photo.jpg",
+                "_coordsystem.json"
+            ]
+        }
+    },
+    "ieeg_top" :
+    {
+        "regexp" : "^\\/(?:ses-[a-zA-Z0-9]+_)?task-[a-zA-Z0-9]+(?:_acq-[a-zA-Z0-9]+)?(?:_proc-[a-zA-Z0-9]+)?(?:@@@_ieeg_top_ext_@@@)$",
+        "tokens" : {
+            "@@@_ieeg_top_ext_@@@" : [
+                "_ieeg.json",
+                "_channels.tsv",
+                "_electrodes.tsv",
+                "_photo.jpg",
+                "_coordsystem.json"
+            ]
+        }
+    },
+    "meg_top" :
+    {
+        "regexp" : "^\\/(?:ses-[a-zA-Z0-9]+_)?task-[a-zA-Z0-9]+(?:_acq-[a-zA-Z0-9]+)?(?:_proc-[a-zA-Z0-9]+)?(?:@@@_meg_top_ext_@@@)$",
+        "tokens" : {
+            "@@@_meg_top_ext_@@@" : [
+                "_meg.json",
+                "_channels.tsv",
+                "_photo.jpg",
+                "_coordsystem.json"
+            ]
+        }
+    },
+    "multi_dir_fieldmap" :
+    {
+        "regexp" : "^\\/(?:acq-[a-zA-Z0-9]+_)?(?:dir-[a-zA-Z0-9]+_)epi.json$"
+    },
+
+    "other_top_files" :
+    {
+        "regexp" : "^\\/(?:ses-[a-zA-Z0-9]+_)?(?:recording-[a-zA-Z0-9]+_)?(?:task-[a-zA-Z0-9]+_)?(?:acq-[a-zA-Z0-9]+_)?(?:rec-[a-zA-Z0-9]+_)?(?:run-[0-9]+_)?(@@@_other_top_files_ext_@@@)$",
+        "tokens" : {
+            "@@@_other_top_files_ext_@@@" : [
+                "physio.json",
+                "stim.json"
+            ]
+        }
+    }
+}

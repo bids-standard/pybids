@@ -1,0 +1,11 @@
+{
+    "subject_level" : {
+        "regexp" : "^\\/(sub-[a-zA-Z0-9]+)\\/\\1(@@@_subject_level_ext_@@@)$",
+        "tokens" : {
+            "@@@_subject_level_ext_@@@" : [
+                "_sessions.tsv",
+                "_sessions.json"
+            ]
+        }
+    }
+}
