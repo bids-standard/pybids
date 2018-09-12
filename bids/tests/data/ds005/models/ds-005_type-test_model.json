@@ -4,7 +4,6 @@
   "blocks": [
     {
       "name": "run",
-      "auto_contrasts": false,
       "level": "run",
       "transformations": [
         {
@@ -12,6 +11,7 @@
           "input": "RT"
         }
       ],
+      "auto_contrasts": ["RT"],
       "contrasts": [
         {
           "name": "RT-trial_type",
@@ -25,15 +25,18 @@
     },
     {
       "name": "session",
-      "level": "session"
+      "level": "session",
+      "auto_contrasts": true
     },
     {
       "name": "participant",
-      "level": "subject"
+      "level": "subject",
+      "auto_contrasts": true
     },
     {
       "name": "group",
-      "level": "dataset"
+      "level": "dataset",
+      "auto_contrasts": true
     }
   ]
 }
