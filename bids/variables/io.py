@@ -10,7 +10,7 @@ from bids.config import get_option
 
 
 BASE_ENTITIES = ['subject', 'session', 'task', 'run']
-ALL_ENTITIES = BASE_ENTITIES + ['datatype', 'suffix', 'acq']
+ALL_ENTITIES = BASE_ENTITIES + ['datatype', 'suffix', 'acquisition']
 
 
 def load_variables(layout, types=None, levels=None, skip_empty=True,
