@@ -21,7 +21,8 @@ def synthetic(request):
     deriv = join(root, 'derivatives')
     if request.param == 'preproc':
         layout = BIDSLayout([root, (deriv, 'derivatives')])
-        dataset = load_variables(layout, skip_empty=True, suffix='preproc')
+        dataset = load_variables(layout, skip_empty=True, suffix='preproc',
+                                 space='T1w')
     else:
         layout = BIDSLayout(root)
         dataset = load_variables(layout, skip_empty=True)
