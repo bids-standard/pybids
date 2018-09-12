@@ -22,10 +22,6 @@
             "pattern": "[_/\\\\]acq-([a-zA-Z0-9]+)"
         },
         {
-            "name": "acq",
-            "pattern": "[_/\\\\]acq-([a-zA-Z0-9]+)"
-        },
-        {
             "name": "ce",
             "pattern": "[_/\\\\]ce-([a-zA-Z0-9]+)"
         },

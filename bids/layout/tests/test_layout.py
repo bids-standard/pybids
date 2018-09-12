@@ -91,7 +91,7 @@ def test_get_metadata4(layout_ds005):
 
 def test_get_metadata_meg(layout_ds117):
     funcs = ['get_subjects', 'get_sessions', 'get_tasks', 'get_runs',
-             'get_acqs', 'get_procs']
+             'get_acquisitions', 'get_procs']
     assert all([hasattr(layout_ds117, f) for f in funcs])
     procs = layout_ds117.get_procs()
     assert procs == ['sss']
