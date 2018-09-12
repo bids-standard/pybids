@@ -381,23 +381,62 @@ class BIDSLayout(Layout):
         return BIDSFile(os.path.join(root, f), self)
 
     def build_metadata_index(self, regex_search=False, preserve_dtypes=True):
+        """Build a metadata index for the current BIDSLayout.
+
+        Args:
+            regex_search (bool): If True, matching is performed using regex.
+            preserve_dtypes (bool): If True (default), the dtype of the
+                original metadata value is preserved when matching (so 6 won't
+                match '6'); if False, all matching will be done after
+                converting values to strings. (Note that if regex_search=True,
+                preserve_dtypes will be automatically set to True as well).
+        """
         self.metadata_index = MetadataIndex(self, regex_search,
                                             preserve_dtypes)
 
-    def search_metadata(self, files=None, regex_search=None, keys_exist=None,
-                        **kwargs):
+    def search_metadata(self, files=None, regex_search=None,
+                        defined_fields=None, **kwargs):
+        """Search files based on metadata fields.
+        
+        Args:
+            files (list): Optional list of names of files to search. If None,
+                all files in the layout are scanned.
+            regex_search (bool): If True, matching is performed using regex.
+                If False, no regex is used. If None, the value is taken from
+                the current instance.
+            defined_fields (list): Optional list of names of fields that must
+                be defined in the JSON sidecar in order to consider the file a
+                match, but which don't need to match any particular value.
+            kwargs: Optional keyword arguments defining search constraints;
+                keys are names of metadata fields, and values are the values
+                to match those fields against (e.g., SliceTiming=0.017) would
+                return all files that have a SliceTiming value of 0.071 in
+                metadata.
+        
+        Returns: A list of filenames that match all constraints.
+        """
         if self.metadata_index is None:
             raise ValueError("No metadata index was found. Before you can "
                              "search on file metadata, you need to either "
                              "pass index_metadata=True when initializing "
                              "the BIDSLayout, or explicitly call "
                              "build_metadata_index() on the BIDSLayout.")
-        return self.metadata_index.search(files, regex_search, keys_exist,
+        return self.metadata_index.search(files, regex_search, defined_fields,
                                           **kwargs)
 
 
 class MetadataIndex(object):
-    """A simple dict-based index for key/value pairs in JSON metadata."""
+    """A simple dict-based index for key/value pairs in JSON metadata.
+    
+    Args:
+        layout (BIDSLayout): The BIDSLayout instance to index.
+        regex_search (bool): If True, matching is performed using regex.
+        preserve_dtypes (bool): If True (default), the dtype of the original
+            metadata value is preserved when matching (so 6 won't match '6');
+            if False, all matching will be done after converting values to
+            strings. (Note that if regex_search=True, preserve_dtypes will be
+            automatically set to True as well).
+    """
 
     def __init__(self, layout, regex_search=False, preserve_dtypes=True):
         self.regex_search = regex_search
@@ -414,16 +453,35 @@ class MetadataIndex(object):
                 self.key_index[md_key][f_name] = md_val
                 self.file_index[f_name][md_key] = md_val
 
-    def search(self, files=None, regex_search=None, keys_exist=None,
+    def search(self, files=None, regex_search=None, defined_fields=None,
                **kwargs):
+        """Search files in the layout by metadata fields.
+
+        Args:
+            files (list): Optional list of names of files to search. If None,
+                all files in the layout are scanned.
+            regex_search (bool): If True, matching is performed using regex.
+                If False, no regex is used. If None, the value is taken from
+                the current instance.
+            defined_fields (list): Optional list of names of fields that must
+                be defined in the JSON sidecar in order to consider the file a
+                match, but which don't need to match any particular value.
+            kwargs: Optional keyword arguments defining search constraints;
+                keys are names of metadata fields, and values are the values
+                to match those fields against (e.g., SliceTiming=0.017) would
+                return all files that have a SliceTiming value of 0.071 in
+                metadata.
+        
+        Returns: A list of filenames that match all constraints.
+        """
 
         if regex_search is None:
             regex_search = self.regex_search
 
-        if keys_exist is None:
-            keys_exist = []
+        if defined_fields is None:
+            defined_fields = []
 
-        all_keys = set(keys_exist) | set(kwargs.keys())
+        all_keys = set(defined_fields) | set(kwargs.keys())
         if not all_keys:
             raise ValueError("At least one field to search on must be passed.")
 
