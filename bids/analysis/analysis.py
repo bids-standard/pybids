@@ -51,8 +51,7 @@ class Analysis(object):
             block = Block(self.layout, index=i, **block_args)
             self.blocks.append(block)
 
-    def setup(self, blocks=None, agg_func='mean', auto_contrasts=None,
-              **kwargs):
+    def setup(self, blocks=None, agg_func='mean', **kwargs):
         ''' Set up the sequence of blocks for analysis.
 
         Args:
@@ -69,8 +68,6 @@ class Analysis(object):
                 name of a function recognized by apply() in pandas, or a
                 Callable that takes a DataFrame as input and returns a Series
                 or a DataFrame. NOTE: CURRENTLY UNIMPLEMENTED.
-            auto_contrasts (bool): If True, a contrast is automatically
-                created for each column in the design matrix.
         '''
 
         # In the beginning, there was nothing
@@ -86,7 +83,7 @@ class Analysis(object):
             if blocks is not None and i not in blocks and b.name not in blocks:
                 continue
 
-            b.setup(input_nodes, auto_contrasts, **selectors)
+            b.setup(input_nodes, **selectors)
             input_nodes = b.output_nodes
 
 
@@ -108,9 +105,11 @@ class Block(object):
             generated when the model is fit.
         input_nodes (list): Optional list of AnalysisNodes to use as input to
             this Block (typically, the output from the preceding Block).
-        auto_contrasts (list): Optional list of variable names to create an
-            indicator contrast for. This parameter is over-written by the
-            setting in setup() if the latter is passed.
+        auto_contrasts (list, bool): Optional list of variable names to create
+            an indicator contrast for. Alternatively, if the boolean value True
+            is passed, a contrast is automatically generated for _all_
+            available variables. This parameter is over-written by the setting
+            in setup() if the latter is passed.
     '''
 
     def __init__(self, layout, level, index, name=None, transformations=None,
@@ -170,14 +169,16 @@ class Block(object):
             input_nodes (list): Optional list of Node objects produced by
                 the preceding Block in the analysis. If None, uses any inputs
                 passed in at Block initialization.
-            auto_contrasts (bool): Optional list of variable names to create an
-            indicator contrast for.
+            auto_contrasts (bool): Optional list of variable names to create
+            an indicator contrast for. Alternatively, if the boolean value True
+            is passed, a contrast is automatically generated for _all_
+            available variables.
             kwargs: Optional keyword arguments to pass onto load_variables.
         '''
         self.output_nodes = []
         input_nodes = input_nodes or self.input_nodes or []
 
-        if auto_contrasts is not None:
+        if auto_contrasts:
             self.auto_contrasts = auto_contrasts
 
         # TODO: remove the scan_length argument entirely once we switch tests
@@ -194,9 +195,9 @@ class Block(object):
 
         # Set up and validate variable lists
         model = self.model or {}
-        variables = set(model.get('variables', []))
-        hrf_variables = set(model.get('HRF_variables', []))
-        if not variables >= hrf_variables:
+        variables = model.get('variables', [])
+        hrf_variables = model.get('HRF_variables', [])
+        if not set(variables) >= set(hrf_variables):
             raise ValueError("HRF_variables must be a subset ",
                                 "of variables in BIDS model.")
 
@@ -294,8 +295,10 @@ class AnalysisNode(object):
         collection (BIDSVariableCollection): The BIDSVariableCollection
             containing variables at this Node.
         contrasts (list): A list of contrasts defined in the originating Block.
-        auto_contrasts (list): A list of variable names to automatically create
-            an indicator contrast for.
+        auto_contrasts (list): Optional list of variable names to create
+            an indicator contrast for. Alternatively, if the boolean value True
+            is passed, a contrast is automatically generated for _all_
+            available variables.
     '''
 
     def __init__(self, level, collection, contrasts, input_nodes=None,
@@ -304,6 +307,8 @@ class AnalysisNode(object):
         self.collection = collection
         self._block_contrasts = contrasts
         self.input_nodes = input_nodes
+        if auto_contrasts == True:
+            auto_contrasts = collection.variables.keys()
         self.auto_contrasts = auto_contrasts or []
         self._contrasts = None
 
