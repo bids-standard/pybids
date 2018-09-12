@@ -114,7 +114,7 @@ class Block(object):
 
     def __init__(self, layout, level, index, name=None, transformations=None,
                 model=None, contrasts=None, input_nodes=None,
-                auto_contrasts=None):
+                auto_contrasts=False):
 
         self.layout = layout
         self.level = level
@@ -162,24 +162,17 @@ class Block(object):
         entities = pd.concat(entities, axis=1).T
         return BIDSVariableCollection.from_df(data, entities, self.level)
 
-    def setup(self, input_nodes=None, auto_contrasts=None, **kwargs):
+    def setup(self, input_nodes=None, **kwargs):
         ''' Set up the Block and construct the design matrix.
 
         Args:
             input_nodes (list): Optional list of Node objects produced by
                 the preceding Block in the analysis. If None, uses any inputs
                 passed in at Block initialization.
-            auto_contrasts (bool): Optional list of variable names to create
-            an indicator contrast for. Alternatively, if the boolean value True
-            is passed, a contrast is automatically generated for _all_
-            available variables.
             kwargs: Optional keyword arguments to pass onto load_variables.
         '''
         self.output_nodes = []
         input_nodes = input_nodes or self.input_nodes or []
-
-        if auto_contrasts:
-            self.auto_contrasts = auto_contrasts
 
         # TODO: remove the scan_length argument entirely once we switch tests
         # to use the synthetic dataset with image headers.
