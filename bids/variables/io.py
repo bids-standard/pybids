@@ -122,9 +122,6 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
     kwargs = selectors.copy()
     domains = kwargs.get('domains', None)
 
-    # Filter keyword args
-    selectors = {k: v for k, v in selectors.items() if k in BASE_ENTITIES}
-
     if dataset is None:
         dataset = NodeIndex()
 
@@ -133,10 +130,6 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
     # released. Right now, _preproc files are legal, so we need to check for
     # an alternative suffix. Once the RC is out, suffix will always be 'bold'.
     selectors['suffix'] = kwargs.get('suffix', 'bold')
-    for f in layout.files.values():
-        if 'derivatives' in f.path:
-            print(f.entities)
-    # print([f.path for f in layout.domains['derivatives'].files])
     images = layout.get(return_type='file', extensions='.nii.gz', **selectors)
 
     if not images:
