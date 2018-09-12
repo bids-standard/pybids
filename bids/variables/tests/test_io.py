@@ -18,11 +18,14 @@ def layout1():
 @pytest.fixture(scope="module", params=["events", "preproc"])
 def synthetic(request):
     root = join(get_test_data_path(), 'synthetic')
+    deriv = join(root, 'derivatives')
     if request.param == 'preproc':
-        layout = BIDSLayout((root, ['bids', 'derivatives']))
+        layout = BIDSLayout([root, (deriv, 'derivatives')])
+        dataset = load_variables(layout, skip_empty=True, suffix='preproc')
     else:
         layout = BIDSLayout(root)
-    yield request.param, load_variables(layout, skip_empty=True)
+        dataset = load_variables(layout, skip_empty=True)
+    yield request.param, dataset
 
 
 def test_load_events(layout1):

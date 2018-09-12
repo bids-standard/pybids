@@ -78,6 +78,7 @@ def load_variables(layout, types=None, levels=None, skip_empty=True,
         dataset = _load_time_variables(layout, dataset, **_kwargs)
 
     for t in ({'scans', 'sessions', 'participants'} & set(types)):
+        kwargs.pop('suffix', None) # suffix is always one of values aboves
         dataset = _load_tsv_variables(layout, t, dataset, **kwargs)
 
     return dataset
@@ -128,8 +129,14 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
         dataset = NodeIndex()
 
     selectors['datatype'] = 'func'
-    selectors['suffix'] = 'bold'
-
+    # TODO: this is a temporary band-aid until the BIDS-Derivatives RC is
+    # released. Right now, _preproc files are legal, so we need to check for
+    # an alternative suffix. Once the RC is out, suffix will always be 'bold'.
+    selectors['suffix'] = kwargs.get('suffix', 'bold')
+    for f in layout.files.values():
+        if 'derivatives' in f.path:
+            print(f.entities)
+    # print([f.path for f in layout.domains['derivatives'].files])
     images = layout.get(return_type='file', extensions='.nii.gz', **selectors)
 
     if not images:
