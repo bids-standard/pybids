@@ -116,7 +116,13 @@ class BIDSLayout(Layout):
             if isinstance(p, six.string_types):
                 paths[i] = (p, conf_path % 'bids')
             elif isinstance(p, tuple):
-                doms = [map_conf(d) for d in listify(p[1])]
+                conf_names = listify(p[1])
+                # All 'derivatives' files are also 'bids' files. This is hacky
+                # and should be replaced with something more principled.
+                if 'derivatives' in conf_names:
+                    conf_names = list(set(conf_names) | {'bids'})
+                # Map each built-in config name to the JSON file
+                doms = [map_conf(d) for d in conf_names]
                 paths[i] = (p[0], doms)
 
         # Determine which subdirectories to exclude from indexing
