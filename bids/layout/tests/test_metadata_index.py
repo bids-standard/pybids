@@ -56,3 +56,11 @@ def test_search_with_file_constraints(index, layout):
     files = layout.get(subject='03', return_type='file')
     results = index.search(EchoTime=0.017, files=files)
     assert len(results) == 4
+
+
+def test_index_builds_from_layout():
+    data_dir = join(get_test_data_path(), '7t_trt')
+    layout = BIDSLayout(data_dir, index_metadata=False)
+    assert layout.metadata_index is None
+    layout = BIDSLayout(data_dir, index_metadata=True)
+    assert isinstance(layout.metadata_index, MetadataIndex)
