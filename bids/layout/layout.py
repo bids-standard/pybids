@@ -366,16 +366,6 @@ class BIDSLayout(Layout):
         return index.get_collections(level, variables, merge,
                                      sampling_rate=sampling_rate)
 
-    def parse_entities(self, filelike):
-        """Extract entities from a filelike-object (e.g., a string)."""
-        if not isinstance(filelike, File):
-            filelike = File(filelike)
-
-        for ent in self.entities.values():
-            ent.matches(filelike)
-
-        return filelike.entities
-
     def _make_file_object(self, root, f):
         # Override grabbit's File with a BIDSFile.
         return BIDSFile(os.path.join(root, f), self)
