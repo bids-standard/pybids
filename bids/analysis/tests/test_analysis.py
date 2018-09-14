@@ -104,7 +104,8 @@ def test_contrast_info(analysis):
     contrast_lists = analysis['run'].get_contrasts(subject='01')
     assert len(contrast_lists) == 3
     for cl in contrast_lists:
-        assert len(cl) == 2
+        assert len(cl) == 3
+        cl = [c for c in cl if c.type == 'T']
         assert set([c.name for c in cl]) == {'RT', 'RT-trial_type'}
         assert set([c.type for c in cl]) == {'T'}
         assert cl[0].weights.columns.tolist() == ['RT', 'trial_type']
@@ -121,7 +122,8 @@ def test_contrast_info_with_specified_variables(analysis):
                                                    variables=varlist)
     assert len(contrast_lists) == 3
     for cl in contrast_lists:
-        assert len(cl) == 2
+        assert len(cl) == 3
+        cl = [c for c in cl if c.type == 'T']
         assert set([c.name for c in cl]) == {'RT', 'RT-trial_type'}
         assert set([c.type for c in cl]) == {'T'}
         for c in cl:
@@ -129,3 +131,18 @@ def test_contrast_info_with_specified_variables(analysis):
             assert np.array_equal(c.weights.values, np.array([[1, 0]]))
         assert isinstance(cl[0], ContrastInfo)
         assert cl[0]._fields == ('name', 'weights', 'type', 'entities')
+
+
+def test_contrast_info_F_contrast(analysis):
+    contrast_lists = analysis['run'].get_contrasts(subject='01',
+                                                   names=["crummy-F"])
+    assert len(contrast_lists) == 3
+    for cl in contrast_lists:
+        assert len(cl) == 1
+        c = cl[0]
+        assert c.name == "crummy-F"
+        assert c.type == 'F'
+        assert c.weights.columns.tolist() == ['RT', 'trial_type']
+        assert np.array_equal(c.weights.values, np.array([[1, 0], [0, 1]]))
+        assert isinstance(c, ContrastInfo)
+        assert c._fields == ('name', 'weights', 'type', 'entities')

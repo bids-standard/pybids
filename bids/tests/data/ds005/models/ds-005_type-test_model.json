@@ -20,6 +20,17 @@
             "trial_type"
           ],
           "weights": [1, -1]
+        },
+        {
+          "name": "crummy-F",
+          "condition_list": [
+            "RT",
+            "trial_type"
+          ],
+          "weights": [
+            [1, 0],
+            [0, 1]
+          ]
         }
       ]
     },
