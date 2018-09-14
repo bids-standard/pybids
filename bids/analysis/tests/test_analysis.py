@@ -74,7 +74,7 @@ def test_post_first_level_sparse_design_matrix(analysis):
     result = analysis['session'].get_design_matrix(entities=False)
     assert len(result) == 2
     assert len(result[0]) == 3
-    assert result[0].sparse.shape == (6, 2)
+    assert result[0].sparse.shape == (9, 2)
     assert result[0].entities == {
         'subject': '01',
         'task': 'mixedgamblestask'}
@@ -88,7 +88,7 @@ def test_post_first_level_sparse_design_matrix(analysis):
     result = analysis['group'].get_design_matrix()
     assert len(result) == 1
     data = result[0].sparse
-    assert len(data) == 8
+    assert len(data) == 10
     assert data['subject'].nunique() == 2
 
     # # Make sure columns from different levels exist
