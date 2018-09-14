@@ -45,7 +45,8 @@ def test_layout_init(layout_7t_trt):
     assert isinstance(layout_7t_trt.files, dict)
 
 
-# def test_directory_exclusion(layout_7t_trt):
+def test_layout_repr(layout_7t_trt):
+    assert "Subjects: 10 | Sessions: 20 | Runs: 20" in str(layout_7t_trt)
 
 
 def test_load_description(layout_7t_trt):
