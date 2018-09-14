@@ -2,7 +2,7 @@
 from bids.analysis import transformations as transform
 from bids.layout import BIDSLayout
 import pytest
-from os.path import join
+from os.path import join, sep
 from bids.tests import get_test_data_path
 import numpy as np
 import pandas as pd
@@ -72,7 +72,7 @@ def test_demean(collection):
 
 
 def test_orthogonalize_dense(collection):
-    transform.factor(collection, 'trial_type', sep='/')
+    transform.factor(collection, 'trial_type', sep=sep)
 
     # Store pre-orth variables needed for tests
     pg_pre = collection['trial_type/parametric gain'].to_dense(10)

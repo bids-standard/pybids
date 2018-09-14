@@ -69,7 +69,7 @@ class BIDSLayout(Layout):
 
         root (str): The root directory of the BIDS project. All other paths
             will be set relative to this if absolute_paths is False. If None,
-            filesystem root ('/') is used.
+            filesystem root is used.
         validate (bool): If True, all files are checked for BIDS compliance
             when first indexed, and non-compliant files are ignored. This
             provides a convenient way to restrict file indexing to only those
