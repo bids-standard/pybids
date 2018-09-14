@@ -37,6 +37,22 @@ def test_product(collection):
     assert (res == c['parametric gain'].values * c['gain'].values).all()
 
 
+def test_sum(collection):
+    c = collection
+    transform.sum(collection, variables=['parametric gain', 'gain'],
+                      output='sum')
+    res = c['sum'].values
+    target = c['parametric gain'].values + c['gain'].values
+    assert np.array_equal(res, target)
+    transform.sum(collection, variables=['parametric gain', 'gain'],
+                      output='sum', weights=[2, 2])
+    assert np.array_equal(c['sum'].values, target * 2)
+    with pytest.raises(ValueError):
+        transform.sum(collection, variables=['parametric gain', 'gain'],
+                      output='sum', weights=[1, 1, 1])
+    
+
+
 def test_scale(collection):
     transform.scale(collection, variables=['RT', 'parametric gain'],
                     output=['RT_Z', 'gain_Z'], groupby=['run', 'subject'])

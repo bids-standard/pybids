@@ -50,15 +50,16 @@ class sum(Transformation):
     _output_required = True
 
     def _transform(self, data, weights=None):
+        data = pd.concat(data, axis=1)
         if weights is None:
             weights = np.ones(data.shape[1])
         else:
+            weights = np.array(weights)
             if len(weights.ravel()) != data.shape[1]:
                 raise ValueError("If weights are passed to sum(), the number "
                                  "of elements must equal number of variables"
                                  "being summed.")
-        data = pd.concat(data, axis=1)
-        return data.dot(weights)
+        return (data * weights).sum(axis=1)
 
 
 class product(Transformation):
