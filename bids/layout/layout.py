@@ -88,12 +88,15 @@ class BIDSLayout(Layout):
             If False, queries return relative paths, unless the root argument
             was left empty (in which case the root defaults to the file system
             root).
+        index_metadata (bool): If True, indexes metadata for all files at
+            Layout initialization. If False, indexing is deferred until
+            explicitly requested.
         kwargs: Optional keyword arguments to pass onto the Layout initializer
             in grabbit.
     """
 
     def __init__(self, paths, root=None, validate=True, index_associated=True,
-                 include=None, absolute_paths=True, index_metadata=False,
+                 include=None, absolute_paths=True, index_metadata=True,
                  **kwargs):
 
         self.validator = BIDSValidator(index_associated=index_associated)
@@ -164,6 +167,21 @@ class BIDSLayout(Layout):
 
         if index_metadata:
             self.build_metadata_index()
+
+    def to_df(self, **kwargs):
+        """
+        Return information for all Files tracked in the Layout as a pandas
+        DataFrame.
+
+        Args:
+            kwargs: Optional keyword arguments passed on to get(). This allows
+                one to easily select only a subset of files for export.
+        Returns:
+            A pandas DataFrame, where each row is a file, and each column is
+                a tracked entity. NaNs are injected whenever a file has no
+                value for a given attribute.
+        """
+        return self.as_data_frame(**kwargs)
 
     def __repr__(self):
         n_sessions = len([session for isub in self.get_subjects()
@@ -433,6 +451,9 @@ class MetadataIndex(object):
         self.preserve_dtypes = preserve_dtypes
         self.key_index = defaultdict(dict)
         self.file_index = defaultdict(dict)
+        # TODO: Traverse the file tree and incrementally build up a metadata
+        # tree instead of looping over each file individually. (Alternatively,
+        # memoize the JSON files contents inside get_metadata.)
         for f_name, f in layout.files.items():
             if f_name.endswith('.json'):
                 continue
