@@ -1,8 +1,9 @@
 from os.path import join
 from bids.analysis import Analysis
-from bids.analysis.analysis import ContrastMatrixInfo, DesignMatrixInfo
+from bids.analysis.analysis import ContrastInfo, DesignMatrixInfo
 from bids.layout import BIDSLayout
 from bids.tests import get_test_data_path
+import numpy as np
 import pytest
 
 
@@ -99,13 +100,32 @@ def test_post_first_level_sparse_design_matrix(analysis):
         result = analysis['nonexistent_name'].get_design_matrix()
 
 
-def test_contrast_matrix_info(analysis):
-    contrasts = analysis['run'].get_contrasts(subject='01')
-    assert len(contrasts) == 3
-    for c in contrasts:
-        assert isinstance(contrasts[0], ContrastMatrixInfo)
-        assert c._fields == ('data', 'index', 'entities')
+def test_contrast_info(analysis):
+    contrast_lists = analysis['run'].get_contrasts(subject='01')
+    assert len(contrast_lists) == 3
+    for cl in contrast_lists:
+        assert len(cl) == 2
+        assert set([c.name for c in cl]) == {'RT', 'RT-trial_type'}
+        assert set([c.type for c in cl]) == {'T'}
+        assert cl[0].weights.columns.tolist() == ['RT', 'trial_type']
+        assert cl[1].weights.columns.tolist() == ['RT']
+        assert np.array_equal(cl[0].weights.values, np.array([[1, -1]]))
+        assert np.array_equal(cl[1].weights.values, np.array([[1]]))
+        assert isinstance(cl[0], ContrastInfo)
+        assert cl[0]._fields == ('name', 'weights', 'type', 'entities')
 
 
-# def test_get_contrasts(analysis):
-#     contrasts = analysis['run'].get_contrasts(subject='01')
+def test_contrast_info_with_specified_variables(analysis):
+    varlist = ['RT', 'dummy']
+    contrast_lists = analysis['run'].get_contrasts(subject='01',
+                                                   variables=varlist)
+    assert len(contrast_lists) == 3
+    for cl in contrast_lists:
+        assert len(cl) == 2
+        assert set([c.name for c in cl]) == {'RT', 'RT-trial_type'}
+        assert set([c.type for c in cl]) == {'T'}
+        for c in cl:
+            assert c.weights.columns.tolist() == ['RT', 'dummy']
+            assert np.array_equal(c.weights.values, np.array([[1, 0]]))
+        assert isinstance(cl[0], ContrastInfo)
+        assert cl[0]._fields == ('name', 'weights', 'type', 'entities')

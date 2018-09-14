@@ -154,8 +154,8 @@ class Block(object):
     def _concatenate_input_nodes(self, nodes):
         data, entities = [], []
         for n in nodes:
-            contrasts = n.contrasts.data.T
-            row = pd.Series(np.ones(len(contrasts)), index=contrasts.index)
+            contrasts = [c.name for c in n.contrasts]
+            row = pd.Series(np.ones(len(contrasts)), index=contrasts)
             data.append(row)
             entities.append(pd.Series(n.entities))
         data = pd.concat(data, axis=1).T
@@ -251,32 +251,37 @@ class Block(object):
         return [n.get_design_matrix(names, format, mode=mode, force=force,
                                     **kwargs) for n in nodes]
 
-    def get_contrasts(self, names=None, **kwargs):
+    def get_contrasts(self, names=None, variables=None, **kwargs):
         ''' Return contrast information for the current block.
 
         Args:
             names (list): Optional list of names of contrasts to return. If
                 None (default), all contrasts are returned.
+            variables (bool): Optional list of strings giving the names of
+                design matrix columns to use when generating the matrix of
+                weights.
             kwargs: Optional keyword arguments used to constrain which of the
                 available nodes get returned (e.g., passing subject=['01',
                 '02'] will return contrast  information only for subjects '01'
                 and '02').
 
         Returns:
-            A list of ContrastMatrixInfo namedtuples--one per unit of the
-            current analysis level (e.g., if level='run', each element in the
-            list represents the design matrix for a single run).
+            A list with one element per unit of the current analysis level
+            (e.g., if level='run', each element in the list representing the
+            contrast information for a single run). Each element is a list of
+            ContrastInfo namedtuples (one per contrast).
+
         '''
         nodes, kwargs = self._filter_objects(self.output_nodes, kwargs)
-        return [n.get_contrasts(names) for n in nodes]
+        return [n.get_contrasts(names, variables) for n in nodes]
 
 
 DesignMatrixInfo = namedtuple('DesignMatrixInfo',
                               ('sparse', 'dense', 'entities'))
 
 
-ContrastMatrixInfo = namedtuple('ContrastMatrixInfo', ('data', 'index',
-                                                       'entities'))
+ContrastInfo = namedtuple('ContrastInfo', ('name', 'weights', 'type',
+                                           'entities'))
 
 
 class AnalysisNode(object):
@@ -369,17 +374,24 @@ class AnalysisNode(object):
 
         return DesignMatrixInfo(sparse_df, dense_df, self.entities)
 
-    def get_contrasts(self, names=None, entities=False):
+    def get_contrasts(self, names=None, variables=None):
         ''' Return contrast information for the current block.
 
         Args:
             names (list): Optional list of names of contrasts to return. If
                 None (default), all contrasts are returned.
-            entities (bool): If True, concatenates entity columns to the
-                returned contrast matrix.
+            variables (bool): Optional list of strings giving the names of
+                design matrix columns to use when generating the matrix of
+                weights.
+
+        Notes:
+            The 'variables' argument take precedence over the natural process
+            of column selection. I.e.,
+                if a variable shows up in a contrast, but isn't named in
+                variables, it will *not* be included in the returned
 
         Returns:
-            A ContrastMatrixInfo namedtuple.
+            A list of ContrastInfo namedtuples, one per contrast.
         '''
 
         # Verify that there are no invalid columns in the condition_lists
@@ -399,7 +411,6 @@ class AnalysisNode(object):
             raise ValueError("One or more contrasts have the same name")
         contrast_names = list(set(contrast_names))
 
-        ### Add ability to set different types of identity contrasts
         if self.auto_contrasts:
             for col_name in self.auto_contrasts:
                 if (col_name in self.collection.variables.keys()
@@ -408,54 +419,27 @@ class AnalysisNode(object):
                         'name': col_name,
                         'condition_list': [col_name],
                         'weights': [1],
+                        'type': 'T'
                     })
 
         # Filter on desired contrast names if passed
         if names is not None:
             contrasts = [c for c in contrasts if c['name'] in names]
 
-        # Build a "maximal" contrast matrix that has all possible rows and
-        # columns. Then we'll proceed by knocking out invalid/missing rows and
-        # columns separately for each input node.
-        contrast_defs = [pd.Series(c['weights'], index=c['condition_list'])
-                         for c in contrasts]
-        con_mat = pd.DataFrame(contrast_defs).fillna(0).T
-        con_mat.columns = [c['name'] for c in contrasts]
+        def setup_contrast(c):
+            weights = np.atleast_2d(c['weights'])
+            weights = pd.DataFrame(weights, columns=c['condition_list'])
+            # If variables were explicitly passed, use them as the columns
+            if variables is not None:
+                var_df = pd.DataFrame(columns=variables)
+                weights = pd.concat([weights, var_df])[variables].fillna(0)
 
-        # Identify all variable names in the current collection that don't show
-        # up in any of the input nodes. This will include any variables read in
-        # at the current level--e.g., if we're at session level, it might
-        # include run-by-run ratings of mood, etc.
-        inputs = []
-        node_cols = [set(n.contrasts[0].columns) for n in self.input_nodes]
-        all_cols = set(chain(*node_cols))
-        common_vars = set(self.collection.variables.keys()) - all_cols
+            test_type = c.get('type', ('T' if len(weights) == 1 else 'F'))
 
-        # Also track entities for each row in each input node's contrast matrix
-        ent_index = []
+            return ContrastInfo(c['name'], weights, test_type, self.entities)
 
-        # Loop over input nodes. For each one, get all available columns, and
-        # use that to trim down the cloned maximal contrast matrix.
-        if self.input_nodes:
-            for node in self.input_nodes:
-                cols = list(set(node.contrasts[0].columns) | common_vars)
-                node_mat = con_mat.copy()
-                valid = node_mat.index.isin(cols)
-                node_mat = node_mat.loc[valid, :]
-                inputs.append(node_mat)
-                ent_index.extend([node.entities] * len(node_mat))
-        else:
-            # If there are no input nodes, we're at run level, so just use
-            # the maximal contrast matrix.
-            inputs.append(con_mat)
+        self._contrasts = [setup_contrast(c) for c in contrasts]
 
-        contrasts = pd.concat(inputs, axis=0)
-
-        # Drop rows that are all zeros
-        contrasts = contrasts[(contrasts.T != 0.0).any()]
-
-        index = pd.DataFrame.from_records(ent_index)
-        self._contrasts = ContrastMatrixInfo(contrasts, index, self.entities)
         return self._contrasts
 
     def matches_entities(self, entities, strict=False):
