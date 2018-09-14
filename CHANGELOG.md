@@ -13,6 +13,7 @@ API-BREAKING CHANGES:
 * The grabbids module has been renamed to layout and BIDSLayout.py and BIDSvalidator.py are now layout.py and validation.py, respectively.
 * The BIDS validator is now enabled by default at layout initialization (i.e., `validate=True`)
 * The `exclude` initialization argument has been removed.
+* `BIDSLayout.parse_entities` utility has been removed (use the more flexible `parse_file_entities`).
 
 NEW FEATURES:
 * File metadata is now searchable (use `BIDSLayout.search_metadata()`)
@@ -26,7 +27,8 @@ MINOR IMPROVEMENTS AND BUG FIXES:
 * `get_collections` no longer breaks when `merge=True` and the list is empty (#202)
 * Layout initialization no longer fails when `validate=True` (#222)
 * The auto_contrasts field in the modeling tools now complies with the BIDS-Model spec (#234)
-* Various minor internal improvements
+* Fix sum transformation
+* Improved test coverage
 
 ## Version 0.6.5 (August 21, 2018)
 
