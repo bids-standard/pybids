@@ -42,7 +42,7 @@ To install the most recent release, use pip::
 If you want the "bleeding-edge" version of pybids, you can install directly from
 the GitHub repository::
 
->>> pip install git+https://github.com/INCF/pybids.git
+>>> pip install git+https://github.com/bids-standard/pybids.git
 
 Finding help
 ==============
@@ -61,4 +61,4 @@ Finding help
 
 .. _nistats: https://nistats.github.io
 .. _Nipype: http://nipype.readthedocs.io
-.. _open an issue: https://github.com/INCF/pybids/issues
+.. _open an issue: https://github.com/bids-standard/pybids/issues
