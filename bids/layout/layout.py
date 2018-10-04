@@ -129,7 +129,10 @@ class BIDSLayout(Layout):
         excludes = {"derivatives", "code", "stimuli", "sourcedata", "models"}
         if include is not None:
             excludes -= set([d.strip(os.path.sep) for d in include])
-        self._exclude_dirs = list(excludes)
+        # Calculate directories to exclude
+        self._exclude_dirs = []
+        for (p, _) in paths:
+            self._exclude_dirs += [os.path.join(p, e) for e in excludes]
 
         # Set root to longest valid common parent if it isn't explicitly set
         if root is None:
@@ -179,11 +182,9 @@ class BIDSLayout(Layout):
     def _validate_dir(self, d):
         # Callback from grabbit. Exclude special directories like derivatives/
         # and code/ from indexing unless they were explicitly included at
-        # initialization in either the include or paths arguments.
-        no_root = os.path.relpath(d, self.root).split(os.path.sep)[0]
-        if no_root in self._exclude_dirs:
-            check_paths = set(self._paths_to_index) - {self.root}
-            if not any([d.startswith(p) for p in check_paths]):
+        # initialization in either the include or paths arguments
+        if any([commonpath([os.path.abspath(c)]) == commonpath([os.path.abspath(c), os.path.abspath(d)])
+                for c in self._exclude_dirs]):
                 return False
         return True
 
@@ -387,7 +388,7 @@ class BIDSLayout(Layout):
     def search_metadata(self, files=None, regex_search=None,
                         defined_fields=None, **kwargs):
         """Search files based on metadata fields.
-        
+
         Args:
             files (list): Optional list of names of files to search. If None,
                 all files in the layout are scanned.
@@ -402,7 +403,7 @@ class BIDSLayout(Layout):
                 to match those fields against (e.g., SliceTiming=0.017) would
                 return all files that have a SliceTiming value of 0.071 in
                 metadata.
-        
+
         Returns: A list of filenames that match all constraints.
         """
         if self.metadata_index is None:
@@ -417,7 +418,7 @@ class BIDSLayout(Layout):
 
 class MetadataIndex(object):
     """A simple dict-based index for key/value pairs in JSON metadata.
-    
+
     Args:
         layout (BIDSLayout): The BIDSLayout instance to index.
         regex_search (bool): If True, matching is performed using regex.
@@ -461,7 +462,7 @@ class MetadataIndex(object):
                 to match those fields against (e.g., SliceTiming=0.017) would
                 return all files that have a SliceTiming value of 0.071 in
                 metadata.
-        
+
         Returns: A list of filenames that match all constraints.
         """
 
