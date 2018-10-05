@@ -88,20 +88,16 @@ class BIDSLayout(Layout):
             If False, queries return relative paths, unless the root argument
             was left empty (in which case the root defaults to the file system
             root).
-        index_metadata (bool): If True, indexes metadata for all files at
-            Layout initialization. If False, indexing is deferred until
-            explicitly requested.
         kwargs: Optional keyword arguments to pass onto the Layout initializer
             in grabbit.
     """
 
     def __init__(self, paths, root=None, validate=True, index_associated=True,
-                 include=None, absolute_paths=True, index_metadata=True,
-                 **kwargs):
+                 include=None, absolute_paths=True, **kwargs):
 
         self.validator = BIDSValidator(index_associated=index_associated)
         self.validate = validate
-        self.metadata_index = None
+        self.metadata_index = MetadataIndex(self)
 
         # Determine which configs to load
         conf_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
@@ -164,9 +160,6 @@ class BIDSLayout(Layout):
                                          dynamic_getters=True,
                                          absolute_paths=absolute_paths,
                                          **kwargs)
-
-        if index_metadata:
-            self.build_metadata_index()
 
     def to_df(self, **kwargs):
         """
@@ -241,6 +234,73 @@ class BIDSLayout(Layout):
         else:
             return None
 
+    def get(self, return_type='tuple', target=None, extensions=None,
+            domains=None, regex_search=None, defined_fields=None, **kwargs):
+        """
+        Retrieve files and/or metadata from the current Layout.
+
+        Args:
+            return_type (str): Type of result to return. Valid values:
+                'tuple': returns a list of namedtuples containing file name as
+                    well as attribute/value pairs for all named entities.
+                'file': returns a list of matching filenames.
+                'dir': returns a list of directories.
+                'id': returns a list of unique IDs. Must be used together with
+                    a valid target.
+                'obj': returns a list of matching File objects.
+            target (str): The name of the target entity to get results for
+                (if return_type is 'dir' or 'id').
+            extensions (str, list): One or more file extensions to filter on.
+                Files with any other extensions will be excluded.
+            domains (list): Optional list of domain names to scan for files.
+                If None, all available domains are scanned.
+            regex_search (bool or None): Whether to require exact matching
+                (False) or regex search (True) when comparing the query string
+                to each entity. If None (default), uses the value found in
+                self.
+            defined_fields (list): Optional list of names of metadata fields
+                that must be defined in JSON sidecars in order to consider the
+                file a match, but which don't need to match any particular
+                value.
+            kwargs (dict): Any optional key/values to filter the entities on.
+                Keys are entity names, values are regexes to filter on. For
+                example, passing filter={ 'subject': 'sub-[12]'} would return
+                only files that match the first two subjects.
+
+        Returns:
+            A named tuple (default) or a list (see return_type for details).
+        """
+
+        # Separate entity kwargs from metadata kwargs
+        ent_kwargs, md_kwargs = {}, {}
+
+        all_ents = self.get_domain_entities()
+
+        for k, v in kwargs.items():
+            if k in all_ents:
+                ent_kwargs[k] = v
+            else:
+                md_kwargs[k] = v
+
+        result = super(
+            BIDSLayout, self).get(return_type, target, extensions, domains,
+                                  regex_search, **ent_kwargs)
+
+        if return_type in ['dir', 'id']:
+            return result
+
+        if return_type.startswith('obj'):
+            result = [f.path for f in result]
+
+        if md_kwargs:
+            result = self.metadata_index.search(result, defined_fields,
+                                                **md_kwargs)
+
+        if return_type.startswith('obj'):
+            result = [self.files[f] for f in result]
+
+        return result
+
     def get_metadata(self, path, include_entities=False, **kwargs):
         """Return metadata found in JSON sidecars for the specified file.
 
@@ -258,24 +318,18 @@ class BIDSLayout(Layout):
             precedence, per the inheritance rules in the BIDS specification.
 
         """
+        if not path in self.metadata_index.file_index:
+            self.metadata_index.index_file(path)
+
         if include_entities:
             entities = self.files[os.path.abspath(path)].entities
-            merged_param_dict = entities
+            results = entities
         else:
-            merged_param_dict = {}
+            results = {}
 
-        potential_jsons = self._get_nearest_helper(path, '.json', **kwargs)
+        results.update(self.metadata_index.file_index[path])
+        return results
 
-        if potential_jsons is None:
-            return merged_param_dict
-
-        for json_file_path in reversed(potential_jsons):
-            if os.path.exists(json_file_path):
-                param_dict = json.load(open(json_file_path, "r",
-                                            encoding='utf-8'))
-                merged_param_dict.update(param_dict)
-
-        return merged_param_dict
 
     def get_bvec(self, path, **kwargs):
         """Get bvec file for passed path."""
@@ -388,92 +442,57 @@ class BIDSLayout(Layout):
         # Override grabbit's File with a BIDSFile.
         return BIDSFile(os.path.join(root, f), self)
 
-    def build_metadata_index(self, regex_search=False, preserve_dtypes=True):
-        """Build a metadata index for the current BIDSLayout.
-
-        Args:
-            regex_search (bool): If True, matching is performed using regex.
-            preserve_dtypes (bool): If True (default), the dtype of the
-                original metadata value is preserved when matching (so 6 won't
-                match '6'); if False, all matching will be done after
-                converting values to strings. (Note that if regex_search=True,
-                preserve_dtypes will be automatically set to True as well).
-        """
-        self.metadata_index = MetadataIndex(self, regex_search,
-                                            preserve_dtypes)
-
-    def search_metadata(self, files=None, regex_search=None,
-                        defined_fields=None, **kwargs):
-        """Search files based on metadata fields.
-        
-        Args:
-            files (list): Optional list of names of files to search. If None,
-                all files in the layout are scanned.
-            regex_search (bool): If True, matching is performed using regex.
-                If False, no regex is used. If None, the value is taken from
-                the current instance.
-            defined_fields (list): Optional list of names of fields that must
-                be defined in the JSON sidecar in order to consider the file a
-                match, but which don't need to match any particular value.
-            kwargs: Optional keyword arguments defining search constraints;
-                keys are names of metadata fields, and values are the values
-                to match those fields against (e.g., SliceTiming=0.017) would
-                return all files that have a SliceTiming value of 0.071 in
-                metadata.
-        
-        Returns: A list of filenames that match all constraints.
-        """
-        if self.metadata_index is None:
-            raise ValueError("No metadata index was found. Before you can "
-                             "search on file metadata, you need to either "
-                             "pass index_metadata=True when initializing "
-                             "the BIDSLayout, or explicitly call "
-                             "build_metadata_index() on the BIDSLayout.")
-        return self.metadata_index.search(files, regex_search, defined_fields,
-                                          **kwargs)
-
 
 class MetadataIndex(object):
     """A simple dict-based index for key/value pairs in JSON metadata.
     
     Args:
         layout (BIDSLayout): The BIDSLayout instance to index.
-        regex_search (bool): If True, matching is performed using regex.
-        preserve_dtypes (bool): If True (default), the dtype of the original
-            metadata value is preserved when matching (so 6 won't match '6');
-            if False, all matching will be done after converting values to
-            strings. (Note that if regex_search=True, preserve_dtypes will be
-            automatically set to True as well).
     """
 
-    def __init__(self, layout, regex_search=False, preserve_dtypes=True):
-        self.regex_search = regex_search
-        self.preserve_dtypes = preserve_dtypes
+    def __init__(self, layout):
+        self.layout = layout
         self.key_index = defaultdict(dict)
         self.file_index = defaultdict(dict)
-        # TODO: Traverse the file tree and incrementally build up a metadata
-        # tree instead of looping over each file individually. (Alternatively,
-        # memoize the JSON files contents inside get_metadata.)
-        for f_name, f in layout.files.items():
-            if f_name.endswith('.json'):
-                continue
-            md = f.metadata
-            for md_key, md_val in md.items():
-                if not preserve_dtypes:
-                    md_val = str(md_val)
-                self.key_index[md_key][f_name] = md_val
-                self.file_index[f_name][md_key] = md_val
 
-    def search(self, files=None, regex_search=None, defined_fields=None,
-               **kwargs):
+    def index_file(self, f):
+        """Index metadata for the specified file.
+
+        Args:
+            f (BIDSFile, str): A BIDSFile or path to an indexed file.
+        """
+        if isinstance(f, six.string_types):
+            f = self.layout.files[f]
+
+        md = self._get_metadata(f.path)
+
+        for md_key, md_val in md.items():
+            self.key_index[md_key][f.path] = md_val
+            self.file_index[f.path][md_key] = md_val
+
+    def _get_metadata(self, path, **kwargs):
+        potential_jsons = self.layout._get_nearest_helper(path, '.json',
+                                                          **kwargs)
+
+        if potential_jsons is None:
+            return {}
+
+        results = {}
+
+        for json_file_path in reversed(potential_jsons):
+            if os.path.exists(json_file_path):
+                param_dict = json.load(open(json_file_path, "r",
+                                            encoding='utf-8'))
+                results.update(param_dict)
+
+        return results
+
+    def search(self, files=None, defined_fields=None, **kwargs):
         """Search files in the layout by metadata fields.
 
         Args:
             files (list): Optional list of names of files to search. If None,
                 all files in the layout are scanned.
-            regex_search (bool): If True, matching is performed using regex.
-                If False, no regex is used. If None, the value is taken from
-                the current instance.
             defined_fields (list): Optional list of names of fields that must
                 be defined in the JSON sidecar in order to consider the file a
                 match, but which don't need to match any particular value.
@@ -482,12 +501,9 @@ class MetadataIndex(object):
                 to match those fields against (e.g., SliceTiming=0.017) would
                 return all files that have a SliceTiming value of 0.071 in
                 metadata.
-        
+
         Returns: A list of filenames that match all constraints.
         """
-
-        if regex_search is None:
-            regex_search = self.regex_search
 
         if defined_fields is None:
             defined_fields = []
@@ -507,15 +523,14 @@ class MetadataIndex(object):
             return []
 
         def check_matches(f, key, val):
-            if regex_search:
+            if '*' in val:
+                val = ('^%s$' % val).replace('*', ".*")
                 return re.search(str(self.file_index[f][key]), val) is not None
             else:
                 return val == self.file_index[f][key]
 
         # Serially check matches against each pattern, with early termination
         for k, val in kwargs.items():
-            if not self.preserve_dtypes:
-                val = str(val)
             matches = list(filter(lambda x: check_matches(x, k, val), matches))
             if not matches:
                 return []
