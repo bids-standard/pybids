@@ -126,10 +126,7 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
         dataset = NodeIndex()
 
     selectors['datatype'] = 'func'
-    # TODO: this is a temporary band-aid until the BIDS-Derivatives RC is
-    # released. Right now, _preproc files are legal, so we need to check for
-    # an alternative suffix. Once the RC is out, suffix will always be 'bold'.
-    selectors['suffix'] = kwargs.get('suffix', 'bold')
+    selectors['suffix'] = 'bold'
     images = layout.get(return_type='file', extensions='.nii.gz', **selectors)
 
     if not images:
