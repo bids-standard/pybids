@@ -282,6 +282,7 @@ class BIDSLayout(Layout):
             else:
                 md_kwargs[k] = v
 
+        # Get entity-based search results using the superclass's get()
         result = super(
             BIDSLayout, self).get(return_type, target, extensions, domains,
                                   regex_search, **ent_kwargs)
@@ -311,6 +312,10 @@ class BIDSLayout(Layout):
                 the returned metadata dictionary.
             kwargs (dict): Optional keyword arguments to pass onto
                 get_nearest().
+
+        Returns: A dictionary of key/value pairs extracted from all of the
+            target file's associated JSON sidecars.
+
         Notes:
             A dictionary containing metadata extracted from all matching .json
             files is returned. In cases where the same key is found in multiple
@@ -318,8 +323,9 @@ class BIDSLayout(Layout):
             precedence, per the inheritance rules in the BIDS specification.
 
         """
-        if not path in self.metadata_index.file_index:
-            self.metadata_index.index_file(path)
+
+        # For querying efficiency, store metadata in the MetadataIndex cache
+        self.metadata_index.index_file(path)
 
         if include_entities:
             entities = self.files[os.path.abspath(path)].entities
@@ -452,21 +458,28 @@ class MetadataIndex(object):
 
     def __init__(self, layout):
         self.layout = layout
-        self.key_index = defaultdict(dict)
+        self.key_index = {}
         self.file_index = defaultdict(dict)
 
-    def index_file(self, f):
+    def index_file(self, f, overwrite=False):
         """Index metadata for the specified file.
 
         Args:
             f (BIDSFile, str): A BIDSFile or path to an indexed file.
+            overwrite (bool): If True, forces reindexing of the file even if
+                an entry already exists.
         """
         if isinstance(f, six.string_types):
             f = self.layout.files[f]
 
+        if f.path in self.file_index and not overwrite:
+            return
+
         md = self._get_metadata(f.path)
 
         for md_key, md_val in md.items():
+            if md_key not in self.key_index:
+                self.key_index[md_key] = {}
             self.key_index[md_key][f.path] = md_val
             self.file_index[f.path][md_key] = md_val
 
@@ -512,8 +525,16 @@ class MetadataIndex(object):
         if not all_keys:
             raise ValueError("At least one field to search on must be passed.")
 
+        # If no list of files is passed, use all files in layout
+        if files is None:
+            files = set(self.layout.files.keys())
+
+        # Index metadata for any previously unseen files
+        for f in files:
+            self.index_file(f)
+
         # Get file intersection of all kwargs keys--this is fast
-        filesets = [set(self.key_index[k]) for k in all_keys]
+        filesets = [set(self.key_index.get(k, [])) for k in all_keys]
         matches = reduce(lambda x, y: x & y, filesets)
 
         if files is not None:
@@ -523,7 +544,7 @@ class MetadataIndex(object):
             return []
 
         def check_matches(f, key, val):
-            if '*' in val:
+            if isinstance(val, six.string_types) and '*' in val:
                 val = ('^%s$' % val).replace('*', ".*")
                 return re.search(str(self.file_index[f][key]), val) is not None
             else:
