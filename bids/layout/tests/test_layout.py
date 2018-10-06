@@ -30,8 +30,13 @@ def layout_ds117():
 @pytest.fixture(scope='module')
 def layout_ds005_derivs():
     data_dir = join(get_test_data_path(), 'ds005')
-    deriv_dir = join(data_dir, 'derivatives')
     return BIDSLayout(data_dir, derivatives=True)
+
+
+@pytest.fixture(scope='module')
+def layout_ds005_multi_derivs():
+    data_dir = join(get_test_data_path(), 'ds005')
+    return BIDSLayout(data_dir, derivatives=['derivatives', 'extra_derivs'])
 
 
 @pytest.fixture(scope='module')
@@ -179,6 +184,19 @@ def test_layout_with_derivs(layout_ds005_derivs):
     assert 'derivatives.roi' in layout_ds005_derivs.entities
     assert 'bids.roi' not in layout_ds005_derivs.entities
     assert 'bids.subject' in layout_ds005_derivs.entities
+
+
+def test_layout_with_multi_derivs(layout_ds005_multi_derivs):
+    assert layout_ds005_multi_derivs.root == join(get_test_data_path(), 'ds005')
+    assert isinstance(layout_ds005_multi_derivs.files, dict)
+    assert set(layout_ds005_multi_derivs.domains.keys()) == {'bids', 'derivatives'}
+    assert layout_ds005_multi_derivs.domains['bids'].files
+    assert layout_ds005_multi_derivs.domains['derivatives'].files
+    assert 'derivatives.roi' in layout_ds005_multi_derivs.entities
+    assert 'bids.roi' not in layout_ds005_multi_derivs.entities
+    assert 'bids.subject' in layout_ds005_multi_derivs.entities
+    preproc = layout_ds005_multi_derivs.get(desc='preproc')
+    assert len(preproc) == 3
 
 
 def test_query_derivatives(layout_ds005_derivs):
