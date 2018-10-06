@@ -30,8 +30,8 @@
             "pattern": "label-([a-zA-Z0-9]+)"
         },
         {
-            "name": "variant",
-            "pattern": "variant-([a-zA-Z0-9]+)"
+            "name": "desc",
+            "pattern": "desc-([a-zA-Z0-9]+)"
         }
     ]
 }
