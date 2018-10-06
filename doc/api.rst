@@ -3,19 +3,19 @@ API Reference
 
 .. _base_ref:
 
-:mod:`bids.grabbids`: Querying BIDS datasets
+:mod:`bids.layout`: Querying BIDS datasets
 --------------------------------------------------
 
-.. automodule:: bids.grabbids
+.. automodule:: bids.layout
    :no-members:
    :no-inherited-members:
 
-.. autosummary:: bids.grabbids
+.. autosummary:: bids.layout
    :toctree: generated/
    :template: class.rst
 
-   bids.grabbids.BIDSLayout
-   bids.grabbids.BIDSValidator
+   bids.layout.BIDSLayout
+   bids.layout.BIDSValidator
 
 .. currentmodule:: bids
 

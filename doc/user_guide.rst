@@ -13,6 +13,7 @@ User guide: table of contents
    :numbered:
 
    introduction.rst
-   grabbids/index.rst
+   layout/index.rst
+   variables/index.rst
    analysis/index.rst
    reports/index.rst

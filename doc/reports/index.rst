@@ -17,10 +17,10 @@
 Initializing reports
 ===========================================
 
-The :obj:`bids.reports.BIDSReport` class requires a :obj:`bids.grabbids.BIDSLayout` object as an argument::
+The :obj:`bids.reports.BIDSReport` class requires a :obj:`bids.BIDSLayout` object as an argument::
 
     >>> from os.path import join
-    >>> from bids.grabbids import BIDSLayout
+    >>> from bids import BIDSLayout
     >>> from bids.reports import BIDSReport
     >>> from bids.tests import get_test_data_path
     >>> layout = BIDSLayout(join(get_test_data_path(), 'synthetic'))
@@ -69,7 +69,7 @@ Generating reports on subsets of the data
 -------------------------------------------
 
 The ``generate`` method allows for keyword restrictions, just like
-:obj:`bids.grabbids.BIDSLayout`'s ``get`` method. For example, to
+:obj:`bids.BIDSLayout`'s ``get`` method. For example, to
 generate a report only for ``nback`` task data in session ``01``::
 
     >>> counter = report.generate(session='01', task='nback')
