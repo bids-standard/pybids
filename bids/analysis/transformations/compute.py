@@ -6,6 +6,8 @@ import numpy as np
 import pandas as pd
 from bids.utils import listify
 from .base import Transformation
+from bids.analysis import hrf
+from bids.variables import SparseRunVariable
 
 
 class scale(Transformation):
@@ -48,15 +50,16 @@ class sum(Transformation):
     _output_required = True
 
     def _transform(self, data, weights=None):
+        data = pd.concat(data, axis=1)
         if weights is None:
             weights = np.ones(data.shape[1])
         else:
+            weights = np.array(weights)
             if len(weights.ravel()) != data.shape[1]:
                 raise ValueError("If weights are passed to sum(), the number "
                                  "of elements must equal number of variables"
                                  "being summed.")
-        data = pd.concat(data, axis=1)
-        return data.dot(weights)
+        return (data * weights).sum(axis=1)
 
 
 class product(Transformation):
@@ -122,7 +125,6 @@ class threshold(Transformation):
             threshold = np.abs(threshold)
             data = data.abs()
         keep = data >= threshold if above else data <= threshold
-        # print("Keep:", keep)
         data[~keep] = 0
         if binarize:
             data[keep] = 1
@@ -173,3 +175,47 @@ class and_(Transformation):
     def _transform(self, dfs):
         df = pd.concat(dfs, axis=1)
         return df.all(axis=1).astype(int)
+
+
+class convolve_HRF(Transformation):
+    """Convolve the input variable with an HRF.
+
+    Args:
+        var (Variable): The variable to convolve.
+        model (str): The name of the HRF model to apply. Must be one of 'spm',
+            'glover', or 'fir'.
+        derivative (bool): Whether or not to include the temporal derivative.
+        dispersion (bool): Whether or not to include the dispersion derivative.
+        fir_delays (iterable): A list or iterable of delays to use if model is
+            'fir' (ignored otherwise). Spacing between delays must be fixed.
+
+    Note: Uses the HRF convolution functions implemented in nistats.
+    """
+
+    _input_type = 'variable'
+
+    def _transform(self, var, model='spm', derivative=False, dispersion=False,
+                   fir_delays=None):
+
+        model = model.lower()
+
+        if isinstance(var, SparseRunVariable):
+            sr = self.collection.sampling_rate
+            var = var.to_dense(sr)
+
+        df = var.to_df(entities=False)
+        onsets = df['onset'].values
+        vals = df[['onset', 'duration', 'amplitude']].values.T
+
+        if model in ['spm', 'glover']:
+            if derivative:
+                model += ' + derivative'
+            if dispersion:
+                model += ' + dispersion'
+        elif model != 'fir':
+            raise ValueError("Model must be one of 'spm', 'glover', or 'fir'.")
+
+        convolved = hrf.compute_regressor(vals, model, onsets,
+                                          fir_delays=fir_delays, min_onset=0)
+
+        return pd.DataFrame(convolved[0], index=df.index)

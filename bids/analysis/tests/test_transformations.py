@@ -2,7 +2,7 @@
 from bids.analysis import transformations as transform
 from bids.layout import BIDSLayout
 import pytest
-from os.path import join
+from os.path import join, sep
 from bids.tests import get_test_data_path
 import numpy as np
 import pandas as pd
@@ -11,7 +11,7 @@ import pandas as pd
 @pytest.fixture
 def collection():
     layout_path = join(get_test_data_path(), 'ds005')
-    layout = BIDSLayout(layout_path, exclude='derivatives/')
+    layout = BIDSLayout(layout_path)
     collection = layout.get_collections('run', types=['events'],
                                         scan_length=480, merge=True,
                                         sampling_rate=10)
@@ -37,6 +37,22 @@ def test_product(collection):
     assert (res == c['parametric gain'].values * c['gain'].values).all()
 
 
+def test_sum(collection):
+    c = collection
+    transform.sum(collection, variables=['parametric gain', 'gain'],
+                      output='sum')
+    res = c['sum'].values
+    target = c['parametric gain'].values + c['gain'].values
+    assert np.array_equal(res, target)
+    transform.sum(collection, variables=['parametric gain', 'gain'],
+                      output='sum', weights=[2, 2])
+    assert np.array_equal(c['sum'].values, target * 2)
+    with pytest.raises(ValueError):
+        transform.sum(collection, variables=['parametric gain', 'gain'],
+                      output='sum', weights=[1, 1, 1])
+    
+
+
 def test_scale(collection):
     transform.scale(collection, variables=['RT', 'parametric gain'],
                     output=['RT_Z', 'gain_Z'], groupby=['run', 'subject'])
@@ -56,7 +72,7 @@ def test_demean(collection):
 
 
 def test_orthogonalize_dense(collection):
-    transform.factor(collection, 'trial_type', sep='/')
+    transform.factor(collection, 'trial_type', sep=sep)
 
     # Store pre-orth variables needed for tests
     pg_pre = collection['trial_type/parametric gain'].to_dense(10)

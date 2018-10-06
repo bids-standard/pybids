@@ -2,20 +2,8 @@
     "name": "derivatives",
     "entities": [
         {
-            "name": "target",
-            "pattern": "target-([a-zA-Z0-9]+)"
-        },
-        {
             "name": "space",
             "pattern": "space-([a-zA-Z0-9]+)"
-        },
-        {
-            "name": "res",
-            "pattern": "res-([a-zA-Z0-9]+)"
-        },
-        {
-            "name": "class",
-            "pattern": "class-([a-zA-Z0-9]+)"
         },
         {
             "name": "atlas",
@@ -30,8 +18,32 @@
             "pattern": "label-([a-zA-Z0-9]+)"
         },
         {
-            "name": "variant",
-            "pattern": "variant-([a-zA-Z0-9]+)"
+            "name": "desc",
+            "pattern": "desc-([a-zA-Z0-9]+)"
+        },
+        {
+            "name": "from",
+            "pattern": "(?:^|_)from-([a-zA-Z0-9]+).*xfm"
+        },
+        {
+            "name": "to",
+            "pattern": "(?:^|_)to-([a-zA-Z0-9]+).*xfm"
+        },
+        {
+            "name": "mode",
+            "pattern": "(?:^|_)mode-([a-zA-Z0-9]+).*xfm"
+        },
+        {
+            "name": "hemi",
+            "pattern": "hemi-(L|R)"
+        },
+        {
+            "name": "model",
+            "pattern": "model-([a-zA-Z0-9]+)"
+        },
+        {
+            "name": "subset",
+            "pattern": "subset-([a-zA-Z0-9]+)"
         }
     ]
 }

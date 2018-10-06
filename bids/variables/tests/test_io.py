@@ -11,22 +11,22 @@ from bids.config import set_option, get_option
 @pytest.fixture
 def layout1():
     path = join(get_test_data_path(), 'ds005')
-    layout = BIDSLayout(path, exclude='derivatives/')
+    layout = BIDSLayout(path)
     return layout
 
 
 @pytest.fixture(scope="module", params=["events", "preproc"])
 def synthetic(request):
     root = join(get_test_data_path(), 'synthetic')
-    default_preproc = get_option('loop_preproc')
+    deriv = join(root, 'derivatives')
     if request.param == 'preproc':
-        set_option('loop_preproc', True)
-        layout = BIDSLayout((root, ['bids', 'derivatives']))
+        layout = BIDSLayout(root, derivatives=True)
+        dataset = load_variables(layout, skip_empty=True, suffix='preproc',
+                                 space='T1w')
     else:
-        set_option('loop_preproc', default_preproc)
-        layout = BIDSLayout(root, exclude='derivatives')
-    yield request.param, load_variables(layout, skip_empty=True)
-    set_option('loop_preproc', default_preproc)
+        layout = BIDSLayout(root)
+        dataset = load_variables(layout, skip_empty=True)
+    yield request.param, dataset
 
 
 def test_load_events(layout1):

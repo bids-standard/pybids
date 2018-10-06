@@ -133,7 +133,7 @@ def get_seqstr(config, metadata):
                 metadata.get('SequenceVariant', '').split('_')]
     seqs = list_to_str(seqs)
     if seq_abbrs[0]:
-        seqs += ' ({0})'.format('/'.join(seq_abbrs))
+        seqs += ' ({0})'.format(os.path.sep.join(seq_abbrs))
     variants = list_to_str(variants)
     return seqs, variants
 

@@ -4,7 +4,6 @@
   "blocks": [
     {
       "name": "run",
-      "auto_contrasts": false,
       "level": "run",
       "transformations": [
         {
@@ -12,6 +11,7 @@
           "input": "RT"
         }
       ],
+      "auto_contrasts": ["RT"],
       "contrasts": [
         {
           "name": "RT-trial_type",
@@ -20,20 +20,34 @@
             "trial_type"
           ],
           "weights": [1, -1]
+        },
+        {
+          "name": "crummy-F",
+          "condition_list": [
+            "RT",
+            "trial_type"
+          ],
+          "weights": [
+            [1, 0],
+            [0, 1]
+          ]
         }
       ]
     },
     {
       "name": "session",
-      "level": "session"
+      "level": "session",
+      "auto_contrasts": true
     },
     {
       "name": "participant",
-      "level": "subject"
+      "level": "subject",
+      "auto_contrasts": true
     },
     {
       "name": "group",
-      "level": "dataset"
+      "level": "dataset",
+      "auto_contrasts": true
     }
   ]
 }

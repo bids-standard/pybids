@@ -10,10 +10,11 @@ from bids.config import get_option
 
 
 BASE_ENTITIES = ['subject', 'session', 'task', 'run']
-ALL_ENTITIES = BASE_ENTITIES + ['modality', 'type', 'acq']
+ALL_ENTITIES = BASE_ENTITIES + ['datatype', 'suffix', 'acquisition']
 
 
-def load_variables(layout, types=None, levels=None, skip_empty=True, **kwargs):
+def load_variables(layout, types=None, levels=None, skip_empty=True,
+                   dataset=None, **kwargs):
     ''' A convenience wrapper for one or more load_*_variables() calls.
 
     Args:
@@ -29,6 +30,10 @@ def load_variables(layout, types=None, levels=None, skip_empty=True, **kwargs):
         skip_empty (bool): Whether or not to skip empty Variables (i.e.,
             where there are no rows/records in a file after applying any
             filtering operations like dropping NaNs).
+        dataset (NodeIndex): An existing NodeIndex container to store the
+            loaded data in. Can be used to iteratively construct a dataset
+            that contains otherwise heterogeneous sets of variables. If None,
+            a new NodeIndex is used.
         kwargs: Optional keyword arguments to pass onto the individual
             load_*_variables() calls.
 
@@ -63,7 +68,7 @@ def load_variables(layout, types=None, levels=None, skip_empty=True, **kwargs):
     if bad_types:
         raise ValueError("Invalid variable types: %s" % bad_types)
 
-    dataset = NodeIndex()
+    dataset = dataset or NodeIndex()
 
     run_types = list({'events', 'physio', 'stim', 'confounds'} - set(types))
     type_flags = {t: False for t in run_types}
@@ -73,6 +78,7 @@ def load_variables(layout, types=None, levels=None, skip_empty=True, **kwargs):
         dataset = _load_time_variables(layout, dataset, **_kwargs)
 
     for t in ({'scans', 'sessions', 'participants'} & set(types)):
+        kwargs.pop('suffix', None) # suffix is always one of values aboves
         dataset = _load_tsv_variables(layout, t, dataset, **kwargs)
 
     return dataset
@@ -116,25 +122,11 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
     kwargs = selectors.copy()
     domains = kwargs.get('domains', None)
 
-    # Filter keyword args
-    selectors = {k: v for k, v in selectors.items() if k in BASE_ENTITIES}
-
     if dataset is None:
         dataset = NodeIndex()
 
-    if get_option('loop_preproc'):
-        selectors['type'] = 'preproc'
-        # Select any space, to only loop over each run once
-        # Warning: If some spaces only apply to some runs, this may result in
-        # unexpected behavior, althought his scenario is rare.
-        spaces = layout.get_spaces(type='preproc')
-        if len(spaces) > 1:
-            selectors['space'] = spaces[0]
-
-    else:
-        selectors['modality'] = 'func'
-        selectors['type'] = 'bold'
-
+    selectors['datatype'] = 'func'
+    selectors['suffix'] = 'bold'
     images = layout.get(return_type='file', extensions='.nii.gz', **selectors)
 
     if not images:
@@ -165,7 +157,7 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
                        "available, or manually specify the scan duration.")
                 raise ValueError(msg)
 
-        tr = layout.get_metadata(img_f, type='bold', domains=domains,
+        tr = layout.get_metadata(img_f, suffix='bold', domains=domains,
                                  full_search=True)['RepetitionTime']
 
         run = dataset.get_or_create_node('run', entities, image_file=img_f,
@@ -174,7 +166,7 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
 
         # Process event files
         if events:
-            dfs = layout._get_nearest_helper(img_f, '.tsv', type='events',
+            dfs = layout._get_nearest_helper(img_f, '.tsv', suffix='events',
                                              full_search=True, domains=domains)
             if dfs is not None:
                 for _data in dfs:
@@ -224,7 +216,7 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
         if confounds:
             sub_ents = {k: v for k, v in entities.items()
                         if k in BASE_ENTITIES}
-            confound_files = layout.get(type='confounds', **sub_ents)
+            confound_files = layout.get(suffix='confounds', **sub_ents)
             for cf in confound_files:
                 _data = pd.read_csv(cf.filename, sep='\t', na_values='n/a')
                 if columns is not None:
@@ -242,8 +234,8 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
             if stim:
                 rec_types.append('stim')
             rec_files = layout.get_nearest(img_f, extensions='.tsv.gz',
-                                           all_=True, type=rec_types,
-                                           ignore_strict_entities=['type'],
+                                           all_=True, suffix=rec_types,
+                                           ignore_strict_entities=['suffix'],
                                            full_search=True, domains=domains)
             for rf in rec_files:
                 metadata = layout.get_metadata(rf)
@@ -292,13 +284,13 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
     return dataset
 
 
-def _load_tsv_variables(layout, type_, dataset=None, columns=None,
+def _load_tsv_variables(layout, suffix, dataset=None, columns=None,
                         prepend_type=False, **selectors):
     ''' Reads variables from scans.tsv, sessions.tsv, and participants.tsv.
 
     Args:
         layout (BIDSLayout): The BIDSLayout to use.
-        type_ (str): The type of file to read from. Must be one of 'scans',
+        suffix (str): The suffix of file to read from. Must be one of 'scans',
             'sessions', or 'participants'.
         dataset (NodeIndex): A BIDS NodeIndex container. If None, a new one is
             initialized.
@@ -315,14 +307,14 @@ def _load_tsv_variables(layout, type_, dataset=None, columns=None,
 
     # Sanitize the selectors: only keep entities at current level or above
     remap = {'scans': 'run', 'sessions': 'session', 'participants': 'subject'}
-    level = remap[type_]
+    level = remap[suffix]
     valid_entities = BASE_ENTITIES[:BASE_ENTITIES.index(level)]
     layout_kwargs = {k: v for k, v in selectors.items() if k in valid_entities}
 
     if dataset is None:
         dataset = NodeIndex()
 
-    files = layout.get(extensions='.tsv', return_type='file', type=type_,
+    files = layout.get(extensions='.tsv', return_type='file', suffix=suffix,
                        **layout_kwargs)
 
     for f in files:
@@ -341,7 +333,7 @@ def _load_tsv_variables(layout, type_, dataset=None, columns=None,
 
         # Handling is a bit more convoluted for scans.tsv, because the first
         # column contains the run filename, which we also need to parse.
-        if type_ == 'scans':
+        if suffix == 'scans':
             image = _data['filename']
             _data = _data.drop('filename', axis=1)
             dn = f.dirname
@@ -356,10 +348,10 @@ def _load_tsv_variables(layout, type_, dataset=None, columns=None,
         # The BIDS spec requires ID columns to be named 'session_id', 'run_id',
         # etc., and IDs begin with entity prefixes (e.g., 'sub-01'). To ensure
         # consistent internal handling, we strip these suffixes and prefixes.
-        elif type_ == 'sessions':
+        elif suffix == 'sessions':
             _data = _data.rename(columns={'session_id': 'session'})
             _data['session'] = _data['session'].str.replace('ses-', '')
-        elif type_ == 'participants':
+        elif suffix == 'participants':
             _data = _data.rename(columns={'participant_id': 'subject'})
             _data['subject'] = _data['subject'].str.replace('sub-', '')
 
@@ -384,7 +376,7 @@ def _load_tsv_variables(layout, type_, dataset=None, columns=None,
                 _data = _data[_data[col].str.contains(patt)]
 
         level = {'scans': 'session', 'sessions': 'subject',
-                 'participants': 'dataset'}[type_]
+                 'participants': 'dataset'}[suffix]
         node = dataset.get_or_create_node(level, f.entities)
 
         ent_cols = list(set(ALL_ENTITIES) & set(_data.columns))
@@ -400,8 +392,8 @@ def _load_tsv_variables(layout, type_, dataset=None, columns=None,
             df.columns = ['amplitude'] + ent_cols
 
             if prepend_type:
-                col_name = '%s.%s' % (type_, col_name)
+                col_name = '%s.%s' % (suffix, col_name)
 
-            node.add_variable(SimpleVariable(col_name, df, type_))
+            node.add_variable(SimpleVariable(col_name, df, suffix))
 
     return dataset

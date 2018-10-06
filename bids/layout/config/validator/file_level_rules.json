@@ -1,0 +1,274 @@
+{
+    "anat" : {
+        "regexp" : "^\\/(sub-[a-zA-Z0-9]+)\\/(?:(ses-[a-zA-Z0-9]+)\\/)?anat\\/\\1(_\\2)?(?:_acq-[a-zA-Z0-9]+)?(?:_rec-[a-zA-Z0-9]+)?(?:_run-[0-9]+)?_(?:@@@_anat_suffixes_@@@).(@@@_anat_ext_@@@)$",
+        "tokens" : {
+            "@@@_anat_suffixes_@@@" : [
+                "T1w",
+                "T2w",
+                "T1map",
+                "T2map",
+                "T1rho",
+                "FLAIR",
+                "PD",
+                "PDT2",
+                "inplaneT1",
+                "inplaneT2",
+                "angio",
+                "SWImagandphase",
+                "T2star",
+                "FLASH",
+                "PDmap",
+                "photo"
+            ],
+            "@@@_anat_ext_@@@" : [
+                "nii.gz",
+                "nii",
+                "json"
+            ]
+        }
+    },
+
+    "anat_defacemask" : {
+        "regexp" : "^\\/(sub-[a-zA-Z0-9]+)\\/(?:(ses-[a-zA-Z0-9]+)\\/)?anat\\/\\1(_\\2)?(?:_acq-[a-zA-Z0-9]+)?(?:_rec-[a-zA-Z0-9]+)?(?:_run-[0-9]+)?(?:_mod-(?:@@@_anat_suffixes_@@@))?defacemask.(@@@_anat_ext_@@@)$",
+        "tokens" : {
+            "@@@_anat_suffixes_@@@" : [
+                "T1w",
+                "T2w",
+                "T1map",
+                "T2map",
+                "T1rho",
+                "FLAIR",
+                "PD",
+                "PDT2",
+                "inplaneT1",
+                "inplaneT2",
+                "angio",
+                "SWImagandphase",
+                "T2star",
+                "FLASH",
+                "PDmap",
+                "photo"
+            ],
+            "@@@_anat_ext_@@@" : [
+                "nii.gz",
+                "nii"
+            ]
+        }
+    },
+
+    "behavioral" : {
+        "regexp" : "^\\/(sub-[a-zA-Z0-9]+)\\/(?:(ses-[a-zA-Z0-9]+)\\/)?beh\\/\\1(_\\2)?_task-[a-zA-Z0-9]+(?:_acq-[a-zA-Z0-9]+)?(?:_rec-[a-zA-Z0-9]+)?(?:_run-[0-9]+)?(?:@@@_behavioral_ext_@@@)$",
+        "tokens" : {
+            "@@@_behavioral_ext_@@@" : [
+                "_beh.json",
+                "_beh.tsv",
+                "_events.json",
+                "_events.tsv",
+                "_physio.tsv.gz",
+                "_stim.tsv.gz",
+                "_physio.json",
+                "_stim.json"
+            ]
+        }
+    },
+
+    "cont" : {
+        "regexp" : "^\\/(sub-[a-zA-Z0-9]+)\\/(?:(ses-[a-zA-Z0-9]+)\\/)?(?:func|beh)\\/\\1(_\\2)?_task-[a-zA-Z0-9]+(?:_acq-[a-zA-Z0-9]+)?(?:_rec-[a-zA-Z0-9]+)?(?:_run-[0-9]+)?(?:_recording-[a-zA-Z0-9]+)?(?:@@@_cont_ext_@@@)$",
+        "tokens" : {
+            "@@@_cont_ext_@@@" : [
+                "_physio.tsv.gz",
+                "_stim.tsv.gz",
+                "_physio.json",
+                "_stim.json"
+            ]
+        }
+    },
+
+    "dwi" : {
+        "regexp" : "^\\/(sub-[a-zA-Z0-9]+)\\/(?:(ses-[a-zA-Z0-9]+)\\/)?dwi\\/\\1(_\\2)?(?:_acq-[a-zA-Z0-9]+)?(?:_rec-[a-zA-Z0-9]+)?(?:_run-[0-9]+)?_(?:@@@_dwi_type_@@@).(@@@_dwi_ext_@@@)$",
+        "tokens" : {
+            "@@@_dwi_ext_@@@" : [
+                "nii.gz",
+                "nii",
+                "json",
+                "bvec",
+                "bval"
+            ],
+            "@@@_dwi_type_@@@" : [
+                "dwi",
+                "sbref"
+            ]
+        }
+    },
+
+    "eeg" : {
+        "regexp" : "^\\/(sub-[a-zA-Z0-9]+)\\/(?:(ses-[a-zA-Z0-9]+)\\/)?eeg\\/\\1(_\\2)?(?:_task-[a-zA-Z0-9]+)?(?:_acq-[a-zA-Z0-9]+)?(?:_run-[0-9]+)?(?:_proc-[a-zA-Z0-9]+)?(?:_part-[0-9]+)?(_eeg.(@@@_eeg_type_@@@)|(@@@_eeg_ext_@@@))$",
+        "tokens" : {
+            "@@@_eeg_type_@@@" : [
+                "vhdr",
+                "vmrk",
+                "eeg",
+                "edf",
+                "bdf",
+                "set",
+                "fdt",
+                "cnt"
+            ],
+            "@@@_eeg_ext_@@@" : [
+                "_events.tsv",
+                "_electrodes.tsv",
+                "_channels.tsv",
+                "_eeg.json",
+                "_coordsystem.json",
+                "_photo.jpg"
+            ]
+        }
+    },
+
+    "field_map" : {
+        "regexp" : "^\\/(sub-[a-zA-Z0-9]+)\\/(?:(ses-[a-zA-Z0-9]+)\\/)?fmap\\/\\1(_\\2)?(?:_acq-[a-zA-Z0-9]+)?(?:_rec-[a-zA-Z0-9]+)?(?:_dir-[a-zA-Z0-9]+)?(?:_run-[0-9]+)?_(?:@@@_field_map_type_@@@).(@@@_field_map_ext_@@@)$",
+        "tokens" : {
+            "@@@_field_map_type_@@@" : [
+                "phasediff",
+                "phase1",
+                "phase2",
+                "magnitude1",
+                "magnitude2",
+                "magnitude",
+                "fieldmap",
+                "epi"
+            ],
+            "@@@_field_map_ext_@@@" : [
+                "nii.gz",
+                "nii",
+                "json"
+            ]
+        }
+    },
+
+    "field_map_main_nii" : {
+        "regexp" : "^\\/(sub-[a-zA-Z0-9]+)\\/(?:(ses-[a-zA-Z0-9]+)\\/)?fmap\\/\\1(_\\2)?(?:_acq-[a-zA-Z0-9]+)?(?:_rec-[a-zA-Z0-9]+)?(?:_dir-[a-zA-Z0-9]+)?(?:_run-[0-9]+)?_(?:@@@_field_map_type_@@@).(@@@_field_map_ext_@@@)$",
+        "tokens" : {
+            "@@@_field_map_type_@@@" : [
+                "phasediff",
+                "phase1",
+                "phase2",
+                "fieldmap",
+                "epi"
+            ],
+            "@@@_field_map_ext_@@@" : [
+                "nii.gz",
+                "nii"
+            ]
+        }
+    },
+
+    "func" : {
+        "regexp" : "^\\/(sub-[a-zA-Z0-9]+)\\/(?:(ses-[a-zA-Z0-9]+)\\/)?func\\/\\1(_\\2)?_task-[a-zA-Z0-9]+(?:_acq-[a-zA-Z0-9]+)?(?:_rec-[a-zA-Z0-9]+)?(?:_run-[0-9]+)?(?:_echo-[0-9]+)?(?:@@@_func_ext_@@@)$",
+        "tokens" : {
+            "@@@_func_ext_@@@" : [
+                "_bold.nii.gz",
+                "_bold.nii",
+                "_bold.json",
+                "_sbref.nii.gz",
+                "_sbref.json",
+                "_events.json",
+                "_events.tsv",
+                "_physio.tsv.gz",
+                "_stim.tsv.gz",
+                "_physio.json",
+                "_stim.json",
+                "_defacemask.nii.gz",
+                "_defacemask.nii"
+            ]
+        }
+
+    },
+
+    "func_bold" : {
+        "regexp" : "^\\/(sub-[a-zA-Z0-9]+)\\/(?:(ses-[a-zA-Z0-9]+)\\/)?func\\/\\1(_\\2)?_task-[a-zA-Z0-9]+(?:_acq-[a-zA-Z0-9]+)?(?:_rec-[a-zA-Z0-9]+)?(?:_run-[0-9]+)?(?:_echo-[0-9]+)?(?:@@@_func_bold_ext_@@@)$",
+        "tokens" : {
+            "@@@_func_bold_ext_@@@" : [
+                "_bold.nii.gz",
+                "_bold.nii",
+                "_sbref.nii.gz",
+                "_sbref.nii"
+            ]
+        }
+    },
+
+    "ieeg" : {
+        "regexp" : "^\\/(sub-[a-zA-Z0-9]+)\\/(?:(ses-[a-zA-Z0-9]+)\\/)?ieeg\\/\\1(_\\2)?(?:_task-[a-zA-Z0-9]+)?(?:_acq-[a-zA-Z0-9]+)?(?:_run-[0-9]+)?(?:_proc-[a-zA-Z0-9]+)?(?:_part-[0-9]+)?(?:_space-[a-zA-Z0-9]+)?(_ieeg.(@@@_ieeg_type_@@@)|(@@@_ieeg_ext_@@@))$",
+        "tokens" : {
+            "@@@_ieeg_type_@@@" : [
+                "edf",
+                "vhdr",
+                "vmrk",
+                "dat"
+            ],
+            "@@@_ieeg_ext_@@@" : [
+                "_events.tsv",
+                "_electrodes.tsv",
+                "_channels.tsv",
+                "_ieeg.json",
+                "_coordsystem.json",
+                "_photo.jpg"
+            ]
+        }
+    },
+
+    "meg" : {
+        "regexp" : "^\\/(sub-[a-zA-Z0-9]+)\\/(?:(ses-[a-zA-Z0-9]+)\\/)?meg\\/\\1(_\\2)?(?:_task-[a-zA-Z0-9]+)?(?:_acq-[a-zA-Z0-9]+)?(?:_run-[0-9]+)?(?:_proc-[a-zA-Z0-9]+)?(?:_part-[0-9]+)?(_meg(@@@_meg_type_@@@\\/.*|\\/.*)|(@@@_meg_ext_@@@))$",
+        "tokens" : {
+            "@@@_meg_type_@@@" : [
+                ".fif",
+                ".ds"
+            ],
+            "@@@_meg_ext_@@@" : [
+                "_events.tsv",
+                "_channels.tsv",
+                "_meg.json",
+                "_coordsystem.json",
+                "_photo.jpg",
+                "_headshape.pos"
+            ]
+        }
+    },
+
+    "modalities" : {
+        "regexp" : "^.*\\.(?:@@_modalities_ext_@@)$",
+        "tokens" : {
+            "@@_modalities_ext_@@" : [
+                "nii",
+                "nii.gz",
+                "fif",
+                "fif.gz",
+                "sqd",
+                "con",
+                "kdf",
+                "chn",
+                "trg",
+                "raw",
+                "raw.mhf",
+                "eeg",
+                "vhdr",
+                "vmrk",
+                "edf",
+                "cnt",
+                "bdf",
+                "set",
+                "fdt",
+                "dat",
+                "nwb",
+                "tdat",
+                "tidx",
+                "tmet"
+            ]
+        }
+    },
+
+    "stimuli" : {
+        "regexp" : "^\\/(?:stimuli)\\/(?:.*)$"
+    }
+
+}

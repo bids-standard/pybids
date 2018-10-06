@@ -10,9 +10,7 @@ __all__ = ['set_option', 'set_options', 'get_option']
 
 _config_name = 'pybids_config.json'
 
-_default_settings = {
-    'loop_preproc': False
-}
+_default_settings = {}
 
 
 def set_option(key, value):

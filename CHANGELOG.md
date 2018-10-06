@@ -1,5 +1,35 @@
 # Changelog
 
+## Version 0.7.0 (September, 2018)
+This is a major, API-breaking release. It introduces a large number of new features, bug fixes, and improvements.
+
+API-BREAKING CHANGES:
+* A number of entities (or keywords) have been renamed to align more closely with the BIDS specification documents:
+	* 'type' becomes 'suffix'
+	* 'modality' becomes 'datatype'
+	* 'acq' is removed (use 'acquisition')
+	* 'mod' becomes 'modality'
+* The following directories are no longer indexed by default: derivatives/, code/, stimuli/, models/, sourcedata/. They must be explicitly included using the 'include' initialization argument.
+* The grabbids module has been renamed to layout and BIDSLayout.py and BIDSvalidator.py are now layout.py and validation.py, respectively.
+* The BIDS validator is now enabled by default at layout initialization (i.e., `validate=True`)
+* The `exclude` initialization argument has been removed.
+* `BIDSLayout.parse_entities` utility has been removed (use the more flexible `parse_file_entities`).
+
+NEW FEATURES:
+* File metadata is now searchable (use `BIDSLayout.search_metadata()`)
+* A new BIDSFile wrapper provides easy access to `.metadata` and `.image`
+* HRF convolution is now supported via bundling of nistats' hemodynamic_models module; convolution is handled via the `convolve_HRF` transformation.
+
+MINOR IMPROVEMENTS AND BUG FIXES:
+* Specifying 'derivatives' in a paths specification now automatically includes 'bids' (#246)
+* Variable loading via load_variables can now be done incrementally
+* Expanded and improved path-building via `layout.build_path()`
+* `get_collections` no longer breaks when `merge=True` and the list is empty (#202)
+* Layout initialization no longer fails when `validate=True` (#222)
+* The auto_contrasts field in the modeling tools now complies with the BIDS-Model spec (#234)
+* Fix sum transformation
+* Improved test coverage
+
 ## Version 0.6.5 (August 21, 2018)
 
 * FIX: Do not drop rows of NaNs (#217) @adelavega
