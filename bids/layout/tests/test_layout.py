@@ -36,7 +36,8 @@ def layout_ds005_derivs():
 @pytest.fixture(scope='module')
 def layout_ds005_multi_derivs():
     data_dir = join(get_test_data_path(), 'ds005')
-    return BIDSLayout(data_dir, derivatives=['derivatives', 'extra_derivs'])
+    deriv_dir = join(get_test_data_path(), 'ds005_derivs')
+    return BIDSLayout(data_dir, derivatives=['derivatives', deriv_dir])
 
 
 @pytest.fixture(scope='module')
