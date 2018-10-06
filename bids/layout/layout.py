@@ -137,19 +137,6 @@ class BIDSLayout(Layout):
             excludes -= set([d.strip(os.path.sep) for d in include])
         self._exclude_dirs = list(excludes)
 
-        # # Set root to longest valid common parent if it isn't explicitly set
-        # if root is None:
-        #     abs_paths = [os.path.abspath(p[0]) for p in paths]
-        #     root = commonpath(abs_paths)
-        #     if not root:
-        #         raise ValueError("One or more invalid paths passed; could not "
-        #                          "find a common parent directory of %s. Either"
-        #                          " make sure the paths are correct, or "
-        #                          "explicitly set the root using the 'root' "
-        #                          "argument." % abs_paths)
-
-        # self.root = root
-
         super(BIDSLayout, self).__init__(paths, root=self.root,
                                          dynamic_getters=True,
                                          absolute_paths=absolute_paths,
@@ -197,7 +184,18 @@ class BIDSLayout(Layout):
         # is enabled and fails (i.e., file is not a valid BIDS file).
         if not self.validate:
             return True
-        to_check = os.path.relpath(f, self.root)
+
+        if f.startswith(self.root):
+            to_check = os.path.relpath(f, self.root)
+        # For validation purposes, we need to treat all derivatives outside
+        # the project root as if they were inside it
+        elif self.derivatives:
+            for der in self.derivatives:
+                if f.startswith(der):
+                    to_check = f.replace(der, 'derivatives' + os.path.sep)
+                    break
+        else:
+            to_check = f
 
         sep = os.path.sep
         if to_check[:len(sep)] != sep:
