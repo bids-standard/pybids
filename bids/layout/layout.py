@@ -47,29 +47,10 @@ class BIDSFile(File):
 
 
 class BIDSLayout(Layout):
-    """ Layout class representing an entire BIDS project.
+    """ Layout class representing an entire BIDS dataset.
 
     Args:
-        paths (str, list): The path(s) where project files are located.
-                Must be one of:
-
-                - A path to a directory containing files to index
-                - A list of paths to directories to be indexed
-                - A list of 2-tuples where each tuple encodes a mapping from
-                  directories to domains. The first element is a string or
-                  list giving the paths to one or more directories to index.
-                  The second element specifies which domains to apply to the
-                  specified files, and can be one of:
-                    * A string giving the name of a built-in config
-                    * A string giving the path to a JSON config file
-                    * A dictionary containing config information
-                    * A list of any combination of strings or dicts
-
-            At present, built-in domains include 'bids' and 'derivatives'.
-
-        root (str): The root directory of the BIDS project. All other paths
-            will be set relative to this if absolute_paths is False. If None,
-            filesystem root is used.
+        root (str): The root directory of the BIDS dataset.
         validate (bool): If True, all files are checked for BIDS compliance
             when first indexed, and non-compliant files are ignored. This
             provides a convenient way to restrict file indexing to only those
@@ -80,20 +61,28 @@ class BIDSLayout(Layout):
             ignored if validate = False.
         include (str, list): String or list of strings specifying which of the
             directories that are by default excluded from indexing should be
-            included. The default exclusion list is ['derivatives', 'code',
-            'stimuli', 'sourcedata', 'models']. Note that if directories are
-            specified in the paths argument, they do not also need to be
-            included here again.
+            included. The default exclusion list is ['code', 'stimuli',
+            'sourcedata', 'models'].
         absolute_paths (bool): If True, queries always return absolute paths.
             If False, queries return relative paths, unless the root argument
             was left empty (in which case the root defaults to the file system
             root).
+        derivatives (bool, str, list): Specification of whether/how to index
+            derivatives directories. Can be one of the following types:
+            * None or False: No derivatives are indexed.
+            * True: If a derivatives/ directory exists below the root, it will
+                be indexed.
+            * string or iterable of strings: One or more directories to be
+                treated as derivatives and indexed. Note that if derivatives
+                are specified this way, a derivatives/ directory under {root}
+                must be explicitly included if it is to be indexed.
         kwargs: Optional keyword arguments to pass onto the Layout initializer
             in grabbit.
     """
 
-    def __init__(self, paths, root=None, validate=True, index_associated=True,
-                 include=None, absolute_paths=True, **kwargs):
+    def __init__(self, root, validate=True, index_associated=True,
+                 include=None, absolute_paths=True, derivatives=None,
+                 **kwargs):
 
         self.validator = BIDSValidator(index_associated=index_associated)
         self.validate = validate
@@ -102,52 +91,23 @@ class BIDSLayout(Layout):
         # Determine which configs to load
         conf_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                                  'config', '%s.json')
-        all_confs = ['bids', 'derivatives']
+        bids_conf = conf_path % 'bids'
+        deriv_conf = [bids_conf, conf_path % 'derivatives']
 
-        def map_conf(x):
-            if isinstance(x, six.string_types) and x in all_confs:
-                return conf_path % x
-            return x
-
-        paths = listify(paths, ignore=list)
-
-        for i, p in enumerate(paths):
-            if isinstance(p, six.string_types):
-                paths[i] = (p, conf_path % 'bids')
-            elif isinstance(p, tuple):
-                conf_names = listify(p[1])
-                # All 'derivatives' files are also 'bids' files. This is hacky
-                # and should be replaced with something more principled.
-                if 'derivatives' in conf_names:
-                    conf_names = list(set(conf_names) | {'bids'})
-                # Map each built-in config name to the JSON file
-                doms = [map_conf(d) for d in conf_names]
-                paths[i] = (p[0], doms)
-
-        # Determine which subdirectories to exclude from indexing
-        excludes = {"derivatives", "code", "stimuli", "sourcedata", "models"}
-        if include is not None:
-            excludes -= set([d.strip(os.path.sep) for d in include])
-        self._exclude_dirs = list(excludes)
-
-        # Set root to longest valid common parent if it isn't explicitly set
-        if root is None:
-            abs_paths = [os.path.abspath(p[0]) for p in paths]
-            root = commonpath(abs_paths)
-            if not root:
-                raise ValueError("One or more invalid paths passed; could not "
-                                 "find a common parent directory of %s. Either"
-                                 " make sure the paths are correct, or "
-                                 "explicitly set the root using the 'root' "
-                                 "argument." % abs_paths)
+        # Validate arguments
+        if not isinstance(root, six.string_types):
+            raise ValueError("root argument must be a string specifying the"
+                             " directory containing the BIDS dataset.")
+        if not os.path.exists(root):
+            raise ValueError("BIDS root does not exist: %s" % root)
 
         self.root = root
 
         target = os.path.join(self.root, 'dataset_description.json')
         if not os.path.exists(target):
-            warnings.warn("'dataset_description.json' file is missing from "
-                          "project root. You may want to set the root path to "
-                          "a valid BIDS project.")
+            raise ValueError("'dataset_description.json' file is missing from "
+                          "project root. Every valid BIDS dataset must have "
+                          "this file.")
             self.description = None
         else:
             self.description = json.load(open(target, 'r'))
@@ -156,7 +116,41 @@ class BIDSLayout(Layout):
                     raise ValueError("Mandatory '%s' field missing from "
                                      "dataset_description.json." % k)
 
-        super(BIDSLayout, self).__init__(paths, root=root,
+        # Construct paths to pass to grabbit
+        paths = [(root, bids_conf)]
+
+        if derivatives:
+            if derivatives == True:
+                derivatives = os.path.join(root, 'derivatives')
+            derivatives = [os.path.normpath(os.path.join(root, der))
+                           for der in listify(derivatives)]
+            paths.append((derivatives, deriv_conf))
+
+        # We'll need this for file validation later
+        self.derivatives = derivatives
+
+        # Determine which subdirectories to exclude from indexing
+        excludes = {"code", "stimuli", "sourcedata", "models"}
+        if not derivatives:
+            excludes.add("derivatives")
+        if include is not None:
+            excludes -= set([d.strip(os.path.sep) for d in include])
+        self._exclude_dirs = list(excludes)
+
+        # # Set root to longest valid common parent if it isn't explicitly set
+        # if root is None:
+        #     abs_paths = [os.path.abspath(p[0]) for p in paths]
+        #     root = commonpath(abs_paths)
+        #     if not root:
+        #         raise ValueError("One or more invalid paths passed; could not "
+        #                          "find a common parent directory of %s. Either"
+        #                          " make sure the paths are correct, or "
+        #                          "explicitly set the root using the 'root' "
+        #                          "argument." % abs_paths)
+
+        # self.root = root
+
+        super(BIDSLayout, self).__init__(paths, root=self.root,
                                          dynamic_getters=True,
                                          absolute_paths=absolute_paths,
                                          **kwargs)
@@ -203,13 +197,11 @@ class BIDSLayout(Layout):
         # is enabled and fails (i.e., file is not a valid BIDS file).
         if not self.validate:
             return True
-        to_check = f.split(os.path.abspath(self.root), 1)[1]
+        to_check = os.path.relpath(f, self.root)
 
         sep = os.path.sep
         if to_check[:len(sep)] != sep:
             to_check = sep + to_check
-        else:
-            None
 
         return self.validator.is_bids(to_check)
 
