@@ -9,6 +9,7 @@ from grabbit.utils import listify
 import nibabel as nb
 from collections import defaultdict
 from functools import reduce
+from itertools import chain
 import re
 
 
@@ -80,7 +81,7 @@ class BIDSLayout(Layout):
     """
 
     def __init__(self, root, validate=True, index_associated=True,
-                 include=None, absolute_paths=True, derivatives=None,
+                 include=None, absolute_paths=True, derivatives=False,
                  config=None, sources=None, **kwargs):
 
         self.validator = BIDSValidator(index_associated=index_associated)
@@ -147,9 +148,10 @@ class BIDSLayout(Layout):
                     config=None, sources=None, **kwargs)
 
     def add_derivatives(self, path, **kwargs):
+        path = os.path.abspath(path)
         dd = os.path.join(path, 'dataset_description.json')
         if os.path.exists(dd):
-            description = json.load(open(path, 'r'))
+            description = json.load(open(dd, 'r'))
             pipeline_name = description.get('PipelineDescription.Name', None)
             if pipeline_name is None:
                 raise ValueError("Every valid BIDS-derivatives dataset must "
@@ -161,7 +163,7 @@ class BIDSLayout(Layout):
                                  "must have a unique name!")
             kwargs['config'] = ['bids', 'derivatives']
             kwargs['sources'] = self
-            self.derivatives[pipeline_name] = BIDSLayout(dd, **kwargs)
+            self.derivatives[pipeline_name] = BIDSLayout(path, **kwargs)
 
     def to_df(self, **kwargs):
         """
@@ -206,17 +208,13 @@ class BIDSLayout(Layout):
         if not self.validate:
             return True
 
-        if f.startswith(self.root):
-            to_check = os.path.relpath(f, self.root)
-        # For validation purposes, we need to treat all derivatives outside
-        # the project root as if they were inside it
-        elif self.derivatives:
-            for der in self.derivatives:
-                if f.startswith(der):
-                    to_check = f.replace(der, 'derivatives' + os.path.sep)
-                    break
-        else:
-            to_check = f
+        # For derivatives, we need to cheat a bit and construct a fake
+        # derivatives path--prepend 'derivatives' and the pipeline name
+        to_check = os.path.relpath(f, self.root)
+        if 'derivatives' in self.domains:
+            to_check = os.path.join(
+                'derivatives', self.description['PipelineDescription.Name'],
+                to_check)
 
         sep = os.path.sep
         if to_check[:len(sep)] != sep:
@@ -246,7 +244,8 @@ class BIDSLayout(Layout):
             return None
 
     def get(self, return_type='tuple', target=None, extensions=None,
-            domains=None, regex_search=None, defined_fields=None, **kwargs):
+            derivatives=True, regex_search=None, defined_fields=None,
+            **kwargs):
         """
         Retrieve files and/or metadata from the current Layout.
 
@@ -259,12 +258,14 @@ class BIDSLayout(Layout):
                 'id': returns a list of unique IDs. Must be used together with
                     a valid target.
                 'obj': returns a list of matching File objects.
-            target (str): The name of the target entity to get results for
-                (if return_type is 'dir' or 'id').
+            target (str): Optional name of the target entity to get results for
+                (only used if return_type is 'dir' or 'id').
             extensions (str, list): One or more file extensions to filter on.
                 Files with any other extensions will be excluded.
-            domains (list): Optional list of domain names to scan for files.
-                If None, all available domains are scanned.
+            derivatives (bool, str, list): Whether/how to search associated
+                BIDS-Derivatives datasets. If True (default), all available
+                derivatives are searched. If a str or list, must be the name(s)
+                of the derivatives to search.
             regex_search (bool or None): Whether to require exact matching
                 (False) or regex search (True) when comparing the query string
                 to each entity. If None (default), uses the value found in
@@ -282,10 +283,17 @@ class BIDSLayout(Layout):
             A named tuple (default) or a list (see return_type for details).
         """
 
+        if derivatives == True:
+            derivatives = list(self.derivatives.keys())
+
         # Separate entity kwargs from metadata kwargs
         ent_kwargs, md_kwargs = {}, {}
 
         all_ents = self.get_domain_entities()
+        if derivatives:
+            for deriv in derivatives:
+                deriv_ents = self.derivatives[deriv].get_domain_entities()
+                all_ents.update(deriv_ents)
 
         for k, v in kwargs.items():
             if k in all_ents:
@@ -293,23 +301,40 @@ class BIDSLayout(Layout):
             else:
                 md_kwargs[k] = v
 
+        all_results = []
+
         # Get entity-based search results using the superclass's get()
+        result = []
         result = super(
-            BIDSLayout, self).get(return_type, target, extensions, domains,
+            BIDSLayout, self).get(return_type, target, extensions, None,
                                   regex_search, **ent_kwargs)
 
+        # Search the metadata if needed
+        if return_type not in {'dir', 'id'}:
+
+            if md_kwargs:
+                if return_type.startswith('obj'):
+                    result = [f.path for f in result]
+
+                result = self.metadata_index.search(result, defined_fields,
+                                                    **md_kwargs)
+
+                if return_type.startswith('obj'):
+                    result = [self.files[f] for f in result]
+
+        all_results.append(result)
+
+        # Add results from derivatives
+        if derivatives:
+            for deriv in derivatives:
+                deriv = self.derivatives[deriv]
+                deriv_res = deriv.get(return_type, **kwargs)
+                all_results.append(deriv_res)
+
+        # Flatten results
+        result = list(chain(*all_results))
         if return_type in ['dir', 'id']:
-            return result
-
-        if return_type.startswith('obj'):
-            result = [f.path for f in result]
-
-        if md_kwargs:
-            result = self.metadata_index.search(result, defined_fields,
-                                                **md_kwargs)
-
-        if return_type.startswith('obj'):
-            result = [self.files[f] for f in result]
+            result = list(set(result))
 
         return result
 
