@@ -67,32 +67,27 @@ class BIDSLayout(Layout):
             If False, queries return relative paths, unless the root argument
             was left empty (in which case the root defaults to the file system
             root).
-        derivatives (bool, str, list): Specification of whether/how to index
-            derivatives directories. Can be one of the following types:
-            * None or False: No derivatives are indexed.
-            * True: If a derivatives/ directory exists below the root, it will
-                be indexed.
-            * string or iterable of strings: One or more directories to be
-                treated as derivatives and indexed. Note that if derivatives
-                are specified this way, a derivatives/ directory under {root}
-                must be explicitly included if it is to be indexed.
+        derivatives (bool): If True, any pipelines found in the derivatives/
+            subdirectory will be indexed. If False, the derivatives/ directory
+            is ignored during indexing, and derivatives will have to be added
+            manually via add_derivatives().
+        config (str, list): Optional name(s) of configuration file(s) to use.
+            By default (None), uses 'bids'.
+        sources (BIDLayout, list): Optional BIDSLayout(s) from which the
+            current BIDSLayout is derived.
         kwargs: Optional keyword arguments to pass onto the Layout initializer
             in grabbit.
     """
 
     def __init__(self, root, validate=True, index_associated=True,
                  include=None, absolute_paths=True, derivatives=None,
-                 **kwargs):
+                 config=None, sources=None, **kwargs):
 
         self.validator = BIDSValidator(index_associated=index_associated)
         self.validate = validate
         self.metadata_index = MetadataIndex(self)
-
-        # Determine which configs to load
-        conf_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                                 'config', '%s.json')
-        bids_conf = conf_path % 'bids'
-        deriv_conf = [bids_conf, conf_path % 'derivatives']
+        self.derivatives = {}
+        self.sources = listify(sources)
 
         # Validate arguments
         if not isinstance(root, six.string_types):
@@ -108,7 +103,6 @@ class BIDSLayout(Layout):
             raise ValueError("'dataset_description.json' file is missing from "
                           "project root. Every valid BIDS dataset must have "
                           "this file.")
-            self.description = None
         else:
             self.description = json.load(open(target, 'r'))
             for k in ['Name', 'BIDSVersion']:
@@ -116,31 +110,58 @@ class BIDSLayout(Layout):
                     raise ValueError("Mandatory '%s' field missing from "
                                      "dataset_description.json." % k)
 
-        # Construct paths to pass to grabbit
-        paths = [(root, bids_conf)]
-
-        if derivatives:
-            if derivatives == True:
-                derivatives = os.path.join(root, 'derivatives')
-            derivatives = [os.path.normpath(os.path.join(root, der))
-                           for der in listify(derivatives)]
-            paths.append((derivatives, deriv_conf))
-
-        # We'll need this for file validation later
-        self.derivatives = derivatives
-
         # Determine which subdirectories to exclude from indexing
-        excludes = {"code", "stimuli", "sourcedata", "models"}
-        if not derivatives:
-            excludes.add("derivatives")
+        excludes = {"code", "stimuli", "sourcedata", "models", "derivatives"}
         if include is not None:
+            include = listify(include)
+            if "derivatives" in include:
+                raise ValueError("Do not pass 'derivatives' in the include "
+                                 "list. To index derivatives, either set "
+                                 "derivatives=True, or use add_derivatives().")
             excludes -= set([d.strip(os.path.sep) for d in include])
         self._exclude_dirs = list(excludes)
 
-        super(BIDSLayout, self).__init__(paths, root=self.root,
+        # Set up path and config for grabbit
+        if config is None:
+            config = ['bids']
+        conf_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                 'config', '%s.json')
+        bids_conf = [conf_path % c for c in config]
+        path = (root, bids_conf)
+
+        # Initialize grabbit Layout
+        super(BIDSLayout, self).__init__(path, root=self.root,
                                          dynamic_getters=True,
                                          absolute_paths=absolute_paths,
                                          **kwargs)
+
+        # Add derivatives if any are found
+        self.derivatives = {}
+        if derivatives:
+            derivatives = os.path.join(root, 'derivatives')
+            if os.path.exists(derivatives):
+                self.add_derivatives(
+                    derivatives, validate=validate,
+                    index_associated=index_associated,include=include,
+                    absolute_paths=absolute_paths, derivatives=None,
+                    config=None, sources=None, **kwargs)
+
+    def add_derivatives(self, path, **kwargs):
+        dd = os.path.join(path, 'dataset_description.json')
+        if os.path.exists(dd):
+            description = json.load(open(path, 'r'))
+            pipeline_name = description.get('PipelineDescription.Name', None)
+            if pipeline_name is None:
+                raise ValueError("Every valid BIDS-derivatives dataset must "
+                                "have a PipelineDescription.Name field set "
+                                "inside dataset_description.json.")
+            if pipeline_name in self.derivatives:
+                raise ValueError("Pipeline name '%s' has already been added "
+                                 "to this BIDSLayout. Every added pipeline "
+                                 "must have a unique name!")
+            kwargs['config'] = ['bids', 'derivatives']
+            kwargs['sources'] = self
+            self.derivatives[pipeline_name] = BIDSLayout(dd, **kwargs)
 
     def to_df(self, **kwargs):
         """
@@ -171,7 +192,7 @@ class BIDSLayout(Layout):
     def _validate_dir(self, d):
         # Callback from grabbit. Exclude special directories like derivatives/
         # and code/ from indexing unless they were explicitly included at
-        # initialization in either the include or paths arguments.
+        # initialization.
         no_root = os.path.relpath(d, self.root).split(os.path.sep)[0]
         if no_root in self._exclude_dirs:
             check_paths = set(self._paths_to_index) - {self.root}
