@@ -68,10 +68,12 @@ class BIDSLayout(Layout):
             If False, queries return relative paths, unless the root argument
             was left empty (in which case the root defaults to the file system
             root).
-        derivatives (bool): If True, any pipelines found in the derivatives/
-            subdirectory will be indexed. If False, the derivatives/ directory
-            is ignored during indexing, and derivatives will have to be added
-            manually via add_derivatives().
+        derivatives (bool, str, list): Specificies whether and/or which
+            derivatives to to index. If True, all pipelines found in the
+            derivatives/ subdirectory will be indexed. If a str or list, gives
+            the paths to one or more derivatives directories to index. If False
+            or None, the derivatives/ directory is ignored during indexing, and
+            derivatives will have to be added manually via add_derivatives().
         config (str, list): Optional name(s) of configuration file(s) to use.
             By default (None), uses 'bids'.
         sources (BIDLayout, list): Optional BIDSLayout(s) from which the
@@ -139,7 +141,8 @@ class BIDSLayout(Layout):
         # Add derivatives if any are found
         self.derivatives = {}
         if derivatives:
-            derivatives = os.path.join(root, 'derivatives')
+            if derivatives == True:
+                derivatives = os.path.join(root, 'derivatives')
             if os.path.exists(derivatives):
                 self.add_derivatives(
                     derivatives, validate=validate,
