@@ -4,7 +4,7 @@ functionality should go in the grabbit package. """
 import pytest
 from bids.layout import BIDSLayout
 from bids.layout.layout import BIDSFile
-from os.path import join, abspath, sep
+from os.path import join, abspath, sep, basename
 from bids.tests import get_test_data_path
 
 
@@ -30,14 +30,20 @@ def layout_ds117():
 @pytest.fixture(scope='module')
 def layout_ds005_derivs():
     data_dir = join(get_test_data_path(), 'ds005')
-    return BIDSLayout(data_dir, derivatives=True)
+    layout = BIDSLayout(data_dir)
+    deriv_dir = join(data_dir, 'derivatives', 'events')
+    layout.add_derivatives(deriv_dir)
+    return layout
 
 
 @pytest.fixture(scope='module')
 def layout_ds005_multi_derivs():
     data_dir = join(get_test_data_path(), 'ds005')
-    deriv_dir = join(get_test_data_path(), 'ds005_derivs')
-    return BIDSLayout(data_dir, derivatives=['derivatives', deriv_dir])
+    layout = BIDSLayout(data_dir)
+    deriv_dir1 = join(get_test_data_path(), 'ds005_derivs')
+    deriv_dir2 = join(data_dir, 'derivatives', 'events')
+    layout.add_derivatives([deriv_dir1, deriv_dir2])
+    return layout
 
 
 @pytest.fixture(scope='module')
@@ -140,7 +146,7 @@ def test_get_bvals_bvecs(layout_ds005):
 def test_get_subjects(layout_7t_trt):
     result = layout_7t_trt.get_subjects()
     predicted = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10']
-    assert predicted == result
+    assert set(predicted) == set(result)
 
 
 def test_get_fieldmap(layout_7t_trt):
@@ -162,8 +168,10 @@ def test_get_fieldmap2(layout_7t_trt):
 
 
 def test_bids_json(layout_7t_trt):
-    assert layout_7t_trt.get(return_type='id', target='run') == [1, 2]
-    assert layout_7t_trt.get(return_type='id', target='session') == ['1', '2']
+    res = layout_7t_trt.get(return_type='id', target='run')
+    assert set(res) == {1, 2}
+    res = layout_7t_trt.get(return_type='id', target='session')
+    assert set(res) == {'1', '2'}
 
 
 def test_include(layout_ds005, layout_ds005_models):
@@ -179,32 +187,49 @@ def test_include(layout_ds005, layout_ds005_models):
 def test_layout_with_derivs(layout_ds005_derivs):
     assert layout_ds005_derivs.root == join(get_test_data_path(), 'ds005')
     assert isinstance(layout_ds005_derivs.files, dict)
-    assert set(layout_ds005_derivs.domains.keys()) == {'bids', 'derivatives'}
-    assert layout_ds005_derivs.domains['bids'].files
-    assert layout_ds005_derivs.domains['derivatives'].files
-    assert 'derivatives.roi' in layout_ds005_derivs.entities
-    assert 'bids.roi' not in layout_ds005_derivs.entities
-    assert 'bids.subject' in layout_ds005_derivs.entities
+    assert len(layout_ds005_derivs.derivatives) == 1
+    deriv = layout_ds005_derivs.derivatives['events']
+    assert deriv.files
+    assert len(deriv.files) == 2
+    event_file = "sub-01_task-mixedgamblestask_run-01_desc-extra_events.tsv"
+    assert basename(list(deriv.files.keys())[0]) == event_file
+    assert 'derivatives.roi' in deriv.entities
+    assert 'bids.roi' not in deriv.entities
+    assert 'bids.subject' in deriv.entities
 
 
 def test_layout_with_multi_derivs(layout_ds005_multi_derivs):
     assert layout_ds005_multi_derivs.root == join(get_test_data_path(), 'ds005')
     assert isinstance(layout_ds005_multi_derivs.files, dict)
-    assert set(layout_ds005_multi_derivs.domains.keys()) == {'bids', 'derivatives'}
-    assert layout_ds005_multi_derivs.domains['bids'].files
-    assert layout_ds005_multi_derivs.domains['derivatives'].files
-    assert 'derivatives.roi' in layout_ds005_multi_derivs.entities
-    assert 'bids.roi' not in layout_ds005_multi_derivs.entities
-    assert 'bids.subject' in layout_ds005_multi_derivs.entities
+    assert len(layout_ds005_multi_derivs.derivatives) == 2
+    deriv = layout_ds005_multi_derivs.derivatives['events']
+    assert deriv.files
+    assert len(deriv.files) == 2
+    deriv = layout_ds005_multi_derivs.derivatives['dummy']
+    assert deriv.files
+    assert len(deriv.files) == 4
+    assert 'derivatives.roi' in deriv.entities
+    assert 'bids.roi' not in deriv.entities
+    assert 'bids.subject' in deriv.entities
     preproc = layout_ds005_multi_derivs.get(desc='preproc')
     assert len(preproc) == 3
 
 
 def test_query_derivatives(layout_ds005_derivs):
+    result = layout_ds005_derivs.get(suffix='events', return_type='object')
+    result = [f.filename for f in result]
+    assert len(result) == 49
+    assert 'sub-01_task-mixedgamblestask_run-01_desc-extra_events.tsv' in result
     result = layout_ds005_derivs.get(suffix='events', return_type='object',
-                              domains='derivatives')
+                                     derivatives=False)
+    assert len(result) == 48
+    result = [f.filename for f in result]
+    assert 'sub-01_task-mixedgamblestask_run-01_desc-extra_events.tsv' not in result
+    result = layout_ds005_derivs.get(suffix='events', return_type='object',
+                                     desc='extra')
     assert len(result) == 1
-    assert result[0].filename == 'sub-01_task-mixedgamblestask_run-01_events.tsv'
+    result = [f.filename for f in result]
+    assert 'sub-01_task-mixedgamblestask_run-01_desc-extra_events.tsv' in result
 
 
 def test_get_bidsfile_image_prop():
