@@ -148,6 +148,16 @@ class BIDSLayout(Layout):
                     config=None, sources=None, **kwargs)
 
     def add_derivatives(self, path, **kwargs):
+        ''' Add BIDS-Derivatives datasets to tracking.
+
+        Args:
+            path (str, list): One or more paths to BIDS-Derivatives datasets.
+                Each path can point to either a derivatives/ directory
+                containing one more more pipeline directories, or to a single
+                pipeline directory (e.g., derivatives/fmriprep).
+            kwargs (dict): Optional keyword arguments to pass on to
+                BIDSLayout() when initializing each of the derivative datasets.
+        '''
         paths = listify(path)
         deriv_dirs = []
 
