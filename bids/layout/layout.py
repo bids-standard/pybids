@@ -143,12 +143,11 @@ class BIDSLayout(Layout):
         if derivatives:
             if derivatives == True:
                 derivatives = os.path.join(root, 'derivatives')
-            if os.path.exists(derivatives):
-                self.add_derivatives(
-                    derivatives, validate=validate,
-                    index_associated=index_associated,include=include,
-                    absolute_paths=absolute_paths, derivatives=None,
-                    config=None, sources=None, **kwargs)
+            self.add_derivatives(
+                derivatives, validate=validate,
+                index_associated=index_associated,include=include,
+                absolute_paths=absolute_paths, derivatives=None, config=None,
+                sources=None, **kwargs)
 
     def add_derivatives(self, path, **kwargs):
         ''' Add BIDS-Derivatives datasets to tracking.
