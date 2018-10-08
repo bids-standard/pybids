@@ -6,7 +6,6 @@ from bids.utils import listify
 from .entities import NodeIndex
 from .variables import SparseRunVariable, DenseRunVariable, SimpleVariable
 import warnings
-from bids.config import get_option
 
 
 BASE_ENTITIES = ['subject', 'session', 'task', 'run']
@@ -127,15 +126,17 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
 
     selectors['datatype'] = 'func'
     selectors['suffix'] = 'bold'
-    images = layout.get(return_type='file', extensions='.nii.gz', **selectors)
+    images = layout.get(return_type='object', extensions='.nii.gz',
+                        derivatives=True, **selectors)
 
     if not images:
         raise ValueError("No functional images that match criteria found.")
 
     # Main loop over images
-    for img_f in images:
+    for img_obj in images:
 
-        entities = layout.files[img_f].entities
+        entities = img_obj.entities
+        img_f = img_obj.path
 
         # Run is not mandatory, but we need a default for proper indexing
         if 'run' in entities:

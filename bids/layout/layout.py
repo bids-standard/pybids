@@ -246,12 +246,13 @@ class BIDSLayout(Layout):
         path = os.path.abspath(path)
 
         if not suffix:
-            if 'suffix' not in self.files[path].entities:
+            f = self.get_file(path)
+            if 'suffix' not in f.entities:
                 raise ValueError(
                     "File '%s' does not have a valid suffix, most "
                     "likely because it is not a valid BIDS file." % path
                 )
-            suffix = self.files[path].entities['suffix']
+            suffix = f.entities['suffix']
 
         tmp = self.get_nearest(path, extensions=extension, all_=True,
                                suffix=suffix, ignore_strict_entities=['suffix'],
@@ -264,7 +265,7 @@ class BIDSLayout(Layout):
 
     def get(self, return_type='tuple', target=None, extensions=None,
             derivatives=True, regex_search=None, defined_fields=None,
-            **kwargs):
+            domains=None, **kwargs):
         """
         Retrieve files and/or metadata from the current Layout.
 
@@ -284,7 +285,8 @@ class BIDSLayout(Layout):
             derivatives (bool, str, list): Whether/how to search associated
                 BIDS-Derivatives datasets. If True (default), all available
                 derivatives are searched. If a str or list, must be the name(s)
-                of the derivatives to search.
+                of the derivatives to search (as defined in the
+                PipelineDescription.Name field in dataset_description.json).
             regex_search (bool or None): Whether to require exact matching
                 (False) or regex search (True) when comparing the query string
                 to each entity. If None (default), uses the value found in
@@ -293,6 +295,8 @@ class BIDSLayout(Layout):
                 that must be defined in JSON sidecars in order to consider the
                 file a match, but which don't need to match any particular
                 value.
+            domains (str, list): Domain(s) to search in. Valid values are
+                'bids' and 'derivatives'.
             kwargs (dict): Any optional key/values to filter the entities on.
                 Keys are entity names, values are regexes to filter on. For
                 example, passing filter={ 'subject': 'sub-[12]'} would return
@@ -347,7 +351,8 @@ class BIDSLayout(Layout):
         if derivatives:
             for deriv in derivatives:
                 deriv = self.derivatives[deriv]
-                deriv_res = deriv.get(return_type, **kwargs)
+                deriv_res = deriv.get(return_type, target, extensions, None,
+                                      regex_search, **ent_kwargs)
                 all_results.append(deriv_res)
 
         # Flatten results
@@ -383,7 +388,8 @@ class BIDSLayout(Layout):
         self.metadata_index.index_file(path)
 
         if include_entities:
-            entities = self.files[os.path.abspath(path)].entities
+            f = self.get_file(os.path.abspath(path))
+            entities = f.entities
             results = entities
         else:
             results = {}
@@ -503,6 +509,24 @@ class BIDSLayout(Layout):
         # Override grabbit's File with a BIDSFile.
         return BIDSFile(os.path.join(root, f), self)
 
+    def get_file(self, filename, derivatives=True):
+        ''' Returns the BIDSFile object with the specified path.
+
+        Args:
+            filename (str): The path of the file to retrieve.
+            derivatives (bool: If True, checks all associated derivative
+                datasets as well.
+
+        Returns: A BIDSFile.
+        '''
+        layouts = [self]
+        if derivatives:
+            layouts += self.derivatives.values()
+        for ly in layouts:
+            if filename in ly.files:
+                return ly.files[filename]
+        return None
+
 
 class MetadataIndex(object):
     """A simple dict-based index for key/value pairs in JSON metadata.
@@ -525,7 +549,7 @@ class MetadataIndex(object):
                 an entry already exists.
         """
         if isinstance(f, six.string_types):
-            f = self.layout.files[f]
+            f = self.layout.get_file(f)
 
         if f.path in self.file_index and not overwrite:
             return
