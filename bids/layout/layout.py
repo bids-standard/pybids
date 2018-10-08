@@ -148,9 +148,28 @@ class BIDSLayout(Layout):
                     config=None, sources=None, **kwargs)
 
     def add_derivatives(self, path, **kwargs):
-        path = os.path.abspath(path)
-        dd = os.path.join(path, 'dataset_description.json')
-        if os.path.exists(dd):
+        paths = listify(path)
+        deriv_dirs = []
+
+        # Collect all paths that contain a dataset_description.json
+        def check_for_description(dir):
+            dd = os.path.join(dir, 'dataset_description.json')
+            return os.path.exists(dd)
+
+        for p in paths:
+            p = os.path.abspath(p)
+            if check_for_description(p):
+                deriv_dirs.append(p)
+            else:
+                subdirs = [d for d in os.listdir(p)
+                           if os.path.isdir(os.path.join(p, d))]
+                for sd in subdirs:
+                    sd = os.path.join(p, sd)
+                    if check_for_description(sd):
+                        deriv_dirs.append(sd)
+
+        for deriv in deriv_dirs:
+            dd = os.path.join(deriv, 'dataset_description.json')
             description = json.load(open(dd, 'r'))
             pipeline_name = description.get('PipelineDescription.Name', None)
             if pipeline_name is None:
@@ -163,7 +182,7 @@ class BIDSLayout(Layout):
                                  "must have a unique name!")
             kwargs['config'] = ['bids', 'derivatives']
             kwargs['sources'] = self
-            self.derivatives[pipeline_name] = BIDSLayout(path, **kwargs)
+            self.derivatives[pipeline_name] = BIDSLayout(deriv, **kwargs)
 
     def to_df(self, **kwargs):
         """
