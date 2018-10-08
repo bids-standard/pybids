@@ -192,7 +192,8 @@ def test_layout_with_derivs(layout_ds005_derivs):
     assert deriv.files
     assert len(deriv.files) == 2
     event_file = "sub-01_task-mixedgamblestask_run-01_desc-extra_events.tsv"
-    assert basename(list(deriv.files.keys())[0]) == event_file
+    deriv_files = [basename(f) for f in list(deriv.files.keys())]
+    assert event_file in deriv_files
     assert 'derivatives.roi' in deriv.entities
     assert 'bids.roi' not in deriv.entities
     assert 'bids.subject' in deriv.entities
