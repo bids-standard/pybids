@@ -35,8 +35,7 @@ class BIDSValidator():
     """
 
     def __init__(self, index_associated=True):
-        self.rule_dir = join(dirname(abspath(__file__)), 'config',
-                              'validator')
+        self.rule_dir = join(dirname(abspath(__file__)),'config')
         self.index_associated = index_associated
 
     def is_bids(self, path):
