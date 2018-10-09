@@ -22,7 +22,7 @@ class BIDSValidator():
 
     Examples
     --------
-    >>> from bids.grabbids import BIDSValidator
+    >>> from bids.layout import BIDSValidator
     >>> validator = BIDSValidator()
     >>> filepaths = ["/sub-01/anat/sub-01_rec-CSD_T1w.nii.gz",
     >>> "/sub-01/anat/sub-01_acq-23_rec-CSD_T1w.exe", #wrong extension
@@ -52,7 +52,7 @@ class BIDSValidator():
 
         Examples
         --------
-        >>> from bids.grabbids import BIDSValidator
+        >>> from bids.layout import BIDSValidator
         >>> validator = BIDSValidator()
         >>> validator.is_bids("/sub-01/ses-test/anat/sub-01_ses-test_rec-CSD_run-23_T1w.nii.gz")
         True
