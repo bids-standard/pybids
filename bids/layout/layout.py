@@ -147,9 +147,9 @@ class BIDSLayout(Layout):
                 derivatives, validate=validate,
                 index_associated=index_associated,include=include,
                 absolute_paths=absolute_paths, derivatives=None, config=None,
-                sources=None, **kwargs)
+                sources=self, **kwargs)
 
-    def add_derivatives(self, path, **kwargs):
+    def add_derivatives(self, path, config=None, **kwargs):
         ''' Add BIDS-Derivatives datasets to tracking.
 
         Args:
@@ -192,8 +192,9 @@ class BIDSLayout(Layout):
                 raise ValueError("Pipeline name '%s' has already been added "
                                  "to this BIDSLayout. Every added pipeline "
                                  "must have a unique name!")
-            kwargs['config'] = ['bids', 'derivatives']
-            kwargs['sources'] = self
+            # Default config and sources values
+            kwargs['config'] = kwargs.get('config', ['bids', 'derivatives'])
+            kwargs['sources'] = kwargs.get('sources', self)
             self.derivatives[pipeline_name] = BIDSLayout(deriv, **kwargs)
 
     def to_df(self, **kwargs):
