@@ -149,7 +149,7 @@ class BIDSLayout(Layout):
                 absolute_paths=absolute_paths, derivatives=None, config=None,
                 sources=self, **kwargs)
 
-    def add_derivatives(self, path, config=None, **kwargs):
+    def add_derivatives(self, path, **kwargs):
         ''' Add BIDS-Derivatives datasets to tracking.
 
         Args:
