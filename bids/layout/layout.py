@@ -126,7 +126,8 @@ class BIDSLayout(Layout):
 
         # Set up path and config for grabbit
         if config is None:
-            config = ['bids']
+            config = 'bids'
+        config = listify(config)
         conf_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                                  'config', '%s.json')
         bids_conf = [conf_path % c for c in config]
