@@ -8,7 +8,7 @@ from bids.variables import DenseRunVariable, merge_collections
 @pytest.fixture(scope="module")
 def run_coll():
     path = join(get_test_data_path(), 'ds005')
-    layout = BIDSLayout(path, exclude='derivatives/')
+    layout = BIDSLayout(path)
     return layout.get_collections('run', types=['events'], merge=True,
                                   scan_length=480)
 
@@ -16,7 +16,7 @@ def run_coll():
 @pytest.fixture(scope="module")
 def run_coll_list():
     path = join(get_test_data_path(), 'ds005')
-    layout = BIDSLayout(path, exclude='derivatives/')
+    layout = BIDSLayout(path)
     return layout.get_collections('run', types=['events'], merge=False,
                                   scan_length=480)
 
@@ -79,13 +79,13 @@ def test_run_variable_collection_to_df(run_coll):
     # is happening because these columns are not included in the original
     # SparseRunVariable data, and are being rebuilt from the entity list in
     # the DenseRunVariable init.
-    wide_cols |= {'modality', 'type'}
+    wide_cols |= {'datatype', 'suffix'}
     assert set(df.columns) == wide_cols - {'trial_type'}
 
     # All variables dense, wide format
     df = run_coll.to_df(sparse=False, format='long')
     assert df.shape == (1612800, 9)
-    long_cols |= {'modality', 'type'}
+    long_cols |= {'datatype', 'suffix'}
     assert set(df.columns) == long_cols
 
 

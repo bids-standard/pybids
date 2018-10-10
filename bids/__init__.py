@@ -8,7 +8,6 @@ from .variables.io import load_variables
 
 __all__ = [
     "analysis",
-    "grabbids",
     "layout",
     "reports",
     "BIDSLayout",

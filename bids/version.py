@@ -38,14 +38,14 @@ MAINTAINER = "PyBIDS Developers"
 MAINTAINER_EMAIL = "bids-discussion@googlegroups.com"
 DESCRIPTION = description
 LONG_DESCRIPTION = long_description
-URL = "http://github.com/INCF/pybids"
+URL = "http://github.com/bids-standard/pybids"
 DOWNLOAD_URL = ""
 LICENSE = "MIT"
 AUTHOR = "PyBIDS developers"
 AUTHOR_EMAIL = "bids-discussion@googlegroups.com"
 PLATFORMS = "OS Independent"
 # No data for now
-REQUIRES = ["grabbit>=0.2.3", "six", "num2words", "numpy", "scipy", "pandas",
+REQUIRES = ["grabbit==0.2.5", "six", "num2words", "numpy", "scipy", "pandas",
             "nibabel", "patsy"]
 EXTRAS_REQUIRE = {
    # Just to not break compatibility with externals requiring
@@ -65,7 +65,7 @@ def package_files(directory):
 
 extra_files = package_files('path_to/extra_files_dir')
 PACKAGE_DATA = {
-    'bids.layout': ['config/*.json'],
+    'bids.layout': ['config/*.json', 'config/validator/*.json'],
     'bids.reports': ['config/*.json'],
     'bids': package_files('bids/tests/data')
 }

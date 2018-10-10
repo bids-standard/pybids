@@ -1,7 +1,7 @@
 .. _reports:
 
 =====================================================
-``grabbids``: Querying BIDS datasets
+``layout``: Querying BIDS datasets
 =====================================================
 
 .. contents:: **Contents**
@@ -10,17 +10,17 @@
 
 |
 
-.. currentmodule:: pybids.grabbids
+.. currentmodule:: pybids.layout
 
 .. _loading_datasets:
 
 Loading BIDS datasets
 ===========================================
 
-The :obj:`bids.grabbids.BIDSLayout` class requires the path to a valid BIDS dataset::
+The :obj:`bids.layout.BIDSLayout` class requires the path to a valid BIDS dataset::
 
     >>> from os.path import join
-    >>> from bids.grabbids import BIDSLayout
+    >>> from bids import BIDSLayout
     >>> from bids.tests import get_test_data_path
     >>> layout = BIDSLayout(join(get_test_data_path(), 'synthetic'))
 

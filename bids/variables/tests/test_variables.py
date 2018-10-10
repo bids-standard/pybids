@@ -23,7 +23,7 @@ def generate_DEV(name='test', sr=20, duration=480):
 @pytest.fixture
 def layout1():
     path = join(get_test_data_path(), 'ds005')
-    layout = BIDSLayout(path, exclude='derivatives/')
+    layout = BIDSLayout(path)
     return layout
 
 
@@ -162,13 +162,15 @@ def test_filter_simple_variable(layout2):
     variables = [s.variables['surroundings'] for s in sessions]
     merged = merge_variables(variables)
     assert merged.to_df().shape == (60, 9)
-    filt = merged.filter({'acq': 'fullbrain'})
+    filt = merged.filter({'acquisition': 'fullbrain'})
     assert filt.to_df().shape == (40, 9)
-    flt1 = merged.filter({'acq': 'fullbrain', 'subject': ['01', '02']}).to_df()
+    flt1 = merged.filter({'acquisition': 'fullbrain',
+                          'subject': ['01', '02']}).to_df()
     assert flt1.shape == (8, 9)
-    flt2 = merged.filter(query='acq=="fullbrain" and subject in ["01", "02"]')
+    query = 'acquisition=="fullbrain" and subject in ["01", "02"]'
+    flt2 = merged.filter(query=query)
     flt2 = flt2.to_df()
     assert flt1.equals(flt2)
     assert merged.filter({'nonexistent': 2}, strict=True) is None
-    merged.filter({'acq': 'fullbrain'}, inplace=True)
+    merged.filter({'acquisition': 'fullbrain'}, inplace=True)
     assert merged.to_df().shape == (40, 9)

@@ -7,12 +7,13 @@ User guide: table of contents
 .. sidebar:: **Download for offline viewing**
 
    Download the `user guide and examples
-   <https://github.com/INCF/pybids/archive/gh-pages.zip>`_.
+   <https://github.com/bids-standard/pybids/archive/gh-pages.zip>`_.
 
 .. toctree::
    :numbered:
 
    introduction.rst
-   grabbids/index.rst
+   layout/index.rst
+   variables/index.rst
    analysis/index.rst
    reports/index.rst

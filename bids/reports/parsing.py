@@ -146,13 +146,13 @@ def func_info(task, n_runs, metadata, img, config):
     return desc
 
 
-def anat_info(type_, metadata, img, config):
+def anat_info(suffix, metadata, img, config):
     """
     Generate a paragraph describing T1- and T2-weighted structural scans.
 
     Parameters
     ----------
-    type_ : :obj:`str`
+    suffix : :obj:`str`
         T1 or T2.
     metadata : :obj:`dict`
         Data from the json file associated with the scan, in dictionary
@@ -177,11 +177,11 @@ def anat_info(type_, metadata, img, config):
         te = 'UNKNOWN'
 
     desc = '''
-           {type_} {variants} {seqs} structural MRI data were collected
+           {suffix} {variants} {seqs} structural MRI data were collected
            ({n_slices} slices; repetition time, TR={tr}ms;
            echo time, TE={te}ms; flip angle, FA={fa}<deg>;
            field of view, FOV={fov}mm; matrix size={ms}; voxel size={vs}mm).
-           '''.format(type_=type_,
+           '''.format(suffix=suffix,
                       variants=variants,
                       seqs=seqs,
                       n_slices=n_slices,
@@ -318,7 +318,7 @@ def fmap_info(metadata, img, config, layout):
             fn = basename(scan)
             iff_file = [f for f in layout.get(extensions='nii.gz') if fn in f.filename][0]
             run_num = int(iff_file.run)
-            ty = iff_file.type.upper()
+            ty = iff_file.suffix.upper()
             if ty == 'BOLD':
                 iff_meta = layout.get_metadata(iff_file.filename)
                 task = iff_meta.get('TaskName', iff_file.task)
@@ -437,7 +437,7 @@ def parse_niftis(layout, niftis, subj, config, **kwargs):
             if not description_list:
                 description_list.append(general_acquisition_info(metadata))
 
-            if nifti_struct.modality == 'func':
+            if nifti_struct.datatype == 'func':
                 if not skip_task.get(nifti_struct.task, False):
                     echos = layout.get_echoes(subject=subj, extensions='nii.gz',
                                               task=nifti_struct.task, **kwargs)
@@ -461,17 +461,17 @@ def parse_niftis(layout, niftis, subj, config, **kwargs):
                                                       config))
                     skip_task[nifti_struct.task] = True
 
-            elif nifti_struct.modality == 'anat':
-                type_ = nifti_struct.type
-                if type_.endswith('w'):
-                    type_ = type_[:-1] + '-weighted'
-                description_list.append(anat_info(type_, metadata, img,
+            elif nifti_struct.datatype == 'anat':
+                suffix = nifti_struct.suffix
+                if suffix.endswith('w'):
+                    suffix = suffix[:-1] + '-weighted'
+                description_list.append(anat_info(suffix, metadata, img,
                                                   config))
-            elif nifti_struct.modality == 'dwi':
+            elif nifti_struct.datatype == 'dwi':
                 bval_file = nii_file.replace('.nii.gz', '.bval')
                 description_list.append(dwi_info(bval_file, metadata, img,
                                                  config))
-            elif nifti_struct.modality == 'fmap':
+            elif nifti_struct.datatype == 'fmap':
                 description_list.append(fmap_info(metadata, img, config,
                                                   layout))
 

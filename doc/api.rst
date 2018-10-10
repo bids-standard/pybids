@@ -3,19 +3,15 @@ API Reference
 
 .. _base_ref:
 
-:mod:`bids.grabbids`: Querying BIDS datasets
+:mod:`bids.layout`: Querying BIDS datasets
 --------------------------------------------------
 
-.. automodule:: bids.grabbids
-   :no-members:
-   :no-inherited-members:
-
-.. autosummary:: bids.grabbids
+.. autosummary:: bids.layout
    :toctree: generated/
    :template: class.rst
 
-   bids.grabbids.BIDSLayout
-   bids.grabbids.BIDSValidator
+   bids.layout.BIDSLayout
+   bids.layout.BIDSValidator
 
 .. currentmodule:: bids
 
@@ -24,10 +20,6 @@ API Reference
 
 :mod:`bids.analysis`: Model specification for BIDS datasets
 ------------------------------------------------------------
-
-.. automodule:: bids.analysis
-   :no-members:
-   :no-inherited-members:
 
 .. autosummary:: bids.analysis
    :toctree: generated/
@@ -46,10 +38,6 @@ API Reference
 
 :mod:`bids.reports`: Data acquisition report generation
 --------------------------------------------------------
-
-.. automodule:: bids.reports
-   :no-members:
-   :no-inherited-members:
 
 .. autosummary:: bids.reports
    :toctree: generated/
@@ -70,10 +58,6 @@ API Reference
 :mod:`bids.variables`: Variables
 --------------------------------------------------
 
-.. automodule:: bids.variables
-   :no-members:
-   :no-inherited-members:
-
 .. autosummary:: bids.variables
    :toctree: generated/
    :template: module.rst
@@ -90,10 +74,6 @@ API Reference
 
 :mod:`bids.utils`: Utility functions
 --------------------------------------------------
-
-.. automodule:: bids.utils
-   :no-members:
-   :no-inherited-members:
 
 .. autosummary:: bids.utils
    :toctree: generated/

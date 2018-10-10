@@ -1,0 +1,7 @@
+{
+	"PipelineDescription.Name": "fmriprep",
+	"Name": "synthetic",
+	"BIDSVersion": "1.0.2",
+	"License": "PD",
+	"Authors": ["Markiewicz, C. J."]
+}
