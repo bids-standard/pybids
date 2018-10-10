@@ -194,8 +194,8 @@ class BIDSLayout(Layout):
                                  "to this BIDSLayout. Every added pipeline "
                                  "must have a unique name!")
             # Default config and sources values
-            kwargs['config'] = kwargs.get('config', ['bids', 'derivatives'])
-            kwargs['sources'] = kwargs.get('sources', self)
+            kwargs['config'] = kwargs.get('config') or ['bids', 'derivatives']
+            kwargs['sources'] = kwargs.get('sources') or self
             self.derivatives[pipeline_name] = BIDSLayout(deriv, **kwargs)
 
     def to_df(self, **kwargs):
