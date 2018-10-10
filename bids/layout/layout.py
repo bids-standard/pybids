@@ -9,6 +9,7 @@ from grabbit.utils import listify
 import nibabel as nb
 from collections import defaultdict
 from functools import reduce
+from itertools import chain
 import re
 
 
@@ -67,32 +68,29 @@ class BIDSLayout(Layout):
             If False, queries return relative paths, unless the root argument
             was left empty (in which case the root defaults to the file system
             root).
-        derivatives (bool, str, list): Specification of whether/how to index
-            derivatives directories. Can be one of the following types:
-            * None or False: No derivatives are indexed.
-            * True: If a derivatives/ directory exists below the root, it will
-                be indexed.
-            * string or iterable of strings: One or more directories to be
-                treated as derivatives and indexed. Note that if derivatives
-                are specified this way, a derivatives/ directory under {root}
-                must be explicitly included if it is to be indexed.
+        derivatives (bool, str, list): Specificies whether and/or which
+            derivatives to to index. If True, all pipelines found in the
+            derivatives/ subdirectory will be indexed. If a str or list, gives
+            the paths to one or more derivatives directories to index. If False
+            or None, the derivatives/ directory is ignored during indexing, and
+            derivatives will have to be added manually via add_derivatives().
+        config (str, list): Optional name(s) of configuration file(s) to use.
+            By default (None), uses 'bids'.
+        sources (BIDLayout, list): Optional BIDSLayout(s) from which the
+            current BIDSLayout is derived.
         kwargs: Optional keyword arguments to pass onto the Layout initializer
             in grabbit.
     """
 
     def __init__(self, root, validate=True, index_associated=True,
-                 include=None, absolute_paths=True, derivatives=None,
-                 **kwargs):
+                 include=None, absolute_paths=True, derivatives=False,
+                 config=None, sources=None, **kwargs):
 
         self.validator = BIDSValidator(index_associated=index_associated)
         self.validate = validate
         self.metadata_index = MetadataIndex(self)
-
-        # Determine which configs to load
-        conf_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                                 'config', '%s.json')
-        bids_conf = conf_path % 'bids'
-        deriv_conf = [bids_conf, conf_path % 'derivatives']
+        self.derivatives = {}
+        self.sources = listify(sources)
 
         # Validate arguments
         if not isinstance(root, six.string_types):
@@ -108,7 +106,6 @@ class BIDSLayout(Layout):
             raise ValueError("'dataset_description.json' file is missing from "
                           "project root. Every valid BIDS dataset must have "
                           "this file.")
-            self.description = None
         else:
             self.description = json.load(open(target, 'r'))
             for k in ['Name', 'BIDSVersion']:
@@ -116,31 +113,90 @@ class BIDSLayout(Layout):
                     raise ValueError("Mandatory '%s' field missing from "
                                      "dataset_description.json." % k)
 
-        # Construct paths to pass to grabbit
-        paths = [(root, bids_conf)]
-
-        if derivatives:
-            if derivatives == True:
-                derivatives = os.path.join(root, 'derivatives')
-            derivatives = [os.path.normpath(os.path.join(root, der))
-                           for der in listify(derivatives)]
-            paths.append((derivatives, deriv_conf))
-
-        # We'll need this for file validation later
-        self.derivatives = derivatives
-
         # Determine which subdirectories to exclude from indexing
-        excludes = {"code", "stimuli", "sourcedata", "models"}
-        if not derivatives:
-            excludes.add("derivatives")
+        excludes = {"code", "stimuli", "sourcedata", "models", "derivatives"}
         if include is not None:
+            include = listify(include)
+            if "derivatives" in include:
+                raise ValueError("Do not pass 'derivatives' in the include "
+                                 "list. To index derivatives, either set "
+                                 "derivatives=True, or use add_derivatives().")
             excludes -= set([d.strip(os.path.sep) for d in include])
         self._exclude_dirs = list(excludes)
 
-        super(BIDSLayout, self).__init__(paths, root=self.root,
+        # Set up path and config for grabbit
+        if config is None:
+            config = 'bids'
+        config = listify(config)
+        conf_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                 'config', '%s.json')
+        bids_conf = [conf_path % c for c in config]
+        path = (root, bids_conf)
+
+        # Initialize grabbit Layout
+        super(BIDSLayout, self).__init__(path, root=self.root,
                                          dynamic_getters=True,
                                          absolute_paths=absolute_paths,
                                          **kwargs)
+
+        # Add derivatives if any are found
+        self.derivatives = {}
+        if derivatives:
+            if derivatives == True:
+                derivatives = os.path.join(root, 'derivatives')
+            self.add_derivatives(
+                derivatives, validate=validate,
+                index_associated=index_associated,include=include,
+                absolute_paths=absolute_paths, derivatives=None, config=None,
+                sources=self, **kwargs)
+
+    def add_derivatives(self, path, **kwargs):
+        ''' Add BIDS-Derivatives datasets to tracking.
+
+        Args:
+            path (str, list): One or more paths to BIDS-Derivatives datasets.
+                Each path can point to either a derivatives/ directory
+                containing one more more pipeline directories, or to a single
+                pipeline directory (e.g., derivatives/fmriprep).
+            kwargs (dict): Optional keyword arguments to pass on to
+                BIDSLayout() when initializing each of the derivative datasets.
+        '''
+        paths = listify(path)
+        deriv_dirs = []
+
+        # Collect all paths that contain a dataset_description.json
+        def check_for_description(dir):
+            dd = os.path.join(dir, 'dataset_description.json')
+            return os.path.exists(dd)
+
+        for p in paths:
+            p = os.path.abspath(p)
+            if check_for_description(p):
+                deriv_dirs.append(p)
+            else:
+                subdirs = [d for d in os.listdir(p)
+                           if os.path.isdir(os.path.join(p, d))]
+                for sd in subdirs:
+                    sd = os.path.join(p, sd)
+                    if check_for_description(sd):
+                        deriv_dirs.append(sd)
+
+        for deriv in deriv_dirs:
+            dd = os.path.join(deriv, 'dataset_description.json')
+            description = json.load(open(dd, 'r'))
+            pipeline_name = description.get('PipelineDescription.Name', None)
+            if pipeline_name is None:
+                raise ValueError("Every valid BIDS-derivatives dataset must "
+                                "have a PipelineDescription.Name field set "
+                                "inside dataset_description.json.")
+            if pipeline_name in self.derivatives:
+                raise ValueError("Pipeline name '%s' has already been added "
+                                 "to this BIDSLayout. Every added pipeline "
+                                 "must have a unique name!")
+            # Default config and sources values
+            kwargs['config'] = kwargs.get('config') or ['bids', 'derivatives']
+            kwargs['sources'] = kwargs.get('sources') or self
+            self.derivatives[pipeline_name] = BIDSLayout(deriv, **kwargs)
 
     def to_df(self, **kwargs):
         """
@@ -171,7 +227,7 @@ class BIDSLayout(Layout):
     def _validate_dir(self, d):
         # Callback from grabbit. Exclude special directories like derivatives/
         # and code/ from indexing unless they were explicitly included at
-        # initialization in either the include or paths arguments.
+        # initialization.
         no_root = os.path.relpath(d, self.root).split(os.path.sep)[0]
         if no_root in self._exclude_dirs:
             check_paths = set(self._paths_to_index) - {self.root}
@@ -185,17 +241,13 @@ class BIDSLayout(Layout):
         if not self.validate:
             return True
 
-        if f.startswith(self.root):
-            to_check = os.path.relpath(f, self.root)
-        # For validation purposes, we need to treat all derivatives outside
-        # the project root as if they were inside it
-        elif self.derivatives:
-            for der in self.derivatives:
-                if f.startswith(der):
-                    to_check = f.replace(der, 'derivatives' + os.path.sep)
-                    break
-        else:
-            to_check = f
+        # For derivatives, we need to cheat a bit and construct a fake
+        # derivatives path--prepend 'derivatives' and the pipeline name
+        to_check = os.path.relpath(f, self.root)
+        if 'derivatives' in self.domains:
+            to_check = os.path.join(
+                'derivatives', self.description['PipelineDescription.Name'],
+                to_check)
 
         sep = os.path.sep
         if to_check[:len(sep)] != sep:
@@ -208,12 +260,13 @@ class BIDSLayout(Layout):
         path = os.path.abspath(path)
 
         if not suffix:
-            if 'suffix' not in self.files[path].entities:
+            f = self.get_file(path)
+            if 'suffix' not in f.entities:
                 raise ValueError(
                     "File '%s' does not have a valid suffix, most "
                     "likely because it is not a valid BIDS file." % path
                 )
-            suffix = self.files[path].entities['suffix']
+            suffix = f.entities['suffix']
 
         tmp = self.get_nearest(path, extensions=extension, all_=True,
                                suffix=suffix, ignore_strict_entities=['suffix'],
@@ -225,7 +278,8 @@ class BIDSLayout(Layout):
             return None
 
     def get(self, return_type='tuple', target=None, extensions=None,
-            domains=None, regex_search=None, defined_fields=None, **kwargs):
+            derivatives=True, regex_search=None, defined_fields=None,
+            domains=None, **kwargs):
         """
         Retrieve files and/or metadata from the current Layout.
 
@@ -238,12 +292,15 @@ class BIDSLayout(Layout):
                 'id': returns a list of unique IDs. Must be used together with
                     a valid target.
                 'obj': returns a list of matching File objects.
-            target (str): The name of the target entity to get results for
-                (if return_type is 'dir' or 'id').
+            target (str): Optional name of the target entity to get results for
+                (only used if return_type is 'dir' or 'id').
             extensions (str, list): One or more file extensions to filter on.
                 Files with any other extensions will be excluded.
-            domains (list): Optional list of domain names to scan for files.
-                If None, all available domains are scanned.
+            derivatives (bool, str, list): Whether/how to search associated
+                BIDS-Derivatives datasets. If True (default), all available
+                derivatives are searched. If a str or list, must be the name(s)
+                of the derivatives to search (as defined in the
+                PipelineDescription.Name field in dataset_description.json).
             regex_search (bool or None): Whether to require exact matching
                 (False) or regex search (True) when comparing the query string
                 to each entity. If None (default), uses the value found in
@@ -252,6 +309,8 @@ class BIDSLayout(Layout):
                 that must be defined in JSON sidecars in order to consider the
                 file a match, but which don't need to match any particular
                 value.
+            domains (str, list): Domain(s) to search in. Valid values are
+                'bids' and 'derivatives'.
             kwargs (dict): Any optional key/values to filter the entities on.
                 Keys are entity names, values are regexes to filter on. For
                 example, passing filter={ 'subject': 'sub-[12]'} would return
@@ -261,10 +320,17 @@ class BIDSLayout(Layout):
             A named tuple (default) or a list (see return_type for details).
         """
 
+        if derivatives == True:
+            derivatives = list(self.derivatives.keys())
+
         # Separate entity kwargs from metadata kwargs
         ent_kwargs, md_kwargs = {}, {}
 
         all_ents = self.get_domain_entities()
+        if derivatives:
+            for deriv in derivatives:
+                deriv_ents = self.derivatives[deriv].get_domain_entities()
+                all_ents.update(deriv_ents)
 
         for k, v in kwargs.items():
             if k in all_ents:
@@ -272,23 +338,41 @@ class BIDSLayout(Layout):
             else:
                 md_kwargs[k] = v
 
+        all_results = []
+
         # Get entity-based search results using the superclass's get()
+        result = []
         result = super(
-            BIDSLayout, self).get(return_type, target, extensions, domains,
+            BIDSLayout, self).get(return_type, target, extensions, None,
                                   regex_search, **ent_kwargs)
 
+        # Search the metadata if needed
+        if return_type not in {'dir', 'id'}:
+
+            if md_kwargs:
+                if return_type.startswith('obj'):
+                    result = [f.path for f in result]
+
+                result = self.metadata_index.search(result, defined_fields,
+                                                    **md_kwargs)
+
+                if return_type.startswith('obj'):
+                    result = [self.files[f] for f in result]
+
+        all_results.append(result)
+
+        # Add results from derivatives
+        if derivatives:
+            for deriv in derivatives:
+                deriv = self.derivatives[deriv]
+                deriv_res = deriv.get(return_type, target, extensions, None,
+                                      regex_search, **ent_kwargs)
+                all_results.append(deriv_res)
+
+        # Flatten results
+        result = list(chain(*all_results))
         if return_type in ['dir', 'id']:
-            return result
-
-        if return_type.startswith('obj'):
-            result = [f.path for f in result]
-
-        if md_kwargs:
-            result = self.metadata_index.search(result, defined_fields,
-                                                **md_kwargs)
-
-        if return_type.startswith('obj'):
-            result = [self.files[f] for f in result]
+            result = list(set(result))
 
         return result
 
@@ -318,7 +402,8 @@ class BIDSLayout(Layout):
         self.metadata_index.index_file(path)
 
         if include_entities:
-            entities = self.files[os.path.abspath(path)].entities
+            f = self.get_file(os.path.abspath(path))
+            entities = f.entities
             results = entities
         else:
             results = {}
@@ -438,6 +523,24 @@ class BIDSLayout(Layout):
         # Override grabbit's File with a BIDSFile.
         return BIDSFile(os.path.join(root, f), self)
 
+    def get_file(self, filename, derivatives=True):
+        ''' Returns the BIDSFile object with the specified path.
+
+        Args:
+            filename (str): The path of the file to retrieve.
+            derivatives (bool: If True, checks all associated derivative
+                datasets as well.
+
+        Returns: A BIDSFile.
+        '''
+        layouts = [self]
+        if derivatives:
+            layouts += self.derivatives.values()
+        for ly in layouts:
+            if filename in ly.files:
+                return ly.files[filename]
+        return None
+
 
 class MetadataIndex(object):
     """A simple dict-based index for key/value pairs in JSON metadata.
@@ -460,7 +563,7 @@ class MetadataIndex(object):
                 an entry already exists.
         """
         if isinstance(f, six.string_types):
-            f = self.layout.files[f]
+            f = self.layout.get_file(f)
 
         if f.path in self.file_index and not overwrite:
             return
