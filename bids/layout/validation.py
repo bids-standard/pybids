@@ -3,6 +3,7 @@
 import re
 import json
 from os.path import join, abspath, dirname
+import pandas as pd
 
 __all__ = ['BIDSValidator']
 
@@ -180,3 +181,144 @@ class BIDSValidator():
             return ((match[1] == match[2][1:]) | (not match[1]))
         else:
             return False
+
+def validate_sequences(layout, config):
+    """Checks files in BIDS project match user defined expectations.
+
+    This method is a wrapper for the check_duplicate_files() and 
+    check_expected_files() methods. Use it to check whether there are
+    files with duplicate content within the BIDS data set and to check
+    the number of data set files against a user customized configuration
+    file. Returns a named tuple of three data frames: duplicates, summary, and problems.
+
+
+    Parameters
+    ----------
+        layout: BIDSLayout class
+            A BIDSLayout path of a data set.
+
+        config: string
+            Path to customized configuration file. Requires `runs` as an input.
+            See the sample config for an example (bids/layout/tests/data/sample_validation_config.json).
+
+
+    Examples
+    --------
+    >>> layout = bids.grabbids.BIDSLayout('/path_to/sample_project_root')
+    >>> dfs = validate_sequences(layout, 'pybids/bids/layout/tests/data/sample_validation_config.json')
+    >>> dfs.duplicates
+    # Put example output here
+    >>> df.summary
+    # Put example output here
+    >>> df.problems
+    # Put example output here
+    """
+    
+    duplicate_file_df = check_duplicate_files(layout)
+    summary_df, problem_df = check_expected_files(layout, config)
+    output = namedtuple('output', ['duplicates', 'summary', 'problems'])
+    return output(duplicate_file_df, summary_df, problem_df)
+    
+    
+def check_duplicate_files(layout):
+    """Checks images in BIDS project are not duplicated.
+
+    Check whether any files have duplicate content within the 
+    BIDS data set. Returns a data frame: duplicate_file_df.
+
+
+    Parameters
+    ----------
+        layout: BIDSLayout class
+            A BIDSLayout path of a data set.
+
+
+    Examples
+    --------
+    >>> layout = bids.grabbids.BIDSLayout('/path_to/sample_project_root')
+    >>> duplicate_file_df = check_duplicate_files(layout)
+    >>> duplicate_file_df
+    # Put example output here
+
+
+    Notes
+    ------
+    Returns a data frame in which the first column is the file
+    identifier and the second column is the path to the file.
+    Files with matching identifiers have the same content.
+    """
+    
+    def md5(fname):
+        hash_md5 = hashlib.md5()
+        with open(fname, "rb") as f:
+            for chunk in iter(lambda: f.read(4096), b""):
+                hash_md5.update(chunk)
+        return hash_md5.hexdigest()
+    hash_map = {}
+    all_niftis = layout.get(return_type="file", extensions='.nii.gz')
+    for nifti_file in all_niftis:
+        md5sum = md5(nifti_file)
+        if md5sum in hash_map:
+            hash_map[md5sum].append(nifti_file)
+        else:
+            hash_map[md5sum] = [nifti_file]
+    df = pd.DataFrame.from_dict(hash_map, orient='index') 
+    pruned_df = df.stack().reset_index().drop(columns='level_1')
+    out_df = pruned_df.rename(columns={'level_0': 'hash', 0: 'filename'})
+    return out_df
+    
+    
+def check_expected_files(layout, config):
+    """Checks files in BIDS project match user defined expectations.
+
+    This method checks the number of data set files against a user customized 
+    configuration file. Returns two data frames: summary_df, problem_df.
+
+
+    Parameters
+    ----------
+        layout: BIDSLayout class
+            A BIDSLayout path of a data set.
+
+        config: string
+            Path to customized configuration file.
+
+
+    Examples
+    --------
+    >>> layout = bids.grabbids.BIDSLayout('/path_to/sample_project_root')
+    >>> summary_df, problem_df = check_expected_files(layout, 'pybids/bids/layout/tests/data/sample_validation_config.json')
+    >>> summary_df
+    # Put example output here
+    >>> problem_df
+    # Put example output here
+
+
+    Notes
+    --------
+
+    `runs` is a mandatory field in the config file.
+    
+    The configuration file can take any keys that are valid arguments for
+    pybids `layout.get()` Values shoud match those in the BIDS file names. 
+    See the sample config for an example (bids/layout/tests/data/sample_validation_config.json).
+    The more specific keys are provided, the more informative the output will be.
+
+    """
+
+    dictlist = []
+    with open(config) as f:
+        json_data = json.load(f)
+        subjects = layout.get_subjects()
+    for sub in subjects: 
+        for scan_params_d in json_data['sequences']:
+            scan_params = scan_params_d.copy()
+            seq_params = {i: scan_params[i] for i in scan_params if i != 'runs'}
+            actual_runs = layout.get(return_type='obj', subject=sub, extensions='.nii.gz', **seq_params)
+            scan_params['subject'] = sub
+            scan_params['runs_found'] = len(actual_runs)
+            scan_params['problem'] = len(actual_runs) != scan_params['runs']
+            dictlist.append(scan_params)
+    summary_df = pd.DataFrame(dictlist)
+    problem_df = summary_df.loc[summary_df['problem'] == True]
+    return summary_df, problem_df

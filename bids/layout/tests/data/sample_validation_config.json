@@ -1,0 +1,95 @@
+{
+    "name": "user_sequences",
+    "sequences": [
+        {
+            "modality": "func",
+            "session": "wave1",
+            "type": "bold",
+            "task": "sst",
+            "runs": 2
+        },
+        {
+            "modality": "func",
+            "session": "wave1",
+            "type": "bold",
+            "task": "gng",
+            "runs": 2
+        },
+        {
+            "modality": "func",
+            "session": "wave1",
+            "type": "bold",
+            "task": "react",
+            "runs": 2
+        },
+        {
+            "modality": "fmap",
+            "session": "wave1",
+            "type": "phasediff",
+            "runs": 2
+        },
+        {
+            "modality": "fmap",
+            "session": "wave1",
+            "type": "magnitude1",
+            "runs": 2
+        },
+        {
+            "modality": "fmap",
+            "session": "wave1",
+            "type": "magnitude2",
+            "runs": 2
+        },
+        {
+            "modality": "anat",
+            "session": "wave1",
+            "type": "T1w",
+            "runs": 1
+        },
+        {
+            "modality": "func",
+            "session": "wave2",
+            "type": "bold",
+            "task": "sst",
+            "runs": 2
+        },
+        {
+            "modality": "func",
+            "session": "wave2",
+            "type": "bold", 
+            "task": "gng",
+            "runs": 2
+        },
+        {
+            "modality": "func",
+            "session": "wave2",
+            "type": "bold",
+            "task": "react",
+            "runs": 2
+        },
+        {
+            "modality": "fmap",
+            "session": "wave2",
+            "type": "phasediff",
+            "runs": 2
+        },
+        {
+            "modality": "fmap",
+            "session": "wave2",
+            "type": "magnitude1",
+            "runs": 2
+        },
+        {
+            "modality": "fmap",
+            "session": "wave2",
+            "type": "magnitude2",
+            "runs": 2
+        },
+        {
+            "modality": "anat",
+            "session": "wave2",
+            "type": "T1w",
+            "runs": 1
+        }
+    ]
+}
