@@ -50,7 +50,7 @@ Finding help
 :Mailing lists and forums:
 
     * Don't hesitate to ask questions about pybids on `NeuroStars
-      <https://neurostars.org/t/pybids/>`_.
+      <https://neurostars.org/tags/pybids>`_.
 
     * You can find help with neuroimaging in Python (file I/O,
       neuroimaging-specific questions) via the nipy user group:
