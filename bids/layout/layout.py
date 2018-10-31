@@ -566,18 +566,24 @@ class MetadataIndex(object):
                 an entry already exists.
         """
         if isinstance(f, six.string_types):
-            f = self.layout.get_file(f)
+            filename = self.layout.get_file(f).path
+        elif isinstance(f, tuple):
+            # See http://github.com/grabbles/grabbit/pull/84
+            # .path is not available within File named tuple
+            filename = f.filename
+        else:
+            filename = f
 
-        if f.path in self.file_index and not overwrite:
+        if filename in self.file_index and not overwrite:
             return
 
-        md = self._get_metadata(f.path)
+        md = self._get_metadata(filename)
 
         for md_key, md_val in md.items():
             if md_key not in self.key_index:
                 self.key_index[md_key] = {}
-            self.key_index[md_key][f.path] = md_val
-            self.file_index[f.path][md_key] = md_val
+            self.key_index[md_key][filename] = md_val
+            self.file_index[filename][md_key] = md_val
 
     def _get_metadata(self, path, **kwargs):
         potential_jsons = self.layout._get_nearest_helper(path, '.json',
