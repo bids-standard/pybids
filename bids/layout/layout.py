@@ -69,7 +69,7 @@ class BIDSLayout(Layout):
             was left empty (in which case the root defaults to the file system
             root).
         derivatives (bool, str, list): Specificies whether and/or which
-            derivatives to to index. If True, all pipelines found in the
+            derivatives to index. If True, all pipelines found in the
             derivatives/ subdirectory will be indexed. If a str or list, gives
             the paths to one or more derivatives directories to index. If False
             or None, the derivatives/ directory is ignored during indexing, and
