@@ -114,7 +114,10 @@ class BIDSLayout(Layout):
                                      "dataset_description.json." % k)
 
         # Determine which subdirectories to exclude from indexing
-        excludes = {"code", "stimuli", "sourcedata", "models", "derivatives"}
+        # A set is extended with non-BIDS-defined common suspects
+        # which are not expected to carry any data of interest
+        excludes = {"code", "stimuli", "sourcedata", "models", "derivatives",
+                    ".git", ".datalad", ".cache", ".workdir", "workdir"}
         if include is not None:
             include = listify(include)
             if "derivatives" in include:
