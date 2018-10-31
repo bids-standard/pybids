@@ -34,6 +34,8 @@ class BIDSVariableCollection(object):
 
     def __init__(self, variables):
 
+        if not variables:
+            raise ValueError("No variables were provided")
         SOURCE_TO_LEVEL = {
             'events': 'run',
             'physio': 'run',
@@ -43,7 +45,6 @@ class BIDSVariableCollection(object):
             'sessions': 'subject',
             'participants': 'dataset'
         }
-
         var_levels = set([SOURCE_TO_LEVEL[v.source] if v.source in
                           SOURCE_TO_LEVEL else v.source for v in variables])
 
@@ -53,6 +54,11 @@ class BIDSVariableCollection(object):
                              "variables at more than one level of analysis. "
                              "Levels found in input variables: %s" %
                              var_levels)
+        elif not var_levels:
+            raise ValueError(
+                "None of the provided variables matched any of the known levels, which are: %s"
+                % (', '.join(sorted(SOURCE_TO_LEVEL.values())))
+            )
 
         self.level = list(var_levels)[0]
         variables = self.merge_variables(variables)
