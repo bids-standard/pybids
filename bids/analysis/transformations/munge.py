@@ -11,107 +11,6 @@ from patsy import dmatrix
 import re
 from bids.variables import DenseRunVariable, SimpleVariable
 
-
-class copy(Transformation):
-    ''' Copy/clone a variable.
-
-    Args:
-        col (str): Name of variable to copy.
-    '''
-
-    _groupable = False
-    _output_required = True
-    _allow_categorical = ('variables',)
-
-    def _transform(self, col):
-        # We don't have to do anything else here b/c it's handled in base.
-        return col
-
-
-class rename(Transformation):
-    ''' Rename a variable.
-
-    Args:
-        var (str): Name of existing variable to rename.
-    '''
-    _groupable = False
-    _output_required = True
-    _input_type = 'variable'
-    _allow_categorical = ('variables',)
-
-    def _transform(self, var):
-        ''' Rename happens automatically in the base class, so all we need to
-        do is unset the original variable in the collection. '''
-        self.collection.variables.pop(var.name)
-        return var.values.values
-
-
-class split(Transformation):
-    ''' Split a single variable into N variables as defined by the levels of one or
-    more other variables.
-
-    Args:
-        by (str, list): Name(s) of variable(s) to split on.
-    '''
-
-    _variables_used = ('variables', 'by')
-    _groupable = False
-    _input_type = 'variable'
-    _return_type = 'variable'
-    _allow_categorical = ('by',)
-    _densify = ('variables', 'by')
-
-    def _transform(self, var, by, drop_orig=True):
-
-        if not isinstance(var, SimpleVariable):
-            self._densify_variables()
-
-        # Set up all the splitting variables as a DF. Note that variables in
-        # 'by' can be either regular variables, or entities in the index--so
-        # we need to check both places.
-        all_variables = self._variables
-        by_variables = [all_variables[v].values if v in all_variables
-                        else var.index[v].reset_index(drop=True)
-                        for v in listify(by)]
-        group_data = pd.concat(by_variables, axis=1)
-        group_data.columns = listify(by)
-
-        # For sparse data, we need to set up a 1D grouper
-        if isinstance(var, SimpleVariable):
-            # Create single grouping variable by combining all 'by' variables
-            if group_data.shape[1] == 1:
-                group_labels = group_data.iloc[:, 0].values
-            else:
-                group_rows = group_data.astype(str).values.tolist()
-                group_labels = ['_'.join(r) for r in group_rows]
-
-            result = var.split(group_labels)
-
-        # For dense data, use patsy to create design matrix, then multiply
-        # it by target variable
-        else:
-            group_data = group_data.astype(str)
-            formula = '0+' + '*'.join(listify(by))
-            dm = dmatrix(formula, data=group_data, return_type='dataframe')
-            result = var.split(dm)
-
-        if drop_orig:
-            self.collection.variables.pop(var.name)
-
-        return result
-
-
-class to_dense(Transformation):
-    ''' Convert variable to dense representation. '''
-
-    _groupable = False
-    _input_type = 'variable'
-    _return_type = 'variable'
-
-    def _transform(self, var, sampling_rate=10):
-        return var.to_dense(sampling_rate=sampling_rate)
-
-
 class assign(Transformation):
     ''' Assign one variable's amplitude, duration, or onset attribute to
     another. '''
@@ -164,6 +63,41 @@ class assign(Transformation):
             setattr(target, target_attr, vals)
 
         return target
+
+
+class copy(Transformation):
+    ''' Copy/clone a variable.
+
+    Args:
+        col (str): Name of variable to copy.
+    '''
+
+    _groupable = False
+    _output_required = True
+    _allow_categorical = ('variables',)
+
+    def _transform(self, col):
+        # We don't have to do anything else here b/c it's handled in base.
+        return col
+
+
+class delete(Transformation):
+    ''' Delete variables from the namespace.
+
+    Args:
+        variables (list, str): Name(s) of variables to delete.
+    '''
+    _groupable = False
+    _loopable = False
+    _input_type = 'variable'
+    _return_type = 'none'
+    _allow_categorical = ('variables',)
+
+    def _transform(self, variables):
+        variables = set([v.name for v in variables])
+        self.collection.variables = {k: v for k, v in
+                                     self.collection.variables.items()
+                                     if k not in variables}
 
 
 class factor(Transformation):
@@ -245,40 +179,22 @@ class filter(Transformation):
         return var
 
 
-class select(Transformation):
-    ''' Select variables to retain.
+class rename(Transformation):
+    ''' Rename a variable.
 
     Args:
-        variables (list, str): Name(s) of variables to retain. All variables
-            not in the list will be dropped from the collection.
+        var (str): Name of existing variable to rename.
     '''
     _groupable = False
-    _loopable = False
+    _output_required = True
     _input_type = 'variable'
-    _return_type = 'none'
     _allow_categorical = ('variables',)
 
-    def _transform(self, variables):
-        self.collection.variables = {v.name: v for v in variables}
-
-
-class delete(Transformation):
-    ''' Delete variables from the namespace.
-
-    Args:
-        variables (list, str): Name(s) of variables to delete.
-    '''
-    _groupable = False
-    _loopable = False
-    _input_type = 'variable'
-    _return_type = 'none'
-    _allow_categorical = ('variables',)
-
-    def _transform(self, variables):
-        variables = set([v.name for v in variables])
-        self.collection.variables = {k: v for k, v in
-                                     self.collection.variables.items()
-                                     if k not in variables}
+    def _transform(self, var):
+        ''' Rename happens automatically in the base class, so all we need to
+        do is unset the original variable in the collection. '''
+        self.collection.variables.pop(var.name)
+        return var.values.values
 
 
 class replace(Transformation):
@@ -303,3 +219,86 @@ class replace(Transformation):
                              "'onset', or 'duration'.")
 
         return var
+
+
+class select(Transformation):
+    ''' Select variables to retain.
+
+    Args:
+        variables (list, str): Name(s) of variables to retain. All variables
+            not in the list will be dropped from the collection.
+    '''
+    _groupable = False
+    _loopable = False
+    _input_type = 'variable'
+    _return_type = 'none'
+    _allow_categorical = ('variables',)
+
+    def _transform(self, variables):
+        self.collection.variables = {v.name: v for v in variables}
+
+
+class split(Transformation):
+    ''' Split a single variable into N variables as defined by the levels of one or
+    more other variables.
+
+    Args:
+        by (str, list): Name(s) of variable(s) to split on.
+    '''
+
+    _variables_used = ('variables', 'by')
+    _groupable = False
+    _input_type = 'variable'
+    _return_type = 'variable'
+    _allow_categorical = ('by',)
+    _densify = ('variables', 'by')
+
+    def _transform(self, var, by, drop_orig=True):
+
+        if not isinstance(var, SimpleVariable):
+            self._densify_variables()
+
+        # Set up all the splitting variables as a DF. Note that variables in
+        # 'by' can be either regular variables, or entities in the index--so
+        # we need to check both places.
+        all_variables = self._variables
+        by_variables = [all_variables[v].values if v in all_variables
+                        else var.index[v].reset_index(drop=True)
+                        for v in listify(by)]
+        group_data = pd.concat(by_variables, axis=1)
+        group_data.columns = listify(by)
+
+        # For sparse data, we need to set up a 1D grouper
+        if isinstance(var, SimpleVariable):
+            # Create single grouping variable by combining all 'by' variables
+            if group_data.shape[1] == 1:
+                group_labels = group_data.iloc[:, 0].values
+            else:
+                group_rows = group_data.astype(str).values.tolist()
+                group_labels = ['_'.join(r) for r in group_rows]
+
+            result = var.split(group_labels)
+
+        # For dense data, use patsy to create design matrix, then multiply
+        # it by target variable
+        else:
+            group_data = group_data.astype(str)
+            formula = '0+' + '*'.join(listify(by))
+            dm = dmatrix(formula, data=group_data, return_type='dataframe')
+            result = var.split(dm)
+
+        if drop_orig:
+            self.collection.variables.pop(var.name)
+
+        return result
+
+
+class to_dense(Transformation):
+    ''' Convert variable to dense representation. '''
+
+    _groupable = False
+    _input_type = 'variable'
+    _return_type = 'variable'
+
+    def _transform(self, var, sampling_rate=10):
+        return var.to_dense(sampling_rate=sampling_rate)
