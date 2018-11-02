@@ -262,11 +262,11 @@ class select(Transformation):
         self.collection.variables = {v.name: v for v in variables}
 
 
-class remove(Transformation):
-    ''' Remove variables from the namespace.
+class delete(Transformation):
+    ''' Delete variables from the namespace.
 
     Args:
-        variables (list, str): Name(s) of variables to remove.
+        variables (list, str): Name(s) of variables to delete.
     '''
     _groupable = False
     _loopable = False

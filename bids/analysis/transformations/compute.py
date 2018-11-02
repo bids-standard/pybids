@@ -177,7 +177,7 @@ class and_(Transformation):
         return df.all(axis=1).astype(int)
 
 
-class convolve_HRF(Transformation):
+class convolve(Transformation):
     """Convolve the input variable with an HRF.
 
     Args:
