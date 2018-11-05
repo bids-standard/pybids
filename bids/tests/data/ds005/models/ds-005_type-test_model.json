@@ -1,33 +1,33 @@
 {
-  "name": "test_model",
-  "description": "simple test model",
-  "blocks": [
+  "Name": "test_model",
+  "Description": "simple test model",
+  "Steps"": [
     {
-      "name": "run",
-      "level": "run",
-      "transformations": [
+      "Name": "run",
+      "Level": "Run",
+      "Transformations": [
         {
-          "name": "scale",
-          "input": "RT"
+          "Name": "Scale",
+          "Input": "RT"
         }
       ],
-      "auto_contrasts": ["RT"],
-      "contrasts": [
+      "AutoContrasts": ["RT"],
+      "Contrasts": [
         {
-          "name": "RT-trial_type",
-          "condition_list": [
+          "Name": "RT-trial_type",
+          "ConditionList": [
             "RT",
             "trial_type"
           ],
-          "weights": [1, -1]
+          "Weights": [1, -1]
         },
         {
-          "name": "crummy-F",
-          "condition_list": [
+          "Name": "crummy-F",
+          "ConditionList": [
             "RT",
             "trial_type"
           ],
-          "weights": [
+          "Weights": [
             [1, 0],
             [0, 1]
           ]
@@ -35,19 +35,19 @@
       ]
     },
     {
-      "name": "session",
-      "level": "session",
-      "auto_contrasts": true
+      "Name": "session",
+      "Level": "Session",
+      "AutoContrasts": true
     },
     {
-      "name": "participant",
-      "level": "subject",
-      "auto_contrasts": true
+      "Name": "participant",
+      "Level": "Subject",
+      "AutoContrasts": true
     },
     {
-      "name": "group",
-      "level": "dataset",
-      "auto_contrasts": true
+      "Name": "group",
+      "Level": "Dataset",
+      "AutoContrasts": true
     }
   ]
 }
