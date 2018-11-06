@@ -54,12 +54,3 @@ def convert_JSON(j):
             out[newK] = value
 
     return out
-
-def snakeify_steps(steps):
-    """ Lower case transformation names, and level names """
-    for s in steps:
-        s['level'] = s['level'].lower()
-        for t in s.get('transformations', []):
-            t['name'] = t['name'].lower()
-
-    return steps

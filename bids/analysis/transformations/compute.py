@@ -10,7 +10,7 @@ from bids.analysis import hrf
 from bids.variables import SparseRunVariable
 
 
-class convolve(Transformation):
+class Convolve(Transformation):
     """Convolve the input variable with an HRF.
 
     Args:
@@ -54,13 +54,13 @@ class convolve(Transformation):
         return pd.DataFrame(convolved[0], index=df.index)
 
 
-class demean(Transformation):
+class Demean(Transformation):
 
     def _transform(self, data):
         return data - data.mean()
 
 
-class orthogonalize(Transformation):
+class Orthogonalize(Transformation):
 
     _variables_used = ('variables', 'other')
     _densify = ('variables', 'other')
@@ -82,7 +82,7 @@ class orthogonalize(Transformation):
         return result
 
 
-class product(Transformation):
+class Product(Transformation):
 
     _loopable = False
     _groupable = False
@@ -94,7 +94,7 @@ class product(Transformation):
         return data.product(1)
 
 
-class scale(Transformation):
+class Scale(Transformation):
     ''' Scale a variable.
 
     Args:
@@ -120,7 +120,7 @@ class scale(Transformation):
         return data
 
 
-class sum(Transformation):
+class Sum(Transformation):
 
     _loopable = False
     _groupable = False
@@ -141,7 +141,7 @@ class sum(Transformation):
 
 
 
-class threshold(Transformation):
+class Threshold(Transformation):
     ''' Threshold and/or binarize a variable.
 
     Args:
@@ -176,7 +176,7 @@ class threshold(Transformation):
         return data
 
 
-class and_(Transformation):
+class And(Transformation):
     ''' Logical AND on two or more variables.
 
     Args:
@@ -192,7 +192,7 @@ class and_(Transformation):
         return df.all(axis=1).astype(int)
 
 
-class not_(Transformation):
+class Not(Transformation):
     ''' Logical negation of a variable.
 
     Args:
@@ -206,7 +206,7 @@ class not_(Transformation):
         return ~var.astype(bool)
 
 
-class or_(Transformation):
+class Or(Transformation):
     ''' Logical OR (inclusive) on two or more variables.
 
     Args:

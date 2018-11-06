@@ -1,6 +1,6 @@
 import json
 from bids.layout import BIDSLayout
-from bids.utils import matches_entities, snakeify_steps, convert_JSON
+from bids.utils import matches_entities, convert_JSON
 from bids.variables import BIDSVariableCollection, merge_collections
 from . import transformations as transform
 from collections import namedtuple, OrderedDict
@@ -50,9 +50,10 @@ class Analysis(object):
         # Convert JSON from CamelCase to snake_case keys
         self.model = convert_JSON(model)
 
-        steps = snakeify_steps(self.model['steps'])
+        steps = self.model['steps']
         self.steps = []
         for i, step_args in enumerate(steps):
+            step_args['level'] = step_args['level'].lower()
             step = Step(self.layout, index=i, **step_args)
             self.steps.append(step)
 
@@ -81,9 +82,6 @@ class Analysis(object):
         # Use inputs from model, and update with kwargs
         selectors = self.model.get('input', {})
         selectors.update(kwargs)
-
-        if steps is not None:
-            snakeify_steps(steps)
 
         for i, b in enumerate(self.steps):
 

@@ -11,7 +11,7 @@ from patsy import dmatrix
 import re
 from bids.variables import DenseRunVariable, SimpleVariable
 
-class assign(Transformation):
+class Assign(Transformation):
     ''' Assign one variable's amplitude, duration, or onset attribute to
     another. '''
 
@@ -65,7 +65,7 @@ class assign(Transformation):
         return target
 
 
-class copy(Transformation):
+class Copy(Transformation):
     ''' Copy/clone a variable.
 
     Args:
@@ -81,7 +81,7 @@ class copy(Transformation):
         return col
 
 
-class delete(Transformation):
+class Delete(Transformation):
     ''' Delete variables from the namespace.
 
     Args:
@@ -100,7 +100,7 @@ class delete(Transformation):
                                      if k not in variables}
 
 
-class factor(Transformation):
+class Factor(Transformation):
 
     _groupable = False
     _input_type = 'variable'
@@ -144,7 +144,7 @@ class factor(Transformation):
         return result
 
 
-class filter(Transformation):
+class Filter(Transformation):
 
     _groupable = False
     _input_type = 'variable'
@@ -179,7 +179,7 @@ class filter(Transformation):
         return var
 
 
-class rename(Transformation):
+class Rename(Transformation):
     ''' Rename a variable.
 
     Args:
@@ -197,7 +197,7 @@ class rename(Transformation):
         return var.values.values
 
 
-class replace(Transformation):
+class Replace(Transformation):
     ''' Replace values in the values, onset, or duration attributes.
 
     '''
@@ -221,7 +221,7 @@ class replace(Transformation):
         return var
 
 
-class select(Transformation):
+class Select(Transformation):
     ''' Select variables to retain.
 
     Args:
@@ -238,7 +238,7 @@ class select(Transformation):
         self.collection.variables = {v.name: v for v in variables}
 
 
-class split(Transformation):
+class Split(Transformation):
     ''' Split a single variable into N variables as defined by the levels of one or
     more other variables.
 
@@ -293,7 +293,7 @@ class split(Transformation):
         return result
 
 
-class to_dense(Transformation):
+class ToDense(Transformation):
     ''' Convert variable to dense representation. '''
 
     _groupable = False
