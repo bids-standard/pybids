@@ -8,6 +8,7 @@ from six import string_types
 import numpy as np
 import pandas as pd
 from itertools import chain
+from utils import convertJSON
 
 
 class Analysis(object):
@@ -27,11 +28,7 @@ class Analysis(object):
             layout = BIDSLayout(layout)
         self.layout = layout
 
-        if isinstance(model, str):
-            model = json.load(open(model))
-        self.model = model
-
-        self._load_blocks(model['blocks'])
+        self._load_model(model)
 
     def __iter__(self):
         for b in self.blocks:
@@ -45,7 +42,14 @@ class Analysis(object):
             raise KeyError('There is no block with the name "%s".' % index)
         return name_matches[0]
 
-    def _load_blocks(self, blocks):
+
+    def _load_model(self, model):
+        if isinstance(model, str):
+            model = json.load(open(model))
+
+        self.model = convertJSON(model)
+
+        blocks = model['blocks']
         self.blocks = []
         for i, block_args in enumerate(blocks):
             block = Block(self.layout, index=i, **block_args)
