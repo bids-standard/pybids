@@ -331,11 +331,11 @@ def test_and(collection):
     coll = collection.clone()
     transform.Factor(coll, 'respnum')
     names = ['respnum.%d' % d for d in range(0, 5)]
-    transform.And_(coll, names, output='conjunction')
+    transform.And(coll, names, output='conjunction')
     assert not coll.variables['conjunction'].values.sum()
 
     coll['copy'] = coll.variables['respnum.0'].clone()
-    transform.And_(coll, ['respnum.0', 'copy'], output='conj')
+    transform.And(coll, ['respnum.0', 'copy'], output='conj')
     assert coll.variables['conj'].values.astype(float).equals(
         coll.variables['respnum.0'].values)
 
@@ -344,11 +344,11 @@ def test_or(collection):
     coll = collection.clone()
     transform.Factor(coll, 'respnum')
     names = ['respnum.%d' % d for d in range(0, 5)]
-    transform.Or_(coll, names, output='disjunction')
+    transform.Or(coll, names, output='disjunction')
     assert (coll.variables['disjunction'].values == 1).all()
 
     coll['copy'] = coll.variables['respnum.0'].clone()
-    transform.Or_(coll, ['respnum.0', 'copy'], output='or')
+    transform.Or(coll, ['respnum.0', 'copy'], output='or')
     assert coll.variables['or'].values.astype(float).equals(
         coll.variables['respnum.0'].values)
 
@@ -356,6 +356,6 @@ def test_or(collection):
 def test_not(collection):
     coll = collection.clone()
     pre_rt = coll.variables['RT'].values.values
-    transform.Not_(coll, 'RT')
+    transform.Not(coll, 'RT')
     post_rt = coll.variables['RT'].values.values
     assert (post_rt == ~pre_rt.astype(bool)).all()

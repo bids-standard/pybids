@@ -25,27 +25,26 @@ def test_auto_model_analysis(model):
     analysis = Analysis(layout, model)
     analysis.setup(scan_length=480)
 
-    assert model['name'] == 'ds005_mixedgamblestask'
+    assert model['Name'] == 'ds005_mixedgamblestask'
 
     # run level
-    block = model['steps'][0]
-    assert block['name'] == 'run'
-    assert block['level'] == 'run'
-    assert block['transformations'][0]['name'] == 'factor'
-    assert block['model']['HRF_variables'][0] == 'trial_type.parametric gain'
-    assert block['contrasts'][0]['name'] == 'run_parametric gain'
-    assert block['contrasts'][0]['weights'] == [1]
+    block = model['Steps'][0]
+    assert block['Name'] == 'Run'
+    assert block['Level'] == 'Run'
+    assert block['Transformations'][0]['Name'] == 'Factor'
+    assert block['Contrasts'][0]['Name'] == 'run_parametric gain'
+    assert block['Contrasts'][0]['Weights'] == [1]
 
     # subject level
-    block = model['steps'][1]
-    assert block['name'] == 'subject'
-    assert block['level'] == 'subject'
-    assert block['model']['variables'][0] == 'run_parametric gain'
-    assert block['contrasts'][0]['name'] == 'subject_run_parametric gain'
+    block = model['Steps'][1]
+    assert block['Name'] == 'Subject'
+    assert block['Level'] == 'Subject'
+    assert block['Model']['Variables'][0] == 'run_parametric gain'
+    assert block['Contrasts'][0]['Name'] == 'subject_run_parametric gain'
 
     # dataset level
-    block = model['steps'][2]
-    assert block['name'] == 'dataset'
-    assert block['level'] == 'dataset'
-    assert block['model']['variables'][0] == 'subject_run_parametric gain'
-    assert block['contrasts'][0]['name'] == 'dataset_subject_run_parametric gain'
+    block = model['Steps'][2]
+    assert block['Name'] == 'Dataset'
+    assert block['Level'] == 'Dataset'
+    assert block['Model']['Variables'][0] == 'subject_run_parametric gain'
+    assert block['Contrasts'][0]['Name'] == 'dataset_subject_run_parametric gain'
