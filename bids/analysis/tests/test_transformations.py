@@ -50,7 +50,7 @@ def test_sum(collection):
     with pytest.raises(ValueError):
         transform.sum(collection, variables=['parametric gain', 'gain'],
                       output='sum', weights=[1, 1, 1])
-    
+
 
 
 def test_scale(collection):
@@ -319,11 +319,11 @@ def test_select(collection):
     assert set(coll.variables.keys()) == set(keep)
 
 
-def test_remove(collection):
+def test_delete(collection):
     coll = collection.clone()
     all_cols = set(coll.variables.keys())
     drop = ['RT', 'parametric gain', 'respcat']
-    transform.remove(coll, drop)
+    transform.delete(coll, drop)
     assert all_cols - set(coll.variables.keys()) == set(drop)
 
 
