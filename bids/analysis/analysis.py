@@ -1,6 +1,6 @@
 import json
 from bids.layout import BIDSLayout
-from bids.utils import matches_entities
+from bids.utils import matches_entities, snakeify_steps, convert_JSON
 from bids.variables import BIDSVariableCollection, merge_collections
 from . import transformations as transform
 from collections import namedtuple, OrderedDict
@@ -8,7 +8,6 @@ from six import string_types
 import numpy as np
 import pandas as pd
 from itertools import chain
-from utils import convertJSON
 
 
 class Analysis(object):
@@ -37,7 +36,8 @@ class Analysis(object):
     def __getitem__(self, index):
         if isinstance(index, int):
             return self.steps[index]
-        name_matches = list(filter(lambda x: x.name == index, self.steps))
+        level = index.lower()
+        name_matches = list(filter(lambda x: x.name == level, self.steps))
         if not name_matches:
             raise KeyError('There is no block with the name "%s".' % index)
         return name_matches[0]
@@ -47,22 +47,23 @@ class Analysis(object):
         if isinstance(model, str):
             model = json.load(open(model))
 
-        self.model = convertJSON(model)
+        # Convert JSON from CamelCase to snake_case keys
+        self.model = convert_JSON(model)
 
-        steps = model['steps']
+        steps = snakeify_steps(self.model['steps'])
         self.steps = []
-        for i, block_args in enumerate(steps):
-            block = Block(self.layout, index=i, **block_args)
-            self.steps.append(block)
+        for i, step_args in enumerate(steps):
+            step = Step(self.layout, index=i, **step_args)
+            self.steps.append(step)
 
     def setup(self, steps=None, agg_func='mean', **kwargs):
         ''' Set up the sequence of steps for analysis.
 
         Args:
             steps (list): Optional list of steps to set up. Each element
-                must be either an int giving the index of the block in the
+                must be either an int giving the index of the step in the
                 JSON config block list, or a str giving the (unique) name of
-                the block, as specified in the JSON config. steps that do not
+                the step, as specified in the JSON config. Steps that do not
                 match either index or name will be skipped.
             agg_func (str or Callable): The aggregation function to use when
                 combining rows from the previous level of analysis. E.g.,
@@ -81,6 +82,9 @@ class Analysis(object):
         selectors = self.model.get('input', {})
         selectors.update(kwargs)
 
+        if steps is not None:
+            snakeify_steps(steps)
+
         for i, b in enumerate(self.steps):
 
             # Skip any steps whose names or indexes don't match block list
@@ -91,7 +95,7 @@ class Analysis(object):
             input_nodes = b.output_nodes
 
 
-class Block(object):
+class Step(object):
 
     ''' Represents a single analysis block from a BIDS-Model specification.
 
@@ -121,7 +125,7 @@ class Block(object):
                 auto_contrasts=False):
 
         self.layout = layout
-        self.level = level
+        self.level = level.lower()
         self.index = index
         self.name = name
         self.transformations = transformations or []
@@ -305,7 +309,7 @@ class AnalysisNode(object):
 
     def __init__(self, level, collection, contrasts, input_nodes=None,
                  auto_contrasts=None):
-        self.level = level
+        self.level = level.lower()
         self.collection = collection
         self._block_contrasts = contrasts
         self.input_nodes = input_nodes
