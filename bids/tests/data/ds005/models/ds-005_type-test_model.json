@@ -1,7 +1,7 @@
 {
   "Name": "test_model",
   "Description": "simple test model",
-  "Steps"": [
+  "Steps": [
     {
       "Name": "run",
       "Level": "Run",

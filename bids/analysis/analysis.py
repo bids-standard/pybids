@@ -31,13 +31,13 @@ class Analysis(object):
         self._load_model(model)
 
     def __iter__(self):
-        for b in self.blocks:
+        for b in self.steps:
             yield b
 
     def __getitem__(self, index):
         if isinstance(index, int):
-            return self.blocks[index]
-        name_matches = list(filter(lambda x: x.name == index, self.blocks))
+            return self.steps[index]
+        name_matches = list(filter(lambda x: x.name == index, self.steps))
         if not name_matches:
             raise KeyError('There is no block with the name "%s".' % index)
         return name_matches[0]
@@ -49,20 +49,20 @@ class Analysis(object):
 
         self.model = convertJSON(model)
 
-        blocks = model['blocks']
-        self.blocks = []
-        for i, block_args in enumerate(blocks):
+        steps = model['steps']
+        self.steps = []
+        for i, block_args in enumerate(steps):
             block = Block(self.layout, index=i, **block_args)
-            self.blocks.append(block)
+            self.steps.append(block)
 
-    def setup(self, blocks=None, agg_func='mean', **kwargs):
-        ''' Set up the sequence of blocks for analysis.
+    def setup(self, steps=None, agg_func='mean', **kwargs):
+        ''' Set up the sequence of steps for analysis.
 
         Args:
-            blocks (list): Optional list of blocks to set up. Each element
+            steps (list): Optional list of steps to set up. Each element
                 must be either an int giving the index of the block in the
                 JSON config block list, or a str giving the (unique) name of
-                the block, as specified in the JSON config. Blocks that do not
+                the block, as specified in the JSON config. steps that do not
                 match either index or name will be skipped.
             agg_func (str or Callable): The aggregation function to use when
                 combining rows from the previous level of analysis. E.g.,
@@ -81,10 +81,10 @@ class Analysis(object):
         selectors = self.model.get('input', {})
         selectors.update(kwargs)
 
-        for i, b in enumerate(self.blocks):
+        for i, b in enumerate(self.steps):
 
-            # Skip any blocks whose names or indexes don't match block list
-            if blocks is not None and i not in blocks and b.name not in blocks:
+            # Skip any steps whose names or indexes don't match block list
+            if steps is not None and i not in steps and b.name not in steps:
                 continue
 
             b.setup(input_nodes, **selectors)
@@ -100,7 +100,7 @@ class Block(object):
         level (str): The BIDS keyword to use as the grouping variable; must be
             one of ['run', 'session', 'subject', or 'dataset'].
         index (int): The numerical index of the current Block within the
-            sequence of blocks.
+            sequence of steps.
         name (str): Optional name to assign to the block. Must be specified
             in order to enable name-based indexing in the parent Analysis.
         transformations (list): List of BIDS-Model transformations to apply.

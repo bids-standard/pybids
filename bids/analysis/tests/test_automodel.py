@@ -28,7 +28,7 @@ def test_auto_model_analysis(model):
     assert model['name'] == 'ds005_mixedgamblestask'
 
     # run level
-    block = model['blocks'][0]
+    block = model['steps'][0]
     assert block['name'] == 'run'
     assert block['level'] == 'run'
     assert block['transformations'][0]['name'] == 'factor'
@@ -37,14 +37,14 @@ def test_auto_model_analysis(model):
     assert block['contrasts'][0]['weights'] == [1]
 
     # subject level
-    block = model['blocks'][1]
+    block = model['steps'][1]
     assert block['name'] == 'subject'
     assert block['level'] == 'subject'
     assert block['model']['variables'][0] == 'run_parametric gain'
     assert block['contrasts'][0]['name'] == 'subject_run_parametric gain'
 
     # dataset level
-    block = model['blocks'][2]
+    block = model['steps'][2]
     assert block['name'] == 'dataset'
     assert block['level'] == 'dataset'
     assert block['model']['variables'][0] == 'subject_run_parametric gain'
