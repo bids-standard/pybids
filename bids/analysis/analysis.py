@@ -213,7 +213,7 @@ class Step(object):
 
             coll = apply_transformations(coll, self.transformations)
             if variables:
-                transform.select(coll, variables)
+                transform.Select(coll, variables)
 
             node = AnalysisNode(self.level, coll, self.contrasts, input_nodes,
                                 self.auto_contrasts)
@@ -482,6 +482,6 @@ def apply_transformations(collection, transformations, select=None):
             func(collection, cols, **kwargs)
 
     if select is not None:
-        transform.select(collection, select)
+        transform.Select(collection, select)
 
     return collection

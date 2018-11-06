@@ -60,7 +60,7 @@ def load_variables(layout, types=None, levels=None, skip_empty=True,
                 'subject': ['sessions'],
                 'dataset': ['participants']
             }
-            [types.extend(lev_map[l]) for l in listify(levels)]
+            [types.extend(lev_map[l.lower()]) for l in listify(levels)]
         else:
             types = TYPES
 
