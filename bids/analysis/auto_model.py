@@ -6,7 +6,7 @@ import numpy as np
 
 def _make_passthrough_contrast(level, contrast_names):
     block = OrderedDict(Level=level, Name=level,
-                        Model={'Variables': contrast_names})
+                        Model={'X': contrast_names})
     contrasts = []
     for cn in contrast_names:
         cdict = OrderedDict(Name=level.lower() + "_" + cn, ConditionList=[cn],
@@ -66,7 +66,7 @@ def auto_model(layout, scan_length=None, one_vs_rest=False):
         run['Transformations'].append(
                 OrderedDict(Name='Convolve', Input=trial_type_factors))
 
-        run_model = OrderedDict(Variables=trial_type_factors)
+        run_model = OrderedDict(X=trial_type_factors)
         run["Model"] = run_model
 
         if one_vs_rest:

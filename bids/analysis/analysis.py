@@ -194,11 +194,7 @@ class Step(object):
 
         # Set up and validate variable lists
         model = self.model or {}
-        variables = model.get('variables', [])
-        hrf_variables = model.get('HRF_variables', [])
-        if not set(variables) >= set(hrf_variables):
-            raise ValueError("HRF_variables must be a subset ",
-                                "of variables in BIDS model.")
+        X = model.get('X', [])
 
         for grp in groups:
             # Split into separate lists of Collections and Nodes
@@ -212,8 +208,8 @@ class Step(object):
             coll = merge_collections(colls) if len(colls) > 1 else colls[0]
 
             coll = apply_transformations(coll, self.transformations)
-            if variables:
-                transform.Select(coll, variables)
+            if X:
+                transform.Select(coll, X)
 
             node = AnalysisNode(self.level, coll, self.contrasts, input_nodes,
                                 self.auto_contrasts)

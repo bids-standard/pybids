@@ -39,12 +39,12 @@ def test_auto_model_analysis(model):
     block = model['Steps'][1]
     assert block['Name'] == 'Subject'
     assert block['Level'] == 'Subject'
-    assert block['Model']['Variables'][0] == 'run_parametric gain'
+    assert block['Model']['X'][0] == 'run_parametric gain'
     assert block['Contrasts'][0]['Name'] == 'subject_run_parametric gain'
 
     # dataset level
     block = model['Steps'][2]
     assert block['Name'] == 'Dataset'
     assert block['Level'] == 'Dataset'
-    assert block['Model']['Variables'][0] == 'subject_run_parametric gain'
+    assert block['Model']['X'][0] == 'subject_run_parametric gain'
     assert block['Contrasts'][0]['Name'] == 'dataset_subject_run_parametric gain'
