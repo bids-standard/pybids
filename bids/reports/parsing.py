@@ -426,7 +426,7 @@ def parse_niftis(layout, niftis, subj, config, **kwargs):
     description_list = []
     skip_task = {}  # Only report each task once
     for nifti_struct in niftis:
-        nii_file = nifti_struct.filename
+        nii_file = nifti_struct.path
         metadata = layout.get_metadata(nii_file)
         if not metadata:
             LOGGER.warning('No json file found for %s', nii_file)
