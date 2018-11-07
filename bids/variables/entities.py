@@ -14,7 +14,7 @@ class Node(object):
     '''
 
     def __init__(self, level, entities):
-        self.level = level
+        self.level = level.lower()
         self.entities = entities
         self.variables = {}
 
