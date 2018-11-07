@@ -32,6 +32,13 @@ class BIDSFile(File):
         super(BIDSFile, self).__init__(filename)
         self.layout = layout
 
+    def __getattr__(self, attr):
+        # Ensures backwards compatibility with old File_ namedtuple, which is
+        # deprecated as of 0.7.
+        if attr in self.entities:
+            return self.entities[attr]
+        raise AttributeError
+
     @property
     def image(self):
         """ Return the associated image file (if it exists) as a NiBabel object.
@@ -277,7 +284,7 @@ class BIDSLayout(Layout):
         else:
             return None
 
-    def get(self, return_type='tuple', target=None, extensions=None,
+    def get(self, return_type='object', target=None, extensions=None,
             derivatives=True, regex_search=None, defined_fields=None,
             domains=None, **kwargs):
         """
@@ -285,13 +292,11 @@ class BIDSLayout(Layout):
 
         Args:
             return_type (str): Type of result to return. Valid values:
-                'tuple': returns a list of namedtuples containing file name as
-                    well as attribute/value pairs for all named entities.
-                'file': returns a list of matching filenames.
-                'dir': returns a list of directories.
-                'id': returns a list of unique IDs. Must be used together with
+                'object' (default): return a list of matching BIDSFile objects.
+                'file': return a list of matching filenames.
+                'dir': return a list of directories.
+                'id': return a list of unique IDs. Must be used together with
                     a valid target.
-                'obj': returns a list of matching File objects.
             target (str): Optional name of the target entity to get results for
                 (only used if return_type is 'dir' or 'id').
             extensions (str, list): One or more file extensions to filter on.
@@ -317,7 +322,7 @@ class BIDSLayout(Layout):
                 only files that match the first two subjects.
 
         Returns:
-            A named tuple (default) or a list (see return_type for details).
+            A BIDSFile object (default) or list (see return_type for details).
         """
 
         if derivatives == True:
@@ -454,36 +459,36 @@ class BIDSLayout(Layout):
         files = self.get(subject=sub, suffix=suffix,
                          extensions=['nii.gz', 'nii'])
         for file in files:
-            metadata = self.get_metadata(file.filename)
+            metadata = self.get_metadata(file.path)
             if metadata and "IntendedFor" in metadata.keys():
                 intended_for = listify(metadata["IntendedFor"])
                 if any([path.endswith(_suff) for _suff in intended_for]):
                     cur_fieldmap = {}
                     if file.suffix == "phasediff":
-                        cur_fieldmap = {"phasediff": file.filename,
-                                        "magnitude1": file.filename.replace(
+                        cur_fieldmap = {"phasediff": file.path,
+                                        "magnitude1": file.path.replace(
                                             "phasediff", "magnitude1"),
                                         "suffix": "phasediff"}
-                        magnitude2 = file.filename.replace(
+                        magnitude2 = file.path.replace(
                             "phasediff", "magnitude2")
                         if os.path.isfile(magnitude2):
                             cur_fieldmap['magnitude2'] = magnitude2
                     elif file.suffix == "phase1":
-                        cur_fieldmap["phase1"] = file.filename
+                        cur_fieldmap["phase1"] = file.path
                         cur_fieldmap["magnitude1"] = \
-                            file.filename.replace("phase1", "magnitude1")
+                            file.path.replace("phase1", "magnitude1")
                         cur_fieldmap["phase2"] = \
-                            file.filename.replace("phase1", "phase2")
+                            file.path.replace("phase1", "phase2")
                         cur_fieldmap["magnitude2"] = \
-                            file.filename.replace("phase1", "magnitude2")
+                            file.path.replace("phase1", "magnitude2")
                         cur_fieldmap["suffix"] = "phase"
                     elif file.suffix == "epi":
-                        cur_fieldmap["epi"] = file.filename
+                        cur_fieldmap["epi"] = file.path
                         cur_fieldmap["suffix"] = "epi"
                     elif file.suffix == "fieldmap":
-                        cur_fieldmap["fieldmap"] = file.filename
+                        cur_fieldmap["fieldmap"] = file.path
                         cur_fieldmap["magnitude"] = \
-                            file.filename.replace("fieldmap", "magnitude")
+                            file.path.replace("fieldmap", "magnitude")
                         cur_fieldmap["suffix"] = "fieldmap"
                     fieldmap_set.append(cur_fieldmap)
         return fieldmap_set
