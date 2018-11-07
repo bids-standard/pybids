@@ -176,7 +176,7 @@ def test_bids_json(layout_7t_trt):
 
 def test_include(layout_ds005, layout_ds005_models):
     target= join(layout_ds005_models.root, 'models',
-                'ds-005_type-russ_sub-all_model.json')
+                'ds-005_type-test_model.json')
     assert target not in layout_ds005.files
     assert target in layout_ds005_models.files
     assert 'all' not in layout_ds005_models.get_subjects()

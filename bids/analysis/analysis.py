@@ -1,6 +1,6 @@
 import json
 from bids.layout import BIDSLayout
-from bids.utils import matches_entities
+from bids.utils import matches_entities, convert_JSON
 from bids.variables import BIDSVariableCollection, merge_collections
 from . import transformations as transform
 from collections import namedtuple, OrderedDict
@@ -27,38 +27,44 @@ class Analysis(object):
             layout = BIDSLayout(layout)
         self.layout = layout
 
-        if isinstance(model, str):
-            model = json.load(open(model))
-        self.model = model
-
-        self._load_blocks(model['blocks'])
+        self._load_model(model)
 
     def __iter__(self):
-        for b in self.blocks:
+        for b in self.steps:
             yield b
 
     def __getitem__(self, index):
         if isinstance(index, int):
-            return self.blocks[index]
-        name_matches = list(filter(lambda x: x.name == index, self.blocks))
+            return self.steps[index]
+        level = index.lower()
+        name_matches = list(filter(lambda x: x.name == level, self.steps))
         if not name_matches:
             raise KeyError('There is no block with the name "%s".' % index)
         return name_matches[0]
 
-    def _load_blocks(self, blocks):
-        self.blocks = []
-        for i, block_args in enumerate(blocks):
-            block = Block(self.layout, index=i, **block_args)
-            self.blocks.append(block)
 
-    def setup(self, blocks=None, agg_func='mean', **kwargs):
-        ''' Set up the sequence of blocks for analysis.
+    def _load_model(self, model):
+        if isinstance(model, str):
+            model = json.load(open(model))
+
+        # Convert JSON from CamelCase to snake_case keys
+        self.model = convert_JSON(model)
+
+        steps = self.model['steps']
+        self.steps = []
+        for i, step_args in enumerate(steps):
+            step_args['level'] = step_args['level'].lower()
+            step = Step(self.layout, index=i, **step_args)
+            self.steps.append(step)
+
+    def setup(self, steps=None, agg_func='mean', **kwargs):
+        ''' Set up the sequence of steps for analysis.
 
         Args:
-            blocks (list): Optional list of blocks to set up. Each element
-                must be either an int giving the index of the block in the
+            steps (list): Optional list of steps to set up. Each element
+                must be either an int giving the index of the step in the
                 JSON config block list, or a str giving the (unique) name of
-                the block, as specified in the JSON config. Blocks that do not
+                the step, as specified in the JSON config. Steps that do not
                 match either index or name will be skipped.
             agg_func (str or Callable): The aggregation function to use when
                 combining rows from the previous level of analysis. E.g.,
@@ -77,17 +83,17 @@ class Analysis(object):
         selectors = self.model.get('input', {})
         selectors.update(kwargs)
 
-        for i, b in enumerate(self.blocks):
+        for i, b in enumerate(self.steps):
 
-            # Skip any blocks whose names or indexes don't match block list
-            if blocks is not None and i not in blocks and b.name not in blocks:
+            # Skip any steps whose names or indexes don't match block list
+            if steps is not None and i not in steps and b.name not in steps:
                 continue
 
             b.setup(input_nodes, **selectors)
             input_nodes = b.output_nodes
 
 
-class Block(object):
+class Step(object):
 
     ''' Represents a single analysis block from a BIDS-Model specification.
 
@@ -96,7 +102,7 @@ class Block(object):
         level (str): The BIDS keyword to use as the grouping variable; must be
             one of ['run', 'session', 'subject', or 'dataset'].
         index (int): The numerical index of the current Block within the
-            sequence of blocks.
+            sequence of steps.
         name (str): Optional name to assign to the block. Must be specified
             in order to enable name-based indexing in the parent Analysis.
         transformations (list): List of BIDS-Model transformations to apply.
@@ -117,7 +123,7 @@ class Block(object):
                 auto_contrasts=False):
 
         self.layout = layout
-        self.level = level
+        self.level = level.lower()
         self.index = index
         self.name = name
         self.transformations = transformations or []
@@ -188,11 +194,7 @@ class Block(object):
 
         # Set up and validate variable lists
         model = self.model or {}
-        variables = model.get('variables', [])
-        hrf_variables = model.get('HRF_variables', [])
-        if not set(variables) >= set(hrf_variables):
-            raise ValueError("HRF_variables must be a subset ",
-                                "of variables in BIDS model.")
+        X = model.get('X', [])
 
         for grp in groups:
             # Split into separate lists of Collections and Nodes
@@ -206,8 +208,8 @@ class Block(object):
             coll = merge_collections(colls) if len(colls) > 1 else colls[0]
 
             coll = apply_transformations(coll, self.transformations)
-            if variables:
-                transform.select(coll, variables)
+            if X:
+                transform.Select(coll, X)
 
             node = AnalysisNode(self.level, coll, self.contrasts, input_nodes,
                                 self.auto_contrasts)
@@ -301,7 +303,7 @@ class AnalysisNode(object):
 
     def __init__(self, level, collection, contrasts, input_nodes=None,
                  auto_contrasts=None):
-        self.level = level
+        self.level = level.lower()
         self.collection = collection
         self._block_contrasts = contrasts
         self.input_nodes = input_nodes
@@ -476,6 +478,6 @@ def apply_transformations(collection, transformations, select=None):
             func(collection, cols, **kwargs)
 
     if select is not None:
-        transform.select(collection, select)
+        transform.Select(collection, select)
 
     return collection

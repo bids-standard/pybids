@@ -1,27 +1,27 @@
-from .compute import (sum, product, scale, orthogonalize, threshold, and_, or_,
-                      not_, demean, convolve_HRF)
-from .munge import (split, rename, assign, copy, factor, filter, select,
-                    remove, replace, to_dense)
+from .compute import (Sum, Product, Scale, Orthogonalize, Threshold, And, Or,
+                      Not, Demean, Convolve)
+from .munge import (Split, Rename, Assign, Copy, Factor, Filter, Select,
+                    Delete, Replace, ToDense)
 
 __all__ = [
-    'and_',
-    'assign',
-    'convolve_HRF',
-    'copy',
-    'demean',
-    'factor',
-    'filter',
-    'not_',
-    'or_',
-    'orthogonalize',
-    'product',
-    'remove',
-    'rename',
-    'replace',
-    'scale',
-    'select',
-    'split',
-    'sum',
-    'threshold',
-    'to_dense'
+    'And',
+    'Assign',
+    'Convolve',
+    'Copy',
+    'Demean',
+    'Delete',
+    'Factor',
+    'Filter',
+    'Not',
+    'Or',
+    'Orthogonalize',
+    'Product',
+    'Rename',
+    'Replace',
+    'Scale',
+    'Select',
+    'Split',
+    'Sum',
+    'Threshold',
+    'ToDense'
 ]
