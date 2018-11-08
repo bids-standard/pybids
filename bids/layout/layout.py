@@ -322,7 +322,7 @@ class BIDSLayout(Layout):
                 only files that match the first two subjects.
 
         Returns:
-            A BIDSFile object (default) or list (see return_type for details).
+            A list of BIDSFile (default) or other (see return_type for details) objects.
         """
 
         if derivatives == True:
