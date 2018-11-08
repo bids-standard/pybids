@@ -37,7 +37,8 @@ class BIDSFile(File):
         # deprecated as of 0.7.
         if attr in self.entities:
             return self.entities[attr]
-        raise AttributeError
+        raise AttributeError("%s object has no attribute named %r" %
+                             (self.__class__.__name__, attr))
 
     @property
     def image(self):
