@@ -498,7 +498,7 @@ class BIDSLayout(Layout):
             types (str, list): Types of variables to retrieve. All valid values
             reflect the filename stipulated in the BIDS spec for each kind of
             variable. Valid values include: 'events', 'physio', 'stim',
-            'scans', 'participants', 'sessions', and 'confounds'.
+            'scans', 'participants', 'sessions', and 'regressors'.
             variables (list): Optional list of variables names to return. If
                 None, all available variables are returned.
             merge (bool): If True, variables are merged across all observations

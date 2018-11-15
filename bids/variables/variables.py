@@ -220,7 +220,7 @@ class SimpleVariable(BIDSVariable):
         data (DataFrame): A pandas DataFrame minimally containing a column
             named 'amplitude' as well as any identifying entities.
         source (str): The type of BIDS variable file the data were extracted
-            from. Must be one of: 'events', 'physio', 'stim', 'confounds',
+            from. Must be one of: 'events', 'physio', 'stim', 'regressors',
             'scans', 'sessions', 'participants', or 'beh'.
         kwargs: Optional keyword arguments passed onto superclass.
     '''
@@ -279,7 +279,7 @@ class SparseRunVariable(SimpleVariable):
         run_info (list): A list of RunInfo objects carrying information about
             all runs represented in the Variable.
         source (str): The type of BIDS variable file the data were extracted
-            from. Must be one of: 'events', 'physio', 'stim', 'confounds',
+            from. Must be one of: 'events', 'physio', 'stim', 'regressors',
             'scans', 'sessions', 'participants', or 'beh'.
         kwargs: Optional keyword arguments passed onto superclass.
     '''
@@ -350,7 +350,7 @@ class DenseRunVariable(BIDSVariable):
     run_info : :obj:`list`
         A list of RunInfo objects carrying information about all runs
         represented in the Variable.
-    source : {'events', 'physio', 'stim', 'confounds', 'scans', 'sessions', 'participants', 'beh'}
+    source : {'events', 'physio', 'stim', 'regressors', 'scans', 'sessions', 'participants', 'beh'}
         The type of BIDS variable file the data were extracted from.
     sampling_rate : :obj:`float`
         Optional sampling rate (in Hz) to use. Must match the sampling rate used
