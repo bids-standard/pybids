@@ -1,10 +1,11 @@
 """ Tests of BIDS-specific functionality. Generic tests of core grabbit
 functionality should go in the grabbit package. """
 
+import os
 import pytest
 from bids.layout import BIDSLayout
 from bids.layout.layout import BIDSFile
-from os.path import join, abspath, sep, basename
+from os.path import join, abspath, basename
 from bids.tests import get_test_data_path
 
 
@@ -240,3 +241,17 @@ def test_get_bidsfile_image_prop():
     bf = BIDSFile(path, None)
     assert bf.image is not None
     assert bf.image.shape == (64, 64, 64, 64)
+
+
+def test_restricted_words_in_path(tmpdir):
+    orig_path = join(get_test_data_path(), 'synthetic')
+    parent_dir = str(tmpdir / 'derivatives' / 'pipeline')
+    os.makedirs(parent_dir)
+    new_path = join(parent_dir, 'sourcedata')
+    os.symlink(orig_path, new_path)
+    orig_layout = BIDSLayout(orig_path)
+    new_layout = BIDSLayout(new_path)
+
+    orig_files = set(f.replace(orig_path, '') for f in orig_layout.files)
+    new_files = set(f.replace(new_path, '') for f in new_layout.files)
+    assert orig_files == new_files
