@@ -7,7 +7,7 @@ import pandas as pd
 from bids.utils import listify
 from .base import Transformation
 from bids.analysis import hrf
-from bids.variables import SparseRunVariable
+from bids.variables import SparseRunVariable,  DenseRunVariable
 
 
 class Convolve(Transformation):
@@ -26,6 +26,7 @@ class Convolve(Transformation):
     """
 
     _input_type = 'variable'
+    _return_type = 'variable'
 
     def _transform(self, var, model='spm', derivative=False, dispersion=False,
                    fir_delays=None):
@@ -51,7 +52,9 @@ class Convolve(Transformation):
         convolved = hrf.compute_regressor(vals, model, onsets,
                                           fir_delays=fir_delays, min_onset=0)
 
-        return pd.DataFrame(convolved[0], index=df.index).squeeze()
+        return DenseRunVariable(var.name, convolved[0],
+            var.run_info, var.source,
+            var.sampling_rate)
 
 
 class Demean(Transformation):
