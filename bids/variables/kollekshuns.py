@@ -40,7 +40,7 @@ class BIDSVariableCollection(object):
             'events': 'run',
             'physio': 'run',
             'stim': 'run',
-            'confounds': 'run',
+            'regressors': 'run',
             'scans': 'session',
             'sessions': 'subject',
             'participants': 'dataset'

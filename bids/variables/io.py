@@ -21,11 +21,11 @@ def load_variables(layout, types=None, levels=None, skip_empty=True,
         types (str, list): Types of variables to retrieve. All valid values
             reflect the filename stipulated in the BIDS spec for each kind of
             variable. Valid values include: 'events', 'physio', 'stim',
-            'scans', 'participants', 'sessions', and 'confounds'.
+            'scans', 'participants', 'sessions', and 'regressors'.
         levels (str, list): Optional level(s) of variables to load. Valid
             values are 'run', 'session', 'subject', or 'dataset'. This is
             simply a shorthand way to specify types--e.g., 'run' will be
-            converted to types=['events', 'physio', 'stim', 'confounds'].
+            converted to types=['events', 'physio', 'stim', 'regressors'].
         skip_empty (bool): Whether or not to skip empty Variables (i.e.,
             where there are no rows/records in a file after applying any
             filtering operations like dropping NaNs).
@@ -46,7 +46,7 @@ def load_variables(layout, types=None, levels=None, skip_empty=True,
     '''
 
     TYPES = ['events', 'physio', 'stim', 'scans', 'participants', 'sessions',
-             'confounds']
+             'regressors']
 
     types = listify(types)
 
@@ -54,7 +54,7 @@ def load_variables(layout, types=None, levels=None, skip_empty=True,
         if levels is not None:
             types = []
             lev_map = {
-                'run': ['events', 'physio', 'stim', 'confounds'],
+                'run': ['events', 'physio', 'stim', 'regressors'],
                 'session': ['scans'],
                 'subject': ['sessions'],
                 'dataset': ['participants']
@@ -69,7 +69,7 @@ def load_variables(layout, types=None, levels=None, skip_empty=True,
 
     dataset = dataset or NodeIndex()
 
-    run_types = list({'events', 'physio', 'stim', 'confounds'} - set(types))
+    run_types = list({'events', 'physio', 'stim', 'regressors'} - set(types))
     type_flags = {t: False for t in run_types}
     if len(type_flags) < 4:
         _kwargs = kwargs.copy()
@@ -85,7 +85,7 @@ def load_variables(layout, types=None, levels=None, skip_empty=True,
 
 def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
                          drop_na=True, events=True, physio=True, stim=True,
-                         confounds=True, skip_empty=True, **selectors):
+                         regressors=True, skip_empty=True, **selectors):
     ''' Loads all variables found in *_events.tsv files and returns them as a
     BIDSVariableCollection.
 
@@ -214,10 +214,10 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
                         run.add_variable(var)
 
         # Process confound files
-        if confounds:
+        if regressors:
             sub_ents = {k: v for k, v in entities.items()
                         if k in BASE_ENTITIES}
-            confound_files = layout.get(suffix='confounds', **sub_ents)
+            confound_files = layout.get(suffix='regressors', **sub_ents)
             for cf in confound_files:
                 _data = pd.read_csv(cf.filename, sep='\t', na_values='n/a')
                 if columns is not None:
@@ -226,7 +226,7 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
                 for col in _data.columns:
                     sr = 1. / run.repetition_time
                     var = DenseRunVariable(col, _data[[col]], run_info,
-                                           'confounds', sr)
+                                           'regressors', sr)
                     run.add_variable(var)
 
         # Process recordinging files
