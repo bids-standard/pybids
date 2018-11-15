@@ -51,7 +51,7 @@ class Convolve(Transformation):
         convolved = hrf.compute_regressor(vals, model, onsets,
                                           fir_delays=fir_delays, min_onset=0)
 
-        return pd.DataFrame(convolved[0], index=df.index)
+        return pd.DataFrame(convolved[0], index=df.index).squeeze()
 
 
 class Demean(Transformation):
