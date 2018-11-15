@@ -33,85 +33,72 @@ def testmeta():
     return metadata
 
 
-def test_parsing_anat():
+def test_parsing_anat(testmeta, testconfig):
     """
     parsing.anat_info returns a str description of each structural scan
     """
     type_ = 'T1w'
-    metadata = testmeta()
     img = nib.load(join(get_test_data_path(), 'images/3d.nii.gz'))
-    config = testconfig()
-    desc = parsing.anat_info(type_, metadata, img, config)
+    desc = parsing.anat_info(type_, testmeta, img, testconfig)
     assert isinstance(desc, str)
 
 
-def test_parsing_dwi():
+def test_parsing_dwi(testmeta, testconfig):
     """
     parsing.dwi_info returns a str description of each diffusion scan
     """
     bval_file = join(get_test_data_path(), 'images/4d.bval')
-    metadata = testmeta()
     img = nib.load(join(get_test_data_path(), 'images/4d.nii.gz'))
-    config = testconfig()
-    desc = parsing.dwi_info(bval_file, metadata, img, config)
+    desc = parsing.dwi_info(bval_file, testmeta, img, testconfig)
     assert isinstance(desc, str)
 
 
-def test_parsing_fmap():
+def test_parsing_fmap(testlayout, testmeta, testconfig):
     """
     parsing.fmap_info returns a str decsription of each field map
     """
-    metadata = testmeta()
-    metadata['PhaseEncodingDirection'] = 'j-'
+    testmeta['PhaseEncodingDirection'] = 'j-'
     img = nib.load(join(get_test_data_path(), 'images/3d.nii.gz'))
-    config = testconfig()
-    layout = testlayout()
-    desc = parsing.fmap_info(metadata, img, config, layout)
+    desc = parsing.fmap_info(testmeta, img, testconfig, testlayout)
     assert isinstance(desc, str)
 
 
-def test_parsing_func():
+def test_parsing_func(testmeta, testconfig):
     """
     parsing.func_info returns a str description of a set of functional scans
     grouped by task
     """
-    metadata = testmeta()
     img = nib.load(join(get_test_data_path(), 'images/4d.nii.gz'))
-    config = testconfig()
-    desc = parsing.func_info('nback', 3, metadata, img, config)
+    desc = parsing.func_info('nback', 3, testmeta, img, testconfig)
     assert isinstance(desc, str)
 
 
-def test_parsing_genacq():
+def test_parsing_genacq(testmeta):
     """
     parsing.general_acquisition_info returns a str description of the scanner
     from minimal metadata
     """
-    metadata = testmeta()
-    desc = parsing.general_acquisition_info(metadata)
+    desc = parsing.general_acquisition_info(testmeta)
     assert isinstance(desc, str)
 
 
-def test_parsing_final():
+def test_parsing_final(testmeta):
     """
     parsing.final_paragraph returns a str description of the dicom-to-nifti
     conversion process from minimal metadata
     """
-    metadata = testmeta()
-    desc = parsing.final_paragraph(metadata)
+    desc = parsing.final_paragraph(testmeta)
     assert isinstance(desc, str)
 
 
-def test_parsing_parse():
+def test_parsing_parse(testlayout, testconfig):
     """
     parsing.parse_niftis should return a list of strings, with each string
     containing the description for a single nifti file (except functional data,
     which is combined within task, across runs)
     """
-    layout = testlayout()
     subj = '01'
-    niftis = layout.get(subject=subj, extensions='nii.gz')
-    config = testconfig()
-    desc = parsing.parse_niftis(layout, niftis, subj, config)
+    niftis = testlayout.get(subject=subj, extensions='nii.gz')
+    desc = parsing.parse_niftis(testlayout, niftis, subj, testconfig)
     assert isinstance(desc, list)
     assert isinstance(desc[0], str)
