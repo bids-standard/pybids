@@ -194,7 +194,7 @@ class Step(object):
 
         # Set up and validate variable lists
         model = self.model or {}
-        X = model.get('X', [])
+        X = model.get('x', [])
 
         for grp in groups:
             # Split into separate lists of Collections and Nodes
