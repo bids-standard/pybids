@@ -73,8 +73,5 @@ def test_search_with_file_constraints(index, layout):
     assert len(results) == 4
 
 def test_search_from_get(index, layout):
-    results = layout.get(EchoTime=0.017, return_type='obj')
-    assert len(results) == 40
-
     results = layout.get(EchoTime=0.017)
     assert len(results) == 40
