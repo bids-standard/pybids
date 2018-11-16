@@ -219,7 +219,7 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
                         if k in BASE_ENTITIES}
             confound_files = layout.get(suffix='regressors', **sub_ents)
             for cf in confound_files:
-                _data = pd.read_csv(cf.filename, sep='\t', na_values='n/a')
+                _data = pd.read_csv(cf.path, sep='\t', na_values='n/a')
                 if columns is not None:
                     conf_cols = list(set(_data.columns) & set(columns))
                     _data = _data.loc[:, conf_cols]
