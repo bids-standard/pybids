@@ -107,7 +107,7 @@ class BIDSLayout(Layout):
                           "project root. Every valid BIDS dataset must have "
                           "this file.")
         else:
-            with open(target, 'r') as desc_fd:
+            with open(target, 'r', encoding='utf-8') as desc_fd:
                 self.description = json.load(desc_fd)
             for k in ['Name', 'BIDSVersion']:
                 if k not in self.description:
@@ -184,7 +184,7 @@ class BIDSLayout(Layout):
 
         for deriv in deriv_dirs:
             dd = os.path.join(deriv, 'dataset_description.json')
-            with open(dd, 'r') as ddfd:
+            with open(dd, 'r', encoding='utf-8') as ddfd:
                 description = json.load(ddfd)
             pipeline_name = description.get('PipelineDescription.Name', None)
             if pipeline_name is None:
