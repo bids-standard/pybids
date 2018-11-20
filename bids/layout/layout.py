@@ -556,7 +556,6 @@ class BIDSLayout(Layout):
 
 class MetadataIndex(object):
     """A simple dict-based index for key/value pairs in JSON metadata.
-    
     Args:
         layout (BIDSLayout): The BIDSLayout instance to index.
     """
@@ -578,6 +577,9 @@ class MetadataIndex(object):
             f = self.layout.get_file(f)
 
         if f.path in self.file_index and not overwrite:
+            return
+
+        if 'suffix' not in f.entities: # Skip files without suffixes
             return
 
         md = self._get_metadata(f.path)
