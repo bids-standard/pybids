@@ -198,7 +198,8 @@ class BIDSLayout(Layout):
             dd = os.path.join(deriv, 'dataset_description.json')
             with open(dd, 'r', encoding='utf-8') as ddfd:
                 description = json.load(ddfd)
-            pipeline_name = description.get('PipelineDescription.Name', None)
+            pipeline_name = description.get(
+                'PipelineDescription', {}).get('Name', None)
             if pipeline_name is None:
                 raise ValueError("Every valid BIDS-derivatives dataset must "
                                 "have a PipelineDescription.Name field set "
