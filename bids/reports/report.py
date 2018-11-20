@@ -127,7 +127,7 @@ class BIDSReport(object):
                 description_list += parsing.parse_niftis(self.layout, niftis,
                                                          subject, self.config,
                                                          session=ses)
-                metadata = self.layout.get_metadata(niftis[0].filename)
+                metadata = self.layout.get_metadata(niftis[0].path)
             else:
                 raise Exception('No niftis for subject {0}'.format(subject))
 

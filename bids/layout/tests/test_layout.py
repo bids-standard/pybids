@@ -137,10 +137,10 @@ def test_get_metadata_via_bidsfile(layout_7t_trt):
 
 def test_get_bvals_bvecs(layout_ds005):
     dwifile = layout_ds005.get(subject="01", datatype="dwi")[0]
-    result = layout_ds005.get_bval(dwifile.filename)
+    result = layout_ds005.get_bval(dwifile.path)
     assert result == abspath(join(layout_ds005.root, 'dwi.bval'))
 
-    result = layout_ds005.get_bvec(dwifile.filename)
+    result = layout_ds005.get_bvec(dwifile.path)
     assert result == abspath(join(layout_ds005.root, 'dwi.bvec'))
 
 
