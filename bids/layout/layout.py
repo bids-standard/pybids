@@ -36,6 +36,10 @@ class BIDSFile(File):
         # Ensures backwards compatibility with old File_ namedtuple, which is
         # deprecated as of 0.7.
         if attr in self.entities:
+            warnings.warn("Accessing entities as attributes is deprecated as "
+                          "of 0.7. Please use the .entities dictionary instead"
+                          " (i.e., .entities['%s'] instead of .%s."
+                          % (attr, attr))
             return self.entities[attr]
         raise AttributeError("%s object has no attribute named %r" %
                              (self.__class__.__name__, attr))
@@ -115,7 +119,8 @@ class BIDSLayout(Layout):
                           "project root. Every valid BIDS dataset must have "
                           "this file.")
         else:
-            self.description = json.load(open(target, 'r'))
+            with open(target, 'r', encoding='utf-8') as desc_fd:
+                self.description = json.load(desc_fd)
             for k in ['Name', 'BIDSVersion']:
                 if k not in self.description:
                     raise ValueError("Mandatory '%s' field missing from "
@@ -191,7 +196,8 @@ class BIDSLayout(Layout):
 
         for deriv in deriv_dirs:
             dd = os.path.join(deriv, 'dataset_description.json')
-            description = json.load(open(dd, 'r'))
+            with open(dd, 'r', encoding='utf-8') as ddfd:
+                description = json.load(ddfd)
             pipeline_name = description.get('PipelineDescription.Name', None)
             if pipeline_name is None:
                 raise ValueError("Every valid BIDS-derivatives dataset must "
@@ -595,8 +601,8 @@ class MetadataIndex(object):
 
         for json_file_path in reversed(potential_jsons):
             if os.path.exists(json_file_path):
-                param_dict = json.load(open(json_file_path, "r",
-                                            encoding='utf-8'))
+                with open(json_file_path, 'r', encoding='utf-8') as fd:
+                    param_dict = json.load(fd)
                 results.update(param_dict)
 
         return results

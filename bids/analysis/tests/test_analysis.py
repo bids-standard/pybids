@@ -31,7 +31,7 @@ def test_get_design_matrix_arguments(analysis):
     kwargs = dict(run=1, subject='01', sparse=True)
     result = analysis['run'].get_design_matrix(**kwargs)
     result = result[0]
-    assert result.sparse.shape == (688, 7)
+    assert result.sparse.shape == (172, 7)
     assert result.dense is None
 
     kwargs = dict(run=1, subject='01', mode='dense', force=False)
@@ -42,28 +42,28 @@ def test_get_design_matrix_arguments(analysis):
     kwargs = dict(run=1, subject='01', mode='dense', force=True)
     result = analysis['run'].get_design_matrix(**kwargs)[0]
     assert result.sparse is None
-    assert result.dense.shape == (4800, 12)
+    assert result.dense.shape == (4800, 6)
 
     # format='long' should be ignored for dense output
     kwargs = dict(run=1, subject='01', mode='dense', force=True,
                   format='long', entities=False)
     result = analysis['run'].get_design_matrix(**kwargs)[0]
     assert result.sparse is None
-    assert result.dense.shape == (4800, 7)
+    assert result.dense.shape == (4800, 1)
 
     kwargs = dict(run=1, subject='01', mode='sparse', format='wide',
                   entities=False)
     result = analysis['run'].get_design_matrix(**kwargs)[0]
     assert result.dense is None
-    assert result.sparse.shape == (86, 10)
+    assert result.sparse.shape == (86, 4)
 
 
 def test_first_level_sparse_design_matrix(analysis):
     result = analysis['run'].get_design_matrix(subject=['01'])
     assert len(result) == 3
     df = result[0].sparse
-    assert df.shape == (688, 7)
-    assert df['condition'].nunique() == 8
+    assert df.shape == (172, 7)
+    assert df['condition'].nunique() == 2
     assert set(result[0][0].columns) == {'amplitude', 'onset', 'duration',
                                          'condition', 'subject', 'run',
                                          'task'}
