@@ -261,7 +261,7 @@ class BIDSLayout(Layout):
         to_check = os.path.relpath(f, self.root)
         if 'derivatives' in self.domains:
             to_check = os.path.join(
-                'derivatives', self.description['PipelineDescription.Name'],
+                'derivatives', self.description['PipelineDescription']['Name'],
                 to_check)
 
         sep = os.path.sep
