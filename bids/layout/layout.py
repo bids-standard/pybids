@@ -36,6 +36,10 @@ class BIDSFile(File):
         # Ensures backwards compatibility with old File_ namedtuple, which is
         # deprecated as of 0.7.
         if attr in self.entities:
+            warnings.warn("Accessing entities as attributes is deprecated as "
+                          "of 0.7. Please use the .entities dictionary instead"
+                          " (i.e., .entities['%s'] instead of .%s."
+                          % (attr, attr))
             return self.entities[attr]
         raise AttributeError("%s object has no attribute named %r" %
                              (self.__class__.__name__, attr))
