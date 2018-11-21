@@ -273,7 +273,6 @@ class BIDSRunVariableCollection(BIDSVariableCollection):
                 _variables[name] = var.resample(sampling_rate,
                                                 inplace=in_place,
                                                 kind=kind)
-                _variables[name] = var
 
         if in_place:
             for k, v in _variables.items():
