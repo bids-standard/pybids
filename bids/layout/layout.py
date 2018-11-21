@@ -44,6 +44,10 @@ class BIDSFile(File):
         raise AttributeError("%s object has no attribute named %r" %
                              (self.__class__.__name__, attr))
 
+    def __repr__(self):
+        entities = ', '.join(['{}={}'.format(e,v) for e,v in self.entities.items()])
+        return '<BIDSFile({})>'.format(entities)
+
     @property
     def image(self):
         """ Return the associated image file (if it exists) as a NiBabel object.
@@ -191,7 +195,7 @@ class BIDSLayout(Layout):
                            if os.path.isdir(os.path.join(p, d))]
                 for sd in subdirs:
                     sd = os.path.join(p, sd)
-                    if check_for_description(sd):
+                    if check_for_description(srd):
                         deriv_dirs.append(sd)
 
         for deriv in deriv_dirs:
