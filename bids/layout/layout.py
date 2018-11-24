@@ -45,8 +45,7 @@ class BIDSFile(File):
                              (self.__class__.__name__, attr))
 
     def __repr__(self):
-        entities = ', '.join(['{}={}'.format(e,v) for e,v in self.entities.items()])
-        return '<BIDSFile({})>'.format(entities)
+        return "<BIDSFile({})>".format(os.path.relpath(self.path, start=self.layout.root))
 
     @property
     def image(self):
