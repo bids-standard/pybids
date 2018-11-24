@@ -339,6 +339,8 @@ class BIDSLayout(Layout):
 
         if derivatives == True:
             derivatives = list(self.derivatives.keys())
+        if derivatives:
+            derivatives = listify(derivatives)
 
         # Separate entity kwargs from metadata kwargs
         ent_kwargs, md_kwargs = {}, {}
