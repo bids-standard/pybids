@@ -187,15 +187,16 @@ class BIDSLayout(Layout):
 
         for p in paths:
             p = os.path.abspath(p)
-            if check_for_description(p):
-                deriv_dirs.append(p)
-            else:
-                subdirs = [d for d in os.listdir(p)
-                           if os.path.isdir(os.path.join(p, d))]
-                for sd in subdirs:
-                    sd = os.path.join(p, sd)
-                    if check_for_description(srd):
-                        deriv_dirs.append(sd)
+            if os.path.exists(p):
+                if check_for_description(p):
+                    deriv_dirs.append(p)
+                else:
+                        subdirs = [d for d in os.listdir(p)
+                                   if os.path.isdir(os.path.join(p, d))]
+                        for sd in subdirs:
+                            sd = os.path.join(p, sd)
+                            if check_for_description(sd):
+                                deriv_dirs.append(sd)
 
         for deriv in deriv_dirs:
             dd = os.path.join(deriv, 'dataset_description.json')
