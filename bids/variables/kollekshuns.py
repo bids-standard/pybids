@@ -270,9 +270,12 @@ class BIDSRunVariableCollection(BIDSVariableCollection):
                 if force_dense and is_numeric_dtype(var.values):
                     _variables[name] = var.to_dense(sampling_rate)
             else:
-                _variables[name] = var.resample(sampling_rate,
-                                                inplace=in_place,
-                                                kind=kind)
+                # None if in_place; no update needed
+                _var = var.resample(sampling_rate,
+                                    inplace=in_place,
+                                    kind=kind)
+                if not in_place:
+                    _variables[name] = _var
 
         if in_place:
             for k, v in _variables.items():
