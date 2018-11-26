@@ -160,7 +160,7 @@ def get_sizestr(img):
         Field of view string (e.g., '256x256')
     """
     n_x, n_y, n_slices = img.shape[:3]
-    voxel_dims = np.array(img.get_header().get_zooms()[:3])
+    voxel_dims = np.array(img.header.get_zooms()[:3])
     matrix_size = '{0}x{1}'.format(num_to_str(n_x), num_to_str(n_y))
     voxel_size = 'x'.join([num_to_str(s) for s in voxel_dims])
     fov = [n_x, n_y] * voxel_dims[:2]
