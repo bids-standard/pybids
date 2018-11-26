@@ -45,7 +45,11 @@ class BIDSFile(File):
                              (self.__class__.__name__, attr))
 
     def __repr__(self):
-        return "<BIDSFile({})>".format(os.path.relpath(self.path, start=self.layout.root))
+        source = ''
+        if self.layout.sources:
+            source=", root='{}'".format(os.path.basename(self.layout.root))
+        return "<BIDSFile filename='{}'{}>".format(
+            os.path.relpath(self.path, start=self.layout.root), source)
 
     @property
     def image(self):
