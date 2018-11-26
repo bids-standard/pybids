@@ -46,7 +46,7 @@ AUTHOR_EMAIL = "bids-discussion@googlegroups.com"
 PLATFORMS = "OS Independent"
 # No data for now
 REQUIRES = ["grabbit==0.2.5", "six", "num2words", "numpy", "scipy", "pandas",
-            "nibabel", "patsy"]
+            "nibabel>=2.1", "patsy"]
 EXTRAS_REQUIRE = {
    # Just to not break compatibility with externals requiring
    # now deprecated installation schemes
