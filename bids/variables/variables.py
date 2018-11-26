@@ -443,7 +443,7 @@ class DenseRunVariable(BIDSVariable):
 
         self.sampling_rate = sampling_rate
 
-    def to_df(self, condition=True, entities=True, timing=True):
+    def to_df(self, condition=True, entities=True, timing=True, sampling_rate=None):
         '''Convert to a DataFrame, with columns for name and entities.
 
         Parameters
@@ -458,6 +458,9 @@ class DenseRunVariable(BIDSVariable):
             If True, includes onset and duration columns (even though events are
             sampled uniformly). If False, omits them.
         '''
+        if sampling_rate not in (None, self.sampling_rate):
+            return self.resample(sampling_rate).to_df(condition, entities)
+
         df = super(DenseRunVariable, self).to_df(condition, entities)
 
         if timing:
