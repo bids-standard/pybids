@@ -4,11 +4,11 @@ import warnings
 from io import open
 from .validation import BIDSValidator
 from grabbit import Layout, File
-from grabbit.external import six
+from grabbit.external import six, inflect
 from grabbit.utils import listify
 import nibabel as nb
 from collections import defaultdict
-from functools import reduce
+from functools import reduce, partial
 from itertools import chain
 import re
 
@@ -194,6 +194,7 @@ class BIDSLayout(Layout):
                     if check_for_description(sd):
                         deriv_dirs.append(sd)
 
+        local_entities = set(ent.name for ent in self.entities.values())
         for deriv in deriv_dirs:
             dd = os.path.join(deriv, 'dataset_description.json')
             with open(dd, 'r', encoding='utf-8') as ddfd:
@@ -212,6 +213,16 @@ class BIDSLayout(Layout):
             kwargs['config'] = kwargs.get('config') or ['bids', 'derivatives']
             kwargs['sources'] = kwargs.get('sources') or self
             self.derivatives[pipeline_name] = BIDSLayout(deriv, **kwargs)
+
+            # Propagate derivative entities into top-level dynamic getters
+            deriv_entities = set(ent.name
+                                 for ent in self.derivatives[pipeline_name].entities.values())
+            for deriv_ent in deriv_entities - local_entities:
+                local_entities.add(deriv_ent)
+                getter = 'get_' + inflect.engine().plural(deriv_ent)
+                if not hasattr(self, getter):
+                    func = partial(self.get, target=deriv_ent, return_type='id')
+                    setattr(self, getter, func)
 
     def to_df(self, **kwargs):
         """
