@@ -44,6 +44,13 @@ class BIDSFile(File):
         raise AttributeError("%s object has no attribute named %r" %
                              (self.__class__.__name__, attr))
 
+    def __repr__(self):
+        source = ''
+        if self.layout.sources:
+            source = ", root='{}'".format(os.path.basename(self.layout.root))
+        return "<BIDSFile filename='{}'{}>".format(
+            os.path.relpath(self.path, start=self.layout.root), source)
+
     @property
     def image(self):
         """ Return the associated image file (if it exists) as a NiBabel object.
@@ -184,15 +191,16 @@ class BIDSLayout(Layout):
 
         for p in paths:
             p = os.path.abspath(p)
-            if check_for_description(p):
-                deriv_dirs.append(p)
-            else:
-                subdirs = [d for d in os.listdir(p)
-                           if os.path.isdir(os.path.join(p, d))]
-                for sd in subdirs:
-                    sd = os.path.join(p, sd)
-                    if check_for_description(sd):
-                        deriv_dirs.append(sd)
+            if os.path.exists(p):
+                if check_for_description(p):
+                    deriv_dirs.append(p)
+                else:
+                    subdirs = [d for d in os.listdir(p)
+                               if os.path.isdir(os.path.join(p, d))]
+                    for sd in subdirs:
+                        sd = os.path.join(p, sd)
+                        if check_for_description(sd):
+                            deriv_dirs.append(sd)
 
         local_entities = set(ent.name for ent in self.entities.values())
         for deriv in deriv_dirs:
@@ -346,6 +354,8 @@ class BIDSLayout(Layout):
 
         if derivatives == True:
             derivatives = list(self.derivatives.keys())
+        elif derivatives:
+            derivatives = listify(derivatives)
 
         # Separate entity kwargs from metadata kwargs
         ent_kwargs, md_kwargs = {}, {}
