@@ -47,7 +47,7 @@ class BIDSFile(File):
     def __repr__(self):
         source = ''
         if self.layout.sources:
-            source=", root='{}'".format(os.path.basename(self.layout.root))
+            source = ", root='{}'".format(os.path.basename(self.layout.root))
         return "<BIDSFile filename='{}'{}>".format(
             os.path.relpath(self.path, start=self.layout.root), source)
 
@@ -343,7 +343,7 @@ class BIDSLayout(Layout):
 
         if derivatives == True:
             derivatives = list(self.derivatives.keys())
-        if derivatives:
+        elif derivatives:
             derivatives = listify(derivatives)
 
         # Separate entity kwargs from metadata kwargs
