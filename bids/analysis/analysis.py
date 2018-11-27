@@ -1,4 +1,5 @@
 import json
+from io import open
 from bids.layout import BIDSLayout
 from bids.utils import matches_entities, convert_JSON
 from bids.variables import BIDSVariableCollection, merge_collections
@@ -45,7 +46,8 @@ class Analysis(object):
 
     def _load_model(self, model):
         if isinstance(model, str):
-            model = json.load(open(model))
+            with open(model, 'r', encoding='utf-8') as fobj:
+                model = json.load(fobj)
 
         # Convert JSON from CamelCase to snake_case keys
         self.model = convert_JSON(model)

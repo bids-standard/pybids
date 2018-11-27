@@ -4,6 +4,7 @@ manipulating them. '''
 import json
 from os.path import join, expanduser, exists
 import os
+from io import open
 from six import string_types
 
 __all__ = ['set_option', 'set_options', 'get_option']
@@ -35,7 +36,8 @@ def from_file(filenames, error_on_missing=True):
         filenames = [filenames]
     for f in filenames:
         if exists(f):
-            settings = json.load(open(f))
+            with open(f, 'r', encoding='utf-8') as fobj:
+                settings = json.load(fobj)
             _settings.update(settings)
         elif error_on_missing:
             raise ValueError("Config file '%s' does not exist." % f)
