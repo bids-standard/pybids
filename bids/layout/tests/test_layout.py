@@ -255,3 +255,12 @@ def test_restricted_words_in_path(tmpdir):
     orig_files = set(f.replace(orig_path, '') for f in orig_layout.files)
     new_files = set(f.replace(new_path, '') for f in new_layout.files)
     assert orig_files == new_files
+
+
+def test_derivative_getters():
+    synth_path = join(get_test_data_path(), 'synthetic')
+    bare_layout = BIDSLayout(synth_path, derivatives=False)
+    full_layout = BIDSLayout(synth_path, derivatives=True)
+    with pytest.raises(AttributeError):
+        bare_layout.get_spaces()
+    assert set(full_layout.get_spaces()) == {'MNI152NLin2009cAsym', 'T1w'}
