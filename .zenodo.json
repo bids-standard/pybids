@@ -4,34 +4,48 @@
       "name": "Tal Yarkoni"
     },
     {
-      "name": "Alejandro de la Vega"
+      "affiliation": "University of Texas at Austin",
+      "name": "Alejandro de la Vega",
+      "orcid": "0000-0001-9062-3778"
     },
     {
-      "name": "Chris Filo Gorgolewski"
+      "affiliation": "Department of Psychology, Stanford University",
+      "name": "Chris Filo Gorgolewski",
+      "orcid": "0000-0003-3321-7583"
     },
     {
-      "name": "Christopher J. Markiewicz"
+      "affiliation": "Stanford University",
+      "name": "Christopher J. Markiewicz",
+      "orcid": "0000-0002-6533-164X"
     },
     {
-      "name": "Taylor Salo"
+      "affiliation": "Florida International University",
+      "name": "Taylor Salo",
+      "orcid": "0000-0001-9813-3167"
     },
     {
       "name": "Krista DeStasio"
     },
     {
-      "name": "Yaroslav Halchenko"
+      "affiliation": "Dartmouth College: Hanover, NH, United States",
+      "name": "Yaroslav Halchenko",
+      "orcid": "0000-0003-3456-2493"
     },
     {
       "name": "Dmitry Petrov"
     },
     {
-      "name": "Dylan Nielson"
+      "affiliation": "National Institute of Mental Health",
+      "name": "Dylan Nielson",
+      "orcid": "0000-0003-4613-6643"
     },
     {
       "name": "Kirstie Whitaker"
     },
     {
-      "name": "Elizabeth DuPre"
+      "affiliation": "Montreal Neurological Institute and Hospital",
+      "name": "Elizabeth DuPre",
+      "orcid": "0000-0003-1358-196X"
     },
     {
       "name": "Greg Kiar"
@@ -43,19 +57,25 @@
       "name": "Alexander Ivanov"
     },
     {
-      "name": "Michael Hanke"
+      "affiliation": "Otto-von-Guericke-University Magdeburg, Germany",
+      "name": "Michael Hanke",
+      "orcid": "0000-0001-6398-6370"
     },
     {
       "name": "Mainak Jas"
     },
     {
-      "name": "Oscar Esteban"
+      "affiliation": "Department of Psychology, Stanford University",
+      "name": "Oscar Esteban",
+      "orcid": "0000-0001-8435-6191"
     },
     {
       "name": "Isla Staden"
     },
     {
-      "name": "Matteo Visconti dOC"
+      "affiliation": "Dartmouth College",
+      "name": "Matteo Visconti dOC",
+      "orcid": "0000-0001-7931-5272"
     },
     {
       "name": "Johan Carlin"
@@ -73,7 +93,9 @@
       "name": "Bertrand Thirion"
     },
     {
-      "name": "Ariel Rokem"
+      "affiliation": "The University of Washington eScience Institute",
+      "name": "Ariel Rokem",
+      "orcid": "0000-0003-0679-1985"
     }
   ]
 }
