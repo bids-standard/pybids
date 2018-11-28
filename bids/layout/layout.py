@@ -113,8 +113,23 @@ class BIDSLayout(Layout):
 
         # Validate arguments
         if not isinstance(root, six.string_types):
-            raise ValueError("root argument must be a string specifying the"
-                             " directory containing the BIDS dataset.")
+            # attempt to handle pathlib paths before giving up
+            try:
+                import pathlib
+                assert isinstance(root, pathlib.Path)
+                # the os functions can only handle pathlib.Paths from 3.4 when it joined
+                # the standard library
+                if not six.PY34:
+                    raise TypeError("root argument is pathlib.Path-derived, "
+                            "this type is only supported on python>=3.4")
+                del pathlib
+            except (ImportError, AssertionError):
+                # there's only one import statement and one assertion above, so this
+                # situation is pretty unambiguous
+                raise ValueError("root argument must be a string specifying the"
+                                 " directory containing the BIDS dataset.")
+            except:
+                raise
         if not os.path.exists(root):
             raise ValueError("BIDS root does not exist: %s" % root)
 
