@@ -325,7 +325,7 @@ class AnalysisNode(object):
         return self._contrasts
 
     def get_design_matrix(self, names=None, format='long', mode='both',
-                          force=False, **kwargs):
+                          force=False, sampling_rate='TR', **kwargs):
         ''' Get design matrix and associated information.
 
         Args:
@@ -345,6 +345,12 @@ class AnalysisNode(object):
                 be converted to dense variables and included in the returned
                 design matrix in the .dense attribute. The force argument is
                 ignored entirely if mode='both'.
+            sampling_rate ('TR', 'highest' or float): Sampling rate at which to
+                generate the design matrix. When 'TR', the repetition time is
+                used, if available, to select the sampling rate (1/TR). When
+                'highest', all variables are resampled to the highest sampling
+                rate of any variable. The sampling rate may also be specified
+                explicitly in Hz.
             kwargs: Optional keyword arguments to pass onto each Variable's
                 to_df() call (e.g., sampling_rate, entities, timing, etc.).
 
@@ -371,8 +377,21 @@ class AnalysisNode(object):
             # and then drop them afterwards.
             kwargs['timing'] = True
             kwargs['sparse'] = False
+
+            if sampling_rate == 'TR':
+                trs = {var.run_info[0].tr for var in self.collection.variables.values()}
+                if not trs:
+                    raise ValueError("Repetition time unavailable; specify sampling_rate "
+                                     "explicitly")
+                elif len(trs) > 1:
+                    raise ValueError("Non-unique Repetition times found ({!r}); specify "
+                                     "sampling_rate explicitly")
+                sampling_rate = 1. / trs.pop()
+            elif sampling_rate == 'highest':
+                sampling_rate = None
             dense_df = coll.to_df(names, format='wide',
-                                  include_sparse=include_sparse, **kwargs)
+                                  include_sparse=include_sparse,
+                                  sampling_rate=sampling_rate, **kwargs)
             if dense_df is not None:
                 dense_df = dense_df.drop(['onset', 'duration'], axis=1)
 
