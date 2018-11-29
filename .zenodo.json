@@ -1,84 +1,101 @@
 {
   "creators": [
     {
-      "name": "Tal Yarkoni"
+      "name": "Yarkoni, Tal"
     },
     {
       "affiliation": "University of Texas at Austin",
-      "name": "Alejandro de la Vega",
+      "name": "de la Vega, Alejandro",
       "orcid": "0000-0001-9062-3778"
     },
     {
       "affiliation": "Stanford University",
-      "name": "Christopher J. Markiewicz",
+      "name": "Markiewicz, Christopher J.",
       "orcid": "0000-0002-6533-164X"
     },
     {
       "affiliation": "Department of Psychology, Stanford University",
-      "name": "Chris Filo Gorgolewski",
+      "name": "Gorgolewski, Krzysztof J.",
       "orcid": "0000-0003-3321-7583"
     },
     {
       "affiliation": "Florida International University",
-      "name": "Taylor Salo",
+      "name": "Salo, Taylor",
       "orcid": "0000-0001-9813-3167"
     },
     {
-      "name": "Krista DeStasio"
+      "name": "DeStasio, Krista"
     },
     {
       "affiliation": "Dartmouth College",
-      "name": "Yaroslav O. Halchenko",
+      "name": "Halchenko, Yaroslav O.",
       "orcid": "0000-0003-3456-2493"
     },
     {
-      "name": "Dmitry Petrov"
+      "name": "Petrov, Dmitry"
     },
     {
       "affiliation": "National Institute of Mental Health",
-      "name": "Dylan Nielson",
+      "name": "Nielson, Dylan M.",
       "orcid": "0000-0003-4613-6643"
     },
     {
-      "name": "Kirstie Whitaker",
+      "affiliation": "Montreal Neurological Institute and Hospital",
+      "name": "Kiar, Gregory",
+      "orcid": "0000-0001-8915-496X"
+    },
+    {
+      "name": "Whitaker, Kirstie",
       "orcid": "0000-0001-8498-4059"
     },
     {
       "affiliation": "Montreal Neurological Institute and Hospital",
-      "name": "Elizabeth DuPre",
+      "name": "DuPre, Elizabeth",
       "orcid": "0000-0003-1358-196X"
     },
     {
-      "name": "Gregory Kiar",
-      "affiliation": "Montreal Neurological Institute and Hospital",
-      "orcid": "0000-0001-8915-496X"
+      "name": "Ivanov, Alexander"
     },
     {
       "affiliation": "CorticoMetrics LLC",
-      "name": "Lee S. Tirrell",
+      "name": "Tirrell, Lee S.",
       "orcid": "0000-0001-9393-8361"
     },
     {
-      "name": "Alexander Ivanov"
-    },
-    {
       "affiliation": "Otto-von-Guericke-University Magdeburg, Germany",
-      "name": "Michael Hanke",
+      "name": "Hanke, Michael",
       "orcid": "0000-0001-6398-6370"
     },
     {
       "affiliation": "T\u00e9l\u00e9com ParisTech, France",
-      "name": "Mainak Jas",
+      "name": "Jas, Mainak",
       "orcid": "0000-0002-3199-9027"
     },
     {
       "affiliation": "Department of Psychology, Stanford University",
-      "name": "Oscar Esteban",
+      "name": "Esteban, Oscar",
       "orcid": "0000-0001-8435-6191"
     },
     {
-      "name": "Isla Staden",
+      "name": "Staden, Isla",
       "orcid": "0000-0002-0795-1154"
+    },
+    {
+      "name": "Carlin, Johan"
+    },
+    {
+      "affiliation": "The University of Washington eScience Institute",
+      "name": "Rokem, Ariel",
+      "orcid": "0000-0003-0679-1985"
+    },
+    {
+      "name": "Thirion, Bertrand"
+    },
+    {
+      "name": "Holdgraf, Chris"
+    },
+    {
+      "name": "Wagner, Adina"
     },
     {
       "affiliation": "UC Berkeley",
@@ -86,24 +103,7 @@
       "orcid": "0000-0001-7931-5272"
     },
     {
-      "name": "Johan Carlin"
-    },
-    {
-      "name": "Adina Wagner"
-    },
-    {
-      "name": "Ross Blair"
-    },
-    {
-      "name": "Chris Holdgraf"
-    },
-    {
-      "name": "Bertrand Thirion"
-    },
-    {
-      "affiliation": "The University of Washington eScience Institute",
-      "name": "Ariel Rokem",
-      "orcid": "0000-0003-0679-1985"
+      "name": "Blair, Ross"
     }
   ]
 }
