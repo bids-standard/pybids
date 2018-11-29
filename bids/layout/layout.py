@@ -1,4 +1,5 @@
 import os
+import sys
 import json
 import warnings
 from io import open
@@ -119,9 +120,9 @@ class BIDSLayout(Layout):
                 assert isinstance(root, pathlib.Path)
                 # the os functions can only handle pathlib.Paths from 3.4 when it joined
                 # the standard library
-                if not six.PY34:
+                if sys.version_info < (3,6):
                     raise TypeError("root argument is pathlib.Path-derived, "
-                            "this type is only supported on python>=3.4")
+                            "this type is only supported on python>=3.6")
             except (ImportError, AssertionError):
                 # there's only one import statement and one assertion above, so this
                 # situation is pretty unambiguous

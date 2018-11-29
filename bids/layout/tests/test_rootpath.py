@@ -20,23 +20,23 @@ def test_strroot_neg():
     with pytest.raises(ValueError):
         layout = BIDSLayout(FALSESTR)
 
-@pytest.mark.skipif(sys.version_info < (3,4),
-        reason="requires python3.4 or higher")
+@pytest.mark.skipif(sys.version_info < (3,6),
+        reason="requires python3.6 or higher")
 def test_pathroot_pos():
     layout = BIDSLayout(TESTPATH)
 
-@pytest.mark.skipif(sys.version_info < (3,4),
-        reason="requires python3.4 or higher")
+@pytest.mark.skipif(sys.version_info < (3,6),
+        reason="requires python3.6 or higher")
 def test_pathroot_neg():
     with pytest.raises(ValueError):
         layout = BIDSLayout(FALSEPATH)
 
-@pytest.mark.skipif(sys.version_info >= (3,4), reason="test of exception handling for older pythons")
+@pytest.mark.skipif(sys.version_info >= (3,6), reason="test of exception handling for older pythons")
 def test_pathroot_pos_oldpython():
     with pytest.raises(TypeError):
         layout = BIDSLayout(TESTPATH)
 
-@pytest.mark.skipif(sys.version_info >= (3,4), reason="test of exception handling for older pythons")
+@pytest.mark.skipif(sys.version_info >= (3,6), reason="test of exception handling for older pythons")
 def test_pathroot_neg_oldpython():
     with pytest.raises(TypeError):
         layout = BIDSLayout(FALSEPATH)
