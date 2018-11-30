@@ -103,7 +103,7 @@ class Step(object):
         layout (BIDSLayout): The BIDSLayout containing all project files.
         level (str): The BIDS keyword to use as the grouping variable; must be
             one of ['run', 'session', 'subject', or 'dataset'].
-        index (int): The numerical index of the current Block within the
+        index (int): The numerical index of the current Step within the
             sequence of steps.
         name (str): Optional name to assign to the block. Must be specified
             in order to enable name-based indexing in the parent Analysis.
@@ -112,7 +112,7 @@ class Step(object):
         contrasts (list): List of contrasts to apply to the parameter estimates
             generated when the model is fit.
         input_nodes (list): Optional list of AnalysisNodes to use as input to
-            this Block (typically, the output from the preceding Block).
+            this Step (typically, the output from the preceding Step).
         auto_contrasts (list, bool): Optional list of variable names to create
             an indicator contrast for. Alternatively, if the boolean value True
             is passed, a contrast is automatically generated for _all_
@@ -145,7 +145,7 @@ class Step(object):
 
     def _group_objects(self, objects):
         # Group list of objects into bins defined by all entities at current
-        # Block level or higher.
+        # Step level or higher.
         if self.level == 'dataset':
             return [objects]
         groups = OrderedDict()
@@ -171,12 +171,12 @@ class Step(object):
         return BIDSVariableCollection.from_df(data, entities, self.level)
 
     def setup(self, input_nodes=None, **kwargs):
-        ''' Set up the Block and construct the design matrix.
+        ''' Set up the Step and construct the design matrix.
 
         Args:
             input_nodes (list): Optional list of Node objects produced by
-                the preceding Block in the analysis. If None, uses any inputs
-                passed in at Block initialization.
+                the preceding Step in the analysis. If None, uses any inputs
+                passed in at Step initialization.
             kwargs: Optional keyword arguments to pass onto load_variables.
         '''
         self.output_nodes = []
@@ -297,14 +297,14 @@ ContrastInfo = namedtuple('ContrastInfo', ('name', 'weights', 'type',
 
 
 class AnalysisNode(object):
-    ''' A single analysis node generated within a Block.
+    ''' A single analysis node generated within a Step.
 
     Args:
         level (str): The level of the Node. Most be one of 'run', 'session',
             'subject', or 'dataset'.
         collection (BIDSVariableCollection): The BIDSVariableCollection
             containing variables at this Node.
-        contrasts (list): A list of contrasts defined in the originating Block.
+        contrasts (list): A list of contrasts defined in the originating Step.
         auto_contrasts (list): Optional list of variable names to create
             an indicator contrast for. Alternatively, if the boolean value True
             is passed, a contrast is automatically generated for _all_
