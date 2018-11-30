@@ -46,6 +46,8 @@
     },
     {
       "name": "Whitaker, Kirstie",
+      "affiliation": "Alan Turing Institute; Department of Psychiatry, University of Cambridge",
+      "name": "Whitaker, Kirstie",
       "orcid": "0000-0001-8498-4059"
     },
     {
@@ -78,6 +80,8 @@
     },
     {
       "name": "Staden, Isla",
+      "affiliation": "Queen Mary University London",
+      "name": "Staden, Isla",
       "orcid": "0000-0002-0795-1154"
     },
     {
@@ -95,7 +99,9 @@
       "name": "Holdgraf, Chris"
     },
     {
-      "name": "Wagner, Adina"
+      "affiliation": "Psychoinformatics Lab, Institute of Psychology, Otto-von-Guericke University Magdeburg",
+      "name": "Wagner, Adina",
+      "orcid": "0000-0003-2917-3450"
     },
     {
       "affiliation": "UC Berkeley",
