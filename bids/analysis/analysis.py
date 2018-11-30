@@ -219,7 +219,7 @@ class Step(object):
             self.output_nodes.append(node)
 
     def get_design_matrix(self, names=None, format='long', mode='both',
-                          force=False, **kwargs):
+                          force=False, sampling_rate='TR', **kwargs):
         ''' Get design matrix and associated information.
 
         Args:
@@ -239,6 +239,13 @@ class Step(object):
                 be converted to dense variables and included in the returned
                 design matrix in the .dense attribute. The force argument is
                 ignored entirely if mode='both'.
+            sampling_rate ('TR', 'highest' or float): Sampling rate at which to
+                generate the dense design matrix. When 'TR', the repetition
+                time is used, if available, to select the sampling rate (1/TR).
+                When 'highest', all variables are resampled to the highest
+                sampling rate of any variable. The sampling rate may also be
+                specified explicitly in Hz. Has no effect on sparse design
+                matrices.
             kwargs: Optional keyword arguments. Includes (1) selectors used
                 to constrain which of the available nodes get returned
                 (e.g., passing subject=['01', '02'] will return design
@@ -253,7 +260,8 @@ class Step(object):
         '''
         nodes, kwargs = self._filter_objects(self.output_nodes, kwargs)
         return [n.get_design_matrix(names, format, mode=mode, force=force,
-                                    **kwargs) for n in nodes]
+                                    sampling_rate=sampling_rate, **kwargs)
+                for n in nodes]
 
     def get_contrasts(self, names=None, variables=None, **kwargs):
         ''' Return contrast information for the current block.
@@ -346,11 +354,12 @@ class AnalysisNode(object):
                 design matrix in the .dense attribute. The force argument is
                 ignored entirely if mode='both'.
             sampling_rate ('TR', 'highest' or float): Sampling rate at which to
-                generate the design matrix. When 'TR', the repetition time is
-                used, if available, to select the sampling rate (1/TR). When
-                'highest', all variables are resampled to the highest sampling
-                rate of any variable. The sampling rate may also be specified
-                explicitly in Hz.
+                generate the dense design matrix. When 'TR', the repetition
+                time is used, if available, to select the sampling rate (1/TR).
+                When 'highest', all variables are resampled to the highest
+                sampling rate of any variable. The sampling rate may also be
+                specified explicitly in Hz. Has no effect on sparse design
+                matrices.
             kwargs: Optional keyword arguments to pass onto each Variable's
                 to_df() call (e.g., sampling_rate, entities, timing, etc.).
 
