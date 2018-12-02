@@ -1,8 +1,8 @@
 {
   "creators": [
     {
-      "name": "Yarkoni, Tal",
       "affiliation": "University of Texas at Austin",
+      "name": "Yarkoni, Tal",
       "orcid": "0000-0002-6558-5113"
     },
     {
@@ -26,6 +26,9 @@
       "orcid": "0000-0001-9813-3167"
     },
     {
+      "name": "Quinten McNamara"
+    },
+    {
       "name": "DeStasio, Krista"
     },
     {
@@ -34,7 +37,13 @@
       "orcid": "0000-0003-3456-2493"
     },
     {
+      "name": "Jean-Baptiste Poline"
+    },
+    {
       "name": "Petrov, Dmitry"
+    },
+    {
+      "name": "Val\u00e9rie Hayot-Sasson"
     },
     {
       "affiliation": "National Institute of Mental Health",
@@ -47,7 +56,6 @@
       "orcid": "0000-0001-8915-496X"
     },
     {
-      "name": "Whitaker, Kirstie",
       "affiliation": "Alan Turing Institute; Department of Psychiatry, University of Cambridge",
       "name": "Whitaker, Kirstie",
       "orcid": "0000-0001-8498-4059"
@@ -66,14 +74,17 @@
       "orcid": "0000-0001-9393-8361"
     },
     {
+      "affiliation": "T\u00e9l\u00e9com ParisTech, France",
+      "name": "Jas, Mainak",
+      "orcid": "0000-0002-3199-9027"
+    },
+    {
       "affiliation": "Otto-von-Guericke-University Magdeburg, Germany",
       "name": "Hanke, Michael",
       "orcid": "0000-0001-6398-6370"
     },
     {
-      "affiliation": "T\u00e9l\u00e9com ParisTech, France",
-      "name": "Jas, Mainak",
-      "orcid": "0000-0002-3199-9027"
+      "name": "Russell A. Poldrack"
     },
     {
       "affiliation": "Department of Psychology, Stanford University",
@@ -81,13 +92,19 @@
       "orcid": "0000-0001-8435-6191"
     },
     {
-      "name": "Staden, Isla",
+      "affiliation": "Berkeley Institute for Data Science; University of California at Berkeley",
+      "name": "Holdgraf, Chris",
+      "orcid": "0000-0002-2391-0678"
+    },
+    {
       "affiliation": "Queen Mary University London",
       "name": "Staden, Isla",
       "orcid": "0000-0002-0795-1154"
     },
     {
-      "name": "Carlin, Johan"
+      "affiliation": "Psychoinformatics Lab, Institute of Psychology, Otto-von-Guericke University Magdeburg",
+      "name": "Wagner, Adina",
+      "orcid": "0000-0003-2917-3450"
     },
     {
       "affiliation": "The University of Washington eScience Institute",
@@ -98,19 +115,21 @@
       "name": "Thirion, Bertrand"
     },
     {
-      "name": "Holdgraf, Chris",
-      "affiliation": "Berkeley Institute for Data Science; University of California at Berkeley",
-      "orcid": "0000-0002-2391-0678"
+      "name": "Dave F. Kleinschmidt"
     },
     {
-      "affiliation": "Psychoinformatics Lab, Institute of Psychology, Otto-von-Guericke University Magdeburg",
-      "name": "Wagner, Adina",
-      "orcid": "0000-0003-2917-3450"
+      "name": "Carlin, Johan"
+    },
+    {
+      "name": "John Lee"
     },
     {
       "affiliation": "UC Berkeley",
       "name": "Visconti di Oleggio Castello, Matteo",
       "orcid": "0000-0001-7931-5272"
+    },
+    {
+      "name": "Pauline Roca"
     },
     {
       "name": "Blair, Ross"
