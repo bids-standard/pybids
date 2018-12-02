@@ -1,13 +1,18 @@
 #!/usr/bin/env python3
 import git
 import json
-from subprocess import run, PIPE
+from subprocess import run, PIPE, CalledProcessError
 from pathlib import Path
+from tempfile import TemporaryDirectory
 
 
 def decommify(name):
     return ' '.join(name.split(', ')[::-1])
 
+
+# List of repositories whose commits should be counted as contributions
+# effigies for testing; change to grabbles after grabbles/grabbit#86 is merged
+codependents = ['https://github.com/effigies/grabbit.git']
 
 # Last shablona commit
 origin_commit = 'd72caaf5933907ed699d57faddaec7bfc836ce6f'
@@ -22,8 +27,37 @@ creator_map = {decommify(creator['name']): creator
                for creator in orig_creators}
 
 shortlog = run(['git', 'shortlog', '-ns', f'{origin_commit}..'], stdout=PIPE)
-committers = [line.split('\t', 1)[1]
-              for line in shortlog.stdout.decode().split('\n') if line]
+counts = [line.split('\t', 1)[::-1]
+          for line in shortlog.stdout.decode().split('\n') if line]
+
+# Get additional commit counts from dependencies
+with TemporaryDirectory() as tmpdir:
+    tmppath = Path(tmpdir)
+    for repo in codependents:
+        repo_dir = str(tmppath / repo.rsplit('/', 1)[1].split('.', 1)[0])
+        try:
+            clone = run(['git', 'clone', repo, repo_dir], check=True)
+        except CalledProcessError as err:
+            raise RuntimeError("Could not clone {}".format(repo)) from err
+        tag = run(['git', '-C', repo_dir, 'tag'], stdout=PIPE)
+        latest_tag = tag.stdout.decode().strip().rsplit('\n', 1)[1]
+        dep_shortlog = run(
+            ['git', '-C', repo_dir, 'shortlog', '-ns', latest_tag],
+            stdout=PIPE)
+        counts.extend(line.split('\t', 1)[::-1]
+                      for line in dep_shortlog.stdout.decode().split('\n')
+                      if line)
+
+commit_counts = {}
+for committer, commits in counts:
+    commit_counts[committer] = commit_counts.get(committer, 0) + int(commits)
+
+# Stable sort:
+# Number of commits in reverse order
+# Ties broken by alphabetical order of first name
+committers = [committer
+              for committer, _ in sorted(commit_counts.items(),
+                                         key=lambda x: (-x[1], x[0]))]
 
 # Tal to the top
 first_author = 'Tal Yarkoni'
