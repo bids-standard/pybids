@@ -26,9 +26,11 @@
       "orcid": "0000-0001-9813-3167"
     },
     {
-      "name": "Quinten McNamara"
+      "affiliation": "University of Texas at Austin",
+      "name": "McNamara, Quinten"
     },
     {
+      "affiliation": "University of Oregon",
       "name": "DeStasio, Krista"
     },
     {
@@ -37,13 +39,17 @@
       "orcid": "0000-0003-3456-2493"
     },
     {
-      "name": "Jean-Baptiste Poline"
+      "affiliation": "McGill University",
+      "name": "Poline, Jean-Baptiste",
+      "orcid": "0000-0002-9794-749X"
     },
     {
+      "affiliation": "Institute for Problems of Information Transmission",
       "name": "Petrov, Dmitry"
     },
     {
-      "name": "Val\u00e9rie Hayot-Sasson"
+      "affiliation": "Concordia University",
+      "name": "Hayot-Sasson, Val\u00e9rie"
     },
     {
       "affiliation": "National Institute of Mental Health",
@@ -84,7 +90,9 @@
       "orcid": "0000-0001-6398-6370"
     },
     {
-      "name": "Russell A. Poldrack"
+      "affiliation": "Stanford University",
+      "name": "Poldrack, Russell A.",
+      "orcid": "0000-0001-6755-0259"
     },
     {
       "affiliation": "Department of Psychology, Stanford University",
@@ -112,16 +120,24 @@
       "orcid": "0000-0003-0679-1985"
     },
     {
-      "name": "Thirion, Bertrand"
+      "affiliation": "INRIA",
+      "name": "Thirion, Bertrand",
+      "orcid": "0000-0001-5018-7895"
     },
     {
-      "name": "Dave F. Kleinschmidt"
+      "affiliation": "Rutgers University",
+      "name": "Kleinschmidt, Dave F.",
+      "orcid": "0000-0002-7442-2762"
     },
     {
-      "name": "Carlin, Johan"
+      "affiliation": "MRC Cognition and Brain Sciences Unit",
+      "name": "Carlin, Johan",
+      "orcid": "0000-0003-0933-1239"
     },
     {
-      "name": "John Lee"
+      "affiliation": "NIMH IRP",
+      "name": "Lee, John A.",
+      "orcid": "0000-0001-5884-4247"
     },
     {
       "affiliation": "UC Berkeley",
@@ -129,9 +145,12 @@
       "orcid": "0000-0001-7931-5272"
     },
     {
-      "name": "Pauline Roca"
+      "affiliation": "Sainte-Anne Hospital Center, Universit\u00e9 Paris Descartes",
+      "name": "Roca, Pauline",
+      "orcid": "0000-0003-2089-6636"
     },
     {
+      "affiliation": "Stanford University",
       "name": "Blair, Ross"
     }
   ]
