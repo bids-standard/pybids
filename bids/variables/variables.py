@@ -186,7 +186,7 @@ class BIDSVariable(object):
 
         if entities:
             ent_data = self.index.reset_index(drop=True)
-            data = pd.concat([data, ent_data], axis=1)
+            data = pd.concat([data, ent_data], axis=1, sort=True)
 
         return data.reset_index(drop=True)
 
@@ -264,7 +264,7 @@ class SimpleVariable(BIDSVariable):
     @classmethod
     def _merge(cls, variables, name, **kwargs):
         dfs = [v.to_df() for v in variables]
-        data = pd.concat(dfs, axis=0).reset_index(drop=True)
+        data = pd.concat(dfs, axis=0, sort=True).reset_index(drop=True)
         data = data.rename(columns={name: 'amplitude'})
         return cls(name, data, source=variables[0].source, **kwargs)
 
@@ -403,8 +403,8 @@ class DenseRunVariable(BIDSVariable):
             ts = pd.date_range(0, periods=len(df), freq='%sms' % sr)
             _timestamps.append(ts.to_series())
             index.append(df)
-        self.timestamps = pd.concat(_timestamps, axis=0)
-        return pd.concat(index, axis=0).reset_index(drop=True)
+        self.timestamps = pd.concat(_timestamps, axis=0, sort=True)
+        return pd.concat(index, axis=0, sort=True).reset_index(drop=True)
 
     def resample(self, sampling_rate, inplace=False, kind='linear'):
         '''Resample the Variable to the specified sampling rate.
@@ -488,7 +488,7 @@ class DenseRunVariable(BIDSVariable):
                     raise ValueError(msg)
 
         variables = [v.resample(sampling_rate) for v in variables]
-        values = pd.concat([v.values for v in variables], axis=0)
+        values = pd.concat([v.values for v in variables], axis=0, sort=True)
         run_info = list(chain(*[v.run_info for v in variables]))
         source = variables[0].source
         return DenseRunVariable(name, values, run_info, source, sampling_rate)
