@@ -113,7 +113,7 @@ class BIDSVariableCollection(object):
                          if v.name in variables]
 
         dfs = [v.to_df(**kwargs) for v in variables]
-        df = pd.concat(dfs, axis=0)
+        df = pd.concat(dfs, axis=0, sort=True)
 
         if format == 'long':
             return df.reset_index(drop=True).fillna(fillna)
@@ -145,7 +145,7 @@ class BIDSVariableCollection(object):
         for col in data.columns:
             _data = pd.DataFrame(data[col].values, columns=['amplitude'])
             if entities is not None:
-                _data = pd.concat([_data, entities], axis=1)
+                _data = pd.concat([_data, entities], axis=1, sort=True)
             variables.append(SimpleVariable(col, _data, source))
         return BIDSVariableCollection(variables)
 

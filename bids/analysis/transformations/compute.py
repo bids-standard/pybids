@@ -93,7 +93,7 @@ class Product(Transformation):
     _output_required = True
 
     def _transform(self, data):
-        data = pd.concat(data, axis=1)
+        data = pd.concat(data, axis=1, sort=True)
         return data.product(1)
 
 
@@ -131,7 +131,7 @@ class Sum(Transformation):
     _output_required = True
 
     def _transform(self, data, weights=None):
-        data = pd.concat(data, axis=1)
+        data = pd.concat(data, axis=1, sort=True)
         if weights is None:
             weights = np.ones(data.shape[1])
         else:
@@ -191,7 +191,7 @@ class And(Transformation):
     _output_required = True
 
     def _transform(self, dfs):
-        df = pd.concat(dfs, axis=1)
+        df = pd.concat(dfs, axis=1, sort=True)
         return df.all(axis=1).astype(int)
 
 
@@ -221,5 +221,5 @@ class Or(Transformation):
     _output_required = True
 
     def _transform(self, dfs):
-        df = pd.concat(dfs, axis=1)
+        df = pd.concat(dfs, axis=1, sort=True)
         return df.any(axis=1).astype(int)

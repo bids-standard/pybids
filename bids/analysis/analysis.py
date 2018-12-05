@@ -166,8 +166,8 @@ class Step(object):
             row = pd.Series(np.ones(len(contrasts)), index=contrasts)
             data.append(row)
             entities.append(pd.Series(n.entities))
-        data = pd.concat(data, axis=1).T
-        entities = pd.concat(entities, axis=1).T
+        data = pd.concat(data, axis=1, sort=True).T
+        entities = pd.concat(entities, axis=1, sort=True).T
         return BIDSVariableCollection.from_df(data, entities, self.level)
 
     def setup(self, input_nodes=None, **kwargs):
@@ -464,7 +464,8 @@ class AnalysisNode(object):
             # If variables were explicitly passed, use them as the columns
             if variables is not None:
                 var_df = pd.DataFrame(columns=variables)
-                weights = pd.concat([weights, var_df])[variables].fillna(0)
+                weights = pd.concat([weights, var_df],
+                                    sort=True)[variables].fillna(0)
 
             test_type = c.get('type', ('T' if len(weights) == 1 else 'F'))
 
