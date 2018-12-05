@@ -11,8 +11,7 @@ def decommify(name):
 
 
 # List of repositories whose commits should be counted as contributions
-# effigies for testing; change to grabbles after grabbles/grabbit#86 is merged
-codependents = ['https://github.com/effigies/grabbit.git']
+codependents = ['https://github.com/grabbles/grabbit.git']
 
 # Last shablona commit
 origin_commit = 'd72caaf5933907ed699d57faddaec7bfc836ce6f'
