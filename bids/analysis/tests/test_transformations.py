@@ -247,7 +247,8 @@ def test_factor(collection):
     assert not targets - set(coll.variables.keys())
     assert all([set(coll.variables[t].values.unique()) == {0.0, 1.0}
                 for t in targets])
-    data = pd.concat([coll.variables[t].values for t in targets], axis=1)
+    data = pd.concat([coll.variables[t].values for t in targets],
+                     axis=1, sort=True)
     assert (data.sum(1) == 1).all()
 
     # reduced-rank dummy-coding, multiple values
@@ -258,7 +259,8 @@ def test_factor(collection):
     assert 'respnum.0' not in coll.variables.keys()
     assert all([set(coll.variables[t].values.unique()) == {0.0, 1.0}
                 for t in targets])
-    data = pd.concat([coll.variables[t].values for t in targets], axis=1)
+    data = pd.concat([coll.variables[t].values for t in targets],
+                     axis=1, sort=True)
     assert set(np.unique(data.sum(1).values.ravel())) == {0., 1.}
 
     # Effect coding, multiple values
@@ -269,7 +271,8 @@ def test_factor(collection):
     assert 'respnum.0' not in coll.variables.keys()
     assert all([set(coll.variables[t].values.unique()) == {-0.25, 0.0, 1.0}
                 for t in targets])
-    data = pd.concat([coll.variables[t].values for t in targets], axis=1)
+    data = pd.concat([coll.variables[t].values for t in targets],
+                     axis=1, sort=True)
     assert set(np.unique(data.sum(1).values.ravel())) == {-1., 1.}
 
 

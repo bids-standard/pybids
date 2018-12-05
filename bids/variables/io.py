@@ -342,7 +342,7 @@ def _load_tsv_variables(layout, suffix, dataset=None, columns=None,
             ent_recs = [layout.files[p].entities for p in paths
                         if p in layout.files]
             ent_cols = pd.DataFrame.from_records(ent_recs)
-            _data = pd.concat([_data, ent_cols], axis=1)
+            _data = pd.concat([_data, ent_cols], axis=1, sort=True)
             # It's possible to end up with duplicate entity columns this way
             _data = _data.T.drop_duplicates().T
 

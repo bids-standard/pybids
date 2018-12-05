@@ -39,17 +39,27 @@ def test_get_design_matrix_arguments(analysis):
     assert result.sparse is None
     assert result.dense is None
 
-    kwargs = dict(run=1, subject='01', mode='dense', force=True)
+    kwargs = dict(run=1, subject='01', mode='dense', force=True, sampling_rate='highest')
     result = analysis['run'].get_design_matrix(**kwargs)[0]
     assert result.sparse is None
     assert result.dense.shape == (4800, 6)
+
+    kwargs = dict(run=1, subject='01', mode='dense', force=True, sampling_rate='TR')
+    result = analysis['run'].get_design_matrix(**kwargs)[0]
+    assert result.sparse is None
+    assert result.dense.shape == (240, 6)
+
+    kwargs = dict(run=1, subject='01', mode='dense', force=True, sampling_rate=0.5)
+    result = analysis['run'].get_design_matrix(**kwargs)[0]
+    assert result.sparse is None
+    assert result.dense.shape == (240, 6)
 
     # format='long' should be ignored for dense output
     kwargs = dict(run=1, subject='01', mode='dense', force=True,
                   format='long', entities=False)
     result = analysis['run'].get_design_matrix(**kwargs)[0]
     assert result.sparse is None
-    assert result.dense.shape == (4800, 1)
+    assert result.dense.shape == (240, 1)
 
     kwargs = dict(run=1, subject='01', mode='sparse', format='wide',
                   entities=False)

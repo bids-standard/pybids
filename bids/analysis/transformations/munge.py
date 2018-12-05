@@ -165,7 +165,8 @@ class Filter(Transformation):
         for k, v in name_map.items():
             query = query.replace(k, v)
 
-        data = pd.concat([self.collection[c].values for c in names], axis=1)
+        data = pd.concat([self.collection[c].values for c in names],
+                         axis=1, sort=True)
         # Make sure we can use integer index
         data = data.reset_index(drop=True)
         data.columns = list(name_map.values())
@@ -265,7 +266,7 @@ class Split(Transformation):
         by_variables = [all_variables[v].values if v in all_variables
                         else var.index[v].reset_index(drop=True)
                         for v in listify(by)]
-        group_data = pd.concat(by_variables, axis=1)
+        group_data = pd.concat(by_variables, axis=1, sort=True)
         group_data.columns = listify(by)
 
         # For sparse data, we need to set up a 1D grouper

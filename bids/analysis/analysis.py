@@ -103,7 +103,7 @@ class Step(object):
         layout (BIDSLayout): The BIDSLayout containing all project files.
         level (str): The BIDS keyword to use as the grouping variable; must be
             one of ['run', 'session', 'subject', or 'dataset'].
-        index (int): The numerical index of the current Block within the
+        index (int): The numerical index of the current Step within the
             sequence of steps.
         name (str): Optional name to assign to the block. Must be specified
             in order to enable name-based indexing in the parent Analysis.
@@ -112,7 +112,7 @@ class Step(object):
         contrasts (list): List of contrasts to apply to the parameter estimates
             generated when the model is fit.
         input_nodes (list): Optional list of AnalysisNodes to use as input to
-            this Block (typically, the output from the preceding Block).
+            this Step (typically, the output from the preceding Step).
         auto_contrasts (list, bool): Optional list of variable names to create
             an indicator contrast for. Alternatively, if the boolean value True
             is passed, a contrast is automatically generated for _all_
@@ -145,7 +145,7 @@ class Step(object):
 
     def _group_objects(self, objects):
         # Group list of objects into bins defined by all entities at current
-        # Block level or higher.
+        # Step level or higher.
         if self.level == 'dataset':
             return [objects]
         groups = OrderedDict()
@@ -166,17 +166,17 @@ class Step(object):
             row = pd.Series(np.ones(len(contrasts)), index=contrasts)
             data.append(row)
             entities.append(pd.Series(n.entities))
-        data = pd.concat(data, axis=1).T
-        entities = pd.concat(entities, axis=1).T
+        data = pd.concat(data, axis=1, sort=True).T
+        entities = pd.concat(entities, axis=1, sort=True).T
         return BIDSVariableCollection.from_df(data, entities, self.level)
 
     def setup(self, input_nodes=None, **kwargs):
-        ''' Set up the Block and construct the design matrix.
+        ''' Set up the Step and construct the design matrix.
 
         Args:
             input_nodes (list): Optional list of Node objects produced by
-                the preceding Block in the analysis. If None, uses any inputs
-                passed in at Block initialization.
+                the preceding Step in the analysis. If None, uses any inputs
+                passed in at Step initialization.
             kwargs: Optional keyword arguments to pass onto load_variables.
         '''
         self.output_nodes = []
@@ -219,7 +219,7 @@ class Step(object):
             self.output_nodes.append(node)
 
     def get_design_matrix(self, names=None, format='long', mode='both',
-                          force=False, **kwargs):
+                          force=False, sampling_rate='TR', **kwargs):
         ''' Get design matrix and associated information.
 
         Args:
@@ -239,6 +239,13 @@ class Step(object):
                 be converted to dense variables and included in the returned
                 design matrix in the .dense attribute. The force argument is
                 ignored entirely if mode='both'.
+            sampling_rate ('TR', 'highest' or float): Sampling rate at which to
+                generate the dense design matrix. When 'TR', the repetition
+                time is used, if available, to select the sampling rate (1/TR).
+                When 'highest', all variables are resampled to the highest
+                sampling rate of any variable. The sampling rate may also be
+                specified explicitly in Hz. Has no effect on sparse design
+                matrices.
             kwargs: Optional keyword arguments. Includes (1) selectors used
                 to constrain which of the available nodes get returned
                 (e.g., passing subject=['01', '02'] will return design
@@ -253,7 +260,8 @@ class Step(object):
         '''
         nodes, kwargs = self._filter_objects(self.output_nodes, kwargs)
         return [n.get_design_matrix(names, format, mode=mode, force=force,
-                                    **kwargs) for n in nodes]
+                                    sampling_rate=sampling_rate, **kwargs)
+                for n in nodes]
 
     def get_contrasts(self, names=None, variables=None, **kwargs):
         ''' Return contrast information for the current block.
@@ -289,14 +297,14 @@ ContrastInfo = namedtuple('ContrastInfo', ('name', 'weights', 'type',
 
 
 class AnalysisNode(object):
-    ''' A single analysis node generated within a Block.
+    ''' A single analysis node generated within a Step.
 
     Args:
         level (str): The level of the Node. Most be one of 'run', 'session',
             'subject', or 'dataset'.
         collection (BIDSVariableCollection): The BIDSVariableCollection
             containing variables at this Node.
-        contrasts (list): A list of contrasts defined in the originating Block.
+        contrasts (list): A list of contrasts defined in the originating Step.
         auto_contrasts (list): Optional list of variable names to create
             an indicator contrast for. Alternatively, if the boolean value True
             is passed, a contrast is automatically generated for _all_
@@ -325,7 +333,7 @@ class AnalysisNode(object):
         return self._contrasts
 
     def get_design_matrix(self, names=None, format='long', mode='both',
-                          force=False, **kwargs):
+                          force=False, sampling_rate='TR', **kwargs):
         ''' Get design matrix and associated information.
 
         Args:
@@ -345,6 +353,13 @@ class AnalysisNode(object):
                 be converted to dense variables and included in the returned
                 design matrix in the .dense attribute. The force argument is
                 ignored entirely if mode='both'.
+            sampling_rate ('TR', 'highest' or float): Sampling rate at which to
+                generate the dense design matrix. When 'TR', the repetition
+                time is used, if available, to select the sampling rate (1/TR).
+                When 'highest', all variables are resampled to the highest
+                sampling rate of any variable. The sampling rate may also be
+                specified explicitly in Hz. Has no effect on sparse design
+                matrices.
             kwargs: Optional keyword arguments to pass onto each Variable's
                 to_df() call (e.g., sampling_rate, entities, timing, etc.).
 
@@ -371,8 +386,21 @@ class AnalysisNode(object):
             # and then drop them afterwards.
             kwargs['timing'] = True
             kwargs['sparse'] = False
+
+            if sampling_rate == 'TR':
+                trs = {var.run_info[0].tr for var in self.collection.variables.values()}
+                if not trs:
+                    raise ValueError("Repetition time unavailable; specify sampling_rate "
+                                     "explicitly")
+                elif len(trs) > 1:
+                    raise ValueError("Non-unique Repetition times found ({!r}); specify "
+                                     "sampling_rate explicitly")
+                sampling_rate = 1. / trs.pop()
+            elif sampling_rate == 'highest':
+                sampling_rate = None
             dense_df = coll.to_df(names, format='wide',
-                                  include_sparse=include_sparse, **kwargs)
+                                  include_sparse=include_sparse,
+                                  sampling_rate=sampling_rate, **kwargs)
             if dense_df is not None:
                 dense_df = dense_df.drop(['onset', 'duration'], axis=1)
 
@@ -436,7 +464,8 @@ class AnalysisNode(object):
             # If variables were explicitly passed, use them as the columns
             if variables is not None:
                 var_df = pd.DataFrame(columns=variables)
-                weights = pd.concat([weights, var_df])[variables].fillna(0)
+                weights = pd.concat([weights, var_df],
+                                    sort=True)[variables].fillna(0)
 
             test_type = c.get('type', ('T' if len(weights) == 1 else 'F'))
 
