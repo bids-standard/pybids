@@ -57,7 +57,7 @@ class BIDSFile(File):
         """
         try:
             return nb.load(self.path)
-        except Exception as e:
+        except Exception:
             return None
 
     @property
@@ -208,8 +208,8 @@ class BIDSLayout(Layout):
                 'PipelineDescription', {}).get('Name', None)
             if pipeline_name is None:
                 raise ValueError("Every valid BIDS-derivatives dataset must "
-                                "have a PipelineDescription.Name field set "
-                                "inside dataset_description.json.")
+                                 "have a PipelineDescription.Name field set "
+                                 "inside dataset_description.json.")
             if pipeline_name in self.derivatives:
                 raise ValueError("Pipeline name '%s' has already been added "
                                  "to this BIDSLayout. Every added pipeline "
@@ -220,13 +220,15 @@ class BIDSLayout(Layout):
             self.derivatives[pipeline_name] = BIDSLayout(deriv, **kwargs)
 
             # Propagate derivative entities into top-level dynamic getters
-            deriv_entities = set(ent.name
-                                 for ent in self.derivatives[pipeline_name].entities.values())
+            deriv_entities = set(
+                ent.name
+                for ent in self.derivatives[pipeline_name].entities.values())
             for deriv_ent in deriv_entities - local_entities:
                 local_entities.add(deriv_ent)
                 getter = 'get_' + inflect.engine().plural(deriv_ent)
                 if not hasattr(self, getter):
-                    func = partial(self.get, target=deriv_ent, return_type='id')
+                    func = partial(
+                        self.get, target=deriv_ent, return_type='id')
                     setattr(self, getter, func)
 
     def to_df(self, **kwargs):
@@ -299,9 +301,9 @@ class BIDSLayout(Layout):
                 )
             suffix = f.entities['suffix']
 
-        tmp = self.get_nearest(path, extensions=extension, all_=True,
-                               suffix=suffix, ignore_strict_entities=['suffix'],
-                               **kwargs)
+        tmp = self.get_nearest(
+            path, extensions=extension, all_=True, suffix=suffix,
+            ignore_strict_entities=['suffix'], **kwargs)
 
         if len(tmp):
             return tmp
@@ -346,10 +348,11 @@ class BIDSLayout(Layout):
                 only files that match the first two subjects.
 
         Returns:
-            A list of BIDSFile (default) or other (see return_type for details) objects.
+            A list of BIDSFile (default) or other objects
+            (see return_type for details).
         """
 
-        if derivatives == True:
+        if derivatives is True:
             derivatives = list(self.derivatives.keys())
         elif derivatives:
             derivatives = listify(derivatives)
@@ -441,7 +444,6 @@ class BIDSLayout(Layout):
 
         results.update(self.metadata_index.file_index[path])
         return results
-
 
     def get_bvec(self, path, **kwargs):
         """Get bvec file for passed path."""
@@ -598,7 +600,7 @@ class MetadataIndex(object):
         if f.path in self.file_index and not overwrite:
             return
 
-        if 'suffix' not in f.entities: # Skip files without suffixes
+        if 'suffix' not in f.entities:  # Skip files without suffixes
             return
 
         md = self._get_metadata(f.path)
