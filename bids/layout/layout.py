@@ -1,4 +1,5 @@
 import os
+import re
 import json
 import warnings
 from io import open
@@ -10,8 +11,7 @@ import nibabel as nb
 from collections import defaultdict
 from functools import reduce, partial
 from itertools import chain
-import re
-
+from bids.config import get_option
 
 try:
     from os.path import commonpath
@@ -122,9 +122,9 @@ class BIDSLayout(Layout):
 
         target = os.path.join(self.root, 'dataset_description.json')
         if not os.path.exists(target):
-            raise ValueError("'dataset_description.json' file is missing from "
-                          "project root. Every valid BIDS dataset must have "
-                          "this file.")
+            raise ValueError(
+                "'dataset_description.json' file is missing from project root."
+                " Every valid BIDS dataset must have this file.")
         else:
             with open(target, 'r', encoding='utf-8') as desc_fd:
                 self.description = json.load(desc_fd)
@@ -147,10 +147,8 @@ class BIDSLayout(Layout):
         # Set up path and config for grabbit
         if config is None:
             config = 'bids'
-        config = listify(config)
-        conf_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                                 'config', '%s.json')
-        bids_conf = [conf_path % c for c in config]
+        config_paths = get_option('config_paths')
+        bids_conf = [config_paths[c] for c in listify(config)]
         path = (root, bids_conf)
 
         # Initialize grabbit Layout
@@ -162,11 +160,11 @@ class BIDSLayout(Layout):
         # Add derivatives if any are found
         self.derivatives = {}
         if derivatives:
-            if derivatives == True:
+            if derivatives is True:
                 derivatives = os.path.join(root, 'derivatives')
             self.add_derivatives(
                 derivatives, validate=validate,
-                index_associated=index_associated,include=include,
+                index_associated=index_associated, include=include,
                 absolute_paths=absolute_paths, derivatives=None, config=None,
                 sources=self, **kwargs)
 
