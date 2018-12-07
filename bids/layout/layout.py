@@ -132,9 +132,10 @@ class BIDSLayout(Layout):
             with open(target, 'r', encoding='utf-8') as desc_fd:
                 self.description = json.load(desc_fd)
             for k in ['Name', 'BIDSVersion']:
-                if k not in self.description and validate is True:
-                    raise ValueError("Mandatory '%s' field missing from "
-                                     "dataset_description.json." % k)
+                if validate is True:
+                    if k not in self.description:
+                        raise ValueError("Mandatory '%s' field missing from "
+                                         "dataset_description.json." % k)
 
         # Determine which subdirectories to exclude from indexing
         excludes = {"code", "stimuli", "sourcedata", "models", "derivatives"}
