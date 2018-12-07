@@ -9,7 +9,6 @@ import logging
 from os.path import basename
 
 import numpy as np
-import nibabel as nib
 from num2words import num2words
 
 from .. import __version__
@@ -421,6 +420,7 @@ def parse_niftis(layout, niftis, subj, config, **kwargs):
     config : :obj:`dict`
         Configuration info for methods generation.
     """
+    import nibabel as nb
     kwargs = {k: v for k, v in kwargs.items() if v is not None}
 
     description_list = []
@@ -431,7 +431,7 @@ def parse_niftis(layout, niftis, subj, config, **kwargs):
         if not metadata:
             LOGGER.warning('No json file found for %s', nii_file)
         else:
-            img = nib.load(nii_file)
+            img = nb.load(nii_file)
 
             # Assume all data were acquired the same way.
             if not description_list:

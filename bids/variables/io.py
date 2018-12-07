@@ -1,5 +1,4 @@
 import numpy as np
-import nibabel as nb
 from os.path import join
 from bids.utils import listify
 from .entities import NodeIndex
@@ -115,6 +114,7 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
 
     Returns: A NodeIndex instance.
     '''
+    import nibabel as nb
     import pandas as pd
 
     # Extract any non-keyword arguments
