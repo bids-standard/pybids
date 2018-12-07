@@ -148,8 +148,7 @@ class BIDSLayout(Layout):
         if config is None:
             config = 'bids'
         config_paths = get_option('config_paths')
-        bids_conf = [config_paths[c] for c in listify(config)]
-        path = (root, bids_conf)
+        path = (root, [config_paths[c] for c in listify(config)])
 
         # Initialize grabbit Layout
         super(BIDSLayout, self).__init__(path, root=self.root,

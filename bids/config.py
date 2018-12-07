@@ -12,7 +12,7 @@ __all__ = ['set_option', 'set_options', 'get_option']
 _config_name = 'pybids_config.json'
 
 conf_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                         'layout', 'config', '%s.json')
+                         'layout', 'config', '{}.json')
 _default_settings = {
     'config_paths': {
         name: conf_path.format(name) for name in ['bids', 'derivatives']}
