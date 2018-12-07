@@ -1,5 +1,4 @@
 import numpy as np
-import pandas as pd
 import nibabel as nb
 from os.path import join
 from bids.utils import listify
@@ -116,6 +115,7 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
 
     Returns: A NodeIndex instance.
     '''
+    import pandas as pd
 
     # Extract any non-keyword arguments
     kwargs = selectors.copy()
@@ -305,6 +305,7 @@ def _load_tsv_variables(layout, suffix, dataset=None, columns=None,
 
     Returns: A NodeIndex instance.
     '''
+    import pandas as pd
 
     # Sanitize the selectors: only keep entities at current level or above
     remap = {'scans': 'run', 'sessions': 'session', 'participants': 'subject'}

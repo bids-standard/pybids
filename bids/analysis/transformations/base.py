@@ -1,7 +1,6 @@
 ''' Base Transformation class and associated utilities. '''
 
 import numpy as np
-import pandas as pd
 from bids.utils import listify
 import warnings
 from abc import ABCMeta, abstractmethod
@@ -263,6 +262,7 @@ class Transformation(object):
             if self._return_type in ['none', None]:
                 continue
             elif self._return_type == 'numpy':
+                import pandas as pd
                 col.values = pd.DataFrame(result)
             elif self._return_type == 'pandas':
                 col.values = result

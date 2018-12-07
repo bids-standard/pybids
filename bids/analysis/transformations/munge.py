@@ -4,10 +4,8 @@ other formats or shapes.
 '''
 
 import numpy as np
-import pandas as pd
 from bids.utils import listify
 from .base import Transformation
-from patsy import dmatrix
 import re
 from bids.variables import DenseRunVariable, SimpleVariable
 
@@ -108,7 +106,7 @@ class Factor(Transformation):
     _allow_categorical = ('variables',)
 
     def _transform(self, var, constraint='none', ref_level=None, sep='.'):
-
+        import pandas as pd
         result = []
         data = var.to_df()
         orig_name = var.name
@@ -153,6 +151,7 @@ class Filter(Transformation):
     _allow_categorical = ('variables', 'by')
 
     def _transform(self, var, query, by=None):
+        import pandas as pd
 
         if by is None:
             by = []
@@ -208,6 +207,7 @@ class Replace(Transformation):
     _allow_categorical = ('variables',)
 
     def _transform(self, var, replace, attribute='value'):
+        import pandas as pd
 
         if attribute == 'value':
             var.values = var.values.replace(replace)
@@ -255,6 +255,7 @@ class Split(Transformation):
     _densify = ('variables', 'by')
 
     def _transform(self, var, by, drop_orig=True):
+        import pandas as pd
 
         if not isinstance(var, SimpleVariable):
             self._densify_variables()
@@ -283,6 +284,7 @@ class Split(Transformation):
         # For dense data, use patsy to create design matrix, then multiply
         # it by target variable
         else:
+            from patsy import dmatrix
             group_data = group_data.astype(str)
             formula = '0+' + '*'.join(listify(by))
             dm = dmatrix(formula, data=group_data, return_type='dataframe')

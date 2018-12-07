@@ -7,7 +7,6 @@ from . import transformations as transform
 from collections import namedtuple, OrderedDict
 from six import string_types
 import numpy as np
-import pandas as pd
 from itertools import chain
 
 
@@ -160,6 +159,7 @@ class Step(object):
         return list(groups.values())
 
     def _concatenate_input_nodes(self, nodes):
+        import pandas as pd
         data, entities = [], []
         for n in nodes:
             contrasts = [c.name for c in n.contrasts]
@@ -459,6 +459,7 @@ class AnalysisNode(object):
             contrasts = [c for c in contrasts if c['name'] in names]
 
         def setup_contrast(c):
+            import pandas as pd
             weights = np.atleast_2d(c['weights'])
             weights = pd.DataFrame(weights, columns=c['condition_list'])
             # If variables were explicitly passed, use them as the columns

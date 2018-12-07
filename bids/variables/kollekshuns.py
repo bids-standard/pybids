@@ -5,9 +5,7 @@ module of the same name on Python 2. We could go with something sensible but
 verbose like 'variable_collections', but that would make far too much sense.
 '''
 
-import pandas as pd
 from copy import copy
-from pandas.api.types import is_numeric_dtype
 import warnings
 import re
 from .variables import (SparseRunVariable, SimpleVariable, DenseRunVariable,
@@ -103,6 +101,7 @@ class BIDSVariableCollection(object):
 
         Returns: A pandas DataFrame.
         '''
+        import pandas as pd
 
         if variables is None:
             variables = list(self.variables.keys())
@@ -141,6 +140,7 @@ class BIDSVariableCollection(object):
         Returns:
             A BIDSVariableCollection.
         '''
+        import pandas as pd
         variables = []
         for col in data.columns:
             _data = pd.DataFrame(data[col].values, columns=['amplitude'])
@@ -170,6 +170,7 @@ class BIDSVariableCollection(object):
             will be {'subject': '01'}; the runs will be excluded as they vary
             across the Collection contents.
         '''
+        import pandas as pd
         all_ents = pd.DataFrame.from_records(
             [v.entities for v in self.variables.values()])
         constant = all_ents.apply(lambda x: x.nunique() == 1)
@@ -267,6 +268,7 @@ class BIDSRunVariableCollection(BIDSVariableCollection):
             if variables is not None and name not in variables:
                 continue
             if isinstance(var, SparseRunVariable):
+                from pandas.api.types import is_numeric_dtype
                 if force_dense and is_numeric_dtype(var.values):
                     _variables[name] = var.to_dense(sampling_rate)
             else:

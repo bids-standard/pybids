@@ -1,7 +1,6 @@
 from itertools import chain
 from collections import namedtuple
 from . import kollekshuns as clc
-import pandas as pd
 
 
 class Node(object):
@@ -59,6 +58,7 @@ class NodeIndex(Node):
     ''' Represents the top level in a BIDS hierarchy. '''
 
     def __init__(self):
+        import pandas as pd
         self.index = pd.DataFrame()
         self.nodes = []
 
@@ -173,6 +173,7 @@ class NodeIndex(Node):
             A Node instance.
 
         '''
+        import pandas as pd
 
         result = self.get_nodes(level, entities)
 

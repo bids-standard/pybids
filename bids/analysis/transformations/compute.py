@@ -3,7 +3,6 @@ Transformations that primarily involve numerical computation on variables.
 '''
 
 import numpy as np
-import pandas as pd
 from bids.utils import listify
 from .base import Transformation
 from bids.analysis import hrf
@@ -70,6 +69,7 @@ class Orthogonalize(Transformation):
     _align = ('other')
 
     def _transform(self, var, other):
+        import pandas as pd
 
         other = listify(other)
 
@@ -93,6 +93,7 @@ class Product(Transformation):
     _output_required = True
 
     def _transform(self, data):
+        import pandas as pd
         data = pd.concat(data, axis=1, sort=True)
         return data.product(1)
 
@@ -131,6 +132,7 @@ class Sum(Transformation):
     _output_required = True
 
     def _transform(self, data, weights=None):
+        import pandas as pd
         data = pd.concat(data, axis=1, sort=True)
         if weights is None:
             weights = np.ones(data.shape[1])
@@ -191,6 +193,7 @@ class And(Transformation):
     _output_required = True
 
     def _transform(self, dfs):
+        import pandas as pd
         df = pd.concat(dfs, axis=1, sort=True)
         return df.all(axis=1).astype(int)
 
@@ -221,5 +224,6 @@ class Or(Transformation):
     _output_required = True
 
     def _transform(self, dfs):
+        import pandas as pd
         df = pd.concat(dfs, axis=1, sort=True)
         return df.any(axis=1).astype(int)

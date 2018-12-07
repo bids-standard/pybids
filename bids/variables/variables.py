@@ -1,5 +1,4 @@
 import numpy as np
-import pandas as pd
 import math
 from copy import deepcopy
 from abc import abstractmethod, ABCMeta
@@ -40,6 +39,7 @@ class BIDSVariable(object):
         '''
         result = deepcopy(self)
         if data is not None:
+            import pandas as pd
             if data.shape != self.values.shape:
                 raise ValueError("Replacement data has shape %s; must have "
                                  "same shape as existing data %s." %
@@ -175,6 +175,7 @@ class BIDSVariable(object):
                 the current column name.
             entities (bool): If True, adds extra columns for all entities.
         '''
+        import pandas as pd
         amp = 'amplitude' if condition else self.name
         data = pd.DataFrame({amp: self.values.values.ravel()})
 
@@ -263,6 +264,7 @@ class SimpleVariable(BIDSVariable):
 
     @classmethod
     def _merge(cls, variables, name, **kwargs):
+        import pandas as pd
         dfs = [v.to_df() for v in variables]
         data = pd.concat(dfs, axis=0, sort=True).reset_index(drop=True)
         data = data.rename(columns={name: 'amplitude'})
@@ -358,6 +360,7 @@ class DenseRunVariable(BIDSVariable):
     '''
 
     def __init__(self, name, values, run_info, source, sampling_rate):
+        import pandas as pd
 
         values = pd.DataFrame(values)
 
@@ -383,6 +386,7 @@ class DenseRunVariable(BIDSVariable):
         -------
         A list of DenseRunVariables, one per unique value in the grouper.
         '''
+        import pandas as pd
         values = grouper.values * self.values.values
         df = pd.DataFrame(values, columns=grouper.columns)
         return [DenseRunVariable('%s.%s' % (self.name, name), df[name].values,
@@ -392,6 +396,7 @@ class DenseRunVariable(BIDSVariable):
 
     def _build_entity_index(self, run_info, sampling_rate):
         ''' Build the entity index from run information. '''
+        import pandas as pd
 
         index = []
         sr = int(round(1000. / sampling_rate))
@@ -421,6 +426,7 @@ class DenseRunVariable(BIDSVariable):
             the kind of interpolation approach to use. See interp1d docs for
             valid values. Default is 'linear'.
         '''
+        import pandas as pd
         if not inplace:
             var = self.clone()
             var.resample(sampling_rate, True, kind)
@@ -471,6 +477,7 @@ class DenseRunVariable(BIDSVariable):
 
     @classmethod
     def _merge(cls, variables, name, sampling_rate=None, **kwargs):
+        import pandas as pd
 
         if not isinstance(sampling_rate, int):
             rates = set([v.sampling_rate for v in variables])
