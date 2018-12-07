@@ -2,7 +2,6 @@ import numpy as np
 import math
 from copy import deepcopy
 from abc import abstractmethod, ABCMeta
-from scipy.interpolate import interp1d
 from bids.utils import listify
 from itertools import chain
 from six import add_metaclass
@@ -427,6 +426,7 @@ class DenseRunVariable(BIDSVariable):
             valid values. Default is 'linear'.
         '''
         import pandas as pd
+        from scipy.interpolate import interp1d
         if not inplace:
             var = self.clone()
             var.resample(sampling_rate, True, kind)

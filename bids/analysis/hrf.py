@@ -8,7 +8,6 @@ Author: Bertrand Thirion, 2011--2015
 
 import warnings
 import numpy as np
-from scipy.stats import gamma
 
 
 def _gamma_difference_hrf(tr, oversampling=50, time_length=32., onset=0.,
@@ -51,6 +50,7 @@ def _gamma_difference_hrf(tr, oversampling=50, time_length=32., onset=0.,
     hrf : array of shape(length / tr * oversampling, dtype=float)
          hrf sampling on the oversampled time grid
     """
+    from scipy.stats import gamma
     dt = tr / oversampling
     time_stamps = np.linspace(0, time_length, np.rint(float(time_length) / dt).astype(np.int))
     time_stamps -= onset
