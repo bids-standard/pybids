@@ -122,14 +122,17 @@ class BIDSLayout(Layout):
 
         target = os.path.join(self.root, 'dataset_description.json')
         if not os.path.exists(target):
-            raise ValueError(
-                "'dataset_description.json' file is missing from project root."
-                " Every valid BIDS dataset must have this file.")
+            if validate is True:
+                raise ValueError(
+                    "'dataset_description.json' is missing from project root."
+                    " Every valid BIDS dataset must have this file.")
+            else:
+                self.description = None
         else:
             with open(target, 'r', encoding='utf-8') as desc_fd:
                 self.description = json.load(desc_fd)
             for k in ['Name', 'BIDSVersion']:
-                if k not in self.description:
+                if k not in self.description and validate is True:
                     raise ValueError("Mandatory '%s' field missing from "
                                      "dataset_description.json." % k)
 
