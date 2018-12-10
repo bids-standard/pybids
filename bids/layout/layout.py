@@ -149,8 +149,8 @@ class BIDSLayout(Layout):
         else:
             with open(target, 'r', encoding='utf-8') as desc_fd:
                 self.description = json.load(desc_fd)
-            for k in ['Name', 'BIDSVersion']:
-                if validate is True:
+            if validate is True:
+                for k in ['Name', 'BIDSVersion']:
                     if k not in self.description:
                         raise ValueError("Mandatory '%s' field missing from "
                                          "dataset_description.json." % k)
