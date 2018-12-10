@@ -10,7 +10,7 @@ def _make_passthrough_contrast(level, contrast_names):
     contrasts = []
     for cn in contrast_names:
         cdict = OrderedDict(Name=level.lower() + "_" + cn, ConditionList=[cn],
-                            Weights=[1], Type='T')
+                            Weights=[1], Type='t')
         contrasts.append(cdict)
     block["Contrasts"] = contrasts
     return block
@@ -88,7 +88,7 @@ def auto_model(layout, scan_length=None, one_vs_rest=False):
                     pass
                 cdict["Weights"] = list(weights)
 
-                cdict["Type"] = "T"
+                cdict["Type"] = "t"
                 contrasts.append(cdict)
 
             run["Contrasts"] = contrasts

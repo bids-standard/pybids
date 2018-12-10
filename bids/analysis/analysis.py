@@ -451,7 +451,7 @@ class AnalysisNode(object):
                         'name': col_name,
                         'condition_list': [col_name],
                         'weights': [1],
-                        'type': 'T'
+                        'type': 't'
                     })
 
         # Filter on desired contrast names if passed
@@ -467,7 +467,7 @@ class AnalysisNode(object):
                 weights = pd.concat([weights, var_df],
                                     sort=True)[variables].fillna(0)
 
-            test_type = c.get('type', ('T' if len(weights) == 1 else 'F'))
+            test_type = c.get('type', ('t' if len(weights) == 1 else 'F'))
 
             return ContrastInfo(c['name'], weights, test_type, self.entities)
 
