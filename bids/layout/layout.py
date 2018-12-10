@@ -4,6 +4,7 @@ import json
 import warnings
 from io import open
 from .validation import BIDSValidator
+from .. import config as cf
 from grabbit import Layout, File
 from grabbit.external import six, inflect
 from grabbit.utils import listify
@@ -24,6 +25,23 @@ except ImportError:
 
 
 __all__ = ['BIDSLayout']
+
+
+def add_config_paths(**kwargs):
+    """ Add to the pool of available configuration files for BIDSLayout.
+    Args:
+        kwargs: each kwarg should be a pair of config key name, and path
+
+    Example: bids.layout.add_config_paths(my_config='/path/to/config')
+    """
+
+    for k, path in kwargs.items():
+        if not os.path.exists(path):
+            raise ValueError(
+                'Configuration file "{}" does not exist'.format(k))
+
+    cf.set_option(
+        'config_paths', {**kwargs, **cf.get_option('config_paths')})
 
 
 class BIDSFile(File):
