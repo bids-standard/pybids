@@ -40,8 +40,8 @@ def add_config_paths(**kwargs):
             raise ValueError(
                 'Configuration file "{}" does not exist'.format(k))
 
-    cf.set_option(
-        'config_paths', {**kwargs, **cf.get_option('config_paths')})
+    kwargs.update(**cf.get_option('config_paths'))
+    cf.set_option('config_paths', kwargs)
 
 
 class BIDSFile(File):
