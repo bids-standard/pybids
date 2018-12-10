@@ -39,6 +39,8 @@ def add_config_paths(**kwargs):
         if not os.path.exists(path):
             raise ValueError(
                 'Configuration file "{}" does not exist'.format(k))
+        if k in cf.get_option('config_paths'):
+            raise ValueError('Configuration {!r} already exists'.format(k))
 
     kwargs.update(**cf.get_option('config_paths'))
     cf.set_option('config_paths', kwargs)
