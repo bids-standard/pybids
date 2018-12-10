@@ -1,8 +1,10 @@
 import os
+import re
 import json
 import warnings
 from io import open
 from .validation import BIDSValidator
+from .. import config as cf
 from grabbit import Layout, File
 from grabbit.external import six, inflect
 from grabbit.utils import listify
@@ -10,8 +12,7 @@ import nibabel as nb
 from collections import defaultdict
 from functools import reduce, partial
 from itertools import chain
-import re
-
+from bids.config import get_option
 
 try:
     from os.path import commonpath
@@ -24,6 +25,25 @@ except ImportError:
 
 
 __all__ = ['BIDSLayout']
+
+
+def add_config_paths(**kwargs):
+    """ Add to the pool of available configuration files for BIDSLayout.
+    Args:
+        kwargs: each kwarg should be a pair of config key name, and path
+
+    Example: bids.layout.add_config_paths(my_config='/path/to/config')
+    """
+
+    for k, path in kwargs.items():
+        if not os.path.exists(path):
+            raise ValueError(
+                'Configuration file "{}" does not exist'.format(k))
+        if k in cf.get_option('config_paths'):
+            raise ValueError('Configuration {!r} already exists'.format(k))
+
+    kwargs.update(**cf.get_option('config_paths'))
+    cf.set_option('config_paths', kwargs)
 
 
 class BIDSFile(File):
@@ -57,7 +77,7 @@ class BIDSFile(File):
         """
         try:
             return nb.load(self.path)
-        except Exception as e:
+        except Exception:
             return None
 
     @property
@@ -122,16 +142,20 @@ class BIDSLayout(Layout):
 
         target = os.path.join(self.root, 'dataset_description.json')
         if not os.path.exists(target):
-            raise ValueError("'dataset_description.json' file is missing from "
-                          "project root. Every valid BIDS dataset must have "
-                          "this file.")
+            if validate is True:
+                raise ValueError(
+                    "'dataset_description.json' is missing from project root."
+                    " Every valid BIDS dataset must have this file.")
+            else:
+                self.description = None
         else:
             with open(target, 'r', encoding='utf-8') as desc_fd:
                 self.description = json.load(desc_fd)
-            for k in ['Name', 'BIDSVersion']:
-                if k not in self.description:
-                    raise ValueError("Mandatory '%s' field missing from "
-                                     "dataset_description.json." % k)
+            if validate is True:
+                for k in ['Name', 'BIDSVersion']:
+                    if k not in self.description:
+                        raise ValueError("Mandatory '%s' field missing from "
+                                         "dataset_description.json." % k)
 
         # Determine which subdirectories to exclude from indexing
         excludes = {"code", "stimuli", "sourcedata", "models", "derivatives"}
@@ -147,11 +171,8 @@ class BIDSLayout(Layout):
         # Set up path and config for grabbit
         if config is None:
             config = 'bids'
-        config = listify(config)
-        conf_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                                 'config', '%s.json')
-        bids_conf = [conf_path % c for c in config]
-        path = (root, bids_conf)
+        config_paths = get_option('config_paths')
+        path = (root, [config_paths[c] for c in listify(config)])
 
         # Initialize grabbit Layout
         super(BIDSLayout, self).__init__(path, root=self.root,
@@ -162,11 +183,11 @@ class BIDSLayout(Layout):
         # Add derivatives if any are found
         self.derivatives = {}
         if derivatives:
-            if derivatives == True:
+            if derivatives is True:
                 derivatives = os.path.join(root, 'derivatives')
             self.add_derivatives(
                 derivatives, validate=validate,
-                index_associated=index_associated,include=include,
+                index_associated=index_associated, include=include,
                 absolute_paths=absolute_paths, derivatives=None, config=None,
                 sources=self, **kwargs)
 
@@ -211,8 +232,8 @@ class BIDSLayout(Layout):
                 'PipelineDescription', {}).get('Name', None)
             if pipeline_name is None:
                 raise ValueError("Every valid BIDS-derivatives dataset must "
-                                "have a PipelineDescription.Name field set "
-                                "inside dataset_description.json.")
+                                 "have a PipelineDescription.Name field set "
+                                 "inside dataset_description.json.")
             if pipeline_name in self.derivatives:
                 raise ValueError("Pipeline name '%s' has already been added "
                                  "to this BIDSLayout. Every added pipeline "
@@ -223,13 +244,15 @@ class BIDSLayout(Layout):
             self.derivatives[pipeline_name] = BIDSLayout(deriv, **kwargs)
 
             # Propagate derivative entities into top-level dynamic getters
-            deriv_entities = set(ent.name
-                                 for ent in self.derivatives[pipeline_name].entities.values())
+            deriv_entities = set(
+                ent.name
+                for ent in self.derivatives[pipeline_name].entities.values())
             for deriv_ent in deriv_entities - local_entities:
                 local_entities.add(deriv_ent)
                 getter = 'get_' + inflect.engine().plural(deriv_ent)
                 if not hasattr(self, getter):
-                    func = partial(self.get, target=deriv_ent, return_type='id')
+                    func = partial(
+                        self.get, target=deriv_ent, return_type='id')
                     setattr(self, getter, func)
 
     def to_df(self, **kwargs):
@@ -302,9 +325,9 @@ class BIDSLayout(Layout):
                 )
             suffix = f.entities['suffix']
 
-        tmp = self.get_nearest(path, extensions=extension, all_=True,
-                               suffix=suffix, ignore_strict_entities=['suffix'],
-                               **kwargs)
+        tmp = self.get_nearest(
+            path, extensions=extension, all_=True, suffix=suffix,
+            ignore_strict_entities=['suffix'], **kwargs)
 
         if len(tmp):
             return tmp
@@ -349,10 +372,11 @@ class BIDSLayout(Layout):
                 only files that match the first two subjects.
 
         Returns:
-            A list of BIDSFile (default) or other (see return_type for details) objects.
+            A list of BIDSFile (default) or other objects
+            (see return_type for details).
         """
 
-        if derivatives == True:
+        if derivatives is True:
             derivatives = list(self.derivatives.keys())
         elif derivatives:
             derivatives = listify(derivatives)
@@ -444,7 +468,6 @@ class BIDSLayout(Layout):
 
         results.update(self.metadata_index.file_index[path])
         return results
-
 
     def get_bvec(self, path, **kwargs):
         """Get bvec file for passed path."""
@@ -601,7 +624,7 @@ class MetadataIndex(object):
         if f.path in self.file_index and not overwrite:
             return
 
-        if 'suffix' not in f.entities: # Skip files without suffixes
+        if 'suffix' not in f.entities:  # Skip files without suffixes
             return
 
         md = self._get_metadata(f.path)
