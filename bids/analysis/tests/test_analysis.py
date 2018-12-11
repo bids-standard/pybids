@@ -115,9 +115,9 @@ def test_contrast_info(analysis):
     assert len(contrast_lists) == 3
     for cl in contrast_lists:
         assert len(cl) == 3
-        cl = [c for c in cl if c.type == 'T']
+        cl = [c for c in cl if c.type == 't']
         assert set([c.name for c in cl]) == {'RT', 'RT-trial_type'}
-        assert set([c.type for c in cl]) == {'T'}
+        assert set([c.type for c in cl]) == {'t'}
         assert cl[0].weights.columns.tolist() == ['RT', 'trial_type']
         assert cl[1].weights.columns.tolist() == ['RT']
         assert np.array_equal(cl[0].weights.values, np.array([[1, -1]]))
@@ -133,9 +133,9 @@ def test_contrast_info_with_specified_variables(analysis):
     assert len(contrast_lists) == 3
     for cl in contrast_lists:
         assert len(cl) == 3
-        cl = [c for c in cl if c.type == 'T']
+        cl = [c for c in cl if c.type == 't']
         assert set([c.name for c in cl]) == {'RT', 'RT-trial_type'}
-        assert set([c.type for c in cl]) == {'T'}
+        assert set([c.type for c in cl]) == {'t'}
         for c in cl:
             assert c.weights.columns.tolist() == ['RT', 'dummy']
             assert np.array_equal(c.weights.values, np.array([[1, 0]]))
