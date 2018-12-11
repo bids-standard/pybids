@@ -45,8 +45,7 @@ AUTHOR = "PyBIDS developers"
 AUTHOR_EMAIL = "bids-discussion@googlegroups.com"
 PLATFORMS = "OS Independent"
 # No data for now
-REQUIRES = ["grabbit==0.2.5", "six", "num2words", "numpy", "scipy",
-            'enum34; python_version < "3.4"', "pandas",
+REQUIRES = ["grabbit==0.2.5", "six", "num2words", "numpy", "scipy", "pandas",
             "nibabel>=2.1", "patsy"]
 EXTRAS_REQUIRE = {
    # Just to not break compatibility with externals requiring
