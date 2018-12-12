@@ -208,7 +208,7 @@ class BIDSVariable(object):
             self.entities = {}
         else:
             keep = self.index.columns[constant]
-            self.entities = {k: self.index[k].iloc[0] for k in keep}
+            self.entities = {k: self.index[k].dropna().iloc[0] for k in keep}
 
 
 class SimpleVariable(BIDSVariable):
