@@ -177,7 +177,7 @@ class BIDSVariableCollection(object):
             self.entities = {}
         else:
             keep = all_ents.columns[constant]
-            ents = {k: all_ents[k].iloc[0] for k in keep}
+            ents = {k: all_ents[k].dropna().iloc[0] for k in keep}
             self.entities = {k: v for k, v in ents.items() if pd.notnull(v)}
 
     def __getitem__(self, var):
