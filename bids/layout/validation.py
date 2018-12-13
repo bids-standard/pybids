@@ -3,7 +3,7 @@
 import re
 import json
 from os.path import join, abspath, dirname
-import pandas as pd
+
 
 __all__ = ['BIDSValidator']
 
@@ -248,6 +248,7 @@ def check_duplicate_files(layout):
     Files with matching identifiers have the same content.
     """
     
+    import pandas as pd
     def md5(fname):
         hash_md5 = hashlib.md5()
         with open(fname, "rb") as f:
@@ -306,6 +307,7 @@ def check_expected_files(layout, config):
 
     """
 
+    import pandas as pd
     dictlist = []
     with open(config) as f:
         json_data = json.load(f)

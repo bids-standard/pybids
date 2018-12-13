@@ -8,11 +8,11 @@ from .. import config as cf
 from grabbit import Layout, File
 from grabbit.external import six, inflect
 from grabbit.utils import listify
-import nibabel as nb
 from collections import defaultdict
 from functools import reduce, partial
 from itertools import chain
 from bids.config import get_option
+
 
 try:
     from os.path import commonpath
@@ -76,6 +76,7 @@ class BIDSFile(File):
         """ Return the associated image file (if it exists) as a NiBabel object.
         """
         try:
+            import nibabel as nb
             return nb.load(self.path)
         except Exception:
             return None
