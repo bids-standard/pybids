@@ -3,7 +3,6 @@ import pandas as pd
 import math
 from copy import deepcopy
 from abc import abstractmethod, ABCMeta
-from scipy.interpolate import interp1d
 from bids.utils import listify
 from itertools import chain
 from six import add_metaclass
@@ -437,6 +436,7 @@ class DenseRunVariable(BIDSVariable):
         x = np.arange(n)
         num = int(np.ceil(n * sampling_rate / old_sr))
 
+        from scipy.interpolate import interp1d
         f = interp1d(x, self.values.values.ravel(), kind=kind)
         x_new = np.linspace(0, n - 1, num=num)
         self.values = pd.DataFrame(f(x_new))
