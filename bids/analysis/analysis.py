@@ -82,7 +82,7 @@ class Analysis(object):
         input_nodes = None
 
         # Use inputs from model, and update with kwargs
-        selectors = self.model.get('input', {})
+        selectors = self.model.get('input', {}).copy()
         selectors.update(kwargs)
 
         for i, b in enumerate(self.steps):
