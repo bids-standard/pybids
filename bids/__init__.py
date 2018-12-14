@@ -1,19 +1,18 @@
 from __future__ import absolute_import, division, print_function
 from .due import due, Doi
-
-from .analysis import Analysis
 from .layout import BIDSLayout, BIDSValidator
-from .variables.io import load_variables
 
 
 __all__ = [
     "analysis",
-    "layout",
-    "reports",
     "BIDSLayout",
     "BIDSValidator",
-    "Analysis",
-    "load_variables"
+    "config",
+    "layout",
+    "reports",
+    "utils",
+    "variables"
+
 ]
 
 due.cite(Doi("10.1038/sdata.2016.44"),
