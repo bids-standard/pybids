@@ -96,8 +96,8 @@ class BIDSVariable(object):
         if query:
             inds = self.to_df().query(query).index
 
-            var.values = var.values.iloc[inds]
-            var.index = var.index.iloc[inds]
+            var.values = var.values.loc[inds]
+            var.index = var.index.loc[inds]
             if hasattr(self, '_build_entity_index'):
                 var._build_entity_index()
 
@@ -275,8 +275,8 @@ class SimpleVariable(BIDSVariable):
                 keep, or a boolean iterable with length equal to the
                 existing data, where all and only True values are retained.
         '''
-        self.values = self.values.loc[rows]
-        self.index = self.index.loc[rows, :]
+        self.values = self.values.iloc[rows]
+        self.index = self.index.iloc[rows, :]
         for prop in self._property_columns:
             vals = getattr(self, prop)[rows]
             setattr(self, prop, vals)
