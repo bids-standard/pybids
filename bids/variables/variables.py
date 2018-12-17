@@ -96,8 +96,8 @@ class BIDSVariable(object):
         if query:
             inds = self.to_df().query(query).index
 
-            var.values = var.values.loc[inds]
-            var.index = var.index.loc[inds]
+            var.values = var.values.iloc[inds]
+            var.index = var.index.iloc[inds]
             if hasattr(self, '_build_entity_index'):
                 var._build_entity_index()
 
@@ -271,9 +271,9 @@ class SimpleVariable(BIDSVariable):
         ''' Truncate internal arrays to keep only the specified rows.
 
         Args:
-            rows (iterable): A boolean iterable with length equal to the
-                existing data. Rows with value True are retained, the rest are
-                removed.
+            rows (iterable): Either an iterable of numerical row indices to
+                keep, or a boolean iterable with length equal to the
+                existing data, where all and only True values are retained.
         '''
         self.values = self.values.loc[rows]
         self.index = self.index.loc[rows, :]

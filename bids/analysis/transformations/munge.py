@@ -188,9 +188,7 @@ class Filter(Transformation):
         data = data.query(query)
 
         # Truncate target variable to retained rows
-        var.onset = var.onset[data.index]
-        var.duration = var.duration[data.index]
-        var.values = var.values.iloc[data.index]
+        var.select_rows(data.index)
 
         return var
 
