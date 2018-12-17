@@ -111,12 +111,7 @@ class DropNA(Transformation):
         
         # Identify non-NA rows
         valid = var.values.notna()
-
-        # Truncate target variable to retained rows
-        var.onset = var.onset[valid]
-        var.duration = var.duration[valid]
-        var.values = var.values[valid]
-
+        var.select_rows(valid)
         return var
 
 

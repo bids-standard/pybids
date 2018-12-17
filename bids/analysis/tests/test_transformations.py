@@ -387,3 +387,4 @@ def test_dropna(sparse_run_variable_with_missing_values):
     assert np.array_equal(post_trans.values, [1, 1, 1])
     assert np.array_equal(post_trans.onset, [2, 5, 17])
     assert np.array_equal(post_trans.duration, [1.2, 1.6, 2])
+    assert len(post_trans.index) == 3

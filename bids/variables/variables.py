@@ -267,6 +267,20 @@ class SimpleVariable(BIDSVariable):
         data = data.rename(columns={name: 'amplitude'})
         return cls(name, data, source=variables[0].source, **kwargs)
 
+    def select_rows(self, rows):
+        ''' Truncate internal arrays to keep only the specified rows.
+
+        Args:
+            rows (iterable): A boolean iterable with length equal to the
+                existing data. Rows with value True are retained, the rest are
+                removed.
+        '''
+        self.values = self.values.loc[rows]
+        self.index = self.index.loc[rows, :]
+        for prop in self._property_columns:
+            vals = getattr(self, prop)[rows]
+            setattr(self, prop, vals)
+
 
 class SparseRunVariable(SimpleVariable):
     ''' A sparse representation of a single column of events.
