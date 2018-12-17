@@ -26,7 +26,7 @@ def sparse_run_variable_with_missing_values():
     data = pd.DataFrame({
         'onset': [2, 5, 11, 17],
         'duration': [1.2, 1.6, 0.8, 2],
-        'amplitude': [1, 1, 1, np.nan]
+        'amplitude': [1, 1, np.nan, 1]
     })
     run_info = [RunInfo({'subject': '01'}, 20, 2, 'dummy.nii.gz')]
     var = SparseRunVariable('var', data, run_info, 'events')
@@ -384,6 +384,6 @@ def test_dropna(sparse_run_variable_with_missing_values):
     transform.DropNA(coll, 'var')
     post_trans = coll.variables['var']
     assert len(var.values) > len(post_trans.values)
-    assert len(post_trans.values) == 3
-    assert len(post_trans.onset) == 3
-    assert len(post_trans.duration) == 3
+    assert np.array_equal(post_trans.values, [1, 1, 1])
+    assert np.array_equal(post_trans.onset, [2, 5, 17])
+    assert np.array_equal(post_trans.duration, [1.2, 1.6, 2])
