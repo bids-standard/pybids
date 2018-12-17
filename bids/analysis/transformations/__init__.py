@@ -1,7 +1,7 @@
 from .compute import (Sum, Product, Scale, Orthogonalize, Threshold, And, Or,
                       Not, Demean, Convolve)
 from .munge import (Split, Rename, Assign, Copy, Factor, Filter, Select,
-                    Delete, Replace, ToDense)
+                    Delete, DropNA, Replace, ToDense)
 
 __all__ = [
     'And',
@@ -10,6 +10,7 @@ __all__ = [
     'Copy',
     'Demean',
     'Delete',
+    'DropNA',
     'Factor',
     'Filter',
     'Not',
