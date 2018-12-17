@@ -100,6 +100,25 @@ class Delete(Transformation):
                                      if k not in variables}
 
 
+class DropNA(Transformation):
+
+    _groupable = False
+    _input_type = 'variable'
+    _return_type = 'variable'
+
+    def _transform(self, var):
+        
+        # Identify non-NA rows
+        valid = var.values.notnull()
+
+        # Truncate target variable to retained rows
+        var.onset = var.onset.loc[valid, :]
+        var.duration = var.duration.loc[valid, :]
+        var.values = var.values.loc[valid, :]
+
+        return var
+
+
 class Factor(Transformation):
 
     _groupable = False
