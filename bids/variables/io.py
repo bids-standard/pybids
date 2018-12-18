@@ -201,7 +201,7 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
                         # Add in all of the run's entities as new columns for
                         # index
                         for entity, value in entities.items():
-                            if entity in BASE_ENTITIES:
+                            if entity in ALL_ENTITIES:
                                 df[entity] = value
 
                         if drop_na:
@@ -329,7 +329,7 @@ def _load_tsv_variables(layout, suffix, dataset=None, columns=None,
         # and store them in the main DataFrame alongside other variables (as
         # they'll be extracted when the Column is initialized anyway).
         for ent_name, ent_val in f.entities.items():
-            if ent_name in BASE_ENTITIES:
+            if ent_name in ALL_ENTITIES:
                 _data[ent_name] = ent_val
 
         # Handling is a bit more convoluted for scans.tsv, because the first
@@ -369,12 +369,11 @@ def _load_tsv_variables(layout, suffix, dataset=None, columns=None,
         # Filter rows on all selectors
         comm_cols = list(set(_data.columns) & set(selectors.keys()))
         for col in comm_cols:
-            for val in listify(selectors.get(col)):
-                ent_patts = [make_patt(x, regex_search=layout.regex_search)
-                             for x in listify(selectors.get(col))]
-                patt = '|'.join(ent_patts)
+            ent_patts = [make_patt(x, regex_search=layout.regex_search)
+                            for x in listify(selectors.get(col))]
+            patt = '|'.join(ent_patts)
 
-                _data = _data[_data[col].str.contains(patt)]
+            _data = _data[_data[col].str.contains(patt)]
 
         level = {'scans': 'session', 'sessions': 'subject',
                  'participants': 'dataset'}[suffix]
