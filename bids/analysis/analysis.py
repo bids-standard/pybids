@@ -59,7 +59,7 @@ class Analysis(object):
             step = Step(self.layout, index=i, **step_args)
             self.steps.append(step)
 
-    def setup(self, steps=None, agg_func='mean', **kwargs):
+    def setup(self, steps=None, drop_na=False, **kwargs):
         ''' Set up the sequence of steps for analysis.
 
         Args:
@@ -68,14 +68,9 @@ class Analysis(object):
                 JSON config block list, or a str giving the (unique) name of
                 the step, as specified in the JSON config. Steps that do not
                 match either index or name will be skipped.
-            agg_func (str or Callable): The aggregation function to use when
-                combining rows from the previous level of analysis. E.g.,
-                when analyzing a 'subject'-level block, inputs coming from the
-                'session' level are typically averaged to produce individual
-                subject-level estimates. Must be either a string giving the
-                name of a function recognized by apply() in pandas, or a
-                Callable that takes a DataFrame as input and returns a Series
-                or a DataFrame. NOTE: CURRENTLY UNIMPLEMENTED.
+            drop_na (bool): Boolean indicating whether or not to automatically
+                drop events that have a n/a amplitude when reading in data
+                from event files.
         '''
 
         # In the beginning, there was nothing
@@ -91,7 +86,7 @@ class Analysis(object):
             if steps is not None and i not in steps and b.name not in steps:
                 continue
 
-            b.setup(input_nodes, **selectors)
+            b.setup(input_nodes, drop_na=drop_na, **selectors)
             input_nodes = b.output_nodes
 
 
@@ -170,13 +165,16 @@ class Step(object):
         entities = pd.concat(entities, axis=1, sort=True).T
         return BIDSVariableCollection.from_df(data, entities, self.level)
 
-    def setup(self, input_nodes=None, **kwargs):
+    def setup(self, input_nodes=None, drop_na=False, **kwargs):
         ''' Set up the Step and construct the design matrix.
 
         Args:
             input_nodes (list): Optional list of Node objects produced by
                 the preceding Step in the analysis. If None, uses any inputs
                 passed in at Step initialization.
+            drop_na (bool): Boolean indicating whether or not to automatically
+                drop events that have a n/a amplitude when reading in data
+                from event files.
             kwargs: Optional keyword arguments to pass onto load_variables.
         '''
         self.output_nodes = []
@@ -188,7 +186,8 @@ class Step(object):
             kwargs = kwargs.copy()
             kwargs.pop('scan_length', None)
 
-        collections = self.layout.get_collections(self.level, **kwargs)
+        collections = self.layout.get_collections(self.level, drop_na=drop_na,
+                                                  **kwargs)
         objects = collections + input_nodes
 
         objects, kwargs = self._filter_objects(objects, kwargs)
