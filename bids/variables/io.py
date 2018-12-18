@@ -327,7 +327,7 @@ def _load_tsv_variables(layout, suffix, dataset=None, columns=None,
         # file (for entities that vary by row), or from the full file path
         # (for entities constant over all rows in the file). We extract both
         # and store them in the main DataFrame alongside other variables (as
-        # they'll be extracted when the Column is initialized anyway).
+        # they'll be extracted when the BIDSVariable is initialized anyway).
         for ent_name, ent_val in f.entities.items():
             if ent_name in ALL_ENTITIES:
                 _data[ent_name] = ent_val
@@ -335,6 +335,12 @@ def _load_tsv_variables(layout, suffix, dataset=None, columns=None,
         # Handling is a bit more convoluted for scans.tsv, because the first
         # column contains the run filename, which we also need to parse.
         if suffix == 'scans':
+
+            # Suffix is guaranteed to be present in each filename, so drop the
+            # constant column with value 'scans' to make way for it and prevent
+            # two 'suffix' columns.
+            _data.drop(columns='suffix', inplace=True)
+
             image = _data['filename']
             _data = _data.drop('filename', axis=1)
             dn = f.dirname
