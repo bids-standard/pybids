@@ -110,7 +110,7 @@ class DropNA(Transformation):
     def _transform(self, var):
         
         # Identify non-NA rows
-        valid = var.values.notna()
+        valid = var.values.notna().values
         var.select_rows(valid)
         return var
 
@@ -188,7 +188,7 @@ class Filter(Transformation):
         data = data.query(query)
 
         # Truncate target variable to retained rows
-        var.select_rows(data.index)
+        var.select_rows(data.index.values)
 
         return var
 

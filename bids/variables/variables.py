@@ -271,9 +271,8 @@ class SimpleVariable(BIDSVariable):
         ''' Truncate internal arrays to keep only the specified rows.
 
         Args:
-            rows (iterable): Either an iterable of numerical row indices to
-                keep, or a boolean iterable with length equal to the
-                existing data, where all and only True values are retained.
+            rows (array): An integer or boolean array identifying the indices
+                of rows to keep.
         '''
         self.values = self.values.iloc[rows]
         self.index = self.index.iloc[rows, :]
