@@ -100,6 +100,21 @@ class Delete(Transformation):
                                      if k not in variables}
 
 
+class DropNA(Transformation):
+
+    _groupable = False
+    _input_type = 'variable'
+    _return_type = 'variable'
+    _allow_categorical = ('variables',)
+
+    def _transform(self, var):
+        
+        # Identify non-NA rows
+        valid = var.values.notna().values
+        var.select_rows(valid)
+        return var
+
+
 class Factor(Transformation):
 
     _groupable = False
@@ -173,9 +188,7 @@ class Filter(Transformation):
         data = data.query(query)
 
         # Truncate target variable to retained rows
-        var.onset = var.onset[data.index]
-        var.duration = var.duration[data.index]
-        var.values = var.values.iloc[data.index]
+        var.select_rows(data.index.values)
 
         return var
 
