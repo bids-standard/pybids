@@ -562,7 +562,7 @@ class BIDSLayout(Layout):
         # Constrain search to functional images
         selectors['suffix'] = 'bold'
         selectors['datatype'] = 'func'
-        images = self.get(extensions=[.nii', '.nii.gz'], derivatives=derivatives,
+        images = self.get(extensions=['.nii', '.nii.gz'], derivatives=derivatives,
                           **selectors)
         if not images:
             raise ValueError("No functional images that match criteria found.")
