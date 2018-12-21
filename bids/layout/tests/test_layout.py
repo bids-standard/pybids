@@ -264,3 +264,19 @@ def test_derivative_getters():
     with pytest.raises(AttributeError):
         bare_layout.get_spaces()
     assert set(full_layout.get_spaces()) == {'MNI152NLin2009cAsym', 'T1w'}
+
+
+def test_get_tr(layout_7t_trt):
+    # Bad subject, should fail
+    with pytest.raises(ValueError) as exc:
+        layout_7t_trt.get_tr(subject="zzz")
+        assert exc.value.message.startswith("No functional images")
+    # There are multiple tasks with different TRs, so this should fail
+    with pytest.raises(ValueError) as exc:
+        layout_7t_trt.get_tr(subject=['01', '02'])
+        assert exc.value.message.startswith("Unique TR")
+    # This should work
+    tr = layout_7t_trt.get_tr(subject=['01', '02'], acquisition="fullbrain")
+    assert tr == 3.0
+    tr = layout_7t_trt.get_tr(subject=['01', '02'], acquisition="prefrontal")
+    assert tr == 4.0
