@@ -398,7 +398,7 @@ class BIDSLayout(Layout):
                 md_kwargs[k] = v
 
         # Provide some suggestions if target is specified and invalid.
-        if target is not None and target not in ent_kwargs:
+        if target is not None and target not in all_ents:
             import difflib
             potential = list(all_ents.keys())
             suggestions = difflib.get_close_matches(target, potential)
