@@ -562,7 +562,7 @@ class BIDSLayout(Layout):
         # Constrain search to functional images
         selectors['suffix'] = 'bold'
         selectors['datatype'] = 'func'
-        images = self.get(extensions='.nii.gz', derivatives=derivatives,
+        images = self.get(extensions=[.nii', '.nii.gz'], derivatives=derivatives,
                           **selectors)
         if not images:
             raise ValueError("No functional images that match criteria found.")
@@ -570,13 +570,12 @@ class BIDSLayout(Layout):
         all_trs = set()
         for img in images:
             md = self.get_metadata(img.path, suffix='bold', full_search=True)
-            all_trs.append(round(float(md['RepetitionTime']), 5))
+            all_trs.add(round(float(md['RepetitionTime']), 5))
  
-        unique_trs = set(all_trs)
-        if len(unique_trs) > 1:
+        if len(all_trs) > 1:
             raise ValueError("Unique TR cannot be found given selectors {!r}"
                              .format(selectors))
-        return list(unique_trs)[0]
+        return all_trs.pop()
 
     def get_collections(self, level, types=None, variables=None, merge=False,
                         sampling_rate=None, skip_empty=False, **kwargs):
