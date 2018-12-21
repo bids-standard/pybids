@@ -135,6 +135,17 @@ def test_get_metadata_via_bidsfile(layout_7t_trt):
     assert 'subject' not in result
 
 
+def test_get_with_bad_target(layout_7t_trt):
+    with pytest.raises(ValueError) as exc:
+        layout_7t_trt.get(target='unicorn')
+        msg = exc.value.message
+        assert 'subject' in msg and 'reconstruction' in msg and 'proc' in msg
+    with pytest.raises(ValueError) as exc:
+        layout_7t_trt.get(target='sub')
+        msg = exc.value.message
+        assert 'subject' in msg and 'reconstruction' not in msg
+
+
 def test_get_bvals_bvecs(layout_ds005):
     dwifile = layout_ds005.get(subject="01", datatype="dwi")[0]
     result = layout_ds005.get_bval(dwifile.path)

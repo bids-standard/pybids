@@ -397,6 +397,18 @@ class BIDSLayout(Layout):
             else:
                 md_kwargs[k] = v
 
+        # Provide some suggestions if target is specified and invalid.
+        if target is not None and target not in ent_kwargs:
+            import difflib
+            potential = list(all_ents.keys())
+            suggestions = difflib.get_close_matches(target, potential)
+            if suggestions:
+                message = "Did you mean one of: {}?".format(suggestions)
+            else:
+                message = "Valid targets are: {}".format(potential)
+            raise ValueError(("Unknown target '{}'. " + message)
+                             .format(target))
+
         all_results = []
 
         # Get entity-based search results using the superclass's get()
