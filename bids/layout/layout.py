@@ -567,7 +567,7 @@ class BIDSLayout(Layout):
         if not images:
             raise ValueError("No functional images that match criteria found.")
         
-        all_trs = []
+        all_trs = set()
         for img in images:
             md = self.get_metadata(img.path, suffix='bold', full_search=True)
             all_trs.append(round(float(md['RepetitionTime']), 5))
