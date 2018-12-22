@@ -3,6 +3,7 @@
 import re
 import json
 from os.path import join, abspath, dirname
+from collections import namedtuple
 
 
 __all__ = ['BIDSValidator']
@@ -156,23 +157,6 @@ class BIDSValidator():
 
         return regexps
 
-    def get_path_values(self, path):
-        """Takes a file path and returns values found for the following path
-        keys:
-            sub-
-            ses-
-        """
-        values = {}
-
-        regexps = self.get_regular_expressions('path.json')
-
-        # capture subject
-        for paths in ['sub', 'ses']:
-            match = re.compile(regexps[paths]).findall(path)
-            values[paths] = match[1] if match & match[1] else None
-
-        return values
-
     def conditional_match(self, expression, path):
         match = re.compile(expression).findall(path)
         match = match[0] if len(match) >= 1 else False
@@ -249,6 +233,7 @@ def check_duplicate_files(layout):
     """
     
     import pandas as pd
+    import hashlib
     def md5(fname):
         hash_md5 = hashlib.md5()
         with open(fname, "rb") as f:
