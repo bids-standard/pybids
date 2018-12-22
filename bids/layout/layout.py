@@ -546,6 +546,37 @@ class BIDSLayout(Layout):
                     fieldmap_set.append(cur_fieldmap)
         return fieldmap_set
 
+    def get_tr(self, derivatives=False, **selectors):
+        """ Returns the scanning repetition time (TR) for one or more runs.
+
+        Args:
+            derivatives (bool): If True, also checks derivatives images.
+            selectors: Optional keywords used to constrain the selected runs.
+                Can be any arguments valid for a .get call (e.g., BIDS entities
+                or JSON sidecar keys).
+        
+        Returns: A single float.
+
+        Notes: Raises an exception if more than one unique TR is found.
+        """
+        # Constrain search to functional images
+        selectors['suffix'] = 'bold'
+        selectors['datatype'] = 'func'
+        images = self.get(extensions=['.nii', '.nii.gz'], derivatives=derivatives,
+                          **selectors)
+        if not images:
+            raise ValueError("No functional images that match criteria found.")
+        
+        all_trs = set()
+        for img in images:
+            md = self.get_metadata(img.path, suffix='bold', full_search=True)
+            all_trs.add(round(float(md['RepetitionTime']), 5))
+ 
+        if len(all_trs) > 1:
+            raise ValueError("Unique TR cannot be found given selectors {!r}"
+                             .format(selectors))
+        return all_trs.pop()
+
     def get_collections(self, level, types=None, variables=None, merge=False,
                         sampling_rate=None, skip_empty=False, **kwargs):
         """Return one or more variable Collections in the BIDS project.
