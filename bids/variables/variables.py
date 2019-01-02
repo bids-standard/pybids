@@ -3,7 +3,6 @@ import pandas as pd
 import math
 from copy import deepcopy
 from abc import abstractmethod, ABCMeta
-from scipy.interpolate import interp1d
 from bids.utils import listify
 from itertools import chain
 from six import add_metaclass
@@ -186,7 +185,7 @@ class BIDSVariable(object):
 
         if entities:
             ent_data = self.index.reset_index(drop=True)
-            data = pd.concat([data, ent_data], axis=1)
+            data = pd.concat([data, ent_data], axis=1, sort=True)
 
         return data.reset_index(drop=True)
 
@@ -208,7 +207,7 @@ class BIDSVariable(object):
             self.entities = {}
         else:
             keep = self.index.columns[constant]
-            self.entities = {k: self.index[k].iloc[0] for k in keep}
+            self.entities = {k: self.index[k].dropna().iloc[0] for k in keep}
 
 
 class SimpleVariable(BIDSVariable):
@@ -264,9 +263,22 @@ class SimpleVariable(BIDSVariable):
     @classmethod
     def _merge(cls, variables, name, **kwargs):
         dfs = [v.to_df() for v in variables]
-        data = pd.concat(dfs, axis=0).reset_index(drop=True)
+        data = pd.concat(dfs, axis=0, sort=True).reset_index(drop=True)
         data = data.rename(columns={name: 'amplitude'})
         return cls(name, data, source=variables[0].source, **kwargs)
+
+    def select_rows(self, rows):
+        ''' Truncate internal arrays to keep only the specified rows.
+
+        Args:
+            rows (array): An integer or boolean array identifying the indices
+                of rows to keep.
+        '''
+        self.values = self.values.iloc[rows]
+        self.index = self.index.iloc[rows, :]
+        for prop in self._property_columns:
+            vals = getattr(self, prop)[rows]
+            setattr(self, prop, vals)
 
 
 class SparseRunVariable(SimpleVariable):
@@ -403,8 +415,8 @@ class DenseRunVariable(BIDSVariable):
             ts = pd.date_range(0, periods=len(df), freq='%sms' % sr)
             _timestamps.append(ts.to_series())
             index.append(df)
-        self.timestamps = pd.concat(_timestamps, axis=0)
-        return pd.concat(index, axis=0).reset_index(drop=True)
+        self.timestamps = pd.concat(_timestamps, axis=0, sort=True)
+        return pd.concat(index, axis=0, sort=True).reset_index(drop=True)
 
     def resample(self, sampling_rate, inplace=False, kind='linear'):
         '''Resample the Variable to the specified sampling rate.
@@ -437,6 +449,7 @@ class DenseRunVariable(BIDSVariable):
         x = np.arange(n)
         num = int(np.ceil(n * sampling_rate / old_sr))
 
+        from scipy.interpolate import interp1d
         f = interp1d(x, self.values.values.ravel(), kind=kind)
         x_new = np.linspace(0, n - 1, num=num)
         self.values = pd.DataFrame(f(x_new))
@@ -488,7 +501,7 @@ class DenseRunVariable(BIDSVariable):
                     raise ValueError(msg)
 
         variables = [v.resample(sampling_rate) for v in variables]
-        values = pd.concat([v.values for v in variables], axis=0)
+        values = pd.concat([v.values for v in variables], axis=0, sort=True)
         run_info = list(chain(*[v.run_info for v in variables]))
         source = variables[0].source
         return DenseRunVariable(name, values, run_info, source, sampling_rate)

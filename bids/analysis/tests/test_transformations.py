@@ -1,5 +1,8 @@
 # from bids.analysis.variables import load_variables
 from bids.analysis import transformations as transform
+from bids.variables import SparseRunVariable
+from bids.variables.entities import RunInfo
+from bids.variables.kollekshuns import BIDSRunVariableCollection
 from bids.layout import BIDSLayout
 import pytest
 from os.path import join, sep
@@ -16,6 +19,18 @@ def collection():
                                         scan_length=480, merge=True,
                                         sampling_rate=10)
     return collection
+
+
+@pytest.fixture
+def sparse_run_variable_with_missing_values():
+    data = pd.DataFrame({
+        'onset': [2, 5, 11, 17],
+        'duration': [1.2, 1.6, 0.8, 2],
+        'amplitude': [1, 1, np.nan, 1]
+    })
+    run_info = [RunInfo({'subject': '01'}, 20, 2, 'dummy.nii.gz')]
+    var = SparseRunVariable('var', data, run_info, 'events')
+    return BIDSRunVariableCollection([var])
 
 
 def test_rename(collection):
@@ -50,7 +65,6 @@ def test_sum(collection):
     with pytest.raises(ValueError):
         transform.Sum(collection, variables=['parametric gain', 'gain'],
                       output='sum', weights=[1, 1, 1])
-
 
 
 def test_scale(collection):
@@ -247,7 +261,8 @@ def test_factor(collection):
     assert not targets - set(coll.variables.keys())
     assert all([set(coll.variables[t].values.unique()) == {0.0, 1.0}
                 for t in targets])
-    data = pd.concat([coll.variables[t].values for t in targets], axis=1)
+    data = pd.concat([coll.variables[t].values for t in targets],
+                     axis=1, sort=True)
     assert (data.sum(1) == 1).all()
 
     # reduced-rank dummy-coding, multiple values
@@ -258,7 +273,8 @@ def test_factor(collection):
     assert 'respnum.0' not in coll.variables.keys()
     assert all([set(coll.variables[t].values.unique()) == {0.0, 1.0}
                 for t in targets])
-    data = pd.concat([coll.variables[t].values for t in targets], axis=1)
+    data = pd.concat([coll.variables[t].values for t in targets],
+                     axis=1, sort=True)
     assert set(np.unique(data.sum(1).values.ravel())) == {0., 1.}
 
     # Effect coding, multiple values
@@ -269,7 +285,8 @@ def test_factor(collection):
     assert 'respnum.0' not in coll.variables.keys()
     assert all([set(coll.variables[t].values.unique()) == {-0.25, 0.0, 1.0}
                 for t in targets])
-    data = pd.concat([coll.variables[t].values for t in targets], axis=1)
+    data = pd.concat([coll.variables[t].values for t in targets],
+                     axis=1, sort=True)
     assert set(np.unique(data.sum(1).values.ravel())) == {-1., 1.}
 
 
@@ -359,3 +376,15 @@ def test_not(collection):
     transform.Not(coll, 'RT')
     post_rt = coll.variables['RT'].values.values
     assert (post_rt == ~pre_rt.astype(bool)).all()
+
+
+def test_dropna(sparse_run_variable_with_missing_values):
+    var = sparse_run_variable_with_missing_values.variables['var']
+    coll = sparse_run_variable_with_missing_values.clone()
+    transform.DropNA(coll, 'var')
+    post_trans = coll.variables['var']
+    assert len(var.values) > len(post_trans.values)
+    assert np.array_equal(post_trans.values, [1, 1, 1])
+    assert np.array_equal(post_trans.onset, [2, 5, 17])
+    assert np.array_equal(post_trans.duration, [1.2, 1.6, 2])
+    assert len(post_trans.index) == 3

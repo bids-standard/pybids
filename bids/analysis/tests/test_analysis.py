@@ -39,17 +39,27 @@ def test_get_design_matrix_arguments(analysis):
     assert result.sparse is None
     assert result.dense is None
 
-    kwargs = dict(run=1, subject='01', mode='dense', force=True)
+    kwargs = dict(run=1, subject='01', mode='dense', force=True, sampling_rate='highest')
     result = analysis['run'].get_design_matrix(**kwargs)[0]
     assert result.sparse is None
     assert result.dense.shape == (4800, 6)
+
+    kwargs = dict(run=1, subject='01', mode='dense', force=True, sampling_rate='TR')
+    result = analysis['run'].get_design_matrix(**kwargs)[0]
+    assert result.sparse is None
+    assert result.dense.shape == (240, 6)
+
+    kwargs = dict(run=1, subject='01', mode='dense', force=True, sampling_rate=0.5)
+    result = analysis['run'].get_design_matrix(**kwargs)[0]
+    assert result.sparse is None
+    assert result.dense.shape == (240, 6)
 
     # format='long' should be ignored for dense output
     kwargs = dict(run=1, subject='01', mode='dense', force=True,
                   format='long', entities=False)
     result = analysis['run'].get_design_matrix(**kwargs)[0]
     assert result.sparse is None
-    assert result.dense.shape == (4800, 1)
+    assert result.dense.shape == (240, 1)
 
     kwargs = dict(run=1, subject='01', mode='sparse', format='wide',
                   entities=False)
@@ -105,9 +115,9 @@ def test_contrast_info(analysis):
     assert len(contrast_lists) == 3
     for cl in contrast_lists:
         assert len(cl) == 3
-        cl = [c for c in cl if c.type == 'T']
+        cl = [c for c in cl if c.type == 't']
         assert set([c.name for c in cl]) == {'RT', 'RT-trial_type'}
-        assert set([c.type for c in cl]) == {'T'}
+        assert set([c.type for c in cl]) == {'t'}
         assert cl[0].weights.columns.tolist() == ['RT', 'trial_type']
         assert cl[1].weights.columns.tolist() == ['RT']
         assert np.array_equal(cl[0].weights.values, np.array([[1, -1]]))
@@ -123,9 +133,9 @@ def test_contrast_info_with_specified_variables(analysis):
     assert len(contrast_lists) == 3
     for cl in contrast_lists:
         assert len(cl) == 3
-        cl = [c for c in cl if c.type == 'T']
+        cl = [c for c in cl if c.type == 't']
         assert set([c.name for c in cl]) == {'RT', 'RT-trial_type'}
-        assert set([c.type for c in cl]) == {'T'}
+        assert set([c.type for c in cl]) == {'t'}
         for c in cl:
             assert c.weights.columns.tolist() == ['RT', 'dummy']
             assert np.array_equal(c.weights.values, np.array([[1, 0]]))

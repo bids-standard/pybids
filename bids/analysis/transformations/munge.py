@@ -100,6 +100,21 @@ class Delete(Transformation):
                                      if k not in variables}
 
 
+class DropNA(Transformation):
+
+    _groupable = False
+    _input_type = 'variable'
+    _return_type = 'variable'
+    _allow_categorical = ('variables',)
+
+    def _transform(self, var):
+        
+        # Identify non-NA rows
+        valid = var.values.notna().values
+        var.select_rows(valid)
+        return var
+
+
 class Factor(Transformation):
 
     _groupable = False
@@ -165,16 +180,15 @@ class Filter(Transformation):
         for k, v in name_map.items():
             query = query.replace(k, v)
 
-        data = pd.concat([self.collection[c].values for c in names], axis=1)
+        data = pd.concat([self.collection[c].values for c in names],
+                         axis=1, sort=True)
         # Make sure we can use integer index
         data = data.reset_index(drop=True)
         data.columns = list(name_map.values())
         data = data.query(query)
 
         # Truncate target variable to retained rows
-        var.onset = var.onset[data.index]
-        var.duration = var.duration[data.index]
-        var.values = var.values.iloc[data.index]
+        var.select_rows(data.index.values)
 
         return var
 
@@ -194,7 +208,7 @@ class Rename(Transformation):
         ''' Rename happens automatically in the base class, so all we need to
         do is unset the original variable in the collection. '''
         self.collection.variables.pop(var.name)
-        return var.values.values
+        return var.values
 
 
 class Replace(Transformation):
@@ -265,7 +279,7 @@ class Split(Transformation):
         by_variables = [all_variables[v].values if v in all_variables
                         else var.index[v].reset_index(drop=True)
                         for v in listify(by)]
-        group_data = pd.concat(by_variables, axis=1)
+        group_data = pd.concat(by_variables, axis=1, sort=True)
         group_data.columns = listify(by)
 
         # For sparse data, we need to set up a 1D grouper

@@ -8,8 +8,7 @@ from __future__ import print_function
 import logging
 from os.path import basename
 
-import numpy as np
-import nibabel as nib
+import math
 from num2words import num2words
 
 from .. import __version__
@@ -104,7 +103,7 @@ def func_info(task, n_runs, metadata, img, config):
 
     tr = metadata['RepetitionTime']
     n_tps = img.shape[3]
-    run_secs = np.ceil(n_tps * tr)
+    run_secs = math.ceil(n_tps * tr)
     mins, secs = divmod(run_secs, 60)
     length = '{0}:{1:02.0f}'.format(int(mins), int(secs))
 
@@ -431,6 +430,7 @@ def parse_niftis(layout, niftis, subj, config, **kwargs):
         if not metadata:
             LOGGER.warning('No json file found for %s', nii_file)
         else:
+            import nibabel as nib
             img = nib.load(nii_file)
 
             # Assume all data were acquired the same way.
