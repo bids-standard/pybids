@@ -139,11 +139,11 @@ class BIDSLayout(Layout):
             try:
                 root = str(root)
             except:
-                raise ValueError("root argument must be a string (or a type that "
+                raise TypeError("root argument must be a string (or a type that "
                         "supports casting to string, such as pathlib.Path)"
                         " specifying the directory containing the BIDS dataset.")
-                if not os.path.exists(root):
-                    raise ValueError("BIDS root does not exist: %s" % root)
+        if not os.path.exists(root):
+            raise ValueError("BIDS root does not exist: %s" % root)
 
         self.root = root
 
