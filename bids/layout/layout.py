@@ -377,6 +377,11 @@ class BIDSLayout(Layout):
             (see return_type for details).
         """
 
+        # Warn users still expecting 0.6 behavior
+        if 'type' in kwargs:
+            raise ValueError("As of pybids 0.7.0, the 'type' argument has been"
+                             " replaced with 'suffix'.")
+
         if derivatives is True:
             derivatives = list(self.derivatives.keys())
         elif derivatives:
@@ -414,8 +419,9 @@ class BIDSLayout(Layout):
         # Get entity-based search results using the superclass's get()
         result = []
         result = super(
-            BIDSLayout, self).get(return_type, target, extensions, None,
-                                  regex_search, **ent_kwargs)
+            BIDSLayout, self).get(return_type, target=target,
+                                  extensions=extensions, domains=None,
+                                  regex_search=regex_search, **ent_kwargs)
 
         # Search the metadata if needed
         if return_type not in {'dir', 'id'}:

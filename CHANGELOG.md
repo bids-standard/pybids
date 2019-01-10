@@ -1,6 +1,6 @@
 # Changelog
 
-## Version 0.7.0 (September, 2018)
+## Version 0.7.0 (January 10, 2019)
 This is a major, API-breaking release. It introduces a large number of new features, bug fixes, and improvements.
 
 API-BREAKING CHANGES:
@@ -14,20 +14,36 @@ API-BREAKING CHANGES:
 * The BIDS validator is now enabled by default at layout initialization (i.e., `validate=True`)
 * The `exclude` initialization argument has been removed.
 * `BIDSLayout.parse_entities` utility has been removed (use the more flexible `parse_file_entities`).
+* Calls to `.get()` now return `BIDSFile` objects, rather than namedtuples, by default (#281). The `BIDSFile` API has been tweaked to ensure backwards incompatibility in nearly all cases.
+* Naming conventions throughout the codebase have been updated to ensure consistency with the BIDS specs. This is most salient in the `analysis` module, where snake_case has been replaced with CamelCase throughout.
 
 NEW FEATURES:
-* File metadata is now searchable (use `BIDSLayout.search_metadata()`)
+* File metadata (i.e., in JSON sidecars) is now searchable by default, and behaves just like native BIDS entities (e.g., metadata keys can be passed as arguments to `.get()` calls)
 * A new BIDSFile wrapper provides easy access to `.metadata` and `.image`
 * HRF convolution is now supported via bundling of nistats' hemodynamic_models module; convolution is handled via the `convolve_HRF` transformation.
+* Named config paths that customize how projects are processed can be added at run-time (#313)
+* Preliminary support for BIDS-Derivatives RC1 (mainly core keywords)
 
 MINOR IMPROVEMENTS AND BUG FIXES:
-* Specifying 'derivatives' in a paths specification now automatically includes 'bids' (#246)
+* Specifying 'derivatives' in a path specification now automatically includes 'bids' (#246)
+* Zenodo DOIs are now minted with new releases (#308)
 * Variable loading via load_variables can now be done incrementally
 * Expanded and improved path-building via `layout.build_path()`
 * `get_collections` no longer breaks when `merge=True` and the list is empty (#202)
 * Layout initialization no longer fails when `validate=True` (#222)
 * The auto_contrasts field in the modeling tools now complies with the BIDS-Model spec (#234)
-* Fix sum transformation
+* Printing a `BIDSFile` now provides more useful information, including path (#298)
+* Resample design matrix to 1/TR by default (#309)
+* Fix the Sum transformation
+* Ensure that resampling works properly when a sampling rate is passed to `get_design_matrix` (#297)
+* Propagate derivative entities into top-level dynamic getters (#306)
+* Deprecated `get_header` call in nibabel removed (#300)
+* Fix bug in entity indexing for `BIDSVariableCollection` (#319)
+* Exclude modules with heavy dependencies from root namespace for performance reasons (#321)
+* Fix bug that caused in-place updating of input selectors in `Analysis` objects (#323)
+* Add a DropNA transformation (#325)
+* Add a `get_tr()` method to `BIDSLayout` (#327)
+* Add entity hints when calling `get()` with a `target` argument (#328)
 * Improved test coverage
 
 ## Version 0.6.5 (August 21, 2018)
