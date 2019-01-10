@@ -42,7 +42,7 @@ MINOR IMPROVEMENTS AND BUG FIXES:
 * Exclude modules with heavy dependencies from root namespace for performance reasons (#321)
 * Fix bug that caused in-place updating of input selectors in `Analysis` objects (#323)
 * Add a DropNA transformation (#325)
-* Add a get_tr() method to `BIDSLayout` (#327)
+* Add a `get_tr()` method to `BIDSLayout` (#327)
 * Add entity hints when calling `get()` with a `target` argument (#328)
 * Improved test coverage
 
