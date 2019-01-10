@@ -377,6 +377,11 @@ class BIDSLayout(Layout):
             (see return_type for details).
         """
 
+        # Warn users still expecting 0.6 behavior
+        if 'type' in kwargs:
+            raise ValueError("As of pybids 0.7.0, the 'type' argument has been"
+                             " replaced with 'suffix'.")
+
         if derivatives is True:
             derivatives = list(self.derivatives.keys())
         elif derivatives:
