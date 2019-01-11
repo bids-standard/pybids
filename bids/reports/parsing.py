@@ -315,12 +315,12 @@ def fmap_info(metadata, img, config, layout):
         run_dict = {}
         for scan in scans:
             fn = basename(scan)
-            iff_file = [f for f in layout.get(extensions='nii.gz') if fn in f.filename][0]
+            iff_file = [f for f in layout.get(extensions='nii.gz') if fn in f.path][0]
             run_num = int(iff_file.run)
-            ty = iff_file.suffix.upper()
+            ty = iff_file.entities['suffix'].upper()
             if ty == 'BOLD':
-                iff_meta = layout.get_metadata(iff_file.filename)
-                task = iff_meta.get('TaskName', iff_file.task)
+                iff_meta = layout.get_metadata(iff_file.path)
+                task = iff_meta.get('TaskName', iff_file.entities['task'])
                 ty_str = '{0} {1} scan'.format(task, ty)
             else:
                 ty_str = '{0} scan'.format(ty)
@@ -437,41 +437,42 @@ def parse_niftis(layout, niftis, subj, config, **kwargs):
             if not description_list:
                 description_list.append(general_acquisition_info(metadata))
 
-            if nifti_struct.datatype == 'func':
-                if not skip_task.get(nifti_struct.task, False):
+            if nifti_struct.entities['datatype'] == 'func':
+                if not skip_task.get(nifti_struct.entities['task'], False):
                     echos = layout.get_echoes(subject=subj, extensions='nii.gz',
-                                              task=nifti_struct.task, **kwargs)
+                                              task=nifti_struct.entities['task'],
+                                              **kwargs)
                     n_echos = len(echos)
                     if n_echos > 0:
                         metadata['EchoTime'] = []
                         for echo in sorted(echos):
                             echo_struct = layout.get(subject=subj, echo=echo,
                                                      extensions='nii.gz',
-                                                     task=nifti_struct.task,
+                                                     task=nifti_struct.entities['task'],
                                                      **kwargs)[0]
-                            echo_file = echo_struct.filename
+                            echo_file = echo_struct.path
                             echo_meta = layout.get_metadata(echo_file)
                             metadata['EchoTime'].append(echo_meta['EchoTime'])
 
                     n_runs = len(layout.get_runs(subject=subj,
-                                                 task=nifti_struct.task,
+                                                 task=nifti_struct.entities['task'],
                                                  **kwargs))
-                    description_list.append(func_info(nifti_struct.task,
+                    description_list.append(func_info(nifti_struct.entities['task'],
                                                       n_runs, metadata, img,
                                                       config))
-                    skip_task[nifti_struct.task] = True
+                    skip_task[nifti_struct.entities['task']] = True
 
-            elif nifti_struct.datatype == 'anat':
-                suffix = nifti_struct.suffix
+            elif nifti_struct.entities['datatype'] == 'anat':
+                suffix = nifti_struct.entities['suffix']
                 if suffix.endswith('w'):
                     suffix = suffix[:-1] + '-weighted'
                 description_list.append(anat_info(suffix, metadata, img,
                                                   config))
-            elif nifti_struct.datatype == 'dwi':
+            elif nifti_struct.entities['datatype'] == 'dwi':
                 bval_file = nii_file.replace('.nii.gz', '.bval')
                 description_list.append(dwi_info(bval_file, metadata, img,
                                                  config))
-            elif nifti_struct.datatype == 'fmap':
+            elif nifti_struct.entities['datatype'] == 'fmap':
                 description_list.append(fmap_info(metadata, img, config,
                                                   layout))
 
