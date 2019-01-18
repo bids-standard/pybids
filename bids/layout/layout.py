@@ -108,7 +108,7 @@ class BIDSLayout(Layout):
             If False, queries return relative paths, unless the root argument
             was left empty (in which case the root defaults to the file system
             root).
-        derivatives (bool, str, list): Specificies whether and/or which
+        derivatives (bool, str, list): Specifies whether and/or which
             derivatives to to index. If True, all pipelines found in the
             derivatives/ subdirectory will be indexed. If a str or list, gives
             the paths to one or more derivatives directories to index. If False
