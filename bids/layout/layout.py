@@ -134,8 +134,14 @@ class BIDSLayout(Layout):
 
         # Validate arguments
         if not isinstance(root, six.string_types):
-            raise ValueError("root argument must be a string specifying the"
-                             " directory containing the BIDS dataset.")
+            # attempt to handle pathlib paths (or other types that can be cast as str)
+            # before giving up
+            try:
+                root = str(root)
+            except:
+                raise TypeError("root argument must be a string (or a type that "
+                        "supports casting to string, such as pathlib.Path)"
+                        " specifying the directory containing the BIDS dataset.")
         if not os.path.exists(root):
             raise ValueError("BIDS root does not exist: %s" % root)
 

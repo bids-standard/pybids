@@ -59,6 +59,7 @@ before_install:
     - python --version # just to check
     - travis_retry pip install -U pip setuptools wheel  # needed at one point
     - travis_retry pip install pytest pytest-xdist pytest-cov codecov
+    - travis_retry pip install pathlib
 
 install:
 - pip install $EXTRA_PIP_FLAGS ".[analysis]"

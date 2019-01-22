@@ -52,7 +52,7 @@ EXTRAS_REQUIRE = {
    # now deprecated installation schemes
    'analysis': []
 }
-TESTS_REQUIRE = ["pytest>=3.3.0"]
+TESTS_REQUIRE = ["pytest>=3.3.0", 'pathlib; python_version < "3.4"']
 
 
 def package_files(directory):
