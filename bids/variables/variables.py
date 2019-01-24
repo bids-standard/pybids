@@ -301,6 +301,9 @@ class SparseRunVariable(SimpleVariable):
     def __init__(self, name, data, run_info, source, **kwargs):
         if hasattr(run_info, 'duration'):
             run_info = [run_info]
+        if not isinstance(run_info, list):
+            raise TypeError("We expect a list of run_info, got %s"
+                            % repr(run_info))
         self.run_info = run_info
         for sc in self._property_columns:
             setattr(self, sc, data.pop(sc).values)
