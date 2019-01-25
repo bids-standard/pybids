@@ -108,7 +108,7 @@ class BIDSLayout(Layout):
             If False, queries return relative paths, unless the root argument
             was left empty (in which case the root defaults to the file system
             root).
-        derivatives (bool, str, list): Specificies whether and/or which
+        derivatives (bool, str, list): Specifies whether and/or which
             derivatives to to index. If True, all pipelines found in the
             derivatives/ subdirectory will be indexed. If a str or list, gives
             the paths to one or more derivatives directories to index. If False
@@ -134,8 +134,14 @@ class BIDSLayout(Layout):
 
         # Validate arguments
         if not isinstance(root, six.string_types):
-            raise ValueError("root argument must be a string specifying the"
-                             " directory containing the BIDS dataset.")
+            # attempt to handle pathlib paths (or other types that can be cast as str)
+            # before giving up
+            try:
+                root = str(root)
+            except:
+                raise TypeError("root argument must be a string (or a type that "
+                        "supports casting to string, such as pathlib.Path)"
+                        " specifying the directory containing the BIDS dataset.")
         if not os.path.exists(root):
             raise ValueError("BIDS root does not exist: %s" % root)
 
@@ -377,6 +383,11 @@ class BIDSLayout(Layout):
             (see return_type for details).
         """
 
+        # Warn users still expecting 0.6 behavior
+        if 'type' in kwargs:
+            raise ValueError("As of pybids 0.7.0, the 'type' argument has been"
+                             " replaced with 'suffix'.")
+
         if derivatives is True:
             derivatives = list(self.derivatives.keys())
         elif derivatives:
@@ -397,13 +408,26 @@ class BIDSLayout(Layout):
             else:
                 md_kwargs[k] = v
 
+        # Provide some suggestions if target is specified and invalid.
+        if target is not None and target not in all_ents:
+            import difflib
+            potential = list(all_ents.keys())
+            suggestions = difflib.get_close_matches(target, potential)
+            if suggestions:
+                message = "Did you mean one of: {}?".format(suggestions)
+            else:
+                message = "Valid targets are: {}".format(potential)
+            raise ValueError(("Unknown target '{}'. " + message)
+                             .format(target))
+
         all_results = []
 
         # Get entity-based search results using the superclass's get()
         result = []
         result = super(
-            BIDSLayout, self).get(return_type, target, extensions, None,
-                                  regex_search, **ent_kwargs)
+            BIDSLayout, self).get(return_type, target=target,
+                                  extensions=extensions, domains=None,
+                                  regex_search=regex_search, **ent_kwargs)
 
         # Search the metadata if needed
         if return_type not in {'dir', 'id'}:
@@ -545,6 +569,37 @@ class BIDSLayout(Layout):
                         cur_fieldmap["suffix"] = "fieldmap"
                     fieldmap_set.append(cur_fieldmap)
         return fieldmap_set
+
+    def get_tr(self, derivatives=False, **selectors):
+        """ Returns the scanning repetition time (TR) for one or more runs.
+
+        Args:
+            derivatives (bool): If True, also checks derivatives images.
+            selectors: Optional keywords used to constrain the selected runs.
+                Can be any arguments valid for a .get call (e.g., BIDS entities
+                or JSON sidecar keys).
+        
+        Returns: A single float.
+
+        Notes: Raises an exception if more than one unique TR is found.
+        """
+        # Constrain search to functional images
+        selectors['suffix'] = 'bold'
+        selectors['datatype'] = 'func'
+        images = self.get(extensions=['.nii', '.nii.gz'], derivatives=derivatives,
+                          **selectors)
+        if not images:
+            raise ValueError("No functional images that match criteria found.")
+        
+        all_trs = set()
+        for img in images:
+            md = self.get_metadata(img.path, suffix='bold', full_search=True)
+            all_trs.add(round(float(md['RepetitionTime']), 5))
+ 
+        if len(all_trs) > 1:
+            raise ValueError("Unique TR cannot be found given selectors {!r}"
+                             .format(selectors))
+        return all_trs.pop()
 
     def get_collections(self, level, types=None, variables=None, merge=False,
                         sampling_rate=None, skip_empty=False, **kwargs):

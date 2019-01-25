@@ -1,16 +1,13 @@
+dist: xenial
+sudo: true
 language: python
-
-sudo: false
-
-cache:
-  directories:
-    - $HOME/.cache/pip
 
 # python and global.matrix are crossed to create the base build matrix
 python:
   - 2.7
   - 3.5
   - 3.6
+  - 3.7
 env:
   global:
     - EXTRA_WHEELS="https://5cf40426d9f06eb7461d-6fe47d9331aba7cd62fc36c7196769e4.ssl.cf2.rackcdn.com"
@@ -37,6 +34,11 @@ matrix:
       env:
         - PYTHON_VERSION=3.6
         - MINICONDA_URL="https://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-x86_64.sh"
+    - os: osx
+      language: generic
+      env:
+        - PYTHON_VERSION=3.7
+        - MINICONDA_URL="https://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-x86_64.sh"
 
 before_install:
     - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
@@ -55,8 +57,9 @@ before_install:
     - virtualenv --python=python venv
     - source venv/bin/activate
     - python --version # just to check
-    - travis_retry pip install -U pip wheel  # needed at one point
+    - travis_retry pip install -U pip setuptools wheel  # needed at one point
     - travis_retry pip install pytest pytest-xdist pytest-cov codecov
+    - travis_retry pip install pathlib
 
 install:
 - pip install $EXTRA_PIP_FLAGS ".[analysis]"
@@ -76,4 +79,4 @@ deploy:
   skip_cleanup: true
   on:
     tags: true
-    condition: $PYTHON_VERSION = "3.5"
+    condition: $PYTHON_VERSION = "3.6"
