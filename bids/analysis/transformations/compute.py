@@ -30,12 +30,17 @@ class Convolve(Transformation):
     _return_type = 'variable'
 
     def _transform(self, var, model='spm', derivative=False, dispersion=False,
-                   fir_delays=None, sampling_rate=None):
+                   fir_delays=None):
 
         model = model.lower()
 
+        post_resample = False
         if isinstance(var, SparseRunVariable):
-            sr = self.collection.sampling_rate if sampling_rate is None else sampling_rate
+            sr = self.collection.sampling_rate
+            min_sampling_rate = 1 / var.duration.min()
+            if min_sampling_rate > sr:
+                sr = min_sampling_rate
+                post_resample = True
             var = var.to_dense(sr)
 
         df = var.to_df(entities=False)
@@ -53,9 +58,14 @@ class Convolve(Transformation):
         convolved = hrf.compute_regressor(vals, model, onsets,
                                           fir_delays=fir_delays, min_onset=0)
 
-        return DenseRunVariable(var.name, convolved[0],
+        var = DenseRunVariable(var.name, convolved[0],
             var.run_info, var.source,
             var.sampling_rate)
+
+        if post_resample:
+            var.resample(sampling_rate=self.collection.sampling_rate, inplace=True)
+
+        return var
 
 
 class Demean(Transformation):
