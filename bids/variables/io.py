@@ -147,7 +147,8 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
         try:
             import nibabel as nb
             img = nb.load(img_f)
-            duration = img.shape[3] * img.header.get_zooms()[-1]
+            tr = layout.get_metadata(img_f)['RepetitionTime']
+            duration = img.shape[3] * tr
         except Exception as e:
             if scan_length is not None:
                 duration = scan_length
