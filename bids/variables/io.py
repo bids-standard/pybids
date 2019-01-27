@@ -141,13 +141,15 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
         if 'run' in entities:
             entities['run'] = int(entities['run'])
 
+        tr = layout.get_metadata(img_f, suffix='bold', domains=domains,
+                                 full_search=True)['RepetitionTime']
+
         # Get duration of run: first try to get it directly from the image
         # header; if that fails, try to get NumberOfVolumes from the
         # run metadata; if that fails, look for a scan_length argument.
         try:
             import nibabel as nb
             img = nb.load(img_f)
-            tr = layout.get_metadata(img_f)['RepetitionTime']
             duration = img.shape[3] * tr
         except Exception as e:
             if scan_length is not None:
@@ -158,9 +160,6 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
                        "as a fallback. Please check that the image files are "
                        "available, or manually specify the scan duration.")
                 raise ValueError(msg)
-
-        tr = layout.get_metadata(img_f, suffix='bold', domains=domains,
-                                 full_search=True)['RepetitionTime']
 
         run = dataset.get_or_create_node('run', entities, image_file=img_f,
                                          duration=duration, repetition_time=tr)
