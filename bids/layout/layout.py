@@ -279,8 +279,7 @@ class BIDSLayout(object):
         return s
 
     def get(self, return_type='object', target=None, extensions=None,
-            scope=None, regex_search=False, defined_fields=None, domains=None,
-            **kwargs):
+            scope=None, regex_search=False, defined_fields=None, **kwargs):
         """
         Retrieve files and/or metadata from the current Layout.
 
@@ -298,7 +297,7 @@ class BIDSLayout(object):
             scope (str, list): Scope of the search space. If passed, only
                 nodes/directories that match the specified scope will be
                 searched. Possible values include:
-                    None (default): search all available directories.
+                    None (default) or 'all': search all available directories.
                     'derivatives': search all derivatives directories
                     'raw': search only BIDS-Raw directories
                     <PipelineName>: the name of a BIDS-Derivatives pipeline
@@ -327,10 +326,10 @@ class BIDSLayout(object):
         # Determine which BIDSLayouts to search
         layouts = []
         scope = listify(scope)
-        if scope is None or 'raw' in scope:
+        if scope is None or scope == 'all' or 'raw' in scope:
             layouts.append(self)
         for deriv in self.derivatives.values():
-            if (scope is None or 'derivatives' in scope
+            if (scope is None or scope == 'all' or 'derivatives' in scope
                 or deriv.description['Name'] in scope):
                 layouts.append(deriv)
         
