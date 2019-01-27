@@ -206,9 +206,8 @@ def test_layout_with_derivs(layout_ds005_derivs):
     event_file = "sub-01_task-mixedgamblestask_run-01_desc-extra_events.tsv"
     deriv_files = [basename(f) for f in list(deriv.files.keys())]
     assert event_file in deriv_files
-    assert 'derivatives.roi' in deriv.entities
-    assert 'bids.roi' not in deriv.entities
-    assert 'bids.subject' in deriv.entities
+    assert 'roi' in deriv.entities
+    assert 'subject' in deriv.entities
 
 
 def test_layout_with_multi_derivs(layout_ds005_multi_derivs):
@@ -221,9 +220,8 @@ def test_layout_with_multi_derivs(layout_ds005_multi_derivs):
     deriv = layout_ds005_multi_derivs.derivatives['dummy']
     assert deriv.files
     assert len(deriv.files) == 4
-    assert 'derivatives.roi' in deriv.entities
-    assert 'bids.roi' not in deriv.entities
-    assert 'bids.subject' in deriv.entities
+    assert 'roi' in deriv.entities
+    assert 'subject' in deriv.entities
     preproc = layout_ds005_multi_derivs.get(desc='preproc')
     assert len(preproc) == 3
 
@@ -234,7 +232,7 @@ def test_query_derivatives(layout_ds005_derivs):
     assert len(result) == 49
     assert 'sub-01_task-mixedgamblestask_run-01_desc-extra_events.tsv' in result
     result = layout_ds005_derivs.get(suffix='events', return_type='object',
-                                     derivatives=False)
+                                     scope='raw')
     assert len(result) == 48
     result = [f.filename for f in result]
     assert 'sub-01_task-mixedgamblestask_run-01_desc-extra_events.tsv' not in result
@@ -274,6 +272,7 @@ def test_derivative_getters():
     full_layout = BIDSLayout(synth_path, derivatives=True)
     with pytest.raises(AttributeError):
         bare_layout.get_spaces()
+    print(list(full_layout.entities.keys()))
     assert set(full_layout.get_spaces()) == {'MNI152NLin2009cAsym', 'T1w'}
 
 
