@@ -272,7 +272,6 @@ def test_derivative_getters():
     full_layout = BIDSLayout(synth_path, derivatives=True)
     with pytest.raises(AttributeError):
         bare_layout.get_spaces()
-    print(list(full_layout.entities.keys()))
     assert set(full_layout.get_spaces()) == {'MNI152NLin2009cAsym', 'T1w'}
 
 
