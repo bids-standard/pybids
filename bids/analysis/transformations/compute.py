@@ -21,7 +21,6 @@ class Convolve(Transformation):
         dispersion (bool): Whether or not to include the dispersion derivative.
         fir_delays (iterable): A list or iterable of delays to use if model is
             'fir' (ignored otherwise). Spacing between delays must be fixed.
-        sampling_rate (float): Sampling rate (in Hz) to use in convolution
 
     Note: Uses the HRF convolution functions implemented in nistats.
     """
