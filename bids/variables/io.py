@@ -124,7 +124,6 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
 
     # Extract any non-keyword arguments
     kwargs = selectors.copy()
-    scope = kwargs.get('scope')
 
     if dataset is None:
         dataset = NodeIndex()
