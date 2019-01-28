@@ -68,6 +68,10 @@ class BIDSLayout(object):
             current BIDSLayout is derived.
         config_filename (str): Optional name of filename within directories
             that contains configuration information.
+        regex_search (bool): Whether to require exact matching (True) or regex
+            search (False, default) when comparing the query string to each
+            entity in .get() calls. This sets a default for the instance, but
+            can be overridden in individual .get() requests.
         kwargs: Optional keyword arguments to pass onto the Layout initializer
             in grabbit.
     """
@@ -75,7 +79,8 @@ class BIDSLayout(object):
     def __init__(self, root, validate=True, index_associated=True,
                  include=None, absolute_paths=True, derivatives=False,
                  config=None, sources=None, tags='bids',
-                 config_filename='layout_config.json', **kwargs):
+                 config_filename='layout_config.json', regex_search=False,
+                 **kwargs):
 
         self.root = root
         self.validator = BIDSValidator(index_associated=index_associated)
@@ -83,6 +88,7 @@ class BIDSLayout(object):
         self.absolute_paths = absolute_paths
         self.derivatives = {}
         self.sources = sources
+        self.regex_search = regex_search
         self.metadata_index = MetadataIndex(self)
         self.config_filename = config_filename
         self.files = {}
