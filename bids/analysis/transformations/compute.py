@@ -37,7 +37,7 @@ class Convolve(Transformation):
         post_resample = False
         if isinstance(var, SparseRunVariable):
             sr = self.collection.sampling_rate
-            min_sampling_rate = 1 / var.duration.min()
+            min_sampling_rate = 1.0 / var.duration.min()
             if min_sampling_rate > sr:
                 sr = min_sampling_rate
                 post_resample = True
