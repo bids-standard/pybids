@@ -187,8 +187,7 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
                             _data = _data.drop('amplitude', axis=1)
                         else:
                             msg = ("Column name 'amplitude' is reserved; "
-                                   "renaming "
-                                   "it to 'amplitude_'.")
+                                   "renaming it to 'amplitude_'.")
                             _data = _data.rename(
                                 columns={'amplitude': 'amplitude_'})
                         warnings.warn(msg)
@@ -237,10 +236,13 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
                     run.add_variable(var)
 
         # Process recordinging files
-        if physio or stim:
-            rec_types = ['physio'] if physio else []
-            if stim:
-                rec_types.append('stim')
+        rec_types = []
+        if physio:
+            rec_types.append('physio')
+        if stim:
+            rec_types.append('stim')
+
+        if rec_types:
             rec_files = layout.get_nearest(img_f, extensions='.tsv.gz',
                                            all_=True, suffix=rec_types,
                                            ignore_strict_entities=['suffix'],

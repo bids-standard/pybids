@@ -61,6 +61,7 @@ def test_load_participants(layout1):
 
 
 def test_load_synthetic_dataset(synthetic):
+
     param, index = synthetic
     # Runs
     runs = index.get_nodes('run')
@@ -72,10 +73,11 @@ def test_load_synthetic_dataset(synthetic):
     if param == 'preproc':
         # non-exhaustive
         match = ['Cosine01', 'stdDVARS', 'RotZ', 'FramewiseDisplacement']
-        sum_dense = 54
+        sum_dense = 56
     else:
-        match = ['trial_type', 'weight', 'respiratory', 'cardiac']
-        sum_dense = 2
+        match = ['trial_type', 'weight', 'respiratory', 'cardiac', 'stimA',
+                 'stimB']
+        sum_dense = 4
 
     for v in match:
         assert v in variables.keys()
