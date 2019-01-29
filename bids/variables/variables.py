@@ -407,13 +407,13 @@ class DenseRunVariable(BIDSVariable):
         ''' Build the entity index from run information. '''
 
         index = []
-        sr = int(round(1000. / sampling_rate))
+        interval = int(round(1000. / sampling_rate))
         _timestamps = []
         for run in run_info:
             reps = int(math.ceil(run.duration * sampling_rate))
             ent_vals = list(run.entities.values())
             df = pd.DataFrame([ent_vals] * reps, columns=list(run.entities.keys()))
-            ts = pd.date_range(0, periods=len(df), freq='%sms' % sr)
+            ts = pd.date_range(0, periods=len(df), freq='%sms' % interval)
             _timestamps.append(ts.to_series())
             index.append(df)
         self.timestamps = pd.concat(_timestamps, axis=0, sort=True)
