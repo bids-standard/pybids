@@ -10,9 +10,8 @@ import warnings
 from bids.utils import listify, natural_sort
 from bids.config import get_option
 from bids.external import inflect, six
-from .entities import Config, BIDSFile
+from .core import Config, BIDSFile, BIDSRootNode
 from .validation import BIDSValidator
-from .nodes import BIDSRootNode
 from .. import config as cf
 
 
