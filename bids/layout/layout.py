@@ -259,7 +259,7 @@ class BIDSLayout(object):
             self.entities.update(deriv.entities)
 
     # def to_df(self, **kwargs):
-    #     """g
+    #     """
     #     Return information for all Files tracked in the Layout as a pandas
     #     DataFrame.
 
@@ -603,7 +603,8 @@ class BIDSLayout(object):
             num_ents.sort(key=lambda x: x[2], reverse=True)
 
             if num_ents:
-                matches.append(num_ents[0][0])
+                for f_match in num_ents:
+                    matches.append(f_match[0])
 
             if not all_:
                 break
