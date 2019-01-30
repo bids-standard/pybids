@@ -316,3 +316,12 @@ class ToDense(Transformation):
 
     def _transform(self, var, sampling_rate=10):
         return var.to_dense(sampling_rate=sampling_rate)
+
+
+class Resample(Transformation):
+    _groupable = False
+    _input_type = 'variable'
+    _return_type = 'variable'
+
+    def _transform(self, var, sampling_rate=10):
+        return var.resample(sampling_rate=sampling_rate)
