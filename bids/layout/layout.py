@@ -181,6 +181,18 @@ class BIDSLayout(object):
         to_check = os.path.join(os.path.sep, to_check)
 
         return self.validator.is_bids(to_check)
+
+    def _get_layouts_in_scope(self, scope):
+        # Determine which BIDSLayouts to search
+        layouts = []
+        scope = listify(scope)
+        if scope is None or scope == 'all' or 'raw' in scope:
+            layouts.append(self)
+        for deriv in self.derivatives.values():
+            if (scope is None or scope == 'all' or 'derivatives' in scope
+                or deriv.description['Name'] in scope):
+                layouts.append(deriv)
+        return layouts
     
     def __getattr__(self, key):
         ''' Dynamically inspect missing methods for get_<entity>() calls
@@ -200,6 +212,17 @@ class BIDSLayout(object):
         # Spit out default message if we get this far
         raise AttributeError("%s object has no attribute named %r" %
                              (self.__class__.__name__, key))
+
+    def __repr__(self):
+        n_sessions = len([session for isub in self.get_subjects()
+                          for session in self.get_sessions(subject=isub)])
+        n_runs = len([run for isub in self.get_subjects()
+                      for run in self.get_runs(subject=isub)])
+        n_subjects = len(self.get_subjects())
+        root = self.root[-30:]
+        s = ("BIDS Layout: ...{} | Subjects: {} | Sessions: {} | "
+             "Runs: {}".format(root, n_subjects, n_sessions, n_runs))
+        return s
 
     def add_derivatives(self, path, **kwargs):
         ''' Add BIDS-Derivatives datasets to tracking.
@@ -281,17 +304,6 @@ class BIDSLayout(object):
         data.insert(0, 'path', [f.path for f in files])
         return data
 
-    def __repr__(self):
-        n_sessions = len([session for isub in self.get_subjects()
-                          for session in self.get_sessions(subject=isub)])
-        n_runs = len([run for isub in self.get_subjects()
-                      for run in self.get_runs(subject=isub)])
-        n_subjects = len(self.get_subjects())
-        root = self.root[-30:]
-        s = ("BIDS Layout: ...{} | Subjects: {} | Sessions: {} | "
-             "Runs: {}".format(root, n_subjects, n_sessions, n_runs))
-        return s
-
     def get(self, return_type='object', target=None, extensions=None,
             scope=None, regex_search=False, defined_fields=None, **kwargs):
         """
@@ -337,15 +349,7 @@ class BIDSLayout(object):
             raise ValueError("As of pybids 0.7.0, the 'type' argument has been"
                              " replaced with 'suffix'.")
 
-        # Determine which BIDSLayouts to search
-        layouts = []
-        scope = listify(scope)
-        if scope is None or scope == 'all' or 'raw' in scope:
-            layouts.append(self)
-        for deriv in self.derivatives.values():
-            if (scope is None or scope == 'all' or 'derivatives' in scope
-                or deriv.description['Name'] in scope):
-                layouts.append(deriv)
+        layouts = self._get_layouts_in_scope(scope)
         
         # Create concatenated file, node, and entity lists
         files, entities, nodes = {}, {}, []
@@ -434,19 +438,18 @@ class BIDSLayout(object):
 
         return results
 
-    def get_file(self, filename, derivatives=True):
+    def get_file(self, filename, scope=None):
         ''' Returns the BIDSFile object with the specified path.
 
         Args:
             filename (str): The path of the file to retrieve.
-            derivatives (bool: If True, checks all associated derivative
-                datasets as well.
+            scope (str, list): Scope of the search space. If passed, only
+                BIDSLayouts that match the specified scope will be
+                searched. See BIDSLayout docstring for valid values.
 
-        Returns: A BIDSFile.
+        Returns: A BIDSFile, or None if no match was found.
         '''
-        layouts = [self]
-        if derivatives:
-            layouts += self.derivatives.values()
+        layouts = self._get_layouts_in_scope(scope)
         for ly in layouts:
             if filename in ly.files:
                 return ly.files[filename]
