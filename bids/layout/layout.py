@@ -15,6 +15,9 @@ from .core import Config, BIDSFile, BIDSRootNode
 from .validation import BIDSValidator
 from .. import config as cf
 
+if six.PY2:
+    # To be able to pass encoding kwarg
+    from io import open
 
 def parse_file_entities(filename, entities=None, config=None,
                         include_unmatched=False):
