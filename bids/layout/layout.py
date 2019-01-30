@@ -825,8 +825,7 @@ class BIDSLayout(object):
                              .format(selectors))
         return all_trs.pop()
 
-    def build_path(self, source, path_patterns=None, strict=False,
-                   domains=None):
+    def build_path(self, source, path_patterns=None, strict=False, scope=None):
         ''' Constructs a target filename for a file or dictionary of entities.
 
         Args:
@@ -843,11 +842,12 @@ class BIDSLayout(object):
             strict (bool): If True, all entities must be matched inside a
                 pattern in order to be a valid match. If False, extra entities
                 will be ignored so long as all mandatory entities are found.
-            domains (str, list): Optional name(s) of domain(s) to scan for
-                path patterns. If None, all domains are scanned. If two or more
-                domains are provided, the order determines the precedence of
-                path patterns (i.e., earlier domains will have higher
-                precedence).
+            scope (str, list): The scope of the search space. Indicates which
+                BIDSLayouts' path patterns to use. See BIDSLayout docstring
+                for valid values. By default, uses all available layouts. If
+                two or more values are provided, the order determines the
+                precedence of path patterns (i.e., earlier layouts will have
+                higher precedence).
         '''
 
         if isinstance(source, six.string_types):
@@ -860,11 +860,15 @@ class BIDSLayout(object):
             source = source.entities
 
         if path_patterns is None:
-            if domains is None:
-                domains = list(self.domains.keys())
+            layouts = self._get_layouts_in_scope(scope)
             path_patterns = []
-            for dom in listify(domains):
-                path_patterns.extend(self.domains[dom].path_patterns)
+            seen_configs = set()
+            for l in layouts:
+                for c in l.config.values():
+                    if c in seen_configs:
+                        continue
+                    path_patterns.extend(c.default_path_patterns)
+                    seen_configs.add(c)
 
         return build_path(source, path_patterns, strict)
 
