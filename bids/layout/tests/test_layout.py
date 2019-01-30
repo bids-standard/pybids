@@ -3,8 +3,8 @@ functionality should go in the grabbit package. """
 
 import os
 import pytest
-from bids.layout import BIDSLayout
-from bids.layout.layout import BIDSFile
+from bids.layout import BIDSLayout, parse_file_entities
+from bids.layout.core import BIDSFile, Entity, Config
 from os.path import join, abspath, basename
 from bids.tests import get_test_data_path
 
@@ -51,6 +51,11 @@ def layout_ds005_multi_derivs():
 def layout_ds005_models():
     data_dir = join(get_test_data_path(), 'ds005')
     return BIDSLayout(data_dir, validate=False, include=['models/'])
+
+@pytest.fixture(scope='module')
+def layout_synthetic():
+    path = join(get_test_data_path(), 'synthetic')
+    return BIDSLayout(path, derivatives=True)
 
 
 def test_layout_init(layout_7t_trt):
@@ -289,3 +294,31 @@ def test_get_tr(layout_7t_trt):
     assert tr == 3.0
     tr = layout_7t_trt.get_tr(subject=['01', '02'], acquisition="prefrontal")
     assert tr == 4.0
+
+
+def test_parse_file_entities():
+    filename = '/sub-03_ses-07_run-4_desc-bleargh_sekret.nii.gz'
+
+
+    # Test with entities taken from bids config
+    target = {'subject': '03', 'session': '07', 'run': 4, 'suffix': 'sekret'}
+    assert target == parse_file_entities(filename, config='bids')
+    config = Config.load('bids')
+    assert target == parse_file_entities(filename, config=[config])
+
+    # Test with entities taken from bids and derivatives config
+    target = {'subject': '03', 'session': '07', 'run': 4, 'suffix': 'sekret',
+              'desc': 'bleargh'}
+    assert target == parse_file_entities(filename)
+    assert target == parse_file_entities(filename, config=['bids', 'derivatives'])
+
+    # Test with list of Entities
+    entities = [
+        Entity('subject', "[/\\\\]sub-([a-zA-Z0-9]+)"),
+        Entity('run', "[_/\\\\]run-0*(\\d+)", dtype=int),
+        Entity('suffix', "[._]*([a-zA-Z0-9]*?)\\.[^/\\\\]+$"),
+        Entity('desc', "desc-([a-zA-Z0-9]+)"),
+    ]
+    # Leave out session to distinguish from previous test target
+    target = {'subject': '03', 'run': 4, 'suffix': 'sekret', 'desc': 'bleargh'}
+    assert target == parse_file_entities(filename, entities=entities)

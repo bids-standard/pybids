@@ -27,6 +27,7 @@ def parse_file_entities(filename, entities=None, config=None,
         config (str, Config, list): One or more Config objects or names of
             configurations to use in matching. Each element must be a Config
             object, or a valid Config name (e.g., 'bids' or 'derivatives').
+            If None, all available configs are used.
         include_unmatched (bool): If True, unmatched entities are included
             in the returned dict, with values set to None. If False
             (default), unmatched entities are ignored.
@@ -35,27 +36,28 @@ def parse_file_entities(filename, entities=None, config=None,
         values extracted from the filename.
     '''
 
-    if entities is None and config is None:
-        raise ValueError("No entities found! Either the 'entities' or 'config'"
-                         "arguments must be passed.")
-
     # Load Configs if needed
-    if config is not None:
+    if entities is None:
+
+        if config is None:
+            config = ['bids', 'derivatives']
+
         config = [Config.load(c) if not isinstance(c, Config) else c
                   for c in listify(config)]
 
-    # Consolidate entities from all Configs into a single dict
-    entities = {}
-    for c in config:
-        entities.update(c.entities)
+        # Consolidate entities from all Configs into a single dict
+        entities = {}
+        for c in config:
+            entities.update(c.entities)
+        entities = entities.values()
 
     # Extract matches
     bf = BIDSFile(filename)
     ent_vals = {}
-    for name, ent in entities.items():
+    for ent in entities:
         match = ent.match_file(bf)
         if match is not None or include_unmatched:
-            ent_vals[name] = match
+            ent_vals[ent.name] = match
 
     return ent_vals
 
