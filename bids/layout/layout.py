@@ -224,6 +224,20 @@ class BIDSLayout(object):
              "Runs: {}".format(root, n_subjects, n_sessions, n_runs))
         return s
 
+    def __deepcopy__(self, memo):
+
+        cls = self.__class__
+        result = cls.__new__(cls)
+        memo[id(self)] = result
+
+        for k, v in self.__dict__.items():
+            new_val = getattr(self, k) if k == 'regex' else copy.deepcopy(v, memo)
+            setattr(result, k, new_val)
+        return result
+
+    def clone(self):
+        return copy.deepcopy(self)
+
     def add_derivatives(self, path, **kwargs):
         ''' Add BIDS-Derivatives datasets to tracking.
 
