@@ -1,4 +1,6 @@
 import re
+import os
+
 
 def listify(obj):
     ''' Wraps all non-list or tuple objects in a list; provides a simple way
@@ -70,3 +72,16 @@ def convert_JSON(j):
             out[newK] = value
 
     return out
+
+
+def splitext(path):
+    """splitext for paths with directories that may contain dots.
+    From https://stackoverflow.com/questions/5930036/separating-file-extensions-using-python-os-path-module"""
+    li = []
+    path_without_extensions = os.path.join(os.path.dirname(path),
+        os.path.basename(path).split(os.extsep)[0])
+    extensions = os.path.basename(path).split(os.extsep)[1:]
+    li.append(path_without_extensions)
+    # li.append(extensions) if you want extensions in another list inside the list that is returned.
+    li.extend(extensions)
+    return li

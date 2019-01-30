@@ -6,7 +6,7 @@ import logging
 import os
 import re
 import sys
-from grabbit.utils import splitext
+from bids.utils import splitext
 from os.path import join, dirname, exists, islink, isabs, isdir
 from six import string_types
 
