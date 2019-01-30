@@ -236,7 +236,7 @@ class BIDSLayout(object):
             layouts.append(self)
         for deriv in self.derivatives.values():
             if (scope is None or scope == 'all' or 'derivatives' in scope
-                or deriv.description['Name'] in scope):
+                or deriv.description["PipelineDescription"]['Name'] in scope):
                 layouts.append(deriv)
         return layouts
     

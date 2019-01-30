@@ -299,7 +299,6 @@ def test_get_tr(layout_7t_trt):
 def test_parse_file_entities():
     filename = '/sub-03_ses-07_run-4_desc-bleargh_sekret.nii.gz'
 
-
     # Test with entities taken from bids config
     target = {'subject': '03', 'session': '07', 'run': 4, 'suffix': 'sekret'}
     assert target == parse_file_entities(filename, config='bids')
@@ -322,3 +321,27 @@ def test_parse_file_entities():
     # Leave out session to distinguish from previous test target
     target = {'subject': '03', 'run': 4, 'suffix': 'sekret', 'desc': 'bleargh'}
     assert target == parse_file_entities(filename, entities=entities)
+
+
+def test_parse_file_entities_from_layout(layout_synthetic):
+    layout = layout_synthetic
+    filename = '/sub-03_ses-07_run-4_desc-bleargh_sekret.nii.gz'
+
+    # Test with entities taken from bids config
+    target = {'subject': '03', 'session': '07', 'run': 4, 'suffix': 'sekret'}
+    assert target == layout.parse_file_entities(filename, config='bids')
+    config = Config.load('bids')
+    assert target == layout.parse_file_entities(filename, config=[config])
+    assert target == layout.parse_file_entities(filename, scope='raw')
+
+    # Test with default scope—i.e., everything
+    target = {'subject': '03', 'session': '07', 'run': 4, 'suffix': 'sekret',
+              'desc': 'bleargh'}
+    assert target == layout.parse_file_entities(filename)
+    # Test with only the fmriprep pipeline (which includes both configs)
+    assert target == layout.parse_file_entities(filename, scope='fmriprep')
+    assert target == layout.parse_file_entities(filename, scope='derivatives')
+
+    # Test with only the derivative config
+    target = {'desc': 'bleargh'}
+    assert target == layout.parse_file_entities(filename, config='derivatives')
