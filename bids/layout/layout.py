@@ -14,6 +14,9 @@ from .core import Config, BIDSFile, BIDSRootNode
 from .validation import BIDSValidator
 from .. import config as cf
 
+if six.PY2:
+    # To be able to pass encoding kwarg
+    from io import open
 
 def add_config_paths(**kwargs):
     """ Add to the pool of available configuration files for BIDSLayout.
