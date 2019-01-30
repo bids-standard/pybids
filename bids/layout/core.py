@@ -150,7 +150,7 @@ class Entity(object):
 
 class BIDSFile(object):
     """ Represents a single BIDS file. """
-    def __init__(self, filename, parent):
+    def __init__(self, filename, parent=None):
         self.path = filename
         self.filename = os.path.basename(self.path)
         self.dirname = os.path.dirname(self.path)

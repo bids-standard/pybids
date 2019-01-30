@@ -4,6 +4,7 @@ import re
 from collections import namedtuple, defaultdict
 from keyword import iskeyword
 from functools import reduce, partial
+from itertools import chain
 import copy
 import warnings
 
@@ -14,6 +15,49 @@ from .core import Config, BIDSFile, BIDSRootNode
 from .validation import BIDSValidator
 from .. import config as cf
 
+
+def parse_file_entities(filename, entities=None, config=None,
+                        include_unmatched=False):
+    ''' Parse the passed filename for entity/value pairs.
+
+    Args:
+        filename (str): The filename to parse for entity values
+        entities (list): An optional list of Entity instances to use in
+            extraction. If passed, the config argument is ignored.
+        config (str, Config, list): One or more Config objects or names of
+            configurations to use in matching. Each element must be a Config
+            object, or a valid Config name (e.g., 'bids' or 'derivatives').
+        include_unmatched (bool): If True, unmatched entities are included
+            in the returned dict, with values set to None. If False
+            (default), unmatched entities are ignored.
+
+    Returns: A dict, where keys are Entity names and values are the
+        values extracted from the filename.
+    '''
+
+    if entities is None and config is None:
+        raise ValueError("No entities found! Either the 'entities' or 'config'"
+                         "arguments must be passed.")
+
+    # Load Configs if needed
+    if config is not None:
+        config = [Config.load(c) if not isinstance(c, Config) else c
+                  for c in listify(config)]
+
+    # Consolidate entities from all Configs into a single dict
+    entities = {}
+    for c in config:
+        entities.update(c.entities)
+
+    # Extract matches
+    bf = BIDSFile(filename)
+    ent_vals = {}
+    for name, ent in entities.items():
+        match = ent.match_file(bf)
+        if match is not None or include_unmatched:
+            ent_vals[name] = match
+
+    return ent_vals
 
 def add_config_paths(**kwargs):
     """ Add to the pool of available configuration files for BIDSLayout.
@@ -237,6 +281,38 @@ class BIDSLayout(object):
 
     def clone(self):
         return copy.deepcopy(self)
+
+    def parse_file_entities(self, filename, scope=None, entities=None,
+                            config=None, include_unmatched=False):
+        ''' Parse the passed filename for entity/value pairs.
+
+        Args:
+            filename (str): The filename to parse for entity values
+            scope (str, list): The scope of the search space. Indicates which
+                BIDSLayouts' entities to extract. See BIDSLayout docstring
+                for valid values. By default, extracts all entities
+            entities (list): An optional list of Entity instances to use in
+                extraction. If passed, the scope and config arguments are
+                ignored, and only the Entities in this list are used.
+            config (str, Config, list): One or more Config objects, or paths
+                to JSON config files on disk, containing the Entity definitions
+                to use in extraction. If passed, scope is ignored.
+            include_unmatched (bool): If True, unmatched entities are included
+                in the returned dict, with values set to None. If False
+                (default), unmatched entities are ignored.
+
+        Returns: A dict, where keys are Entity names and values are the
+            values extracted from the filename.
+        '''
+
+        # If either entities or config is specified, just pass through
+        if entities is None and config is None:
+            layouts = self._get_layouts_in_scope(scope)
+            config = chain(*[list(l.config.values()) for l in layouts])
+            config = list(set(config))
+
+        return parse_file_entities(filename, entities, config,
+                                   include_unmatched)
 
     def add_derivatives(self, path, **kwargs):
         ''' Add BIDS-Derivatives datasets to tracking.
