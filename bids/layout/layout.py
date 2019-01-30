@@ -12,12 +12,15 @@ from bids.utils import listify, natural_sort
 from bids.config import get_option
 from bids.external import inflect, six
 from .core import Config, BIDSFile, BIDSRootNode
+from .writing import build_path, write_contents_to_file
 from .validation import BIDSValidator
 from .. import config as cf
+
 
 if six.PY2:
     # To be able to pass encoding kwarg
     from io import open
+
 
 def parse_file_entities(filename, entities=None, config=None,
                         include_unmatched=False):
@@ -63,6 +66,7 @@ def parse_file_entities(filename, entities=None, config=None,
             ent_vals[ent.name] = match
 
     return ent_vals
+
 
 def add_config_paths(**kwargs):
     """ Add to the pool of available configuration files for BIDSLayout.
@@ -820,6 +824,136 @@ class BIDSLayout(object):
             raise ValueError("Unique TR cannot be found given selectors {!r}"
                              .format(selectors))
         return all_trs.pop()
+
+    def build_path(self, source, path_patterns=None, strict=False,
+                   domains=None):
+        ''' Constructs a target filename for a file or dictionary of entities.
+
+        Args:
+            source (str, File, dict): The source data to use to construct the
+                new file path. Must be one of:
+                - A File object
+                - A string giving the path of a File contained within the
+                  current Layout.
+                - A dict of entities, with entity names in keys and values in
+                  values
+            path_patterns (list): Optional path patterns to use to construct
+                the new file path. If None, the Layout-defined patterns will
+                be used.
+            strict (bool): If True, all entities must be matched inside a
+                pattern in order to be a valid match. If False, extra entities
+                will be ignored so long as all mandatory entities are found.
+            domains (str, list): Optional name(s) of domain(s) to scan for
+                path patterns. If None, all domains are scanned. If two or more
+                domains are provided, the order determines the precedence of
+                path patterns (i.e., earlier domains will have higher
+                precedence).
+        '''
+
+        if isinstance(source, six.string_types):
+            if source not in self.files:
+                source = os.path.join(self.root, source)
+
+            source = self.get_file(source)
+
+        if isinstance(source, BIDSFile):
+            source = source.entities
+
+        if path_patterns is None:
+            if domains is None:
+                domains = list(self.domains.keys())
+            path_patterns = []
+            for dom in listify(domains):
+                path_patterns.extend(self.domains[dom].path_patterns)
+
+        return build_path(source, path_patterns, strict)
+
+    def copy_files(self, files=None, path_patterns=None, symbolic_links=True,
+                   root=None, conflicts='fail', **get_selectors):
+        """
+        Copies one or more Files to new locations defined by each File's
+        entities and the specified path_patterns.
+
+        Args:
+            files (list): Optional list of File objects to write out. If none
+                provided, use files from running a get() query using remaining
+                **kwargs.
+            path_patterns (str, list): Write patterns to pass to each file's
+                write_file method.
+            symbolic_links (bool): Whether to copy each file as a symbolic link
+                or a deep copy.
+            root (str): Optional root directory that all patterns are relative
+                to. Defaults to current working directory.
+            conflicts (str): One of 'fail', 'skip', 'overwrite', or 'append'
+                that defines the desired action when a output path already
+                exists. 'fail' raises an exception; 'skip' does nothing;
+                'overwrite' overwrites the existing file; 'append' adds a
+                suffix
+                to each file copy, starting with 0. Default is 'fail'.
+            **get_selectors (kwargs): Optional key word arguments to pass into
+                a get() query.
+        """
+        _files = self.get(return_type='objects', **get_selectors)
+        if files:
+            _files = list(set(files).intersection(_files))
+
+        for f in _files:
+            f.copy(path_patterns, symbolic_link=symbolic_links,
+                   root=self.root, conflicts=conflicts)
+
+    def write_contents_to_file(self, entities, path_patterns=None,
+                               contents=None, link_to=None,
+                               content_mode='text', conflicts='fail',
+                               strict=False, domains=None, index=False,
+                               index_domains=None):
+        """
+        Write arbitrary data to a file defined by the passed entities and
+        path patterns.
+
+        Args:
+            entities (dict): A dictionary of entities, with Entity names in
+                keys and values for the desired file in values.
+            path_patterns (list): Optional path patterns to use when building
+                the filename. If None, the Layout-defined patterns will be
+                used.
+            contents (object): Contents to write to the generate file path.
+                Can be any object serializable as text or binary data (as
+                defined in the content_mode argument).
+            conflicts (str): One of 'fail', 'skip', 'overwrite', or 'append'
+            that defines the desired action when the output path already
+            exists. 'fail' raises an exception; 'skip' does nothing;
+            'overwrite' overwrites the existing file; 'append' adds a suffix
+            to each file copy, starting with 1. Default is 'fail'.
+            strict (bool): If True, all entities must be matched inside a
+                pattern in order to be a valid match. If False, extra entities
+                will be ignored so long as all mandatory entities are found.
+            domains (list): List of Domains to scan for path_patterns. Order
+                determines precedence (i.e., earlier Domains will be scanned
+                first). If None, all available domains are included.
+            index (bool): If True, adds the generated file to the current
+                index using the domains specified in index_domains.
+            index_domains (list): List of domain names to attach the generated
+                file to when indexing. Ignored if index == False.  If None,
+                All available domains are used.
+
+        """
+        path = self.build_path(entities, path_patterns, strict, domains)
+
+        if path is None:
+            raise ValueError("Cannot construct any valid filename for "
+                             "the passed entities given available path "
+                             "patterns.")
+
+        write_contents_to_file(path, contents=contents, link_to=link_to,
+                               content_mode=content_mode, conflicts=conflicts,
+                               root=self.root)
+
+        if index:
+            # TODO: Default to using only domains that have at least one
+            # tagged entity in the generated file.
+            if index_domains is None:
+                index_domains = list(self.domains.keys())
+            self._index_file(self.root, path, index_domains)
 
 
 class MetadataIndex(object):

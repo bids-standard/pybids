@@ -6,6 +6,7 @@ from collections import namedtuple
 import warnings
 from copy import deepcopy
 
+from .writing import build_path, write_contents_to_file
 from bids.utils import listify
 from bids.config import get_option
 from bids.external import six
