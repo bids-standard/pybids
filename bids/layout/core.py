@@ -1,3 +1,5 @@
+""" Core pybids data structures. """
+
 import os
 import re
 import json
@@ -23,6 +25,15 @@ __all__ = [
 
 
 class Config(object):
+    """ Container for BIDS configuration information.
+    
+    Args:
+        name (str): The name to give the Config (e.g., 'bids').
+        entities (list): A list of dictionaries containing entity configuration
+            information.
+        default_path_patterns (list): Optional list of patterns used to build
+            new paths.
+    """
 
     def __init__(self, name, entities=None, default_path_patterns=None):
 
@@ -50,7 +61,7 @@ class Config(object):
 class Entity(object):
 
     def __init__(self, name, pattern=None, mandatory=False, directory=None,
-                 map_func=None, dtype=None, aliases=None, **kwargs):
+                 map_func=None, dtype=None, **kwargs):
         """
         Represents a single entity defined in the JSON config.
 
@@ -113,7 +124,7 @@ class Entity(object):
         Determine whether the passed file matches the Entity.
 
         Args:
-            f (File): The File instance to match against.
+            f (File): The BIDSFile instance to match against.
 
         Returns: the matched value if a match was found, otherwise None.
         """
@@ -150,7 +161,13 @@ class Entity(object):
         
 
 class BIDSFile(object):
-    """ Represents a single BIDS file. """
+    """ Represents a single file in a BIDS project.
+    
+    Args:
+        filename (str): Full path to file.
+        parent (BIDSNode): Optional parent node/directory.
+    
+    """
     def __init__(self, filename, parent=None):
         self.path = filename
         self.filename = os.path.basename(self.path)
@@ -209,9 +226,21 @@ class BIDSFile(object):
 
     def copy(self, path_patterns, symbolic_link=False, root=None,
              conflicts='fail'):
-        ''' Copy the contents of a file to a new location, with target
-        filename defined by the current File's entities and the specified
-        path_patterns. '''
+        """ Copy the contents of a file to a new location.
+        
+        Args:
+            path_patterns (list): List of patterns use to construct the new
+                filename. See build_path documentation for details.
+            symbolic_link (bool): If True, use a symbolic link to point to the
+                existing file. If False, creates a new file.
+            root (str): Optional path to prepend to the constructed filename.
+            conflicts (str): Defines the desired action when the output path
+                already exists. Must be one of:
+                    'fail': raises an exception
+                    'skip' does nothing
+                    'overwrite': overwrites the existing file
+                    'append': adds  a suffix to each file copy, starting with 1
+        """
         new_filename = build_path(self.entities, path_patterns)
         if not new_filename:
             return None
@@ -281,6 +310,18 @@ class BIDSFile(object):
 
 
 class BIDSNode(object):
+    """ Represents a single directory or other logical grouping within a
+    BIDS project.
+
+    Args:
+        path (str): The full path to the directory.
+        config (str, list): One or more names of built-in configurations
+            (e.g., 'bids' or 'derivatives') that specify the rules that apply
+            to this node.
+        root (BIDSNode): The node at the root of the tree the current node is
+            part of.
+        parent (BIDSNode): The parent of the current node.
+    """
 
     _child_class = None
     _child_entity = None
@@ -341,7 +382,13 @@ class BIDSNode(object):
                 self.entities[ent] = m[0]
 
     def _get_child_class(self, path):
-        ''' Return the appropriate child class given a subdirectory path '''
+        """ Return the appropriate child class given a subdirectory path.
+        
+        Args:
+            path (str): The path to the subdirectory.
+        
+        Returns: An uninstantiated BIDSNode or one of its subclasses.
+        """
         if self._child_entity is None:
             return BIDSNode
 
@@ -378,6 +425,7 @@ class BIDSNode(object):
         return self._layout if self.root is None else self.root.layout
 
     def index(self):
+        """ Index all files/directories below the current BIDSNode. """
 
         config_list = self.config
         layout = self.layout
@@ -438,6 +486,7 @@ class BIDSNode(object):
 
 
 class BIDSSessionNode(BIDSNode):
+    """ A BIDSNode associated with a single BIDS session. """
 
     _entities = {'subject', 'session'}
 
@@ -446,6 +495,7 @@ class BIDSSessionNode(BIDSNode):
 
 
 class BIDSSubjectNode(BIDSNode):
+    """ A BIDSNode associated with a single BIDS subject. """
 
     _child_entity = 'session'
     _child_class = BIDSSessionNode
@@ -458,6 +508,7 @@ class BIDSSubjectNode(BIDSNode):
 
 
 class BIDSRootNode(BIDSNode):
+    """ A BIDSNode representing the top level of an entire BIDS project. """
 
     _child_entity = 'subject'
     _child_class = BIDSSubjectNode
