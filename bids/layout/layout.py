@@ -3,7 +3,7 @@ import re
 import json
 import warnings
 from io import open
-from .validation import BIDSValidator
+from bids_validator import BIDSValidator
 from .. import config as cf
 from grabbit import Layout, File
 from grabbit.external import six, inflect
