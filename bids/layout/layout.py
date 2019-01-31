@@ -24,7 +24,7 @@ if six.PY2:
 
 def parse_file_entities(filename, entities=None, config=None,
                         include_unmatched=False):
-    ''' Parse the passed filename for entity/value pairs.
+    """ Parse the passed filename for entity/value pairs.
 
     Args:
         filename (str): The filename to parse for entity values
@@ -40,7 +40,7 @@ def parse_file_entities(filename, entities=None, config=None,
 
     Returns: A dict, where keys are Entity names and values are the
         values extracted from the filename.
-    '''
+    """
 
     # Load Configs if needed
     if entities is None:
@@ -70,10 +70,14 @@ def parse_file_entities(filename, entities=None, config=None,
 
 def add_config_paths(**kwargs):
     """ Add to the pool of available configuration files for BIDSLayout.
-    Args:
-        kwargs: each kwarg should be a pair of config key name, and path
 
-    Example: bids.layout.add_config_paths(my_config='/path/to/config')
+    Args:
+        kwargs: dictionary specifying where to find additional config files.
+            Keys are names, values are paths to the corresponding .json file.
+
+    Example:
+        > add_config_paths(my_config='/path/to/config')
+        > layout = BIDSLayout('/path/to/bids', config=['bids', 'my_config'])
     """
 
     for k, path in kwargs.items():
@@ -124,15 +128,12 @@ class BIDSLayout(object):
             search (False, default) when comparing the query string to each
             entity in .get() calls. This sets a default for the instance, but
             can be overridden in individual .get() requests.
-        kwargs: Optional keyword arguments to pass onto the Layout initializer
-            in grabbit.
     """
 
     def __init__(self, root, validate=True, index_associated=True,
                  include=None, absolute_paths=True, derivatives=False,
-                 config=None, sources=None, tags='bids',
-                 config_filename='layout_config.json', regex_search=False,
-                 **kwargs):
+                 config=None, sources=None,
+                 config_filename='layout_config.json', regex_search=False):
 
         self.root = root
         self.validator = BIDSValidator(index_associated=index_associated)
@@ -267,6 +268,7 @@ class BIDSLayout(object):
                              (self.__class__.__name__, key))
 
     def __repr__(self):
+        # A tidy summary of key properties
         n_sessions = len([session for isub in self.get_subjects()
                           for session in self.get_sessions(subject=isub)])
         n_runs = len([run for isub in self.get_subjects()
@@ -277,18 +279,8 @@ class BIDSLayout(object):
              "Runs: {}".format(root, n_subjects, n_sessions, n_runs))
         return s
 
-    def __deepcopy__(self, memo):
-
-        cls = self.__class__
-        result = cls.__new__(cls)
-        memo[id(self)] = result
-
-        for k, v in self.__dict__.items():
-            new_val = getattr(self, k) if k == 'regex' else copy.deepcopy(v, memo)
-            setattr(result, k, new_val)
-        return result
-
     def clone(self):
+        """ Return a deep copy of the current BIDSLayout. """
         return copy.deepcopy(self)
 
     def parse_file_entities(self, filename, scope=None, entities=None,
@@ -439,8 +431,7 @@ class BIDSLayout(object):
                 only files that match the first two subjects.
 
         Returns:
-            A list of BIDSFile (default) or other objects
-            (see return_type for details).
+            A list of BIDSFiles (default) or strings (see return_type).
         """
 
         # Warn users still expecting 0.6 behavior
@@ -723,19 +714,19 @@ class BIDSLayout(object):
         return matches if all_ else matches[0] if matches else None
 
     def get_bvec(self, path, **kwargs):
-        """Get bvec file for passed path."""
+        """ Get bvec file for passed path. """
         result = self.get_nearest(path, extensions='bvec', suffix='dwi',
                                   all_=True, **kwargs)
         return listify(result)[0]
 
     def get_bval(self, path, **kwargs):
-        """Get bval file for passed path."""
+        """ Get bval file for passed path. """
         result = self.get_nearest(path, extensions='bval', suffix='dwi',
                                   all_=True, **kwargs)
         return listify(result)[0]
 
     def get_fieldmap(self, path, return_list=False):
-        """Get fieldmap(s) for specified path."""
+        """ Get fieldmap(s) for specified path. """
         fieldmaps = self._get_fieldmaps(path)
 
         if return_list:
@@ -873,7 +864,7 @@ class BIDSLayout(object):
         return build_path(source, path_patterns, strict)
 
     def copy_files(self, files=None, path_patterns=None, symbolic_links=True,
-                   root=None, conflicts='fail', **get_selectors):
+                   root=None, conflicts='fail', **kwargs):
         """
         Copies one or more Files to new locations defined by each File's
         entities and the specified path_patterns.
@@ -888,16 +879,16 @@ class BIDSLayout(object):
                 or a deep copy.
             root (str): Optional root directory that all patterns are relative
                 to. Defaults to current working directory.
-            conflicts (str): One of 'fail', 'skip', 'overwrite', or 'append'
-                that defines the desired action when a output path already
-                exists. 'fail' raises an exception; 'skip' does nothing;
-                'overwrite' overwrites the existing file; 'append' adds a
-                suffix
-                to each file copy, starting with 0. Default is 'fail'.
-            **get_selectors (kwargs): Optional key word arguments to pass into
-                a get() query.
+            conflicts (str):  Defines the desired action when the output path
+                already exists. Must be one of:
+                    'fail': raises an exception
+                    'skip' does nothing
+                    'overwrite': overwrites the existing file
+                    'append': adds  a suffix to each file copy, starting with 1
+            kwargs (kwargs): Optional key word arguments to pass into a get()
+                query.
         """
-        _files = self.get(return_type='objects', **get_selectors)
+        _files = self.get(return_type='objects', **kwargs)
         if files:
             _files = list(set(files).intersection(_files))
 
@@ -908,8 +899,7 @@ class BIDSLayout(object):
     def write_contents_to_file(self, entities, path_patterns=None,
                                contents=None, link_to=None,
                                content_mode='text', conflicts='fail',
-                               strict=False, domains=None, index=False,
-                               index_domains=None):
+                               strict=False, index=False):
         """
         Write arbitrary data to a file defined by the passed entities and
         path patterns.
@@ -923,25 +913,19 @@ class BIDSLayout(object):
             contents (object): Contents to write to the generate file path.
                 Can be any object serializable as text or binary data (as
                 defined in the content_mode argument).
-            conflicts (str): One of 'fail', 'skip', 'overwrite', or 'append'
-            that defines the desired action when the output path already
-            exists. 'fail' raises an exception; 'skip' does nothing;
-            'overwrite' overwrites the existing file; 'append' adds a suffix
-            to each file copy, starting with 1. Default is 'fail'.
+            link_to (str): Optional path with which to create a symbolic link
+                to. Used as an alternative to and takes priority over the
+                contents argument.
+            conflicts (str):  Defines the desired action when the output path
+                already exists. Must be one of:
+                    'fail': raises an exception
+                    'skip' does nothing
+                    'overwrite': overwrites the existing file
+                    'append': adds  a suffix to each file copy, starting with 1
             strict (bool): If True, all entities must be matched inside a
                 pattern in order to be a valid match. If False, extra entities
-                will be ignored so long as all mandatory entities are found.
-            domains (list): List of Domains to scan for path_patterns. Order
-                determines precedence (i.e., earlier Domains will be scanned
-                first). If None, all available domains are included.
-            index (bool): If True, adds the generated file to the current
-                index using the domains specified in index_domains.
-            index_domains (list): List of domain names to attach the generated
-                file to when indexing. Ignored if index == False.  If None,
-                All available domains are used.
-
         """
-        path = self.build_path(entities, path_patterns, strict, domains)
+        path = self.build_path(entities, path_patterns, strict)
 
         if path is None:
             raise ValueError("Cannot construct any valid filename for "
@@ -952,16 +936,10 @@ class BIDSLayout(object):
                                content_mode=content_mode, conflicts=conflicts,
                                root=self.root)
 
-        if index:
-            # TODO: Default to using only domains that have at least one
-            # tagged entity in the generated file.
-            if index_domains is None:
-                index_domains = list(self.domains.keys())
-            self._index_file(self.root, path, index_domains)
-
 
 class MetadataIndex(object):
     """A simple dict-based index for key/value pairs in JSON metadata.
+
     Args:
         layout (BIDSLayout): The BIDSLayout instance to index.
     """
