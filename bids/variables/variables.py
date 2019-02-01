@@ -448,25 +448,7 @@ class DenseRunVariable(BIDSVariable):
         self.index = self._build_entity_index(self.run_info, sampling_rate)
 
         x = np.arange(n)
-        # In Index we trust!
         num = len(self.index)
-        # _build_entity_index computation above does it per run,
-        # which possibly provides a more stable solution and yadadada
-        num_computed = int(np.ceil(n * sampling_rate / old_sr))
-        num_diff = abs(num - num_computed)
-        if num_diff > 1:
-            raise RuntimeError(
-                "Our internal assumptions about resampling are too faulty "
-                "to continue.")
-        elif num_diff:
-            assert num_diff == 1  # the only way to get here
-            import warnings
-            warnings.warn(
-                "Probably due to multiple runs we ran into a slight "
-                "divergence between obtained number of samples in the index (computed "
-                "per each run) and overall estimate down/up-sampled samples. "
-                "But that is ok")
-
 
         from scipy.interpolate import interp1d
         f = interp1d(x, self.values.values.ravel(), kind=kind)
