@@ -26,6 +26,11 @@
       "orcid": "0000-0001-9813-3167"
     },
     {
+      "affiliation": "Dartmouth College",
+      "name": "Halchenko, Yaroslav O.",
+      "orcid": "0000-0003-3456-2493"
+    },
+    {
       "affiliation": "University of Texas at Austin",
       "name": "McNamara, Quinten"
     },
@@ -33,11 +38,6 @@
       "affiliation": "University of Oregon",
       "name": "DeStasio, Krista",
       "orcid": "0000-0002-3959-9060"
-    },
-    {
-      "affiliation": "Dartmouth College",
-      "name": "Halchenko, Yaroslav O.",
-      "orcid": "0000-0003-3456-2493"
     },
     {
       "affiliation": "McGill University",
@@ -57,6 +57,11 @@
       "affiliation": "National Institute of Mental Health",
       "name": "Nielson, Dylan M.",
       "orcid": "0000-0003-4613-6643"
+    },
+    {
+      "affiliation": "MRC Cognition and Brain Sciences Unit",
+      "name": "Carlin, Johan",
+      "orcid": "0000-0003-0933-1239"
     },
     {
       "affiliation": "Montreal Neurological Institute and Hospital",
@@ -80,6 +85,11 @@
       "affiliation": "CorticoMetrics LLC",
       "name": "Tirrell, Lee S.",
       "orcid": "0000-0001-9393-8361"
+    },
+    {
+      "affiliation": "Psychoinformatics Lab, Institute of Psychology, Otto-von-Guericke University Magdeburg",
+      "name": "Wagner, Adina",
+      "orcid": "0000-0003-2917-3450"
     },
     {
       "affiliation": "T\u00e9l\u00e9com ParisTech, France",
@@ -117,11 +127,6 @@
       "orcid": "0000-0002-0795-1154"
     },
     {
-      "affiliation": "Psychoinformatics Lab, Institute of Psychology, Otto-von-Guericke University Magdeburg",
-      "name": "Wagner, Adina",
-      "orcid": "0000-0003-2917-3450"
-    },
-    {
       "affiliation": "The University of Washington eScience Institute",
       "name": "Rokem, Ariel",
       "orcid": "0000-0003-0679-1985"
@@ -137,11 +142,6 @@
       "orcid": "0000-0002-7442-2762"
     },
     {
-      "affiliation": "MRC Cognition and Brain Sciences Unit",
-      "name": "Carlin, Johan",
-      "orcid": "0000-0003-0933-1239"
-    },
-    {
       "affiliation": "NIMH IRP",
       "name": "Lee, John A.",
       "orcid": "0000-0001-5884-4247"
@@ -150,6 +150,9 @@
       "affiliation": "UC Berkeley",
       "name": "Visconti di Oleggio Castello, Matteo",
       "orcid": "0000-0001-7931-5272"
+    },
+    {
+      "name": "Michael Notter"
     },
     {
       "affiliation": "Sainte-Anne Hospital Center, Universit\u00e9 Paris Descartes",
