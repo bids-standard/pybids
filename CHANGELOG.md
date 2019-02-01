@@ -2,7 +2,8 @@
 
 ## Version 0.7.1 (February 01, 2019)
 
-This is largely a bug fix release
+This is a bug fix release in the 0.7 series. The primary API change is improved
+handling of `Path` objects.
 
 * FIX: Path validation (#342)
 * FIX: Ensure consistent entities at all levels (#326)
@@ -22,6 +23,7 @@ This is largely a bug fix release
 * CI: Build with Python 3.7 on Travis, deploy on 3.6 (#337)
 
 ## Version 0.7.0 (January 10, 2019)
+
 This is a major, API-breaking release. It introduces a large number of new features, bug fixes, and improvements.
 
 API-BREAKING CHANGES:
