@@ -4,8 +4,11 @@
 
 This is largely a bug fix release
 
+* FIX: Path validation (#342)
+* FIX: Ensure consistent entities at all levels (#326)
+* FIX: Edge case where a resampled column was too-long-by-one (#365)
 * FIX: Use BIDS metadata for TR over nii header (#357)
-* FIX: add check for `run_info` to be a list, pass `run_info` in correct position. (#353)
+* FIX: Add check for `run_info` to be a list, pass `run_info` in correct position. (#353)
 * FIX: If `sampling_rate` is `'auto'`, set to first rate of `DenseRunVariables` (#351)
 * FIX: Get the absolute path of the test data directory (#347)
 * FIX: Update reports to be 0.7-compatible (#341)
