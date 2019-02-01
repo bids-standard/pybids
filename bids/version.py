@@ -45,14 +45,14 @@ AUTHOR = "PyBIDS developers"
 AUTHOR_EMAIL = "bids-discussion@googlegroups.com"
 PLATFORMS = "OS Independent"
 # No data for now
-REQUIRES = ["grabbit==0.2.6", "six", "num2words", "numpy", "scipy", "pandas",
-            "nibabel>=2.1", "patsy"]
+REQUIRES = ["grabbit==0.2.6", "six", "num2words", "numpy", "scipy", "pandas>=0.23.0",
+            "nibabel>=2.1", "patsy", "bids-validator"]
 EXTRAS_REQUIRE = {
    # Just to not break compatibility with externals requiring
    # now deprecated installation schemes
    'analysis': []
 }
-TESTS_REQUIRE = ["pytest>=3.3.0"]
+TESTS_REQUIRE = ["pytest>=3.3.0", 'pathlib; python_version < "3.4"']
 
 
 def package_files(directory):

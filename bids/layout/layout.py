@@ -3,7 +3,7 @@ import re
 import json
 import warnings
 from io import open
-from .validation import BIDSValidator
+from bids_validator import BIDSValidator
 from .. import config as cf
 from grabbit import Layout, File
 from grabbit.external import six, inflect
@@ -108,7 +108,7 @@ class BIDSLayout(Layout):
             If False, queries return relative paths, unless the root argument
             was left empty (in which case the root defaults to the file system
             root).
-        derivatives (bool, str, list): Specificies whether and/or which
+        derivatives (bool, str, list): Specifies whether and/or which
             derivatives to to index. If True, all pipelines found in the
             derivatives/ subdirectory will be indexed. If a str or list, gives
             the paths to one or more derivatives directories to index. If False
@@ -134,8 +134,14 @@ class BIDSLayout(Layout):
 
         # Validate arguments
         if not isinstance(root, six.string_types):
-            raise ValueError("root argument must be a string specifying the"
-                             " directory containing the BIDS dataset.")
+            # attempt to handle pathlib paths (or other types that can be cast as str)
+            # before giving up
+            try:
+                root = str(root)
+            except:
+                raise TypeError("root argument must be a string (or a type that "
+                        "supports casting to string, such as pathlib.Path)"
+                        " specifying the directory containing the BIDS dataset.")
         if not os.path.exists(root):
             raise ValueError("BIDS root does not exist: %s" % root)
 

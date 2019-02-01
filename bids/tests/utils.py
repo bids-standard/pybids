@@ -1,7 +1,7 @@
 ''' Test-related utilities '''
 
-from os.path import join, dirname
+from os.path import join, dirname, abspath
 
 
 def get_test_data_path():
-    return join(dirname(__file__), 'data')
+    return join(dirname(abspath(__file__)), 'data')

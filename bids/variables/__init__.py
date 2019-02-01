@@ -9,7 +9,6 @@ __all__ = [
     'SimpleVariable',
     'SparseRunVariable',
     'DenseRunVariable',
-    'BIDSRunInfo',
     'BIDSVariableCollection',
     'BIDSRunVariableCollection',
     'merge_collections',

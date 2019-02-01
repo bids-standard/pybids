@@ -1,6 +1,9 @@
 from __future__ import absolute_import, division, print_function
 from .due import due, Doi
-from .layout import BIDSLayout, BIDSValidator
+from .layout import BIDSLayout
+
+# For backwards compatibility
+from bids_validator import BIDSValidator
 
 
 __all__ = [

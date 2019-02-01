@@ -253,9 +253,7 @@ class SimpleVariable(BIDSVariable):
         subsets = []
         for i, (name, g) in enumerate(data.groupby(grouper)):
             name = '%s.%s' % (self.name, name)
-            args = [name, g, self.source]
-            if hasattr(self, 'run_info'):
-                args.append(self.run_info)
+            args = [name, g, getattr(self, 'run_info', None), self.source]
             col = self.__class__(*args)
             subsets.append(col)
         return subsets
@@ -301,6 +299,9 @@ class SparseRunVariable(SimpleVariable):
     def __init__(self, name, data, run_info, source, **kwargs):
         if hasattr(run_info, 'duration'):
             run_info = [run_info]
+        if not isinstance(run_info, list):
+            raise TypeError("We expect a list of run_info, got %s"
+                            % repr(run_info))
         self.run_info = run_info
         for sc in self._property_columns:
             setattr(self, sc, data.pop(sc).values)
@@ -406,13 +407,13 @@ class DenseRunVariable(BIDSVariable):
         ''' Build the entity index from run information. '''
 
         index = []
-        sr = int(round(1000. / sampling_rate))
+        interval = int(round(1000. / sampling_rate))
         _timestamps = []
         for run in run_info:
             reps = int(math.ceil(run.duration * sampling_rate))
             ent_vals = list(run.entities.values())
             df = pd.DataFrame([ent_vals] * reps, columns=list(run.entities.keys()))
-            ts = pd.date_range(0, periods=len(df), freq='%sms' % sr)
+            ts = pd.date_range(0, periods=len(df), freq='%sms' % interval)
             _timestamps.append(ts.to_series())
             index.append(df)
         self.timestamps = pd.concat(_timestamps, axis=0, sort=True)
