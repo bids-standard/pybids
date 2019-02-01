@@ -1,5 +1,6 @@
 from bids.layout import BIDSLayout
 import pytest
+import os
 from os.path import join
 from bids.tests import get_test_data_path
 from bids.variables import (merge_variables, DenseRunVariable, SimpleVariable,
@@ -7,7 +8,9 @@ from bids.variables import (merge_variables, DenseRunVariable, SimpleVariable,
 from bids.variables.entities import RunInfo
 import numpy as np
 import pandas as pd
+import nibabel as nb
 import uuid
+import json
 
 
 def generate_DEV(name='test', sr=20, duration=480):
@@ -174,3 +177,28 @@ def test_filter_simple_variable(layout2):
     assert merged.filter({'nonexistent': 2}, strict=True) is None
     merged.filter({'acquisition': 'fullbrain'}, inplace=True)
     assert merged.to_df().shape == (40, 9)
+
+
+@pytest.mark.parametrize(
+    "TR, nvols",
+    [(2.00000, 251),
+     (2.000001, 251)])
+def test_resampling_edge_case(tmpdir, TR, nvols):
+    tmpdir.chdir()
+    os.makedirs('sub-01/func')
+    with open('sub-01/func/sub-01_task-task_events.tsv', 'w') as fobj:
+        fobj.write('onset\tduration\tval\n1\t0.1\t1\n')
+    with open('sub-01/func/sub-01_task-task_bold.json', 'w') as fobj:
+        json.dump({'RepetitionTime': TR}, fobj)
+
+    dataobj = np.zeros((5, 5, 5, nvols), dtype=np.int16)
+    affine = np.diag((2.5, 2.5, 2.5, 1))
+    img = nb.Nifti1Image(dataobj, affine)
+    img.header.set_zooms((2.5, 2.5, 2.5, TR))
+    img.to_filename('sub-01/func/sub-01_task-task_bold.nii.gz')
+
+    layout = BIDSLayout('.', validate=False)
+    coll = load_variables(layout).get_collections('run')[0]
+    dense_var = coll.variables['val'].to_dense(coll.sampling_rate)
+    regressor = dense_var.resample(1.0 / TR).values
+    assert regressor.shape == (nvols, 1)

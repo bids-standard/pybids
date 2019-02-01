@@ -448,12 +448,13 @@ class DenseRunVariable(BIDSVariable):
         self.index = self._build_entity_index(self.run_info, sampling_rate)
 
         x = np.arange(n)
-        num = int(np.ceil(n * sampling_rate / old_sr))
+        num = len(self.index)
 
         from scipy.interpolate import interp1d
         f = interp1d(x, self.values.values.ravel(), kind=kind)
         x_new = np.linspace(0, n - 1, num=num)
         self.values = pd.DataFrame(f(x_new))
+        assert len(self.values) == len(self.index)
 
         self.sampling_rate = sampling_rate
 

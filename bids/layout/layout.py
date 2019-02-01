@@ -305,17 +305,14 @@ class BIDSLayout(Layout):
         if not self.validate:
             return True
 
-        # For derivatives, we need to cheat a bit and construct a fake
-        # derivatives path--prepend 'derivatives' and the pipeline name
-        to_check = os.path.relpath(f, self.root)
+        # Derivatives are currently not validated.
         if 'derivatives' in self.domains:
-            to_check = os.path.join(
-                'derivatives', self.description['PipelineDescription']['Name'],
-                to_check)
+            return True
 
-        sep = os.path.sep
-        if to_check[:len(sep)] != sep:
-            to_check = sep + to_check
+        # BIDS validator expects absolute paths, but really these are relative
+        # to the BIDS project root.
+        to_check = os.path.relpath(f, self.root)
+        to_check = os.path.join(os.path.sep, to_check)
 
         return self.validator.is_bids(to_check)
 
