@@ -36,23 +36,25 @@ class RunNode(Node):
         image_file (str): The full path to the corresponding nifti image.
         duration (float): Duration of the run, in seconds.
         repetition_time (float): TR for the run.
+        acquisition_time (float): TA for the run.
         task (str): The task name for this run.
     '''
 
-    def __init__(self, entities, image_file, duration, repetition_time):
+    def __init__(self, entities, image_file, duration, repetition_time, acquisition_time):
         self.image_file = image_file
         self.duration = duration
         self.repetition_time = repetition_time
+        self.acquisition_time = acquisition_time
         super(RunNode, self).__init__('run', entities)
 
     def get_info(self):
 
         return RunInfo(self.entities, self.duration, self.repetition_time,
-                       self.image_file)
+                       self.acquisition_time, self.image_file)
 
 
 # Stores key information for each Run.
-RunInfo = namedtuple('RunInfo', ['entities', 'duration', 'tr', 'image'])
+RunInfo = namedtuple('RunInfo', ['entities', 'duration', 'tr', 'ta', 'image'])
 
 
 class NodeIndex(Node):

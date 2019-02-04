@@ -388,13 +388,22 @@ class AnalysisNode(object):
 
             if sampling_rate == 'TR':
                 trs = {var.run_info[0].tr for var in self.collection.variables.values()}
+                tas = {var.run_info[0].ta for var in self.collection.variables.values()}
                 if not trs:
                     raise ValueError("Repetition time unavailable; specify sampling_rate "
                                      "explicitly")
                 elif len(trs) > 1:
                     raise ValueError("Non-unique Repetition times found ({!r}); specify "
-                                     "sampling_rate explicitly")
-                sampling_rate = 1. / trs.pop()
+                                     "sampling_rate explicitly".format(trs))
+                TR = trs.pop()
+                if not tas:
+                    warnings.warn("Acquisition time unavailable; assuming TA = TR")
+                    tas = {TR}
+                elif len(tas) > 1:
+                    raise ValueError("Non-unique acquisition times found ({!r})".format(tas))
+
+                sampling_rate = 1. / TR
+                acquisition_time = tas.pop()
             elif sampling_rate == 'highest':
                 sampling_rate = None
             dense_df = coll.to_df(names, format='wide',
