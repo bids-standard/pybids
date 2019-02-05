@@ -171,7 +171,7 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
                                              full_search=True, domains=domains)
             if dfs is not None:
                 for _data in dfs:
-                    _data = pd.read_table(_data, sep='\t')
+                    _data = pd.read_csv(_data, sep='\t')
                     if 'amplitude' in _data.columns:
                         if (_data['amplitude'].astype(int) == 1).all() and \
                                 'trial_type' in _data.columns:
@@ -321,7 +321,7 @@ def _load_tsv_variables(layout, suffix, dataset=None, columns=None,
     for f in files:
 
         f = layout.files[f]
-        _data = pd.read_table(f.path, sep='\t')
+        _data = pd.read_csv(f.path, sep='\t')
 
         # Entities can be defined either within the first column of the .tsv
         # file (for entities that vary by row), or from the full file path
