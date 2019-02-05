@@ -40,11 +40,11 @@ class RunNode(Node):
         task (str): The task name for this run.
     '''
 
-    def __init__(self, entities, image_file, duration, repetition_time, acquisition_time):
+    def __init__(self, entities, image_file, duration, repetition_time, acquisition_time=None):
         self.image_file = image_file
         self.duration = duration
         self.repetition_time = repetition_time
-        self.acquisition_time = acquisition_time
+        self.acquisition_time = acquisition_time or repetition_time
         super(RunNode, self).__init__('run', entities)
 
     def get_info(self):
