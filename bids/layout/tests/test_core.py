@@ -6,18 +6,24 @@ from os.path import join
 import posixpath as psp
 import tempfile
 import json
-from copy import copy
+import copy
 
 
 DIRNAME = os.path.dirname(__file__)
 
 
 @pytest.fixture
-def file(tmpdir):
+def sample_bidsfile(tmpdir):
     testfile = 'sub-03_ses-2_task-rest_acq-fullbrain_run-2_bold.nii.gz'
     fn = tmpdir.mkdir("tmp").join(testfile)
     fn.write('###')
     return BIDSFile(join(str(fn)))
+
+
+@pytest.fixture(scope='module')
+def subject_entity():
+    return Entity('subject', "[/\\\\]sub-([a-zA-Z0-9]+)", False,
+               "{{root}}{subject}", None, bleargh=True)
 
 
 def test_config_init_bare():
@@ -63,4 +69,71 @@ def test_config_init_from_class_load_derivatives():
     assert 'subject' not in config.entities
     assert config.default_path_patterns is None
 
+
+def test_entity_init_minimal():
+    e = Entity('avaricious', r'aardvark-(\d+)')
+    assert e.name == 'avaricious'
+    assert e.pattern == r'aardvark-(\d+)'
+    assert not e.mandatory
+    assert e.directory is None
+    assert e.files == {}
+
+
+def test_entity_init_all_args(subject_entity):
+    ent = subject_entity
+    assert ent.name == 'subject'
+    assert ent.pattern == "[/\\\\]sub-([a-zA-Z0-9]+)"
+    assert ent.mandatory == False
+    assert ent.directory == "{{root}}{subject}"
+    assert ent.map_func is None
+    assert ent.kwargs == {'bleargh': True}
+
+
+def test_entity_init_with_bad_dtype():
+    with pytest.raises(ValueError) as exc:
+        ent = Entity('test', dtype='superfloat')
+        msg = exc.value.message
+        assert msg.startswith("Invalid dtype")
+
+
+def test_entity_deepcopy(subject_entity):
+    e = subject_entity
+    clone = copy.deepcopy(subject_entity)
+    for attr in ['name', 'pattern', 'mandatory', 'directory', 'map_func',
+                 'regex', 'kwargs']:
+        assert getattr(e, attr) == getattr(clone, attr)
+    assert e != clone
+
+
+def test_entity_matches(tmpdir):
+    filename = "aardvark-4-reporting-for-duty.txt"
+    tmpdir.mkdir("tmp").join(filename).write("###")
+    f = BIDSFile(join(str(tmpdir), filename))
+    e = Entity('avaricious', r'aardvark-(\d+)')
+    result = e.match_file(f)
+    assert result == '4'
+
+
+def test_entity_matches_with_map_func(sample_bidsfile):
+    bf = sample_bidsfile
+    e = Entity('test', map_func=lambda x: x.filename.split('-')[1])
+    assert e.match_file(bf) == '03_ses'
+
+
+def test_entity_unique_and_count():
+    e = Entity('prop', r'-(\d+)')
+    e.files = {
+        'test1-10.txt': '10',
+        'test2-7.txt': '7',
+        'test3-7.txt': '7'
+    }
+    assert sorted(e.unique()) == ['10', '7']
+    assert e.count() == 2
+    assert e.count(files=True) == 3
+
+
+def test_entity_add_file():
+    e = Entity('prop', r'-(\d+)')
+    e.add_file('a', '1')
+    assert e.files['a'] == '1'
 
