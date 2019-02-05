@@ -184,7 +184,7 @@ class BIDSFile(object):
 
         Args:
             entities (dict): A dictionary of entity names -> regex patterns.
-            extensions (str, list): One or more file extensions to allow.s
+            extensions (str, list): One or more file extensions to allow.
             regex_search (bool): Whether to require exact match (False) or
                 regex search (True) when comparing the query string to each
                 entity.
@@ -209,13 +209,15 @@ class BIDSFile(object):
                     continue
 
                 def make_patt(x):
-                    patt = '%s' % x
+                    patt = str(x)
+                    if not regex_search:
+                        patt = re.escape(patt)
                     if isinstance(x, (int, float)):
                         # allow for leading zeros if a number was specified
                         # regardless of regex_search
                         patt = '0*' + patt
                     if not regex_search:
-                        patt = '^%s$' % patt
+                        patt = '^{}$'.format(patt)
                     return patt
 
                 ent_patts = [make_patt(x) for x in listify(val)]
