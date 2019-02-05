@@ -41,8 +41,9 @@ class Config(object):
         self.entities = {}
         self.default_path_patterns = default_path_patterns
 
-        for ent in entities:
-            self.entities[ent['name']] = Entity(**ent)
+        if entities:
+            for ent in entities:
+                self.entities[ent['name']] = Entity(**ent)
 
     @classmethod
     def load(self, config):
