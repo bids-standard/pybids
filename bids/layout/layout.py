@@ -182,7 +182,7 @@ class BIDSLayout(object):
                 derivatives, validate=validate,
                 index_associated=index_associated, include=include,
                 absolute_paths=absolute_paths, derivatives=None, config=None,
-                sources=self, **kwargs)
+                sources=self)
 
     def _validate_root(self):
         # Validate root argument and make sure it contains mandatory info
