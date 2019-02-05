@@ -1,12 +1,11 @@
 import pytest
+import os
+import copy
+
 from bids.layout.core import Config, BIDSFile, Entity, BIDSRootNode
 from bids import BIDSLayout
-import os
-from os.path import join
-import posixpath as psp
-import tempfile
-import json
-import copy
+from bids.tests import get_test_data_path
+
 
 
 DIRNAME = os.path.dirname(__file__)
@@ -17,7 +16,7 @@ def sample_bidsfile(tmpdir):
     testfile = 'sub-03_ses-2_task-rest_acq-fullbrain_run-2_bold.nii.gz'
     fn = tmpdir.mkdir("tmp").join(testfile)
     fn.write('###')
-    return BIDSFile(join(str(fn)))
+    return BIDSFile(os.path.join(str(fn)))
 
 
 @pytest.fixture(scope='module')
@@ -108,7 +107,7 @@ def test_entity_deepcopy(subject_entity):
 def test_entity_matches(tmpdir):
     filename = "aardvark-4-reporting-for-duty.txt"
     tmpdir.mkdir("tmp").join(filename).write("###")
-    f = BIDSFile(join(str(tmpdir), filename))
+    f = BIDSFile(os.path.join(str(tmpdir), filename))
     e = Entity('avaricious', r'aardvark-(\d+)')
     result = e.match_file(f)
     assert result == '4'
@@ -189,3 +188,12 @@ def test_bidsfile_matches(sample_bidsfile):
     mod_ents['subject'] = ['3', 2, r'\d+']
     assert not bf._matches(mod_ents)
     assert bf._matches(mod_ents, regex_search=True)
+
+
+def test_bidsfile_image_property():
+    path = os.path.join(get_test_data_path(), 'synthetic', 'sub-01', 'ses-01',
+                        'func', 'sub-01_ses-01_task-nback_run-01_bold.nii.gz')
+    bf = BIDSFile(path)
+    img = bf.image
+    assert img.__class__.__name__ == 'Nifti1Image'
+    assert img.header.get_data_shape() == (64, 64, 64, 64)
