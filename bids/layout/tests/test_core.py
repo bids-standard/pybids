@@ -137,3 +137,55 @@ def test_entity_add_file():
     e.add_file('a', '1')
     assert e.files['a'] == '1'
 
+
+def test_bidsfile_init():
+    path = '/tmp/sub-03_ses-2_task-rest_acq-pfc_run-2_bold.nii.gz'
+    bf = BIDSFile(path)
+    assert bf.path == path
+    assert bf.dirname == os.path.dirname(path)
+    assert bf.filename == os.path.basename(path)
+    assert bf.tags == []
+    assert bf.entities == {}
+    assert bf.parent is None
+
+
+def test_bidsfile_matches(sample_bidsfile):
+    'sub-03_ses-2_task-rest_acq-fullbrain_run-2_bold.nii.gz'
+    bf = sample_bidsfile
+    bf.entities = {
+        'subject': '03',
+        'ses': '2',
+        'task': 'rest',
+        'run': 2,
+        'suffix': 'bold'
+    }
+
+    # Plain Jane matching
+    entities = { 'subject': '03', 'task': 'rest', 'suffix': 'bold'}
+    assert bf._matches(entities)
+    assert bf._matches(entities, regex_search=True)
+
+    # Regex matching
+    regex_ents = { 'subject': r'\d+', 'task': 're.t', 'suffix': '.*ld'}
+    assert not bf._matches(regex_ents)
+    assert bf._matches(regex_ents, regex_search=True)
+
+    # Mis-matching entities
+    bad_ents = entities.copy()
+    bad_ents['suffix'] = 'no match'
+    assert not bf._matches(bad_ents)
+
+    # Missing leading 0s should match regardless of regex status
+    mod_ents = entities.copy()
+    mod_ents['subject'] = 3
+    assert bf._matches(mod_ents)
+    assert bf._matches(mod_ents, regex_search=True)
+
+    # Lists can be passed
+    mod_ents = entities.copy()
+    mod_ents['subject'] = [3, '3']
+    assert bf._matches(mod_ents)
+    assert bf._matches(mod_ents, regex_search=True)
+    mod_ents['subject'] = ['3', 2, r'\d+']
+    assert not bf._matches(mod_ents)
+    assert bf._matches(mod_ents, regex_search=True)
