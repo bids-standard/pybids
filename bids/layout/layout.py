@@ -745,10 +745,10 @@ class BIDSLayout(object):
                 return None
 
     def _get_fieldmaps(self, path):
-        sub = os.path.split(path)[1].split("_")[0].split("sub-")[1]
+        sub = self.parse_file_entities(path)['subject']
         fieldmap_set = []
         suffix = '(phase1|phasediff|epi|fieldmap)'
-        files = self.get(subject=sub, suffix=suffix,
+        files = self.get(subject=sub, suffix=suffix, regex_search=True,
                          extensions=['nii.gz', 'nii'])
         for file in files:
             metadata = self.get_metadata(file.path)
