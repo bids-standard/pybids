@@ -408,7 +408,9 @@ class AnalysisNode(object):
                 sampling_rate = None
             dense_df = coll.to_df(names, format='wide',
                                   include_sparse=include_sparse,
-                                  sampling_rate=sampling_rate, **kwargs)
+                                  sampling_rate=sampling_rate,
+                                  integration_window=acquisition_time,
+                                  **kwargs)
             if dense_df is not None:
                 dense_df = dense_df.drop(['onset', 'duration'], axis=1)
 

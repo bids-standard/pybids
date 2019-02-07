@@ -2,6 +2,7 @@
 Transformations that primarily involve numerical computation on variables.
 '''
 
+from math import gcd
 import numpy as np
 import pandas as pd
 from bids.utils import listify
@@ -35,6 +36,14 @@ class Convolve(Transformation):
 
         if isinstance(var, SparseRunVariable):
             sr = self.collection.sampling_rate
+            # Resolve diferences in TR and TA to milliseconds
+            TR = int(np.round(1000. * var.run_info.tr))
+            TA = int(np.round(1000. * var.run_info.ta))
+            if TA is None or TA < TR:
+                # Use a unit that fits an whole number of times into both
+                # the interscan interval (TR) and the integration window (TA)
+                dt = gcd(TR, TA)
+                sr = 1000. / dt
             var = var.to_dense(sr)
 
         df = var.to_df(entities=False)

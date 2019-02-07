@@ -419,7 +419,7 @@ class DenseRunVariable(BIDSVariable):
         self.timestamps = pd.concat(_timestamps, axis=0, sort=True)
         return pd.concat(index, axis=0, sort=True).reset_index(drop=True)
 
-    def resample(self, sampling_rate, inplace=False, kind='linear'):
+    def resample(self, sampling_rate, integration_window=None, inplace=False, kind='linear'):
         '''Resample the Variable to the specified sampling rate.
 
         Parameters
@@ -436,7 +436,7 @@ class DenseRunVariable(BIDSVariable):
         '''
         if not inplace:
             var = self.clone()
-            var.resample(sampling_rate, True, kind)
+            var.resample(sampling_rate, integration_window, True, kind)
             return var
 
         if sampling_rate == self.sampling_rate:
@@ -450,6 +450,14 @@ class DenseRunVariable(BIDSVariable):
         x = np.arange(n)
         num = len(self.index)
 
+        if integration_window is not None:
+            # Number of timesteps in existing time series
+            n_frames = int(np.floor(integration_window * old_sr))
+            integrator = np.zeroes((n, num), dtype=np.uint8)
+
+            # old_onsets = old_sr * self.index.
+            # onset_frames = sampling_rate
+
         from scipy.interpolate import interp1d
         f = interp1d(x, self.values.values.ravel(), kind=kind)
         x_new = np.linspace(0, n - 1, num=num)
@@ -458,7 +466,8 @@ class DenseRunVariable(BIDSVariable):
 
         self.sampling_rate = sampling_rate
 
-    def to_df(self, condition=True, entities=True, timing=True, sampling_rate=None):
+    def to_df(self, condition=True, entities=True, timing=True, sampling_rate=None,
+              integration_window=None):
         '''Convert to a DataFrame, with columns for name and entities.
 
         Parameters
@@ -474,7 +483,8 @@ class DenseRunVariable(BIDSVariable):
             sampled uniformly). If False, omits them.
         '''
         if sampling_rate not in (None, self.sampling_rate):
-            return self.resample(sampling_rate).to_df(condition, entities)
+            return self.resample(sampling_rate,
+                                 integration_window=integration_window).to_df(condition, entities)
 
         df = super(DenseRunVariable, self).to_df(condition, entities)
 
