@@ -243,7 +243,7 @@ class BIDSRunVariableCollection(BIDSVariableCollection):
                     for v in self.variables.values()])
 
     def resample(self, sampling_rate=None, variables=None, force_dense=False,
-                 in_place=False, kind='linear'):
+                 in_place=False, kind='linear', **kwargs):
         ''' Resample all dense variables (and optionally, sparse ones) to the
         specified sampling rate.
 
@@ -276,7 +276,8 @@ class BIDSRunVariableCollection(BIDSVariableCollection):
                 # None if in_place; no update needed
                 _var = var.resample(sampling_rate,
                                     inplace=in_place,
-                                    kind=kind)
+                                    kind=kind,
+                                    **kwargs)
                 if not in_place:
                     _variables[name] = _var
 
@@ -289,6 +290,7 @@ class BIDSRunVariableCollection(BIDSVariableCollection):
 
     def to_df(self, variables=None, format='wide', sparse=True,
               sampling_rate=None, include_sparse=True, include_dense=True,
+              integration_window=None,
               **kwargs):
         ''' Merge columns into a single pandas DataFrame.
 
@@ -343,9 +345,10 @@ class BIDSRunVariableCollection(BIDSVariableCollection):
             sampling_rate = sampling_rate or self.sampling_rate
 
             # Make sure all variables have the same sampling rate
-            variables = list(self.resample(sampling_rate, variables,
-                                           force_dense=True,
-                                           in_place=False).values())
+            variables = list(
+                self.resample(sampling_rate, variables,
+                              force_dense=True, in_place=False,
+                              integration_window=integration_window).values())
 
         return super(BIDSRunVariableCollection, self).to_df(variables, format,
                                                             **kwargs)
