@@ -37,13 +37,24 @@ class Convolve(Transformation):
         if isinstance(var, SparseRunVariable):
             sr = self.collection.sampling_rate
             # Resolve diferences in TR and TA to milliseconds
-            TR = int(np.round(1000. * var.run_info.tr))
-            TA = int(np.round(1000. * var.run_info.ta))
+            trs = {ri.tr for ri in var.run_info}
+            tas = {ri.ta for ri in var.run_info}
+            assert len(trs) == 1
+            assert len(tas) == 1
+            TR = int(np.round(1000. * trs.pop()))
+            TA = int(np.round(1000. * tas.pop()))
+            SR = int(np.round(1000. / sr))
             if TA is None or TA < TR:
                 # Use a unit that fits an whole number of times into both
                 # the interscan interval (TR) and the integration window (TA)
                 dt = gcd(TR, TA)
+                if dt > SR:
+                    # Find the nearest whole factor of dt >= SR
+                    # This compromises on the target sampling rate and
+                    # one that neatly bins TR and TA
+                    dt = dt // (dt // SR)
                 sr = 1000. / dt
+
             var = var.to_dense(sr)
 
         df = var.to_df(entities=False)
