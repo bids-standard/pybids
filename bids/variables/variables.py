@@ -253,8 +253,8 @@ class SimpleVariable(BIDSVariable):
         subsets = []
         for i, (name, g) in enumerate(data.groupby(grouper)):
             name = '%s.%s' % (self.name, name)
-            args = [name, g, getattr(self, 'run_info', None), self.source]
-            col = self.__class__(*args)
+            col = self.__class__(name=name, data=g, source=self.source,
+                                 run_info=getattr(self, 'run_info', None))
             subsets.append(col)
         return subsets
 
