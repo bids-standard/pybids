@@ -447,21 +447,27 @@ class DenseRunVariable(BIDSVariable):
 
         self.index = self._build_entity_index(self.run_info, sampling_rate)
 
-        x = np.arange(n)
         num = len(self.index)
 
         if integration_window is not None:
             # Number of timesteps in existing time series
             n_frames = int(np.floor(integration_window * old_sr))
-            integrator = np.zeroes((n, num), dtype=np.uint8)
+            old_times = np.arange(n) / old_sr
+            new_times = np.arange(num) / sampling_rate
+            diffs = old_times.reshape((1, -1)) - new_times.reshape((-1, 1))
+            integrator = ((diffs >= 0) & (diffs < integration_window)).astype(np.uint8)
+            del diffs
 
-            # old_onsets = old_sr * self.index.
-            # onset_frames = sampling_rate
+            old_vals = self.values.values
+            self.values = pd.DataFrame(
+                integrator.dot(old_vals) / integrator.sum(1, keepdims=True))
+        else:
+            from scipy.interpolate import interp1d
+            x = np.arange(n)
+            f = interp1d(x, self.values.values.ravel(), kind=kind)
+            x_new = np.linspace(0, n - 1, num=num)
+            self.values = pd.DataFrame(f(x_new))
 
-        from scipy.interpolate import interp1d
-        f = interp1d(x, self.values.values.ravel(), kind=kind)
-        x_new = np.linspace(0, n - 1, num=num)
-        self.values = pd.DataFrame(f(x_new))
         assert len(self.values) == len(self.index)
 
         self.sampling_rate = sampling_rate
