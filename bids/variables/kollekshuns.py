@@ -146,7 +146,7 @@ class BIDSVariableCollection(object):
             _data = pd.DataFrame(data[col].values, columns=['amplitude'])
             if entities is not None:
                 _data = pd.concat([_data, entities], axis=1, sort=True)
-            variables.append(SimpleVariable(col, _data, source))
+            variables.append(SimpleVariable(name=col, data=_data, source=source))
         return BIDSVariableCollection(variables)
 
     def clone(self):

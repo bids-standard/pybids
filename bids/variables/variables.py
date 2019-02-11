@@ -340,8 +340,12 @@ class SparseRunVariable(SimpleVariable):
             last_ind = onsets[i]
 
         run_info = list(self.run_info)
-        return DenseRunVariable(self.name, ts, run_info, self.source,
-                                sampling_rate)
+        return DenseRunVariable(
+            name=self.name,
+            values=ts,
+            run_info=run_info,
+            source=self.source,
+            sampling_rate=sampling_rate)
 
     @classmethod
     def _merge(cls, variables, name, **kwargs):
@@ -398,9 +402,11 @@ class DenseRunVariable(BIDSVariable):
         '''
         values = grouper.values * self.values.values
         df = pd.DataFrame(values, columns=grouper.columns)
-        return [DenseRunVariable('%s.%s' % (self.name, name), df[name].values,
-                                 self.run_info, self.source,
-                                 self.sampling_rate)
+        return [DenseRunVariable(name='%s.%s' % (self.name, name),
+                                 values=df[name].values,
+                                 run_info=self.run_info,
+                                 source=self.source,
+                                 sampling_rate=self.sampling_rate)
                 for i, name in enumerate(df.columns)]
 
     def _build_entity_index(self, run_info, sampling_rate):
@@ -506,7 +512,12 @@ class DenseRunVariable(BIDSVariable):
         values = pd.concat([v.values for v in variables], axis=0, sort=True)
         run_info = list(chain(*[v.run_info for v in variables]))
         source = variables[0].source
-        return DenseRunVariable(name, values, run_info, source, sampling_rate)
+        return DenseRunVariable(
+            name=name,
+            values=values,
+            run_info=run_info,
+            source=source,
+            sampling_rate=sampling_rate)
 
 
 def merge_variables(variables, name=None, **kwargs):
