@@ -72,9 +72,8 @@ class Convolve(Transformation):
         convolved = hrf.compute_regressor(vals, model, onsets,
                                           fir_delays=fir_delays, min_onset=0)
 
-        return DenseRunVariable(var.name, convolved[0],
-            var.run_info, var.source,
-            var.sampling_rate)
+        return DenseRunVariable(name=var.name, values=convolved[0], run_info=var.run_info,
+                                source=var.source, sampling_rate=var.sampling_rate)
 
 
 class Demean(Transformation):

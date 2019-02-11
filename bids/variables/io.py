@@ -233,7 +233,8 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
                         if df.empty:
                             continue
 
-                        var = SparseRunVariable(col, df, run_info, 'events')
+                        var = SparseRunVariable(name=col, data=df, run_info=run_info,
+                                                source='events')
                         run.add_variable(var)
 
         # Process confound files
@@ -248,8 +249,9 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
                     _data = _data.loc[:, conf_cols]
                 for col in _data.columns:
                     sr = 1. / run.repetition_time
-                    var = DenseRunVariable(col, _data[[col]], run_info,
-                                           'regressors', sr)
+                    var = DenseRunVariable(name=col, values=_data[[col]],
+                                           run_info=run_info, source='regressors',
+                                           sampling_rate=sr)
                     run.add_variable(var)
 
         # Process recordinging files
@@ -302,8 +304,8 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
                 df = pd.DataFrame(values, columns=rf_cols)
                 source = 'physio' if '_physio.tsv' in rf else 'stim'
                 for col in df.columns:
-                    var = DenseRunVariable(col, df[[col]], run_info, source,
-                                           freq)
+                    var = DenseRunVariable(name=col, values=df[[col]], run_info=run_info,
+                                           source=source, sampling_rate=freq)
                     run.add_variable(var)
     return dataset
 
@@ -423,6 +425,6 @@ def _load_tsv_variables(layout, suffix, dataset=None, columns=None,
             if prepend_type:
                 col_name = '%s.%s' % (suffix, col_name)
 
-            node.add_variable(SimpleVariable(col_name, df, suffix))
+            node.add_variable(SimpleVariable(name=col_name, data=df, source=suffix))
 
     return dataset

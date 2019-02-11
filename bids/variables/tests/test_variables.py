@@ -20,7 +20,8 @@ def generate_DEV(name='test', sr=20, duration=480):
     entities = {e: uuid.uuid4().hex for e in ent_names}
     image = uuid.uuid4().hex + '.nii.gz'
     run_info = RunInfo(entities, duration, 2, 2, image)
-    return DenseRunVariable('test', values, run_info, 'dummy', sr)
+    return DenseRunVariable(name='test', values=values, run_info=run_info,
+                            source='dummy', sampling_rate=sr)
 
 
 @pytest.fixture
