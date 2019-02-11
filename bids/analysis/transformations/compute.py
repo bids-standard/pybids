@@ -44,7 +44,7 @@ class Convolve(Transformation):
             TR = int(np.round(1000. * trs.pop()))
             TA = int(np.round(1000. * tas.pop()))
             SR = int(np.round(1000. / sr))
-            if TA is None or TA < TR:
+            if TA < TR:
                 # Use a unit that fits an whole number of times into both
                 # the interscan interval (TR) and the integration window (TA)
                 dt = gcd(TR, TA)
