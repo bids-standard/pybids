@@ -91,7 +91,10 @@ def _get_timing_info(img_md):
             slicetimes = sorted(img_md['SliceTiming'])
             # a, b ... z
             # z = final slice onset, b - a = slice duration
-            ta = slicetimes[-1] + slicetimes[1] - slicetimes[0]
+            ta = np.round(slicetimes[-1] + slicetimes[1] - slicetimes[0], 3)
+            # If the "silence" is <1ms, consider acquisition continuous
+            if np.abs(tr - ta) < 1e-3:
+                ta = tr
         else:
             ta = tr
     elif 'VolumeTiming' in img_md:
