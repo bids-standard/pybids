@@ -31,13 +31,11 @@ class RunNode(Node):
     ''' Represents a single Run in a BIDS project.
 
     Args:
-        id (int): The index of the run.
         entities (dict): Dictionary of entities for this Node.
         image_file (str): The full path to the corresponding nifti image.
         duration (float): Duration of the run, in seconds.
         repetition_time (float): TR for the run.
         acquisition_time (float): TA for the run.
-        task (str): The task name for this run.
     '''
 
     def __init__(self, entities, image_file, duration, repetition_time, acquisition_time=None):
