@@ -450,17 +450,20 @@ class DenseRunVariable(BIDSVariable):
         num = len(self.index)
 
         if integration_window is not None:
-            # Number of timesteps in existing time series
-            n_frames = int(np.floor(integration_window * old_sr))
+            from scipy.sparse import lil_matrix
             old_times = np.arange(n) / old_sr
             new_times = np.arange(num) / sampling_rate
-            diffs = old_times.reshape((1, -1)) - new_times.reshape((-1, 1))
-            integrator = ((diffs >= 0) & (diffs < integration_window)).astype(np.uint8)
-            del diffs
+            integrator = lil_matrix((num, n), dtype=np.uint8)
+            count = None
+            for i, new_time in enumerate(new_times):
+                cols = (old_times >= new_time) & (old_times < new_time + integration_window)
+                # This could be determined analytically, but dodging off-by-one errors
+                if count is None:
+                    count = np.sum(cols)
+                integrator[i, cols] = 1
 
             old_vals = self.values.values
-            self.values = pd.DataFrame(
-                integrator.dot(old_vals) / integrator.sum(1, keepdims=True))
+            self.values = pd.DataFrame(integrator.tocsr().dot(old_vals) / count)
         else:
             from scipy.interpolate import interp1d
             x = np.arange(n)
