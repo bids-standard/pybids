@@ -73,6 +73,43 @@ def test_load_description(layout_7t_trt):
     assert layout_7t_trt.description['BIDSVersion'] == "1.0.0rc3"
 
 
+def test_get_file(layout_ds005_derivs):
+    layout = layout_ds005_derivs
+
+    # relative path in BIDS-Raw
+    orig_file = 'sub-13/func/sub-13_task-mixedgamblestask_run-01_bold.nii.gz'
+    target = os.path.join(*orig_file.split('/'))
+    assert layout.get_file(target)
+    assert layout.get_file(target, scope='raw')
+    assert not layout.get_file(target, scope='derivatives')
+
+    # absolute path in BIDS-Raw
+    target = (layout.root + '/' +  orig_file).split('/')
+    target = os.path.sep + os.path.join(*target)
+    assert layout.get_file(target)
+    assert layout.get_file(target, scope='raw')
+    assert not layout.get_file(target, scope='derivatives')
+
+    # relative path in derivatives pipeline
+    orig_file = 'derivatives/events/sub-01/func/sub-01_task-mixedgamblestask_run-01_desc-extra_events.tsv'
+    target = os.path.join(*orig_file.split('/'))
+    assert layout.get_file(target)
+    assert not layout.get_file(target, scope='raw')
+    assert layout.get_file(target, scope='derivatives')
+
+    # absolute path in derivatives pipeline
+    target = (layout.root + '/' +  orig_file).split('/')
+    target = os.path.sep + os.path.join(*target)
+    assert layout.get_file(target)
+    assert not layout.get_file(target, scope='raw')
+    assert layout.get_file(target, scope='derivatives')
+    assert layout.get_file(target, scope='events')
+
+    # No such file
+    assert not layout.get_file('bleargh')
+    assert not layout.get_file('/absolute/bleargh')
+
+
 def test_get_metadata(layout_7t_trt):
     target = 'sub-03/ses-2/func/sub-03_ses-2_task-' \
              'rest_acq-fullbrain_run-2_bold.nii.gz'

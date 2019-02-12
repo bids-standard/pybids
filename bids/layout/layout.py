@@ -555,13 +555,15 @@ class BIDSLayout(object):
         ''' Returns the BIDSFile object with the specified path.
 
         Args:
-            filename (str): The path of the file to retrieve.
+            filename (str): The path of the file to retrieve. Must be either
+                an absolute path, or relative to the root of this BIDSLayout.
             scope (str, list): Scope of the search space. If passed, only
                 BIDSLayouts that match the specified scope will be
                 searched. See BIDSLayout docstring for valid values.
 
         Returns: A BIDSFile, or None if no match was found.
         '''
+        filename = os.path.realpath(os.path.join(self.root, filename))
         layouts = self._get_layouts_in_scope(scope)
         for ly in layouts:
             if filename in ly.files:
@@ -621,11 +623,12 @@ class BIDSLayout(object):
 
         """
 
+        f = self.get_file(path)
+
         # For querying efficiency, store metadata in the MetadataIndex cache
-        self.metadata_index.index_file(path)
+        self.metadata_index.index_file(f.path)
 
         if include_entities:
-            f = self.get_file(os.path.abspath(path))
             entities = f.entities
             results = entities
         else:
