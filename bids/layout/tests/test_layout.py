@@ -372,7 +372,7 @@ def test_parse_file_entities_from_layout(layout_synthetic):
     assert target == layout.parse_file_entities(filename, config=[config])
     assert target == layout.parse_file_entities(filename, scope='raw')
 
-    # Test with default scope—i.e., everything
+    # Test with default scope--i.e., everything
     target = {'subject': '03', 'session': '07', 'run': 4, 'suffix': 'sekret',
               'desc': 'bleargh'}
     assert target == layout.parse_file_entities(filename)
