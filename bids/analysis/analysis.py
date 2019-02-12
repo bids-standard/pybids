@@ -386,6 +386,7 @@ class AnalysisNode(object):
             kwargs['timing'] = True
             kwargs['sparse'] = False
 
+            acquisition_time = None
             if sampling_rate == 'TR':
                 trs = {var.run_info[0].tr for var in self.collection.variables.values()}
                 tas = {var.run_info[0].ta for var in self.collection.variables.values()}
