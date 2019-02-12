@@ -50,7 +50,7 @@ def layout_ds005_multi_derivs():
 @pytest.fixture(scope='module')
 def layout_ds005_models():
     data_dir = join(get_test_data_path(), 'ds005')
-    return BIDSLayout(data_dir, validate=False, include=['models/'])
+    return BIDSLayout(data_dir, validate=True, force_index=['models'])
 
 @pytest.fixture(scope='module')
 def layout_synthetic():
@@ -191,7 +191,7 @@ def test_bids_json(layout_7t_trt):
     assert set(res) == {'1', '2'}
 
 
-def test_include(layout_ds005, layout_ds005_models):
+def test_force_index(layout_ds005, layout_ds005_models):
     target= join(layout_ds005_models.root, 'models',
                 'ds-005_type-test_model.json')
     assert target not in layout_ds005.files

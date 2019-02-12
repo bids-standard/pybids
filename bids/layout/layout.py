@@ -8,7 +8,7 @@ from itertools import chain
 import copy
 import warnings
 
-from bids.utils import listify, natural_sort
+from bids.utils import listify, natural_sort, check_path_matches_patterns
 from bids.config import get_option
 from bids.external import inflect, six
 from .core import Config, BIDSFile, BIDSRootNode
@@ -104,10 +104,6 @@ class BIDSLayout(object):
             etc. to be ignored.
         index_associated (bool): Argument passed onto the BIDSValidator;
             ignored if validate = False.
-        include (str, list): String or list of strings specifying which of the
-            directories that are by default excluded from indexing should be
-            included. The default exclusion list is ['code', 'stimuli',
-            'sourcedata', 'models'].
         absolute_paths (bool): If True, queries always return absolute paths.
             If False, queries return relative paths, unless the root argument
             was left empty (in which case the root defaults to the file system
@@ -122,6 +118,19 @@ class BIDSLayout(object):
             By default (None), uses 'bids'.
         sources (BIDLayout, list): Optional BIDSLayout(s) from which the
             current BIDSLayout is derived.
+        ignore (str, SRE_Pattern, list): Path(s) to exclude from indexing. Each
+            path is either a string or a SRE_Pattern object (i.e., compiled
+            regular expression). If a string is passed, it must be either an
+            absolute path, or be relative to the BIDS project root. If an
+            SRE_Pattern is passed, the contained regular expression will be
+            matched against the full (absolute) path of all files and
+            directories.
+        force_index (str, SRE_Pattern, list): Path(s) to forcibly index in the
+            BIDSLayout, even if they would otherwise fail validation. See the
+            documentation for the ignore argument for input format details.
+            Note that paths in force_index takes precedence over those in
+            ignore (i.e., if a file matches both ignore and force_index, it
+            *will* be indexed).
         config_filename (str): Optional name of filename within directories
             that contains configuration information.
         regex_search (bool): Whether to require exact matching (True) or regex
@@ -130,13 +139,16 @@ class BIDSLayout(object):
             can be overridden in individual .get() requests.
     """
 
+    _default_ignore = {"code", "stimuli", "sourcedata", "models",
+                       "derivatives", re.compile(r'^\.')}
+
     def __init__(self, root, validate=True, index_associated=True,
-                 include=None, absolute_paths=True, derivatives=False,
-                 config=None, sources=None,
+                 absolute_paths=True, derivatives=False, config=None,
+                 sources=None, ignore=None, force_index=None,
                  config_filename='layout_config.json', regex_search=False):
 
         self.root = root
-        self.validator = BIDSValidator(index_associated=index_associated)
+        self._validator = BIDSValidator(index_associated=index_associated)
         self.validate = validate
         self.absolute_paths = absolute_paths
         self.derivatives = {}
@@ -147,20 +159,18 @@ class BIDSLayout(object):
         self.files = {}
         self.nodes = []
         self.entities = {}
+        self.ignore = [os.path.realpath(os.path.join(self.root, patt))
+                       if isinstance(patt, six.string_types) else patt
+                       for patt in listify(ignore or [])]
+        self.force_index = [os.path.realpath(os.path.join(self.root, patt))
+                            if isinstance(patt, six.string_types) else patt
+                            for patt in listify(force_index or [])]
 
         # Do basic BIDS validation on root directory
         self._validate_root()
 
-        # Determine which subdirectories to exclude from indexing
-        excludes = {"code", "stimuli", "sourcedata", "models", "derivatives"}
-        if include is not None:
-            include = listify(include)
-            if "derivatives" in include:
-                raise ValueError("Do not pass 'derivatives' in the include "
-                                 "list. To index derivatives, either set "
-                                 "derivatives=True, or use add_derivatives().")
-            excludes -= set([d.strip(os.path.sep) for d in include])
-        self._exclude_dirs = list(excludes)
+        # Initialize the BIDS validator and examine ignore/force_index args
+        self._setup_file_validator()
 
         # Set up configs
         if config is None:
@@ -180,9 +190,9 @@ class BIDSLayout(object):
                 derivatives = os.path.join(root, 'derivatives')
             self.add_derivatives(
                 derivatives, validate=validate,
-                index_associated=index_associated, include=include,
+                index_associated=index_associated,
                 absolute_paths=absolute_paths, derivatives=None, config=None,
-                sources=self)
+                sources=self, ignore=ignore, force_index=force_index)
 
     def _validate_root(self):
         # Validate root argument and make sure it contains mandatory info
@@ -208,19 +218,32 @@ class BIDSLayout(object):
                     if k not in self.description:
                         raise ValueError("Mandatory '%s' field missing from "
                                          "dataset_description.json." % k)
-    
+
+    def _setup_file_validator(self):
+        # Derivatives get special handling; they shouldn't be indexed normally
+        if self.force_index is not None:
+            for entry in self.force_index:
+                if (isinstance(entry, six.string_types) and
+                    os.path.normpath(entry).startswith('derivatives')):
+                        msg = ("Do not pass 'derivatives' in the force_index "
+                               "list. To index derivatives, either set "
+                               "derivatives=True, or use add_derivatives().")
+                        raise ValueError(msg)
+
     def _validate_dir(self, d):
-        # Validate a directory. Exclude special directories like derivatives/
-        # and code/ from indexing unless they were explicitly included at
-        # initialization.
-        no_root = os.path.relpath(d, self.root).split(os.path.sep)[0]
-        if no_root in self._exclude_dirs:
+        if check_path_matches_patterns(d, self.ignore):
             return False
         return True
 
     def _validate_file(self, f):
-        # Validate a file. Files are excluded from indexing if validation
-        # is enabled and fails (i.e., file is not a valid BIDS file).
+        # Validate a file.
+
+        if check_path_matches_patterns(f, self.force_index):
+            return True
+
+        if check_path_matches_patterns(f, self.ignore):
+            return False
+
         if not self.validate:
             return True
 
@@ -234,7 +257,7 @@ class BIDSLayout(object):
         to_check = os.path.relpath(f, self.root)
         to_check = os.path.join(os.path.sep, to_check)
 
-        return self.validator.is_bids(to_check)
+        return self._validator.is_bids(to_check)
 
     def _get_layouts_in_scope(self, scope):
         # Determine which BIDSLayouts to search

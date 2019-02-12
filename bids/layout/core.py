@@ -9,7 +9,7 @@ import warnings
 from copy import deepcopy
 
 from .writing import build_path, write_contents_to_file
-from bids.utils import listify
+from bids.utils import listify, check_path_matches_patterns
 from bids.config import get_option
 from bids.external import six
 
@@ -324,13 +324,16 @@ class BIDSNode(object):
         root (BIDSNode): The node at the root of the tree the current node is
             part of.
         parent (BIDSNode): The parent of the current node.
+        force_index (bool): Whether or not to forcibly index every file below
+            this node, even if it fails standard BIDS validation.
     """
 
     _child_class = None
     _child_entity = None
     _entities = {}
 
-    def __init__(self, path, config, root=None, parent=None):
+    def __init__(self, path, config, root=None, parent=None,
+                 force_index=False):
         self.path = path
         self.config = listify(config)
         self.root = root
@@ -340,6 +343,7 @@ class BIDSNode(object):
         self.children = []
         self.files = []
         self.variables = []
+        self.force_index = force_index
 
         # Check for additional config file in directory
         layout_file = self.layout.config_filename
@@ -439,13 +443,13 @@ class BIDSNode(object):
             layout_file = self.layout.config_filename
             if layout_file in filenames:
                 filenames.remove(layout_file)
-            
+
             for f in filenames:
 
                 abs_fn = os.path.join(self.path, f)
 
-                # Skip files that fail validation
-                if not layout._validate_file(abs_fn):
+                # Skip files that fail validation, unless forcibly indexing
+                if not self.force_index and not layout._validate_file(abs_fn):
                     continue
 
                 bf = BIDSFile(abs_fn, self)
@@ -475,14 +479,34 @@ class BIDSNode(object):
 
                 d = os.path.join(dirpath, d)
 
-                # Skip directories that fail validation
-                if not layout._validate_dir(d):
+                # Derivative directories must always be added separately and
+                # passed as their own root, so terminate if passed.
+                if d.startswith(os.path.join(self.layout.root, 'derivatives')):
                     continue
+
+                # Skip directories that fail validation, unless force_index
+                # is defined, in which case we have to keep scanning, in the
+                # event that a file somewhere below the current level matches.
+                # Unfortunately we probably can't do much better than this
+                # without a lot of additional work, because the elements of
+                # .force_index can be SRE_Patterns that match files below in
+                # unpredictable ways.
+                if check_path_matches_patterns(d, self.layout.force_index):
+                    self.force_index = True
+                else:
+                    valid_dir = layout._validate_dir(d)
+                    # Note the difference between self.force_index and
+                    # self.layout.force_index.
+                    if not valid_dir and not self.layout.force_index:
+                        continue
 
                 child_class = self._get_child_class(d)
                 # TODO: filter the config files based on include/exclude rules
-                child = child_class(d, config_list, root_node, self)
-                self.children.append(child)
+                child = child_class(d, config_list, root_node, self,
+                                    force_index=self.force_index)
+
+                if self.force_index or valid_dir:
+                    self.children.append(child)
 
             # prevent subdirectory traversal
             break
@@ -516,9 +540,10 @@ class BIDSRootNode(BIDSNode):
     _child_entity = 'subject'
     _child_class = BIDSSubjectNode
 
-    def __init__(self, path, config, layout):
+    def __init__(self, path, config, layout, force_index=False):
         self._layout = layout
-        super(BIDSRootNode, self).__init__(path, config)
+        super(BIDSRootNode, self).__init__(path, config,
+                                           force_index=force_index)
     
     def _setup(self):
         self.subjects = {c.label: c for c in self.children if
