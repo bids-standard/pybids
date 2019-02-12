@@ -69,7 +69,7 @@ def test_get_collections_merged(layout1):
     vals = collection.variables['RT'].values
     ents = collection.variables['RT'].index
     assert len(ents) == len(vals) == 4096
-    assert set(ents.columns) == {'task', 'run', 'subject'}
+    assert set(ents.columns) == {'task', 'run', 'subject', 'suffix', 'datatype'}
 
 
 def test_get_collections_unmerged(layout2):

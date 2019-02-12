@@ -146,13 +146,16 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
         if 'run' in entities:
             entities['run'] = int(entities['run'])
 
+        tr = layout.get_metadata(img_f, suffix='bold', scope=scope,
+                                 full_search=True)['RepetitionTime']
+
         # Get duration of run: first try to get it directly from the image
         # header; if that fails, try to get NumberOfVolumes from the
         # run metadata; if that fails, look for a scan_length argument.
         try:
             import nibabel as nb
             img = nb.load(img_f)
-            duration = img.shape[3] * img.header.get_zooms()[-1]
+            duration = img.shape[3] * tr
         except Exception as e:
             if scan_length is not None:
                 duration = scan_length
@@ -162,9 +165,6 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
                        "as a fallback. Please check that the image files are "
                        "available, or manually specify the scan duration.")
                 raise ValueError(msg)
-
-        tr = layout.get_metadata(img_f, suffix='bold',
-                                 full_search=True)['RepetitionTime']
 
         run = dataset.get_or_create_node('run', entities, image_file=img_f,
                                          duration=duration, repetition_time=tr)
@@ -206,7 +206,7 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
                         # Add in all of the run's entities as new columns for
                         # index
                         for entity, value in entities.items():
-                            if entity in BASE_ENTITIES:
+                            if entity in ALL_ENTITIES:
                                 df[entity] = value
 
                         if drop_na:
@@ -215,7 +215,8 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
                         if df.empty:
                             continue
 
-                        var = SparseRunVariable(col, df, run_info, 'events')
+                        var = SparseRunVariable(name=col, data=df, run_info=run_info,
+                                                source='events')
                         run.add_variable(var)
 
         # Process confound files
@@ -231,8 +232,9 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
                     _data = _data.loc[:, conf_cols]
                 for col in _data.columns:
                     sr = 1. / run.repetition_time
-                    var = DenseRunVariable(col, _data[[col]], run_info,
-                                           'regressors', sr)
+                    var = DenseRunVariable(name=col, values=_data[[col]],
+                                           run_info=run_info, source='regressors',
+                                           sampling_rate=sr)
                     run.add_variable(var)
 
         # Process recordinging files
@@ -288,8 +290,8 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
                 df = pd.DataFrame(values, columns=rf_cols)
                 source = 'physio' if '_physio.tsv' in rf else 'stim'
                 for col in df.columns:
-                    var = DenseRunVariable(col, df[[col]], run_info, source,
-                                           freq)
+                    var = DenseRunVariable(name=col, values=df[[col]], run_info=run_info,
+                                           source=source, sampling_rate=freq)
                     run.add_variable(var)
     return dataset
 
@@ -338,14 +340,20 @@ def _load_tsv_variables(layout, suffix, dataset=None, columns=None,
         # file (for entities that vary by row), or from the full file path
         # (for entities constant over all rows in the file). We extract both
         # and store them in the main DataFrame alongside other variables (as
-        # they'll be extracted when the Column is initialized anyway).
+        # they'll be extracted when the BIDSVariable is initialized anyway).
         for ent_name, ent_val in f.entities.items():
-            if ent_name in BASE_ENTITIES:
+            if ent_name in ALL_ENTITIES:
                 _data[ent_name] = ent_val
 
         # Handling is a bit more convoluted for scans.tsv, because the first
         # column contains the run filename, which we also need to parse.
         if suffix == 'scans':
+
+            # Suffix is guaranteed to be present in each filename, so drop the
+            # constant column with value 'scans' to make way for it and prevent
+            # two 'suffix' columns.
+            _data.drop(columns='suffix', inplace=True)
+
             image = _data['filename']
             _data = _data.drop('filename', axis=1)
             dn = f.dirname
@@ -380,12 +388,11 @@ def _load_tsv_variables(layout, suffix, dataset=None, columns=None,
         # Filter rows on all selectors
         comm_cols = list(set(_data.columns) & set(selectors.keys()))
         for col in comm_cols:
-            for val in listify(selectors.get(col)):
-                ent_patts = [make_patt(x, regex_search=layout.regex_search)
-                             for x in listify(selectors.get(col))]
-                patt = '|'.join(ent_patts)
+            ent_patts = [make_patt(x, regex_search=layout.regex_search)
+                            for x in listify(selectors.get(col))]
+            patt = '|'.join(ent_patts)
 
-                _data = _data[_data[col].str.contains(patt)]
+            _data = _data[_data[col].str.contains(patt)]
 
         level = {'scans': 'session', 'sessions': 'subject',
                  'participants': 'dataset'}[suffix]
@@ -406,6 +413,6 @@ def _load_tsv_variables(layout, suffix, dataset=None, columns=None,
             if prepend_type:
                 col_name = '%s.%s' % (suffix, col_name)
 
-            node.add_variable(SimpleVariable(col_name, df, suffix))
+            node.add_variable(SimpleVariable(name=col_name, data=df, source=suffix))
 
     return dataset

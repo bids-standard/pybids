@@ -1,25 +1,30 @@
 import os
 import json
 import re
-from collections import namedtuple, defaultdict
-from keyword import iskeyword
+from collections import defaultdict
+from io import open
 from functools import reduce, partial
 from itertools import chain
 import copy
-import warnings
 
+from bids_validator import BIDSValidator
 from bids.utils import listify, natural_sort, check_path_matches_patterns
-from bids.config import get_option
 from bids.external import inflect, six
 from .core import Config, BIDSFile, BIDSRootNode
 from .writing import build_path, write_contents_to_file
-from .validation import BIDSValidator
 from .. import config as cf
 
+try:
+    from os.path import commonpath
+except ImportError:
+    def commonpath(paths):
+        prefix = os.path.commonprefix(paths)
+        if not os.path.isdir(prefix):
+            prefix = os.path.dirname(prefix)
+        return prefix
 
-if six.PY2:
-    # To be able to pass encoding kwarg
-    from io import open
+
+__all__ = ['BIDSLayout']
 
 
 def parse_file_entities(filename, entities=None, config=None,
@@ -108,7 +113,7 @@ class BIDSLayout(object):
             If False, queries return relative paths, unless the root argument
             was left empty (in which case the root defaults to the file system
             root).
-        derivatives (bool, str, list): Specificies whether and/or which
+        derivatives (bool, str, list): Specifies whether and/or which
             derivatives to to index. If True, all pipelines found in the
             derivatives/ subdirectory will be indexed. If a str or list, gives
             the paths to one or more derivatives directories to index. If False
@@ -159,10 +164,10 @@ class BIDSLayout(object):
         self.files = {}
         self.nodes = []
         self.entities = {}
-        self.ignore = [os.path.realpath(os.path.join(self.root, patt))
+        self.ignore = [os.path.abspath(os.path.join(self.root, patt))
                        if isinstance(patt, six.string_types) else patt
                        for patt in listify(ignore or [])]
-        self.force_index = [os.path.realpath(os.path.join(self.root, patt))
+        self.force_index = [os.path.abspath(os.path.join(self.root, patt))
                             if isinstance(patt, six.string_types) else patt
                             for patt in listify(force_index or [])]
 
@@ -196,6 +201,16 @@ class BIDSLayout(object):
 
     def _validate_root(self):
         # Validate root argument and make sure it contains mandatory info
+
+        try:
+            self.root = str(self.root)
+        except:
+            raise TypeError("root argument must be a string (or a type that "
+                    "supports casting to string, such as pathlib.Path)"
+                    " specifying the directory containing the BIDS dataset.")
+
+        self.root = os.path.abspath(self.root)
+
         if not isinstance(self.root, six.string_types):
             raise ValueError("root argument must be a string specifying the"
                              " directory containing the BIDS dataset.")
@@ -563,7 +578,7 @@ class BIDSLayout(object):
 
         Returns: A BIDSFile, or None if no match was found.
         '''
-        filename = os.path.realpath(os.path.join(self.root, filename))
+        filename = os.path.abspath(os.path.join(self.root, filename))
         layouts = self._get_layouts_in_scope(scope)
         for ly in layouts:
             if filename in ly.files:

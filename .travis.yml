@@ -39,6 +39,12 @@ matrix:
       env:
         - PYTHON_VERSION=3.7
         - MINICONDA_URL="https://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-x86_64.sh"
+  allow_failures:
+    - os: osx
+      language: generic
+      env:
+        - PYTHON_VERSION=3.5
+        - MINICONDA_URL="https://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-x86_64.sh"
 
 before_install:
     - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
@@ -59,6 +65,7 @@ before_install:
     - python --version # just to check
     - travis_retry pip install -U pip setuptools wheel  # needed at one point
     - travis_retry pip install pytest pytest-xdist pytest-cov codecov
+    - travis_retry pip install pathlib
 
 install:
 - pip install $EXTRA_PIP_FLAGS ".[analysis]"

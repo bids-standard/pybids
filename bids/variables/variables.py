@@ -253,10 +253,8 @@ class SimpleVariable(BIDSVariable):
         subsets = []
         for i, (name, g) in enumerate(data.groupby(grouper)):
             name = '%s.%s' % (self.name, name)
-            args = [name, g, self.source]
-            if hasattr(self, 'run_info'):
-                args.append(self.run_info)
-            col = self.__class__(*args)
+            col = self.__class__(name=name, data=g, source=self.source,
+                                 run_info=getattr(self, 'run_info', None))
             subsets.append(col)
         return subsets
 
@@ -301,6 +299,9 @@ class SparseRunVariable(SimpleVariable):
     def __init__(self, name, data, run_info, source, **kwargs):
         if hasattr(run_info, 'duration'):
             run_info = [run_info]
+        if not isinstance(run_info, list):
+            raise TypeError("We expect a list of run_info, got %s"
+                            % repr(run_info))
         self.run_info = run_info
         for sc in self._property_columns:
             setattr(self, sc, data.pop(sc).values)
@@ -339,8 +340,12 @@ class SparseRunVariable(SimpleVariable):
             last_ind = onsets[i]
 
         run_info = list(self.run_info)
-        return DenseRunVariable(self.name, ts, run_info, self.source,
-                                sampling_rate)
+        return DenseRunVariable(
+            name=self.name,
+            values=ts,
+            run_info=run_info,
+            source=self.source,
+            sampling_rate=sampling_rate)
 
     @classmethod
     def _merge(cls, variables, name, **kwargs):
@@ -397,22 +402,24 @@ class DenseRunVariable(BIDSVariable):
         '''
         values = grouper.values * self.values.values
         df = pd.DataFrame(values, columns=grouper.columns)
-        return [DenseRunVariable('%s.%s' % (self.name, name), df[name].values,
-                                 self.run_info, self.source,
-                                 self.sampling_rate)
+        return [DenseRunVariable(name='%s.%s' % (self.name, name),
+                                 values=df[name].values,
+                                 run_info=self.run_info,
+                                 source=self.source,
+                                 sampling_rate=self.sampling_rate)
                 for i, name in enumerate(df.columns)]
 
     def _build_entity_index(self, run_info, sampling_rate):
         ''' Build the entity index from run information. '''
 
         index = []
-        sr = int(round(1000. / sampling_rate))
+        interval = int(round(1000. / sampling_rate))
         _timestamps = []
         for run in run_info:
             reps = int(math.ceil(run.duration * sampling_rate))
             ent_vals = list(run.entities.values())
             df = pd.DataFrame([ent_vals] * reps, columns=list(run.entities.keys()))
-            ts = pd.date_range(0, periods=len(df), freq='%sms' % sr)
+            ts = pd.date_range(0, periods=len(df), freq='%sms' % interval)
             _timestamps.append(ts.to_series())
             index.append(df)
         self.timestamps = pd.concat(_timestamps, axis=0, sort=True)
@@ -447,12 +454,13 @@ class DenseRunVariable(BIDSVariable):
         self.index = self._build_entity_index(self.run_info, sampling_rate)
 
         x = np.arange(n)
-        num = int(np.ceil(n * sampling_rate / old_sr))
+        num = len(self.index)
 
         from scipy.interpolate import interp1d
         f = interp1d(x, self.values.values.ravel(), kind=kind)
         x_new = np.linspace(0, n - 1, num=num)
         self.values = pd.DataFrame(f(x_new))
+        assert len(self.values) == len(self.index)
 
         self.sampling_rate = sampling_rate
 
@@ -504,7 +512,12 @@ class DenseRunVariable(BIDSVariable):
         values = pd.concat([v.values for v in variables], axis=0, sort=True)
         run_info = list(chain(*[v.run_info for v in variables]))
         source = variables[0].source
-        return DenseRunVariable(name, values, run_info, source, sampling_rate)
+        return DenseRunVariable(
+            name=name,
+            values=values,
+            run_info=run_info,
+            source=source,
+            sampling_rate=sampling_rate)
 
 
 def merge_variables(variables, name=None, **kwargs):

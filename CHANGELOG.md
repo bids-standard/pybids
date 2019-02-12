@@ -1,6 +1,29 @@
 # Changelog
 
+## Version 0.7.1 (February 01, 2019)
+
+This is a bug fix release in the 0.7 series. The primary API change is improved
+handling of `Path` objects.
+
+* FIX: Path validation (#342)
+* FIX: Ensure consistent entities at all levels (#326)
+* FIX: Edge case where a resampled column was too-long-by-one (#365)
+* FIX: Use BIDS metadata for TR over nii header (#357)
+* FIX: Add check for `run_info` to be a list, pass `run_info` in correct position. (#353)
+* FIX: If `sampling_rate` is `'auto'`, set to first rate of `DenseRunVariables` (#351)
+* FIX: Get the absolute path of the test data directory (#347)
+* FIX: Update reports to be 0.7-compatible (#341)
+* ENH: Rename `sr` variable to more intuitive `interval` (#366)
+* ENH: Support `pathlib.Path` and other `str`-castable types (#307)
+* MNT: Updates link to derivative config file in notebook (#344)
+* MNT: Add bids-validator dependency (#363)
+* MNT: Require pandas >= 0.23.0 (#348)
+* MNT: Bump grabbit version (#338)
+* CI: Ignore OSX Python 3.5 failures (#372)
+* CI: Build with Python 3.7 on Travis, deploy on 3.6 (#337)
+
 ## Version 0.7.0 (January 10, 2019)
+
 This is a major, API-breaking release. It introduces a large number of new features, bug fixes, and improvements.
 
 API-BREAKING CHANGES:

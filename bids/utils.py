@@ -90,7 +90,7 @@ def splitext(path):
 
 def check_path_matches_patterns(path, patterns):
     ''' Check if the path matches at least one of the provided patterns. '''
-    path = os.path.realpath(path)
+    path = os.path.abspath(path)
     for patt in patterns:
         if isinstance(patt, six.string_types):
             if path == patt:

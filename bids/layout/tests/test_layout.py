@@ -150,7 +150,7 @@ def test_get_metadata_meg(layout_ds117):
     assert all([hasattr(layout_ds117, f) for f in funcs])
     procs = layout_ds117.get_procs()
     assert procs == ['sss']
-    target = 'sub-02/ses-meg/meg/sub-02_ses-meg_task-facerecognition_run-01_meg.fif.gz'
+    target = 'sub-02/ses-meg/meg/sub-02_ses-meg_task-facerecognition_run-01_meg.fif'
     target = target.split('/')
     result = layout_ds117.get_metadata(join(layout_ds117.root, *target))
     metadata_keys = ['MEGChannelCount', 'SoftwareFilters', 'SubjectArtefactDescription']
@@ -300,6 +300,7 @@ def test_restricted_words_in_path(tmpdir):
     os.makedirs(parent_dir)
     new_path = join(parent_dir, 'sourcedata')
     os.symlink(orig_path, new_path)
+    print(orig_path, new_path)
     orig_layout = BIDSLayout(orig_path)
     new_layout = BIDSLayout(new_path)
 
