@@ -1,6 +1,6 @@
 import re
 import os
-import six
+from .external import six
 
 
 def listify(obj):

@@ -6,9 +6,9 @@ import logging
 import os
 import re
 import sys
-from bids.utils import splitext
+from ..utils import splitext
 from os.path import join, dirname, exists, islink, isabs, isdir
-from six import string_types
+from ..external.six import string_types
 
 
 __all__ = ['replace_entities', 'build_path', 'write_contents_to_file']
@@ -41,7 +41,7 @@ def replace_entities(entities, pattern):
         name, valid, default = match.groups()
         default = default[1:] if default is not None else default
 
-        if name in entities:
+        if name in entities and valid is not None:
             if valid is not None:
                 ent_val = str(entities[name])
                 if not re.match(valid[1:-1], ent_val):
