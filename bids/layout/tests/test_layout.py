@@ -334,6 +334,15 @@ def test_get_tr(layout_7t_trt):
     assert tr == 4.0
 
 
+def test_to_df(layout_7t_trt):
+    df = layout_7t_trt.to_df()
+    assert df.shape == (339, 10)
+    target = {'datatype', 'fmap', 'run', 'path', 'acquisition', 'scans',
+              'session', 'subject', 'suffix', 'task'}
+    assert set(df.columns) == target
+    assert df['subject'].nunique() == 10
+
+
 def test_parse_file_entities():
     filename = '/sub-03_ses-07_run-4_desc-bleargh_sekret.nii.gz'
 
