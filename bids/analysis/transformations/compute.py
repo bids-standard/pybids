@@ -2,13 +2,20 @@
 Transformations that primarily involve numerical computation on variables.
 '''
 
-from math import gcd
 import numpy as np
 import pandas as pd
 from bids.utils import listify
 from .base import Transformation
 from bids.analysis import hrf
 from bids.variables import SparseRunVariable,  DenseRunVariable
+
+try:
+    from math import gcd
+except ImportError:
+    def gcd(a, b):
+        if b == 0:
+            return a
+        return gcd(b, a % b)
 
 
 class Convolve(Transformation):
