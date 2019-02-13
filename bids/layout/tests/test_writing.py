@@ -202,7 +202,10 @@ class TestWritableLayout:
         # files that produce the same path.
         with pytest.raises(ValueError):
             layout.copy_files(path_patterns=pat)
-        os.remove(example_file)
+        try:
+            os.remove(example_file)
+        except OSError:
+            pass
         layout.copy_files(path_patterns=pat, conflicts='overwrite')
         assert exists(example_file)
 
