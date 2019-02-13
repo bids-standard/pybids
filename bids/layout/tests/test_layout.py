@@ -229,6 +229,15 @@ def test_bids_json(layout_7t_trt):
     assert set(res) == {'1', '2'}
 
 
+def test_get_return_type_dir(layout_7t_trt):
+    l = layout_7t_trt
+    res = l.get(target='subject', return_type='dir')
+    for i in range(1, 11):
+        sub_dir = "sub-{:02d}".format(i)
+        assert os.path.join(get_test_data_path(), '7t_trt', sub_dir) in res
+    assert len(res) == 10
+
+
 def test_force_index(layout_ds005, layout_ds005_models):
     target= join(layout_ds005_models.root, 'models',
                 'ds-005_type-test_model.json')
