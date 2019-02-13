@@ -300,7 +300,6 @@ def test_restricted_words_in_path(tmpdir):
     os.makedirs(parent_dir)
     new_path = join(parent_dir, 'sourcedata')
     os.symlink(orig_path, new_path)
-    print(orig_path, new_path)
     orig_layout = BIDSLayout(orig_path)
     new_layout = BIDSLayout(new_path)
 

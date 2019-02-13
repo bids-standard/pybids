@@ -32,10 +32,10 @@ def replace_entities(entities, pattern):
         A new string with the entity values inserted where entity names
         were denoted in the provided pattern.
     """
-    ents = re.findall('\{(.*?)\}', pattern)
+    ents = re.findall(r'\{(.*?)\}', pattern)
     new_path = pattern
     for ent in ents:
-        match = re.search('([^|<]+)(<.*?>)?(\|.*)?', ent)
+        match = re.search(r'([^|<]+)(<.*?>)?(\|.*)?', ent)
         if match is None:
             return None
         name, valid, default = match.groups()
@@ -89,12 +89,12 @@ def build_path(entities, path_patterns, strict=False):
     for pattern in path_patterns:
         # If strict, all entities must be contained in the pattern
         if strict:
-            defined = re.findall('\{(.*?)(?:<[^>]+>)?\}', pattern)
+            defined = re.findall(r'\{(.*?)(?:<[^>]+>)?\}', pattern)
             if set(entities.keys()) - set(defined):
                 continue
         # Iterate through the provided path patterns
         new_path = pattern
-        optional_patterns = re.findall('\[(.*?)\]', pattern)
+        optional_patterns = re.findall(r'\[(.*?)\]', pattern)
         # First build from optional patterns if possible
         for optional_pattern in optional_patterns:
             optional_chunk = replace_entities(entities, optional_pattern) or ''

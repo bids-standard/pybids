@@ -940,7 +940,7 @@ class BIDSLayout(object):
     def write_contents_to_file(self, entities, path_patterns=None,
                                contents=None, link_to=None,
                                content_mode='text', conflicts='fail',
-                               strict=False, index=False):
+                               strict=False):
         """
         Write arbitrary data to a file defined by the passed entities and
         path patterns.
