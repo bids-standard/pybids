@@ -3,9 +3,10 @@ functionality should go in the grabbit package. """
 
 import os
 import pytest
-from bids.layout import BIDSLayout, parse_file_entities
+import bids
+from bids.layout import BIDSLayout, parse_file_entities, add_config_paths
 from bids.layout.core import BIDSFile, Entity, Config
-from os.path import join, abspath, basename
+from os.path import join, abspath, basename, dirname
 from bids.tests import get_test_data_path
 
 
@@ -382,3 +383,17 @@ def test_parse_file_entities_from_layout(layout_synthetic):
     # Test with only the derivative config
     target = {'desc': 'bleargh'}
     assert target == layout.parse_file_entities(filename, config='derivatives')
+
+
+def test_add_config_paths():
+    bids_dir = dirname(bids.__file__)
+    bids_json = os.path.join(bids_dir, 'layout', 'config', 'bids.json')
+    with pytest.raises(ValueError) as exc:
+        add_config_paths(test_config1='nonexistentpath.json')
+    assert str(exc.value).startswith('Configuration file')
+    with pytest.raises(ValueError) as exc:
+        add_config_paths(bids=bids_json)
+    assert str(exc.value).startswith("Configuration 'bids' already")
+    add_config_paths(dummy=bids_json)
+    config = Config.load('dummy')
+    assert 'subject' in config.entities
