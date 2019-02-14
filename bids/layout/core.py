@@ -95,7 +95,8 @@ class Entity(object):
         self.map_func = map_func
         self.kwargs = kwargs
 
-        if isinstance(dtype, six.string_types):
+        if (isinstance(dtype, six.string_types) and
+            dtype in ('str', 'float', 'int', 'bool')):
             dtype = eval(dtype)
         if dtype not in [str, float, int, bool, None]:
             raise ValueError("Invalid dtype '%s'. Must be one of int, float, "
