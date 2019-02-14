@@ -6,7 +6,7 @@ import logging
 import os
 import re
 import sys
-from ..utils import splitext
+from ..utils import splitext, listify
 from os.path import join, dirname, exists, islink, isabs, isdir
 from ..external.six import string_types
 
@@ -82,8 +82,7 @@ def build_path(entities, path_patterns, strict=False):
     Returns:
         A constructed path for this file based on the provided patterns.
     """
-    if isinstance(path_patterns, string_types):
-        path_patterns = [path_patterns]
+    path_patterns = listify(path_patterns)
 
     # Loop over available patherns, return first one that matches all
     for pattern in path_patterns:
