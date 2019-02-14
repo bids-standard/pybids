@@ -9,9 +9,9 @@ import warnings
 from copy import deepcopy
 
 from .writing import build_path, write_contents_to_file
-from bids.utils import listify, check_path_matches_patterns
-from bids.config import get_option
-from bids.external import six
+from ..utils import listify, check_path_matches_patterns
+from ..config import get_option
+from ..external import six
 
 
 __all__ = [
@@ -111,7 +111,6 @@ class Entity(object):
             yield(i)
 
     def __deepcopy__(self, memo):
-
         cls = self.__class__
         result = cls.__new__(cls)
         memo[id(self)] = result
@@ -195,37 +194,40 @@ class BIDSFile(object):
         if extensions is not None:
             if isinstance(extensions, six.string_types):
                 extensions = [extensions]
+            extensions = map(re.escape, extensions)
             extensions = '(' + '|'.join(extensions) + ')$'
             if re.search(extensions, self.filename) is None:
                 return False
 
-        if entities is not None:
+        if entities is None:
+            return True
 
-            for name, val in entities.items():
+        for name, val in entities.items():
 
-                if (name not in self.entities) ^ (val is None):
-                    return False
+            if (name not in self.entities) ^ (val is None):
+                return False
 
-                if val is None:
-                    continue
+            if val is None:
+                continue
 
-                def make_patt(x):
-                    patt = str(x)
-                    if not regex_search:
-                        patt = re.escape(patt)
-                    if isinstance(x, (int, float)):
-                        # allow for leading zeros if a number was specified
-                        # regardless of regex_search
-                        patt = '0*' + patt
-                    if not regex_search:
-                        patt = '^{}$'.format(patt)
-                    return patt
+            def make_patt(x):
+                patt = str(x)
+                if not regex_search:
+                    patt = re.escape(patt)
+                if isinstance(x, (int, float)):
+                    # allow for leading zeros if a number was specified
+                    # regardless of regex_search
+                    patt = '0*' + patt
+                if not regex_search:
+                    patt = '^{}$'.format(patt)
+                return patt
 
-                ent_patts = [make_patt(x) for x in listify(val)]
-                patt = '|'.join(ent_patts)
+            ent_patts = [make_patt(x) for x in listify(val)]
+            patt = '|'.join(ent_patts)
 
-                if re.search(patt, str(self.entities[name])) is None:
-                    return False
+            if re.search(patt, str(self.entities[name])) is None:
+                return False
+
         return True
 
     def copy(self, path_patterns, symbolic_link=False, root=None,

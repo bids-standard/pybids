@@ -8,8 +8,8 @@ from itertools import chain
 import copy
 
 from bids_validator import BIDSValidator
-from bids.utils import listify, natural_sort, check_path_matches_patterns
-from bids.external import inflect, six
+from ..utils import listify, natural_sort, check_path_matches_patterns
+from ..external import inflect, six
 from .core import Config, BIDSFile, BIDSRootNode
 from .writing import build_path, write_contents_to_file
 from .. import config as cf
@@ -219,7 +219,7 @@ class BIDSLayout(object):
 
         target = os.path.join(self.root, 'dataset_description.json')
         if not os.path.exists(target):
-            if self.validate is True:
+            if self.validate:
                 raise ValueError(
                     "'dataset_description.json' is missing from project root."
                     " Every valid BIDS dataset must have this file.")
@@ -228,7 +228,7 @@ class BIDSLayout(object):
         else:
             with open(target, 'r', encoding='utf-8') as desc_fd:
                 self.description = json.load(desc_fd)
-            if self.validate is True:
+            if self.validate:
                 for k in ['Name', 'BIDSVersion']:
                     if k not in self.description:
                         raise ValueError("Mandatory '%s' field missing from "
@@ -246,9 +246,7 @@ class BIDSLayout(object):
                         raise ValueError(msg)
 
     def _validate_dir(self, d):
-        if check_path_matches_patterns(d, self.ignore):
-            return False
-        return True
+        return not check_path_matches_patterns(d, self.ignore)
 
     def _validate_file(self, f):
         # Validate a file.
@@ -278,10 +276,10 @@ class BIDSLayout(object):
         # Determine which BIDSLayouts to search
         layouts = []
         scope = listify(scope)
-        if scope is None or scope == 'all' or 'raw' in scope:
+        if scope is None or 'all' in scope or 'raw' in scope:
             layouts.append(self)
         for deriv in self.derivatives.values():
-            if (scope is None or scope == 'all' or 'derivatives' in scope
+            if (scope is None or 'all' in scope or 'derivatives' in scope
                 or deriv.description["PipelineDescription"]['Name'] in scope):
                 layouts.append(deriv)
         return layouts
@@ -434,7 +432,7 @@ class BIDSLayout(object):
         return data
 
     def get(self, return_type='object', target=None, extensions=None,
-            scope=None, regex_search=False, defined_fields=None, **kwargs):
+            scope='all', regex_search=False, defined_fields=None, **kwargs):
         """
         Retrieve files and/or metadata from the current Layout.
 
@@ -452,7 +450,7 @@ class BIDSLayout(object):
             scope (str, list): Scope of the search space. If passed, only
                 nodes/directories that match the specified scope will be
                 searched. Possible values include:
-                    None (default) or 'all': search all available directories.
+                    'all' (default): search all available directories.
                     'derivatives': search all derivatives directories
                     'raw': search only BIDS-Raw directories
                     <PipelineName>: the name of a BIDS-Derivatives pipeline
@@ -841,7 +839,7 @@ class BIDSLayout(object):
         Notes: Raises an exception if more than one unique TR is found.
         """
         # Constrain search to functional images
-        selectors.update(dict(suffix='bold', datatype='func'))
+        selectors.update(suffix='bold', datatype='func')
         scope = None if derivatives else 'raw'
         images = self.get(extensions=['.nii', '.nii.gz'], scope=scope,
                           **selectors)
