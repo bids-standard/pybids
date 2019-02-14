@@ -42,12 +42,11 @@ def replace_entities(entities, pattern):
         default = default[1:] if default is not None else default
 
         if name in entities and valid is not None:
-            if valid is not None:
-                ent_val = str(entities[name])
-                if not re.match(valid[1:-1], ent_val):
-                    if default is None:
-                        return None
-                    entities[name] = default
+            ent_val = str(entities[name])
+            if not re.match(valid[1:-1], ent_val):
+                if default is None:
+                    return None
+                entities[name] = default
 
         ent_val = entities.get(name, default)
         if ent_val is None:
