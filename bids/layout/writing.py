@@ -8,7 +8,6 @@ import re
 import sys
 from ..utils import splitext, listify
 from os.path import join, dirname, exists, islink, isabs, isdir
-from ..external.six import string_types
 
 
 __all__ = ['replace_entities', 'build_path', 'write_contents_to_file']

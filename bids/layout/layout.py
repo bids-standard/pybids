@@ -276,10 +276,10 @@ class BIDSLayout(object):
         # Determine which BIDSLayouts to search
         layouts = []
         scope = listify(scope)
-        if scope is None or 'all' in scope or 'raw' in scope:
+        if 'all' in scope or 'raw' in scope:
             layouts.append(self)
         for deriv in self.derivatives.values():
-            if (scope is None or 'all' in scope or 'derivatives' in scope
+            if ('all' in scope or 'derivatives' in scope
                 or deriv.description["PipelineDescription"]['Name'] in scope):
                 layouts.append(deriv)
         return layouts
@@ -409,7 +409,7 @@ class BIDSLayout(object):
 
     def to_df(self, **kwargs):
         """
-        Return information for all Files tracked in the Layout as a pandas
+        Return information for all BIDSFiles tracked in the Layout as a pandas
         DataFrame.
 
         Args:
@@ -446,7 +446,7 @@ class BIDSLayout(object):
             target (str): Optional name of the target entity to get results for
                 (only used if return_type is 'dir' or 'id').
             extensions (str, list): One or more file extensions to filter on.
-                Files with any other extensions will be excluded.
+                BIDSFiles with any other extensions will be excluded.
             scope (str, list): Scope of the search space. If passed, only
                 nodes/directories that match the specified scope will be
                 searched. Possible values include:
@@ -860,10 +860,10 @@ class BIDSLayout(object):
         ''' Constructs a target filename for a file or dictionary of entities.
 
         Args:
-            source (str, File, dict): The source data to use to construct the
-                new file path. Must be one of:
-                - A File object
-                - A string giving the path of a File contained within the
+            source (str, BIDSFile, dict): The source data to use to construct
+                the new file path. Must be one of:
+                - A BIDSFile object
+                - A string giving the path of a BIDSFile contained within the
                   current Layout.
                 - A dict of entities, with entity names in keys and values in
                   values
@@ -881,7 +881,7 @@ class BIDSLayout(object):
                 higher precedence).
         '''
 
-        if isinstance(source, six.string_types):
+        if isinstance(source, six.string_types) or hasattr(source, '__str__'):
             if source not in self.files:
                 source = os.path.join(self.root, source)
 
@@ -906,13 +906,13 @@ class BIDSLayout(object):
     def copy_files(self, files=None, path_patterns=None, symbolic_links=True,
                    root=None, conflicts='fail', **kwargs):
         """
-        Copies one or more Files to new locations defined by each File's
-        entities and the specified path_patterns.
+        Copies one or more BIDSFiles to new locations defined by each
+        BIDSFile's entities and the specified path_patterns.
 
         Args:
-            files (list): Optional list of File objects to write out. If none
-                provided, use files from running a get() query using remaining
-                **kwargs.
+            files (list): Optional list of BIDSFile objects to write out. If
+                none provided, use files from running a get() query using
+                remaining **kwargs.
             path_patterns (str, list): Write patterns to pass to each file's
                 write_file method.
             symbolic_links (bool): Whether to copy each file as a symbolic link

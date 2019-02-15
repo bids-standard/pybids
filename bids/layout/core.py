@@ -4,7 +4,6 @@ import os
 import re
 import json
 from keyword import iskeyword
-from collections import namedtuple
 import warnings
 from copy import deepcopy
 
@@ -26,7 +25,7 @@ __all__ = [
 
 class Config(object):
     """ Container for BIDS configuration information.
-    
+
     Args:
         name (str): The name to give the Config (e.g., 'bids').
         entities (list): A list of dictionaries containing entity configuration
@@ -192,9 +191,7 @@ class BIDSFile(object):
             True if _all_ entities and extensions match; False otherwise.
         """
         if extensions is not None:
-            if isinstance(extensions, six.string_types):
-                extensions = [extensions]
-            extensions = map(re.escape, extensions)
+            extensions = map(re.escape, listify(extensions))
             extensions = '(' + '|'.join(extensions) + ')$'
             if re.search(extensions, self.filename) is None:
                 return False
