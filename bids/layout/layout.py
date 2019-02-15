@@ -319,7 +319,7 @@ class BIDSLayout(object):
         """ Return a deep copy of the current BIDSLayout. """
         return copy.deepcopy(self)
 
-    def parse_file_entities(self, filename, scope=None, entities=None,
+    def parse_file_entities(self, filename, scope='all', entities=None,
                             config=None, include_unmatched=False):
         ''' Parse the passed filename for entity/value pairs.
 
@@ -565,7 +565,7 @@ class BIDSLayout(object):
 
         return results
 
-    def get_file(self, filename, scope=None):
+    def get_file(self, filename, scope='all'):
         ''' Returns the BIDSFile object with the specified path.
 
         Args:
@@ -856,7 +856,7 @@ class BIDSLayout(object):
                              .format(selectors))
         return all_trs.pop()
 
-    def build_path(self, source, path_patterns=None, strict=False, scope=None):
+    def build_path(self, source, path_patterns=None, strict=False, scope='all'):
         ''' Constructs a target filename for a file or dictionary of entities.
 
         Args:

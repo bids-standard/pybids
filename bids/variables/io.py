@@ -12,7 +12,7 @@ ALL_ENTITIES = BASE_ENTITIES + ['datatype', 'suffix', 'acquisition']
 
 
 def load_variables(layout, types=None, levels=None, skip_empty=True,
-                   dataset=None, scope=None, **kwargs):
+                   dataset=None, scope='all', **kwargs):
     ''' A convenience wrapper for one or more load_*_variables() calls.
 
     Args:
@@ -87,7 +87,7 @@ def load_variables(layout, types=None, levels=None, skip_empty=True,
 
 def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
                          drop_na=True, events=True, physio=True, stim=True,
-                         regressors=True, skip_empty=True, scope=None,
+                         regressors=True, skip_empty=True, scope='all',
                          **selectors):
     ''' Loads all variables found in *_events.tsv files and returns them as a
     BIDSVariableCollection.
@@ -297,7 +297,7 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
 
 
 def _load_tsv_variables(layout, suffix, dataset=None, columns=None,
-                        prepend_type=False, scope=None, **selectors):
+                        prepend_type=False, scope='all', **selectors):
     ''' Reads variables from scans.tsv, sessions.tsv, and participants.tsv.
 
     Args:
