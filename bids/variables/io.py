@@ -12,7 +12,7 @@ ALL_ENTITIES = BASE_ENTITIES + ['datatype', 'suffix', 'acquisition']
 
 
 def load_variables(layout, types=None, levels=None, skip_empty=True,
-                   dataset=None, **kwargs):
+                   dataset=None, scope='all', **kwargs):
     ''' A convenience wrapper for one or more load_*_variables() calls.
 
     Args:
@@ -32,6 +32,8 @@ def load_variables(layout, types=None, levels=None, skip_empty=True,
             loaded data in. Can be used to iteratively construct a dataset
             that contains otherwise heterogeneous sets of variables. If None,
             a new NodeIndex is used.
+        scope (str, list): The scope of the space to search for variables. See
+            docstring for BIDSLayout for details and valid predefined values.
         kwargs: Optional keyword arguments to pass onto the individual
             load_*_variables() calls.
 
@@ -73,18 +75,20 @@ def load_variables(layout, types=None, levels=None, skip_empty=True,
     if len(type_flags) < 4:
         _kwargs = kwargs.copy()
         _kwargs.update(type_flags)
-        dataset = _load_time_variables(layout, dataset, **_kwargs)
+        dataset = _load_time_variables(layout, dataset, scope=scope, **_kwargs)
 
     for t in ({'scans', 'sessions', 'participants'} & set(types)):
         kwargs.pop('suffix', None) # suffix is always one of values aboves
-        dataset = _load_tsv_variables(layout, t, dataset, **kwargs)
+        dataset = _load_tsv_variables(layout, t, dataset, scope=scope,
+                                      **kwargs)
 
     return dataset
 
 
 def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
                          drop_na=True, events=True, physio=True, stim=True,
-                         regressors=True, skip_empty=True, **selectors):
+                         regressors=True, skip_empty=True, scope='all',
+                         **selectors):
     ''' Loads all variables found in *_events.tsv files and returns them as a
     BIDSVariableCollection.
 
@@ -109,6 +113,8 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
         skip_empty (bool): Whether or not to skip empty Variables (i.e.,
             where there are no rows/records in a file, or all onsets,
             durations, and amplitudes are 0).
+        scope (str, list): The scope of the space to search for variables. See
+            docstring for BIDSLayout for details and valid predefined values.
         selectors (dict): Optional keyword arguments passed onto the
             BIDSLayout instance's get() method; can be used to constrain
             which data are loaded.
@@ -118,7 +124,6 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
 
     # Extract any non-keyword arguments
     kwargs = selectors.copy()
-    domains = kwargs.get('domains', None)
 
     if dataset is None:
         dataset = NodeIndex()
@@ -126,7 +131,7 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
     selectors['datatype'] = 'func'
     selectors['suffix'] = 'bold'
     images = layout.get(return_type='object', extensions='.nii.gz',
-                        derivatives=True, **selectors)
+                        scope=scope, **selectors)
 
     if not images:
         raise ValueError("No functional images that match criteria found.")
@@ -141,7 +146,7 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
         if 'run' in entities:
             entities['run'] = int(entities['run'])
 
-        tr = layout.get_metadata(img_f, suffix='bold', domains=domains,
+        tr = layout.get_metadata(img_f, suffix='bold', scope=scope,
                                  full_search=True)['RepetitionTime']
 
         # Get duration of run: first try to get it directly from the image
@@ -167,11 +172,12 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
 
         # Process event files
         if events:
-            dfs = layout._get_nearest_helper(img_f, '.tsv', suffix='events',
-                                             full_search=True, domains=domains)
+            dfs = layout.get_nearest(img_f, extensions='.tsv', suffix='events',
+                                      all_=True, full_search=True,
+                                      ignore_strict_entities=['suffix'])
             if dfs is not None:
                 for _data in dfs:
-                    _data = pd.read_table(_data, sep='\t')
+                    _data = pd.read_csv(_data, sep='\t')
                     if 'amplitude' in _data.columns:
                         if (_data['amplitude'].astype(int) == 1).all() and \
                                 'trial_type' in _data.columns:
@@ -181,8 +187,7 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
                             _data = _data.drop('amplitude', axis=1)
                         else:
                             msg = ("Column name 'amplitude' is reserved; "
-                                   "renaming "
-                                   "it to 'amplitude_'.")
+                                   "renaming it to 'amplitude_'.")
                             _data = _data.rename(
                                 columns={'amplitude': 'amplitude_'})
                         warnings.warn(msg)
@@ -218,7 +223,8 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
         if regressors:
             sub_ents = {k: v for k, v in entities.items()
                         if k in BASE_ENTITIES}
-            confound_files = layout.get(suffix='regressors', **sub_ents)
+            confound_files = layout.get(suffix='regressors', scope=scope,
+                                        **sub_ents)
             for cf in confound_files:
                 _data = pd.read_csv(cf.path, sep='\t', na_values='n/a')
                 if columns is not None:
@@ -232,14 +238,17 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
                     run.add_variable(var)
 
         # Process recordinging files
-        if physio or stim:
-            rec_types = ['physio'] if physio else []
-            if stim:
-                rec_types.append('stim')
+        rec_types = []
+        if physio:
+            rec_types.append('physio')
+        if stim:
+            rec_types.append('stim')
+
+        if rec_types:
             rec_files = layout.get_nearest(img_f, extensions='.tsv.gz',
                                            all_=True, suffix=rec_types,
                                            ignore_strict_entities=['suffix'],
-                                           full_search=True, domains=domains)
+                                           full_search=True)
             for rf in rec_files:
                 metadata = layout.get_metadata(rf)
                 if not metadata:
@@ -288,7 +297,7 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
 
 
 def _load_tsv_variables(layout, suffix, dataset=None, columns=None,
-                        prepend_type=False, **selectors):
+                        prepend_type=False, scope='all', **selectors):
     ''' Reads variables from scans.tsv, sessions.tsv, and participants.tsv.
 
     Args:
@@ -301,6 +310,8 @@ def _load_tsv_variables(layout, suffix, dataset=None, columns=None,
             files to return. If None, all columns are returned.
         prepend_type (bool): If True, variable names are prepended with the
             type name (e.g., 'age' becomes 'participants.age').
+        scope (str, list): The scope of the space to search for variables. See
+            docstring for BIDSLayout for details and valid predefined values.
         selectors (dict): Optional keyword arguments passed onto the
             BIDSLayout instance's get() method; can be used to constrain
             which data are loaded.
@@ -318,12 +329,12 @@ def _load_tsv_variables(layout, suffix, dataset=None, columns=None,
         dataset = NodeIndex()
 
     files = layout.get(extensions='.tsv', return_type='file', suffix=suffix,
-                       **layout_kwargs)
+                       scope=scope, **layout_kwargs)
 
     for f in files:
 
         f = layout.files[f]
-        _data = pd.read_table(f.path, sep='\t')
+        _data = pd.read_csv(f.path, sep='\t')
 
         # Entities can be defined either within the first column of the .tsv
         # file (for entities that vary by row), or from the full file path

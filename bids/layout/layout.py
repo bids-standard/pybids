@@ -1,18 +1,18 @@
 import os
-import re
 import json
-import warnings
-from io import open
-from bids_validator import BIDSValidator
-from .. import config as cf
-from grabbit import Layout, File
-from grabbit.external import six, inflect
-from grabbit.utils import listify
+import re
 from collections import defaultdict
+from io import open
 from functools import reduce, partial
 from itertools import chain
-from bids.config import get_option
+import copy
 
+from bids_validator import BIDSValidator
+from ..utils import listify, natural_sort, check_path_matches_patterns
+from ..external import inflect, six
+from .core import Config, BIDSFile, BIDSRootNode
+from .writing import build_path, write_contents_to_file
+from .. import config as cf
 
 try:
     from os.path import commonpath
@@ -27,12 +27,62 @@ except ImportError:
 __all__ = ['BIDSLayout']
 
 
+def parse_file_entities(filename, entities=None, config=None,
+                        include_unmatched=False):
+    """ Parse the passed filename for entity/value pairs.
+
+    Args:
+        filename (str): The filename to parse for entity values
+        entities (list): An optional list of Entity instances to use in
+            extraction. If passed, the config argument is ignored.
+        config (str, Config, list): One or more Config objects or names of
+            configurations to use in matching. Each element must be a Config
+            object, or a valid Config name (e.g., 'bids' or 'derivatives').
+            If None, all available configs are used.
+        include_unmatched (bool): If True, unmatched entities are included
+            in the returned dict, with values set to None. If False
+            (default), unmatched entities are ignored.
+
+    Returns: A dict, where keys are Entity names and values are the
+        values extracted from the filename.
+    """
+
+    # Load Configs if needed
+    if entities is None:
+
+        if config is None:
+            config = ['bids', 'derivatives']
+
+        config = [Config.load(c) if not isinstance(c, Config) else c
+                  for c in listify(config)]
+
+        # Consolidate entities from all Configs into a single dict
+        entities = {}
+        for c in config:
+            entities.update(c.entities)
+        entities = entities.values()
+
+    # Extract matches
+    bf = BIDSFile(filename)
+    ent_vals = {}
+    for ent in entities:
+        match = ent.match_file(bf)
+        if match is not None or include_unmatched:
+            ent_vals[ent.name] = match
+
+    return ent_vals
+
+
 def add_config_paths(**kwargs):
     """ Add to the pool of available configuration files for BIDSLayout.
-    Args:
-        kwargs: each kwarg should be a pair of config key name, and path
 
-    Example: bids.layout.add_config_paths(my_config='/path/to/config')
+    Args:
+        kwargs: dictionary specifying where to find additional config files.
+            Keys are names, values are paths to the corresponding .json file.
+
+    Example:
+        > add_config_paths(my_config='/path/to/config')
+        > layout = BIDSLayout('/path/to/bids', config=['bids', 'my_config'])
     """
 
     for k, path in kwargs.items():
@@ -46,48 +96,7 @@ def add_config_paths(**kwargs):
     cf.set_option('config_paths', kwargs)
 
 
-class BIDSFile(File):
-    """ Represents a single BIDS file. """
-    def __init__(self, filename, layout):
-        super(BIDSFile, self).__init__(filename)
-        self.layout = layout
-
-    def __getattr__(self, attr):
-        # Ensures backwards compatibility with old File_ namedtuple, which is
-        # deprecated as of 0.7.
-        if attr in self.entities:
-            warnings.warn("Accessing entities as attributes is deprecated as "
-                          "of 0.7. Please use the .entities dictionary instead"
-                          " (i.e., .entities['%s'] instead of .%s."
-                          % (attr, attr))
-            return self.entities[attr]
-        raise AttributeError("%s object has no attribute named %r" %
-                             (self.__class__.__name__, attr))
-
-    def __repr__(self):
-        source = ''
-        if self.layout.sources:
-            source = ", root='{}'".format(os.path.basename(self.layout.root))
-        return "<BIDSFile filename='{}'{}>".format(
-            os.path.relpath(self.path, start=self.layout.root), source)
-
-    @property
-    def image(self):
-        """ Return the associated image file (if it exists) as a NiBabel object.
-        """
-        try:
-            import nibabel as nb
-            return nb.load(self.path)
-        except Exception:
-            return None
-
-    @property
-    def metadata(self):
-        """ Return all associated metadata. """
-        return self.layout.get_metadata(self.path)
-
-
-class BIDSLayout(Layout):
+class BIDSLayout(object):
     """ Layout class representing an entire BIDS dataset.
 
     Args:
@@ -100,10 +109,6 @@ class BIDSLayout(Layout):
             etc. to be ignored.
         index_associated (bool): Argument passed onto the BIDSValidator;
             ignored if validate = False.
-        include (str, list): String or list of strings specifying which of the
-            directories that are by default excluded from indexing should be
-            included. The default exclusion list is ['code', 'stimuli',
-            'sourcedata', 'models'].
         absolute_paths (bool): If True, queries always return absolute paths.
             If False, queries return relative paths, unless the root argument
             was left empty (in which case the root defaults to the file system
@@ -118,38 +123,100 @@ class BIDSLayout(Layout):
             By default (None), uses 'bids'.
         sources (BIDLayout, list): Optional BIDSLayout(s) from which the
             current BIDSLayout is derived.
-        kwargs: Optional keyword arguments to pass onto the Layout initializer
-            in grabbit.
+        ignore (str, SRE_Pattern, list): Path(s) to exclude from indexing. Each
+            path is either a string or a SRE_Pattern object (i.e., compiled
+            regular expression). If a string is passed, it must be either an
+            absolute path, or be relative to the BIDS project root. If an
+            SRE_Pattern is passed, the contained regular expression will be
+            matched against the full (absolute) path of all files and
+            directories.
+        force_index (str, SRE_Pattern, list): Path(s) to forcibly index in the
+            BIDSLayout, even if they would otherwise fail validation. See the
+            documentation for the ignore argument for input format details.
+            Note that paths in force_index takes precedence over those in
+            ignore (i.e., if a file matches both ignore and force_index, it
+            *will* be indexed).
+        config_filename (str): Optional name of filename within directories
+            that contains configuration information.
+        regex_search (bool): Whether to require exact matching (True) or regex
+            search (False, default) when comparing the query string to each
+            entity in .get() calls. This sets a default for the instance, but
+            can be overridden in individual .get() requests.
     """
 
+    _default_ignore = {"code", "stimuli", "sourcedata", "models",
+                       "derivatives", re.compile(r'^\.')}
+
     def __init__(self, root, validate=True, index_associated=True,
-                 include=None, absolute_paths=True, derivatives=False,
-                 config=None, sources=None, **kwargs):
-
-        self.validator = BIDSValidator(index_associated=index_associated)
-        self.validate = validate
-        self.metadata_index = MetadataIndex(self)
-        self.derivatives = {}
-        self.sources = listify(sources)
-
-        # Validate arguments
-        if not isinstance(root, six.string_types):
-            # attempt to handle pathlib paths (or other types that can be cast as str)
-            # before giving up
-            try:
-                root = str(root)
-            except:
-                raise TypeError("root argument must be a string (or a type that "
-                        "supports casting to string, such as pathlib.Path)"
-                        " specifying the directory containing the BIDS dataset.")
-        if not os.path.exists(root):
-            raise ValueError("BIDS root does not exist: %s" % root)
+                 absolute_paths=True, derivatives=False, config=None,
+                 sources=None, ignore=None, force_index=None,
+                 config_filename='layout_config.json', regex_search=False):
 
         self.root = root
+        self._validator = BIDSValidator(index_associated=index_associated)
+        self.validate = validate
+        self.absolute_paths = absolute_paths
+        self.derivatives = {}
+        self.sources = sources
+        self.regex_search = regex_search
+        self.metadata_index = MetadataIndex(self)
+        self.config_filename = config_filename
+        self.files = {}
+        self.nodes = []
+        self.entities = {}
+        self.ignore = [os.path.abspath(os.path.join(self.root, patt))
+                       if isinstance(patt, six.string_types) else patt
+                       for patt in listify(ignore or [])]
+        self.force_index = [os.path.abspath(os.path.join(self.root, patt))
+                            if isinstance(patt, six.string_types) else patt
+                            for patt in listify(force_index or [])]
+
+        # Do basic BIDS validation on root directory
+        self._validate_root()
+
+        # Initialize the BIDS validator and examine ignore/force_index args
+        self._setup_file_validator()
+
+        # Set up configs
+        if config is None:
+            config = 'bids'
+        config = [Config.load(c) for c in listify(config)]
+        self.config = {c.name: c for c in config}
+        self.root_node = BIDSRootNode(self.root, config, self)
+
+        # Consolidate entities into master list. Note: no conflicts occur b/c
+        # multiple entries with the same name all point to the same instance.
+        for n in self.nodes:
+            self.entities.update(n.available_entities)
+
+        # Add derivatives if any are found
+        if derivatives:
+            if derivatives is True:
+                derivatives = os.path.join(root, 'derivatives')
+            self.add_derivatives(
+                derivatives, validate=validate,
+                index_associated=index_associated,
+                absolute_paths=absolute_paths, derivatives=None, config=None,
+                sources=self, ignore=ignore, force_index=force_index)
+
+    def _validate_root(self):
+        # Validate root argument and make sure it contains mandatory info
+
+        try:
+            self.root = str(self.root)
+        except:
+            raise TypeError("root argument must be a string (or a type that "
+                    "supports casting to string, such as pathlib.Path)"
+                    " specifying the directory containing the BIDS dataset.")
+
+        self.root = os.path.abspath(self.root)
+
+        if not os.path.exists(self.root):
+            raise ValueError("BIDS root does not exist: %s" % self.root)
 
         target = os.path.join(self.root, 'dataset_description.json')
         if not os.path.exists(target):
-            if validate is True:
+            if self.validate:
                 raise ValueError(
                     "'dataset_description.json' is missing from project root."
                     " Every valid BIDS dataset must have this file.")
@@ -158,45 +225,128 @@ class BIDSLayout(Layout):
         else:
             with open(target, 'r', encoding='utf-8') as desc_fd:
                 self.description = json.load(desc_fd)
-            if validate is True:
+            if self.validate:
                 for k in ['Name', 'BIDSVersion']:
                     if k not in self.description:
                         raise ValueError("Mandatory '%s' field missing from "
                                          "dataset_description.json." % k)
 
-        # Determine which subdirectories to exclude from indexing
-        excludes = {"code", "stimuli", "sourcedata", "models", "derivatives"}
-        if include is not None:
-            include = listify(include)
-            if "derivatives" in include:
-                raise ValueError("Do not pass 'derivatives' in the include "
-                                 "list. To index derivatives, either set "
-                                 "derivatives=True, or use add_derivatives().")
-            excludes -= set([d.strip(os.path.sep) for d in include])
-        self._exclude_dirs = list(excludes)
+    def _setup_file_validator(self):
+        # Derivatives get special handling; they shouldn't be indexed normally
+        if self.force_index is not None:
+            for entry in self.force_index:
+                if (isinstance(entry, six.string_types) and
+                    os.path.normpath(entry).startswith('derivatives')):
+                        msg = ("Do not pass 'derivatives' in the force_index "
+                               "list. To index derivatives, either set "
+                               "derivatives=True, or use add_derivatives().")
+                        raise ValueError(msg)
 
-        # Set up path and config for grabbit
-        if config is None:
-            config = 'bids'
-        config_paths = get_option('config_paths')
-        path = (root, [config_paths[c] for c in listify(config)])
+    def _validate_dir(self, d):
+        return not check_path_matches_patterns(d, self.ignore)
 
-        # Initialize grabbit Layout
-        super(BIDSLayout, self).__init__(path, root=self.root,
-                                         dynamic_getters=True,
-                                         absolute_paths=absolute_paths,
-                                         **kwargs)
+    def _validate_file(self, f):
+        # Validate a file.
 
-        # Add derivatives if any are found
-        self.derivatives = {}
-        if derivatives:
-            if derivatives is True:
-                derivatives = os.path.join(root, 'derivatives')
-            self.add_derivatives(
-                derivatives, validate=validate,
-                index_associated=index_associated, include=include,
-                absolute_paths=absolute_paths, derivatives=None, config=None,
-                sources=self, **kwargs)
+        if check_path_matches_patterns(f, self.force_index):
+            return True
+
+        if check_path_matches_patterns(f, self.ignore):
+            return False
+
+        if not self.validate:
+            return True
+
+        # Derivatives are currently not validated.
+        # TODO: raise warning the first time in a session this is encountered
+        if 'derivatives' in self.config:
+            return True
+
+        # BIDS validator expects absolute paths, but really these are relative
+        # to the BIDS project root.
+        to_check = os.path.relpath(f, self.root)
+        to_check = os.path.join(os.path.sep, to_check)
+
+        return self._validator.is_bids(to_check)
+
+    def _get_layouts_in_scope(self, scope):
+        # Determine which BIDSLayouts to search
+        layouts = []
+        scope = listify(scope)
+        if 'all' in scope or 'raw' in scope:
+            layouts.append(self)
+        for deriv in self.derivatives.values():
+            if ('all' in scope or 'derivatives' in scope
+                or deriv.description["PipelineDescription"]['Name'] in scope):
+                layouts.append(deriv)
+        return layouts
+    
+    def __getattr__(self, key):
+        ''' Dynamically inspect missing methods for get_<entity>() calls
+        and return a partial function of get() if a match is found. '''
+        if key.startswith('get_'):
+            ent_name = key.replace('get_', '')
+            # Use inflect to check both singular and plural forms
+            if ent_name not in self.entities:
+                sing = inflect.engine().singular_noun(ent_name)
+                if sing in self.entities:
+                    ent_name = sing
+                else:
+                    raise AttributeError(
+                        "'get_{}' can't be called because '{}' isn't a "
+                        "recognized entity name.".format(ent_name, ent_name))
+            return partial(self.get, return_type='id', target=ent_name)
+        # Spit out default message if we get this far
+        raise AttributeError("%s object has no attribute named %r" %
+                             (self.__class__.__name__, key))
+
+    def __repr__(self):
+        # A tidy summary of key properties
+        n_sessions = len([session for isub in self.get_subjects()
+                          for session in self.get_sessions(subject=isub)])
+        n_runs = len([run for isub in self.get_subjects()
+                      for run in self.get_runs(subject=isub)])
+        n_subjects = len(self.get_subjects())
+        root = self.root[-30:]
+        s = ("BIDS Layout: ...{} | Subjects: {} | Sessions: {} | "
+             "Runs: {}".format(root, n_subjects, n_sessions, n_runs))
+        return s
+
+    def clone(self):
+        """ Return a deep copy of the current BIDSLayout. """
+        return copy.deepcopy(self)
+
+    def parse_file_entities(self, filename, scope='all', entities=None,
+                            config=None, include_unmatched=False):
+        ''' Parse the passed filename for entity/value pairs.
+
+        Args:
+            filename (str): The filename to parse for entity values
+            scope (str, list): The scope of the search space. Indicates which
+                BIDSLayouts' entities to extract. See BIDSLayout docstring
+                for valid values. By default, extracts all entities
+            entities (list): An optional list of Entity instances to use in
+                extraction. If passed, the scope and config arguments are
+                ignored, and only the Entities in this list are used.
+            config (str, Config, list): One or more Config objects, or paths
+                to JSON config files on disk, containing the Entity definitions
+                to use in extraction. If passed, scope is ignored.
+            include_unmatched (bool): If True, unmatched entities are included
+                in the returned dict, with values set to None. If False
+                (default), unmatched entities are ignored.
+
+        Returns: A dict, where keys are Entity names and values are the
+            values extracted from the filename.
+        '''
+
+        # If either entities or config is specified, just pass through
+        if entities is None and config is None:
+            layouts = self._get_layouts_in_scope(scope)
+            config = chain(*[list(l.config.values()) for l in layouts])
+            config = list(set(config))
+
+        return parse_file_entities(filename, entities, config,
+                                   include_unmatched)
 
     def add_derivatives(self, path, **kwargs):
         ''' Add BIDS-Derivatives datasets to tracking.
@@ -230,13 +380,12 @@ class BIDSLayout(Layout):
                         if check_for_description(sd):
                             deriv_dirs.append(sd)
 
-        local_entities = set(ent.name for ent in self.entities.values())
         for deriv in deriv_dirs:
             dd = os.path.join(deriv, 'dataset_description.json')
             with open(dd, 'r', encoding='utf-8') as ddfd:
                 description = json.load(ddfd)
             pipeline_name = description.get(
-                'PipelineDescription', {}).get('Name', None)
+                'PipelineDescription', {}).get('Name')
             if pipeline_name is None:
                 raise ValueError("Every valid BIDS-derivatives dataset must "
                                  "have a PipelineDescription.Name field set "
@@ -250,21 +399,14 @@ class BIDSLayout(Layout):
             kwargs['sources'] = kwargs.get('sources') or self
             self.derivatives[pipeline_name] = BIDSLayout(deriv, **kwargs)
 
-            # Propagate derivative entities into top-level dynamic getters
-            deriv_entities = set(
-                ent.name
-                for ent in self.derivatives[pipeline_name].entities.values())
-            for deriv_ent in deriv_entities - local_entities:
-                local_entities.add(deriv_ent)
-                getter = 'get_' + inflect.engine().plural(deriv_ent)
-                if not hasattr(self, getter):
-                    func = partial(
-                        self.get, target=deriv_ent, return_type='id')
-                    setattr(self, getter, func)
+        # Consolidate all entities post-indexing. Note: no conflicts occur b/c
+        # multiple entries with the same name all point to the same instance.
+        for deriv in self.derivatives.values():
+            self.entities.update(deriv.entities)
 
     def to_df(self, **kwargs):
         """
-        Return information for all Files tracked in the Layout as a pandas
+        Return information for all BIDSFiles tracked in the Layout as a pandas
         DataFrame.
 
         Args:
@@ -275,72 +417,19 @@ class BIDSLayout(Layout):
                 a tracked entity. NaNs are injected whenever a file has no
                 value for a given attribute.
         """
-        return self.as_data_frame(**kwargs)
-
-    def __repr__(self):
-        n_sessions = len([session for isub in self.get_subjects()
-                          for session in self.get_sessions(subject=isub)])
-        n_runs = len([run for isub in self.get_subjects()
-                      for run in self.get_runs(subject=isub)])
-        n_subjects = len(self.get_subjects())
-        root = self.root[-30:]
-        s = ("BIDS Layout: ...{} | Subjects: {} | Sessions: {} | "
-             "Runs: {}".format(root, n_subjects, n_sessions, n_runs))
-        return s
-
-    def _validate_dir(self, d):
-        # Callback from grabbit. Exclude special directories like derivatives/
-        # and code/ from indexing unless they were explicitly included at
-        # initialization.
-        no_root = os.path.relpath(d, self.root).split(os.path.sep)[0]
-        if no_root in self._exclude_dirs:
-            check_paths = set(self._paths_to_index) - {self.root}
-            if not any([d.startswith(p) for p in check_paths]):
-                return False
-        return True
-
-    def _validate_file(self, f):
-        # Callback from grabbit. Files are excluded from indexing if validation
-        # is enabled and fails (i.e., file is not a valid BIDS file).
-        if not self.validate:
-            return True
-
-        # Derivatives are currently not validated.
-        if 'derivatives' in self.domains:
-            return True
-
-        # BIDS validator expects absolute paths, but really these are relative
-        # to the BIDS project root.
-        to_check = os.path.relpath(f, self.root)
-        to_check = os.path.join(os.path.sep, to_check)
-
-        return self.validator.is_bids(to_check)
-
-    def _get_nearest_helper(self, path, extension, suffix=None, **kwargs):
-        """ Helper function for grabbit get_nearest """
-        path = os.path.abspath(path)
-
-        if not suffix:
-            f = self.get_file(path)
-            if 'suffix' not in f.entities:
-                raise ValueError(
-                    "File '%s' does not have a valid suffix, most "
-                    "likely because it is not a valid BIDS file." % path
-                )
-            suffix = f.entities['suffix']
-
-        tmp = self.get_nearest(
-            path, extensions=extension, all_=True, suffix=suffix,
-            ignore_strict_entities=['suffix'], **kwargs)
-
-        if len(tmp):
-            return tmp
-        else:
-            return None
+        try:
+            import pandas as pd
+        except ImportError:
+            raise ImportError("What are you doing trying to export a BIDSLayout"
+                              " as a pandas DataFrame when you don't have "
+                              "pandas installed? Eh? Eh?")
+        files = self.get(return_type='obj', **kwargs)
+        data = pd.DataFrame.from_records([f.entities for f in files])
+        data.insert(0, 'path', [f.path for f in files])
+        return data
 
     def get(self, return_type='object', target=None, extensions=None,
-            derivatives=True, regex_search=None, defined_fields=None,
-            domains=None, **kwargs):
+            scope='all', regex_search=False, defined_fields=None, **kwargs):
         """
         Retrieve files and/or metadata from the current Layout.
 
@@ -354,30 +443,28 @@ class BIDSLayout(Layout):
             target (str): Optional name of the target entity to get results for
                 (only used if return_type is 'dir' or 'id').
             extensions (str, list): One or more file extensions to filter on.
-                Files with any other extensions will be excluded.
-            derivatives (bool, str, list): Whether/how to search associated
-                BIDS-Derivatives datasets. If True (default), all available
-                derivatives are searched. If a str or list, must be the name(s)
-                of the derivatives to search (as defined in the
-                PipelineDescription.Name field in dataset_description.json).
+                BIDSFiles with any other extensions will be excluded.
+            scope (str, list): Scope of the search space. If passed, only
+                nodes/directories that match the specified scope will be
+                searched. Possible values include:
+                    'all' (default): search all available directories.
+                    'derivatives': search all derivatives directories
+                    'raw': search only BIDS-Raw directories
+                    <PipelineName>: the name of a BIDS-Derivatives pipeline
             regex_search (bool or None): Whether to require exact matching
                 (False) or regex search (True) when comparing the query string
-                to each entity. If None (default), uses the value found in
-                self.
+                to each entity.
             defined_fields (list): Optional list of names of metadata fields
                 that must be defined in JSON sidecars in order to consider the
                 file a match, but which don't need to match any particular
                 value.
-            domains (str, list): Domain(s) to search in. Valid values are
-                'bids' and 'derivatives'.
             kwargs (dict): Any optional key/values to filter the entities on.
                 Keys are entity names, values are regexes to filter on. For
                 example, passing filter={ 'subject': 'sub-[12]'} would return
                 only files that match the first two subjects.
 
         Returns:
-            A list of BIDSFile (default) or other objects
-            (see return_type for details).
+            A list of BIDSFiles (default) or strings (see return_type).
         """
 
         # Warn users still expecting 0.6 behavior
@@ -385,30 +472,27 @@ class BIDSLayout(Layout):
             raise ValueError("As of pybids 0.7.0, the 'type' argument has been"
                              " replaced with 'suffix'.")
 
-        if derivatives is True:
-            derivatives = list(self.derivatives.keys())
-        elif derivatives:
-            derivatives = listify(derivatives)
+        layouts = self._get_layouts_in_scope(scope)
+        
+        # Create concatenated file, node, and entity lists
+        files, entities, nodes = {}, {}, []
+        for l in layouts:
+            files.update(l.files)
+            entities.update(l.entities)
+            nodes.extend(l.nodes)
 
         # Separate entity kwargs from metadata kwargs
         ent_kwargs, md_kwargs = {}, {}
-
-        all_ents = self.get_domain_entities()
-        if derivatives:
-            for deriv in derivatives:
-                deriv_ents = self.derivatives[deriv].get_domain_entities()
-                all_ents.update(deriv_ents)
-
         for k, v in kwargs.items():
-            if k in all_ents:
+            if k in entities:
                 ent_kwargs[k] = v
             else:
                 md_kwargs[k] = v
 
         # Provide some suggestions if target is specified and invalid.
-        if target is not None and target not in all_ents:
+        if target is not None and target not in entities:
             import difflib
-            potential = list(all_ents.keys())
+            potential = list(entities.keys())
             suggestions = difflib.get_close_matches(target, potential)
             if suggestions:
                 message = "Did you mean one of: {}?".format(suggestions)
@@ -417,44 +501,116 @@ class BIDSLayout(Layout):
             raise ValueError(("Unknown target '{}'. " + message)
                              .format(target))
 
-        all_results = []
+        results = []
 
-        # Get entity-based search results using the superclass's get()
-        result = []
-        result = super(
-            BIDSLayout, self).get(return_type, target=target,
-                                  extensions=extensions, domains=None,
-                                  regex_search=regex_search, **ent_kwargs)
+        # Search on entities
+        filters = ent_kwargs.copy()
 
-        # Search the metadata if needed
+        for f in files.values():
+            if f._matches(filters, extensions, regex_search):
+                results.append(f)
+
+        # Search on metadata
         if return_type not in {'dir', 'id'}:
 
             if md_kwargs:
-                if return_type.startswith('obj'):
-                    result = [f.path for f in result]
-
-                result = self.metadata_index.search(result, defined_fields,
+                results = [f.path for f in results]
+                results = self.metadata_index.search(results, defined_fields,
                                                     **md_kwargs)
+                results = [files[f] for f in results]
 
-                if return_type.startswith('obj'):
-                    result = [self.files[f] for f in result]
+        # Convert to relative paths if needed
+        if not self.absolute_paths:
+            for i, f in enumerate(results):
+                f = copy.copy(f)
+                f.path = os.path.relpath(f.path, self.root)
+                results[i] = f
 
-        all_results.append(result)
+        if return_type == 'file':
+            results = natural_sort([f.path for f in results])
 
-        # Add results from derivatives
-        if derivatives:
-            for deriv in derivatives:
-                deriv = self.derivatives[deriv]
-                deriv_res = deriv.get(return_type, target, extensions, None,
-                                      regex_search, **ent_kwargs)
-                all_results.append(deriv_res)
+        elif return_type in ['id', 'dir']:
+            if target is None:
+                raise ValueError('If return_type is "id" or "dir", a valid '
+                                 'target entity must also be specified.')
+            results = [x for x in results if target in x.entities]
 
-        # Flatten results
-        result = list(chain(*all_results))
-        if return_type in ['dir', 'id']:
-            result = list(set(result))
+            if return_type == 'id':
+                results = list(set([x.entities[target] for x in results]))
+                results = natural_sort(results)
 
-        return result
+            elif return_type == 'dir':
+                template = entities[target].directory
+                if template is None:
+                    raise ValueError('Return type set to directory, but no '
+                                     'directory template is defined for the '
+                                     'target entity (\"%s\").' % target)
+                # Construct regex search pattern from target directory template
+                template = template.replace('{{root}}', self.root)
+                to_rep = re.findall(r'\{(.*?)\}', template)
+                for ent in to_rep:
+                    patt = entities[ent].pattern
+                    template = template.replace('{%s}' % ent, patt)
+                template += r'[^\%s]*$' % os.path.sep
+                matches = [f.dirname for f in results
+                           if re.search(template, f.dirname)]
+                results = natural_sort(list(set(matches)))
+
+            else:
+                raise ValueError("Invalid return_type specified (must be one "
+                                 "of 'tuple', 'file', 'id', or 'dir'.")
+
+        return results
+
+    def get_file(self, filename, scope='all'):
+        ''' Returns the BIDSFile object with the specified path.
+
+        Args:
+            filename (str): The path of the file to retrieve. Must be either
+                an absolute path, or relative to the root of this BIDSLayout.
+            scope (str, list): Scope of the search space. If passed, only
+                BIDSLayouts that match the specified scope will be
+                searched. See BIDSLayout docstring for valid values.
+
+        Returns: A BIDSFile, or None if no match was found.
+        '''
+        filename = os.path.abspath(os.path.join(self.root, filename))
+        layouts = self._get_layouts_in_scope(scope)
+        for ly in layouts:
+            if filename in ly.files:
+                return ly.files[filename]
+        return None
+
+    def get_collections(self, level, types=None, variables=None, merge=False,
+                        sampling_rate=None, skip_empty=False, **kwargs):
+        """Return one or more variable Collections in the BIDS project.
+
+        Args:
+            level (str): The level of analysis to return variables for. Must be
+                one of 'run', 'session', 'subject', or 'dataset'.
+            types (str, list): Types of variables to retrieve. All valid values
+            reflect the filename stipulated in the BIDS spec for each kind of
+            variable. Valid values include: 'events', 'physio', 'stim',
+            'scans', 'participants', 'sessions', and 'regressors'.
+            variables (list): Optional list of variables names to return. If
+                None, all available variables are returned.
+            merge (bool): If True, variables are merged across all observations
+                of the current level. E.g., if level='subject', variables from
+                all subjects will be merged into a single collection. If False,
+                each observation is handled separately, and the result is
+                returned as a list.
+            sampling_rate (int, str): If level='run', the sampling rate to
+                pass onto the returned BIDSRunVariableCollection.
+            skip_empty (bool): Whether or not to skip empty Variables (i.e.,
+                where there are no rows/records in a file after applying any
+                filtering operations like dropping NaNs).
+            kwargs: Optional additional arguments to pass onto load_variables.
+        """
+        from bids.variables import load_variables
+        index = load_variables(self, types=types, levels=level,
+                               skip_empty=skip_empty, **kwargs)
+        return index.get_collections(level, variables, merge,
+                                     sampling_rate=sampling_rate)
 
     def get_metadata(self, path, include_entities=False, **kwargs):
         """Return metadata found in JSON sidecars for the specified file.
@@ -478,11 +634,12 @@ class BIDSLayout(Layout):
 
         """
 
+        f = self.get_file(path)
+
         # For querying efficiency, store metadata in the MetadataIndex cache
-        self.metadata_index.index_file(path)
+        self.metadata_index.index_file(f.path)
 
         if include_entities:
-            f = self.get_file(os.path.abspath(path))
             entities = f.entities
             results = entities
         else:
@@ -491,24 +648,122 @@ class BIDSLayout(Layout):
         results.update(self.metadata_index.file_index[path])
         return results
 
+    def get_nearest(self, path, return_type='file', strict=True, all_=False,
+                    ignore_strict_entities=None, full_search=False, **kwargs):
+        ''' Walk up the file tree from the specified path and return the
+        nearest matching file(s).
+
+        Args:
+            path (str): The file to search from.
+            return_type (str): What to return; must be one of 'file' (default)
+                or 'tuple'.
+            strict (bool): When True, all entities present in both the input
+                path and the target file(s) must match perfectly. When False,
+                files will be ordered by the number of matching entities, and
+                partial matches will be allowed.
+            all_ (bool): When True, returns all matching files. When False
+                (default), only returns the first match.
+            ignore_strict_entities (list): Optional list of entities to
+                exclude from strict matching when strict is True. This allows
+                one to search, e.g., for files of a different type while
+                matching all other entities perfectly by passing
+                ignore_strict_entities=['type'].
+            full_search (bool): If True, searches all indexed files, even if
+                they don't share a common root with the provided path. If
+                False, only files that share a common root will be scanned.
+            kwargs: Optional keywords to pass on to .get().
+        '''
+
+        path = os.path.abspath(path)
+
+        # Make sure we have a valid suffix
+        suffix = kwargs.get('suffix')
+        if not suffix:
+            f = self.get_file(path)
+            if 'suffix' not in f.entities:
+                raise ValueError(
+                    "File '%s' does not have a valid suffix, most "
+                    "likely because it is not a valid BIDS file." % path
+                )
+            suffix = f.entities['suffix']
+        kwargs['suffix'] = suffix
+
+        # Collect matches for all entities
+        entities = {}
+        for ent in self.entities.values():
+            m = ent.regex.search(path)
+            if m:
+                entities[ent.name] = ent._astype(m.group(1))
+
+        # Remove any entities we want to ignore when strict matching is on
+        if strict and ignore_strict_entities is not None:
+            for k in ignore_strict_entities:
+                entities.pop(k, None)
+
+        results = self.get(return_type='object', **kwargs)
+
+        # Make a dictionary of directories --> contained files
+        folders = defaultdict(list)
+        for f in results:
+            folders[f.dirname].append(f)
+
+        # Build list of candidate directories to check
+        search_paths = []
+        while True:
+            if path in folders and folders[path]:
+                search_paths.append(path)
+            parent = os.path.dirname(path)
+            if parent == path:
+                break
+            path = parent
+
+        if full_search:
+            unchecked = set(folders.keys()) - set(search_paths)
+            search_paths.extend(path for path in unchecked if folders[path])
+
+        def count_matches(f):
+            # Count the number of entities shared with the passed file
+            f_ents = f.entities
+            keys = set(entities.keys()) & set(f_ents.keys())
+            shared = len(keys)
+            return [shared, sum([entities[k] == f_ents[k] for k in keys])]
+
+        matches = []
+
+        for path in search_paths:
+            # Sort by number of matching entities. Also store number of
+            # common entities, for filtering when strict=True.
+            num_ents = [[f] + count_matches(f) for f in folders[path]]
+            # Filter out imperfect matches (i.e., where number of common
+            # entities does not equal number of matching entities).
+            if strict:
+                num_ents = [f for f in num_ents if f[1] == f[2]]
+            num_ents.sort(key=lambda x: x[2], reverse=True)
+
+            if num_ents:
+                for f_match in num_ents:
+                    matches.append(f_match[0])
+
+            if not all_:
+                break
+
+        matches = [m.path if return_type == 'file' else m for m in matches]
+        return matches if all_ else matches[0] if matches else None
+
     def get_bvec(self, path, **kwargs):
-        """Get bvec file for passed path."""
-        tmp = self._get_nearest_helper(path, 'bvec', suffix='dwi', **kwargs)[0]
-        if isinstance(tmp, list):
-            return tmp[0]
-        else:
-            return tmp
+        """ Get bvec file for passed path. """
+        result = self.get_nearest(path, extensions='bvec', suffix='dwi',
+                                  all_=True, **kwargs)
+        return listify(result)[0]
 
     def get_bval(self, path, **kwargs):
-        """Get bval file for passed path."""
-        tmp = self._get_nearest_helper(path, 'bval', suffix='dwi', **kwargs)[0]
-        if isinstance(tmp, list):
-            return tmp[0]
-        else:
-            return tmp
+        """ Get bval file for passed path. """
+        result = self.get_nearest(path, extensions='bval', suffix='dwi',
+                                  all_=True, **kwargs)
+        return listify(result)[0]
 
     def get_fieldmap(self, path, return_list=False):
-        """Get fieldmap(s) for specified path."""
+        """ Get fieldmap(s) for specified path. """
         fieldmaps = self._get_fieldmaps(path)
 
         if return_list:
@@ -527,10 +782,10 @@ class BIDSLayout(Layout):
                 return None
 
     def _get_fieldmaps(self, path):
-        sub = os.path.split(path)[1].split("_")[0].split("sub-")[1]
+        sub = self.parse_file_entities(path)['subject']
         fieldmap_set = []
         suffix = '(phase1|phasediff|epi|fieldmap)'
-        files = self.get(subject=sub, suffix=suffix,
+        files = self.get(subject=sub, suffix=suffix, regex_search=True,
                          extensions=['nii.gz', 'nii'])
         for file in files:
             metadata = self.get_metadata(file.path)
@@ -581,13 +836,13 @@ class BIDSLayout(Layout):
         Notes: Raises an exception if more than one unique TR is found.
         """
         # Constrain search to functional images
-        selectors['suffix'] = 'bold'
-        selectors['datatype'] = 'func'
-        images = self.get(extensions=['.nii', '.nii.gz'], derivatives=derivatives,
+        selectors.update(suffix='bold', datatype='func')
+        scope = None if derivatives else 'raw'
+        images = self.get(extensions=['.nii', '.nii.gz'], scope=scope,
                           **selectors)
         if not images:
             raise ValueError("No functional images that match criteria found.")
-        
+
         all_trs = set()
         for img in images:
             md = self.get_metadata(img.path, suffix='bold', full_search=True)
@@ -598,62 +853,132 @@ class BIDSLayout(Layout):
                              .format(selectors))
         return all_trs.pop()
 
-    def get_collections(self, level, types=None, variables=None, merge=False,
-                        sampling_rate=None, skip_empty=False, **kwargs):
-        """Return one or more variable Collections in the BIDS project.
+    def build_path(self, source, path_patterns=None, strict=False, scope='all'):
+        ''' Constructs a target filename for a file or dictionary of entities.
 
         Args:
-            level (str): The level of analysis to return variables for. Must be
-                one of 'run', 'session', 'subject', or 'dataset'.
-            types (str, list): Types of variables to retrieve. All valid values
-            reflect the filename stipulated in the BIDS spec for each kind of
-            variable. Valid values include: 'events', 'physio', 'stim',
-            'scans', 'participants', 'sessions', and 'regressors'.
-            variables (list): Optional list of variables names to return. If
-                None, all available variables are returned.
-            merge (bool): If True, variables are merged across all observations
-                of the current level. E.g., if level='subject', variables from
-                all subjects will be merged into a single collection. If False,
-                each observation is handled separately, and the result is
-                returned as a list.
-            sampling_rate (int, str): If level='run', the sampling rate to
-                pass onto the returned BIDSRunVariableCollection.
-            skip_empty (bool): Whether or not to skip empty Variables (i.e.,
-                where there are no rows/records in a file after applying any
-                filtering operations like dropping NaNs).
-            kwargs: Optional additional arguments to pass onto load_variables.
-        """
-        from bids.variables import load_variables
-        index = load_variables(self, types=types, levels=level,
-                               skip_empty=skip_empty, **kwargs)
-        return index.get_collections(level, variables, merge,
-                                     sampling_rate=sampling_rate)
-
-    def _make_file_object(self, root, f):
-        # Override grabbit's File with a BIDSFile.
-        return BIDSFile(os.path.join(root, f), self)
-
-    def get_file(self, filename, derivatives=True):
-        ''' Returns the BIDSFile object with the specified path.
-
-        Args:
-            filename (str): The path of the file to retrieve.
-            derivatives (bool: If True, checks all associated derivative
-                datasets as well.
-
-        Returns: A BIDSFile.
+            source (str, BIDSFile, dict): The source data to use to construct
+                the new file path. Must be one of:
+                - A BIDSFile object
+                - A string giving the path of a BIDSFile contained within the
+                  current Layout.
+                - A dict of entities, with entity names in keys and values in
+                  values
+            path_patterns (list): Optional path patterns to use to construct
+                the new file path. If None, the Layout-defined patterns will
+                be used.
+            strict (bool): If True, all entities must be matched inside a
+                pattern in order to be a valid match. If False, extra entities
+                will be ignored so long as all mandatory entities are found.
+            scope (str, list): The scope of the search space. Indicates which
+                BIDSLayouts' path patterns to use. See BIDSLayout docstring
+                for valid values. By default, uses all available layouts. If
+                two or more values are provided, the order determines the
+                precedence of path patterns (i.e., earlier layouts will have
+                higher precedence).
         '''
-        layouts = [self]
-        if derivatives:
-            layouts += self.derivatives.values()
-        for ly in layouts:
-            if filename in ly.files:
-                return ly.files[filename]
-        return None
+
+        # 'is_file' is a crude check for Path objects
+        if isinstance(source, six.string_types) or hasattr(source, 'is_file'):
+            source = str(source)
+            if source not in self.files:
+                source = os.path.join(self.root, source)
+
+            source = self.get_file(source)
+
+        if isinstance(source, BIDSFile):
+            source = source.entities
+
+        if path_patterns is None:
+            layouts = self._get_layouts_in_scope(scope)
+            path_patterns = []
+            seen_configs = set()
+            for l in layouts:
+                for c in l.config.values():
+                    if c in seen_configs:
+                        continue
+                    path_patterns.extend(c.default_path_patterns)
+                    seen_configs.add(c)
+
+        return build_path(source, path_patterns, strict)
+
+    def copy_files(self, files=None, path_patterns=None, symbolic_links=True,
+                   root=None, conflicts='fail', **kwargs):
+        """
+        Copies one or more BIDSFiles to new locations defined by each
+        BIDSFile's entities and the specified path_patterns.
+
+        Args:
+            files (list): Optional list of BIDSFile objects to write out. If
+                none provided, use files from running a get() query using
+                remaining **kwargs.
+            path_patterns (str, list): Write patterns to pass to each file's
+                write_file method.
+            symbolic_links (bool): Whether to copy each file as a symbolic link
+                or a deep copy.
+            root (str): Optional root directory that all patterns are relative
+                to. Defaults to current working directory.
+            conflicts (str):  Defines the desired action when the output path
+                already exists. Must be one of:
+                    'fail': raises an exception
+                    'skip' does nothing
+                    'overwrite': overwrites the existing file
+                    'append': adds  a suffix to each file copy, starting with 1
+            kwargs (kwargs): Optional key word arguments to pass into a get()
+                query.
+        """
+        _files = self.get(return_type='objects', **kwargs)
+        if files:
+            _files = list(set(files).intersection(_files))
+
+        for f in _files:
+            f.copy(path_patterns, symbolic_link=symbolic_links,
+                   root=self.root, conflicts=conflicts)
+
+    def write_contents_to_file(self, entities, path_patterns=None,
+                               contents=None, link_to=None,
+                               content_mode='text', conflicts='fail',
+                               strict=False):
+        """
+        Write arbitrary data to a file defined by the passed entities and
+        path patterns.
+
+        Args:
+            entities (dict): A dictionary of entities, with Entity names in
+                keys and values for the desired file in values.
+            path_patterns (list): Optional path patterns to use when building
+                the filename. If None, the Layout-defined patterns will be
+                used.
+            contents (object): Contents to write to the generate file path.
+                Can be any object serializable as text or binary data (as
+                defined in the content_mode argument).
+            link_to (str): Optional path with which to create a symbolic link
+                to. Used as an alternative to and takes priority over the
+                contents argument.
+            conflicts (str):  Defines the desired action when the output path
+                already exists. Must be one of:
+                    'fail': raises an exception
+                    'skip' does nothing
+                    'overwrite': overwrites the existing file
+                    'append': adds  a suffix to each file copy, starting with 1
+            strict (bool): If True, all entities must be matched inside a
+                pattern in order to be a valid match. If False, extra entities
+        """
+        path = self.build_path(entities, path_patterns, strict)
+
+        if path is None:
+            raise ValueError("Cannot construct any valid filename for "
+                             "the passed entities given available path "
+                             "patterns.")
+
+        write_contents_to_file(path, contents=contents, link_to=link_to,
+                               content_mode=content_mode, conflicts=conflicts,
+                               root=self.root)
 
 
 class MetadataIndex(object):
     """A simple dict-based index for key/value pairs in JSON metadata.
+
     Args:
         layout (BIDSLayout): The BIDSLayout instance to index.
     """
@@ -689,8 +1014,10 @@ class MetadataIndex(object):
             self.file_index[f.path][md_key] = md_val
 
     def _get_metadata(self, path, **kwargs):
-        potential_jsons = self.layout._get_nearest_helper(path, '.json',
-                                                          **kwargs)
+        potential_jsons = listify(self.layout.get_nearest(
+                                  path, extensions='.json', all_=True,
+                                  ignore_strict_entities=['suffix'],
+                                  **kwargs))
 
         if potential_jsons is None:
             return {}

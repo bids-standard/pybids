@@ -3,9 +3,10 @@ functionality should go in the grabbit package. """
 
 import os
 import pytest
-from bids.layout import BIDSLayout
-from bids.layout.layout import BIDSFile
-from os.path import join, abspath, basename
+import bids
+from bids.layout import BIDSLayout, parse_file_entities, add_config_paths
+from bids.layout.core import BIDSFile, Entity, Config
+from os.path import join, abspath, basename, dirname
 from bids.tests import get_test_data_path
 
 
@@ -50,7 +51,12 @@ def layout_ds005_multi_derivs():
 @pytest.fixture(scope='module')
 def layout_ds005_models():
     data_dir = join(get_test_data_path(), 'ds005')
-    return BIDSLayout(data_dir, validate=False, include=['models/'])
+    return BIDSLayout(data_dir, validate=True, force_index=['models'])
+
+@pytest.fixture(scope='module')
+def layout_synthetic():
+    path = join(get_test_data_path(), 'synthetic')
+    return BIDSLayout(path, derivatives=True)
 
 
 def test_layout_init(layout_7t_trt):
@@ -66,6 +72,43 @@ def test_load_description(layout_7t_trt):
     assert hasattr(layout_7t_trt, 'description')
     assert layout_7t_trt.description['Name'] == '7t_trt'
     assert layout_7t_trt.description['BIDSVersion'] == "1.0.0rc3"
+
+
+def test_get_file(layout_ds005_derivs):
+    layout = layout_ds005_derivs
+
+    # relative path in BIDS-Raw
+    orig_file = 'sub-13/func/sub-13_task-mixedgamblestask_run-01_bold.nii.gz'
+    target = os.path.join(*orig_file.split('/'))
+    assert layout.get_file(target)
+    assert layout.get_file(target, scope='raw')
+    assert not layout.get_file(target, scope='derivatives')
+
+    # absolute path in BIDS-Raw
+    target = (layout.root + '/' +  orig_file).split('/')
+    target = os.path.sep + os.path.join(*target)
+    assert layout.get_file(target)
+    assert layout.get_file(target, scope='raw')
+    assert not layout.get_file(target, scope='derivatives')
+
+    # relative path in derivatives pipeline
+    orig_file = 'derivatives/events/sub-01/func/sub-01_task-mixedgamblestask_run-01_desc-extra_events.tsv'
+    target = os.path.join(*orig_file.split('/'))
+    assert layout.get_file(target)
+    assert not layout.get_file(target, scope='raw')
+    assert layout.get_file(target, scope='derivatives')
+
+    # absolute path in derivatives pipeline
+    target = (layout.root + '/' +  orig_file).split('/')
+    target = os.path.sep + os.path.join(*target)
+    assert layout.get_file(target)
+    assert not layout.get_file(target, scope='raw')
+    assert layout.get_file(target, scope='derivatives')
+    assert layout.get_file(target, scope='events')
+
+    # No such file
+    assert not layout.get_file('bleargh')
+    assert not layout.get_file('/absolute/bleargh')
 
 
 def test_get_metadata(layout_7t_trt):
@@ -186,7 +229,16 @@ def test_bids_json(layout_7t_trt):
     assert set(res) == {'1', '2'}
 
 
-def test_include(layout_ds005, layout_ds005_models):
+def test_get_return_type_dir(layout_7t_trt):
+    l = layout_7t_trt
+    res = l.get(target='subject', return_type='dir')
+    for i in range(1, 11):
+        sub_dir = "sub-{:02d}".format(i)
+        assert os.path.join(get_test_data_path(), '7t_trt', sub_dir) in res
+    assert len(res) == 10
+
+
+def test_force_index(layout_ds005, layout_ds005_models):
     target= join(layout_ds005_models.root, 'models',
                 'ds-005_type-test_model.json')
     assert target not in layout_ds005.files
@@ -206,9 +258,8 @@ def test_layout_with_derivs(layout_ds005_derivs):
     event_file = "sub-01_task-mixedgamblestask_run-01_desc-extra_events.tsv"
     deriv_files = [basename(f) for f in list(deriv.files.keys())]
     assert event_file in deriv_files
-    assert 'derivatives.roi' in deriv.entities
-    assert 'bids.roi' not in deriv.entities
-    assert 'bids.subject' in deriv.entities
+    assert 'roi' in deriv.entities
+    assert 'subject' in deriv.entities
 
 
 def test_layout_with_multi_derivs(layout_ds005_multi_derivs):
@@ -221,9 +272,8 @@ def test_layout_with_multi_derivs(layout_ds005_multi_derivs):
     deriv = layout_ds005_multi_derivs.derivatives['dummy']
     assert deriv.files
     assert len(deriv.files) == 4
-    assert 'derivatives.roi' in deriv.entities
-    assert 'bids.roi' not in deriv.entities
-    assert 'bids.subject' in deriv.entities
+    assert 'roi' in deriv.entities
+    assert 'subject' in deriv.entities
     preproc = layout_ds005_multi_derivs.get(desc='preproc')
     assert len(preproc) == 3
 
@@ -234,7 +284,7 @@ def test_query_derivatives(layout_ds005_derivs):
     assert len(result) == 49
     assert 'sub-01_task-mixedgamblestask_run-01_desc-extra_events.tsv' in result
     result = layout_ds005_derivs.get(suffix='events', return_type='object',
-                                     derivatives=False)
+                                     scope='raw')
     assert len(result) == 48
     result = [f.filename for f in result]
     assert 'sub-01_task-mixedgamblestask_run-01_desc-extra_events.tsv' not in result
@@ -291,3 +341,77 @@ def test_get_tr(layout_7t_trt):
     assert tr == 3.0
     tr = layout_7t_trt.get_tr(subject=['01', '02'], acquisition="prefrontal")
     assert tr == 4.0
+
+
+def test_to_df(layout_ds117):
+    df = layout_ds117.to_df()
+    assert df.shape == (115, 11)
+    target = {'datatype', 'fmap', 'run', 'path', 'acquisition', 'scans',
+              'session', 'subject', 'suffix', 'task', 'proc'}
+    assert set(df.columns) == target
+    assert set(df['subject'].dropna().unique()) == {'01', '02', 'emptyroom'}
+
+
+def test_parse_file_entities():
+    filename = '/sub-03_ses-07_run-4_desc-bleargh_sekret.nii.gz'
+
+    # Test with entities taken from bids config
+    target = {'subject': '03', 'session': '07', 'run': 4, 'suffix': 'sekret'}
+    assert target == parse_file_entities(filename, config='bids')
+    config = Config.load('bids')
+    assert target == parse_file_entities(filename, config=[config])
+
+    # Test with entities taken from bids and derivatives config
+    target = {'subject': '03', 'session': '07', 'run': 4, 'suffix': 'sekret',
+              'desc': 'bleargh'}
+    assert target == parse_file_entities(filename)
+    assert target == parse_file_entities(filename, config=['bids', 'derivatives'])
+
+    # Test with list of Entities
+    entities = [
+        Entity('subject', "[/\\\\]sub-([a-zA-Z0-9]+)"),
+        Entity('run', "[_/\\\\]run-0*(\\d+)", dtype=int),
+        Entity('suffix', "[._]*([a-zA-Z0-9]*?)\\.[^/\\\\]+$"),
+        Entity('desc', "desc-([a-zA-Z0-9]+)"),
+    ]
+    # Leave out session to distinguish from previous test target
+    target = {'subject': '03', 'run': 4, 'suffix': 'sekret', 'desc': 'bleargh'}
+    assert target == parse_file_entities(filename, entities=entities)
+
+
+def test_parse_file_entities_from_layout(layout_synthetic):
+    layout = layout_synthetic
+    filename = '/sub-03_ses-07_run-4_desc-bleargh_sekret.nii.gz'
+
+    # Test with entities taken from bids config
+    target = {'subject': '03', 'session': '07', 'run': 4, 'suffix': 'sekret'}
+    assert target == layout.parse_file_entities(filename, config='bids')
+    config = Config.load('bids')
+    assert target == layout.parse_file_entities(filename, config=[config])
+    assert target == layout.parse_file_entities(filename, scope='raw')
+
+    # Test with default scope--i.e., everything
+    target = {'subject': '03', 'session': '07', 'run': 4, 'suffix': 'sekret',
+              'desc': 'bleargh'}
+    assert target == layout.parse_file_entities(filename)
+    # Test with only the fmriprep pipeline (which includes both configs)
+    assert target == layout.parse_file_entities(filename, scope='fmriprep')
+    assert target == layout.parse_file_entities(filename, scope='derivatives')
+
+    # Test with only the derivative config
+    target = {'desc': 'bleargh'}
+    assert target == layout.parse_file_entities(filename, config='derivatives')
+
+
+def test_add_config_paths():
+    bids_dir = dirname(bids.__file__)
+    bids_json = os.path.join(bids_dir, 'layout', 'config', 'bids.json')
+    with pytest.raises(ValueError) as exc:
+        add_config_paths(test_config1='nonexistentpath.json')
+    assert str(exc.value).startswith('Configuration file')
+    with pytest.raises(ValueError) as exc:
+        add_config_paths(bids=bids_json)
+    assert str(exc.value).startswith("Configuration 'bids' already")
+    add_config_paths(dummy=bids_json)
+    config = Config.load('dummy')
+    assert 'subject' in config.entities
