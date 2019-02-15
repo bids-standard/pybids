@@ -1,6 +1,6 @@
 # Changelog
 
-## Version 0.8.0 (February 14, 2019)
+## Version 0.8.0 (February 15, 2019)
 Version 0.8 refactors much of the layout module. It drops the grabbit
 dependency, overhauls the file indexing process, and features a number of other
 improvements. However, changes to the public API are very minimal, and in the
@@ -23,6 +23,8 @@ able to use the `scope` argument more effectively.
 OTHER CHANGES:
 * FIX: Path indexing issues in `get_file()` (#379)
 * FIX: Duplicate file returns under certain conditions (#350)
+* FIX: Pass new variable args as kwargs in split() (#386) @effigies
+* TEST: Update naming conventions for synthetic dataset (#385) @effigies
 * REF: The grabbit package is no longer a dependency; as a result, much of the
 functionality from grabbit has been ported over to pybids.
 * REF: Required functionality from six and inflect is now bundled with pybids
