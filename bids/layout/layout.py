@@ -211,9 +211,6 @@ class BIDSLayout(object):
 
         self.root = os.path.abspath(self.root)
 
-        if not isinstance(self.root, six.string_types):
-            raise ValueError("root argument must be a string specifying the"
-                             " directory containing the BIDS dataset.")
         if not os.path.exists(self.root):
             raise ValueError("BIDS root does not exist: %s" % self.root)
 
@@ -881,7 +878,9 @@ class BIDSLayout(object):
                 higher precedence).
         '''
 
-        if isinstance(source, six.string_types) or hasattr(source, '__str__'):
+        # 'is_file' is a crude check for Path objects
+        if isinstance(source, six.string_types) or hasattr(source, 'is_file'):
+            source = str(source)
             if source not in self.files:
                 source = os.path.join(self.root, source)
 
