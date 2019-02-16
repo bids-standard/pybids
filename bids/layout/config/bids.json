@@ -3,56 +3,56 @@
     "entities": [
         {
             "name": "subject",
-            "pattern": "[/\\\\]sub-([a-zA-Z0-9]+)",
+            "pattern": "[/\\\\]+sub-([a-zA-Z0-9]+)",
             "directory": "{{root}}{subject}"
         },
         {
             "name": "session",
-            "pattern": "[_/\\\\]ses-([a-zA-Z0-9]+)",
+            "pattern": "[_/\\\\]+ses-([a-zA-Z0-9]+)",
             "mandatory": false,
             "directory": "{{root}}{subject}{session}",
             "missing_value": "ses-1"
         },
         {
             "name": "task",
-            "pattern": "[_/\\\\]task-([a-zA-Z0-9]+)"
+            "pattern": "[_/\\\\]+task-([a-zA-Z0-9]+)"
         },
         {
             "name": "acquisition",
-            "pattern": "[_/\\\\]acq-([a-zA-Z0-9]+)"
+            "pattern": "[_/\\\\]+acq-([a-zA-Z0-9]+)"
         },
         {
             "name": "ce",
-            "pattern": "[_/\\\\]ce-([a-zA-Z0-9]+)"
+            "pattern": "[_/\\\\]+ce-([a-zA-Z0-9]+)"
         },
         {
             "name": "reconstruction",
-            "pattern": "[_/\\\\]rec-([a-zA-Z0-9]+)"
+            "pattern": "[_/\\\\]+rec-([a-zA-Z0-9]+)"
         },
         {
             "name": "dir",
-            "pattern": "[_/\\\\]dir-([a-zA-Z0-9]+)"
+            "pattern": "[_/\\\\]+dir-([a-zA-Z0-9]+)"
         },
         {
             "name": "run",
-            "pattern": "[_/\\\\]run-0*(\\d+)",
+            "pattern": "[_/\\\\]+run-0*(\\d+)",
             "dtype": "int"
         },
         {
             "name": "proc",
-            "pattern": "[_/\\\\]proc-([a-zA-Z0-9]+)"
+            "pattern": "[_/\\\\]+proc-([a-zA-Z0-9]+)"
         },
         {
             "name": "modality",
-            "pattern": "[_/\\\\]mod-([a-zA-Z0-9]+)"
+            "pattern": "[_/\\\\]+mod-([a-zA-Z0-9]+)"
         },
         {
             "name": "echo",
-            "pattern": "[_/\\\\]echo-([0-9]+)\\_bold."
+            "pattern": "[_/\\\\]+echo-([0-9]+)\\_bold."
         },
         {
             "name": "recording",
-            "pattern": "[_/\\\\]recording-([a-zA-Z0-9]+)"
+            "pattern": "[_/\\\\]+recording-([a-zA-Z0-9]+)"
         },
         {
             "name": "suffix",
@@ -68,7 +68,7 @@
         },
         {
             "name": "datatype",
-            "pattern": "[/\\\\](func|anat|fmap|dwi|meg)[/\\\\]"
+            "pattern": "[/\\\\]+(func|anat|fmap|dwi|meg)[/\\\\]+s"
         }
     ],
 
