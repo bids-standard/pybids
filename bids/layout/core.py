@@ -403,8 +403,7 @@ class BIDSNode(object):
             template = self.available_entities[child_ent].directory
             if template is None:
                 return BIDSNode
-            # Replace {{root}} placeholder with root node's path
-            template = template.replace('{{root}}', self.root_path)
+            template = self.root_path + template
             # Construct regex search pattern from target directory template
             to_rep = re.findall(r'\{(.*?)\}', template)
             for ent in to_rep:
