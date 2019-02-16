@@ -793,7 +793,7 @@ class BIDSLayout(object):
                 intended_for = listify(metadata["IntendedFor"])
                 if any([path.endswith(_suff) for _suff in intended_for]):
                     cur_fieldmap = {}
-                    if file.suffix == "phasediff":
+                    if file.entities['suffix'] == "phasediff":
                         cur_fieldmap = {"phasediff": file.path,
                                         "magnitude1": file.path.replace(
                                             "phasediff", "magnitude1"),
@@ -802,7 +802,7 @@ class BIDSLayout(object):
                             "phasediff", "magnitude2")
                         if os.path.isfile(magnitude2):
                             cur_fieldmap['magnitude2'] = magnitude2
-                    elif file.suffix == "phase1":
+                    elif file.entities['suffix'] == "phase1":
                         cur_fieldmap["phase1"] = file.path
                         cur_fieldmap["magnitude1"] = \
                             file.path.replace("phase1", "magnitude1")
@@ -811,10 +811,10 @@ class BIDSLayout(object):
                         cur_fieldmap["magnitude2"] = \
                             file.path.replace("phase1", "magnitude2")
                         cur_fieldmap["suffix"] = "phase"
-                    elif file.suffix == "epi":
+                    elif file.entities['suffix'] == "epi":
                         cur_fieldmap["epi"] = file.path
                         cur_fieldmap["suffix"] = "epi"
-                    elif file.suffix == "fieldmap":
+                    elif file.entities['suffix'] == "fieldmap":
                         cur_fieldmap["fieldmap"] = file.path
                         cur_fieldmap["magnitude"] = \
                             file.path.replace("fieldmap", "magnitude")
