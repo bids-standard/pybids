@@ -145,7 +145,7 @@ If you want to run more complex queries, `layout` provides an easy way to return
 
 ```python
 >>> # Return all session 1 files as a pandas DF
->>> layout.as_data_frame(session=1)
+>>> layout.to_df(session=1)
 ```
 
 Each row is a single file, and each defined entity is automatically mapped to a column in the DataFrame.
