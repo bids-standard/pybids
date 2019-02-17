@@ -60,13 +60,13 @@ The `BIDSLayout` instance is a lightweight container for all of the files in the
 {
   "name": "subject",
   "pattern": "sub-([a-zA-Z0-9]+)",
-  "directory": "{{root}}/{subject}"
+  "directory": "{subject}"
 },
 {
   "name": "session",
   "pattern": "ses-([a-zA-Z0-9]+)",
   "mandatory": false,
-  "directory": "{{root}}/{subject}/{session}",
+  "directory": "{subject}/{session}",
   "missing_value": "ses-1"
 },
 {

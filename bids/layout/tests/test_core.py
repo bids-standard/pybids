@@ -22,7 +22,7 @@ def sample_bidsfile(tmpdir):
 @pytest.fixture(scope='module')
 def subject_entity():
     return Entity('subject', "[/\\\\]sub-([a-zA-Z0-9]+)", False,
-               "{{root}}{subject}", None, bleargh=True)
+               "{subject}", None, bleargh=True)
 
 
 def test_config_init_bare():
@@ -83,7 +83,7 @@ def test_entity_init_all_args(subject_entity):
     assert ent.name == 'subject'
     assert ent.pattern == "[/\\\\]sub-([a-zA-Z0-9]+)"
     assert ent.mandatory == False
-    assert ent.directory == "{{root}}{subject}"
+    assert ent.directory == "{subject}"
     assert ent.map_func is None
     assert ent.kwargs == {'bleargh': True}
 

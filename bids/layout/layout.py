@@ -546,7 +546,7 @@ class BIDSLayout(object):
                                      'directory template is defined for the '
                                      'target entity (\"%s\").' % target)
                 # Construct regex search pattern from target directory template
-                template = template.replace('{{root}}', self.root)
+                template = self.root + template
                 to_rep = re.findall(r'\{(.*?)\}', template)
                 for ent in to_rep:
                     patt = entities[ent].pattern
