@@ -1,5 +1,7 @@
-from .layout import BIDSLayout, add_config_paths
+from .layout import BIDSLayout, add_config_paths, parse_file_entities
+from .core import BIDSFile
 # Backwards compatibility
 from bids_validator import BIDSValidator
 
-__all__ = ["BIDSLayout", "BIDSValidator", "add_config_paths"]
+__all__ = ["BIDSLayout", "BIDSValidator", "add_config_paths",
+           "parse_file_entities", "BIDSFile"]

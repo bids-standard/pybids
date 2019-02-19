@@ -60,13 +60,13 @@ The `BIDSLayout` instance is a lightweight container for all of the files in the
 {
   "name": "subject",
   "pattern": "sub-([a-zA-Z0-9]+)",
-  "directory": "{{root}}/{subject}"
+  "directory": "{subject}"
 },
 {
   "name": "session",
   "pattern": "ses-([a-zA-Z0-9]+)",
   "mandatory": false,
-  "directory": "{{root}}/{subject}/{session}",
+  "directory": "{subject}/{session}",
   "missing_value": "ses-1"
 },
 {
@@ -145,7 +145,7 @@ If you want to run more complex queries, `layout` provides an easy way to return
 
 ```python
 >>> # Return all session 1 files as a pandas DF
->>> layout.as_data_frame(session=1)
+>>> layout.to_df(session=1)
 ```
 
 Each row is a single file, and each defined entity is automatically mapped to a column in the DataFrame.

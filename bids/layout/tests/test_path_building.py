@@ -9,6 +9,7 @@ def layout():
     data_dir = join(get_test_data_path(), '7t_trt')
     return BIDSLayout(data_dir)
 
+
 def test_bold_construction(layout):
     ents = dict(subject='01', run=1, task='rest', suffix='bold')
     assert layout.build_path(ents) == "sub-01/func/sub-01_task-rest_run-1_bold.nii.gz"

@@ -1,5 +1,46 @@
 # Changelog
 
+## Version 0.8.0 (February 15, 2019)
+Version 0.8 refactors much of the layout module. It drops the grabbit
+dependency, overhauls the file indexing process, and features a number of other
+improvements. However, changes to the public API are very minimal, and in the
+vast majority of cases, 0.8 should be a drop-in replacement for 0.7.*.
+
+API-BREAKING CHANGES:
+* Changes to (rarely-used) BIDSLayout initialization arguments:
+	* `include` and `exclude` have been replaced with `ignore` and
+	`force_index`. Paths passed to `ignore` will be ignored from indexing;
+	paths passed to `force_index` will be forcibly indexed even if they are
+	otherwise BIDS-non-compliant. `force_index` takes precedence over `ignore`.
+* Most querying/selection methods add a new `scope` argument that controls
+scope of querying (e.g., `'raw'`, `'derivatives'`, `'all'`, etc.). In some
+cases this replaces the more limited `derivatives` argument.
+* No more `domains`: with the grabbit removal (see below), the notion of a
+`'domain'` has been removed. This should impact few users, but those who need
+to restrict indexing or querying to specific parts of a BIDS project should be
+able to use the `scope` argument more effectively.
+
+OTHER CHANGES:
+* FIX: Path indexing issues in `get_file()` (#379)
+* FIX: Duplicate file returns under certain conditions (#350)
+* FIX: Pass new variable args as kwargs in split() (#386) @effigies
+* TEST: Update naming conventions for synthetic dataset (#385) @effigies
+* REF: The grabbit package is no longer a dependency; as a result, much of the
+functionality from grabbit has been ported over to pybids.
+* REF: Required functionality from six and inflect is now bundled with pybids
+in `bids.external`, minimizing external dependencies.
+* REF: Core modules have been reorganized. Key data structures and containers
+(e.g., `BIDSFile`, `Entity`, etc.) are now in a new `bids.layout.core` module.
+* REF: A new `Config` class has been introduced to house the information
+found in `bids.json` and other layout configuration files.
+* REF: The file-indexing process has been completely refactored. A new
+hierarchy of `BIDSNode` objects has been introduced. While this has no real
+impact on the public API, and isn't really intended for public consumption yet,
+it will in future make it easier for users to work with BIDS projects in a
+tree-like way, while also laying the basis for a more sensible approach to
+reading and accessing associated BIDS data (e.g., .tsv files).
+* MNT: All invocations of `pd.read_table` have been replaced with `read_csv`.
+
 ## Version 0.7.1 (February 01, 2019)
 
 This is a bug fix release in the 0.7 series. The primary API change is improved
