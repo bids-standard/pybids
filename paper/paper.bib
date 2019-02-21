@@ -1,0 +1,175 @@
+@misc{zenodo,
+  author       = {Yarkoni, Tal and
+                  Markiewicz, Christopher J. and
+                  de la Vega, Alejandro and
+                  Gorgolewski, Krzysztof J. and
+                  Salo, Taylor and
+                  Halchenko, Yaroslav O. and
+                  McNamara, Quinten and
+                  DeStasio, Krista and
+                  Poline, Jean-Baptiste and
+                  Petrov, Dmitry and
+                  Hayot-Sasson, Valérie and
+                  Nielson, Dylan M. and
+                  Carlin, Johan and
+                  Kiar, Gregory and
+                  Whitaker, Kirstie and
+                  DuPre, Elizabeth and
+                  Wagner, Adina and
+                  Ivanov, Alexander and
+                  Tirrell, Lee S. and
+                  Jas, Mainak and
+                  Hanke, Michael and
+                  Poldrack, Russell and
+                  Esteban, Oscar and
+                  Appelhoff, Stefan and
+                  Holdgraf, Chris and
+                  Staden, Isla and
+                  Rokem, Ariel and
+                  Thirion, Bertrand and
+                  Kleinschmidt, Dave F. and
+                  Lee, John A. and
+                  Visconti di Oleggio Castello, Matteo and
+                  Notter, Michael Philipp and
+                  Roca, Pauline and
+                  Blair, Ross},
+  title        = {bids-standard/pybids: 0.8.0},
+  month        = feb,
+  year         = 2019,
+  doi          = {10.5281/zenodo.2566511},
+  url          = {https://doi.org/10.5281/zenodo.2566511}
+}
+
+@article{Gorgolewski2016-sk,
+  title    = "A Practical Guide for Improving Transparency and Reproducibility
+              in Neuroimaging Research",
+  author   = "Gorgolewski, Krzysztof J and Poldrack, Russell A",
+  abstract = "Recent years have seen an increase in alarming signals regarding
+              the lack of replicability in neuroscience, psychology, and other
+              related fields. To avoid a widespread crisis in neuroimaging
+              research and consequent loss of credibility in the public eye, we
+              need to improve how we do science. This article aims to be a
+              practical guide for researchers at any stage of their careers
+              that will help them make their research more reproducible and
+              transparent while minimizing the additional effort that this
+              might require. The guide covers three major topics in open
+              science (data, code, and publications) and offers practical
+              advice as well as highlighting advantages of adopting more open
+              research practices that go beyond improved transparency and
+              reproducibility.",
+  journal  = "PLoS Biol.",
+  volume   =  14,
+  number   =  7,
+  pages    = "e1002506",
+  month    =  jul,
+  year     =  2016,
+  language = "en"
+}
+
+@article{Gorgolewski2016-nw,
+  title    = "The brain imaging data structure, a format for organizing and
+              describing outputs of neuroimaging experiments",
+  author   = "Gorgolewski, Krzysztof J and Auer, Tibor and Calhoun, Vince D and
+              Craddock, R Cameron and Das, Samir and Duff, Eugene P and
+              Flandin, Guillaume and Ghosh, Satrajit S and Glatard, Tristan and
+              Halchenko, Yaroslav O and Handwerker, Daniel A and Hanke, Michael
+              and Keator, David and Li, Xiangrui and Michael, Zachary and
+              Maumet, Camille and Nichols, B Nolan and Nichols, Thomas E and
+              Pellman, John and Poline, Jean-Baptiste and Rokem, Ariel and
+              Schaefer, Gunnar and Sochat, Vanessa and Triplett, William and
+              Turner, Jessica A and Varoquaux, Ga{\"e}l and Poldrack, Russell A",
+  abstract = "The development of magnetic resonance imaging (MRI) techniques
+              has defined modern neuroimaging. Since its inception, tens of
+              thousands of studies using techniques such as functional MRI and
+              diffusion weighted imaging have allowed for the non-invasive
+              study of the brain. Despite the fact that MRI is routinely used
+              to obtain data for neuroscience research, there has been no
+              widely adopted standard for organizing and describing the data
+              collected in an imaging experiment. This renders sharing and
+              reusing data (within or between labs) difficult if not impossible
+              and unnecessarily complicates the application of automatic
+              pipelines and quality assurance protocols. To solve this problem,
+              we have developed the Brain Imaging Data Structure (BIDS), a
+              standard for organizing and describing MRI datasets. The BIDS
+              standard uses file formats compatible with existing software,
+              unifies the majority of practices already common in the field,
+              and captures the metadata necessary for most common data
+              processing operations.",
+  journal  = "Sci Data",
+  volume   =  3,
+  pages    = "160044",
+  month    =  jun,
+  year     =  2016,
+  language = "en"
+}
+
+@article{Gorgolewski2017-cz,
+  title    = "{BIDS} apps: Improving ease of use, accessibility, and
+              reproducibility of neuroimaging data analysis methods",
+  author   = "Gorgolewski, Krzysztof J and Alfaro-Almagro, Fidel and Auer,
+              Tibor and Bellec, Pierre and Capot{\u a}, Mihai and Chakravarty,
+              M Mallar and Churchill, Nathan W and Cohen, Alexander Li and
+              Craddock, R Cameron and Devenyi, Gabriel A and Eklund, Anders and
+              Esteban, Oscar and Flandin, Guillaume and Ghosh, Satrajit S and
+              Guntupalli, J Swaroop and Jenkinson, Mark and Keshavan, Anisha
+              and Kiar, Gregory and Liem, Franziskus and Raamana, Pradeep Reddy
+              and Raffelt, David and Steele, Christopher J and Quirion,
+              Pierre-Olivier and Smith, Robert E and Strother, Stephen C and
+              Varoquaux, Ga{\"e}l and Wang, Yida and Yarkoni, Tal and Poldrack,
+              Russell A",
+  abstract = "The rate of progress in human neurosciences is limited by the
+              inability to easily apply a wide range of analysis methods to the
+              plethora of different datasets acquired in labs around the world.
+              In this work, we introduce a framework for creating, testing,
+              versioning and archiving portable applications for analyzing
+              neuroimaging data organized and described in compliance with the
+              Brain Imaging Data Structure (BIDS). The portability of these
+              applications (BIDS Apps) is achieved by using container
+              technologies that encapsulate all binary and other dependencies
+              in one convenient package. BIDS Apps run on all three major
+              operating systems with no need for complex setup and
+              configuration and thanks to the comprehensiveness of the BIDS
+              standard they require little manual user input. Previous
+              containerized data processing solutions were limited to single
+              user environments and not compatible with most multi-tenant High
+              Performance Computing systems. BIDS Apps overcome this limitation
+              by taking advantage of the Singularity container technology. As a
+              proof of concept, this work is accompanied by 22 ready to use
+              BIDS Apps, packaging a diverse set of commonly used neuroimaging
+              algorithms.",
+  journal  = "PLoS Comput. Biol.",
+  volume   =  13,
+  number   =  3,
+  pages    = "e1005209",
+  month    =  mar,
+  year     =  2017,
+  language = "en"
+}
+
+@article{Poldrack2017-gz,
+  title    = "Scanning the horizon: towards transparent and reproducible
+              neuroimaging research",
+  author   = "Poldrack, Russell A and Baker, Chris I and Durnez, Joke and
+              Gorgolewski, Krzysztof J and Matthews, Paul M and Munaf{\`o},
+              Marcus R and Nichols, Thomas E and Poline, Jean-Baptiste and Vul,
+              Edward and Yarkoni, Tal",
+  abstract = "Functional neuroimaging techniques have transformed our ability
+              to probe the neurobiological basis of behaviour and are
+              increasingly being applied by the wider neuroscience community.
+              However, concerns have recently been raised that the conclusions
+              that are drawn from some human neuroimaging studies are either
+              spurious or not generalizable. Problems such as low statistical
+              power, flexibility in data analysis, software errors and a lack
+              of direct replication apply to many fields, but perhaps
+              particularly to functional MRI. Here, we discuss these problems,
+              outline current and suggested best practices, and describe how we
+              think the field should evolve to produce the most meaningful and
+              reliable answers to neuroscientific questions.",
+  journal  = "Nat. Rev. Neurosci.",
+  volume   =  18,
+  number   =  2,
+  pages    = "115--126",
+  month    =  feb,
+  year     =  2017,
+  language = "en"
+}
