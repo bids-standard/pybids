@@ -559,6 +559,8 @@ class BIDSLayout(object):
             else:
                 raise ValueError("Invalid return_type specified (must be one "
                                  "of 'tuple', 'file', 'id', or 'dir'.")
+        else:
+            results = natural_sort(results, 'path')
 
         return results
 
