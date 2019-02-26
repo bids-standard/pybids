@@ -232,10 +232,12 @@ def test_bids_json(layout_7t_trt):
 def test_get_return_type_dir(layout_7t_trt):
     l = layout_7t_trt
     res = l.get(target='subject', return_type='dir')
-    for i in range(1, 11):
-        sub_dir = "sub-{:02d}".format(i)
-        assert os.path.join(get_test_data_path(), '7t_trt', sub_dir) in res
-    assert len(res) == 10
+    # returned directories should be in sorted order so we can match exactly
+    target = [
+        os.path.join(get_test_data_path(), '7t_trt', "sub-{:02d}".format(i))
+        for i in range(1, 11)
+    ]
+    assert target == res
 
 
 def test_force_index(layout_ds005, layout_ds005_models):
