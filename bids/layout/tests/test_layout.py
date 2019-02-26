@@ -8,6 +8,7 @@ from bids.layout import BIDSLayout, parse_file_entities, add_config_paths
 from bids.layout.core import BIDSFile, Entity, Config
 from os.path import join, abspath, basename, dirname
 from bids.tests import get_test_data_path
+from bids.utils import natural_sort
 
 
 # Fixture uses in the rest of the tests
@@ -238,6 +239,15 @@ def test_get_return_type_dir(layout_7t_trt):
         for i in range(1, 11)
     ]
     assert target == res
+
+
+def test_get_return_sorted(layout_7t_trt):
+    bids_files = layout_7t_trt.get(target='subject')
+    paths = [r.path for r in bids_files]
+    assert natural_sort(paths) == paths
+
+    files = layout_7t_trt.get(target='subject', return_type='file')
+    assert files == paths
 
 
 def test_force_index(layout_ds005, layout_ds005_models):
