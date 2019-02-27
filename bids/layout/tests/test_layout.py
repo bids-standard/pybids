@@ -356,14 +356,14 @@ def test_parse_file_entities():
     filename = '/sub-03_ses-07_run-4_desc-bleargh_sekret.nii.gz'
 
     # Test with entities taken from bids config
-    target = {'subject': '03', 'session': '07', 'run': 4, 'suffix': 'sekret'}
+    target = {'subject': '03', 'session': '07',
+              'run': 4, 'suffix': 'sekret', 'extension': 'nii.gz'}
     assert target == parse_file_entities(filename, config='bids')
     config = Config.load('bids')
     assert target == parse_file_entities(filename, config=[config])
 
-    # Test with entities taken from bids and derivatives config
-    target = {'subject': '03', 'session': '07', 'run': 4, 'suffix': 'sekret',
-              'desc': 'bleargh'}
+    # Test with entities taken from bids and derivatives config - acquires desc
+    target['desc'] = 'bleargh'
     assert target == parse_file_entities(filename)
     assert target == parse_file_entities(filename, config=['bids', 'derivatives'])
 
