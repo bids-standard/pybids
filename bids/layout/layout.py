@@ -280,7 +280,7 @@ class BIDSLayout(object):
                 or deriv.description["PipelineDescription"]['Name'] in scope):
                 layouts.append(deriv)
         return layouts
-    
+
     def __getattr__(self, key):
         ''' Dynamically inspect missing methods for get_<entity>() calls
         and return a partial function of get() if a match is found. '''
