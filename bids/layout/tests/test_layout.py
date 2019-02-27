@@ -19,6 +19,12 @@ def layout_7t_trt():
 
 
 @pytest.fixture(scope='module')
+def layout_7t_trt_relpath():
+    data_dir = join(get_test_data_path(), '7t_trt')
+    return BIDSLayout(data_dir, absolute_paths=False)
+
+
+@pytest.fixture(scope='module')
 def layout_ds005():
     data_dir = join(get_test_data_path(), 'ds005')
     return BIDSLayout(data_dir)
@@ -230,13 +236,17 @@ def test_bids_json(layout_7t_trt):
     assert set(res) == {'1', '2'}
 
 
-def test_get_return_type_dir(layout_7t_trt):
-    l = layout_7t_trt
-    res = l.get(target='subject', return_type='dir')
+def test_get_return_type_dir(layout_7t_trt, layout_7t_trt_relpath):
+    # In case of relative paths
+    res_relpath = layout_7t_trt_relpath.get(target='subject', return_type='dir')
     # returned directories should be in sorted order so we can match exactly
+    target_relpath = ["sub-{:02d}".format(i) for i in range(1, 11)]
+    assert target_relpath == res_relpath
+
+    res = layout_7t_trt.get(target='subject', return_type='dir')
     target = [
-        os.path.join(get_test_data_path(), '7t_trt', "sub-{:02d}".format(i))
-        for i in range(1, 11)
+        os.path.join(get_test_data_path(), '7t_trt', p)
+        for p in target_relpath
     ]
     assert target == res
 

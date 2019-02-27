@@ -110,9 +110,9 @@ class BIDSLayout(object):
         index_associated (bool): Argument passed onto the BIDSValidator;
             ignored if validate = False.
         absolute_paths (bool): If True, queries always return absolute paths.
-            If False, queries return relative paths, unless the root argument
-            was left empty (in which case the root defaults to the file system
-            root).
+            If False, queries return relative paths (for files and directories),
+            unless the root argument was left empty (in which case the root
+            defaults to the file system root).
         derivatives (bool, str, list): Specifies whether and/or which
             derivatives to to index. If True, all pipelines found in the
             derivatives/ subdirectory will be indexed. If a str or list, gives
@@ -460,7 +460,7 @@ class BIDSLayout(object):
                 value.
             kwargs (dict): Any optional key/values to filter the entities on.
                 Keys are entity names, values are regexes to filter on. For
-                example, passing filter={ 'subject': 'sub-[12]'} would return
+                example, passing filter={'subject': 'sub-[12]'} would return
                 only files that match the first two subjects.
 
         Returns:
@@ -552,8 +552,12 @@ class BIDSLayout(object):
                     patt = entities[ent].pattern
                     template = template.replace('{%s}' % ent, patt)
                 template += r'[^\%s]*$' % os.path.sep
-                matches = [f.dirname for f in results
-                           if re.search(template, f.dirname)]
+                matches = [
+                    f.dirname if self.absolute_paths else os.path.relpath(f.dirname, self.root)
+                    for f in results
+                    if re.search(template, f.dirname)
+                ]
+
                 results = natural_sort(list(set(matches)))
 
             else:
