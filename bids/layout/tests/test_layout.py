@@ -237,18 +237,26 @@ def test_bids_json(layout_7t_trt):
 
 
 def test_get_return_type_dir(layout_7t_trt, layout_7t_trt_relpath):
+    query = dict(target='subject', return_type='dir')
     # In case of relative paths
-    res_relpath = layout_7t_trt_relpath.get(target='subject', return_type='dir')
+    res_relpath = layout_7t_trt_relpath.get(**query)
     # returned directories should be in sorted order so we can match exactly
     target_relpath = ["sub-{:02d}".format(i) for i in range(1, 11)]
     assert target_relpath == res_relpath
 
-    res = layout_7t_trt.get(target='subject', return_type='dir')
+    res = layout_7t_trt.get(**query)
     target = [
         os.path.join(get_test_data_path(), '7t_trt', p)
         for p in target_relpath
     ]
     assert target == res
+
+    # and we can overload the value for absolute_path in .get call
+    res_relpath2 = layout_7t_trt.get(absolute_paths=False, **query)
+    assert target_relpath == res_relpath2
+    res2 = layout_7t_trt_relpath.get(absolute_paths=True, **query)
+    assert target == res2
+
 
 
 def test_get_return_sorted(layout_7t_trt):

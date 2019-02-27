@@ -429,7 +429,9 @@ class BIDSLayout(object):
         return data
 
     def get(self, return_type='object', target=None, extensions=None,
-            scope='all', regex_search=False, defined_fields=None, **kwargs):
+            scope='all', regex_search=False, defined_fields=None,
+            absolute_paths=None,
+            **kwargs):
         """
         Retrieve files and/or metadata from the current Layout.
 
@@ -458,6 +460,8 @@ class BIDSLayout(object):
                 that must be defined in JSON sidecars in order to consider the
                 file a match, but which don't need to match any particular
                 value.
+            absolute_paths (bool): Optional the instance wide option to either
+                report absolute or relative (to the top of the dataset) paths.
             kwargs (dict): Any optional key/values to filter the entities on.
                 Keys are entity names, values are regexes to filter on. For
                 example, passing filter={'subject': 'sub-[12]'} would return
@@ -520,7 +524,10 @@ class BIDSLayout(object):
                 results = [files[f] for f in results]
 
         # Convert to relative paths if needed
-        if not self.absolute_paths:
+        if absolute_paths is None:  # can be overloaded as option to .get
+            absolute_paths = self.absolute_paths
+
+        if not absolute_paths:
             for i, f in enumerate(results):
                 f = copy.copy(f)
                 f.path = os.path.relpath(f.path, self.root)
@@ -553,7 +560,7 @@ class BIDSLayout(object):
                     template = template.replace('{%s}' % ent, patt)
                 template += r'[^\%s]*$' % os.path.sep
                 matches = [
-                    f.dirname if self.absolute_paths else os.path.relpath(f.dirname, self.root)
+                    f.dirname if absolute_paths else os.path.relpath(f.dirname, self.root)
                     for f in results
                     if re.search(template, f.dirname)
                 ]
