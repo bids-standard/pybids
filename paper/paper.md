@@ -119,7 +119,7 @@ own preprocessing and analysis procedures. The resulting lack of field-wide
 standards has severely limited reproducibility and data sharing and reuse.
 
 To address this problem, we and others recently introduced the Brain Imaging
-Data Standard (``BIDS``; [@Gorgolewski2016-sk]): a specification meant to
+Data Standard (``BIDS``; [@Gorgolewski2016-sk]), a specification meant to
 standardize the process of representing brain imaging data. BIDS is
 deliberately designed with adoption in mind; it adheres to a user-focused
 philosophy that prioritizes common use cases and discourages complexity. By
@@ -148,7 +148,7 @@ against the BIDS specification, among other applications.
 
 In addition to this core functionality, PyBIDS also contains an ever-growing
 set of modules that support additional capabilities meant to keep up with the
-evolution and expansion of the BIDS specification itself. At present, PyBIDS
+evolution and expansion of the BIDS specification itself. Currently, PyBIDS
 includes tools for (1) reading and manipulating data contained in various
 BIDS-defined files (e.g., physiological recordings, event files, or
 participant-level variables); (2) constructing design matrices and contrasts
