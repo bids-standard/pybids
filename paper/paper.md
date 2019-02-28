@@ -5,113 +5,157 @@ tags:
   - BIDS
   - neuroimaging
 authors:
-  - affiliation: University of Texas at Austin
+  - affiliation: 1
     name: Yarkoni, Tal
     orcid: 0000-0002-6558-5113
-  - affiliation: Stanford University
+  - affiliation: 2
     name: Markiewicz, Christopher J.
     orcid: 0000-0002-6533-164X
-  - affiliation: University of Texas at Austin
+  - affiliation: 1
     name: de la Vega, Alejandro
     orcid: 0000-0001-9062-3778
-  - affiliation: Department of Psychology, Stanford University
+  - affiliation: 2
     name: Gorgolewski, Krzysztof J.
     orcid: 0000-0003-3321-7583
-  - affiliation: Florida International University
+  - affiliation: 3
     name: Salo, Taylor
     orcid: 0000-0001-9813-3167
-  - affiliation: Dartmouth College
+  - affiliation: 4
     name: Halchenko, Yaroslav O.
     orcid: 0000-0003-3456-2493
-  - affiliation: University of Texas at Austin
+  - affiliation: 1
     name: McNamara, Quinten
-  - affiliation: University of Oregon
+  - affiliation: 5
     name: DeStasio, Krista
     orcid: 0000-0002-3959-9060
-  - affiliation: McGill University
+  - affiliation: 6
     name: Poline, Jean-Baptiste
     orcid: 0000-0002-9794-749X
-  - affiliation: Institute for Problems of Information Transmission
+  - affiliation: 7
     name: Petrov, Dmitry
-  - affiliation: Concordia University
+  - affiliation: 8
     name: Hayot-Sasson, Valérie
     orcid: 0000-0002-4830-4535
-  - affiliation: National Institute of Mental Health
+  - affiliation: 9
     name: Nielson, Dylan M.
     orcid: 0000-0003-4613-6643
-  - affiliation: MRC Cognition and Brain Sciences Unit
+  - affiliation: 10
     name: Carlin, Johan
     orcid: 0000-0003-0933-1239
-  - affiliation: Montreal Neurological Institute and Hospital
+  - affiliation: 11
     name: Kiar, Gregory
     orcid: 0000-0001-8915-496X
-  - affiliation: Alan Turing Institute; Department of Psychiatry, University of Cambridge
+  - affiliation: 12
     name: Whitaker, Kirstie
     orcid: 0000-0001-8498-4059
-  - affiliation: Montreal Neurological Institute and Hospital
+  - affiliation: 11
     name: DuPre, Elizabeth
     orcid: 0000-0003-1358-196X
-  - affiliation: Psychoinformatics Lab, Institute of Psychology, Otto-von-Guericke University
-      Magdeburg
+  - affiliation: 13
     name: Wagner, Adina
     orcid: 0000-0003-2917-3450
   - name: Ivanov, Alexander
-  - affiliation: CorticoMetrics LLC
+  - affiliation: 14
     name: Tirrell, Lee S.
     orcid: 0000-0001-9393-8361
-  - affiliation: Télécom ParisTech, France
+  - affiliation: 15
     name: Jas, Mainak
     orcid: 0000-0002-3199-9027
-  - affiliation: Otto-von-Guericke-University Magdeburg, Germany
+  - affiliation: 13
     name: Hanke, Michael
     orcid: 0000-0001-6398-6370
-  - affiliation: Stanford University
+  - affiliation: 2
     name: Poldrack, Russell
     orcid: 0000-0001-6755-0259
-  - affiliation: Department of Psychology, Stanford University
+  - affiliation: 2
     name: Esteban, Oscar
     orcid: 0000-0001-8435-6191
-  - affiliation: Center for Adaptive Rationality, Max Planck Institute for Human Development,
-      Berlin, Germany
+  - affiliation: 16
     name: Appelhoff, Stefan
     orcid: 0000-0001-8002-0877
-  - affiliation: Berkeley Institute for Data Science; University of California at Berkeley
+  - affiliation: 17
     name: Holdgraf, Chris
     orcid: 0000-0002-2391-0678
-  - affiliation: Queen Mary University London
+  - affiliation: 18
     name: Staden, Isla
     orcid: 0000-0002-0795-1154
-  - affiliation: The University of Washington eScience Institute
+  - affiliation: 19
     name: Rokem, Ariel
     orcid: 0000-0003-0679-1985
-  - affiliation: INRIA
+  - affiliation: 20
     name: Thirion, Bertrand
     orcid: 0000-0001-5018-7895
-  - affiliation: Rutgers University
+  - affiliation: 21
     name: Kleinschmidt, Dave F.
     orcid: 0000-0002-7442-2762
-  - affiliation: NIMH IRP
+  - affiliation: 9
     name: Lee, John A.
     orcid: 0000-0001-5884-4247
-  - affiliation: UC Berkeley
+  - affiliation: 17
     name: Visconti di Oleggio Castello, Matteo
     orcid: 0000-0001-7931-5272
-  - affiliation: The Laboratory for Investigative Neurophysiology (The LINE), Department
-      of Radiology and Department of Clinical Neurosciences, Lausanne, Switzerland;
-      Center for Biomedical Imaging (CIBM), Lausanne, Switzerland
+  - affiliation: 22
     name: Notter, Michael Philipp
     orcid: 0000-0002-5866-047X
-  - affiliation: Sainte-Anne Hospital Center, Université Paris Descartes
+  - affiliation: 23
     name: Roca, Pauline
     orcid: 0000-0003-2089-6636
-  - affiliation: Stanford University
+  - affiliation: 2
     name: Blair, Ross
     orcid: 0000-0003-3007-1056
+affiliations:
+- index: 1
+  name: University of Texas at Austin
+- index: 2
+  name: Stanford University
+- index: 3
+  name: Florida International University
+- index: 4
+  name: Dartmouth College
+- index: 5
+  name: University of Oregon
+- index: 6
+  name: McGill University
+- index: 7
+  name: Institute for Problems of Information Transmission
+- index: 8
+  name: Concordia University
+- index: 9
+  name: National Institute of Mental Health
+- index: 10
+  name: MRC Cognition and Brain Sciences Unit
+- index: 11
+  name: Montreal Neurological Institute and Hospital
+- index: 12
+  name: Alan Turing Institute
+- index: 13
+  name: Otto-von-Guericke University Magdeburg
+- index: 14
+  name: CorticoMetrics LLC
+- index: 15
+  name: Télécom ParisTech, France
+- index: 16
+  name: Max Planck Institute for Human Development, Berlin, Germany
+- index: 17
+  name: University of California at Berkeley
+- index: 18
+  name: Queen Mary University London
+- index: 19
+  name: The University of Washington eScience Institute
+- index: 20
+  name: INRIA
+- index: 21
+  name: Rutgers University
+- index: 22
+  name: University of Lausanne
+- index: 23
+  name: Sainte-Anne Hospital Center, Université Paris Descartes
 date: 19 February 2019
 bibliography: paper.bib
 ---
 
 # Summary
+
 Brain imaging researchers regularly work with large, heterogeneous,
 high-dimensional datasets. Historically, researchers have dealt with this
 complexity idiosyncratically, with every lab or individual implementing their
@@ -180,6 +224,9 @@ encourage members of the brain imaging community currently working in Python to
 try using PyBIDS, and welcome new contributions.
 
 # Acknowledgements
+
 PyBIDS development is partly supported by NIH awards R01MH109682 (PI: Yarkoni),
 R24MH114705 (PI: Poldrack), R01EB020740 (PI: Ghosh), and P41EB019936 (PI:
 Kennedy), and NSF award 1429999 (PI: Halchenko).
+
+# References
