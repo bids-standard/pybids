@@ -28,7 +28,7 @@ def sparse_run_variable_with_missing_values():
         'duration': [1.2, 1.6, 0.8, 2],
         'amplitude': [1, 1, np.nan, 1]
     })
-    run_info = [RunInfo({'subject': '01'}, 20, 2, 'dummy.nii.gz')]
+    run_info = [RunInfo({'subject': '01'}, 20, 2, 2, 'dummy.nii.gz')]
     var = SparseRunVariable(name='var', data=data, run_info=run_info, source='events')
     return BIDSRunVariableCollection([var])
 
