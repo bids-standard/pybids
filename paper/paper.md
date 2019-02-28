@@ -112,6 +112,7 @@ bibliography: paper.bib
 ---
 
 # Summary
+
 Brain imaging researchers regularly work with large, heterogeneous,
 high-dimensional datasets. Historically, researchers have dealt with this
 complexity idiosyncratically, with every lab or individual implementing their
@@ -180,6 +181,9 @@ encourage members of the brain imaging community currently working in Python to
 try using PyBIDS, and welcome new contributions.
 
 # Acknowledgements
+
 PyBIDS development is partly supported by NIH awards R01MH109682 (PI: Yarkoni),
 R24MH114705 (PI: Poldrack), R01EB020740 (PI: Ghosh), and P41EB019936 (PI:
 Kennedy), and NSF award 1429999 (PI: Halchenko).
+
+# References
