@@ -33,10 +33,6 @@ class Convolve(Transformation):
 
         model = model.lower()
 
-        if isinstance(var, SparseRunVariable):
-            sr = self.collection.sampling_rate
-            var = var.to_dense(sr)
-
         df = var.to_df(entities=False)
         onsets = df['onset'].values
         vals = df[['onset', 'duration', 'amplitude']].values.T
@@ -52,8 +48,14 @@ class Convolve(Transformation):
         convolved = hrf.compute_regressor(vals, model, onsets,
                                           fir_delays=fir_delays, min_onset=0)
 
-        return DenseRunVariable(name=var.name, values=convolved[0], run_info=var.run_info,
-                                source=var.source, sampling_rate=var.sampling_rate)
+        if isinstance(var, SparseRunVariable):
+            return SparseRunVariable(
+                name=var.name, values=convolved[0], onset=onsets,
+                run_info=var.run_info, source=var.source)
+        else:
+            return DenseRunVariable(
+                name=var.name, values=convolved[0], run_info=var.run_info,
+                source=var.source, sampling_rate=var.sampling_rate)
 
 
 class Demean(Transformation):
