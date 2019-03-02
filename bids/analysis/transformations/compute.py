@@ -38,7 +38,7 @@ class Convolve(Transformation):
         if isinstance(var, SparseRunVariable):
             sampling_rate = 10
             resample_frames = np.arange(
-                0, vars.get_duration(), 1/sampling_rate)
+                0, var.get_duration(), 1/sampling_rate)
         else:
             resample_frames = df['onset'].values
             sampling_rate = var.sampling_rate
