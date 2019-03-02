@@ -34,7 +34,15 @@ class Convolve(Transformation):
         model = model.lower()
 
         df = var.to_df(entities=False)
-        onsets = df['onset'].values
+
+        if isinstance(var, SparseRunVariable):
+            sampling_rate = 10
+            resample_frames = np.arange(
+                0, vars.get_duration(), 1/sampling_rate)
+        else:
+            resample_frames = df['onset'].values
+            sampling_rate = var.sampling_rate
+
         vals = df[['onset', 'duration', 'amplitude']].values.T
 
         if model in ['spm', 'glover']:
@@ -45,17 +53,12 @@ class Convolve(Transformation):
         elif model != 'fir':
             raise ValueError("Model must be one of 'spm', 'glover', or 'fir'.")
 
-        convolved = hrf.compute_regressor(vals, model, onsets,
+        convolved = hrf.compute_regressor(vals, model, resample_frames,
                                           fir_delays=fir_delays, min_onset=0)
 
-        if isinstance(var, SparseRunVariable):
-            return SparseRunVariable(
-                name=var.name, values=convolved[0], onset=onsets,
-                run_info=var.run_info, source=var.source)
-        else:
-            return DenseRunVariable(
-                name=var.name, values=convolved[0], run_info=var.run_info,
-                source=var.source, sampling_rate=var.sampling_rate)
+        return DenseRunVariable(
+            name=var.name, values=convolved[0], run_info=var.run_info,
+            source=var.source, sampling_rate=sampling_rate)
 
 
 class Demean(Transformation):
