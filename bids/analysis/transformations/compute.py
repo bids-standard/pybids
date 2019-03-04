@@ -39,8 +39,9 @@ class Convolve(Transformation):
 
         if isinstance(var, SparseRunVariable):
             sampling_rate = 10
-            resample_frames = np.arange(
-                0, var.get_duration(), 1/sampling_rate)
+            dur = var.get_duration()
+            resample_frames = np.linspace(
+                0, dur, dur * sampling_rate,  endpoint=False)
         else:
             resample_frames = df['onset'].values
             sampling_rate = var.sampling_rate
@@ -55,9 +56,9 @@ class Convolve(Transformation):
         elif model != 'fir':
             raise ValueError("Model must be one of 'spm', 'glover', or 'fir'.")
 
-        oversampling = np.ceil(
-            1 / min([np.ediff1d(var.onset).min(), var.duration.min()])
-            * (1/sampling_rate))
+        min_interval = min(np.ediff1d(np.sort(var.onset)).min(),
+                           var.duration.min())
+        oversampling = np.ceil(1 / (min_interval * sampling_rate))
 
         convolved = hrf.compute_regressor(
             vals, model, resample_frames, fir_delays=fir_delays, min_onset=0,
