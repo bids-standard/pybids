@@ -21,6 +21,8 @@ class Convolve(Transformation):
         dispersion (bool): Whether or not to include the dispersion derivative.
         fir_delays (iterable): A list or iterable of delays to use if model is
             'fir' (ignored otherwise). Spacing between delays must be fixed.
+        sampling_rate (float): Rate to downsample variable to after convolution
+            in Hz, if var is a SparseRunVariable.
 
     Note: Uses the HRF convolution functions implemented in nistats.
     """
@@ -29,14 +31,13 @@ class Convolve(Transformation):
     _return_type = 'variable'
 
     def _transform(self, var, model='spm', derivative=False, dispersion=False,
-                   fir_delays=None):
+                   fir_delays=None, sampling_rate=1):
 
         model = model.lower()
 
         df = var.to_df(entities=False)
 
         if isinstance(var, SparseRunVariable):
-            sampling_rate = 10
             resample_frames = np.arange(
                 0, var.get_duration(), 1/sampling_rate)
         else:
