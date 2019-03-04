@@ -31,13 +31,14 @@ class Convolve(Transformation):
     _return_type = 'variable'
 
     def _transform(self, var, model='spm', derivative=False, dispersion=False,
-                   fir_delays=None, sampling_rate=1):
+                   fir_delays=None):
 
         model = model.lower()
 
         df = var.to_df(entities=False)
 
         if isinstance(var, SparseRunVariable):
+            sampling_rate = 10
             resample_frames = np.arange(
                 0, var.get_duration(), 1/sampling_rate)
         else:
@@ -54,8 +55,13 @@ class Convolve(Transformation):
         elif model != 'fir':
             raise ValueError("Model must be one of 'spm', 'glover', or 'fir'.")
 
-        convolved = hrf.compute_regressor(vals, model, resample_frames,
-                                          fir_delays=fir_delays, min_onset=0)
+        oversampling = np.ceil(
+            1 / np.ediff1d(var.onset).min() * (1/sampling_rate))
+
+        convolved = hrf.compute_regressor(
+            vals, model, resample_frames, fir_delays=fir_delays, min_onset=0,
+            oversampling=oversampling
+            )
 
         return DenseRunVariable(
             name=var.name, values=convolved[0], run_info=var.run_info,
