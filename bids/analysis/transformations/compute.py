@@ -1,7 +1,7 @@
 '''
 Transformations that primarily involve numerical computation on variables.
 '''
-
+from __future__ import division
 import numpy as np
 import pandas as pd
 from bids.utils import listify
@@ -56,7 +56,8 @@ class Convolve(Transformation):
             raise ValueError("Model must be one of 'spm', 'glover', or 'fir'.")
 
         oversampling = np.ceil(
-            1 / np.ediff1d(var.onset).min() * (1/sampling_rate))
+            1 / min([np.ediff1d(var.onset).min(), var.duration.min()])
+            * (1/sampling_rate))
 
         convolved = hrf.compute_regressor(
             vals, model, resample_frames, fir_delays=fir_delays, min_onset=0,
