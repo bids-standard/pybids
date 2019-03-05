@@ -54,8 +54,8 @@ class Convolve(Transformation):
         elif model != 'fir':
             raise ValueError("Model must be one of 'spm', 'glover', or 'fir'.")
 
-        min_interval = min(np.ediff1d(np.sort(var.onset)).min(),
-                           var.duration.min())
+        min_interval = min(np.ediff1d(np.sort(df.onset)).min(),
+                           df.duration.min())
         oversampling = np.ceil(1 / (min_interval * sampling_rate))
 
         convolved = hrf.compute_regressor(
