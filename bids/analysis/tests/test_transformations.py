@@ -5,6 +5,7 @@ from bids.variables.entities import RunInfo
 from bids.variables.kollekshuns import BIDSRunVariableCollection
 from bids.layout import BIDSLayout
 import pytest
+from unittest import mock
 from os.path import join, sep
 from bids.tests import get_test_data_path
 import numpy as np
@@ -29,8 +30,46 @@ def sparse_run_variable_with_missing_values():
         'amplitude': [1, 1, np.nan, 1]
     })
     run_info = [RunInfo({'subject': '01'}, 20, 2, 'dummy.nii.gz')]
-    var = SparseRunVariable(name='var', data=data, run_info=run_info, source='events')
+    var = SparseRunVariable(
+        name='var', data=data, run_info=run_info, source='events')
     return BIDSRunVariableCollection([var])
+
+
+def test_convolve(collection):
+    rt = collection.variables['RT']
+    transform.Convolve(collection, 'RT', output='reaction_time')
+    rt_conv = collection.variables['reaction_time']
+
+    assert rt_conv.values.shape[0] == \
+        rt.get_duration() * collection.sampling_rate
+
+    transform.ToDense(collection, 'RT', output='rt_dense')
+    transform.Convolve(collection, 'rt_dense', output='dense_convolved')
+
+    dense_conv = collection.variables['reaction_time']
+
+    assert dense_conv.values.shape[0] == \
+        rt.get_duration() * collection.sampling_rate
+
+    # Test adapative oversampling computation
+    with mock.patch('bids.analysis.transformations.compute.hrf') as mocked:
+        transform.Convolve(collection, 'RT', output='rt_mock')
+        mocked.compute_regressor.assert_called_with(
+            mock.ANY, 'spm', mock.ANY, fir_delays=None, min_onset=0,
+            oversampling=1.0)
+
+    with mock.patch('bids.analysis.transformations.compute.hrf') as mocked:
+        transform.Convolve(collection, 'rt_dense', output='rt_mock')
+        mocked.compute_regressor.assert_called_with(
+            mock.ANY, 'spm', mock.ANY, fir_delays=None, min_onset=0,
+            oversampling=2.0)
+
+    with mock.patch('bids.analysis.transformations.compute.hrf') as mocked:
+        collection.sampling_rate = 0.1
+        transform.Convolve(collection, 'RT', output='rt_mock')
+        mocked.compute_regressor.assert_called_with(
+            mock.ANY, 'spm', mock.ANY, fir_delays=None, min_onset=0,
+            oversampling=5.0)
 
 
 def test_rename(collection):
@@ -54,13 +93,14 @@ def test_product(collection):
 
 def test_sum(collection):
     c = collection
-    transform.Sum(collection, variables=['parametric gain', 'gain'],
-                      output='sum')
+    transform.Sum(
+        collection, variables=['parametric gain', 'gain'], output='sum')
     res = c['sum'].values
     target = c['parametric gain'].values + c['gain'].values
     assert np.array_equal(res, target)
-    transform.Sum(collection, variables=['parametric gain', 'gain'],
-                      output='sum', weights=[2, 2])
+    transform.Sum(
+        collection,
+        variables=['parametric gain', 'gain'], output='sum', weights=[2, 2])
     assert np.array_equal(c['sum'].values, target * 2)
     with pytest.raises(ValueError):
         transform.Sum(collection, variables=['parametric gain', 'gain'],
