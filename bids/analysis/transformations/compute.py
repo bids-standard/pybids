@@ -36,7 +36,7 @@ class Convolve(Transformation):
         df = var.to_df(entities=False)
 
         if isinstance(var, SparseRunVariable):
-            sampling_rate = 10
+            sampling_rate = self.collection.sampling_rate
             dur = var.get_duration()
             resample_frames = np.linspace(
                 0, dur, dur * sampling_rate, endpoint=False)
