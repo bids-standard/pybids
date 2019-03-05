@@ -17,13 +17,23 @@ except ImportError:
     import mock
 
 
+# Sub-select collection for faster testing, without sacrificing anything
+# in the tests
+SUBJECTS = ['01', '02']
+NRUNS = 3
+SCAN_LENGTH = 480
+
+
 @pytest.fixture
 def collection():
     layout_path = join(get_test_data_path(), 'ds005')
     layout = BIDSLayout(layout_path)
     collection = layout.get_collections('run', types=['events'],
-                                        scan_length=480, merge=True,
-                                        sampling_rate=10)
+                                        scan_length=SCAN_LENGTH,
+                                        merge=True,
+                                        sampling_rate=10,
+                                        subject=SUBJECTS
+                                        )
     return collection
 
 
@@ -79,7 +89,7 @@ def test_convolve(collection):
 
 def test_rename(collection):
     dense_rt = collection.variables['RT'].to_dense(collection.sampling_rate)
-    assert len(dense_rt.values) == math.ceil(23040 * collection.sampling_rate)
+    assert len(dense_rt.values) == math.ceil(len(SUBJECTS) * NRUNS * SCAN_LENGTH * collection.sampling_rate)
     transform.Rename(collection, 'RT', output='reaction_time')
     assert 'reaction_time' in collection.variables
     assert 'RT' not in collection.variables
@@ -357,12 +367,13 @@ def test_filter(collection):
     transform.Filter(collection, 'RT', query=q, by='parametric gain')
     assert len(orig.values) != len(collection['RT'].values)
     # There is some bizarro thing going on where, on travis, the result is
-    # randomly either 1536 or 3909 when running on Python 3 (on linux or mac).
+    # randomly either 1536 (when all subjects are used) or 3909 when running
+    # on Python 3 (on linux or mac).
     # Never happens locally, and I've had no luck tracking down the problem.
     # Best guess is it reflects either some non-deterministic ordering of
     # variables somewhere, or some weird precision issues when resampling to
     # dense. Needs to be tracked down and fixed.
-    assert len(collection['RT'].values) in [1536, 3909]
+    assert len(collection['RT'].values) in [96 * len(SUBJECTS), 3909]
 
 
 def test_replace(collection):
