@@ -23,18 +23,24 @@ SUBJECTS = ['01', '02']
 NRUNS = 3
 SCAN_LENGTH = 480
 
+cached_collections = {}
+
 
 @pytest.fixture
 def collection():
-    layout_path = join(get_test_data_path(), 'ds005')
-    layout = BIDSLayout(layout_path)
-    collection = layout.get_collections('run', types=['events'],
-                                        scan_length=SCAN_LENGTH,
-                                        merge=True,
-                                        sampling_rate=10,
-                                        subject=SUBJECTS
-                                        )
-    return collection
+    if 'ds005' not in cached_collections:
+        layout_path = join(get_test_data_path(), 'ds005')
+        layout = BIDSLayout(layout_path)
+        cached_collections['ds005'] = layout.get_collections(
+            'run',
+            types=['events'],
+            scan_length=SCAN_LENGTH,
+            merge=True,
+            sampling_rate=10,
+            subject=SUBJECTS
+        )
+    # Always return a clone!
+    return cached_collections['ds005'].clone()
 
 
 @pytest.fixture
