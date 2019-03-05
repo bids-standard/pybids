@@ -58,7 +58,7 @@ class Convolve(Transformation):
         # Used to compute oversampling factor to prevent information loss
         min_interval = min(np.ediff1d(np.unique(np.sort(df.onset))).min(),
                            df.duration.min())
-        oversampling = np.ceil(1 / (min_interval * sampling_rate))
+        oversampling = np.ceil(2*(1 / (min_interval * sampling_rate)))
         convolved = hrf.compute_regressor(
             vals, model, resample_frames, fir_delays=fir_delays, min_onset=0,
             oversampling=oversampling

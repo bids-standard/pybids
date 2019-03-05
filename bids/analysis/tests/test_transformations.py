@@ -15,6 +15,7 @@ try:
 except ImportError:
     import mock
 
+
 @pytest.fixture
 def collection():
     layout_path = join(get_test_data_path(), 'ds005')
@@ -65,14 +66,14 @@ def test_convolve(collection):
         transform.Convolve(collection, 'rt_dense', output='rt_mock')
         mocked.compute_regressor.assert_called_with(
             mock.ANY, 'spm', mock.ANY, fir_delays=None, min_onset=0,
-            oversampling=2.0)
+            oversampling=3.0)
 
     with mock.patch('bids.analysis.transformations.compute.hrf') as mocked:
-        collection.sampling_rate = 0.1
+        collection.sampling_rate = 0.5
         transform.Convolve(collection, 'RT', output='rt_mock')
         mocked.compute_regressor.assert_called_with(
             mock.ANY, 'spm', mock.ANY, fir_delays=None, min_onset=0,
-            oversampling=5.0)
+            oversampling=2.0)
 
 
 def test_rename(collection):
