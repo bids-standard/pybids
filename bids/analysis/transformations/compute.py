@@ -54,6 +54,8 @@ class Convolve(Transformation):
         elif model != 'fir':
             raise ValueError("Model must be one of 'spm', 'glover', or 'fir'.")
 
+        # Minimum interval between event onsets/duration
+        # Used to compute oversampling factor to prevent information loss
         min_interval = min(np.ediff1d(np.sort(df.onset)).min(),
                            df.duration.min())
         oversampling = np.ceil(1 / (min_interval * sampling_rate))
