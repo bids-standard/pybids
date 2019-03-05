@@ -5,12 +5,15 @@ from bids.variables.entities import RunInfo
 from bids.variables.kollekshuns import BIDSRunVariableCollection
 from bids.layout import BIDSLayout
 import pytest
-from unittest import mock
 from os.path import join, sep
 from bids.tests import get_test_data_path
 import numpy as np
 import pandas as pd
 
+try:
+    from unittest import mock
+except ImportError:
+    import mock
 
 @pytest.fixture
 def collection():
