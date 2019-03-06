@@ -2,6 +2,7 @@
 Transformations that primarily involve numerical computation on variables.
 '''
 from __future__ import division
+import math
 import numpy as np
 import pandas as pd
 from bids.utils import listify
@@ -39,7 +40,8 @@ class Convolve(Transformation):
             sampling_rate = self.collection.sampling_rate
             dur = var.get_duration()
             resample_frames = np.linspace(
-                0, dur, dur * sampling_rate, endpoint=False)
+                0, dur, int(math.ceil(dur * sampling_rate)), endpoint=False)
+
         else:
             resample_frames = df['onset'].values
             sampling_rate = var.sampling_rate
