@@ -1,7 +1,8 @@
 '''
 Transformations that primarily involve numerical computation on variables.
 '''
-
+from __future__ import division
+import math
 import numpy as np
 import pandas as pd
 from bids.utils import listify
@@ -33,12 +34,18 @@ class Convolve(Transformation):
 
         model = model.lower()
 
-        if isinstance(var, SparseRunVariable):
-            sr = self.collection.sampling_rate
-            var = var.to_dense(sr)
-
         df = var.to_df(entities=False)
-        onsets = df['onset'].values
+
+        if isinstance(var, SparseRunVariable):
+            sampling_rate = self.collection.sampling_rate
+            dur = var.get_duration()
+            resample_frames = np.linspace(
+                0, dur, int(math.ceil(dur * sampling_rate)), endpoint=False)
+
+        else:
+            resample_frames = df['onset'].values
+            sampling_rate = var.sampling_rate
+
         vals = df[['onset', 'duration', 'amplitude']].values.T
 
         if model in ['spm', 'glover']:
@@ -49,11 +56,23 @@ class Convolve(Transformation):
         elif model != 'fir':
             raise ValueError("Model must be one of 'spm', 'glover', or 'fir'.")
 
-        convolved = hrf.compute_regressor(vals, model, onsets,
-                                          fir_delays=fir_delays, min_onset=0)
+        # Minimum interval between event onsets/duration
+        # Used to compute oversampling factor to prevent information loss
+        unique_onsets = np.unique(np.sort(df.onset))
+        if len(unique_onsets) > 1:
+            min_interval = min(np.ediff1d(unique_onsets).min(),
+                               df.duration.min())
+            oversampling = np.ceil(2*(1 / (min_interval * sampling_rate)))
+        else:
+            oversampling = 2
+        convolved = hrf.compute_regressor(
+            vals, model, resample_frames, fir_delays=fir_delays, min_onset=0,
+            oversampling=oversampling
+            )
 
-        return DenseRunVariable(name=var.name, values=convolved[0], run_info=var.run_info,
-                                source=var.source, sampling_rate=var.sampling_rate)
+        return DenseRunVariable(
+            name=var.name, values=convolved[0], run_info=var.run_info,
+            source=var.source, sampling_rate=sampling_rate)
 
 
 class Demean(Transformation):
