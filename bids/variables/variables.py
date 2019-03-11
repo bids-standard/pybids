@@ -311,6 +311,51 @@ class SparseRunVariable(SimpleVariable):
         ''' Return the total duration of the Variable's run(s). '''
         return sum([r.duration for r in self.run_info])
 
+    def get_sampling_rate(self, target_sr, rounding='up'):
+        ''' Choose sampling rate that evenly bins acquisition and repetition time
+
+        Args:
+            target_sr (float): Approximate sampling rate to target (in Hz)
+            rounding (str): Round the sampling interval 'up' (default) or 'down' if
+                ``1 / target_sr`` doesn't evenly divide acquisition and repetition
+                times
+
+        Returns:
+            sampling_rate (float)
+
+        '''
+        assert rounding in ('up', 'down')
+
+        # Convention: lowercase in float seconds/Hz, CAPS in int ms
+        trs = {ri.tr for ri in var.run_info}
+        tas = {ri.ta for ri in var.run_info}
+        assert len(trs) == 1
+        assert len(tas) == 1
+
+        TR = int(np.round(1000. * trs.pop()))
+        TA = int(np.round(1000. * tas.pop()))
+        # Nothing to do for continuous acquisition
+        if TR == TA:
+            return target_sr
+
+        TARGET_DT = int(np.round(1000. / target_sr))
+
+        # Interval must evenly divide into TR and TA
+        DT = gcd(TR, TA)
+        # Find nearest divisor of DT to TARGET_DT
+        if DT > TARGET_DT:
+            div, mod = divmod(DT, TARGET_DT)
+            if mod == 0:
+                DT = TARGET_DT
+            elif rounding == 'up':
+                DT = DT // div
+            else:
+                DT = DT // (div + 1)
+
+        # Back to Hz
+        return 1000. / DT
+
+
     def to_dense(self, sampling_rate):
         ''' Convert the current sparse column to a dense representation.
         Returns: A DenseRunVariable.
