@@ -386,20 +386,32 @@ class AnalysisNode(object):
             kwargs['timing'] = True
             kwargs['sparse'] = False
 
+            acquisition_time = None
             if sampling_rate == 'TR':
                 trs = {var.run_info[0].tr for var in self.collection.variables.values()}
+                tas = {var.run_info[0].ta for var in self.collection.variables.values()}
                 if not trs:
                     raise ValueError("Repetition time unavailable; specify sampling_rate "
                                      "explicitly")
                 elif len(trs) > 1:
                     raise ValueError("Non-unique Repetition times found ({!r}); specify "
-                                     "sampling_rate explicitly")
-                sampling_rate = 1. / trs.pop()
+                                     "sampling_rate explicitly".format(trs))
+                TR = trs.pop()
+                if not tas:
+                    warnings.warn("Acquisition time unavailable; assuming TA = TR")
+                    tas = {TR}
+                elif len(tas) > 1:
+                    raise ValueError("Non-unique acquisition times found ({!r})".format(tas))
+
+                sampling_rate = 1. / TR
+                acquisition_time = tas.pop()
             elif sampling_rate == 'highest':
                 sampling_rate = None
             dense_df = coll.to_df(names, format='wide',
                                   include_sparse=include_sparse,
-                                  sampling_rate=sampling_rate, **kwargs)
+                                  sampling_rate=sampling_rate,
+                                  integration_window=acquisition_time,
+                                  **kwargs)
             if dense_df is not None:
                 dense_df = dense_df.drop(['onset', 'duration'], axis=1)
 
