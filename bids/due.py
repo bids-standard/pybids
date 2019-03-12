@@ -15,17 +15,16 @@ installed duecredit.
 
 Then use in your code as
 
-    from .due import due, Doi, BibTeX
+    from .due import due, Doi, BibTeX, Text
 
 See  https://github.com/duecredit/duecredit/blob/master/README.md for examples.
 
 Origin:     Originally a part of the duecredit
-Copyright:  2015-2016  DueCredit developers
+Copyright:  2015-2019  DueCredit developers
 License:    BSD-2
 """
-from __future__ import absolute_import, division, print_function
 
-__version__ = '0.0.5'
+__version__ = '0.0.7'
 
 
 class InactiveDueCreditCollector(object):
@@ -40,7 +39,8 @@ class InactiveDueCreditCollector(object):
             return func
         return nondecorating_decorator
 
-    cite = load = add = _donothing
+    active = False
+    activate = add = cite = dump = load = _donothing
 
     def __repr__(self):
         return self.__class__.__name__ + '()'
@@ -52,18 +52,18 @@ def _donothing_func(*args, **kwargs):
 
 
 try:
-    from duecredit import due, BibTeX, Doi, Url
+    from duecredit import due, BibTeX, Doi, Url, Text
     if 'due' in locals() and not hasattr(due, 'cite'):
         raise RuntimeError(
             "Imported due lacks .cite. DueCredit is now disabled")
 except Exception as e:
-    if type(e).__name__ != 'ImportError':
+    if type(e).__name__ not in ('ImportError', 'ModuleNotFoundError'):
         import logging
         logging.getLogger("duecredit").error(
             "Failed to import duecredit due to %s" % str(e))
     # Initiate due stub
     due = InactiveDueCreditCollector()
-    BibTeX = Doi = Url = _donothing_func
+    BibTeX = Doi = Url = Text = _donothing_func
 
 # Emacs mode definitions
 # Local Variables:
