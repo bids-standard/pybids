@@ -12,7 +12,7 @@ authors:
     name: Christopher J Markiewicz
     orcid: 0000-0002-6533-164X
   - affiliation: 1
-    name: Alejandro I de la Vega
+    name: Alejandro de la Vega
     orcid: 0000-0001-9062-3778
   - affiliation: 2
     name: Krzysztof J Gorgolewski
