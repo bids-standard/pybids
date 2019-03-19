@@ -17,7 +17,7 @@ PyBIDS is most easily installed from pip. To install the latest official release
 
 If you want to live on the bleeding edge, you can install from master:
 
-> pip install pliers git+https://github.com/bids-standard/pybids.git
+> pip install git+https://github.com/bids-standard/pybids.git
 
 #### Dependencies
 PyBIDS has a number of dependencies. The core querying functionality requires only the `BIDS-Validator` package. However, most other modules require the core Python neuroimaging stack: `numpy`, `scipy`, `pandas`, `nibabel`, and `patsy`. The `reports` module additionally requires `num2words`. By default, all dependencies will be installed with pybids (if they aren't already available).
