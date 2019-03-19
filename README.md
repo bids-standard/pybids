@@ -27,7 +27,7 @@ Get started by checking out [the documentation](https://bids-standard.github.io/
 
 Or you can start at [our tutorial](examples/pybids%20tutorial.ipynb)! You can run it interactively without installing anything via [binder](https://mybinder.org/v2/gh/bids-standard/pybids/master). Click on the link and then navigate to `examples/pybids_tutorial.ipynb` to explore.
 
-# Community guidelines
+## Community guidelines
 Bug reports, feedback, and other contributions to PyBIDS are welcome. To report a bug, request a feature, or raise a technical (non-usage-related) question for discussion, please [open an issue on GitHub](https://github.com/bids-standard/pybids/issues). Requests for support and questions about usage (where no bug is suspected) should be posted on the [NeuroStars](https://neurostars.org) forum. For questions about the [BIDS specification](https://github.com/bids-standard/bids-specification) or [BIDS-Validator](https://github.com/bids-standard/bids-validator), please see the corresponding repositories. For general BIDS-related discussion, see the [bids-discussion](https://groups.google.com/forum/#!forum/bids-discussion) mailing list.
 
 Pull requests are always welcome. If you have any doubts about the suitability of a PR, or want to discuss implementation-related issues, feel free to open an issue for discussion.
