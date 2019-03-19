@@ -868,7 +868,17 @@ class BIDSLayout(object):
                   values
             path_patterns (list): Optional path patterns to use to construct
                 the new file path. If None, the Layout-defined patterns will
-                be used.
+                be used. Entities should be represented by the name
+                surrounded by curly braces. Optional portions of the patterns
+                should be denoted by square brackets. Entities that require a
+                specific value for the pattern to match can pass them inside
+                carets. Default values can be assigned by specifying a string
+                after the pipe operator. E.g., (e.g., {type<image>|bold} would
+                only match the pattern if the entity 'type' was passed and its
+                value is "image", otherwise the default value "bold" will be
+                used).
+                    Example: 'sub-{subject}/[var-{name}/]{id}.csv'
+                    Result: 'sub-01/var-SES/1045.csv'
             strict (bool): If True, all entities must be matched inside a
                 pattern in order to be a valid match. If False, extra entities
                 will be ignored so long as all mandatory entities are found.
