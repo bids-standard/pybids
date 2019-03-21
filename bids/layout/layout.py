@@ -110,9 +110,7 @@ class BIDSLayout(object):
         index_associated (bool): Argument passed onto the BIDSValidator;
             ignored if validate = False.
         absolute_paths (bool): If True, queries always return absolute paths.
-            If False, queries return relative paths (for files and directories),
-            unless the root argument was left empty (in which case the root
-            defaults to the file system root).
+            If False, queries return relative paths (for files and directories).
         derivatives (bool, str, list): Specifies whether and/or which
             derivatives to to index. If True, all pipelines found in the
             derivatives/ subdirectory will be indexed. If a str or list, gives
@@ -460,8 +458,10 @@ class BIDSLayout(object):
                 that must be defined in JSON sidecars in order to consider the
                 file a match, but which don't need to match any particular
                 value.
-            absolute_paths (bool): Optional the instance wide option to either
-                report absolute or relative (to the top of the dataset) paths.
+            absolute_paths (bool): Optionally override the instance-wide option
+                to report either absolute or relative (to the top of the
+                dataset) paths. If None, will fall back on the value specified
+                at BIDSLayout initialization.
             kwargs (dict): Any optional key/values to filter the entities on.
                 Keys are entity names, values are regexes to filter on. For
                 example, passing filter={'subject': 'sub-[12]'} would return
