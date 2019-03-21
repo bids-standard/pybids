@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import math
+import warnings
 from copy import deepcopy
 from abc import abstractmethod, ABCMeta
 from bids.utils import listify
@@ -336,6 +337,9 @@ class SparseRunVariable(SimpleVariable):
                 run_i += 1
             _onset = int(start + onsets[i])
             _offset = int(_onset + durations[i])
+            if _onset >= duration:
+                warnings.warn("The onset time of a variable seems to exceed the runs"
+                              "duration, hence runs are incremented by one internally.")
             ts[_onset:_offset] = val
             last_ind = onsets[i]
 
