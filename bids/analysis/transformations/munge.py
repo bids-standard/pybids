@@ -5,11 +5,16 @@ other formats or shapes.
 
 import numpy as np
 import pandas as pd
+# Might not be needed since python 3.7
+# See https://github.com/bids-standard/pybids/issues/423 for more info
+from collections import OrderedDict as odict
+
 from bids.utils import listify
 from .base import Transformation
 from patsy import dmatrix
 import re
 from bids.variables import DenseRunVariable, SimpleVariable
+
 
 class Assign(Transformation):
     ''' Assign one variable's amplitude, duration, or onset attribute to
@@ -160,6 +165,7 @@ class Factor(Transformation):
 
 
 class Filter(Transformation):
+    '''Filter (remove) the values given a query to satisfy'''
 
     _groupable = False
     _input_type = 'variable'
@@ -174,13 +180,15 @@ class Filter(Transformation):
 
         names = [var.name] + listify(by)
 
+        # assure ordered dict so we have consistent (if not correct) operation,
+        # because later we ask for name_map.values
         # pandas .query can't handle non-identifiers in variable names, so we
         # need to replace them in both the variable names and the query string.
-        name_map = {n: re.sub('[^a-zA-Z0-9_]+', '_', n) for n in names}
+        name_map = odict((n, re.sub('[^a-zA-Z0-9_]+', '_', n)) for n in names)
         for k, v in name_map.items():
             query = query.replace(k, v)
 
-        data = pd.concat([self.collection[c].values for c in names],
+        data = pd.concat([self.collection[n].values for n in names],
                          axis=1, sort=True)
         # Make sure we can use integer index
         data = data.reset_index(drop=True)
