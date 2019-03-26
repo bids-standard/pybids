@@ -468,10 +468,10 @@ class BIDSLayout(object):
 
         Notes:
             As of pybids 0.7.0 some keywords have been changed. Namely: 'type'
-            becomes 'suffix', 'modality' becomes 'datatype', 'acq' is removed
-            and 'mod' becomes 'modality'. Using the wrong version could result
-            in get() silently returning wrong or no results. See the changelog
-            for more details.
+            becomes 'suffix', 'modality' becomes 'datatype', 'acq' becomes 
+            'acquisition' and 'mod' becomes 'modality'. Using the wrong version 
+            could result in get() silently returning wrong or no results. See 
+            the changelog for more details.
         """
 
         # Warn users still expecting 0.6 behavior
