@@ -46,7 +46,7 @@ AUTHOR_EMAIL = "bids-discussion@googlegroups.com"
 PLATFORMS = "OS Independent"
 # No data for now
 REQUIRES = ["num2words", "numpy", "scipy", "pandas>=0.23.0",
-            "nibabel>=2.1", "patsy", "bids-validator"]
+            "nibabel>=2.1", "patsy", "bids-validator", "SQLAlchemy"]
 EXTRAS_REQUIRE = {
    # Just to not break compatibility with externals requiring
    # now deprecated installation schemes

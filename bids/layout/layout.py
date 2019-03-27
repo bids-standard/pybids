@@ -13,6 +13,7 @@ from ..external import inflect, six
 from .core import Config, BIDSFile, BIDSRootNode
 from .writing import build_path, write_contents_to_file
 from .. import config as cf
+import sqlalchemy as sa
 
 try:
     from os.path import commonpath

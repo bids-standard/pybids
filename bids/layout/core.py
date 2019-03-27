@@ -166,7 +166,6 @@ class BIDSFile(object):
     Args:
         filename (str): Full path to file.
         parent (BIDSNode): Optional parent node/directory.
-    
     """
     def __init__(self, filename, parent=None):
         self.path = filename
