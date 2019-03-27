@@ -6,6 +6,7 @@ from io import open
 from functools import reduce, partial
 from itertools import chain
 import copy
+import warnings
 
 from bids_validator import BIDSValidator
 from ..utils import listify, natural_sort, check_path_matches_patterns
@@ -117,6 +118,8 @@ class BIDSLayout(object):
             the paths to one or more derivatives directories to index. If False
             or None, the derivatives/ directory is ignored during indexing, and
             derivatives will have to be added manually via add_derivatives().
+            Note: derivatives datasets MUST contain a dataset_description.json
+            file in order to be indexed.
         config (str, list): Optional name(s) of configuration file(s) to use.
             By default (None), uses 'bids'.
         sources (BIDLayout, list): Optional BIDSLayout(s) from which the
@@ -356,6 +359,10 @@ class BIDSLayout(object):
                 pipeline directory (e.g., derivatives/fmriprep).
             kwargs (dict): Optional keyword arguments to pass on to
                 BIDSLayout() when initializing each of the derivative datasets.
+
+        Note: Every derivatives directory intended for indexing MUST contain a
+            valid dataset_description.json file. See the BIDS-Derivatives
+            specification for details.
         '''
         paths = listify(path)
         deriv_dirs = []
@@ -377,6 +384,14 @@ class BIDSLayout(object):
                         sd = os.path.join(p, sd)
                         if check_for_description(sd):
                             deriv_dirs.append(sd)
+
+        if not deriv_dirs:
+            warnings.warn("Derivative indexing was enabled, but no valid "
+                          "derivatives datasets were found in any of the "
+                          "provided or default locations. Please make sure "
+                          "all derivatives datasets you intend to index "
+                          "contain a 'dataset_description.json' file, as "
+                          "described in the BIDS-derivatives specification.")
 
         for deriv in deriv_dirs:
             dd = os.path.join(deriv, 'dataset_description.json')
