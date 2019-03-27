@@ -372,14 +372,7 @@ def test_filter(collection):
     q = 'parametric gain > 0.1'
     transform.Filter(collection, 'RT', query=q, by='parametric gain')
     assert len(orig.values) != len(collection['RT'].values)
-    # There is some bizarro thing going on where, on travis, the result is
-    # randomly either 1536 (when all subjects are used) or 3909 when running
-    # on Python 3 (on linux or mac).
-    # Never happens locally, and I've had no luck tracking down the problem.
-    # Best guess is it reflects either some non-deterministic ordering of
-    # variables somewhere, or some weird precision issues when resampling to
-    # dense. Needs to be tracked down and fixed.
-    assert len(collection['RT'].values) in [96 * len(SUBJECTS), 3909]
+    assert len(collection['RT'].values) == 96 * len(SUBJECTS)
 
 
 def test_replace(collection):
