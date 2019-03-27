@@ -80,12 +80,9 @@ authors:
     name: Staden, Isla
     orcid: 0000-0002-0795-1154
   - affiliation: 19
-    name: Rokem, Ariel
-    orcid: 0000-0003-0679-1985
-  - affiliation: 20
     name: Thirion, Bertrand
     orcid: 0000-0001-5018-7895
-  - affiliation: 21
+  - affiliation: 20
     name: Kleinschmidt, Dave F.
     orcid: 0000-0002-7442-2762
   - affiliation: 9
@@ -94,10 +91,10 @@ authors:
   - affiliation: 17
     name: Visconti di Oleggio Castello, Matteo
     orcid: 0000-0001-7931-5272
-  - affiliation: 22
+  - affiliation: 21
     name: Notter, Michael Philipp
     orcid: 0000-0002-5866-047X
-  - affiliation: 23
+  - affiliation: 22
     name: Roca, Pauline
     orcid: 0000-0003-2089-6636
   - affiliation: 2
@@ -141,14 +138,12 @@ affiliations:
 - index: 18
   name: Queen Mary University London
 - index: 19
-  name: The University of Washington eScience Institute
-- index: 20
   name: INRIA
-- index: 21
+- index: 20
   name: Rutgers University
-- index: 22
+- index: 21
   name: University of Lausanne
-- index: 23
+- index: 22
   name: Sainte-Anne Hospital Center, Université Paris Descartes
 date: 19 February 2019
 bibliography: paper.bib
@@ -186,7 +181,7 @@ specific to one narrow context). At present, its core and most widely used
 module supports simple and flexible querying and manipulation of BIDS datasets.
 PyBIDS makes it easy for researchers and developers working in Python to search
 for BIDS files by keywords and/or metadata; to consolidate and retrieve
-file-associated metadata spread out across multiple levels of a BIDS hierarhcy;
+file-associated metadata spread out across multiple levels of a BIDS hierarchy;
 to construct BIDS-valid path names for new files; and to validate projects
 against the BIDS specification, among other applications.
 
