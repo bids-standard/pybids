@@ -12,6 +12,7 @@ from ..utils import listify, natural_sort, check_path_matches_patterns
 from ..external import inflect, six
 from .core import Config, BIDSFile, BIDSRootNode
 from .writing import build_path, write_contents_to_file
+from .models import Base
 from .. import config as cf
 import sqlalchemy as sa
 
@@ -151,7 +152,8 @@ class BIDSLayout(object):
     def __init__(self, root, validate=True, index_associated=True,
                  absolute_paths=True, derivatives=False, config=None,
                  sources=None, ignore=None, force_index=None,
-                 config_filename='layout_config.json', regex_search=False):
+                 config_filename='layout_config.json', regex_search=False,
+                 database=None):
 
         self.root = root
         self._validator = BIDSValidator(index_associated=index_associated)
@@ -171,6 +173,10 @@ class BIDSLayout(object):
         self.force_index = [os.path.abspath(os.path.join(self.root, patt))
                             if isinstance(patt, six.string_types) else patt
                             for patt in listify(force_index or [])]
+
+        self.database = database
+        self.session = None
+        self._load_db(database)
 
         # Do basic BIDS validation on root directory
         self._validate_root()
@@ -199,6 +205,14 @@ class BIDSLayout(object):
                 index_associated=index_associated,
                 absolute_paths=absolute_paths, derivatives=None, config=None,
                 sources=self, ignore=ignore, force_index=force_index)
+
+    def _load_db(self, database=None):
+        if database is None:
+            database = ''
+        engine = sa.create_engine('sqlite://{}'.format(database))
+        if database == '':
+            Base.metadata.create_all(engine)
+        self.session = sa.orm.sessionmaker(bind=engine)()
 
     def _validate_root(self):
         # Validate root argument and make sure it contains mandatory info
