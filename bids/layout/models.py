@@ -25,9 +25,6 @@ class BIDSFile(Base):
     dirname = Column(String)
     scope = Column(String)
     entities = association_proxy("tags", "value")
-    # entities = association_proxy('tags', 'entities',
-    #     creator=lambda name, args: Tag(ent_name=name, entity=args[0],
-    #                                        value=args[1]))
 
     def __init__(self, filename, scope='bids'):
         self.path = filename
@@ -183,9 +180,6 @@ class Entity(Base):
     directory = Column(String, nullable=True)
     _dtype = Column(String, default='str')
     files = association_proxy("tags", "value")
-    # files = association_proxy('tags', 'file',
-    #     creator=lambda path, args: Tag(file_path=path, file=args[0],
-    #                                        value=args[1]))
 
     def __init__(self, name, pattern=None, mandatory=False, directory=None,
                  dtype='str'):
@@ -275,17 +269,30 @@ class Tag(Base):
     file_path = Column(String, ForeignKey('files.path'), primary_key=True)
     entity_name = Column(String, ForeignKey('entities.name'), primary_key=True)
     value = Column(String, nullable=False)
-    dtype = Column(String, default='str')
+    _dtype = Column(String, default='str')
 
     file = relationship('BIDSFile', backref=backref(
         "tags", collection_class=attribute_mapped_collection("entity_name")))
     entity = relationship('Entity', backref=backref(
         "tags", collection_class=attribute_mapped_collection("file_path")))
 
+    def __init__(self, file, entity, value, dtype=None):
+        if dtype is None:
+            dtype = type(value)
+        if not isinstance(dtype, six.string_types):
+            dtype = dtype.__name__
+        if dtype not in ('str', 'float', 'int', 'bool'):
+            raise ValueError(
+                "Passed value has an invalid dtype ({}). Must be one of "
+                "int, float, bool, or 'str.".format(dtype))
+        value = str(value)
+        super().__init__(file=file, entity=entity, value=value, _dtype=dtype)
+        self._init_on_load()
+
     @reconstructor
     def _init_on_load(self):
-        if self.dtype not in ('str', 'float', 'int', 'bool'):
+        if self._dtype not in ('str', 'float', 'int', 'bool'):
             raise ValueError("Invalid dtype '{}'. Must be one of 'int', "
-                             "'float', 'bool', or 'str'.".format(self.dtype))
-        self.dtype = eval(self.dtype)
+                             "'float', 'bool', or 'str'.".format(self._dtype))
+        self.dtype = eval(self._dtype)
         self.value = self.dtype(self.value)

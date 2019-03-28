@@ -28,7 +28,7 @@ def sample_bidsfile(tmpdir):
 
 @pytest.fixture(scope='module')
 def subject_entity():
-    return Entity('subject', "[/\\\\]sub-([a-zA-Z0-9]+)", mandatory=False,
+    return Entity('subject', r"[/\\\\]sub-([a-zA-Z0-9]+)", mandatory=False,
                directory="{subject}", dtype='str')
 
 
@@ -94,9 +94,22 @@ def test_entity_unique_and_count():
     assert e.count(files=True) == 3
 
 
+def test_tag_dtype(sample_bidsfile, subject_entity):
+    f, e = sample_bidsfile, subject_entity
+    # Various ways of initializing--should all give same result
+    tags = [
+        Tag(f, e, 4, int),
+        Tag(f, e, '4', 'int'),
+        Tag(f, e, '4', int),
+        Tag(f, e, 4),
+        Tag(file=f, entity=e, dtype=int, value='4')
+    ]
+    assert all([t.dtype == int for t in tags])
+
+
 def test_entity_add_file(sample_bidsfile, session):
     bf = sample_bidsfile
-    e = Entity('prop', '-(\d+)')
+    e = Entity('prop', r'-(\d+)')
     t = Tag(file=bf, entity=e, value=4)
     session.add(t)
     session.commit()
