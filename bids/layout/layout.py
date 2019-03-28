@@ -29,6 +29,10 @@ except ImportError:
 __all__ = ['BIDSLayout']
 
 
+# DO NOT REMOVE!!! SQLAlchemy Session must be accessible to other modules
+session = None
+
+
 def parse_file_entities(filename, entities=None, config=None,
                         include_unmatched=False):
     """ Parse the passed filename for entity/value pairs.
@@ -213,6 +217,10 @@ class BIDSLayout(object):
         if database == '':
             Base.metadata.create_all(engine)
         self.session = sa.orm.sessionmaker(bind=engine)()
+        # Also store globally for access from other modules.
+        # TODO: Decide whether to encapsulate this—but this would require
+        # passing around the Layout.
+        globals()['session'] = self.session
 
     def _validate_root(self):
         # Validate root argument and make sure it contains mandatory info
