@@ -1,11 +1,13 @@
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.orm.collections import attribute_mapped_collection
-from sqlalchemy import Column, Integer, String, Boolean, ForeignKey
+from sqlalchemy import (Column, Integer, String, Boolean, ForeignKey, JSON,
+                        Table)
 from sqlalchemy.orm import reconstructor, relationship, backref
 import re
 import os
 import warnings
+import json
 from copy import deepcopy
 
 from .writing import build_path, write_contents_to_file
@@ -17,20 +19,71 @@ from ..external import six
 Base = declarative_base()
 
 
+class Config(Base):
+    """ Container for BIDS configuration information.
+
+    Args:
+        name (str): The name to give the Config (e.g., 'bids').
+        entities (list): A list of dictionaries containing entity configuration
+            information.
+        default_path_patterns (list): Optional list of patterns used to build
+            new paths.
+    """
+    __tablename__ = 'configs'
+
+    name = Column(String, primary_key=True)
+    default_path_patterns = Column(JSON)
+    entities = relationship("Entity", secondary="config_to_entity_map")
+
+    def __init__(self, name, entities=None, default_path_patterns=None):
+
+        self.name = name
+        self.default_path_patterns = default_path_patterns
+
+        if entities:
+            from .layout import session
+            for ent in entities:
+                if session is not None:
+                    existing = session.query(Config).filter_by(name=ent['name']).first()
+                else:
+                    existing = None
+                ent = existing or Entity(**ent)
+                self.entities.append(ent)
+
+    @classmethod
+    def load(self, config):
+        if isinstance(config, six.string_types):
+            config_paths = get_option('config_paths')
+            if config in config_paths:
+                config = config_paths[config]
+            if not os.path.exists(config):
+                raise ValueError("{} is not a valid path.".format(config))
+            else:
+                with open(config, 'r') as f:
+                    config = json.load(f)
+        return Config(**config)
+
+config_to_entity_map = Table('config_to_entity_map', Base.metadata,
+    Column('config', String, ForeignKey('configs.name')),
+    Column('entity', String, ForeignKey('entities.name'))
+)
+
 class BIDSFile(Base):
     __tablename__ = 'files'
 
-    path = Column(String, nullable=False, unique=True, primary_key=True)
+    path = Column(String, primary_key=True)
     filename = Column(String)
     dirname = Column(String)
     scope = Column(String)
     entities = association_proxy("tags", "value")
+    derivatives = Column(Boolean, default=False)
 
-    def __init__(self, filename, scope='bids'):
+    def __init__(self, filename, scope='bids', derivatives=False):
         self.path = filename
         self.filename = os.path.basename(self.path)
         self.dirname = os.path.dirname(self.path)
         self.scope = scope
+        self.derivatives = derivatives
 
     def _matches(self, entities=None, extensions=None, regex_search=False):
         """
@@ -174,7 +227,7 @@ class BIDSFile(Base):
 class Entity(Base):
     __tablename__ = 'entities'
 
-    name = Column(String, unique=True, nullable=False, primary_key=True)
+    name = Column(String, primary_key=True)
     mandatory = Column(Boolean, default=False)
     pattern = Column(String)
     directory = Column(String, nullable=True)
