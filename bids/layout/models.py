@@ -34,6 +34,7 @@ class Config(Base):
     name = Column(String, primary_key=True)
     default_path_patterns = Column(JSON)
     entities = relationship("Entity", secondary="config_to_entity_map")
+    scopes = relationship("Scope", secondary="scope_to_config_map")
 
     def __init__(self, name, entities=None, default_path_patterns=None):
 
@@ -63,10 +64,16 @@ class Config(Base):
                     config = json.load(f)
         return Config(**config)
 
-config_to_entity_map = Table('config_to_entity_map', Base.metadata,
-    Column('config', String, ForeignKey('configs.name')),
-    Column('entity', String, ForeignKey('entities.name'))
-)
+
+class Scope(Base):
+    __tablename__ = 'scopes'
+
+    name = Column(String, primary_key=True)
+    path = Column(String, unique=True, nullable=False)
+    description = Column(String)
+    metadata = Column(JSON)
+    configs = relationship("Config", secondary="scope_to_config_map")
+
 
 class BIDSFile(Base):
     __tablename__ = 'files'
@@ -349,3 +356,16 @@ class Tag(Base):
                              "'float', 'bool', or 'str'.".format(self._dtype))
         self.dtype = eval(self._dtype)
         self.value = self.dtype(self.value)
+
+
+# Association objects
+config_to_entity_map = Table('config_to_entity_map', Base.metadata,
+    Column('config', String, ForeignKey('configs.name')),
+    Column('entity', String, ForeignKey('entities.name'))
+)
+
+
+scope_to_config_map = Table('scope_to_config_map', Base.metadata,
+    Column('scope', String, ForeignKey('scopes.name')),
+    Column('config', String, ForeignKey('configs.name'))
+)
