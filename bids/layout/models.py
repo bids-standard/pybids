@@ -70,9 +70,10 @@ class Scope(Base):
 
     name = Column(String, primary_key=True)
     path = Column(String, unique=True, nullable=False)
-    description = Column(String)
-    metadata = Column(JSON)
+    derivatives = Column(Boolean)
+    description = Column(JSON)
     configs = relationship("Config", secondary="scope_to_config_map")
+    files = relationship("BIDSFile", backref='scope')
 
 
 class BIDSFile(Base):
@@ -81,15 +82,14 @@ class BIDSFile(Base):
     path = Column(String, primary_key=True)
     filename = Column(String)
     dirname = Column(String)
-    scope = Column(String)
+    scope_name = Column(String, ForeignKey('scopes.name'))
     entities = association_proxy("tags", "value")
-    derivatives = Column(Boolean, default=False)
 
     def __init__(self, filename, scope='bids', derivatives=False):
         self.path = filename
         self.filename = os.path.basename(self.path)
         self.dirname = os.path.dirname(self.path)
-        self.scope = scope
+        self.scope_name = scope
         self.derivatives = derivatives
 
     def _matches(self, entities=None, extensions=None, regex_search=False):
