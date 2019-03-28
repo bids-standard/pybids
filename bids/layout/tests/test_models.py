@@ -2,7 +2,7 @@ import os
 import pytest
 import bids
 # from bids.layout import BIDSLayout, parse_file_entities, add_config_paths
-from bids.layout.models import BIDSFile, Entity, Tag, Base, Config
+from bids.layout.models import BIDSFile, Entity, Tag, Base, Config, Scope
 # from bids.layout.core import BIDSFile, Entity, Config
 # from os.path import join, abspath, basename, dirname
 # from bids.tests import get_test_data_path
@@ -134,3 +134,9 @@ def test_config_init_with_args():
     assert config.name == 'custom'
     assert [ent.name for ent in config.entities] == ['task', 'acquisition']
     assert config.default_path_patterns  == patterns
+
+
+def test_scope_init():
+    scope = Scope(name='bids', path='/tmp')
+    assert scope.name == 'bids'
+    assert scope.path == '/tmp'
