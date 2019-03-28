@@ -23,7 +23,8 @@ def tmp_bids(tmpdir_factory):
     yield tmp_bids
     shutil.rmtree(str(tmp_bids))
     # Ugly hack
-    shutil.rmtree(join(get_test_data_path(), '7t_trt', 'sub-Bob'))
+    shutil.rmtree(join(get_test_data_path(), '7t_trt', 'sub-Bob'),
+                  ignore_errors=True)
 
 
 @pytest.fixture(scope='module')
