@@ -448,6 +448,21 @@ def test_parse_file_entities_from_layout(layout_synthetic):
     assert target == layout.parse_file_entities(filename, config='derivatives')
 
 
+def test_deriv_indexing():
+    data_dir = join(get_test_data_path(), 'ds005')
+    deriv_dir = join(data_dir, 'derivatives', 'bbr')
+
+    # missing dataset_description.json
+    with pytest.warns(UserWarning):
+        layout = BIDSLayout(data_dir, derivatives=deriv_dir)
+
+    # Should work fine
+    deriv_dir = join(data_dir, 'derivatives', 'events')
+    layout = BIDSLayout(data_dir, derivatives=deriv_dir)
+    assert layout.get(scope='derivatives')
+    assert layout.get(scope='events')
+    assert not layout.get(scope='nonexistent')
+
 def test_add_config_paths():
     bids_dir = dirname(bids.__file__)
     bids_json = os.path.join(bids_dir, 'layout', 'config', 'bids.json')
