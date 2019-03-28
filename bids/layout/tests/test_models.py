@@ -2,7 +2,7 @@ import os
 import pytest
 import bids
 # from bids.layout import BIDSLayout, parse_file_entities, add_config_paths
-from bids.layout.models import BIDSFile, Entity, Tag, Base
+from bids.layout.models import BIDSFile, Entity, Tag, Base, Config
 # from bids.layout.core import BIDSFile, Entity, Config
 # from os.path import join, abspath, basename, dirname
 # from bids.tests import get_test_data_path
@@ -116,3 +116,21 @@ def test_entity_add_file(sample_bidsfile, session):
     print(e.files)
     print(bf.entities)
     assert e.files[bf.path] == '4'
+
+
+def test_config_init_with_args():
+    ents = [
+        {
+            "name": "task",
+            "pattern": "[_/\\\\]task-([a-zA-Z0-9]+)"
+        },
+        {
+            "name": "acquisition",
+            "pattern": "[_/\\\\]acq-([a-zA-Z0-9]+)"
+        }
+    ]
+    patterns = ['this_will_never_match_anything', 'and_neither_will_this']
+    config = Config('custom', entities=ents, default_path_patterns=patterns)
+    assert config.name == 'custom'
+    assert [ent.name for ent in config.entities] == ['task', 'acquisition']
+    assert config.default_path_patterns  == patterns
