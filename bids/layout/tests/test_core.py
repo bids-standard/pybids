@@ -2,10 +2,10 @@ import pytest
 import os
 import copy
 
-from bids.layout.core import Config, BIDSFile, Entity, BIDSRootNode
+from bids.layout.models import Config, BIDSFile, Entity
+from bids.layout.index import BIDSRootNode
 from bids import BIDSLayout
 from bids.tests import get_test_data_path
-
 
 
 DIRNAME = os.path.dirname(__file__)

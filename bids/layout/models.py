@@ -32,7 +32,7 @@ class Config(Base):
     __tablename__ = 'configs'
 
     name = Column(String, primary_key=True)
-    default_path_patterns = Column(JSON)
+    _default_path_patterns = Column(JSON)
     entities = relationship("Entity", secondary="config_to_entity_map")
     scopes = relationship("Scope", secondary="scope_to_config_map")
 
@@ -40,6 +40,7 @@ class Config(Base):
 
         self.name = name
         self.default_path_patterns = default_path_patterns
+        self._default_path_patterns = json.dumps(default_path_patterns)
 
         if entities:
             from .layout import session
@@ -50,6 +51,10 @@ class Config(Base):
                     existing = None
                 ent = existing or Entity(**ent)
                 self.entities.append(ent)
+    
+    @reconstructor
+    def _init_on_load(self):
+        self.default_path_patterns = json.loads(self._default_path_patterns)
 
     @classmethod
     def load(self, config):
@@ -271,7 +276,7 @@ class Entity(Base):
     def _init_on_load(self):
         if self._dtype not in ('str', 'float', 'int', 'bool'):
             raise ValueError("Invalid dtype '{}'. Must be one of 'int', "
-                             "'float', 'bool', or 'str'.".format(self.dtype))
+                             "'float', 'bool', or 'str'.".format(self._dtype))
         self.dtype = eval(self._dtype)
         self.regex = re.compile(self.pattern) if self.pattern is not None else None
 

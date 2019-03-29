@@ -5,7 +5,7 @@ import os
 import pytest
 import bids
 from bids.layout import BIDSLayout, parse_file_entities, add_config_paths
-from bids.layout.core import BIDSFile, Entity, Config
+from bids.layout.models import BIDSFile, Entity, Config
 from os.path import join, abspath, basename, dirname
 from bids.tests import get_test_data_path
 from bids.utils import natural_sort
@@ -301,7 +301,7 @@ def test_layout_with_derivs(layout_ds005_derivs):
     assert deriv.files
     assert len(deriv.files) == 2
     event_file = "sub-01_task-mixedgamblestask_run-01_desc-extra_events.tsv"
-    deriv_files = [basename(f) for f in list(deriv.files.keys())]
+    deriv_files = [basename(f) for f ifn list(deriv.files.keys())]
     assert event_file in deriv_files
     assert 'roi' in deriv.entities
     assert 'subject' in deriv.entities
@@ -447,6 +447,21 @@ def test_parse_file_entities_from_layout(layout_synthetic):
     target = {'desc': 'bleargh'}
     assert target == layout.parse_file_entities(filename, config='derivatives')
 
+
+def test_deriv_indexing():
+    data_dir = join(get_test_data_path(), 'ds005')
+    deriv_dir = join(data_dir, 'derivatives', 'bbr')
+
+    # missing dataset_description.json
+    with pytest.warns(UserWarning):
+        layout = BIDSLayout(data_dir, derivatives=deriv_dir)
+
+    # Should work fine
+    deriv_dir = join(data_dir, 'derivatives', 'events')
+    layout = BIDSLayout(data_dir, derivatives=deriv_dir)
+    assert layout.get(scope='derivatives')
+    assert layout.get(scope='events')
+    assert not layout.get(scope='nonexistent')
 
 def test_add_config_paths():
     bids_dir = dirname(bids.__file__)

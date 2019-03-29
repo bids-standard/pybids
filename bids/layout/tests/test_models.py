@@ -1,12 +1,7 @@
 import os
 import pytest
 import bids
-# from bids.layout import BIDSLayout, parse_file_entities, add_config_paths
 from bids.layout.models import BIDSFile, Entity, Tag, Base, Config, Scope
-# from bids.layout.core import BIDSFile, Entity, Config
-# from os.path import join, abspath, basename, dirname
-# from bids.tests import get_test_data_path
-# from bids.utils import natural_sort
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 

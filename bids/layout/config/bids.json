@@ -10,8 +10,7 @@
             "name": "session",
             "pattern": "[_/\\\\]+ses-([a-zA-Z0-9]+)",
             "mandatory": false,
-            "directory": "{subject}{session}",
-            "missing_value": "ses-1"
+            "directory": "{subject}{session}"
         },
         {
             "name": "task",
