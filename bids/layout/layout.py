@@ -611,11 +611,13 @@ class BIDSLayout(object):
         Returns: A BIDSFile, or None if no match was found.
         '''
         filename = os.path.abspath(os.path.join(self.root, filename))
-        layouts = self._get_layouts_in_scope(scope)
-        for ly in layouts:
-            if filename in ly.files:
-                return ly.files[filename]
-        return None
+        query = self.session.query(BIDSFile)
+        if scope != 'all':
+            if scope == 'derivatives':
+                query = query.filter_by(derivatives=True)
+            else:
+                query = query.filter_by(scope=scope)
+        return query.first() or None
 
     def get_collections(self, level, types=None, variables=None, merge=False,
                         sampling_rate=None, skip_empty=False, **kwargs):
