@@ -33,7 +33,8 @@ class Config(Base):
 
     name = Column(String, primary_key=True)
     _default_path_patterns = Column(JSON)
-    entities = relationship("Entity", secondary="config_to_entity_map")
+    entities = relationship("Entity", secondary="config_to_entity_map",
+                            collection_class=attribute_mapped_collection('name'))
     scopes = relationship("Scope", secondary="scope_to_config_map")
 
     def __init__(self, name, entities=None, default_path_patterns=None):
@@ -50,7 +51,7 @@ class Config(Base):
                 else:
                     existing = None
                 ent = existing or Entity(**ent)
-                self.entities.append(ent)
+                self.entities[ent.name] = ent
     
     @reconstructor
     def _init_on_load(self):

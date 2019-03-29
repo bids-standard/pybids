@@ -1,4 +1,4 @@
-""" Core pybids data structures. """
+""" File-indexing functionality. """
 
 import os
 import re

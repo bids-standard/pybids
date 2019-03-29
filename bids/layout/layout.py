@@ -10,9 +10,9 @@ import copy
 from bids_validator import BIDSValidator
 from ..utils import listify, natural_sort, check_path_matches_patterns
 from ..external import inflect, six
-from .core import Config, BIDSFile, BIDSRootNode
 from .writing import build_path, write_contents_to_file
-from .models import Base
+from .models import Base, Config, BIDSFile
+from .index import BIDSRootNode
 from .. import config as cf
 import sqlalchemy as sa
 
