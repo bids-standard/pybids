@@ -235,11 +235,12 @@ class Entity(Base):
     mandatory = Column(Boolean, default=False)
     pattern = Column(String)
     directory = Column(String, nullable=True)
+    is_metadata = Column(Boolean, default=False)
     _dtype = Column(String, default='str')
     files = association_proxy("tags", "value")
 
     def __init__(self, name, pattern=None, mandatory=False, directory=None,
-                 dtype='str'):
+                 dtype='str', is_metadata=False):
         """
         Represents a single entity defined in the JSON config.
 
@@ -255,11 +256,15 @@ class Entity(Base):
                 one of 'int', 'float', 'bool', or 'str'. If None, no type
                 enforcement will be attempted, which means the dtype of the
                 value may be unpredictable.
+            is_metadata (bool): Indicates whether or not the Entity is derived
+                from JSON sidecars (True) or is a predefined Entity from a
+                config (False).
         """
         self.name = name
         self.pattern = pattern
         self.mandatory = mandatory
         self.directory = directory
+        self.is_metadata = is_metadata
 
         if not isinstance(dtype, six.string_types):
             dtype = dtype.__name__
@@ -298,6 +303,8 @@ class Entity(Base):
 
         Returns: the matched value if a match was found, otherwise None.
         """
+        if self.regex is None:
+            return None
         m = self.regex.search(f.path)
         val = m.group(1) if m is not None else None
 

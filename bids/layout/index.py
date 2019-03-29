@@ -34,8 +34,8 @@ class BIDSNode(object):
     _child_entity = None
     _entities = {}
 
-    def __init__(self, path, config, root=None, parent=None,
-                 force_index=False):
+    def __init__(self, path, config, entities=None, root=None, parent=None,
+                 force_index=False, index_metadata=True):
         self.path = path
         self.config = listify(config)
         self.root = root
@@ -67,7 +67,7 @@ class BIDSNode(object):
         self.layout.nodes.append(self)
 
         # Index files and create child nodes
-        self.index()
+        self.index(index_metadata)
 
     def __getitem__(self, key):
         if key in self.children:
@@ -76,7 +76,7 @@ class BIDSNode(object):
             return self.files[key]
         raise AttributeError("BIDSNode at path {} has no child node or file "
                              "named {}.".format(self.path, key))
-    
+
     def _update_entities(self):
         # Make all entities easily accessible in a single dict
         self.available_entities = {}
@@ -84,6 +84,7 @@ class BIDSNode(object):
             self.available_entities.update(c.entities)
     
     def _extract_entities(self):
+        # Extract only those entities associated with the current Node's path
         self.entities = {}
         for ent in self._entities:
             m = re.findall(self.available_entities[ent].pattern, self.path)
@@ -132,13 +133,16 @@ class BIDSNode(object):
     def layout(self):
         return self._layout if self.root is None else self.root.layout
 
-    def index(self):
+    def index(self, index_metadata=True):
         """ Index all files/directories below the current BIDSNode. """
 
         config_list = self.config
         layout = self.layout
 
         from .layout import session
+
+        # Keep track of all known entities
+        all_ents = {ent.name: ent for ent in session.query(Entity).all()}
 
         for (dirpath, dirnames, filenames) in os.walk(self.path):
 
@@ -169,11 +173,18 @@ class BIDSNode(object):
 
                 # Create Entity <=> BIDSFile mappings
                 if match_vals:
-                    for name, (ent, val) in match_vals.items():
+                    for _, (ent, val) in match_vals.items():
                         tag = Tag(bf, ent, str(val), ent._dtype)
                         session.add(tag)
-                        # bf.entities[name] = val
-                        # ent.add_file(bf.path, val)
+
+                # Index metadata
+                if index_metadata:
+                    md = self._get_metadata(bf.path)
+
+                    for md_key, md_val in md.items():
+                        if md_key not in all_ents:
+                            all_ents[md_key] = Entity(md_key, is_metadata=True)
+                        tag = Tag(bf, all_ents[md_key], md_val)
                 
                 session.commit()
 
@@ -218,6 +229,25 @@ class BIDSNode(object):
 
             # prevent subdirectory traversal
             break
+
+    def _get_metadata(self, path, **kwargs):
+            potential_jsons = listify(self.layout.get_nearest(
+                                    path, extensions='.json', all_=True,
+                                    ignore_strict_entities=['suffix'],
+                                    **kwargs))
+
+            if potential_jsons is None:
+                return {}
+
+            results = {}
+
+            for json_file_path in reversed(potential_jsons):
+                if os.path.exists(json_file_path):
+                    with open(json_file_path, 'r', encoding='utf-8') as fd:
+                        param_dict = json.load(fd)
+                    results.update(param_dict)
+
+            return results 
 
 
 class BIDSSessionNode(BIDSNode):
