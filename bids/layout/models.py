@@ -227,15 +227,6 @@ class BIDSFile(Base):
         except Exception:
             return None
 
-    # @property
-    # def metadata(self):
-    #     """ Return all associated metadata. """
-    #     return self.layout.get_metadata(self.path)
-
-    # @property
-    # def layout(self):
-    #     return self.parent.layout
-
 
 class Entity(Base):
     __tablename__ = 'entities'
@@ -269,6 +260,9 @@ class Entity(Base):
         self.pattern = pattern
         self.mandatory = mandatory
         self.directory = directory
+
+        if not isinstance(dtype, six.string_types):
+            dtype = dtype.__name__
         self._dtype = dtype
 
         self._init_on_load()
