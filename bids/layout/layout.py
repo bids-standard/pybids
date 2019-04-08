@@ -11,7 +11,7 @@ from bids_validator import BIDSValidator
 from ..utils import listify, natural_sort, check_path_matches_patterns
 from ..external import inflect, six
 from .writing import build_path, write_contents_to_file
-from .models import Base, Config, BIDSFile
+from .models import Base, Config, BIDSFile, Entity, Tag
 from .index import BIDSRootNode
 from .. import config as cf
 import sqlalchemy as sa
@@ -141,7 +141,8 @@ class BIDSLayout(object):
             documentation for the ignore argument for input format details.
             Note that paths in force_index takes precedence over those in
             ignore (i.e., if a file matches both ignore and force_index, it
-            *will* be indexed).
+            *will* be indexed). Note: NEVER include 'derivatives' here; use
+            the derivatives argument (or add_derivatives()) for that.
         config_filename (str): Optional name of filename within directories
             that contains configuration information.
         regex_search (bool): Whether to require exact matching (True) or regex
@@ -193,7 +194,8 @@ class BIDSLayout(object):
             config = 'bids'
         config = [Config.load(c) for c in listify(config)]
         self.config = {c.name: c for c in config}
-        self.root_node = BIDSRootNode(self.root, config, self)
+        self.root_node = BIDSRootNode(self.root, config, self,
+                                      index_metadata=True)
 
         # Consolidate entities into master list. Note: no conflicts occur b/c
         # multiple entries with the same name all point to the same instance.
@@ -451,10 +453,9 @@ class BIDSLayout(object):
         data.insert(0, 'path', [f.path for f in files])
         return data
 
-    def get(self, return_type='object', target=None, extensions=None,
-            scope='all', regex_search=False, defined_fields=None,
-            absolute_paths=None,
-            **kwargs):
+    def get(self, return_type='object', target=None, scope='all',
+            regex_search=False, absolute_paths=None, drop_invalid_filters=True,
+            **filters):
         """
         Retrieve files and/or metadata from the current Layout.
 
@@ -467,8 +468,6 @@ class BIDSLayout(object):
                     a valid target.
             target (str): Optional name of the target entity to get results for
                 (only used if return_type is 'dir' or 'id').
-            extensions (str, list): One or more file extensions to filter on.
-                BIDSFiles with any other extensions will be excluded.
             scope (str, list): Scope of the search space. If passed, only
                 nodes/directories that match the specified scope will be
                 searched. Possible values include:
@@ -479,13 +478,13 @@ class BIDSLayout(object):
             regex_search (bool or None): Whether to require exact matching
                 (False) or regex search (True) when comparing the query string
                 to each entity.
-            defined_fields (list): Optional list of names of metadata fields
-                that must be defined in JSON sidecars in order to consider the
-                file a match, but which don't need to match any particular
-                value.
             absolute_paths (bool): Optional the instance wide option to either
                 report absolute or relative (to the top of the dataset) paths.
-            kwargs (dict): Any optional key/values to filter the entities on.
+            drop_invalid_filters (bool): If False, any invalid filters (i.e.,
+                non-existent entities/keywords) are included (in which case the
+                query will always return nothing). If True, implicitly strips
+                invalid filters.
+            filters (dict): Any optional key/values to filter the entities on.
                 Keys are entity names, values are regexes to filter on. For
                 example, passing filter={'subject': 'sub-[12]'} would return
                 only files that match the first two subjects.
@@ -495,26 +494,17 @@ class BIDSLayout(object):
         """
 
         # Warn users still expecting 0.6 behavior
-        if 'type' in kwargs:
+        if 'type' in filters:
             raise ValueError("As of pybids 0.7.0, the 'type' argument has been"
                              " replaced with 'suffix'.")
 
-        layouts = self._get_layouts_in_scope(scope)
-        
-        # Create concatenated file, node, and entity lists
-        files, entities, nodes = {}, {}, []
-        for l in layouts:
-            files.update(l.files)
-            entities.update(l.entities)
-            nodes.extend(l.nodes)
+        entities = {ent.name: ent for ent in self.session.query(Entity).all()}
 
-        # Separate entity kwargs from metadata kwargs
-        ent_kwargs, md_kwargs = {}, {}
-        for k, v in kwargs.items():
-            if k in entities:
-                ent_kwargs[k] = v
-            else:
-                md_kwargs[k] = v
+        if drop_invalid_filters:
+            invalid_filters = set(filters.keys()) - set(entities.keys())
+            if invalid_filters:
+                for inv_filt in invalid_filters:
+                    filters.pop(inv_filt)
 
         # Provide some suggestions if target is specified and invalid.
         if target is not None and target not in entities:
@@ -528,23 +518,8 @@ class BIDSLayout(object):
             raise ValueError(("Unknown target '{}'. " + message)
                              .format(target))
 
-        results = []
-
-        # Search on entities
-        filters = ent_kwargs.copy()
-
-        for f in files.values():
-            if f._matches(filters, extensions, regex_search):
-                results.append(f)
-
-        # Search on metadata
-        if return_type not in {'dir', 'id'}:
-
-            if md_kwargs:
-                results = [f.path for f in results]
-                results = self.metadata_index.search(results, defined_fields,
-                                                    **md_kwargs)
-                results = [files[f] for f in results]
+        results = self._construct_file_query(scope=scope, filters=filters,
+                                             regex_search=regex_search).all()
 
         # Convert to relative paths if needed
         if absolute_paths is None:  # can be overloaded as option to .get
@@ -611,13 +586,39 @@ class BIDSLayout(object):
         Returns: A BIDSFile, or None if no match was found.
         '''
         filename = os.path.abspath(os.path.join(self.root, filename))
+        query = self._construct_file_query(scope=scope)
+        return query.first() or None
+
+    def _construct_file_query(self, **kwargs):
+
         query = self.session.query(BIDSFile)
+
+        filters = kwargs.get('filters')
+
+        # Entity filtering
+        if filters:
+            query = query.join(BIDSFile.tags)
+            regex = kwargs.get('regex_search', False)
+            for name, val in filters.items():
+                query = query.filter()
+                if regex:
+                    query = (query.filter(BIDSFile.tags.any(entity_name=name))
+                             .filter(BIDSFile.tags._value.op('REGEXP')(val)))
+                else:
+                    query = query.filter(BIDSFile.tags.any(entity_name=name,
+                                                           _value=val))
+
+        # Apply scoping
+        scope = kwargs.get('scope')
         if scope != 'all':
             if scope == 'derivatives':
                 query = query.filter_by(derivatives=True)
             else:
+                if scope == 'raw':
+                    scope = 'bids'
                 query = query.filter_by(scope=scope)
-        return query.first() or None
+
+        return query
 
     def get_collections(self, level, types=None, variables=None, merge=False,
                         sampling_rate=None, skip_empty=False, **kwargs):
@@ -739,7 +740,6 @@ class BIDSLayout(object):
                 entities.pop(k, None)
 
         results = self.get(return_type='object', **kwargs)
-
         # Make a dictionary of directories --> contained files
         folders = defaultdict(list)
         for f in results:
@@ -790,13 +790,13 @@ class BIDSLayout(object):
 
     def get_bvec(self, path, **kwargs):
         """ Get bvec file for passed path. """
-        result = self.get_nearest(path, extensions='bvec', suffix='dwi',
+        result = self.get_nearest(path, extension='bvec', suffix='dwi',
                                   all_=True, **kwargs)
         return listify(result)[0]
 
     def get_bval(self, path, **kwargs):
         """ Get bval file for passed path. """
-        result = self.get_nearest(path, extensions='bval', suffix='dwi',
+        result = self.get_nearest(path, extension='bval', suffix='dwi',
                                   all_=True, **kwargs)
         return listify(result)[0]
 
