@@ -2,16 +2,19 @@ import os
 import pytest
 import bids
 from bids.layout.models import BIDSFile, Entity, Tag, Base, Config, Scope
+from bids.layout import BIDSLayout
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 
-@pytest.fixture(scope="module")
-def session():
+def create_session():
     engine = create_engine('sqlite://')
     Base.metadata.create_all(engine)
     Session = sessionmaker(bind=engine)
-    return Session()
+    from bids.layout import layout
+    layout.session = Session()
+    return layout.session
+
 
 @pytest.fixture
 def sample_bidsfile(tmpdir):
@@ -39,11 +42,9 @@ def test_entity_initialization():
 def test_entity_init_all_args(subject_entity):
     ent = subject_entity
     assert ent.name == 'subject'
-    assert ent.pattern == "[/\\\\]sub-([a-zA-Z0-9]+)"
+    assert ent.pattern == r"[/\\\\]sub-([a-zA-Z0-9]+)"
     assert ent.mandatory == False
     assert ent.directory == "{subject}"
-    assert ent.map_func is None
-    assert ent.kwargs == {'bleargh': True}
 
 
 def test_entity_init_with_bad_dtype():
@@ -53,13 +54,13 @@ def test_entity_init_with_bad_dtype():
         assert msg.startswith("Invalid dtype")
 
 
-def test_entity_deepcopy(subject_entity):
-    e = subject_entity
-    clone = copy.deepcopy(subject_entity)
-    for attr in ['name', 'pattern', 'mandatory', 'directory', 'map_func',
-                 'regex', 'kwargs']:
-        assert getattr(e, attr) == getattr(clone, attr)
-    assert e != clone
+# def test_entity_deepcopy(subject_entity):
+#     e = subject_entity
+#     clone = copy.deepcopy(subject_entity)
+#     for attr in ['name', 'pattern', 'mandatory', 'directory',
+#                  'regex', 'kwargs']:
+#         assert getattr(e, attr) == getattr(clone, attr)
+#     assert e != clone
 
 
 def test_entity_matches(tmpdir):
@@ -69,12 +70,6 @@ def test_entity_matches(tmpdir):
     e = Entity('avaricious', r'aardvark-(\d+)')
     result = e.match_file(f)
     assert result == '4'
-
-
-def test_entity_matches_with_map_func(sample_bidsfile):
-    bf = sample_bidsfile
-    e = Entity('test', map_func=lambda x: x.filename.split('-')[1])
-    assert e.match_file(bf) == '03_ses'
 
 
 def test_entity_unique_and_count():
@@ -99,6 +94,7 @@ def test_tag_dtype(sample_bidsfile, subject_entity):
         Tag(f, e, 4),
         Tag(file=f, entity=e, dtype=int, value='4')
     ]
+    print([t.dtype for t in tags])
     assert all([t.dtype == int for t in tags])
 
 
@@ -114,6 +110,7 @@ def test_entity_add_file(sample_bidsfile, session):
 
 
 def test_config_init_with_args():
+    session = create_session()
     ents = [
         {
             "name": "task",
@@ -127,7 +124,7 @@ def test_config_init_with_args():
     patterns = ['this_will_never_match_anything', 'and_neither_will_this']
     config = Config('custom', entities=ents, default_path_patterns=patterns)
     assert config.name == 'custom'
-    assert [ent.name for ent in config.entities] == ['task', 'acquisition']
+    assert [ent.name for ent in config.entities.values()] == ['task', 'acquisition']
     assert config.default_path_patterns  == patterns
 
 
