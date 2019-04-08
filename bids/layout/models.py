@@ -52,7 +52,9 @@ class Config(Base):
                     existing = None
                 ent = existing or Entity(**ent)
                 self.entities[ent.name] = ent
-    
+                session.add_all(list(self.entities.values()))
+                session.commit()
+
     @reconstructor
     def _init_on_load(self):
         self.default_path_patterns = json.loads(self._default_path_patterns)
@@ -335,7 +337,7 @@ class Tag(Base):
 
     file_path = Column(String, ForeignKey('files.path'), primary_key=True)
     entity_name = Column(String, ForeignKey('entities.name'), primary_key=True)
-    value = Column(String, nullable=False)
+    _value = Column(String, nullable=False)
     _dtype = Column(String, default='str')
 
     file = relationship('BIDSFile', backref=backref(
@@ -344,25 +346,43 @@ class Tag(Base):
         "tags", collection_class=attribute_mapped_collection("file_path")))
 
     def __init__(self, file, entity, value, dtype=None):
+
         if dtype is None:
             dtype = type(value)
+
+        self.value = value
+
         if not isinstance(dtype, six.string_types):
             dtype = dtype.__name__
         if dtype not in ('str', 'float', 'int', 'bool'):
-            raise ValueError(
-                "Passed value has an invalid dtype ({}). Must be one of "
-                "int, float, bool, or 'str.".format(dtype))
+            # Try serializing to JSON first
+            try:
+                value = json.dumps(value)
+                dtype = 'json'
+            except:
+                raise ValueError(
+                    "Passed value has an invalid dtype ({}). Must be one of "
+                    "int, float, bool, or 'str.".format(dtype))
         value = str(value)
-        super().__init__(file=file, entity=entity, value=value, _dtype=dtype)
+        self.file_path = file.path
+        self.entity_name = entity.name
+
+        self._value = value
+        self._dtype = dtype
+
         self._init_on_load()
 
     @reconstructor
     def _init_on_load(self):
-        if self._dtype not in ('str', 'float', 'int', 'bool'):
+        if self._dtype not in ('str', 'float', 'int', 'bool', 'json'):
             raise ValueError("Invalid dtype '{}'. Must be one of 'int', "
-                             "'float', 'bool', or 'str'.".format(self._dtype))
-        self.dtype = eval(self._dtype)
-        self.value = self.dtype(self.value)
+                             "'float', 'bool', 'str', or 'json'.".format(self._dtype))
+        if self._dtype == 'json':
+            self.value = json.loads(self._value)
+            self.dtype = 'json'
+        else:
+            self.dtype = eval(self._dtype)
+            self.value = self.dtype(self._value)
 
 
 # Association objects
