@@ -85,6 +85,27 @@ def load_variables(layout, types=None, levels=None, skip_empty=True,
     return dataset
 
 
+def _get_timing_info(img_md):
+    if 'RepetitionTime' in img_md:
+        tr = img_md['RepetitionTime']
+        if 'DelayTime' in img_md:
+            ta = tr - img_md['DelayTime']
+        elif 'SliceTiming' in img_md:
+            slicetimes = sorted(img_md['SliceTiming'])
+            # a, b ... z
+            # z = final slice onset, b - a = slice duration
+            ta = np.round(slicetimes[-1] + slicetimes[1] - slicetimes[0], 3)
+            # If the "silence" is <1ms, consider acquisition continuous
+            if np.abs(tr - ta) < 1e-3:
+                ta = tr
+        else:
+            ta = tr
+    elif 'VolumeTiming' in img_md:
+        return NotImplemented
+
+    return tr, ta
+
+
 def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
                          drop_na=True, events=True, physio=True, stim=True,
                          regressors=True, skip_empty=True, scope='all',
@@ -146,8 +167,9 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
         if 'run' in entities:
             entities['run'] = int(entities['run'])
 
-        tr = layout.get_metadata(img_f, suffix='bold', scope=scope,
-                                 full_search=True)['RepetitionTime']
+        img_md = layout.get_metadata(img_f, suffix='bold', scope=scope,
+                                     full_search=True)
+        tr, ta = _get_timing_info(img_md)
 
         # Get duration of run: first try to get it directly from the image
         # header; if that fails, try to get NumberOfVolumes from the
@@ -167,7 +189,8 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
                 raise ValueError(msg)
 
         run = dataset.get_or_create_node('run', entities, image_file=img_f,
-                                         duration=duration, repetition_time=tr)
+                                         duration=duration, repetition_time=tr,
+                                         acquisition_time=ta)
         run_info = run.get_info()
 
         # Process event files

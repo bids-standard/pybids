@@ -312,6 +312,51 @@ class SparseRunVariable(SimpleVariable):
         ''' Return the total duration of the Variable's run(s). '''
         return sum([r.duration for r in self.run_info])
 
+    def get_sampling_rate(self, target_sr, rounding='up'):
+        ''' Choose sampling rate that evenly bins acquisition and repetition time
+
+        Args:
+            target_sr (float): Approximate sampling rate to target (in Hz)
+            rounding (str): Round the sampling interval 'up' (default) or 'down' if
+                ``1 / target_sr`` doesn't evenly divide acquisition and repetition
+                times
+
+        Returns:
+            sampling_rate (float)
+
+        '''
+        assert rounding in ('up', 'down')
+
+        # Convention: lowercase in float seconds/Hz, CAPS in int ms
+        trs = {ri.tr for ri in var.run_info}
+        tas = {ri.ta for ri in var.run_info}
+        assert len(trs) == 1
+        assert len(tas) == 1
+
+        TR = int(np.round(1000. * trs.pop()))
+        TA = int(np.round(1000. * tas.pop()))
+        # Nothing to do for continuous acquisition
+        if TR == TA:
+            return target_sr
+
+        TARGET_DT = int(np.round(1000. / target_sr))
+
+        # Interval must evenly divide into TR and TA
+        DT = gcd(TR, TA)
+        # Find nearest divisor of DT to TARGET_DT
+        if DT > TARGET_DT:
+            div, mod = divmod(DT, TARGET_DT)
+            if mod == 0:
+                DT = TARGET_DT
+            elif rounding == 'up':
+                DT = DT // div
+            else:
+                DT = DT // (div + 1)
+
+        # Back to Hz
+        return 1000. / DT
+
+
     def to_dense(self, sampling_rate):
         ''' Convert the current sparse column to a dense representation.
         Returns: A DenseRunVariable.
@@ -429,7 +474,7 @@ class DenseRunVariable(BIDSVariable):
         self.timestamps = pd.concat(_timestamps, axis=0, sort=True)
         return pd.concat(index, axis=0, sort=True).reset_index(drop=True)
 
-    def resample(self, sampling_rate, inplace=False, kind='linear'):
+    def resample(self, sampling_rate, integration_window=None, inplace=False, kind='linear'):
         '''Resample the Variable to the specified sampling rate.
 
         Parameters
@@ -446,7 +491,7 @@ class DenseRunVariable(BIDSVariable):
         '''
         if not inplace:
             var = self.clone()
-            var.resample(sampling_rate, True, kind)
+            var.resample(sampling_rate, integration_window, True, kind)
             return var
 
         if sampling_rate == self.sampling_rate:
@@ -457,18 +502,36 @@ class DenseRunVariable(BIDSVariable):
 
         self.index = self._build_entity_index(self.run_info, sampling_rate)
 
-        x = np.arange(n)
         num = len(self.index)
 
-        from scipy.interpolate import interp1d
-        f = interp1d(x, self.values.values.ravel(), kind=kind)
-        x_new = np.linspace(0, n - 1, num=num)
-        self.values = pd.DataFrame(f(x_new))
+        if integration_window is not None:
+            from scipy.sparse import lil_matrix
+            old_times = np.arange(n) / old_sr
+            new_times = np.arange(num) / sampling_rate
+            integrator = lil_matrix((num, n), dtype=np.uint8)
+            count = None
+            for i, new_time in enumerate(new_times):
+                cols = (old_times >= new_time) & (old_times < new_time + integration_window)
+                # This could be determined analytically, but dodging off-by-one errors
+                if count is None:
+                    count = np.sum(cols)
+                integrator[i, cols] = 1
+
+            old_vals = self.values.values
+            self.values = pd.DataFrame(integrator.tocsr().dot(old_vals) / count)
+        else:
+            from scipy.interpolate import interp1d
+            x = np.arange(n)
+            f = interp1d(x, self.values.values.ravel(), kind=kind)
+            x_new = np.linspace(0, n - 1, num=num)
+            self.values = pd.DataFrame(f(x_new))
+
         assert len(self.values) == len(self.index)
 
         self.sampling_rate = sampling_rate
 
-    def to_df(self, condition=True, entities=True, timing=True, sampling_rate=None):
+    def to_df(self, condition=True, entities=True, timing=True, sampling_rate=None,
+              integration_window=None):
         '''Convert to a DataFrame, with columns for name and entities.
 
         Parameters
@@ -484,7 +547,8 @@ class DenseRunVariable(BIDSVariable):
             sampled uniformly). If False, omits them.
         '''
         if sampling_rate not in (None, self.sampling_rate):
-            return self.resample(sampling_rate).to_df(condition, entities)
+            return self.resample(sampling_rate,
+                                 integration_window=integration_window).to_df(condition, entities)
 
         df = super(DenseRunVariable, self).to_df(condition, entities)
 
