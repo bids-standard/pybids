@@ -167,7 +167,7 @@ class BIDSLayout(object):
         self.derivatives = {}
         self.sources = sources
         self.regex_search = regex_search
-        self.metadata_index = MetadataIndex(self)
+        # self.metadata_index = MetadataIndex(self)
         self.config_filename = config_filename
         self.files = {}
         self.nodes = []
@@ -192,7 +192,8 @@ class BIDSLayout(object):
         # Set up configs
         if config is None:
             config = 'bids'
-        config = [Config.load(c) for c in listify(config)]
+        config = [Config.load(c, session=self.session)
+                  for c in listify(config)]
         self.config = {c.name: c for c in config}
         self.root_node = BIDSRootNode(self.root, config, self,
                                       index_metadata=True)
@@ -716,16 +717,14 @@ class BIDSLayout(object):
         path = os.path.abspath(path)
 
         # Make sure we have a valid suffix
-        suffix = kwargs.get('suffix')
-        if not suffix:
+        if not kwargs.get('suffix'):
             f = self.get_file(path)
             if 'suffix' not in f.entities:
                 raise ValueError(
                     "File '%s' does not have a valid suffix, most "
                     "likely because it is not a valid BIDS file." % path
                 )
-            suffix = f.entities['suffix']
-        kwargs['suffix'] = suffix
+            kwargs['suffix'] = f.entities['suffix']
 
         # Collect matches for all entities
         entities = {}
@@ -739,7 +738,9 @@ class BIDSLayout(object):
             for k in ignore_strict_entities:
                 entities.pop(k, None)
 
+        # Get candidate files
         results = self.get(return_type='object', **kwargs)
+
         # Make a dictionary of directories --> contained files
         folders = defaultdict(list)
         for f in results:
@@ -1014,116 +1015,116 @@ class BIDSLayout(object):
                                root=self.root)
 
 
-class MetadataIndex(object):
-    """A simple dict-based index for key/value pairs in JSON metadata.
+# class MetadataIndex(object):
+#     """A simple dict-based index for key/value pairs in JSON metadata.
 
-    Args:
-        layout (BIDSLayout): The BIDSLayout instance to index.
-    """
+#     Args:
+#         layout (BIDSLayout): The BIDSLayout instance to index.
+#     """
 
-    def __init__(self, layout):
-        self.layout = layout
-        self.key_index = {}
-        self.file_index = defaultdict(dict)
+#     def __init__(self, layout):
+#         self.layout = layout
+#         self.key_index = {}
+#         self.file_index = defaultdict(dict)
 
-    def index_file(self, f, overwrite=False):
-        """Index metadata for the specified file.
+#     def index_file(self, f, overwrite=False):
+#         """Index metadata for the specified file.
 
-        Args:
-            f (BIDSFile, str): A BIDSFile or path to an indexed file.
-            overwrite (bool): If True, forces reindexing of the file even if
-                an entry already exists.
-        """
-        if isinstance(f, six.string_types):
-            f = self.layout.get_file(f)
+#         Args:
+#             f (BIDSFile, str): A BIDSFile or path to an indexed file.
+#             overwrite (bool): If True, forces reindexing of the file even if
+#                 an entry already exists.
+#         """
+#         if isinstance(f, six.string_types):
+#             f = self.layout.get_file(f)
 
-        if f.path in self.file_index and not overwrite:
-            return
+#         if f.path in self.file_index and not overwrite:
+#             return
 
-        if 'suffix' not in f.entities:  # Skip files without suffixes
-            return
+#         if 'suffix' not in f.entities:  # Skip files without suffixes
+#             return
 
-        md = self._get_metadata(f.path)
+#         md = self._get_metadata(f.path)
 
-        for md_key, md_val in md.items():
-            if md_key not in self.key_index:
-                self.key_index[md_key] = {}
-            self.key_index[md_key][f.path] = md_val
-            self.file_index[f.path][md_key] = md_val
+#         for md_key, md_val in md.items():
+#             if md_key not in self.key_index:
+#                 self.key_index[md_key] = {}
+#             self.key_index[md_key][f.path] = md_val
+#             self.file_index[f.path][md_key] = md_val
 
-    def _get_metadata(self, path, **kwargs):
-        potential_jsons = listify(self.layout.get_nearest(
-                                  path, extensions='.json', all_=True,
-                                  ignore_strict_entities=['suffix'],
-                                  **kwargs))
+#     def _get_metadata(self, path, **kwargs):
+#         potential_jsons = listify(self.layout.get_nearest(
+#                                   path, extensions='.json', all_=True,
+#                                   ignore_strict_entities=['suffix'],
+#                                   **kwargs))
 
-        if potential_jsons is None:
-            return {}
+#         if potential_jsons is None:
+#             return {}
 
-        results = {}
+#         results = {}
 
-        for json_file_path in reversed(potential_jsons):
-            if os.path.exists(json_file_path):
-                with open(json_file_path, 'r', encoding='utf-8') as fd:
-                    param_dict = json.load(fd)
-                results.update(param_dict)
+#         for json_file_path in reversed(potential_jsons):
+#             if os.path.exists(json_file_path):
+#                 with open(json_file_path, 'r', encoding='utf-8') as fd:
+#                     param_dict = json.load(fd)
+#                 results.update(param_dict)
 
-        return results
+#         return results
 
-    def search(self, files=None, defined_fields=None, **kwargs):
-        """Search files in the layout by metadata fields.
+#     def search(self, files=None, defined_fields=None, **kwargs):
+#         """Search files in the layout by metadata fields.
 
-        Args:
-            files (list): Optional list of names of files to search. If None,
-                all files in the layout are scanned.
-            defined_fields (list): Optional list of names of fields that must
-                be defined in the JSON sidecar in order to consider the file a
-                match, but which don't need to match any particular value.
-            kwargs: Optional keyword arguments defining search constraints;
-                keys are names of metadata fields, and values are the values
-                to match those fields against (e.g., SliceTiming=0.017) would
-                return all files that have a SliceTiming value of 0.071 in
-                metadata.
+#         Args:
+#             files (list): Optional list of names of files to search. If None,
+#                 all files in the layout are scanned.
+#             defined_fields (list): Optional list of names of fields that must
+#                 be defined in the JSON sidecar in order to consider the file a
+#                 match, but which don't need to match any particular value.
+#             kwargs: Optional keyword arguments defining search constraints;
+#                 keys are names of metadata fields, and values are the values
+#                 to match those fields against (e.g., SliceTiming=0.017) would
+#                 return all files that have a SliceTiming value of 0.071 in
+#                 metadata.
 
-        Returns: A list of filenames that match all constraints.
-        """
+#         Returns: A list of filenames that match all constraints.
+#         """
 
-        if defined_fields is None:
-            defined_fields = []
+#         if defined_fields is None:
+#             defined_fields = []
 
-        all_keys = set(defined_fields) | set(kwargs.keys())
-        if not all_keys:
-            raise ValueError("At least one field to search on must be passed.")
+#         all_keys = set(defined_fields) | set(kwargs.keys())
+#         if not all_keys:
+#             raise ValueError("At least one field to search on must be passed.")
 
-        # If no list of files is passed, use all files in layout
-        if files is None:
-            files = set(self.layout.files.keys())
+#         # If no list of files is passed, use all files in layout
+#         if files is None:
+#             files = set(self.layout.files.keys())
 
-        # Index metadata for any previously unseen files
-        for f in files:
-            self.index_file(f)
+#         # Index metadata for any previously unseen files
+#         for f in files:
+#             self.index_file(f)
 
-        # Get file intersection of all kwargs keys--this is fast
-        filesets = [set(self.key_index.get(k, [])) for k in all_keys]
-        matches = reduce(lambda x, y: x & y, filesets)
+#         # Get file intersection of all kwargs keys--this is fast
+#         filesets = [set(self.key_index.get(k, [])) for k in all_keys]
+#         matches = reduce(lambda x, y: x & y, filesets)
 
-        if files is not None:
-            matches &= set(files)
+#         if files is not None:
+#             matches &= set(files)
 
-        if not matches:
-            return []
+#         if not matches:
+#             return []
 
-        def check_matches(f, key, val):
-            if isinstance(val, six.string_types) and '*' in val:
-                val = ('^%s$' % val).replace('*', ".*")
-                return re.search(str(self.file_index[f][key]), val) is not None
-            else:
-                return val == self.file_index[f][key]
+#         def check_matches(f, key, val):
+#             if isinstance(val, six.string_types) and '*' in val:
+#                 val = ('^%s$' % val).replace('*', ".*")
+#                 return re.search(str(self.file_index[f][key]), val) is not None
+#             else:
+#                 return val == self.file_index[f][key]
 
-        # Serially check matches against each pattern, with early termination
-        for k, val in kwargs.items():
-            matches = list(filter(lambda x: check_matches(x, k, val), matches))
-            if not matches:
-                return []
+#         # Serially check matches against each pattern, with early termination
+#         for k, val in kwargs.items():
+#             matches = list(filter(lambda x: check_matches(x, k, val), matches))
+#             if not matches:
+#                 return []
 
-        return matches
+#         return matches

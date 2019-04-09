@@ -37,14 +37,14 @@ class Config(Base):
                             collection_class=attribute_mapped_collection('name'))
     scopes = relationship("Scope", secondary="scope_to_config_map")
 
-    def __init__(self, name, entities=None, default_path_patterns=None):
+    def __init__(self, name, entities=None, default_path_patterns=None,
+                 session=None):
 
         self.name = name
         self.default_path_patterns = default_path_patterns
         self._default_path_patterns = json.dumps(default_path_patterns)
 
         if entities:
-            from .layout import session
             for ent in entities:
                 if session is not None:
                     existing = session.query(Config).filter_by(name=ent['name']).first()
@@ -52,15 +52,16 @@ class Config(Base):
                     existing = None
                 ent = existing or Entity(**ent)
                 self.entities[ent.name] = ent
-                session.add_all(list(self.entities.values()))
-                session.commit()
+                if session is not None:
+                    session.add_all(list(self.entities.values()))
+                    session.commit()
 
     @reconstructor
     def _init_on_load(self):
         self.default_path_patterns = json.loads(self._default_path_patterns)
 
     @classmethod
-    def load(self, config):
+    def load(self, config, session=None):
         if isinstance(config, six.string_types):
             config_paths = get_option('config_paths')
             if config in config_paths:
@@ -70,7 +71,7 @@ class Config(Base):
             else:
                 with open(config, 'r') as f:
                     config = json.load(f)
-        return Config(**config)
+        return Config(session=session, **config)
 
 
 class Scope(Base):
