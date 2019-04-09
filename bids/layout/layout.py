@@ -519,7 +519,7 @@ class BIDSLayout(object):
             raise ValueError(("Unknown target '{}'. " + message)
                              .format(target))
 
-        results = self._construct_file_query(scope=scope, filters=filters,
+        results = self._build_file_query(scope=scope, filters=filters,
                                              regex_search=regex_search).all()
 
         # Convert to relative paths if needed
@@ -587,12 +587,12 @@ class BIDSLayout(object):
         Returns: A BIDSFile, or None if no match was found.
         '''
         filename = os.path.abspath(os.path.join(self.root, filename))
-        query = self._construct_file_query(scope=scope)
+        query = self._build_file_query(scope=scope)
         return query.first() or None
 
-    def _construct_file_query(self, **kwargs):
+    def _build_file_query(self, **kwargs):
 
-        query = self.session.query(BIDSFile)
+        query = self.session.query(BIDSFile).filter_by(is_dir=False)
 
         filters = kwargs.get('filters')
 

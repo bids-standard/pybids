@@ -93,13 +93,16 @@ class BIDSFile(Base):
     dirname = Column(String)
     scope_name = Column(String, ForeignKey('scopes.name'))
     entities = association_proxy("tags", "value")
+    is_dir = Column(Boolean)
 
-    def __init__(self, filename, scope='bids', derivatives=False):
+    def __init__(self, filename, scope='bids', derivatives=False,
+                 is_dir=False):
         self.path = filename
         self.filename = os.path.basename(self.path)
         self.dirname = os.path.dirname(self.path)
         self.scope_name = scope
         self.derivatives = derivatives
+        self.is_dir = is_dir
 
     def _matches(self, entities=None, extensions=None, regex_search=False):
         """
@@ -228,7 +231,8 @@ class BIDSFile(Base):
             import nibabel as nb
             return nb.load(self.path)
         except Exception:
-            return None
+            raise ValueError("'{}' does not appear to be an image format "
+                             "NiBabel can read.".format(self.path))
 
 
 class Entity(Base):
