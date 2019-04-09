@@ -428,8 +428,7 @@ def test_parse_file_entities():
         Entity('desc', "desc-([a-zA-Z0-9]+)"),
     ]
     # Leave out session to distinguish from previous test target
-    target = {'subject': '03', 'run': 4, 'suffix': 'sekret', 'desc': 'bleargh',
-              'extension': 'nii.gz'}
+    target = {'subject': '03', 'run': 4, 'suffix': 'sekret', 'desc': 'bleargh'}
     assert target == parse_file_entities(filename, entities=entities)
 
 
@@ -473,6 +472,7 @@ def test_deriv_indexing():
     assert layout.get(scope='events')
     assert not layout.get(scope='nonexistent')
 
+
 def test_add_config_paths():
     bids_dir = dirname(bids.__file__)
     bids_json = os.path.join(bids_dir, 'layout', 'config', 'bids.json')
@@ -485,3 +485,16 @@ def test_add_config_paths():
     add_config_paths(dummy=bids_json)
     config = Config.load('dummy')
     assert 'subject' in config.entities
+
+
+def test_layout_in_scope(layout_ds005, layout_ds005_derivs):
+    assert layout_ds005._in_scope(['all'])
+    assert layout_ds005._in_scope('raw')
+    assert layout_ds005._in_scope(['all', 'ignored'])
+    assert not layout_ds005._in_scope(['derivatives', 'ignored'])
+
+    deriv = layout_ds005_derivs.derivatives['events']
+    assert deriv._in_scope('all')
+    assert deriv._in_scope(['derivatives'])
+    assert deriv._in_scope('events')
+    assert not deriv._in_scope('raw')
