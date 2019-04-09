@@ -671,22 +671,18 @@ class BIDSLayout(object):
             files is returned. In cases where the same key is found in multiple
             files, the values in files closer to the input filename will take
             precedence, per the inheritance rules in the BIDS specification.
-
         """
 
-        f = self.get_file(path)
+        query = (self.session.query(Tag.entity_name, Tag.file_path)
+                             .join(BIDSFile)
+                             .filter(BIDSFile.path==path))
 
-        # For querying efficiency, store metadata in the MetadataIndex cache
-        self.metadata_index.index_file(f.path)
+        if not include_entities:
+            query = query.join(Entity).filter(Entity.is_metadata==True)
 
-        if include_entities:
-            entities = f.entities
-            results = entities
-        else:
-            results = {}
+        results = query.all()
+        return {k: v for k, v in results}
 
-        results.update(self.metadata_index.file_index[path])
-        return results
 
     def get_nearest(self, path, return_type='file', strict=True, all_=False,
                     ignore_strict_entities=None, full_search=False, **kwargs):

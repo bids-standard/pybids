@@ -235,14 +235,19 @@ class BIDSNode(object):
             break
 
     def _get_metadata(self, path, **kwargs):
-        potential_jsons = listify(self.layout.get_nearest(
-                                  path, extension='json', all_=True,
-                                  ignore_strict_entities=['suffix'], **kwargs))
+
+        results = {}
+
+        try:
+            potential_jsons = listify(
+                self.layout.get_nearest(
+                    path, extension='json', all_=True,
+                    ignore_strict_entities=['suffix'], **kwargs))
+        except:
+            return results
 
         if potential_jsons is None:
             return {}
-
-        results = {}
 
         for json_file_path in reversed(potential_jsons):
             if os.path.exists(json_file_path):
