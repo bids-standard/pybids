@@ -62,6 +62,7 @@ class Config(Base):
 
     @classmethod
     def load(self, config, session=None):
+
         if isinstance(config, six.string_types):
             config_paths = get_option('config_paths')
             if config in config_paths:
@@ -71,6 +72,14 @@ class Config(Base):
             else:
                 with open(config, 'r') as f:
                     config = json.load(f)
+
+        # Return existing Config record if one exists
+        if session is not None:
+            result = session.query(Config).filter_by(name=config['name']).first()
+            if result:
+                print("Returning existing Config!")
+                return result
+
         return Config(session=session, **config)
 
 

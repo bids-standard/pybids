@@ -126,6 +126,24 @@ def test_config_init_with_args():
     assert config.default_path_patterns  == patterns
 
 
+def test_load_existing_config():
+    session = create_session()
+    first = Config('dummy')
+    session.add(first)
+    session.commit()
+
+    second = Config.load({"name": "dummy"}, session=session)
+    assert first == second
+    session.add(second)
+    session.commit()
+
+    from sqlalchemy.orm.exc import FlushError
+    with pytest.raises(FlushError):
+        second = Config.load({"name": "dummy"})
+        session.add(second)
+        session.commit()
+
+
 def test_scope_init():
     scope = Scope(name='bids', path='/tmp')
     assert scope.name == 'bids'
