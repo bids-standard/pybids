@@ -295,10 +295,31 @@ class BIDSLayout(object):
 
         return self._validator.is_bids(to_check)
 
+    def _in_scope(self, scope):
+        ''' Determine whether current BIDSLayout is in the passed scope.
+
+        Args:
+            scope (str, list): The intended scope(s). Each value must be one of
+                'all', 'raw', 'derivatives', or a pipeline name.
+        '''
+        scope = listify(scope)
+
+        if 'all' in scope:
+            return True
+
+        # We assume something is a BIDS-derivatives dataset if it either has a
+        # defined pipeline name, or is applying the 'derivatives' rules.
+        pl_name = self.description.get("PipelineDescription", {}).get("Name")
+        is_deriv = pl_name or ('derivatives' in self.config)
+
+        return (is_deriv and 'raw' in scope) or (not is_deriv and \
+                ('derivatives' in scope or pl_name in scope))
+
     def _get_layouts_in_scope(self, scope):
         # Determine which BIDSLayouts to search
         layouts = []
         scope = listify(scope)
+
         if 'all' in scope or 'raw' in scope:
             layouts.append(self)
         for deriv in self.derivatives.values():
@@ -521,6 +542,8 @@ class BIDSLayout(object):
             raise ValueError("As of pybids 0.7.0, the 'type' argument has been"
                              " replaced with 'suffix'.")
 
+        layouts = self._get_layouts_in_scope(scope)
+
         entities = {ent.name: ent for ent in self.session.query(Entity).all()}
 
         if drop_invalid_filters:
@@ -634,17 +657,6 @@ class BIDSLayout(object):
                     else:
                         query = query.filter(
                             BIDSFile.tags.any(entity_name=name, _value=val))
-
-        # # Apply scoping
-        # scope = kwargs.get('scope')
-        # if scope != 'all':
-        #     if scope == 'derivatives':
-        #         query = query.filter_by(derivatives=True)
-        #     else:
-        #         if scope == 'raw':
-        #             scope = 'bids'
-        #         query = query.filter_by(scope=scope)
-
         return query
 
     def get_collections(self, level, types=None, variables=None, merge=False,
