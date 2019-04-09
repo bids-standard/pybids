@@ -12,7 +12,7 @@ from ..utils import listify, natural_sort, check_path_matches_patterns
 from ..external import inflect, six
 from .writing import build_path, write_contents_to_file
 from .models import Base, Config, BIDSFile, Entity, Tag
-from .index import BIDSRootNode
+from .index import index_layout
 from .. import config as cf
 import sqlalchemy as sa
 
@@ -195,8 +195,8 @@ class BIDSLayout(object):
         config = [Config.load(c, session=self.session)
                   for c in listify(config)]
         self.config = {c.name: c for c in config}
-        self.root_node = BIDSRootNode(self.root, config, self,
-                                      index_metadata=True)
+
+        index_layout(self, config, None, index_metadata=True)
 
         # Consolidate entities into master list. Note: no conflicts occur b/c
         # multiple entries with the same name all point to the same instance.
@@ -601,23 +601,27 @@ class BIDSLayout(object):
             query = query.join(BIDSFile.tags)
             regex = kwargs.get('regex_search', False)
             for name, val in filters.items():
-                query = query.filter()
                 if regex:
                     query = (query.filter(BIDSFile.tags.any(entity_name=name))
                              .filter(BIDSFile.tags._value.op('REGEXP')(val)))
                 else:
-                    query = query.filter(BIDSFile.tags.any(entity_name=name,
-                                                           _value=val))
+                    if isinstance(val, (list, tuple)):
+                        subq = sa.and_(Tag.entity_name==name,
+                                       Tag._value.in_(val))
+                        query = query.filter(BIDSFile.tags.any(subq))
+                    else:
+                        query = query.filter(
+                            BIDSFile.tags.any(entity_name=name, _value=val))
 
-        # Apply scoping
-        scope = kwargs.get('scope')
-        if scope != 'all':
-            if scope == 'derivatives':
-                query = query.filter_by(derivatives=True)
-            else:
-                if scope == 'raw':
-                    scope = 'bids'
-                query = query.filter_by(scope=scope)
+        # # Apply scoping
+        # scope = kwargs.get('scope')
+        # if scope != 'all':
+        #     if scope == 'derivatives':
+        #         query = query.filter_by(derivatives=True)
+        #     else:
+        #         if scope == 'raw':
+        #             scope = 'bids'
+        #         query = query.filter_by(scope=scope)
 
         return query
 
@@ -1009,118 +1013,3 @@ class BIDSLayout(object):
         write_contents_to_file(path, contents=contents, link_to=link_to,
                                content_mode=content_mode, conflicts=conflicts,
                                root=self.root)
-
-
-# class MetadataIndex(object):
-#     """A simple dict-based index for key/value pairs in JSON metadata.
-
-#     Args:
-#         layout (BIDSLayout): The BIDSLayout instance to index.
-#     """
-
-#     def __init__(self, layout):
-#         self.layout = layout
-#         self.key_index = {}
-#         self.file_index = defaultdict(dict)
-
-#     def index_file(self, f, overwrite=False):
-#         """Index metadata for the specified file.
-
-#         Args:
-#             f (BIDSFile, str): A BIDSFile or path to an indexed file.
-#             overwrite (bool): If True, forces reindexing of the file even if
-#                 an entry already exists.
-#         """
-#         if isinstance(f, six.string_types):
-#             f = self.layout.get_file(f)
-
-#         if f.path in self.file_index and not overwrite:
-#             return
-
-#         if 'suffix' not in f.entities:  # Skip files without suffixes
-#             return
-
-#         md = self._get_metadata(f.path)
-
-#         for md_key, md_val in md.items():
-#             if md_key not in self.key_index:
-#                 self.key_index[md_key] = {}
-#             self.key_index[md_key][f.path] = md_val
-#             self.file_index[f.path][md_key] = md_val
-
-#     def _get_metadata(self, path, **kwargs):
-#         potential_jsons = listify(self.layout.get_nearest(
-#                                   path, extensions='.json', all_=True,
-#                                   ignore_strict_entities=['suffix'],
-#                                   **kwargs))
-
-#         if potential_jsons is None:
-#             return {}
-
-#         results = {}
-
-#         for json_file_path in reversed(potential_jsons):
-#             if os.path.exists(json_file_path):
-#                 with open(json_file_path, 'r', encoding='utf-8') as fd:
-#                     param_dict = json.load(fd)
-#                 results.update(param_dict)
-
-#         return results
-
-#     def search(self, files=None, defined_fields=None, **kwargs):
-#         """Search files in the layout by metadata fields.
-
-#         Args:
-#             files (list): Optional list of names of files to search. If None,
-#                 all files in the layout are scanned.
-#             defined_fields (list): Optional list of names of fields that must
-#                 be defined in the JSON sidecar in order to consider the file a
-#                 match, but which don't need to match any particular value.
-#             kwargs: Optional keyword arguments defining search constraints;
-#                 keys are names of metadata fields, and values are the values
-#                 to match those fields against (e.g., SliceTiming=0.017) would
-#                 return all files that have a SliceTiming value of 0.071 in
-#                 metadata.
-
-#         Returns: A list of filenames that match all constraints.
-#         """
-
-#         if defined_fields is None:
-#             defined_fields = []
-
-#         all_keys = set(defined_fields) | set(kwargs.keys())
-#         if not all_keys:
-#             raise ValueError("At least one field to search on must be passed.")
-
-#         # If no list of files is passed, use all files in layout
-#         if files is None:
-#             files = set(self.layout.files.keys())
-
-#         # Index metadata for any previously unseen files
-#         for f in files:
-#             self.index_file(f)
-
-#         # Get file intersection of all kwargs keys--this is fast
-#         filesets = [set(self.key_index.get(k, [])) for k in all_keys]
-#         matches = reduce(lambda x, y: x & y, filesets)
-
-#         if files is not None:
-#             matches &= set(files)
-
-#         if not matches:
-#             return []
-
-#         def check_matches(f, key, val):
-#             if isinstance(val, six.string_types) and '*' in val:
-#                 val = ('^%s$' % val).replace('*', ".*")
-#                 return re.search(str(self.file_index[f][key]), val) is not None
-#             else:
-#                 return val == self.file_index[f][key]
-
-#         # Serially check matches against each pattern, with early termination
-#         for k, val in kwargs.items():
-#             matches = list(filter(lambda x: check_matches(x, k, val), matches))
-#             if not matches:
-#                 return []
-
-#         return matches

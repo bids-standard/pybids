@@ -6,6 +6,7 @@ import json
 from keyword import iskeyword
 import warnings
 from copy import deepcopy
+from collections import defaultdict
 
 from .writing import build_path, write_contents_to_file
 from .models import Config, BIDSFile, Entity, Tag
@@ -14,197 +15,167 @@ from ..config import get_option
 from ..external import six
 
 
-class BIDSNode(object):
-    """ Represents a single directory or other logical grouping within a
-    BIDS project.
+def _extract_entities(bidsfile, entities):
+    match_vals = {}
+    for e in entities.values():
+        m = e.match_file(bidsfile)
+        if m is None and e.mandatory:
+            break
+        if m is not None:
+            match_vals[e.name] = (e, m)
+    return match_vals
 
-    Args:
-        path (str): The full path to the directory.
-        config (str, list): One or more names of built-in configurations
-            (e.g., 'bids' or 'derivatives') that specify the rules that apply
-            to this node.
-        root (BIDSNode): The node at the root of the tree the current node is
-            part of.
-        parent (BIDSNode): The parent of the current node.
-        force_index (bool): Whether or not to forcibly index every file below
-            this node, even if it fails standard BIDS validation.
-    """
 
-    _child_class = None
-    _child_entity = None
-    _entities = {}
+def index_layout(layout, config, force_index=None, index_metadata=True):
 
-    def __init__(self, path, config, entities=None, root=None, parent=None,
-                 force_index=False, index_metadata=True):
-        self.path = path
-        self.config = listify(config)
-        self.root = root
-        self.parent = parent
-        self.entities = {}
-        self.available_entities = {}
-        self.children = []
-        self.files = []
-        self.variables = []
-        self.force_index = force_index
+    session = layout.session
+    root_path = layout.root
+
+    # Track ALL entities we've seen in file names or metadata, starting with
+    # those found in the configs
+    all_entities = {}
+    for c in config:
+        all_entities.update(c.entities)
+
+    # For metadata indexing, we build up a store of all JSON data as we walk
+    # the file tree. It looks like: { dirname: { suffix: (entities, payload)}}
+    json_data = {}
+
+    def _index_file(f, dirpath, entities):
+        ''' Create DB record for file and its tags. '''
+        abs_fn = os.path.join(dirpath, f)
+
+        # Skip files that fail validation, unless forcibly indexing
+        if not force_index and not layout._validate_file(abs_fn):
+            return None, entities
+
+        bf = BIDSFile(abs_fn)
+        session.add(bf)
+
+        # Extract entity values
+        match_vals = {}
+        for e in entities.values():
+            m = e.match_file(bf)
+            if m is None and e.mandatory:
+                break
+            if m is not None:
+                match_vals[e.name] = (e, m)
+
+        # Create Entity <=> BIDSFile mappings
+        if match_vals:
+            for _, (ent, val) in match_vals.items():
+                tag = Tag(bf, ent, str(val), ent._dtype)
+                session.add(tag)
+
+        session.commit()
+
+        return bf, match_vals
+
+    def index_dir(path, config, parent=None, force_index=False):
+
+        abs_path = os.path.join(root_path, path)
+        config = list(config)     # Shallow copy
 
         # Check for additional config file in directory
-        layout_file = self.layout.config_filename
-        config_file = os.path.join(self.abs_path, layout_file)
+        layout_file = layout.config_filename
+        config_file = os.path.join(abs_path, layout_file)
         if os.path.exists(config_file):
-            cfg = Config.load(config_file, session=self.layout.session)
-            self.config.append(cfg)
+            cfg = Config.load(config_file, session=session)
+            config.append(cfg)
 
-        # Consolidate all entities
-        self._update_entities()
+        # Track which entities are valid in filenames for this directory
+        config_entities = {}
+        for c in config:
+            config_entities.update(c.entities)
 
-        # Extract local entity values
-        self._extract_entities()
+        if index_metadata:
+            json_data[path] = defaultdict(list)
 
-        # Do subclass-specific setup
-        self._setup()
-
-        # Append to layout's master list of nodes
-        self.layout.nodes.append(self)
-
-        # Index files and create child nodes
-        self.index(index_metadata)
-
-    def __getitem__(self, key):
-        if key in self.children:
-            return self.children[key]
-        if key in self.files:
-            return self.files[key]
-        raise AttributeError("BIDSNode at path {} has no child node or file "
-                             "named {}.".format(self.path, key))
-
-    def _update_entities(self):
-        # Make all entities easily accessible in a single dict
-        self.available_entities = {}
-        for c in self.config:
-            self.available_entities.update(c.entities)
-    
-    def _extract_entities(self):
-        # Extract only those entities associated with the current Node's path
-        self.entities = {}
-        for ent in self._entities:
-            m = re.findall(self.available_entities[ent].pattern, self.path)
-            if m:
-                self.entities[ent] = m[0]
-
-    def _get_child_class(self, path):
-        """ Return the appropriate child class given a subdirectory path.
-        
-        Args:
-            path (str): The path to the subdirectory.
-        
-        Returns: An uninstantiated BIDSNode or one of its subclasses.
-        """
-        if self._child_entity is None:
-            return BIDSNode
-
-        for i, child_ent in enumerate(listify(self._child_entity)):
-            template = self.available_entities[child_ent].directory
-            if template is None:
-                return BIDSNode
-            template = self.root_path + template
-            # Construct regex search pattern from target directory template
-            to_rep = re.findall(r'\{(.*?)\}', template)
-            for ent in to_rep:
-                patt = self.available_entities[ent].pattern
-                template = template.replace('{%s}' % ent, patt)
-            template += r'[^\%s]*$' % os.path.sep
-            if re.match(template, path):
-                return listify(self._child_class)[i]
-
-        return BIDSNode
-
-    def _setup(self):
-        pass
-
-    @property
-    def abs_path(self):
-        return os.path.join(self.root_path, self.path)
-
-    @property
-    def root_path(self):
-        return self.path if self.root is None else self.root.path
-    
-    @property
-    def layout(self):
-        return self._layout if self.root is None else self.root.layout
-
-    def index(self, index_metadata=True):
-        """ Index all files/directories below the current BIDSNode. """
-
-        config_list = self.config
-        layout = self.layout
-        session = layout.session
-
-        # Keep track of all known entities
-        all_ents = {ent.name: ent for ent in session.query(Entity).all()}
-
-        for (dirpath, dirnames, filenames) in os.walk(self.path):
+        for (dirpath, dirnames, filenames) in os.walk(path):
 
             # If layout configuration file exists, delete it
-            layout_file = self.layout.config_filename
-            if layout_file in filenames:
-                filenames.remove(layout_file)
+            if layout.config_filename in filenames:
+                filenames.remove(layout.config_filename)
+
+            # Process JSON files first if we're indexing metadata
+            if index_metadata:
+                sidecars = []
+
+                for f in filenames:
+                    if f.endswith('.json'):
+                        filenames.remove(f)
+                        bf, file_ents = _index_file(f, dirpath, config_entities)
+                        if bf is None:
+                            continue
+                        suffix = file_ents.pop('suffix', None)
+                        if suffix is not None:
+                            with open(os.path.join(dirpath, f), 'r') as handle:
+                                payload = json.load(handle)
+                                if payload:
+                                    to_store = (set(file_ents.keys()), payload)
+                                    json_data[path][suffix].append(to_store)
+
 
             for f in filenames:
 
-                abs_fn = os.path.join(self.path, f)
+                bf, file_ents = _index_file(f, dirpath, config_entities)
 
-                # Skip files that fail validation, unless forcibly indexing
-                if not self.force_index and not layout._validate_file(abs_fn):
+                if bf is None:
                     continue
 
-                bf = BIDSFile(abs_fn)
-                session.add(bf)
-
-                # Extract entity values
-                match_vals = {}
-                for e in self.available_entities.values():
-                    m = e.match_file(bf)
-                    if m is None and e.mandatory:
-                        break
-                    if m is not None:
-                        match_vals[e.name] = (e, m)
-
-                # Create Entity <=> BIDSFile mappings
-                if match_vals:
-                    for _, (ent, val) in match_vals.items():
-                        tag = Tag(bf, ent, str(val), ent._dtype)
-                        session.add(tag)
-
-                # Need to commit here because of implicit DB calls below
-                session.commit()
-
-                # Index metadata
+                # Add metadata
                 if index_metadata:
-                    md = self._get_metadata(bf.path)
-                    for md_key, md_val in md.items():
-                        if md_key not in all_ents:
-                            all_ents[md_key] = Entity(md_key, is_metadata=True)
-                            session.add(all_ents[md_key])
+
+                    suffix = file_ents.pop('suffix', None)
+                    file_ents = set(file_ents.keys())
+
+                    if suffix is None:
+                        continue
+
+                    # Extract metadata associated with the file. The idea is
+                    # that we loop over parent directories, and if we find
+                    # payloads in the json_data store (indexing by directory
+                    # and current file suffix), we check to see if the
+                    # candidate JS file's entities are entirely consumed by
+                    # the current file. If so, it's a valid candidate, and we
+                    # add the payload to the stack. Finally, we invert the
+                    # stack and merge the payloads in order.
+                    payloads = []
+                    target = dirpath
+                    while True:
+                        if target in json_data and suffix in json_data[target]:
+                            for (js_ents, js_md) in json_data[target][suffix]:
+                                if not (js_ents - file_ents):
+                                    payloads.append(js_md)
+
+                        parent = os.path.dirname(target)
+                        if parent == target:
+                            break
+                        target = parent
+
+                    file_md = {}
+                    for pl in payloads[::-1]:
+                        file_md.update(pl)
+
+                    # Create database records, including any new Entities
+                    for md_key, md_val in file_md.items():
+                        if md_key not in all_entities:
+                            all_entities[md_key] = Entity(md_key, is_metadata=True)
+                            session.add(all_entities[md_key])
                             session.commit()
-                        tag = Tag(bf, all_ents[md_key], md_val)
+                        tag = Tag(bf, all_entities[md_key], md_val)
                         session.add(tag)
-                
+
                 session.commit()
 
-                self.files.append(bf)
-                # Also add to the Layout's master list
-                self.layout.files[bf.path] = bf
-
-            root_node = self if self.root is None else self.root
-
+            # Recursively index subdirectories
             for d in dirnames:
 
                 d = os.path.join(dirpath, d)
 
                 # Derivative directories must always be added separately and
                 # passed as their own root, so terminate if passed.
-                if d.startswith(os.path.join(self.layout.root, 'derivatives')):
+                if d.startswith(os.path.join(layout.root, 'derivatives')):
                     continue
 
                 # Skip directories that fail validation, unless force_index
@@ -214,85 +185,18 @@ class BIDSNode(object):
                 # without a lot of additional work, because the elements of
                 # .force_index can be SRE_Patterns that match files below in
                 # unpredictable ways.
-                if check_path_matches_patterns(d, self.layout.force_index):
-                    self.force_index = True
+                if check_path_matches_patterns(d, layout.force_index):
+                    force_index = True
                 else:
                     valid_dir = layout._validate_dir(d)
                     # Note the difference between self.force_index and
                     # self.layout.force_index.
-                    if not valid_dir and not self.layout.force_index:
+                    if not valid_dir and not layout.force_index:
                         continue
 
-                child_class = self._get_child_class(d)
-                # TODO: filter the config files based on include/exclude rules
-                child = child_class(d, config_list, root_node, self,
-                                    force_index=self.force_index)
-
-                if self.force_index or valid_dir:
-                    self.children.append(child)
+                index_dir(d, list(config), path, force_index)
 
             # prevent subdirectory traversal
             break
-
-    def _get_metadata(self, path, **kwargs):
-
-        results = {}
-
-        try:
-            potential_jsons = listify(
-                self.layout.get_nearest(
-                    path, extension='json', all_=True,
-                    ignore_strict_entities=['suffix'], **kwargs))
-        except:
-            return results
-
-        if potential_jsons is None:
-            return {}
-
-        for json_file_path in reversed(potential_jsons):
-            if os.path.exists(json_file_path):
-                with open(json_file_path, 'r') as fd:
-                    param_dict = json.load(fd)
-                results.update(param_dict)
-
-        return results
-
-
-class BIDSSessionNode(BIDSNode):
-    """ A BIDSNode associated with a single BIDS session. """
-
-    _entities = {'subject', 'session'}
-
-    def _setup(self):
-        self.label = self.entities['session']
-
-
-class BIDSSubjectNode(BIDSNode):
-    """ A BIDSNode associated with a single BIDS subject. """
-
-    _child_entity = 'session'
-    _child_class = BIDSSessionNode
-    _entities = {'subject'}
-
-    def _setup(self):
-        self.sessions = [c for c in self.children if
-                         isinstance(c, BIDSSessionNode)]
-        self.label = self.entities['subject']
-
-
-class BIDSRootNode(BIDSNode):
-    """ A BIDSNode representing the top level of an entire BIDS project. """
-
-    _child_entity = 'subject'
-    _child_class = BIDSSubjectNode
-
-    def __init__(self, path, config, layout, force_index=False,
-                 index_metadata=True):
-        self._layout = layout
-        super(BIDSRootNode, self).__init__(path, config,
-                                           force_index=force_index,
-                                           index_metadata=index_metadata)
     
-    def _setup(self):
-        self.subjects = {c.label: c for c in self.children if
-                         isinstance(c, BIDSSubjectNode)}
+    index_dir(root_path, config, None, force_index)

@@ -77,7 +77,6 @@ class Config(Base):
         if session is not None:
             result = session.query(Config).filter_by(name=config['name']).first()
             if result:
-                print("Returning existing Config!")
                 return result
 
         return Config(session=session, **config)
