@@ -389,26 +389,34 @@ def test_get_tr(layout_7t_trt):
 
 
 def test_to_df(layout_ds117):
+    # Only filename entities
     df = layout_ds117.to_df()
-    assert df.shape == (115, 11)
+    assert df.shape == (115, 12)
     target = {'datatype', 'fmap', 'run', 'path', 'acquisition', 'scans',
-              'session', 'subject', 'suffix', 'task', 'proc'}
+              'session', 'subject', 'suffix', 'task', 'proc', 'extension'}
     assert set(df.columns) == target
     assert set(df['subject'].dropna().unique()) == {'01', '02', 'emptyroom'}
+
+    # Include metadata entities
+    df = layout_ds117.to_df(metadata=True)
+    assert df.shape == (115, 53)
+    assert not ({'InstitutionAddress', 'TriggerChannelCount', 'EchoTime'} -
+                set(df.columns))
 
 
 def test_parse_file_entities():
     filename = '/sub-03_ses-07_run-4_desc-bleargh_sekret.nii.gz'
 
     # Test with entities taken from bids config
-    target = {'subject': '03', 'session': '07', 'run': 4, 'suffix': 'sekret'}
+    target = {'subject': '03', 'session': '07', 'run': 4, 'suffix': 'sekret',
+              'extension': 'nii.gz'}
     assert target == parse_file_entities(filename, config='bids')
     config = Config.load('bids')
     assert target == parse_file_entities(filename, config=[config])
 
     # Test with entities taken from bids and derivatives config
     target = {'subject': '03', 'session': '07', 'run': 4, 'suffix': 'sekret',
-              'desc': 'bleargh'}
+              'desc': 'bleargh', 'extension': 'nii.gz'}
     assert target == parse_file_entities(filename)
     assert target == parse_file_entities(filename, config=['bids', 'derivatives'])
 
@@ -420,7 +428,8 @@ def test_parse_file_entities():
         Entity('desc', "desc-([a-zA-Z0-9]+)"),
     ]
     # Leave out session to distinguish from previous test target
-    target = {'subject': '03', 'run': 4, 'suffix': 'sekret', 'desc': 'bleargh'}
+    target = {'subject': '03', 'run': 4, 'suffix': 'sekret', 'desc': 'bleargh',
+              'extension': 'nii.gz'}
     assert target == parse_file_entities(filename, entities=entities)
 
 
@@ -429,7 +438,8 @@ def test_parse_file_entities_from_layout(layout_synthetic):
     filename = '/sub-03_ses-07_run-4_desc-bleargh_sekret.nii.gz'
 
     # Test with entities taken from bids config
-    target = {'subject': '03', 'session': '07', 'run': 4, 'suffix': 'sekret'}
+    target = {'subject': '03', 'session': '07', 'run': 4, 'suffix': 'sekret',
+              'extension': 'nii.gz'}
     assert target == layout.parse_file_entities(filename, config='bids')
     config = Config.load('bids')
     assert target == layout.parse_file_entities(filename, config=[config])
@@ -437,7 +447,7 @@ def test_parse_file_entities_from_layout(layout_synthetic):
 
     # Test with default scope--i.e., everything
     target = {'subject': '03', 'session': '07', 'run': 4, 'suffix': 'sekret',
-              'desc': 'bleargh'}
+              'desc': 'bleargh', 'extension': 'nii.gz'}
     assert target == layout.parse_file_entities(filename)
     # Test with only the fmriprep pipeline (which includes both configs)
     assert target == layout.parse_file_entities(filename, scope='fmriprep')

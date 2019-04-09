@@ -430,12 +430,14 @@ class BIDSLayout(object):
         for deriv in self.derivatives.values():
             self.entities.update(deriv.entities)
 
-    def to_df(self, **kwargs):
+    def to_df(self, metadata=False, **kwargs):
         """
         Return information for all BIDSFiles tracked in the Layout as a pandas
         DataFrame.
 
         Args:
+            metadata (bool): If True, includes columns for all metadata fields.
+                If False, only filename-based entities are included as columns.
             kwargs: Optional keyword arguments passed on to get(). This allows
                 one to easily select only a subset of files for export.
         Returns:
@@ -449,10 +451,30 @@ class BIDSLayout(object):
             raise ImportError("What are you doing trying to export a BIDSLayout"
                               " as a pandas DataFrame when you don't have "
                               "pandas installed? Eh? Eh?")
+
+        # TODO: efficiency could probably be improved further by joining the
+        # BIDSFile and Tag tables and running a single query. But this would
+        # require refactoring the below to use _build_file_query, which will
+        # in turn likely require generalizing the latter.
         files = self.get(return_type='obj', **kwargs)
-        data = pd.DataFrame.from_records([f.entities for f in files])
-        data.insert(0, 'path', [f.path for f in files])
-        return data
+        file_paths = [f.path for f in files]
+        query = self.session.query(Tag).filter(Tag.file_path.in_(file_paths))
+
+        if not metadata:
+            query = query.join(Entity).filter(Entity.is_metadata==False)
+
+        tags = query.all()
+
+        tags = [[t.file_path, t.entity_name, t.value] for t in tags]
+        data = pd.DataFrame(tags, columns=['path', 'entity', 'value'])
+        data = data.pivot('path', 'entity', 'value')
+
+        # Add in orphaned files with no Tags. Maybe make this an argument?
+        orphans = list(set(file_paths) - set(data.index))
+        for o in orphans:
+            data.loc[o] = pd.Series()
+
+        return data.reset_index()
 
     def get(self, return_type='object', target=None, scope='all',
             regex_search=False, absolute_paths=None, drop_invalid_filters=True,
