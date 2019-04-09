@@ -68,6 +68,10 @@
         {
             "name": "datatype",
             "pattern": "[/\\\\]+(func|anat|fmap|dwi|meg)[/\\\\]+s"
+        },
+        {
+            "name": "extension",
+            "pattern": "[._]*[a-zA-Z0-9]*?\\.([^/\\\\]+)$"
         }
     ],
 
