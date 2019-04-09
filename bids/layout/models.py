@@ -35,7 +35,6 @@ class Config(Base):
     _default_path_patterns = Column(JSON)
     entities = relationship("Entity", secondary="config_to_entity_map",
                             collection_class=attribute_mapped_collection('name'))
-    scopes = relationship("Scope", secondary="scope_to_config_map")
 
     def __init__(self, name, entities=None, default_path_patterns=None,
                  session=None):
@@ -82,33 +81,20 @@ class Config(Base):
         return Config(session=session, **config)
 
 
-class Scope(Base):
-    __tablename__ = 'scopes'
-
-    name = Column(String, primary_key=True)
-    path = Column(String, unique=True, nullable=False)
-    derivatives = Column(Boolean)
-    description = Column(JSON)
-    configs = relationship("Config", secondary="scope_to_config_map")
-    files = relationship("BIDSFile", backref='scope')
-
-
 class BIDSFile(Base):
     __tablename__ = 'files'
 
     path = Column(String, primary_key=True)
     filename = Column(String)
     dirname = Column(String)
-    scope_name = Column(String, ForeignKey('scopes.name'))
     entities = association_proxy("tags", "value")
     is_dir = Column(Boolean)
 
-    def __init__(self, filename, scope='bids', derivatives=False,
+    def __init__(self, filename, derivatives=False,
                  is_dir=False):
         self.path = filename
         self.filename = os.path.basename(self.path)
         self.dirname = os.path.dirname(self.path)
-        self.scope_name = scope
         self.derivatives = derivatives
         self.is_dir = is_dir
 
@@ -402,10 +388,4 @@ class Tag(Base):
 config_to_entity_map = Table('config_to_entity_map', Base.metadata,
     Column('config', String, ForeignKey('configs.name')),
     Column('entity', String, ForeignKey('entities.name'))
-)
-
-
-scope_to_config_map = Table('scope_to_config_map', Base.metadata,
-    Column('scope', String, ForeignKey('scopes.name')),
-    Column('config', String, ForeignKey('configs.name'))
 )
