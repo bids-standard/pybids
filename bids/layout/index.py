@@ -51,7 +51,7 @@ class BIDSNode(object):
         layout_file = self.layout.config_filename
         config_file = os.path.join(self.abs_path, layout_file)
         if os.path.exists(config_file):
-            cfg = Config.load(config_file)
+            cfg = Config.load(config_file, session=self.layout.session)
             self.config.append(cfg)
 
         # Consolidate all entities
@@ -138,8 +138,7 @@ class BIDSNode(object):
 
         config_list = self.config
         layout = self.layout
-
-        from .layout import session
+        session = layout.session
 
         # Keep track of all known entities
         all_ents = {ent.name: ent for ent in session.query(Entity).all()}
@@ -177,14 +176,19 @@ class BIDSNode(object):
                         tag = Tag(bf, ent, str(val), ent._dtype)
                         session.add(tag)
 
+                # Need to commit here because of implicit DB calls below
+                session.commit()
+
                 # Index metadata
                 if index_metadata:
                     md = self._get_metadata(bf.path)
-
                     for md_key, md_val in md.items():
                         if md_key not in all_ents:
                             all_ents[md_key] = Entity(md_key, is_metadata=True)
+                            session.add(all_ents[md_key])
+                            session.commit()
                         tag = Tag(bf, all_ents[md_key], md_val)
+                        session.add(tag)
                 
                 session.commit()
 
@@ -231,23 +235,22 @@ class BIDSNode(object):
             break
 
     def _get_metadata(self, path, **kwargs):
-            potential_jsons = listify(self.layout.get_nearest(
-                                    path, extensions='.json', all_=True,
-                                    ignore_strict_entities=['suffix'],
-                                    **kwargs))
+        potential_jsons = listify(self.layout.get_nearest(
+                                  path, extension='json', all_=True,
+                                  ignore_strict_entities=['suffix'], **kwargs))
 
-            if potential_jsons is None:
-                return {}
+        if potential_jsons is None:
+            return {}
 
-            results = {}
+        results = {}
 
-            for json_file_path in reversed(potential_jsons):
-                if os.path.exists(json_file_path):
-                    with open(json_file_path, 'r', encoding='utf-8') as fd:
-                        param_dict = json.load(fd)
-                    results.update(param_dict)
+        for json_file_path in reversed(potential_jsons):
+            if os.path.exists(json_file_path):
+                with open(json_file_path, 'r') as fd:
+                    param_dict = json.load(fd)
+                results.update(param_dict)
 
-            return results 
+        return results
 
 
 class BIDSSessionNode(BIDSNode):
@@ -278,10 +281,12 @@ class BIDSRootNode(BIDSNode):
     _child_entity = 'subject'
     _child_class = BIDSSubjectNode
 
-    def __init__(self, path, config, layout, force_index=False):
+    def __init__(self, path, config, layout, force_index=False,
+                 index_metadata=True):
         self._layout = layout
         super(BIDSRootNode, self).__init__(path, config,
-                                           force_index=force_index)
+                                           force_index=force_index,
+                                           index_metadata=index_metadata)
     
     def _setup(self):
         self.subjects = {c.label: c for c in self.children if
