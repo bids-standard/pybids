@@ -102,25 +102,18 @@ class BIDSFile(Base):
     def _init_on_load(self):
         self._data = None
 
-    def _matches(self, entities=None, extension=None, regex_search=False):
+    def _matches(self, entities=None, regex_search=False):
         """
-        Checks whether the file matches all of the passed entities and
-        extensions.
+        Checks whether the file matches all of the passed entities.
 
         Args:
             entities (dict): A dictionary of entity names -> values to match.
-            extensions (str, list): One or more file extensions to allow.
             regex_search (bool): Whether to require exact match (False) or
                 regex search (True) when comparing the query string to each
                 entity.
         Returns:
-            True if _all_ entities and extensions match; False otherwise.
+            True if _all_ entities match; False otherwise.
         """
-        if extension is not None:
-            extension = map(re.escape, listify(extensions))
-            extension = '(' + '|'.join(extensions) + ')$'
-            if re.search(extensions, self.filename) is None:
-                return False
 
         if entities is None:
             return True
