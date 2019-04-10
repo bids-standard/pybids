@@ -245,6 +245,15 @@ class BIDSLayout(object):
         if database is None:
             database = ''
         engine = sa.create_engine('sqlite://{}'.format(database))
+
+        def regexp(expr, item):
+            ''' Regex function for SQLite's REGEXP. '''
+            reg = re.compile(expr, re.I)
+            return reg.search(item) is not None
+
+        conn = engine.connect()
+        conn.connection.create_function('REGEXP', 2, regexp)
+
         if database == '':
             Base.metadata.create_all(engine)
         self.session = sa.orm.sessionmaker(bind=engine)()
@@ -667,13 +676,12 @@ class BIDSLayout(object):
             for name, val in filters.items():
                 if regex:
                     if isinstance(val, (list, tuple)):
-                        raise ValueError(
-                            "When regex searching is enabled, you cannot pass "
-                            "lists as values—only strings are allowed. "
-                            "Invalid value for keyword {}: {}".format(
-                                name, val))
-                    query = (query.filter(BIDSFile.tags.any(entity_name=name))
-                             .filter(BIDSFile.tags._value.op('REGEXP')(val)))
+                        val_clause = sa.or_(*[Tag._value.op('REGEXP')(str(v))
+                                             for v in val])
+                    else:
+                        val_clause = Tag._value.op('REGEXP')(val)
+                    subq = sa.and_(Tag.entity_name==name, val_clause)
+                    query = query.filter(BIDSFile.tags.any(subq))
                 else:
                     if isinstance(val, (list, tuple)):
                         subq = sa.and_(Tag.entity_name==name,
@@ -883,7 +891,7 @@ class BIDSLayout(object):
         sub = self.parse_file_entities(path)['subject']
         fieldmap_set = []
         suffix = '(phase1|phasediff|epi|fieldmap)'
-        files = self.get(subject=sub, suffix=suffix, regex_search=False,
+        files = self.get(subject=sub, suffix=suffix, regex_search=True,
                          extension=['nii.gz', 'nii'])
         for file in files:
             metadata = self.get_metadata(file.path)
