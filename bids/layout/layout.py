@@ -730,7 +730,7 @@ class BIDSLayout(object):
             precedence, per the inheritance rules in the BIDS specification.
         """
 
-        query = (self.session.query(Tag.entity_name, Tag.file_path)
+        query = (self.session.query(Tag)
                              .join(BIDSFile)
                              .filter(BIDSFile.path==path))
 
@@ -738,7 +738,7 @@ class BIDSLayout(object):
             query = query.join(Entity).filter(Entity.is_metadata==True)
 
         results = query.all()
-        return {k: v for k, v in results}
+        return {t.entity_name: t.value for t in results}
 
 
     def get_nearest(self, path, return_type='file', strict=True, all_=False,
