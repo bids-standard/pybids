@@ -3,7 +3,7 @@ from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.orm.collections import attribute_mapped_collection
 from sqlalchemy import (Column, Integer, String, Boolean, ForeignKey, JSON,
                         Table)
-from sqlalchemy.orm import reconstructor, relationship, backref
+from sqlalchemy.orm import reconstructor, relationship, backref, object_session
 import re
 import os
 import warnings
@@ -212,8 +212,7 @@ class BIDSFile(Base):
     def __repr__(self):
         return "<BIDSFile filename='{}'>".format(self.path)
 
-    @property
-    def image(self):
+    def get_image(self):
         """ Return the associated image file (if it exists) as a NiBabel object
         """
         try:
@@ -222,6 +221,14 @@ class BIDSFile(Base):
         except Exception:
             raise ValueError("'{}' does not appear to be an image format "
                              "NiBabel can read.".format(self.path))
+
+    def get_metadata(self):
+        session = object_session(self)
+        query = (session.query(Tag)
+                        .filter_by(file_path=self.path)
+                        .join(Entity)
+                        .filter(Entity.is_metadata))
+        return {t.entity_name: t.value for t in query.all()}
 
 
 class Entity(Base):

@@ -194,7 +194,7 @@ def test_get_metadata_via_bidsfile(layout_7t_trt):
     target = 'sub-01/ses-1/func/sub-01_ses-1_task-rest_acq-fullbrain_run-1_bold.nii.gz'
     target = target.split('/')
     path = join(layout_7t_trt.root, *target)
-    result = layout_7t_trt.files[path].metadata
+    result = layout_7t_trt.files[path].get_metadata()
     assert result['EchoTime'] == 0.020
     # include_entities is False when called through a BIDSFile
     assert 'subject' not in result
