@@ -165,9 +165,6 @@ class BIDSLayout(object):
         self.regex_search = regex_search
         # self.metadata_index = MetadataIndex(self)
         self.config_filename = config_filename
-        self.files = {}
-        self.nodes = []
-        self.entities = {}
         self.ignore = [os.path.abspath(os.path.join(self.root, patt))
                        if isinstance(patt, six.string_types) else patt
                        for patt in listify(ignore or [])]
@@ -194,11 +191,6 @@ class BIDSLayout(object):
 
         index_layout(self, config, None, index_metadata=True)
 
-        # Consolidate entities into master list. Note: no conflicts occur b/c
-        # multiple entries with the same name all point to the same instance.
-        for n in self.nodes:
-            self.entities.update(n.available_entities)
-
         # Add derivatives if any are found
         if derivatives:
             if derivatives is True:
@@ -208,6 +200,42 @@ class BIDSLayout(object):
                 index_associated=index_associated,
                 absolute_paths=absolute_paths, derivatives=None, config=None,
                 sources=self, ignore=ignore, force_index=force_index)
+
+    def __getattr__(self, key):
+        ''' Dynamically inspect missing methods for get_<entity>() calls
+        and return a partial function of get() if a match is found. '''
+        if key.startswith('get_'):
+            ent_name = key.replace('get_', '')
+            # Use inflect to check both singular and plural forms
+            if ent_name not in self.entities:
+                sing = inflect.engine().singular_noun(ent_name)
+                if sing in self.entities:
+                    ent_name = sing
+                else:
+                    raise AttributeError(
+                        "'get_{}' can't be called because '{}' isn't a "
+                        "recognized entity name.".format(ent_name, ent_name))
+            return partial(self.get, return_type='id', target=ent_name)
+        # Spit out default message if we get this far
+        raise AttributeError("%s object has no attribute named %r" %
+                             (self.__class__.__name__, key))
+
+    def __repr__(self):
+        # A tidy summary of key properties
+        n_sessions = len([session for isub in self.get_subjects()
+                          for session in self.get_sessions(subject=isub)])
+        n_runs = len([run for isub in self.get_subjects()
+                      for run in self.get_runs(subject=isub)])
+        n_subjects = len(self.get_subjects())
+        root = self.root[-30:]
+        s = ("BIDS Layout: ...{} | Subjects: {} | Sessions: {} | "
+             "Runs: {}".format(root, n_subjects, n_sessions, n_runs))
+        return s
+
+    @property
+    def entities(self):
+        entities = self.session.query(Entity).all()
+        return {ent.name: ent for ent in entities}
 
     def _load_db(self, database=None):
         if database is None:
@@ -322,37 +350,6 @@ class BIDSLayout(object):
 
         return [l for l in collect_layouts(self) if l._in_scope(scope)]
 
-    def __getattr__(self, key):
-        ''' Dynamically inspect missing methods for get_<entity>() calls
-        and return a partial function of get() if a match is found. '''
-        if key.startswith('get_'):
-            ent_name = key.replace('get_', '')
-            # Use inflect to check both singular and plural forms
-            if ent_name not in self.entities:
-                sing = inflect.engine().singular_noun(ent_name)
-                if sing in self.entities:
-                    ent_name = sing
-                else:
-                    raise AttributeError(
-                        "'get_{}' can't be called because '{}' isn't a "
-                        "recognized entity name.".format(ent_name, ent_name))
-            return partial(self.get, return_type='id', target=ent_name)
-        # Spit out default message if we get this far
-        raise AttributeError("%s object has no attribute named %r" %
-                             (self.__class__.__name__, key))
-
-    def __repr__(self):
-        # A tidy summary of key properties
-        n_sessions = len([session for isub in self.get_subjects()
-                          for session in self.get_sessions(subject=isub)])
-        n_runs = len([run for isub in self.get_subjects()
-                      for run in self.get_runs(subject=isub)])
-        n_subjects = len(self.get_subjects())
-        root = self.root[-30:]
-        s = ("BIDS Layout: ...{} | Subjects: {} | Sessions: {} | "
-             "Runs: {}".format(root, n_subjects, n_sessions, n_runs))
-        return s
-
     def clone(self):
         """ Return a deep copy of the current BIDSLayout. """
         return copy.deepcopy(self)
@@ -439,11 +436,6 @@ class BIDSLayout(object):
             kwargs['config'] = kwargs.get('config') or ['bids', 'derivatives']
             kwargs['sources'] = kwargs.get('sources') or self
             self.derivatives[pipeline_name] = BIDSLayout(deriv, **kwargs)
-
-        # Consolidate all entities post-indexing. Note: no conflicts occur b/c
-        # multiple entries with the same name all point to the same instance.
-        for deriv in self.derivatives.values():
-            self.entities.update(deriv.entities)
 
     def to_df(self, metadata=False, **kwargs):
         """
