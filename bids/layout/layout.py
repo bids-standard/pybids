@@ -872,7 +872,7 @@ class BIDSLayout(object):
         fieldmap_set = []
         suffix = '(phase1|phasediff|epi|fieldmap)'
         files = self.get(subject=sub, suffix=suffix, regex_search=True,
-                         extensions=['nii.gz', 'nii'])
+                         extension=['nii.gz', 'nii'])
         for file in files:
             metadata = self.get_metadata(file.path)
             if metadata and "IntendedFor" in metadata.keys():
@@ -908,12 +908,12 @@ class BIDSLayout(object):
                     fieldmap_set.append(cur_fieldmap)
         return fieldmap_set
 
-    def get_tr(self, derivatives=False, **selectors):
+    def get_tr(self, derivatives=False, **filters):
         """ Returns the scanning repetition time (TR) for one or more runs.
 
         Args:
             derivatives (bool): If True, also checks derivatives images.
-            selectors: Optional keywords used to constrain the selected runs.
+            filters: Optional keywords used to constrain the selected runs.
                 Can be any arguments valid for a .get call (e.g., BIDS entities
                 or JSON sidecar keys).
         
@@ -922,10 +922,10 @@ class BIDSLayout(object):
         Notes: Raises an exception if more than one unique TR is found.
         """
         # Constrain search to functional images
-        selectors.update(suffix='bold', datatype='func')
-        scope = None if derivatives else 'raw'
-        images = self.get(extensions=['.nii', '.nii.gz'], scope=scope,
-                          **selectors)
+        filters.update(suffix='bold', datatype='func')
+        scope = 'all' if derivatives else 'raw'
+        images = self.get(extension=['nii', 'nii.gz'], scope=scope,
+                          **filters)
         if not images:
             raise ValueError("No functional images that match criteria found.")
 
@@ -935,8 +935,8 @@ class BIDSLayout(object):
             all_trs.add(round(float(md['RepetitionTime']), 5))
  
         if len(all_trs) > 1:
-            raise ValueError("Unique TR cannot be found given selectors {!r}"
-                             .format(selectors))
+            raise ValueError("Unique TR cannot be found given filters {!r}"
+                             .format(filters))
         return all_trs.pop()
 
     def build_path(self, source, path_patterns=None, strict=False, scope='all'):
