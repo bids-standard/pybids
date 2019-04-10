@@ -399,7 +399,7 @@ def test_to_df(layout_ds117):
 
     # Include metadata entities
     df = layout_ds117.to_df(metadata=True)
-    assert df.shape == (115, 53)
+    assert df.shape == (115, 56)
     assert not ({'InstitutionAddress', 'TriggerChannelCount', 'EchoTime'} -
                 set(df.columns))
 

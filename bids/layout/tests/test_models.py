@@ -1,7 +1,7 @@
 import os
 import pytest
 import bids
-from bids.layout.models import BIDSFile, Entity, Tag, Base, Config, Scope
+from bids.layout.models import BIDSFile, Entity, Tag, Base, Config
 from bids.layout import BIDSLayout
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -142,9 +142,3 @@ def test_load_existing_config():
         second = Config.load({"name": "dummy"})
         session.add(second)
         session.commit()
-
-
-def test_scope_init():
-    scope = Scope(name='bids', path='/tmp')
-    assert scope.name == 'bids'
-    assert scope.path == '/tmp'
