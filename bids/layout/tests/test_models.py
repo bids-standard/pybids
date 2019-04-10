@@ -11,9 +11,7 @@ def create_session():
     engine = create_engine('sqlite://')
     Base.metadata.create_all(engine)
     Session = sessionmaker(bind=engine)
-    from bids.layout import layout
-    layout.session = Session()
-    return layout.session
+    return Session()
 
 
 @pytest.fixture
