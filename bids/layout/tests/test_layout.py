@@ -345,8 +345,8 @@ def test_get_bidsfile_image_prop():
     path = path.split('/')
     path = join(get_test_data_path(), *path)
     bf = BIDSFile(path, None)
-    assert bf.image is not None
-    assert bf.image.shape == (64, 64, 64, 64)
+    assert bf.get_image() is not None
+    assert bf.get_image().shape == (64, 64, 64, 64)
 
 
 def test_restricted_words_in_path(tmpdir):

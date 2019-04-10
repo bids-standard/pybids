@@ -364,13 +364,16 @@ class BIDSLayout(object):
         layouts = [l for l in collect_layouts(self) if l._in_scope(scope)]
         return list(set(layouts))
 
-    def get_entities(self, scope='all'):
+    def get_entities(self, scope='all', is_metadata=None):
         ''' Get entities for all layouts in the specified scope. '''
         # TODO: memoize results
         layouts = self._get_layouts_in_scope(scope)
         entities = {}
         for l in layouts:
-            results = l.session.query(Entity).all()
+            query = l.session.query(Entity)
+            if is_metadata is not None:
+                query = query.filter_by(is_metadata=is_metadata)
+            results = query.all()
             entities.update({e.name: e for e in results})
         return entities
 
@@ -497,7 +500,7 @@ class BIDSLayout(object):
         # BIDSFile and Tag tables and running a single query. But this would
         # require refactoring the below to use _build_file_query, which will
         # in turn likely require generalizing the latter.
-        files = self.get(return_type='obj', **kwargs)
+        files = self.get(**kwargs)
         file_paths = [f.path for f in files]
         query = self.session.query(Tag).filter(Tag.file_path.in_(file_paths))
 
@@ -760,7 +763,8 @@ class BIDSLayout(object):
 
 
     def get_nearest(self, path, return_type='file', strict=True, all_=False,
-                    ignore_strict_entities=None, full_search=False, **kwargs):
+                    ignore_strict_entities='extension', full_search=False,
+                    **filters):
         ''' Walk up the file tree from the specified path and return the
         nearest matching file(s).
 
@@ -774,43 +778,43 @@ class BIDSLayout(object):
                 partial matches will be allowed.
             all_ (bool): When True, returns all matching files. When False
                 (default), only returns the first match.
-            ignore_strict_entities (list): Optional list of entities to
+            ignore_strict_entities (str, list): Optional entity/entities to
                 exclude from strict matching when strict is True. This allows
                 one to search, e.g., for files of a different type while
                 matching all other entities perfectly by passing
-                ignore_strict_entities=['type'].
+                ignore_strict_entities=['type']. Ignores extension by default.
             full_search (bool): If True, searches all indexed files, even if
                 they don't share a common root with the provided path. If
                 False, only files that share a common root will be scanned.
-            kwargs: Optional keywords to pass on to .get().
+            filters: Optional keywords to pass on to .get().
         '''
 
         path = os.path.abspath(path)
 
         # Make sure we have a valid suffix
-        if not kwargs.get('suffix'):
+        if not filters.get('suffix'):
             f = self.get_file(path)
             if 'suffix' not in f.entities:
                 raise ValueError(
                     "File '%s' does not have a valid suffix, most "
                     "likely because it is not a valid BIDS file." % path
                 )
-            kwargs['suffix'] = f.entities['suffix']
+            filters['suffix'] = f.entities['suffix']
 
         # Collect matches for all entities
         entities = {}
-        for ent in self.entities.values():
+        for ent in self.get_entities(is_metadata=False).values():
             m = ent.regex.search(path)
             if m:
                 entities[ent.name] = ent._astype(m.group(1))
 
         # Remove any entities we want to ignore when strict matching is on
         if strict and ignore_strict_entities is not None:
-            for k in ignore_strict_entities:
+            for k in listify(ignore_strict_entities):
                 entities.pop(k, None)
 
         # Get candidate files
-        results = self.get(return_type='object', **kwargs)
+        results = self.get(**filters)
 
         # Make a dictionary of directories --> contained files
         folders = defaultdict(list)
@@ -868,7 +872,7 @@ class BIDSLayout(object):
 
     def get_bval(self, path, **kwargs):
         """ Get bval file for passed path. """
-        result = self.get_nearest(path, extension='bval', suffix='dwi',
+        result = self.get_nearest(path, suffix='dwi', extension='bval',
                                   all_=True, **kwargs)
         return listify(result)[0]
 
@@ -1037,7 +1041,7 @@ class BIDSLayout(object):
             kwargs (kwargs): Optional key word arguments to pass into a get()
                 query.
         """
-        _files = self.get(return_type='objects', **kwargs)
+        _files = self.get(**kwargs)
         if files:
             _files = list(set(files).intersection(_files))
 
