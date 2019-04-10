@@ -235,13 +235,11 @@ class BIDSLayout(object):
 
     @property
     def entities(self):
-        entities = self.session.query(Entity).all()
-        return {ent.name: ent for ent in entities}
+        return self.get_entities()
 
     @property
     def files(self):
-        files = self.session.query(BIDSFile).all()
-        return {f.name: f for f in files}
+        return self.get_files()
 
     def _load_db(self, database=None):
         if database is None:
@@ -358,18 +356,22 @@ class BIDSLayout(object):
 
     def get_entities(self, scope='all'):
         ''' Get entities for all layouts in the specified scope. '''
+        # TODO: memoize results
         layouts = self._get_layouts_in_scope(scope)
         entities = {}
         for l in layouts:
-            entities.update(l.entities)
+            results = l.session.query(Entity).all()
+            entities.update({e.name: e for e in results})
         return entities
 
     def get_files(self, scope='all'):
         ''' Get BIDSFiles for all layouts in the specified scope. '''
+        # TODO: memoize results
         layouts = self._get_layouts_in_scope(scope)
         files = {}
         for l in layouts:
-            files.update(l.files)
+            results = l.session.query(BIDSFile).all()
+            files.update({f.path: f for f in results})
         return files
 
     def clone(self):
@@ -552,7 +554,7 @@ class BIDSLayout(object):
 
         layouts = self._get_layouts_in_scope(scope)
 
-        entities = {ent.name: ent for ent in self.session.query(Entity).all()}
+        entities = self.get_entities()
 
         if drop_invalid_filters:
             invalid_filters = set(filters.keys()) - set(entities.keys())
