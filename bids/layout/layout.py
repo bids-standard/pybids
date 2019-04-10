@@ -6,6 +6,7 @@ from io import open
 from functools import reduce, partial
 from itertools import chain
 import copy
+import warnings
 
 from bids_validator import BIDSValidator
 from ..utils import listify, natural_sort, check_path_matches_patterns
@@ -455,6 +456,15 @@ class BIDSLayout(object):
                         sd = os.path.join(p, sd)
                         if check_for_description(sd):
                             deriv_dirs.append(sd)
+
+        if not deriv_dirs:
+            warnings.warn("Derivative indexing was requested, but no valid "
+                          "datasets were found in the specified locations "
+                          "({}). Note that all BIDS-Derivatives datasets must"
+                          " meet all the requirements for BIDS-Raw datasets "
+                          "(a common problem is to fail to include a "
+                          "dataset_description.json file in derivatives "
+                          "datasets).".format(paths))
 
         for deriv in deriv_dirs:
             dd = os.path.join(deriv, 'dataset_description.json')
