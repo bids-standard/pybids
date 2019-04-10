@@ -29,10 +29,6 @@ except ImportError:
 __all__ = ['BIDSLayout']
 
 
-# DO NOT REMOVE!!! SQLAlchemy Session must be accessible to other modules
-session = None
-
-
 def parse_file_entities(filename, entities=None, config=None,
                         include_unmatched=False):
     """ Parse the passed filename for entity/value pairs.
@@ -312,22 +308,20 @@ class BIDSLayout(object):
         pl_name = self.description.get("PipelineDescription", {}).get("Name")
         is_deriv = pl_name or ('derivatives' in self.config)
 
-        return (is_deriv and 'raw' in scope) or (not is_deriv and \
+        return (not is_deriv and 'raw' in scope) or (is_deriv and \
                 ('derivatives' in scope or pl_name in scope))
 
     def _get_layouts_in_scope(self, scope):
-        # Determine which BIDSLayouts to search
-        layouts = []
-        scope = listify(scope)
+        ''' Return all layouts in the passed scope. '''
 
-        if 'all' in scope or 'raw' in scope:
-            layouts.append(self)
-        for deriv in self.derivatives.values():
-            if ('all' in scope or 'derivatives' in scope
-                or deriv.description["PipelineDescription"]['Name'] in scope):
-                layouts.append(deriv)
-        return layouts
-    
+        def collect_layouts(layout):
+            ''' Recursively build a list of layouts '''
+            children = list(layout.derivatives.values())
+            layouts = [collect_layouts(d) for d in children]
+            return [layout] + list(chain(*layouts))
+
+        return [l for l in collect_layouts(self) if l._in_scope(scope)]
+
     def __getattr__(self, key):
         ''' Dynamically inspect missing methods for get_<entity>() calls
         and return a partial function of get() if a match is found. '''

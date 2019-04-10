@@ -498,3 +498,12 @@ def test_layout_in_scope(layout_ds005, layout_ds005_derivs):
     assert deriv._in_scope(['derivatives'])
     assert deriv._in_scope('events')
     assert not deriv._in_scope('raw')
+
+
+def test_get_layouts_in_scope(layout_ds005_multi_derivs):
+    l = layout_ds005_multi_derivs
+    assert len(l._get_layouts_in_scope('all')) == 3
+    assert len(l._get_layouts_in_scope('nonexistent')) == 0
+    assert len(l._get_layouts_in_scope(['events', 'dummy'])) == 2
+    assert len(l._get_layouts_in_scope(['derivatives'])) == 2
+    assert len(l._get_layouts_in_scope('raw')) == 1
