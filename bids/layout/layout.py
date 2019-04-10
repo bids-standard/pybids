@@ -746,7 +746,7 @@ class BIDSLayout(object):
         return index.get_collections(level, variables, merge,
                                      sampling_rate=sampling_rate)
 
-    def get_metadata(self, path, include_entities=False, **kwargs):
+    def get_metadata(self, path, include_entities=False, scope='all'):
         """Return metadata found in JSON sidecars for the specified file.
 
         Args:
@@ -754,8 +754,9 @@ class BIDSLayout(object):
             include_entities (bool): If True, all available entities extracted
                 from the filename (rather than JSON sidecars) are included in
                 the returned metadata dictionary.
-            kwargs (dict): Optional keyword arguments to pass onto
-                get_nearest().
+            scope (str, list): The scope of the search space. Each element must
+                be one of 'all', 'raw', 'derivatives', or a BIDS-Derivatives
+                pipeline name. Defaults to searching all available datasets.
 
         Returns: A dictionary of key/value pairs extracted from all of the
             target file's associated JSON sidecars.
@@ -767,15 +768,20 @@ class BIDSLayout(object):
             precedence, per the inheritance rules in the BIDS specification.
         """
 
-        query = (self.session.query(Tag)
-                             .join(BIDSFile)
-                             .filter(BIDSFile.path==path))
+        for layout in self._get_layouts_in_scope(scope):
 
-        if not include_entities:
-            query = query.join(Entity).filter(Entity.is_metadata==True)
+            query = (layout.session.query(Tag)
+                                   .join(BIDSFile)
+                                   .filter(BIDSFile.path==path))
 
-        results = query.all()
-        return {t.entity_name: t.value for t in results}
+            if not include_entities:
+                query = query.join(Entity).filter(Entity.is_metadata==True)
+
+            results = query.all()
+            if results:
+                return {t.entity_name: t.value for t in results}
+
+        return {}
 
 
     def get_nearest(self, path, return_type='file', strict=True, all_=False,
