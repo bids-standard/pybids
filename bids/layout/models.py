@@ -209,13 +209,8 @@ class BIDSFile(Base):
         raise AttributeError("%s object has no attribute named %r" %
                              (self.__class__.__name__, attr))
 
-    # def __repr__(self):
-    #     source = ''
-    #     layout = self.parent.layout
-    #     if layout.sources:
-    #         source = ", root='{}'".format(os.path.basename(layout.root))
-    #     return "<BIDSFile filename='{}'{}>".format(
-    #         os.path.relpath(self.path, start=layout.root), source)
+    def __repr__(self):
+        return "<BIDSFile filename='{}'>".format(self.path)
 
     @property
     def image(self):
