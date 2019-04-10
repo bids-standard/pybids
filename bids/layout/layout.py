@@ -666,6 +666,12 @@ class BIDSLayout(object):
             regex = kwargs.get('regex_search', False)
             for name, val in filters.items():
                 if regex:
+                    if isinstance(val, (list, tuple)):
+                        raise ValueError(
+                            "When regex searching is enabled, you cannot pass "
+                            "lists as values—only strings are allowed. "
+                            "Invalid value for keyword {}: {}".format(
+                                name, val))
                     query = (query.filter(BIDSFile.tags.any(entity_name=name))
                              .filter(BIDSFile.tags._value.op('REGEXP')(val)))
                 else:
@@ -877,7 +883,7 @@ class BIDSLayout(object):
         sub = self.parse_file_entities(path)['subject']
         fieldmap_set = []
         suffix = '(phase1|phasediff|epi|fieldmap)'
-        files = self.get(subject=sub, suffix=suffix, regex_search=True,
+        files = self.get(subject=sub, suffix=suffix, regex_search=False,
                          extension=['nii.gz', 'nii'])
         for file in files:
             metadata = self.get_metadata(file.path)
