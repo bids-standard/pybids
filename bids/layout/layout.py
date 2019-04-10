@@ -191,7 +191,7 @@ class BIDSLayout(object):
                   for c in listify(config)]
         self.config = {c.name: c for c in config}
 
-        index_layout(self, config, None, index_metadata=True)
+        index_layout(self, config, self.force_index, index_metadata=True)
 
         # Add derivatives if any are found
         if derivatives:
