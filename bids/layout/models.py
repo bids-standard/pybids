@@ -98,7 +98,7 @@ class BIDSFile(Base):
         self.derivatives = derivatives
         self.is_dir = is_dir
 
-    def _matches(self, entities=None, extensions=None, regex_search=False):
+    def _matches(self, entities=None, extension=None, regex_search=False):
         """
         Checks whether the file matches all of the passed entities and
         extensions.
@@ -112,9 +112,9 @@ class BIDSFile(Base):
         Returns:
             True if _all_ entities and extensions match; False otherwise.
         """
-        if extensions is not None:
-            extensions = map(re.escape, listify(extensions))
-            extensions = '(' + '|'.join(extensions) + ')$'
+        if extension is not None:
+            extension = map(re.escape, listify(extensions))
+            extension = '(' + '|'.join(extensions) + ')$'
             if re.search(extensions, self.filename) is None:
                 return False
 

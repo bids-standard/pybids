@@ -130,7 +130,7 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
 
     selectors['datatype'] = 'func'
     selectors['suffix'] = 'bold'
-    images = layout.get(return_type='object', extensions='.nii.gz',
+    images = layout.get(return_type='object', extension='.nii.gz',
                         scope=scope, **selectors)
 
     if not images:
@@ -146,8 +146,7 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
         if 'run' in entities:
             entities['run'] = int(entities['run'])
 
-        tr = layout.get_metadata(img_f, suffix='bold', scope=scope,
-                                 full_search=True)['RepetitionTime']
+        tr = layout.get_metadata(img_f, scope=scope)['RepetitionTime']
 
         # Get duration of run: first try to get it directly from the image
         # header; if that fails, try to get NumberOfVolumes from the
@@ -172,7 +171,7 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
 
         # Process event files
         if events:
-            dfs = layout.get_nearest(img_f, extensions='.tsv', suffix='events',
+            dfs = layout.get_nearest(img_f, extension='.tsv', suffix='events',
                                       all_=True, full_search=True,
                                       ignore_strict_entities=['suffix'])
             if dfs is not None:
@@ -245,7 +244,7 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
             rec_types.append('stim')
 
         if rec_types:
-            rec_files = layout.get_nearest(img_f, extensions='.tsv.gz',
+            rec_files = layout.get_nearest(img_f, extension='.tsv.gz',
                                            all_=True, suffix=rec_types,
                                            ignore_strict_entities=['suffix'],
                                            full_search=True)
@@ -328,7 +327,7 @@ def _load_tsv_variables(layout, suffix, dataset=None, columns=None,
     if dataset is None:
         dataset = NodeIndex()
 
-    files = layout.get(extensions='.tsv', return_type='file', suffix=suffix,
+    files = layout.get(extension='.tsv', return_type='file', suffix=suffix,
                        scope=scope, **layout_kwargs)
 
     for f in files:
