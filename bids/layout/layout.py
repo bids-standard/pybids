@@ -574,8 +574,11 @@ class BIDSLayout(object):
             raise ValueError(("Unknown target '{}'. " + message)
                              .format(target))
 
-        results = self._build_file_query(scope=scope, filters=filters,
-                                             regex_search=regex_search).all()
+        results = []
+        for l in layouts:
+            query =l._build_file_query(scope=scope, filters=filters,
+                                       regex_search=regex_search)
+            results.extend(query.all())
 
         # Convert to relative paths if needed
         if absolute_paths is None:  # can be overloaded as option to .get
