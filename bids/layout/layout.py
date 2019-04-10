@@ -556,6 +556,12 @@ class BIDSLayout(object):
 
         entities = self.get_entities()
 
+        # For consistency with past versions where "extensions" was a
+        # hard-coded argument, allow leading periods
+        if 'extension' in filters:
+            exts = listify(filters['extension'])
+            filters['extension'] = [x.lstrip('.') for x in exts]
+
         if drop_invalid_filters:
             invalid_filters = set(filters.keys()) - set(entities.keys())
             if invalid_filters:
