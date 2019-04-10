@@ -15,6 +15,7 @@ from .models import Base, Config, BIDSFile, Entity, Tag
 from .index import index_layout
 from .. import config as cf
 import sqlalchemy as sa
+from sqlalchemy.orm import joinedload
 
 try:
     from os.path import commonpath
@@ -596,7 +597,11 @@ class BIDSLayout(object):
         results = []
         for l in layouts:
             query = l._build_file_query(filters=filters,
-                                       regex_search=regex_search)
+                                        regex_search=regex_search)
+            # Eager load associations, because mixing queries from different
+            # DB sessions causes objects to detach
+            query = query.options(joinedload(BIDSFile.tags)
+                                 .joinedload(Tag.entity))
             results.extend(query.all())
 
         # Convert to relative paths if needed
@@ -616,6 +621,7 @@ class BIDSLayout(object):
             if target is None:
                 raise ValueError('If return_type is "id" or "dir", a valid '
                                  'target entity must also be specified.')
+
             results = [x for x in results if target in x.entities]
 
             if return_type == 'id':
