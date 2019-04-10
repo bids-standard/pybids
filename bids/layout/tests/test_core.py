@@ -3,7 +3,6 @@ import os
 import copy
 
 from bids.layout.models import Config, BIDSFile, Entity
-from bids.layout.index import BIDSRootNode
 from bids import BIDSLayout
 from bids.tests import get_test_data_path
 
@@ -22,7 +21,7 @@ def sample_bidsfile(tmpdir):
 @pytest.fixture(scope='module')
 def subject_entity():
     return Entity('subject', "[/\\\\]sub-([a-zA-Z0-9]+)", False,
-               "{subject}", None, bleargh=True)
+               "{subject}")
 
 
 def test_config_init_bare():
@@ -84,8 +83,6 @@ def test_entity_init_all_args(subject_entity):
     assert ent.pattern == "[/\\\\]sub-([a-zA-Z0-9]+)"
     assert ent.mandatory == False
     assert ent.directory == "{subject}"
-    assert ent.map_func is None
-    assert ent.kwargs == {'bleargh': True}
 
 
 def test_entity_init_with_bad_dtype():
@@ -98,8 +95,7 @@ def test_entity_init_with_bad_dtype():
 def test_entity_deepcopy(subject_entity):
     e = subject_entity
     clone = copy.deepcopy(subject_entity)
-    for attr in ['name', 'pattern', 'mandatory', 'directory', 'map_func',
-                 'regex', 'kwargs']:
+    for attr in ['name', 'pattern', 'mandatory', 'directory', 'regex']:
         assert getattr(e, attr) == getattr(clone, attr)
     assert e != clone
 
@@ -113,39 +109,14 @@ def test_entity_matches(tmpdir):
     assert result == '4'
 
 
-def test_entity_matches_with_map_func(sample_bidsfile):
-    bf = sample_bidsfile
-    e = Entity('test', map_func=lambda x: x.filename.split('-')[1])
-    assert e.match_file(bf) == '03_ses'
-
-
-def test_entity_unique_and_count():
-    e = Entity('prop', r'-(\d+)')
-    e.files = {
-        'test1-10.txt': '10',
-        'test2-7.txt': '7',
-        'test3-7.txt': '7'
-    }
-    assert sorted(e.unique()) == ['10', '7']
-    assert e.count() == 2
-    assert e.count(files=True) == 3
-
-
-def test_entity_add_file():
-    e = Entity('prop', r'-(\d+)')
-    e.add_file('a', '1')
-    assert e.files['a'] == '1'
-
-
 def test_bidsfile_init():
     path = '/tmp/sub-03_ses-2_task-rest_acq-pfc_run-2_bold.nii.gz'
     bf = BIDSFile(path)
     assert bf.path == path
     assert bf.dirname == os.path.dirname(path)
     assert bf.filename == os.path.basename(path)
-    assert bf.tags == []
+    assert bf.tags == {}
     assert bf.entities == {}
-    assert bf.parent is None
 
 
 def test_bidsfile_matches(sample_bidsfile):
@@ -194,6 +165,6 @@ def test_bidsfile_image_property():
     path = os.path.join(get_test_data_path(), 'synthetic', 'sub-01', 'ses-01',
                         'func', 'sub-01_ses-01_task-nback_run-01_bold.nii.gz')
     bf = BIDSFile(path)
-    img = bf.image
+    img = bf.get_image()
     assert img.__class__.__name__ == 'Nifti1Image'
     assert img.header.get_data_shape() == (64, 64, 64, 64)
