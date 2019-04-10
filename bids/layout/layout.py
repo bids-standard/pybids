@@ -347,7 +347,7 @@ class BIDSLayout(object):
         # We assume something is a BIDS-derivatives dataset if it either has a
         # defined pipeline name, or is applying the 'derivatives' rules.
         pl_name = self.description.get("PipelineDescription", {}).get("Name")
-        is_deriv = pl_name or ('derivatives' in self.config)
+        is_deriv = bool(pl_name or ('derivatives' in self.config))
 
         return (not is_deriv and 'raw' in scope) or (is_deriv and \
                 ('derivatives' in scope or pl_name in scope))
@@ -361,7 +361,8 @@ class BIDSLayout(object):
             layouts = [collect_layouts(d) for d in children]
             return [layout] + list(chain(*layouts))
 
-        return [l for l in collect_layouts(self) if l._in_scope(scope)]
+        layouts = [l for l in collect_layouts(self) if l._in_scope(scope)]
+        return list(set(layouts))
 
     def get_entities(self, scope='all'):
         ''' Get entities for all layouts in the specified scope. '''
@@ -591,7 +592,7 @@ class BIDSLayout(object):
 
         results = []
         for l in layouts:
-            query =l._build_file_query(scope=scope, filters=filters,
+            query = l._build_file_query(filters=filters,
                                        regex_search=regex_search)
             results.extend(query.all())
 
@@ -660,8 +661,11 @@ class BIDSLayout(object):
         Returns: A BIDSFile, or None if no match was found.
         '''
         filename = os.path.abspath(os.path.join(self.root, filename))
-        query = self._build_file_query(scope=scope)
-        return query.first() or None
+        for layout in self._get_layouts_in_scope(scope):
+            result = layout.session.query(BIDSFile).filter_by(path=filename).first()
+            if result:
+                return result
+        return None
 
     def _build_file_query(self, **kwargs):
 
