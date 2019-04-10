@@ -90,13 +90,17 @@ class BIDSFile(Base):
     entities = association_proxy("tags", "value")
     is_dir = Column(Boolean)
 
-    def __init__(self, filename, derivatives=False,
-                 is_dir=False):
+    def __init__(self, filename, derivatives=False, is_dir=False):
         self.path = filename
         self.filename = os.path.basename(self.path)
         self.dirname = os.path.dirname(self.path)
         self.derivatives = derivatives
         self.is_dir = is_dir
+        self._init
+
+    @reconstructor
+    def _init_on_load(self):
+        self._data = None
 
     def _matches(self, entities=None, extension=None, regex_search=False):
         """
@@ -212,6 +216,11 @@ class BIDSFile(Base):
     def __repr__(self):
         return "<BIDSFile filename='{}'>".format(self.path)
 
+    def get_data(self):
+        """ Returns the contents of the file as a pandas DataFrame. """
+        pass
+
+
     def get_image(self):
         """ Return the associated image file (if it exists) as a NiBabel object
         """
@@ -223,6 +232,7 @@ class BIDSFile(Base):
                              "NiBabel can read.".format(self.path))
 
     def get_metadata(self):
+        """ Returns all metadata associated with the current file. """
         session = object_session(self)
         query = (session.query(Tag)
                         .filter_by(file_path=self.path)
