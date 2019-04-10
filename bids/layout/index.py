@@ -47,7 +47,7 @@ def index_layout(layout, config, force_index=None, index_metadata=True):
 
         # Skip files that fail validation, unless forcibly indexing
         if not force_index and not layout._validate_file(abs_fn):
-            return None, entities
+            return None
 
         bf = BIDSFile(abs_fn)
         session.add(bf)
@@ -69,7 +69,7 @@ def index_layout(layout, config, force_index=None, index_metadata=True):
 
         session.commit()
 
-        return bf, match_vals
+        return bf
 
     def index_dir(path, config, parent=None, force_index=False):
 
@@ -99,35 +99,42 @@ def index_layout(layout, config, force_index=None, index_metadata=True):
 
             # Process JSON files first if we're indexing metadata
             if index_metadata:
-                sidecars = []
 
-                for f in filenames:
-                    if f.endswith('.json'):
-                        filenames.remove(f)
-                        bf, file_ents = _index_file(f, dirpath, config_entities)
-                        if bf is None:
-                            continue
-                        suffix = file_ents.pop('suffix', None)
-                        if suffix is not None:
-                            with open(os.path.join(dirpath, f), 'r') as handle:
-                                payload = json.load(handle)
-                                if payload:
-                                    to_store = (set(file_ents.keys()), payload)
-                                    json_data[path][suffix].append(to_store)
+                json_files = [f for f in filenames if f.endswith('.json')]
+                filenames = [f for f in filenames if not f.endswith('.json')]
 
+                for f in json_files:
+
+                    bf = _index_file(f, dirpath, config_entities)
+                    if bf is None:
+                        continue
+                    file_ents = bf.entities.copy()
+
+                    suffix = file_ents.pop('suffix', None)
+                    file_ents.pop('extension', None)
+
+                    if suffix is not None:
+                        json_file = os.path.join(dirpath, f)
+                        with open(json_file, 'r') as handle:
+                            payload = json.load(handle)
+                            if payload:
+                                to_store = (file_ents, payload)
+                                json_data[path][suffix].append(to_store)
+
+                filenames = [f for f in filenames if not f.endswith('.json')]
 
             for f in filenames:
 
-                bf, file_ents = _index_file(f, dirpath, config_entities)
-
+                bf = _index_file(f, dirpath, config_entities)
                 if bf is None:
                     continue
+                file_ents = bf.entities.copy()
 
                 # Add metadata
                 if index_metadata:
 
                     suffix = file_ents.pop('suffix', None)
-                    file_ents = set(file_ents.keys())
+                    file_ent_keys = set(file_ents.keys())
 
                     if suffix is None:
                         continue
@@ -144,8 +151,13 @@ def index_layout(layout, config, force_index=None, index_metadata=True):
                     target = dirpath
                     while True:
                         if target in json_data and suffix in json_data[target]:
-                            for (js_ents, js_md) in json_data[target][suffix]:
-                                if not (js_ents - file_ents):
+                            for js_ents, js_md in json_data[target][suffix]:
+                                js_keys = set(js_ents.keys())
+                                if (js_keys - file_ent_keys):
+                                    continue
+                                matches = [js_ents[name] == file_ents[name]
+                                           for name in js_keys]
+                                if all(matches):
                                     payloads.append(js_md)
 
                         parent = os.path.dirname(target)
