@@ -206,10 +206,11 @@ class BIDSLayout(object):
         and return a partial function of get() if a match is found. '''
         if key.startswith('get_'):
             ent_name = key.replace('get_', '')
+            entities = self.get_entities()
             # Use inflect to check both singular and plural forms
-            if ent_name not in self.entities:
+            if ent_name not in entities:
                 sing = inflect.engine().singular_noun(ent_name)
-                if sing in self.entities:
+                if sing in entities:
                     ent_name = sing
                 else:
                     raise AttributeError(
@@ -236,6 +237,11 @@ class BIDSLayout(object):
     def entities(self):
         entities = self.session.query(Entity).all()
         return {ent.name: ent for ent in entities}
+
+    @property
+    def files(self):
+        files = self.session.query(BIDSFile).all()
+        return {f.name: f for f in files}
 
     def _load_db(self, database=None):
         if database is None:
@@ -349,6 +355,22 @@ class BIDSLayout(object):
             return [layout] + list(chain(*layouts))
 
         return [l for l in collect_layouts(self) if l._in_scope(scope)]
+
+    def get_entities(self, scope='all'):
+        ''' Get entities for all layouts in the specified scope. '''
+        layouts = self._get_layouts_in_scope(scope)
+        entities = {}
+        for l in layouts:
+            entities.update(l.entities)
+        return entities
+
+    def get_files(self, scope='all'):
+        ''' Get BIDSFiles for all layouts in the specified scope. '''
+        layouts = self._get_layouts_in_scope(scope)
+        files = {}
+        for l in layouts:
+            files.update(l.files)
+        return files
 
     def clone(self):
         """ Return a deep copy of the current BIDSLayout. """
