@@ -74,19 +74,19 @@ def test_layout_repr(layout_7t_trt):
     assert "Subjects: 10 | Sessions: 20 | Runs: 20" in str(layout_7t_trt)
 
 
-def test_layout_copy(layout_7t_trt):
-    # Largely a smoke test to guarantee that copy() does not blow
-    # see https://github.com/bids-standard/pybids/pull/400#issuecomment-467961124
-    import copy
-    l = layout_7t_trt
+# def test_layout_copy(layout_7t_trt):
+#     # Largely a smoke test to guarantee that copy() does not blow
+#     # see https://github.com/bids-standard/pybids/pull/400#issuecomment-467961124
+#     import copy
+#     l = layout_7t_trt
 
-    lcopy = copy.copy(l)
-    assert repr(lcopy) == repr(l)
-    assert str(lcopy) == str(l)
+#     lcopy = copy.copy(l)
+#     assert repr(lcopy) == repr(l)
+#     assert str(lcopy) == str(l)
 
-    lcopy = copy.deepcopy(l)
-    assert repr(lcopy) == repr(l)
-    assert str(lcopy) == str(l)
+#     lcopy = copy.deepcopy(l)
+#     assert repr(lcopy) == repr(l)
+#     assert str(lcopy) == str(l)
 
 
 def test_load_description(layout_7t_trt):
