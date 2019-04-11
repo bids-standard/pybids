@@ -89,7 +89,7 @@ class BIDSFile(Base):
     dirname = Column(String)
     entities = association_proxy("tags", "value")
     is_dir = Column(Boolean)
-    associations = relationship('BIDSFile',
+    _associations = relationship('BIDSFile',
         secondary = 'associations',
         primaryjoin = 'FileAssociation.dst == BIDSFile.path',
         secondaryjoin = 'FileAssociation.src == BIDSFile.path')
@@ -153,7 +153,7 @@ class BIDSFile(Base):
     def get_associations(self, kind=None):
         """ Get associated files, optionally limiting by association kind. """
         if kind is None:
-            return self.associations
+            return self._associations
         session = object_session(self)
         q = (session.query(BIDSFile)
                     .join(FileAssociation, BIDSFile.path == FileAssociation.dst)

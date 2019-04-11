@@ -86,8 +86,8 @@ def test_file_associations():
     ]
     session.add_all([img, md1, md2] + assocs)
     session.commit()
-    assert img.associations == [md1, md2]
-    assert md2.associations == [md1]
+    assert img._associations == [md1, md2] == img.get_associations()
+    assert md2._associations == [md1]
     assert img.get_associations(kind='MetadataFor') == []
     assert img.get_associations(kind='MetadataIn') == [md1]
 
