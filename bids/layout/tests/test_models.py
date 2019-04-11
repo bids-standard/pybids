@@ -1,7 +1,8 @@
 import os
 import pytest
 import bids
-from bids.layout.models import BIDSFile, Entity, Tag, Base, Config
+from bids.layout.models import (BIDSFile, Entity, Tag, Base, Config,
+                                FileAssociation)
 from bids.layout import BIDSLayout
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -71,16 +72,17 @@ def test_entity_matches(tmpdir):
     assert result == '4'
 
 
-# def test_entity_unique_and_count():
-#     e = Entity('prop', r'-(\d+)')
-#     e.files = {
-#         'test1-10.txt': '10',
-#         'test2-7.txt': '7',
-#         'test3-7.txt': '7'
-#     }
-#     assert sorted(e.unique()) == ['10', '7']
-#     assert e.count() == 2
-#     assert e.count(files=True) == 3
+def test_file_associations():
+    session = create_session()
+    img = BIDSFile('sub-03/func/sub-03_task-rest_run-2_bold.nii.gz')
+    md1 = BIDSFile('sub-03/func/sub-03_task-rest_run-2_bold.json')
+    md2 = BIDSFile('task-rest_run-2_bold.json')
+    assoc1 = FileAssociation(src=md1.path, dst=img.path, kind="BelongsTo")
+    assoc2 = FileAssociation(src=md1.path, dst=md2.path, kind="InheritsFrom")
+    session.add_all([img, md1, md2, assoc1, assoc2])
+    session.commit()
+    assert img.associations == [md1]
+    assert md2.associations == [md1]
 
 
 def test_tag_dtype(sample_bidsfile, subject_entity):

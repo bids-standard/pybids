@@ -89,6 +89,10 @@ class BIDSFile(Base):
     dirname = Column(String)
     entities = association_proxy("tags", "value")
     is_dir = Column(Boolean)
+    associations = relationship('BIDSFile',
+        secondary = 'associations',
+        primaryjoin = 'FileAssociation.dst == BIDSFile.path',
+        secondaryjoin = 'FileAssociation.src == BIDSFile.path')
 
     def __init__(self, filename, derivatives=False, is_dir=False):
         self.path = filename
@@ -413,6 +417,14 @@ class Tag(Base):
         else:
             self.dtype = eval(self._dtype)
             self.value = self.dtype(self._value)
+
+
+class FileAssociation(Base):
+    __tablename__ = 'associations'
+
+    src = Column(String, ForeignKey('files.path'), primary_key=True)
+    dst = Column(String, ForeignKey('files.path'), primary_key=True)
+    kind = Column(String)
 
 
 # Association objects
