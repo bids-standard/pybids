@@ -5,6 +5,7 @@ from bids.layout.models import BIDSFile, Entity, Tag, Base, Config
 from bids.layout import BIDSLayout
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+import numpy as np
 
 
 def create_session():
@@ -140,3 +141,21 @@ def test_load_existing_config():
         second = Config.load({"name": "dummy"})
         session.add(second)
         session.commit()
+
+
+def test_bidsfile_get_df_from_tsv_gz(layout_synthetic):
+    bf = layout_synthetic.get(suffix='physio', extension='tsv.gz')[0]
+
+    # With onsets
+    df1 = bf.get_df()
+    df2 = bf.get_df(include_timing=True)
+    assert df1.equals(df2)
+    assert df1.shape == (1599, 3)
+    assert set(df1.columns) == {'onset', 'respiratory', 'cardiac'}
+    assert df1.iloc[0, 0] == 0. 
+    assert df1.iloc[1, 0] - df1.iloc[0, 0] == 0.1
+
+    # With onsets and time shifted
+    df3 = bf.get_df(adjust_onset=True)
+    assert df1.iloc[:, 1:].equals(df3.iloc[:, 1:])
+    assert np.allclose(df3.iloc[:,0], df1.iloc[:, 0] + 22.8)

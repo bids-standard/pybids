@@ -96,7 +96,7 @@ class BIDSFile(Base):
         self.dirname = os.path.dirname(self.path)
         self.derivatives = derivatives
         self.is_dir = is_dir
-        self._init
+        self._init_on_load()
 
     @reconstructor
     def _init_on_load(self):
@@ -209,10 +209,36 @@ class BIDSFile(Base):
     def __repr__(self):
         return "<BIDSFile filename='{}'>".format(self.path)
 
-    def get_data(self):
+    def get_df(self, include_timing=True, adjust_onset=False):
         """ Returns the contents of the file as a pandas DataFrame. """
-        pass
 
+        ext = self.entities['extension']
+        if ext not in ['tsv', 'tsv.gz']:
+            raise ValueError(
+                "get_df() can only be called on BIDSFiles with a .tsv or "
+                ".tsv.gz extension. Invalid extension: '{}'".format(ext))
+
+        import pandas as pd
+        import numpy as np
+
+        # TODO: memoize method instead of just caching the raw data
+        if self._data is None:
+            self._data = pd.read_csv(self.path, sep='\t', na_values='n/a')
+
+        data = self._data.copy()
+        md = self.get_metadata()
+
+        if ext == 'tsv.gz':
+            # We could potentially include some validation here, but that seems
+            # like a job for the BIDS Validator.
+            data.columns = md['Columns']
+            if include_timing:
+                onsets = np.arange(len(data)) / md['SamplingFrequency']
+                if adjust_onset:
+                    onsets += md['StartTime']
+                data.insert(0, 'onset', onsets)
+
+        return data
 
     def get_image(self):
         """ Return the associated image file (if it exists) as a NiBabel object

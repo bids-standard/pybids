@@ -214,8 +214,9 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
                         if df.empty:
                             continue
 
-                        var = SparseRunVariable(name=col, data=df, run_info=run_info,
-                                                source='events')
+                        var = SparseRunVariable(
+                            name=col, data=df, run_info=run_info,
+                            source='events')
                         run.add_variable(var)
 
         # Process confound files
