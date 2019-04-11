@@ -124,6 +124,7 @@ def test_get_metadata_meg(layout_ds117):
     metadata_keys = ['MEGChannelCount', 'SoftwareFilters', 'SubjectArtefactDescription']
     assert all([k in result for k in metadata_keys])
 
+
 def test_get_metadata5(layout_7t_trt):
     target = 'sub-01/ses-1/func/sub-01_ses-1_task-rest_acq-fullbrain_run-1_bold.nii.gz'
     target = target.split('/')

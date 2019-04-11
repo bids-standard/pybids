@@ -9,7 +9,7 @@ from copy import deepcopy
 from collections import defaultdict, namedtuple
 
 from .writing import build_path, write_contents_to_file
-from .models import Config, BIDSFile, Entity, Tag
+from .models import Config, BIDSFile, Entity, Tag, FileAssociation
 from ..utils import listify, check_path_matches_patterns
 from ..config import get_option
 from ..external import six
@@ -156,7 +156,7 @@ def _index_metadata(layout):
             with open(bf.path, 'r') as handle:
                 payload = json.load(handle)
                 if payload:
-                    to_store = (file_ents, payload)
+                    to_store = (file_ents, payload, bf.path)
                     if bf.dirname not in json_data:
                         json_data[bf.dirname] = defaultdict(list)
                     json_data[bf.dirname][suffix].append(to_store)
@@ -181,22 +181,33 @@ def _index_metadata(layout):
         target = bf.dirname
         while True:
             if target in json_data and suffix in json_data[target]:
-                for js_ents, js_md in json_data[target][suffix]:
+                for js_ents, js_md, js_path in json_data[target][suffix]:
                     js_keys = set(js_ents.keys())
                     if (js_keys - file_ent_keys):
                         continue
                     matches = [js_ents[name] == file_ents[name]
                                 for name in js_keys]
                     if all(matches):
-                        payloads.append(js_md)
+                        payloads.append((js_md, js_path))
 
             parent = os.path.dirname(target)
             if parent == target:
                 break
             target = parent
 
+        if not payloads:
+            continue
+
+        # Create DB records for metadata associations
+        js_file = payloads[-1][1]
+        associations = [
+            FileAssociation(src=js_file, dst=bf.path, kind='MetadataFor'),
+            FileAssociation(src=bf.path, dst=js_file, kind='MetadataIn')
+        ]
+        session.add_all(associations)
+
         file_md = {}
-        for pl in payloads[::-1]:
+        for pl, _ in payloads[::-1]:
             file_md.update(pl)
 
         # Create database records, including any new Entities
