@@ -77,12 +77,19 @@ def test_file_associations():
     img = BIDSFile('sub-03/func/sub-03_task-rest_run-2_bold.nii.gz')
     md1 = BIDSFile('sub-03/func/sub-03_task-rest_run-2_bold.json')
     md2 = BIDSFile('task-rest_run-2_bold.json')
-    assoc1 = FileAssociation(src=md1.path, dst=img.path, kind="BelongsTo")
-    assoc2 = FileAssociation(src=md1.path, dst=md2.path, kind="InheritsFrom")
-    session.add_all([img, md1, md2, assoc1, assoc2])
+    assocs = [
+        FileAssociation(src=md1.path, dst=img.path, kind="MetadataFor"),
+        FileAssociation(src=img.path, dst=md1.path, kind="MetadataIn"),
+        FileAssociation(src=md1.path, dst=md2.path, kind="ChildOf"),
+        FileAssociation(src=md2.path, dst=md1.path, kind="ParentOf"),
+        FileAssociation(src=md2.path, dst=img.path, kind="Informs")
+    ]
+    session.add_all([img, md1, md2] + assocs)
     session.commit()
-    assert img.associations == [md1]
+    assert img.associations == [md1, md2]
     assert md2.associations == [md1]
+    assert img.get_associations(kind='MetadataFor') == []
+    assert img.get_associations(kind='MetadataIn') == [md1]
 
 
 def test_tag_dtype(sample_bidsfile, subject_entity):

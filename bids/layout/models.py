@@ -150,6 +150,17 @@ class BIDSFile(Base):
 
         return True
 
+    def get_associations(self, kind=None):
+        """ Get associated files, optionally limiting by association kind. """
+        if kind is None:
+            return self.associations
+        session = object_session(self)
+        q = (session.query(BIDSFile)
+                    .join(FileAssociation, BIDSFile.path == FileAssociation.dst)
+                    .filter_by(kind=kind, src=self.path))
+        return q.all()
+        
+
     def copy(self, path_patterns, symbolic_link=False, root=None,
              conflicts='fail'):
         """ Copy the contents of a file to a new location.
