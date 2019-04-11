@@ -58,8 +58,6 @@ def index_layout(layout, force_index=None, index_metadata=True):
                 tag = Tag(bf, ent, str(val), ent._dtype)
                 session.add(tag)
 
-        session.commit()
-
         return bf
 
     def index_dir(path, config, parent=None, force_index=False):
@@ -92,9 +90,8 @@ def index_layout(layout, force_index=None, index_metadata=True):
                 bf = _index_file(f, dirpath, config_entities)
                 if bf is None:
                     continue
-                file_ents = bf.entities.copy()
 
-                session.commit()
+            session.commit()
 
             # Recursively index subdirectories
             for d in dirnames:
@@ -202,19 +199,15 @@ def _index_metadata(layout):
         for pl in payloads[::-1]:
             file_md.update(pl)
 
-        tags = []
-
         # Create database records, including any new Entities
         for md_key, md_val in file_md.items():
             if md_key not in all_entities:
                 all_entities[md_key] = Entity(md_key, is_metadata=True)
                 session.add(all_entities[md_key])
-                session.commit()
             tag = Tag(bf, all_entities[md_key], md_val)
-            tags.append(tag)
+            session.add(tag)
 
-        session.add_all(tags)
-        if len(session.new) > 1000:
+        if len(session.new) >= 1000:
             session.commit()
 
     session.commit()
