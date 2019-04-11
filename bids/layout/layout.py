@@ -191,7 +191,7 @@ class BIDSLayout(object):
                   for c in listify(config)]
         self.config = {c.name: c for c in config}
 
-        index_layout(self, config, self.force_index, index_metadata=True)
+        index_layout(self, self.force_index, index_metadata=True)
 
         # Add derivatives if any are found
         if derivatives:
@@ -981,7 +981,7 @@ class BIDSLayout(object):
 
         all_trs = set()
         for img in images:
-            md = self.get_metadata(img.path, suffix='bold', full_search=True)
+            md = self.get_metadata(img.path, full_search=True)
             all_trs.add(round(float(md['RepetitionTime']), 5))
  
         if len(all_trs) > 1:

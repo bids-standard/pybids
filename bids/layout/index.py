@@ -6,7 +6,7 @@ import json
 from keyword import iskeyword
 import warnings
 from copy import deepcopy
-from collections import defaultdict
+from collections import defaultdict, namedtuple
 
 from .writing import build_path, write_contents_to_file
 from .models import Config, BIDSFile, Entity, Tag
@@ -26,20 +26,11 @@ def _extract_entities(bidsfile, entities):
     return match_vals
 
 
-def index_layout(layout, config, force_index=None, index_metadata=True):
+def index_layout(layout, force_index=None, index_metadata=True):
 
     session = layout.session
     root_path = layout.root
-
-    # Track ALL entities we've seen in file names or metadata, starting with
-    # those found in the configs
-    all_entities = {}
-    for c in config:
-        all_entities.update(c.entities)
-
-    # For metadata indexing, we build up a store of all JSON data as we walk
-    # the file tree. It looks like: { dirname: { suffix: (entities, payload)}}
-    json_data = {}
+    config = list(layout.config.values())
 
     def _index_file(f, dirpath, entities):
         ''' Create DB record for file and its tags. '''
@@ -88,8 +79,7 @@ def index_layout(layout, config, force_index=None, index_metadata=True):
         for c in config:
             config_entities.update(c.entities)
 
-        if index_metadata:
-            json_data[path] = defaultdict(list)
+        # JSONFile = namedtuple('JSONFile', ['entities', 'payload', 'parent'])
 
         for (dirpath, dirnames, filenames) in os.walk(path):
 
@@ -97,86 +87,12 @@ def index_layout(layout, config, force_index=None, index_metadata=True):
             if layout.config_filename in filenames:
                 filenames.remove(layout.config_filename)
 
-            # Process JSON files first if we're indexing metadata
-            if index_metadata:
-
-                json_files = [f for f in filenames if f.endswith('.json')]
-                filenames = [f for f in filenames if not f.endswith('.json')]
-
-                for f in json_files:
-
-                    bf = _index_file(f, dirpath, config_entities)
-                    if bf is None:
-                        continue
-                    file_ents = bf.entities.copy()
-
-                    suffix = file_ents.pop('suffix', None)
-                    file_ents.pop('extension', None)
-
-                    if suffix is not None:
-                        json_file = os.path.join(dirpath, f)
-                        with open(json_file, 'r') as handle:
-                            payload = json.load(handle)
-                            if payload:
-                                to_store = (file_ents, payload)
-                                json_data[path][suffix].append(to_store)
-
-                filenames = [f for f in filenames if not f.endswith('.json')]
-
             for f in filenames:
 
                 bf = _index_file(f, dirpath, config_entities)
                 if bf is None:
                     continue
                 file_ents = bf.entities.copy()
-
-                # Add metadata
-                if index_metadata:
-
-                    suffix = file_ents.pop('suffix', None)
-                    file_ent_keys = set(file_ents.keys())
-
-                    if suffix is None:
-                        continue
-
-                    # Extract metadata associated with the file. The idea is
-                    # that we loop over parent directories, and if we find
-                    # payloads in the json_data store (indexing by directory
-                    # and current file suffix), we check to see if the
-                    # candidate JS file's entities are entirely consumed by
-                    # the current file. If so, it's a valid candidate, and we
-                    # add the payload to the stack. Finally, we invert the
-                    # stack and merge the payloads in order.
-                    payloads = []
-                    target = dirpath
-                    while True:
-                        if target in json_data and suffix in json_data[target]:
-                            for js_ents, js_md in json_data[target][suffix]:
-                                js_keys = set(js_ents.keys())
-                                if (js_keys - file_ent_keys):
-                                    continue
-                                matches = [js_ents[name] == file_ents[name]
-                                           for name in js_keys]
-                                if all(matches):
-                                    payloads.append(js_md)
-
-                        parent = os.path.dirname(target)
-                        if parent == target:
-                            break
-                        target = parent
-
-                    file_md = {}
-                    for pl in payloads[::-1]:
-                        file_md.update(pl)
-
-                    # Create database records, including any new Entities
-                    for md_key, md_val in file_md.items():
-                        if md_key not in all_entities:
-                            all_entities[md_key] = Entity(md_key, is_metadata=True)
-                            session.add(all_entities[md_key])
-                            session.commit()
-                        tag = Tag(bf, all_entities[md_key], md_val)
-                        session.add(tag)
 
                 session.commit()
 
@@ -212,3 +128,93 @@ def index_layout(layout, config, force_index=None, index_metadata=True):
             break
     
     index_dir(root_path, config, None, force_index)
+
+    if index_metadata:
+        _index_metadata(layout)
+
+
+def _index_metadata(layout):
+    # Process JSON files first if we're indexing metadata
+
+    session = layout.session
+    all_files = layout.get()
+    json_files = [bf for bf in all_files if bf.path.endswith('.json')]
+    filenames = [bf for bf in all_files if not bf.path.endswith('.json')]
+
+    # Wwe build up a store of all JSON data as we iterate files. It looks like:
+    # { dirname: { suffix: (entities, payload)}}
+    json_data = {}
+
+    # Track ALL entities we've seen in file names or metadatas
+    all_entities = {}
+    for c in layout.config.values():
+        all_entities.update(c.entities)
+
+    for bf in json_files:
+        file_ents = bf.entities.copy()
+        suffix = file_ents.pop('suffix', None)
+        file_ents.pop('extension', None)
+
+        if suffix is not None:
+            with open(bf.path, 'r') as handle:
+                payload = json.load(handle)
+                if payload:
+                    to_store = (file_ents, payload)
+                    if bf.dirname not in json_data:
+                        json_data[bf.dirname] = defaultdict(list)
+                    json_data[bf.dirname][suffix].append(to_store)
+
+    for bf in filenames:
+        file_ents = bf.entities.copy()
+        suffix = file_ents.pop('suffix', None)
+        file_ent_keys = set(file_ents.keys())
+
+        if suffix is None:
+            continue
+
+        # Extract metadata associated with the file. The idea is
+        # that we loop over parent directories, and if we find
+        # payloads in the json_data store (indexing by directory
+        # and current file suffix), we check to see if the
+        # candidate JS file's entities are entirely consumed by
+        # the current file. If so, it's a valid candidate, and we
+        # add the payload to the stack. Finally, we invert the
+        # stack and merge the payloads in order.
+        payloads = []
+        target = bf.dirname
+        while True:
+            if target in json_data and suffix in json_data[target]:
+                for js_ents, js_md in json_data[target][suffix]:
+                    js_keys = set(js_ents.keys())
+                    if (js_keys - file_ent_keys):
+                        continue
+                    matches = [js_ents[name] == file_ents[name]
+                                for name in js_keys]
+                    if all(matches):
+                        payloads.append(js_md)
+
+            parent = os.path.dirname(target)
+            if parent == target:
+                break
+            target = parent
+
+        file_md = {}
+        for pl in payloads[::-1]:
+            file_md.update(pl)
+
+        tags = []
+
+        # Create database records, including any new Entities
+        for md_key, md_val in file_md.items():
+            if md_key not in all_entities:
+                all_entities[md_key] = Entity(md_key, is_metadata=True)
+                session.add(all_entities[md_key])
+                session.commit()
+            tag = Tag(bf, all_entities[md_key], md_val)
+            tags.append(tag)
+
+        session.add_all(tags)
+        if len(session.new) > 1000:
+            session.commit()
+
+    session.commit()

@@ -159,7 +159,7 @@ class BIDSFile(Base):
                     .join(FileAssociation, BIDSFile.path == FileAssociation.dst)
                     .filter_by(kind=kind, src=self.path))
         return q.all()
-        
+
 
     def copy(self, path_patterns, symbolic_link=False, root=None,
              conflicts='fail'):
