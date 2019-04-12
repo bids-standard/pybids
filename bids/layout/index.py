@@ -134,7 +134,7 @@ def _index_metadata(layout):
     # Process JSON files first if we're indexing metadata
 
     session = layout.session
-    all_files = layout.get()
+    all_files = layout.get(absolute_paths=True)
 
     # Track ALL entities we've seen in file names or metadatas
     all_entities = {}
