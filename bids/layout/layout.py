@@ -541,7 +541,7 @@ class BIDSLayout(object):
         Args:
             return_type (str): Type of result to return. Valid values:
                 'object' (default): return a list of matching BIDSFile objects.
-                'file': return a list of matching filenames.
+                'file' or 'filename': return a list of matching filenames.
                 'dir': return a list of directories.
                 'id': return a list of unique IDs. Must be used together with
                     a valid target.
@@ -625,7 +625,7 @@ class BIDSLayout(object):
                 f.path = os.path.relpath(f.path, self.root)
                 results[i] = f
 
-        if return_type == 'file':
+        if return_type.startswith('file'):
             results = natural_sort([f.path for f in results])
 
         elif return_type in ['id', 'dir']:
@@ -662,7 +662,7 @@ class BIDSLayout(object):
 
             else:
                 raise ValueError("Invalid return_type specified (must be one "
-                                 "of 'tuple', 'file', 'id', or 'dir'.")
+                                 "of 'tuple', 'filename', 'id', or 'dir'.")
         else:
             results = natural_sort(results, 'path')
 
@@ -785,16 +785,16 @@ class BIDSLayout(object):
         return {}
 
 
-    def get_nearest(self, path, return_type='file', strict=True, all_=False,
-                    ignore_strict_entities='extension', full_search=False,
-                    **filters):
+    def get_nearest(self, path, return_type='filename', strict=True,
+                    all_=False, ignore_strict_entities='extension',
+                    full_search=False, **filters):
         ''' Walk up the file tree from the specified path and return the
         nearest matching file(s).
 
         Args:
             path (str): The file to search from.
-            return_type (str): What to return; must be one of 'file' (default)
-                or 'tuple'.
+            return_type (str): What to return; must be one of 'filename'
+                (default) or 'tuple'.
             strict (bool): When True, all entities present in both the input
                 path and the target file(s) must match perfectly. When False,
                 files will be ordered by the number of matching entities, and
@@ -884,7 +884,8 @@ class BIDSLayout(object):
             if not all_:
                 break
 
-        matches = [m.path if return_type == 'file' else m for m in matches]
+        matches = [m.path if return_type.startswith('file')
+                   else m for m in matches]
         return matches if all_ else matches[0] if matches else None
 
     def get_bvec(self, path, **kwargs):
