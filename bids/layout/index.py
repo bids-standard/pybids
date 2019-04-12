@@ -165,7 +165,14 @@ def _index_metadata(layout):
             to_store = (file_ents, payload, bf.path)
             file_data[key][bf.dirname].append(to_store)
 
+    def create_association_pair(src, dst, kind, kind2=None):
+        kind2 = kind2 or kind
+        assoc1 = FileAssociation(src=src, dst=dst, kind=kind)
+        assoc2 = FileAssociation(src=dst, dst=src, kind=kind2)
+        session.add_all([assoc1, assoc2])
 
+    # TODO: Efficiency of everything in this loop could be improved—though
+    # in practice this all still takes << time than the BIDSFile creation above
     filenames = [bf for bf in all_files if not bf.path.endswith('.json')]
     for bf in filenames:
         file_ents = bf.entities.copy()
@@ -223,11 +230,7 @@ def _index_metadata(layout):
 
         # Create DB records for metadata associations
         js_file = payloads[-1][1]
-        associations = [
-            FileAssociation(src=js_file, dst=bf.path, kind='Metadata'),
-            FileAssociation(src=bf.path, dst=js_file, kind='Metadata')
-        ]
-        session.add_all(associations)
+        create_association_pair(js_file, bf.path, 'Metadata')
 
         # Consolidate metadata for file by looping over inherited JSON files
         file_md = {}
@@ -239,24 +242,38 @@ def _index_metadata(layout):
         for i, (pl, js_file) in enumerate(payloads):
             if (i + 1) < n_pl:
                 other = payloads[i+1][1]
-                associations = [
-                    FileAssociation(src=js_file, dst=other, kind='Child'),
-                    FileAssociation(src=other, dst=js_file, kind='Parent')
-                ]
-                session.add_all(associations)
+                create_association_pair(js_file, other, 'Child', 'Parent')
 
         # Inheritance for current file
         n_pl = len(ancestors)
         for i, src in enumerate(ancestors):
             if (i + 1) < n_pl:
                 dst = ancestors[i+1]
-                associations = [
-                    FileAssociation(src=src, dst=dst, kind='Child'),
-                    FileAssociation(src=dst, dst=src, kind='Parent')
-                ]
-                session.add_all(associations)
+                create_association_pair(src, dst, 'Child', 'Parent')
 
-        # Create database records, including any new Entities
+        # Files with IntendedFor field always get mapped to targets
+        intended = listify(file_md.get('IntendedFor', []))
+        for target in intended:
+            # Per spec, IntendedFor paths are (annoyingly) relative to sub dir.
+            target = os.path.join(
+                layout.root, 'sub-{}'.format(bf.entities['subject']), target)
+            create_association_pair(bf.path, target, 'IntendedFor', 'InformedBy')
+
+        # Link files to BOLD runs
+        if suffix in ['physio', 'stim', 'events', 'sbref']:
+            images = layout.get(**file_ents, extension=['nii', 'nii.gz'],
+                                 suffix='bold', return_type='filename')
+            for img in images:
+                create_association_pair(bf.path, img, 'IntendedFor', 'InformedBy')
+
+        # Link files to DWI runs
+        if suffix == 'sbref' or ext in ['bvec', 'bval']:
+            images = layout.get(**file_ents, extension=['nii', 'nii.gz'],
+                                 suffix='dwi', return_type='filename')
+            for img in images:
+                create_association_pair(bf.path, img, 'IntendedFor', 'InformedBy')
+
+        # Create Tag <-> Entity mappings, and any newly discovered Entities
         for md_key, md_val in file_md.items():
             if md_key not in all_entities:
                 all_entities[md_key] = Entity(md_key, is_metadata=True)

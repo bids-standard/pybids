@@ -5,7 +5,7 @@ import os
 import pytest
 import bids
 from bids.layout import BIDSLayout, parse_file_entities, add_config_paths
-from bids.layout.models import BIDSFile, Entity, Config
+from bids.layout.models import BIDSFile, Entity, Config, FileAssociation
 from os.path import join, abspath, basename, dirname
 from bids.tests import get_test_data_path
 from bids.utils import natural_sort
@@ -453,3 +453,24 @@ def test_get_layouts_in_scope(layout_ds005_multi_derivs):
     assert len(l._get_layouts_in_scope(['events', 'dummy'])) == 2
     assert len(l._get_layouts_in_scope(['derivatives'])) == 2
     assert len(l._get_layouts_in_scope('raw')) == 1
+
+
+def test_indexed_file_associations(layout_7t_trt):
+    img = layout_7t_trt.get(subject='01', run=1, suffix='bold', session='1',
+                            acquisition='fullbrain', extension='nii.gz')[0]
+    assocs = img.get_associations()
+    assert len(assocs) == 3
+    targets = [
+        os.path.join(layout_7t_trt.root,
+                     'sub-01/ses-1/fmap/sub-01_ses-1_run-1_phasediff.nii.gz'),
+        os.path.join(img.dirname,
+                     'sub-01_ses-1_task-rest_acq-fullbrain_run-1_physio.tsv.gz'),
+        os.path.join(layout_7t_trt.root, 'task-rest_acq-fullbrain_bold.json')
+    ]
+    assert set([a.path for a in assocs]) == set(targets)
+
+    js = [a for a in assocs if a.path.endswith('json')][0]
+    assert len(js.get_associations()) == 41
+    assert len(js.get_associations('Parent')) == 1
+    assert len(js.get_associations('Metadata')) == 40
+    assert not js.get_associations('InformedBy')
