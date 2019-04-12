@@ -114,15 +114,15 @@ class BIDSLayout(object):
         index_associated (bool): Argument passed onto the BIDSValidator;
             ignored if validate = False.
         absolute_paths (bool): If True, queries always return absolute paths.
-            If False, queries return relative paths (for files and directories),
-            unless the root argument was left empty (in which case the root
-            defaults to the file system root).
+            If False, queries return relative paths (for files and directories).
         derivatives (bool, str, list): Specifies whether and/or which
             derivatives to to index. If True, all pipelines found in the
             derivatives/ subdirectory will be indexed. If a str or list, gives
             the paths to one or more derivatives directories to index. If False
             or None, the derivatives/ directory is ignored during indexing, and
             derivatives will have to be added manually via add_derivatives().
+            Note: derivatives datasets MUST contain a dataset_description.json
+            file in order to be indexed.
         config (str, list): Optional name(s) of configuration file(s) to use.
             By default (None), uses 'bids'.
         sources (BIDLayout, list): Optional BIDSLayout(s) from which the
@@ -444,6 +444,10 @@ class BIDSLayout(object):
                 pipeline directory (e.g., derivatives/fmriprep).
             kwargs (dict): Optional keyword arguments to pass on to
                 BIDSLayout() when initializing each of the derivative datasets.
+
+        Note: Every derivatives directory intended for indexing MUST contain a
+            valid dataset_description.json file. See the BIDS-Derivatives
+            specification for details.
         '''
         paths = listify(path)
         deriv_dirs = []
@@ -565,19 +569,24 @@ class BIDSLayout(object):
             regex_search (bool or None): Whether to require exact matching
                 (False) or regex search (True) when comparing the query string
                 to each entity.
-            absolute_paths (bool): Optional the instance wide option to either
-                report absolute or relative (to the top of the dataset) paths.
-            drop_invalid_filters (bool): If False, any invalid filters (i.e.,
-                non-existent entities/keywords) are included (in which case the
-                query will always return nothing). If True, implicitly strips
-                invalid filters.
-            filters (dict): Any optional key/values to filter the entities on.
+            absolute_paths (bool): Optionally override the instance-wide option
+                to report either absolute or relative (to the top of the
+                dataset) paths. If None, will fall back on the value specified
+                at BIDSLayout initialization.
+           filters (dict): Any optional key/values to filter the entities on.
                 Keys are entity names, values are regexes to filter on. For
                 example, passing filter={'subject': 'sub-[12]'} would return
                 only files that match the first two subjects.
 
         Returns:
             A list of BIDSFiles (default) or strings (see return_type).
+
+        Notes:
+            As of pybids 0.7.0 some keywords have been changed. Namely: 'type'
+            becomes 'suffix', 'modality' becomes 'datatype', 'acq' becomes 
+            'acquisition' and 'mod' becomes 'modality'. Using the wrong version 
+            could result in get() silently returning wrong or no results. See 
+            the changelog for more details.
         """
 
         # Warn users still expecting 0.6 behavior
@@ -1012,7 +1021,17 @@ class BIDSLayout(object):
                   values
             path_patterns (list): Optional path patterns to use to construct
                 the new file path. If None, the Layout-defined patterns will
-                be used.
+                be used. Entities should be represented by the name
+                surrounded by curly braces. Optional portions of the patterns
+                should be denoted by square brackets. Entities that require a
+                specific value for the pattern to match can pass them inside
+                carets. Default values can be assigned by specifying a string
+                after the pipe operator. E.g., (e.g., {type<image>|bold} would
+                only match the pattern if the entity 'type' was passed and its
+                value is "image", otherwise the default value "bold" will be
+                used).
+                    Example: 'sub-{subject}/[var-{name}/]{id}.csv'
+                    Result: 'sub-01/var-SES/1045.csv'
             strict (bool): If True, all entities must be matched inside a
                 pattern in order to be a valid match. If False, extra entities
                 will be ignored so long as all mandatory entities are found.
