@@ -123,14 +123,14 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
     '''
 
     # Extract any non-keyword arguments
-    kwargs = selectors.copy()
+    selectors = selectors.copy()
 
     if dataset is None:
         dataset = NodeIndex()
 
     selectors['datatype'] = 'func'
     selectors['suffix'] = 'bold'
-    images = layout.get(return_type='object', extension='.nii.gz',
+    images = layout.get(return_type='object', extension='nii.gz',
                         scope=scope, **selectors)
 
     if not images:
@@ -171,53 +171,50 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
 
         # Process event files
         if events:
-            dfs = layout.get_nearest(img_f, extension='.tsv', suffix='events',
-                                      all_=True, full_search=True,
-                                      ignore_strict_entities=['suffix'])
-            if dfs is not None:
-                for _data in dfs:
-                    _data = pd.read_csv(_data, sep='\t')
-                    if 'amplitude' in _data.columns:
-                        if (_data['amplitude'].astype(int) == 1).all() and \
-                                'trial_type' in _data.columns:
-                            msg = ("Column 'amplitude' with constant value 1 "
-                                   "is unnecessary in event files; ignoring "
-                                   "it.")
-                            _data = _data.drop('amplitude', axis=1)
-                        else:
-                            msg = ("Column name 'amplitude' is reserved; "
-                                   "renaming it to 'amplitude_'.")
-                            _data = _data.rename(
-                                columns={'amplitude': 'amplitude_'})
-                        warnings.warn(msg)
+            dfs = layout.get_nearest(
+                img_f, extension='tsv', suffix='events', all_=True,
+                full_search=True, ignore_strict_entities=['suffix', 'extension'])
+            for _data in dfs:
+                _data = pd.read_csv(_data, sep='\t')
+                if 'amplitude' in _data.columns:
+                    if (_data['amplitude'].astype(int) == 1).all() and \
+                            'trial_type' in _data.columns:
+                        msg = ("Column 'amplitude' with constant value 1 "
+                                "is unnecessary in event files; ignoring it.")
+                        _data = _data.drop('amplitude', axis=1)
+                    else:
+                        msg = ("Column name 'amplitude' is reserved; "
+                                "renaming it to 'amplitude_'.")
+                        _data = _data.rename(
+                            columns={'amplitude': 'amplitude_'})
+                    warnings.warn(msg)
 
-                    _data = _data.replace('n/a', np.nan)  # Replace BIDS' n/a
-                    _data = _data.apply(pd.to_numeric, errors='ignore')
+                _data = _data.replace('n/a', np.nan)  # Replace BIDS' n/a
+                _data = _data.apply(pd.to_numeric, errors='ignore')
 
-                    _cols = columns or list(set(_data.columns.tolist()) -
-                                            {'onset', 'duration'})
+                _cols = columns or list(set(_data.columns.tolist()) -
+                                        {'onset', 'duration'})
 
-                    # Construct a DataFrame for each extra column
-                    for col in _cols:
-                        df = _data[['onset', 'duration']].copy()
-                        df['amplitude'] = _data[col].values
+                # Construct a DataFrame for each extra column
+                for col in _cols:
+                    df = _data[['onset', 'duration']].copy()
+                    df['amplitude'] = _data[col].values
 
-                        # Add in all of the run's entities as new columns for
-                        # index
-                        for entity, value in entities.items():
-                            if entity in ALL_ENTITIES:
-                                df[entity] = value
+                    # Add in all of the run's entities as new columns for
+                    # index
+                    for entity, value in entities.items():
+                        if entity in ALL_ENTITIES:
+                            df[entity] = value
 
-                        if drop_na:
-                            df = df.dropna(subset=['amplitude'])
+                    if drop_na:
+                        df = df.dropna(subset=['amplitude'])
 
-                        if df.empty:
-                            continue
+                    if df.empty:
+                        continue
 
-                        var = SparseRunVariable(
-                            name=col, data=df, run_info=run_info,
-                            source='events')
-                        run.add_variable(var)
+                    var = SparseRunVariable(
+                        name=col, data=df, run_info=run_info, source='events')
+                    run.add_variable(var)
 
         # Process confound files
         if regressors:
@@ -245,10 +242,9 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
             rec_types.append('stim')
 
         if rec_types:
-            rec_files = layout.get_nearest(img_f, extension='.tsv.gz',
-                                           all_=True, suffix=rec_types,
-                                           ignore_strict_entities=['suffix'],
-                                           full_search=True)
+            rec_files = layout.get_nearest(
+                img_f, extension='tsv.gz', all_=True, suffix=rec_types,
+                ignore_strict_entities=['suffix', 'extension'], full_search=True)
             for rf in rec_files:
                 metadata = layout.get_metadata(rf)
                 if not metadata:
@@ -276,7 +272,7 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
                     values = data.values
 
                 if st > 0:
-                    n_pad = freq * st
+                    n_pad = int(freq * st)
                     pad = np.zeros((n_pad, n_cols))
                     values = np.r_[pad, values]
 
@@ -328,12 +324,11 @@ def _load_tsv_variables(layout, suffix, dataset=None, columns=None,
     if dataset is None:
         dataset = NodeIndex()
 
-    files = layout.get(extension='.tsv', return_type='file', suffix=suffix,
-                       scope=scope, **layout_kwargs)
+    files = layout.get(extension='tsv', suffix=suffix, scope=scope,
+                       **layout_kwargs)
 
     for f in files:
 
-        f = layout.files[f]
         _data = pd.read_csv(f.path, sep='\t')
 
         # Entities can be defined either within the first column of the .tsv
@@ -352,16 +347,17 @@ def _load_tsv_variables(layout, suffix, dataset=None, columns=None,
             # Suffix is guaranteed to be present in each filename, so drop the
             # constant column with value 'scans' to make way for it and prevent
             # two 'suffix' columns.
-            _data.drop(columns='suffix', inplace=True)
+            _data.drop(columns=['suffix'], inplace=True)
 
             image = _data['filename']
             _data = _data.drop('filename', axis=1)
             dn = f.dirname
             paths = [join(dn, p) for p in image.values]
-            ent_recs = [layout.files[p].entities for p in paths
+            ent_recs = [dict(layout.files[p].entities) for p in paths
                         if p in layout.files]
             ent_cols = pd.DataFrame.from_records(ent_recs)
             _data = pd.concat([_data, ent_cols], axis=1, sort=True)
+            _data.drop(columns=['extension'], inplace=True)
             # It's possible to end up with duplicate entity columns this way
             _data = _data.T.drop_duplicates().T
 
