@@ -225,6 +225,7 @@ class BIDSLayout(object):
 
     def __repr__(self):
         # A tidy summary of key properties
+        # TODO: Replace each nested list comprehension with a single DB query
         n_sessions = len([session for isub in self.get_subjects()
                           for session in self.get_sessions(subject=isub)])
         n_runs = len([run for isub in self.get_subjects()
@@ -981,7 +982,7 @@ class BIDSLayout(object):
 
         all_trs = set()
         for img in images:
-            md = self.get_metadata(img.path, full_search=True)
+            md = self.get_metadata(img.path)
             all_trs.add(round(float(md['RepetitionTime']), 5))
  
         if len(all_trs) > 1:

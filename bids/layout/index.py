@@ -234,10 +234,8 @@ def _index_metadata(layout):
         for pl, js_file in payloads[::-1]:
             file_md.update(pl)
 
-        # Create FileAssociation records for inheritance (separately for JSON
-        # files and everything else).
+        # Create FileAssociation records for JSON inheritance
         n_pl = len(payloads)
-        if n_pl > 1:
         for i, (pl, js_file) in enumerate(payloads):
             if (i + 1) < n_pl:
                 other = payloads[i+1][1]

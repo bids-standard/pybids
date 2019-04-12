@@ -89,10 +89,9 @@ class BIDSFile(Base):
     dirname = Column(String)
     entities = association_proxy("tags", "value")
     is_dir = Column(Boolean)
-    _associations = relationship('BIDSFile',
-        secondary = 'associations',
-        primaryjoin = 'FileAssociation.dst == BIDSFile.path',
-        secondaryjoin = 'FileAssociation.src == BIDSFile.path')
+    _associations = relationship('BIDSFile', secondary='associations',
+        primaryjoin='FileAssociation.dst == BIDSFile.path',
+        secondaryjoin='FileAssociation.src == BIDSFile.path')
 
     def __init__(self, filename, derivatives=False, is_dir=False):
         self.path = filename

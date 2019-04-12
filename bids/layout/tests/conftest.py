@@ -7,31 +7,31 @@ from bids.tests import get_test_data_path
 
 
 # Fixture uses in the rest of the tests
-@pytest.fixture
+@pytest.fixture(scope="module")
 def layout_7t_trt():
     data_dir = join(get_test_data_path(), '7t_trt')
     return BIDSLayout(data_dir)
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def layout_7t_trt_relpath():
     data_dir = join(get_test_data_path(), '7t_trt')
     return BIDSLayout(data_dir, absolute_paths=False)
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def layout_ds005():
     data_dir = join(get_test_data_path(), 'ds005')
     return BIDSLayout(data_dir)
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def layout_ds117():
     data_dir = join(get_test_data_path(), 'ds000117')
     return BIDSLayout(data_dir)
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def layout_ds005_derivs():
     data_dir = join(get_test_data_path(), 'ds005')
     layout = BIDSLayout(data_dir)
@@ -40,7 +40,7 @@ def layout_ds005_derivs():
     return layout
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def layout_ds005_multi_derivs():
     data_dir = join(get_test_data_path(), 'ds005')
     layout = BIDSLayout(data_dir)
@@ -50,13 +50,13 @@ def layout_ds005_multi_derivs():
     return layout
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def layout_ds005_models():
     data_dir = join(get_test_data_path(), 'ds005')
     return BIDSLayout(data_dir, validate=True, force_index=['models'])
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def layout_synthetic():
     path = join(get_test_data_path(), 'synthetic')
     return BIDSLayout(path, derivatives=True)
