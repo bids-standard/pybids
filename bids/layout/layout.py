@@ -147,6 +147,11 @@ class BIDSLayout(object):
             search (False, default) when comparing the query string to each
             entity in .get() calls. This sets a default for the instance, but
             can be overridden in individual .get() requests.
+        database (str): Optional path to SQLite database containing the index
+            for this BIDS dataset. If a value is passed, indexing is skipped.
+        index_metadata (bool): If True, all metadata files are indexed at
+            initialization. If False, metadata will not be available (but
+            indexing will be faster).
     """
 
     _default_ignore = {"code", "stimuli", "sourcedata", "models",
@@ -156,7 +161,7 @@ class BIDSLayout(object):
                  absolute_paths=True, derivatives=False, config=None,
                  sources=None, ignore=None, force_index=None,
                  config_filename='layout_config.json', regex_search=False,
-                 database=None):
+                 database=None, index_metadata=True):
 
         self.root = root
         self._validator = BIDSValidator(index_associated=index_associated)
@@ -191,7 +196,7 @@ class BIDSLayout(object):
                   for c in listify(config)]
         self.config = {c.name: c for c in config}
 
-        index_layout(self, self.force_index, index_metadata=True)
+        index_layout(self, self.force_index, index_metadata=index_metadata)
 
         # Add derivatives if any are found
         if derivatives:
@@ -202,6 +207,9 @@ class BIDSLayout(object):
                 index_associated=index_associated,
                 absolute_paths=absolute_paths, derivatives=None, config=None,
                 sources=self, ignore=ignore, force_index=force_index)
+
+        # Store for all generated BIDSNodes
+        self._nodes = {}
 
     def __getattr__(self, key):
         ''' Dynamically inspect missing methods for get_<entity>() calls
