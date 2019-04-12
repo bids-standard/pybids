@@ -72,7 +72,7 @@ def test_run_variable_collection_to_df(run_coll):
 
     # All variables dense, wide format
     df = run_coll.to_df(sparse=False)
-    assert df.shape == (230400, 14)
+    assert df.shape == (230400, 17)
     assert set(df.columns) == wide_cols - {'trial_type'}
 
     # All variables dense, wide format
