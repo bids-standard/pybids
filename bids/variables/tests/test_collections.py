@@ -73,12 +73,13 @@ def test_run_variable_collection_to_df(run_coll):
     # All variables dense, wide format
     df = run_coll.to_df(sparse=False)
     assert df.shape == (230400, 17)
-    assert set(df.columns) == wide_cols - {'trial_type'}
+    extra_cols = {'TaskName', 'RepetitionTime', 'extension'}
+    assert set(df.columns) == (wide_cols | extra_cols) - {'trial_type'}
 
     # All variables dense, wide format
     df = run_coll.to_df(sparse=False, format='long')
-    assert df.shape == (1612800, 9)
-    assert set(df.columns) == long_cols
+    assert df.shape == (1612800, 12)
+    assert set(df.columns) == (long_cols | extra_cols)
 
 
 def test_merge_collections(run_coll, run_coll_list):
