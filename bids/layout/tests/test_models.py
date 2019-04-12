@@ -80,8 +80,8 @@ def test_file_associations():
     assocs = [
         FileAssociation(src=md1.path, dst=img.path, kind="MetadataFor"),
         FileAssociation(src=img.path, dst=md1.path, kind="MetadataIn"),
-        FileAssociation(src=md1.path, dst=md2.path, kind="ChildOf"),
-        FileAssociation(src=md2.path, dst=md1.path, kind="ParentOf"),
+        FileAssociation(src=md1.path, dst=md2.path, kind="Child"),
+        FileAssociation(src=md2.path, dst=md1.path, kind="Parent"),
         FileAssociation(src=md2.path, dst=img.path, kind="Informs")
     ]
     session.add_all([img, md1, md2] + assocs)
@@ -90,6 +90,8 @@ def test_file_associations():
     assert md2._associations == [md1]
     assert img.get_associations(kind='MetadataFor') == []
     assert img.get_associations(kind='MetadataIn') == [md1]
+    results = img.get_associations(kind='MetadataIn', include_parents=True)
+    assert set(results) == {md1, md2}
 
 
 def test_tag_dtype(sample_bidsfile, subject_entity):

@@ -9,6 +9,7 @@ import os
 import warnings
 import json
 from copy import deepcopy
+from itertools import chain
 
 from .writing import build_path, write_contents_to_file
 from ..utils import listify, check_path_matches_patterns
@@ -149,7 +150,7 @@ class BIDSFile(Base):
 
         return True
 
-    def get_associations(self, kind=None):
+    def get_associations(self, kind=None, include_parents=False):
         """ Get associated files, optionally limiting by association kind. """
         if kind is None:
             return self._associations
@@ -157,8 +158,18 @@ class BIDSFile(Base):
         q = (session.query(BIDSFile)
                     .join(FileAssociation, BIDSFile.path == FileAssociation.dst)
                     .filter_by(kind=kind, src=self.path))
-        return q.all()
+        associations = q.all()
 
+        if not include_parents:
+            return associations
+
+        def collect_associations(results, bidsfile):
+            results.append(bidsfile)
+            for p in bidsfile.get_associations('Child'):
+                results = collect_associations(results, p)
+            return results
+
+        return chain(*[collect_associations([], bf) for bf in associations])
 
     def copy(self, path_patterns, symbolic_link=False, root=None,
              conflicts='fail'):
