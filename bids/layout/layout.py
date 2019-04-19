@@ -147,8 +147,14 @@ class BIDSLayout(object):
             search (False, default) when comparing the query string to each
             entity in .get() calls. This sets a default for the instance, but
             can be overridden in individual .get() requests.
-        database (str): Optional path to SQLite database containing the index
-            for this BIDS dataset. If a value is passed, indexing is skipped.
+        database_file (str): Optional path to SQLite database containing the
+            index for this BIDS dataset. If a value is passed, indexing is
+            skipped.
+        reset_database (bool): If True, any existing file specified in the
+            database_file argument is deleted, and the BIDS dataset provided
+            in the root argument is reindexed. If False, indexing will be
+            skipped and the existing database file will be used. Ignored if
+            database_file is not provided.
         index_metadata (bool): If True, all metadata files are indexed at
             initialization. If False, metadata will not be available (but
             indexing will be faster).
@@ -161,7 +167,8 @@ class BIDSLayout(object):
                  absolute_paths=True, derivatives=False, config=None,
                  sources=None, ignore=None, force_index=None,
                  config_filename='layout_config.json', regex_search=False,
-                 database=None, index_metadata=True):
+                 database_file=None, reset_database=False,
+                 index_metadata=True):
 
         self.root = root
         self._validator = BIDSValidator(index_associated=index_associated)
@@ -179,9 +186,9 @@ class BIDSLayout(object):
                             if isinstance(patt, six.string_types) else patt
                             for patt in listify(force_index or [])]
 
-        self.database = database
+        self.database_file = database_file
         self.session = None
-        self._load_db(database)
+        index_dataset = self._start_session(database_file, reset_database)
 
         # Do basic BIDS validation on root directory
         self._validate_root()
@@ -206,7 +213,9 @@ class BIDSLayout(object):
                 derivatives, validate=validate,
                 index_associated=index_associated,
                 absolute_paths=absolute_paths, derivatives=None, config=None,
-                sources=self, ignore=ignore, force_index=force_index)
+                sources=self, ignore=ignore, force_index=force_index,
+                config_filename=config_filename, regex_search=regex_search,
+                reset_database=reset_database, index_metadata=index_metadata)
 
         # Store for all generated BIDSNodes
         self._nodes = {}
@@ -252,10 +261,14 @@ class BIDSLayout(object):
     def files(self):
         return self.get_files()
 
-    def _load_db(self, database=None):
-        if database is None:
-            database = ''
-        engine = sa.create_engine('sqlite://{}'.format(database))
+    def _start_session(self, database_file=None, reset_database=False):
+        if database_file is None:
+            database_file = os.path.join(self.root, '.index.db')
+        database_file = os.path.abspath(database_file)
+        if not (reset_database or os.path.exists(database_file)):
+            reset_database = True
+
+        engine = sa.create_engine('sqlite:///{}'.format(database_file))
 
         def regexp(expr, item):
             ''' Regex function for SQLite's REGEXP. '''
@@ -265,13 +278,18 @@ class BIDSLayout(object):
         conn = engine.connect()
         conn.connection.create_function('REGEXP', 2, regexp)
 
-        if database == '':
+        if reset_database:
+            Base.metadata.drop_all(engine)
             Base.metadata.create_all(engine)
+
+        self.database_file = os.path.relpath(database_file, self.root)
         self.session = sa.orm.sessionmaker(bind=engine)()
         # Also store globally for access from other modules.
         # TODO: Decide whether to encapsulate this—but this would require
         # passing around the Layout.
         globals()['session'] = self.session
+
+        return reset_database
 
     def _validate_root(self):
         # Validate root argument and make sure it contains mandatory info

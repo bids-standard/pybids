@@ -102,3 +102,6 @@ doc/generated/
 
 # Pytest
 .pytest_cache/
+
+# BIDSLayout indexes (SQLite3 DBs)
+*index.db
