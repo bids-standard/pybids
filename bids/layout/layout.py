@@ -276,7 +276,12 @@ class BIDSLayout(object):
             return reg.search(item) is not None
 
         conn = engine.connect()
-        conn.connection.create_function('REGEXP', 2, regexp)
+        # Do not remove this decorator!!! An in-line create_function call will
+        # work when using an in-memory SQLite DB, but fails when using a file.
+        # For more details, see https://stackoverflow.com/questions/12461814/
+        @sa.event.listens_for(engine, "begin")
+        def do_begin(conn):
+            conn.connection.create_function('regexp', 2, regexp)
 
         if reset_database:
             Base.metadata.drop_all(engine)
@@ -288,6 +293,8 @@ class BIDSLayout(object):
         # TODO: Decide whether to encapsulate this—but this would require
         # passing around the Layout.
         globals()['session'] = self.session
+
+
 
         return reset_database
 
