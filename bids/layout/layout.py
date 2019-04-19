@@ -196,14 +196,17 @@ class BIDSLayout(object):
         # Initialize the BIDS validator and examine ignore/force_index args
         self._setup_file_validator()
 
-        # Set up configs
-        if config is None:
-            config = 'bids'
-        config = [Config.load(c, session=self.session)
-                  for c in listify(config)]
-        self.config = {c.name: c for c in config}
-
-        index_layout(self, self.force_index, index_metadata=index_metadata)
+        if index_dataset:
+            # Create Config objects and index layout
+            if config is None:
+                config = 'bids'
+            config = [Config.load(c, session=self.session)
+                    for c in listify(config)]
+            self.config = {c.name: c for c in config}
+            index_layout(self, self.force_index, index_metadata=index_metadata)
+        else:
+            # Load Configs from DB
+            self.config = {c.name: c for c in self.session.query(Config).all()}
 
         # Add derivatives if any are found
         if derivatives:
@@ -216,9 +219,6 @@ class BIDSLayout(object):
                 sources=self, ignore=ignore, force_index=force_index,
                 config_filename=config_filename, regex_search=regex_search,
                 reset_database=reset_database, index_metadata=index_metadata)
-
-        # Store for all generated BIDSNodes
-        self._nodes = {}
 
     def __getattr__(self, key):
         ''' Dynamically inspect missing methods for get_<entity>() calls
