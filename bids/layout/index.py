@@ -261,15 +261,15 @@ def _index_metadata(layout):
 
         # Link files to BOLD runs
         if suffix in ['physio', 'stim', 'events', 'sbref']:
-            images = layout.get(**file_ents, extension=['nii', 'nii.gz'],
-                                 suffix='bold', return_type='filename')
+            images = layout.get(extension=['nii', 'nii.gz'], suffix='bold',
+                                return_type='filename', **file_ents)
             for img in images:
                 create_association_pair(bf.path, img, 'IntendedFor', 'InformedBy')
 
         # Link files to DWI runs
         if suffix == 'sbref' or ext in ['bvec', 'bval']:
-            images = layout.get(**file_ents, extension=['nii', 'nii.gz'],
-                                 suffix='dwi', return_type='filename')
+            images = layout.get(extension=['nii', 'nii.gz'], suffix='dwi',
+                                return_type='filename', **file_ents)
             for img in images:
                 create_association_pair(bf.path, img, 'IntendedFor', 'InformedBy')
 
