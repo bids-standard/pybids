@@ -262,11 +262,12 @@ class BIDSLayout(object):
         return self.get_files()
 
     def _start_session(self, database_file=None, reset_database=False):
+
         if database_file is None:
-            database_file = os.path.join(self.root, '.index.db')
-        database_file = os.path.abspath(database_file)
-        if not (reset_database or os.path.exists(database_file)):
-            reset_database = True
+            database_file = ''
+        else:
+            database_file = os.path.join(self.root, database_file)
+            database_file = os.path.abspath(database_file)
 
         engine = sa.create_engine('sqlite:///{}'.format(database_file))
 
@@ -283,20 +284,18 @@ class BIDSLayout(object):
         def do_begin(conn):
             conn.connection.create_function('regexp', 2, regexp)
 
-        if reset_database:
+        if database_file:
+            self.database_file = os.path.relpath(database_file, self.root)
+        self.session = sa.orm.sessionmaker(bind=engine)()
+
+        # Reset database if needed and return whether or not it was reset
+        if (reset_database or not database_file or
+                           not os.path.exists(database_file)):
             Base.metadata.drop_all(engine)
             Base.metadata.create_all(engine)
+            return True
 
-        self.database_file = os.path.relpath(database_file, self.root)
-        self.session = sa.orm.sessionmaker(bind=engine)()
-        # Also store globally for access from other modules.
-        # TODO: Decide whether to encapsulate this—but this would require
-        # passing around the Layout.
-        globals()['session'] = self.session
-
-
-
-        return reset_database
+        return False
 
     def _validate_root(self):
         # Validate root argument and make sure it contains mandatory info
