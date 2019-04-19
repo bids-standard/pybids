@@ -171,7 +171,7 @@ def _index_metadata(layout):
         assoc2 = FileAssociation(src=dst, dst=src, kind=kind2)
         session.add_all([assoc1, assoc2])
 
-    # TODO: Efficiency of everything in this loop could be improved—though
+    # TODO: Efficiency of everything in this loop could be improved--though
     # in practice this all still takes << time than the BIDSFile creation above
     filenames = [bf for bf in all_files if not bf.path.endswith('.json')]
     for bf in filenames:
