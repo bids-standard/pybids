@@ -17,6 +17,7 @@ from .index import index_layout
 from .. import config as cf
 import sqlalchemy as sa
 from sqlalchemy.orm import joinedload
+import sqlite3
 
 try:
     from os.path import commonpath
@@ -148,8 +149,10 @@ class BIDSLayout(object):
             entity in .get() calls. This sets a default for the instance, but
             can be overridden in individual .get() requests.
         database_file (str): Optional path to SQLite database containing the
-            index for this BIDS dataset. If a value is passed, indexing is
-            skipped.
+            index for this BIDS dataset. If a value is passed and the file
+            already exists, indexing is skipped. By default (i.e., if None),
+            an in-memory SQLite database is used, and the index will not
+            persist unless .save() is explicitly called.
         reset_database (bool): If True, any existing file specified in the
             database_file argument is deleted, and the BIDS dataset provided
             in the root argument is reindexed. If False, indexing will be
@@ -188,7 +191,7 @@ class BIDSLayout(object):
 
         self.database_file = database_file
         self.session = None
-        index_dataset = self._start_session(database_file, reset_database)
+        index_dataset = self._init_db(database_file, reset_database)
 
         # Do basic BIDS validation on root directory
         self._validate_root()
@@ -261,14 +264,7 @@ class BIDSLayout(object):
     def files(self):
         return self.get_files()
 
-    def _start_session(self, database_file=None, reset_database=False):
-
-        if database_file is None:
-            database_file = ''
-        else:
-            database_file = os.path.join(self.root, database_file)
-            database_file = os.path.abspath(database_file)
-
+    def _set_session(self, database_file):
         engine = sa.create_engine('sqlite:///{}'.format(database_file))
 
         def regexp(expr, item):
@@ -288,9 +284,20 @@ class BIDSLayout(object):
             self.database_file = os.path.relpath(database_file, self.root)
         self.session = sa.orm.sessionmaker(bind=engine)()
 
+    def _init_db(self, database_file=None, reset_database=False):
+
+        if database_file is None:
+            database_file = ''
+        else:
+            database_file = os.path.join(self.root, database_file)
+            database_file = os.path.abspath(database_file)
+
+        self._set_session(database_file)
+
         # Reset database if needed and return whether or not it was reset
         if (reset_database or not database_file or
                            not os.path.exists(database_file)):
+            engine = self.session.get_bind()
             Base.metadata.drop_all(engine)
             Base.metadata.create_all(engine)
             return True
@@ -386,6 +393,34 @@ class BIDSLayout(object):
 
         return (not is_deriv and 'raw' in scope) or (is_deriv and \
                 ('derivatives' in scope or pl_name in scope))
+
+    def save(self, filename='.index.db', replace_connection=True):
+        """ Saves the current index as a SQLite3 DB at the specified location.
+
+        Args:
+            filename (str): The path to the desired database file. By default,
+                uses .index.db. If a relative path is passed, it is assumed to
+                be relative to the BIDSLayout root directory.
+            replace_connection (bool): If True, the newly created database will
+                be used for all subsequent connections. This means that any
+                changes to the index made after the .save() call will be
+                reflected in the database file. If False, the previous database
+                will continue to be used, and any subsequent changes will not
+                be reflected in the new file unless save() is explicitly called
+                again.
+        """
+        filename = os.path.join(self.root, filename)
+        new_db = sqlite3.connect(filename)
+        old_db = self.session.get_bind().connect().connection
+
+        with new_db:
+            for line in old_db.iterdump():
+                if line not in ('BEGIN;', 'COMMIT;'):
+                    new_db.execute(line)
+            new_db.commit()
+
+        if replace_connection:
+            self._set_session(filename)
 
     def _get_layouts_in_scope(self, scope):
         ''' Return all layouts in the passed scope. '''

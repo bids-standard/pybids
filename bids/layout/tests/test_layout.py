@@ -9,6 +9,7 @@ from bids.layout.models import BIDSFile, Entity, Config, FileAssociation
 from os.path import join, abspath, basename, dirname
 from bids.tests import get_test_data_path
 from bids.utils import natural_sort
+import tempfile
 
 
 def test_layout_init(layout_7t_trt):
@@ -474,3 +475,14 @@ def test_indexed_file_associations(layout_7t_trt):
     assert len(js.get_associations('Parent')) == 1
     assert len(js.get_associations('Metadata')) == 40
     assert not js.get_associations('InformedBy')
+
+
+def test_layout_save(layout_7t_trt):
+    _, f = tempfile.mkstemp(suffix='.db')
+    layout_7t_trt.save(f, replace_connection=False)
+    data_dir = join(get_test_data_path(), '7t_trt')
+    layout = BIDSLayout(data_dir, database_file=f)
+    oldfies = set(layout_7t_trt.get(suffix='events', return_type='file'))
+    newfies = set(layout.get(suffix='events', return_type='file'))
+    assert oldfies == newfies
+    os.unlink(f)
