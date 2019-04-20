@@ -29,13 +29,17 @@ class Config(Base):
             information.
         default_path_patterns (list): Optional list of patterns used to build
             new paths.
+        session (Session, None): an optional SQLAlchemy session. If passed,
+            the session is used to update the database with any newly created
+            Entity objects. If None, no database update occurs.
     """
     __tablename__ = 'configs'
 
     name = Column(String, primary_key=True)
     _default_path_patterns = Column(JSON)
-    entities = relationship("Entity", secondary="config_to_entity_map",
-                            collection_class=attribute_mapped_collection('name'))
+    entities = relationship(
+        "Entity", secondary="config_to_entity_map",
+        collection_class=attribute_mapped_collection('name'))
 
     def __init__(self, name, entities=None, default_path_patterns=None,
                  session=None):
@@ -47,7 +51,8 @@ class Config(Base):
         if entities:
             for ent in entities:
                 if session is not None:
-                    existing = session.query(Config).filter_by(name=ent['name']).first()
+                    existing = (session.query(Config)
+                                       .filter_by(name=ent['name']).first())
                 else:
                     existing = None
                 ent = existing or Entity(**ent)
@@ -62,6 +67,21 @@ class Config(Base):
 
     @classmethod
     def load(self, config, session=None):
+        ''' Load a Config instance from the passed configuration data.
+
+        Args:
+            config (str, dict): A string or dict containing configuration
+                information. Must be one of:
+                * A string giving the name of a predefined config file
+                    (e.g., 'bids' or 'derivatives')
+                * A path to a JSON file containing config information
+                * A dictionary containing config information
+            session (Session, None): An optional SQLAlchemy Session instance.
+                If passed, the session is used to check the database for (and
+                return) an existing Config with name defined in config['name'].
+
+        Returns: A Config instance.
+        '''
 
         if isinstance(config, six.string_types):
             config_paths = get_option('config_paths')
@@ -75,7 +95,8 @@ class Config(Base):
 
         # Return existing Config record if one exists
         if session is not None:
-            result = session.query(Config).filter_by(name=config['name']).first()
+            result = (session.query(Config)
+                             .filter_by(name=config['name']).first())
             if result:
                 return result
 
@@ -83,6 +104,12 @@ class Config(Base):
 
 
 class BIDSFile(Base):
+    """ Represents a single file or directory in a BIDS dataset.
+
+    Args:
+        filename (str): The path to the corresponding file.
+ 
+    """
     __tablename__ = 'files'
 
     path = Column(String, primary_key=True)
@@ -98,8 +125,7 @@ class BIDSFile(Base):
         self.path = filename
         self.filename = os.path.basename(self.path)
         self.dirname = os.path.dirname(self.path)
-        self.derivatives = derivatives
-        self.is_dir = is_dir
+        self.is_dir = not self.filename
         self._init_on_load()
 
     @reconstructor
@@ -151,7 +177,20 @@ class BIDSFile(Base):
         return True
 
     def get_associations(self, kind=None, include_parents=False):
-        """ Get associated files, optionally limiting by association kind. """
+        """ Get associated files, optionally limiting by association kind.
+
+        Args:
+            kind (str): The kind of association to return (e.g., "Child").
+                By default, all associations are returned.
+            include_parents (bool): If True, files related through inheritance
+                are included in the returned list. If False, only directly
+                associated files are returned. For example, a file's JSON
+                sidecar will always be returned, but other JSON files from
+                which the sidecar inherits will only be returned if
+                include_parents=True.
+
+        Returns: A list of BIDSFile instances.
+        """
         if kind is None:
             return self._associations
         session = object_session(self)
@@ -235,7 +274,18 @@ class BIDSFile(Base):
         return "<BIDSFile filename='{}'>".format(self.path)
 
     def get_df(self, include_timing=True, adjust_onset=False):
-        """ Returns the contents of the file as a pandas DataFrame. """
+        """ Returns the contents of a tsv file as a pandas DataFrame.
+
+        Args:
+            include_timing (bool): If True, adds an "onset" column to dense
+                timeseries files (e.g., *_physio.tsv.gz).
+            adjust_onset (bool): If True, the onset of each sample in a dense
+                timeseries file is shifted to reflect the "StartTime" value in
+                the JSON sidecar. If False, the first sample starts at 0 secs.
+                Ignored if include_timing=False.
+
+        Returns: A pandas DataFrame.
+        """
 
         ext = self.entities['extension']
         if ext not in ['tsv', 'tsv.gz']:
@@ -286,6 +336,25 @@ class BIDSFile(Base):
 
 
 class Entity(Base):
+    """
+    Represents a single entity defined in the JSON config.
+
+    Args:
+        name (str): The name of the entity (e.g., 'subject', 'run', etc.)
+        pattern (str): A regex pattern used to match against file names.
+            Must define at least one group, and only the first group is
+            kept as the match.
+        mandatory (bool): If True, every File _must_ match this entity.
+        directory (str): Optional pattern defining a directory associated
+            with the entity.
+        dtype (str): The optional data type of the Entity values. Must be
+            one of 'int', 'float', 'bool', or 'str'. If None, no type
+            enforcement will be attempted, which means the dtype of the
+            value may be unpredictable.
+        is_metadata (bool): Indicates whether or not the Entity is derived
+            from JSON sidecars (True) or is a predefined Entity from a
+            config (False).
+    """
     __tablename__ = 'entities'
 
     name = Column(String, primary_key=True)
@@ -298,25 +367,6 @@ class Entity(Base):
 
     def __init__(self, name, pattern=None, mandatory=False, directory=None,
                  dtype='str', is_metadata=False):
-        """
-        Represents a single entity defined in the JSON config.
-
-        Args:
-            name (str): The name of the entity (e.g., 'subject', 'run', etc.)
-            pattern (str): A regex pattern used to match against file names.
-                Must define at least one group, and only the first group is
-                kept as the match.
-            mandatory (bool): If True, every File _must_ match this entity.
-            directory (str): Optional pattern defining a directory associated
-                with the entity.
-            dtype (str): The optional data type of the Entity values. Must be
-                one of 'int', 'float', 'bool', or 'str'. If None, no type
-                enforcement will be attempted, which means the dtype of the
-                value may be unpredictable.
-            is_metadata (bool): Indicates whether or not the Entity is derived
-                from JSON sidecars (True) or is a predefined Entity from a
-                config (False).
-        """
         self.name = name
         self.pattern = pattern
         self.mandatory = mandatory
@@ -388,6 +438,19 @@ class Entity(Base):
 
 
 class Tag(Base):
+    """
+    Represents an association between a File and and Entity.
+
+    Args:
+        file (BIDSFile): The associated BIDSFile.
+        entity (Entity): The associated Entity.
+        value: The value to store for this file/entity pair. Must be of type
+            str, int, float, bool, or any json-serializable structure.
+        dtype (str): Optional type for the value field. If None, inferred from
+            value. If passed, must be one of str, int, float, bool, or json.
+            Any other value will be treated as json (and will fail if the
+            value can't be serialized to json).
+    """
     __tablename__ = 'tags'
 
     file_path = Column(String, ForeignKey('files.path'), primary_key=True)
