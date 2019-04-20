@@ -85,7 +85,8 @@ class NodeIndex(Node):
             entities: Optional constraints used to limit what gets returned.
 
         Returns:
-
+            A list of BIDSVariableCollections if merge=False; a single
+            BIDSVariableCollection if merge=True.
         '''
 
         nodes = self.get_nodes(unit, entities)

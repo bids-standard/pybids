@@ -435,7 +435,21 @@ class BIDSLayout(object):
         return list(set(layouts))
 
     def get_entities(self, scope='all', is_metadata=None):
-        ''' Get entities for all layouts in the specified scope. '''
+        ''' Get entities for all layouts in the specified scope.
+
+        Args:
+            scope (str): The scope of the search space. Indicates which
+                BIDSLayouts' entities to extract. See BIDSLayout docstring
+                for valid values.
+            is_metadata (bool, None): By default (None), all available entities
+                are returned. If True, only entities found in metadata files
+                (and not defined for filenames) are returned. If False, only
+                entities defined for filenames (and not those found in JSON
+                sidecars) are returned.
+
+        Returns: A dict, where keys are entity names and values are Entity
+            instances.
+        '''
         # TODO: memoize results
         layouts = self._get_layouts_in_scope(scope)
         entities = {}
@@ -448,7 +462,16 @@ class BIDSLayout(object):
         return entities
 
     def get_files(self, scope='all'):
-        ''' Get BIDSFiles for all layouts in the specified scope. '''
+        ''' Get BIDSFiles for all layouts in the specified scope.
+
+        Args:
+            scope (str): The scope of the search space. Indicates which
+                BIDSLayouts' entities to extract. See BIDSLayout docstring
+                for valid values.
+
+        Returns: A dict, where keys are file paths and values are BIDSFile
+            instances.
+        '''
         # TODO: memoize results
         layouts = self._get_layouts_in_scope(scope)
         files = {}
@@ -469,7 +492,7 @@ class BIDSLayout(object):
             filename (str): The filename to parse for entity values
             scope (str, list): The scope of the search space. Indicates which
                 BIDSLayouts' entities to extract. See BIDSLayout docstring
-                for valid values. By default, extracts all entities
+                for valid values. By default, extracts all entities.
             entities (list): An optional list of Entity instances to use in
                 extraction. If passed, the scope and config arguments are
                 ignored, and only the Entities in this list are used.
@@ -557,7 +580,7 @@ class BIDSLayout(object):
             kwargs['sources'] = kwargs.get('sources') or self
             self.derivatives[pipeline_name] = BIDSLayout(deriv, **kwargs)
 
-    def to_df(self, metadata=False, **kwargs):
+    def to_df(self, metadata=False, **filters):
         """
         Return information for all BIDSFiles tracked in the Layout as a pandas
         DataFrame.
@@ -565,8 +588,9 @@ class BIDSLayout(object):
         Args:
             metadata (bool): If True, includes columns for all metadata fields.
                 If False, only filename-based entities are included as columns.
-            kwargs: Optional keyword arguments passed on to get(). This allows
+            filters: Optional keyword arguments passed on to get(). This allows
                 one to easily select only a subset of files for export.
+
         Returns:
             A pandas DataFrame, where each row is a file, and each column is
                 a tracked entity. NaNs are injected whenever a file has no
@@ -583,7 +607,7 @@ class BIDSLayout(object):
         # BIDSFile and Tag tables and running a single query. But this would
         # require refactoring the below to use _build_file_query, which will
         # in turn likely require generalizing the latter.
-        files = self.get(**kwargs)
+        files = self.get(**filters)
         file_paths = [f.path for f in files]
         query = self.session.query(Tag).filter(Tag.file_path.in_(file_paths))
 
@@ -641,17 +665,25 @@ class BIDSLayout(object):
             A list of BIDSFiles (default) or strings (see return_type).
 
         Notes:
-            As of pybids 0.7.0 some keywords have been changed. Namely: 'type'
+            * In pybids 0.7.0, some keywords were changed. Namely: 'type'
             becomes 'suffix', 'modality' becomes 'datatype', 'acq' becomes 
             'acquisition' and 'mod' becomes 'modality'. Using the wrong version 
             could result in get() silently returning wrong or no results. See 
             the changelog for more details.
+            * In pybids 0.9.0, the 'extensions' argument has been removed in
+            favor of the 'extension' entity.
         """
 
         # Warn users still expecting 0.6 behavior
         if 'type' in filters:
             raise ValueError("As of pybids 0.7.0, the 'type' argument has been"
                              " replaced with 'suffix'.")
+
+        if 'extensions' in filters:
+            filters['extension'] = filters.pop('extensions')
+            warnings.warn("In pybids 0.9.0, the 'extensions' filter was "
+                          "deprecated in favor of 'extension'. The former will"
+                          " stop working in 0.11.0.")
 
         layouts = self._get_layouts_in_scope(scope)
 
@@ -816,6 +848,11 @@ class BIDSLayout(object):
                 where there are no rows/records in a file after applying any
                 filtering operations like dropping NaNs).
             kwargs: Optional additional arguments to pass onto load_variables.
+
+        Returns:
+            A list of BIDSVariableCollections if merge=False; a single
+            BIDSVariableCollection if merge=True.
+
         """
         from bids.variables import load_variables
         index = load_variables(self, types=types, levels=level,
