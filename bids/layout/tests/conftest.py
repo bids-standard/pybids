@@ -51,12 +51,6 @@ def layout_ds005_multi_derivs():
 
 
 @pytest.fixture(scope="module")
-def layout_ds005_models():
-    data_dir = join(get_test_data_path(), 'ds005')
-    return BIDSLayout(data_dir, validate=True, force_index=['models'])
-
-
-@pytest.fixture(scope="module")
 def layout_synthetic():
     path = join(get_test_data_path(), 'synthetic')
     return BIDSLayout(path, derivatives=True)

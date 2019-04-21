@@ -4,6 +4,7 @@ functionality should go in the grabbit package. """
 import os
 import pytest
 import bids
+import re
 from bids.layout import BIDSLayout, parse_file_entities, add_config_paths
 from bids.layout.models import BIDSFile, Entity, Config, FileAssociation
 from os.path import join, abspath, basename, dirname
@@ -230,14 +231,57 @@ def test_get_return_sorted(layout_7t_trt):
     assert files == paths
 
 
-def test_force_index(layout_ds005, layout_ds005_models):
-    target= join(layout_ds005_models.root, 'models',
-                'ds-005_type-test_model.json')
+def test_force_index(layout_ds005):
+    data_dir = join(get_test_data_path(), 'ds005')
+    target= join(data_dir, 'models', 'ds-005_type-test_model.json')
+    model_layout = BIDSLayout(data_dir, validate=True, force_index=['models'])
     assert target not in layout_ds005.files
-    assert target in layout_ds005_models.files
-    assert 'all' not in layout_ds005_models.get_subjects()
-    for f in layout_ds005_models.files.values():
+    assert target in model_layout.files
+    assert 'all' not in model_layout.get_subjects()
+    for f in model_layout.files.values():
         assert 'derivatives' not in f.path
+
+
+def test_nested_include_exclude():
+    data_dir = join(get_test_data_path(), 'ds005')
+    target1 = join(data_dir, 'models', 'ds-005_type-test_model.json')
+    target2 = join(data_dir, 'models', 'extras', 'ds-005_type-test_model.json')
+
+    # Nest a directory exclusion within an inclusion
+    layout = BIDSLayout(data_dir, validate=True, force_index=['models'],
+                      ignore=[os.path.join('models', 'extras')])
+    assert layout.get_file(target1)
+    assert not layout.get_file(target2)
+
+    # Nest a directory inclusion within an exclusion
+    layout = BIDSLayout(data_dir, validate=True, ignore=['models'],
+                        force_index=[os.path.join('models', 'extras')])
+    assert not layout.get_file(target1)
+    assert layout.get_file(target2)
+
+    # Force file inclusion despite directory-level exclusion
+    models = ['models', target2]
+    layout = BIDSLayout(data_dir, validate=True, force_index=models,
+                      ignore=[os.path.join('models', 'extras')])
+    assert layout.get_file(target1)
+    assert layout.get_file(target2)
+
+
+def test_nested_include_exclude_with_regex():
+    # ~same as above test, but use regexps instead of strings
+    patt1 = re.compile('.*dels$')
+    patt2 = re.compile('xtra')
+    data_dir = join(get_test_data_path(), 'ds005')
+    target1 = join(data_dir, 'models', 'ds-005_type-test_model.json')
+    target2 = join(data_dir, 'models', 'extras', 'ds-005_type-test_model.json')
+
+    layout = BIDSLayout(data_dir, ignore=[patt2], force_index=[patt1])
+    assert layout.get_file(target1)
+    assert not layout.get_file(target2)
+
+    layout = BIDSLayout(data_dir, ignore=[patt1], force_index=[patt2])
+    assert not layout.get_file(target1)
+    assert layout.get_file(target2)
 
 
 def test_layout_with_derivs(layout_ds005_derivs):

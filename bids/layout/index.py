@@ -36,7 +36,6 @@ def _check_path_matches_patterns(path, patterns):
     for patt in patterns:
         if isinstance(patt, six.string_types):
             if path == patt:
-                patterns.remove(patt)
                 return True
         elif patt.search(path):
             return True
@@ -59,42 +58,43 @@ class BIDSLayoutIndexer(object):
         self.include_patterns = list(layout.force_index)
         self.exclude_patterns = list(layout.ignore)
 
-    def _validate_dir(self, d):
+    def _validate_dir(self, d, default=None):
         if _check_path_matches_patterns(d, self.include_patterns):
             return True
-        return not _check_path_matches_patterns(d, self.exclude_patterns)
+        if _check_path_matches_patterns(d, self.exclude_patterns):
+            return False
+        return default
 
-    def _validate_file(self, f):
-        # Validate a file.
+    def _validate_file(self, f, default=None):
+        # Inclusion takes priority over exclusion
         if _check_path_matches_patterns(f, self.include_patterns):
             return True
-
         if _check_path_matches_patterns(f, self.exclude_patterns):
             return False
 
-        if not self.validate:
-            return True
+        # If inclusion/exclusion is inherited from a parent directory, that
+        # takes precedence over the remaining file-level rules
+        if default is not None:
+            return default
 
         # Derivatives are currently not validated.
         # TODO: raise warning the first time in a session this is encountered
-        if 'derivatives' in self.layout.config:
+        if not self.validate or 'derivatives' in self.layout.config:
             return True
 
         # BIDS validator expects absolute paths, but really these are relative
         # to the BIDS project root.
         to_check = os.path.relpath(f, self.root)
         to_check = os.path.join(os.path.sep, to_check)
-
         return self.validator.is_bids(to_check)
 
-    def _index_dir(self, path, config):
+    def _index_dir(self, path, config, default_action=None):
 
         abs_path = os.path.join(self.root, path)
 
         # Derivative directories must always be added separately
         # and passed as their own root, so terminate if passed.
-        if (not self._validate_dir(abs_path) or
-            abs_path.startswith(os.path.join(self.root, 'derivatives'))):
+        if abs_path.startswith(os.path.join(self.root, 'derivatives')):
             return
 
         config = list(config)     # Shallow copy
@@ -113,13 +113,17 @@ class BIDSLayoutIndexer(object):
 
         for (dirpath, dirnames, filenames) in os.walk(path):
 
+            # Set the default inclusion/exclusion directive
+            default = self._validate_dir(dirpath, default=default_action)
+
             # If layout configuration file exists, delete it
             if self.config_filename in filenames:
                 filenames.remove(self.config_filename)
 
             for f in filenames:
 
-                bf = self._index_file(f, dirpath, config_entities)
+                bf = self._index_file(f, dirpath, config_entities,
+                                      default_action=default)
                 if bf is None:
                     continue
 
@@ -128,17 +132,17 @@ class BIDSLayoutIndexer(object):
             # Recursively index subdirectories
             for d in dirnames:
                 d = os.path.join(dirpath, d)
-                self._index_dir(d, list(config))
+                self._index_dir(d, list(config), default_action=default)
 
             # prevent subdirectory traversal
             break
 
-    def _index_file(self, f, dirpath, entities):
+    def _index_file(self, f, dirpath, entities, default_action=None):
         ''' Create DB record for file and its tags. '''
         abs_fn = os.path.join(dirpath, f)
 
         # Skip files that fail validation, unless forcibly indexing
-        if not self._validate_file(abs_fn):
+        if not self._validate_file(abs_fn, default=default_action):
             return None
 
         bf = BIDSFile(abs_fn)
