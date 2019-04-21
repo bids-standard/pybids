@@ -12,7 +12,7 @@ from copy import deepcopy
 from itertools import chain
 
 from .writing import build_path, write_contents_to_file
-from ..utils import listify, check_path_matches_patterns
+from ..utils import listify
 from ..config import get_option
 from ..external import six
 

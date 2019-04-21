@@ -7,17 +7,17 @@ from functools import reduce, partial
 from itertools import chain
 import copy
 import warnings
+import sqlite3
 
-from bids_validator import BIDSValidator
-from ..utils import listify, natural_sort, check_path_matches_patterns
+import sqlalchemy as sa
+from sqlalchemy.orm import joinedload
+
+from ..utils import listify, natural_sort
 from ..external import inflect, six
 from .writing import build_path, write_contents_to_file
 from .models import Base, Config, BIDSFile, Entity, Tag
-from .index import index_layout
+from .index import BIDSLayoutIndexer
 from .. import config as cf
-import sqlalchemy as sa
-from sqlalchemy.orm import joinedload
-import sqlite3
 
 try:
     from os.path import commonpath
@@ -112,8 +112,6 @@ class BIDSLayout(object):
             files defined in the "core" BIDS spec, as setting validate=True
             will lead files in supplementary folders like derivatives/, code/,
             etc. to be ignored.
-        index_associated (bool): Argument passed onto the BIDSValidator;
-            ignored if validate = False.
         absolute_paths (bool): If True, queries always return absolute paths.
             If False, queries return relative paths (for files and directories).
         derivatives (bool, str, list): Specifies whether and/or which
@@ -166,21 +164,18 @@ class BIDSLayout(object):
     _default_ignore = {"code", "stimuli", "sourcedata", "models",
                        "derivatives", re.compile(r'^\.')}
 
-    def __init__(self, root, validate=True, index_associated=True,
-                 absolute_paths=True, derivatives=False, config=None,
-                 sources=None, ignore=None, force_index=None,
-                 config_filename='layout_config.json', regex_search=False,
-                 database_file=None, reset_database=False,
+    def __init__(self, root, validate=True, absolute_paths=True,
+                 derivatives=False, config=None, sources=None, ignore=None,
+                 force_index=None, config_filename='layout_config.json',
+                 regex_search=False, database_file=None, reset_database=False,
                  index_metadata=True):
 
         self.root = root
-        self._validator = BIDSValidator(index_associated=index_associated)
         self.validate = validate
         self.absolute_paths = absolute_paths
         self.derivatives = {}
         self.sources = sources
         self.regex_search = regex_search
-        # self.metadata_index = MetadataIndex(self)
         self.config_filename = config_filename
         self.ignore = [os.path.abspath(os.path.join(self.root, patt))
                        if isinstance(patt, six.string_types) else patt
@@ -191,22 +186,29 @@ class BIDSLayout(object):
 
         self.database_file = database_file
         self.session = None
-        index_dataset = self._init_db(database_file, reset_database)
 
         # Do basic BIDS validation on root directory
         self._validate_root()
 
         # Initialize the BIDS validator and examine ignore/force_index args
-        self._setup_file_validator()
+        self._validate_force_index()
+
+        index_dataset = self._init_db(database_file, reset_database)
 
         if index_dataset:
-            # Create Config objects and index layout
+            # Create Config objects
             if config is None:
                 config = 'bids'
             config = [Config.load(c, session=self.session)
                     for c in listify(config)]
             self.config = {c.name: c for c in config}
-            index_layout(self, self.force_index, index_metadata=index_metadata)
+
+            # Index files and (optionally) metadata
+            indexer = BIDSLayoutIndexer(self)
+            indexer.index_files()
+            if index_metadata:
+                indexer.index_metadata()
+
         else:
             # Load Configs from DB
             self.config = {c.name: c for c in self.session.query(Config).all()}
@@ -216,12 +218,11 @@ class BIDSLayout(object):
             if derivatives is True:
                 derivatives = os.path.join(root, 'derivatives')
             self.add_derivatives(
-                derivatives, validate=validate,
-                index_associated=index_associated,
-                absolute_paths=absolute_paths, derivatives=None, config=None,
-                sources=self, ignore=ignore, force_index=force_index,
-                config_filename=config_filename, regex_search=regex_search,
-                reset_database=reset_database, index_metadata=index_metadata)
+                derivatives, validate=validate, absolute_paths=absolute_paths,
+                derivatives=None, config=None, sources=self, ignore=ignore,
+                force_index=force_index, config_filename=config_filename,
+                regex_search=regex_search, reset_database=reset_database,
+                index_metadata=index_metadata)
 
     def __getattr__(self, key):
         ''' Dynamically inspect missing methods for get_<entity>() calls
@@ -336,43 +337,16 @@ class BIDSLayout(object):
                         raise ValueError("Mandatory '%s' field missing from "
                                          "dataset_description.json." % k)
 
-    def _setup_file_validator(self):
+    def _validate_force_index(self):
         # Derivatives get special handling; they shouldn't be indexed normally
         if self.force_index is not None:
             for entry in self.force_index:
                 if (isinstance(entry, six.string_types) and
                     os.path.normpath(entry).startswith('derivatives')):
                         msg = ("Do not pass 'derivatives' in the force_index "
-                               "list. To index derivatives, either set "
-                               "derivatives=True, or use add_derivatives().")
+                                "list. To index derivatives, either set "
+                                "derivatives=True, or use add_derivatives().")
                         raise ValueError(msg)
-
-    def _validate_dir(self, d):
-        return not check_path_matches_patterns(d, self.ignore)
-
-    def _validate_file(self, f):
-        # Validate a file.
-
-        if check_path_matches_patterns(f, self.force_index):
-            return True
-
-        if check_path_matches_patterns(f, self.ignore):
-            return False
-
-        if not self.validate:
-            return True
-
-        # Derivatives are currently not validated.
-        # TODO: raise warning the first time in a session this is encountered
-        if 'derivatives' in self.config:
-            return True
-
-        # BIDS validator expects absolute paths, but really these are relative
-        # to the BIDS project root.
-        to_check = os.path.relpath(f, self.root)
-        to_check = os.path.join(os.path.sep, to_check)
-
-        return self._validator.is_bids(to_check)
 
     def _in_scope(self, scope):
         ''' Determine whether current BIDSLayout is in the passed scope.
@@ -393,6 +367,18 @@ class BIDSLayout(object):
 
         return (not is_deriv and 'raw' in scope) or (is_deriv and \
                 ('derivatives' in scope or pl_name in scope))
+
+    def _get_layouts_in_scope(self, scope):
+        ''' Return all layouts in the passed scope. '''
+
+        def collect_layouts(layout):
+            ''' Recursively build a list of layouts '''
+            children = list(layout.derivatives.values())
+            layouts = [collect_layouts(d) for d in children]
+            return [layout] + list(chain(*layouts))
+
+        layouts = [l for l in collect_layouts(self) if l._in_scope(scope)]
+        return list(set(layouts))
 
     def save(self, filename='.index.db', replace_connection=True):
         """ Saves the current index as a SQLite3 DB at the specified location.
@@ -421,18 +407,6 @@ class BIDSLayout(object):
 
         if replace_connection:
             self._set_session(filename)
-
-    def _get_layouts_in_scope(self, scope):
-        ''' Return all layouts in the passed scope. '''
-
-        def collect_layouts(layout):
-            ''' Recursively build a list of layouts '''
-            children = list(layout.derivatives.values())
-            layouts = [collect_layouts(d) for d in children]
-            return [layout] + list(chain(*layouts))
-
-        layouts = [l for l in collect_layouts(self) if l._in_scope(scope)]
-        return list(set(layouts))
 
     def get_entities(self, scope='all', is_metadata=None):
         ''' Get entities for all layouts in the specified scope.
