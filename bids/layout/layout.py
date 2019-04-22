@@ -12,10 +12,11 @@ import sqlite3
 import sqlalchemy as sa
 from sqlalchemy.orm import joinedload
 
-from ..utils import listify, natural_sort
+from ..utils import listify, natural_sort, make_bidsfile
 from ..external import inflect, six
 from .writing import build_path, write_contents_to_file
-from .models import Base, Config, BIDSFile, Entity, Tag
+from .models import (Base, Config, BIDSFile, Entity, Tag, BIDSDataFile,
+                     BIDSImageFile)
 from .index import BIDSLayoutIndexer
 from .. import config as cf
 
@@ -68,7 +69,7 @@ def parse_file_entities(filename, entities=None, config=None,
         entities = entities.values()
 
     # Extract matches
-    bf = BIDSFile(filename)
+    bf = make_bidsfile(filename)
     ent_vals = {}
     for ent in entities:
         match = ent.match_file(bf)

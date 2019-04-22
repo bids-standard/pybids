@@ -12,7 +12,7 @@ from bids_validator import BIDSValidator
 
 from .writing import build_path, write_contents_to_file
 from .models import Config, BIDSFile, Entity, Tag, FileAssociation
-from ..utils import listify
+from ..utils import listify, make_bidsfile
 from ..config import get_option
 from ..external import six
 
@@ -145,7 +145,7 @@ class BIDSLayoutIndexer(object):
         if not self._validate_file(abs_fn, default=default_action):
             return None
 
-        bf = BIDSFile(abs_fn)
+        bf = make_bidsfile(abs_fn)
         self.session.add(bf)
 
         # Extract entity values

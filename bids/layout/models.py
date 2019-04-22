@@ -117,9 +117,16 @@ class BIDSFile(Base):
     dirname = Column(String)
     entities = association_proxy("tags", "value")
     is_dir = Column(Boolean)
+    class_ = Column(String(20))
+
     _associations = relationship('BIDSFile', secondary='associations',
         primaryjoin='FileAssociation.dst == BIDSFile.path',
         secondaryjoin='FileAssociation.src == BIDSFile.path')
+
+    __mapper_args__ = {
+        'polymorphic_on': class_,
+        'polymorphic_identity':'file'
+    }
 
     def __init__(self, filename, derivatives=False, is_dir=False):
         self.path = filename
@@ -271,7 +278,23 @@ class BIDSFile(Base):
                              (self.__class__.__name__, attr))
 
     def __repr__(self):
-        return "<BIDSFile filename='{}'>".format(self.path)
+        return "<{} filename='{}'>".format(self.__class__.__name__, self.path)
+
+    def get_metadata(self):
+        """ Returns all metadata associated with the current file. """
+        session = object_session(self)
+        query = (session.query(Tag)
+                        .filter_by(file_path=self.path)
+                        .join(Entity)
+                        .filter(Entity.is_metadata))
+        return {t.entity_name: t.value for t in query.all()}
+
+
+class BIDSDataFile(BIDSFile):
+
+    __mapper_args__ = {
+        'polymorphic_identity':'data_file'
+    }
 
     def get_df(self, include_timing=True, adjust_onset=False):
         """ Returns the contents of a tsv file as a pandas DataFrame.
@@ -315,6 +338,13 @@ class BIDSFile(Base):
 
         return data
 
+
+class BIDSImageFile(BIDSFile):
+
+    __mapper_args__ = {
+        'polymorphic_identity':'image_file'
+    }
+
     def get_image(self):
         """ Return the associated image file (if it exists) as a NiBabel object
         """
@@ -324,15 +354,6 @@ class BIDSFile(Base):
         except Exception:
             raise ValueError("'{}' does not appear to be an image format "
                              "NiBabel can read.".format(self.path))
-
-    def get_metadata(self):
-        """ Returns all metadata associated with the current file. """
-        session = object_session(self)
-        query = (session.query(Tag)
-                        .filter_by(file_path=self.path)
-                        .join(Entity)
-                        .filter(Entity.is_metadata))
-        return {t.entity_name: t.value for t in query.all()}
 
 
 class Entity(Base):

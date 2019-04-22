@@ -6,7 +6,8 @@ import pytest
 import bids
 import re
 from bids.layout import BIDSLayout, parse_file_entities, add_config_paths
-from bids.layout.models import BIDSFile, Entity, Config, FileAssociation
+from bids.layout.models import (BIDSFile, BIDSImageFile, Entity, Config,
+                                FileAssociation)
 from os.path import join, abspath, basename, dirname
 from bids.tests import get_test_data_path
 from bids.utils import natural_sort
@@ -331,11 +332,11 @@ def test_query_derivatives(layout_ds005_derivs):
     assert 'sub-01_task-mixedgamblestask_run-01_desc-extra_events.tsv' in result
 
 
-def test_get_bidsfile_image_prop():
+def test_bidsimagefile_get_image():
     path = "synthetic/sub-01/ses-01/func/sub-01_ses-01_task-nback_run-01_bold.nii.gz"
     path = path.split('/')
     path = join(get_test_data_path(), *path)
-    bf = BIDSFile(path, None)
+    bf = BIDSImageFile(path, None)
     assert bf.get_image() is not None
     assert bf.get_image().shape == (64, 64, 64, 64)
 

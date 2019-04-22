@@ -87,3 +87,22 @@ def splitext(path):
     li.extend(extensions)
     return li
 
+
+def make_bidsfile(filename):
+    """Create a BIDSFile instance of the appropriate class. """
+    from .layout import models
+
+    patt = re.compile("[._]*[a-zA-Z0-9]*?\\.([^/\\\\]+)$")
+    m = re.search(patt, filename)
+
+    ext = None if not m else m.groups()
+
+    if ext in ['nii', 'nii.gz']:
+        cls = 'BIDSImageFile'
+    elif ext in ['tsv', 'tsv.gz']:
+        cls = 'BIDSDataFile'
+    else:
+        cls = 'BIDSFile'
+
+    Cls = getattr(models, cls)
+    return Cls(filename)
