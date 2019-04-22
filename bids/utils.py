@@ -95,7 +95,7 @@ def make_bidsfile(filename):
     patt = re.compile("[._]*[a-zA-Z0-9]*?\\.([^/\\\\]+)$")
     m = re.search(patt, filename)
 
-    ext = None if not m else m.groups()
+    ext = None if not m else m.group(1)
 
     if ext in ['nii', 'nii.gz']:
         cls = 'BIDSImageFile'

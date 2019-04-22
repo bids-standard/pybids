@@ -1,12 +1,15 @@
 import os
 import pytest
 import bids
-from bids.layout.models import (BIDSFile, Entity, Tag, Base, Config,
-                                FileAssociation)
-from bids.layout import BIDSLayout
+import copy
+
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 import numpy as np
+
+from bids.layout.models import (BIDSFile, Entity, Tag, Base, Config,
+                                FileAssociation)
+from bids.layout import BIDSLayout
 
 
 def create_session():
@@ -70,6 +73,14 @@ def test_entity_matches(tmpdir):
     e = Entity('avaricious', r'aardvark-(\d+)')
     result = e.match_file(f)
     assert result == '4'
+
+
+def test_entity_deepcopy(subject_entity):
+    e = subject_entity
+    clone = copy.deepcopy(subject_entity)
+    for attr in ['name', 'pattern', 'mandatory', 'directory', 'regex']:
+        assert getattr(e, attr) == getattr(clone, attr)
+    assert e != clone
 
 
 def test_file_associations():

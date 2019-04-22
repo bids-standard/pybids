@@ -125,7 +125,7 @@ class BIDSFile(Base):
 
     __mapper_args__ = {
         'polymorphic_on': class_,
-        'polymorphic_identity':'file'
+        'polymorphic_identity': 'file'
     }
 
     def __init__(self, filename, derivatives=False, is_dir=False):
@@ -138,50 +138,6 @@ class BIDSFile(Base):
     @reconstructor
     def _init_on_load(self):
         self._data = None
-
-    def _matches(self, entities=None, regex_search=False):
-        """
-        Checks whether the file matches all of the passed entities.
-
-        Args:
-            entities (dict): A dictionary of entity names -> values to match.
-            regex_search (bool): Whether to require exact match (False) or
-                regex search (True) when comparing the query string to each
-                entity.
-        Returns:
-            True if _all_ entities match; False otherwise.
-        """
-
-        if entities is None:
-            return True
-
-        for name, val in entities.items():
-
-            if (name not in self.entities) ^ (val is None):
-                return False
-
-            if val is None:
-                continue
-
-            def make_patt(x):
-                patt = str(x)
-                if not regex_search:
-                    patt = re.escape(patt)
-                if isinstance(x, (int, float)):
-                    # allow for leading zeros if a number was specified
-                    # regardless of regex_search
-                    patt = '0*' + patt
-                if not regex_search:
-                    patt = '^{}$'.format(patt)
-                return patt
-
-            ent_patts = [make_patt(x) for x in listify(val)]
-            patt = '|'.join(ent_patts)
-
-            if re.search(patt, str(self.entities[name])) is None:
-                return False
-
-        return True
 
     def get_associations(self, kind=None, include_parents=False):
         """ Get associated files, optionally limiting by association kind.
@@ -293,7 +249,7 @@ class BIDSFile(Base):
 class BIDSDataFile(BIDSFile):
 
     __mapper_args__ = {
-        'polymorphic_identity':'data_file'
+        'polymorphic_identity': 'data_file'
     }
 
     def get_df(self, include_timing=True, adjust_onset=False):
@@ -309,13 +265,6 @@ class BIDSDataFile(BIDSFile):
 
         Returns: A pandas DataFrame.
         """
-
-        ext = self.entities['extension']
-        if ext not in ['tsv', 'tsv.gz']:
-            raise ValueError(
-                "get_df() can only be called on BIDSFiles with a .tsv or "
-                ".tsv.gz extension. Invalid extension: '{}'".format(ext))
-
         import pandas as pd
         import numpy as np
 
@@ -326,7 +275,7 @@ class BIDSDataFile(BIDSFile):
         data = self._data.copy()
         md = self.get_metadata()
 
-        if ext == 'tsv.gz':
+        if self.entities['extension'] == 'tsv.gz':
             # We could potentially include some validation here, but that seems
             # like a job for the BIDS Validator.
             data.columns = md['Columns']
@@ -342,7 +291,7 @@ class BIDSDataFile(BIDSFile):
 class BIDSImageFile(BIDSFile):
 
     __mapper_args__ = {
-        'polymorphic_identity':'image_file'
+        'polymorphic_identity': 'image_file'
     }
 
     def get_image(self):

@@ -258,14 +258,6 @@ class BIDSLayout(object):
              "Runs: {}".format(root, n_subjects, n_sessions, n_runs))
         return s
 
-    @property
-    def entities(self):
-        return self.get_entities()
-
-    @property
-    def files(self):
-        return self.get_files()
-
     def _set_session(self, database_file):
         engine = sa.create_engine('sqlite:///{}'.format(database_file))
 
@@ -380,6 +372,14 @@ class BIDSLayout(object):
 
         layouts = [l for l in collect_layouts(self) if l._in_scope(scope)]
         return list(set(layouts))
+
+    @property
+    def entities(self):
+        return self.get_entities()
+
+    @property
+    def files(self):
+        return self.get_files()
 
     def save(self, filename='.index.db', replace_connection=True):
         """ Saves the current index as a SQLite3 DB at the specified location.
