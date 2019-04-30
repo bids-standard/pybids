@@ -17,6 +17,10 @@ various other filtering/indexing options mean there is longer a good reason for
 users to manipulate this.
 * `bids.layout.MetadataIndex` no longer exists. It's unlikely that anyone will
 notice this.
+* Direct access to most `BIDSFile` properties is discouraged, and in one case
+is broken in 0.9 (for `.metadata`, which was unavoidable, because it's reserved
+by SQLAlchemy). Instead, users should use getters (`get_metadata`, `get_image`,
+`get_df`, etc.) whenever possible.
 
 NEW FUNCTIONALITY:
 * All file and metadata indexing and querying is now supported by a
