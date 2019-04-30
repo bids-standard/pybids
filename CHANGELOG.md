@@ -1,5 +1,58 @@
 # Changelog
 
+## Version 0.9.0 (May ??, 2019)
+Version 0.9 replaces the native Python backend with a SQLite database managed
+via SQLAlchemy. The layout module has been refactored (again), but API changes
+are minimal. This release also adds many new features and closes a number of
+open issues.
+
+API CHANGES/DEPRECATIONS:
+* The `extensions` argument has now been banished forever; instead, use
+`extension`, which is now defined as a first-class entity. The former will
+continue to work until at least the 0.11 release (closes #404).
+* Relatedly, values for `extension` should no longer include a leading `.`,
+though this should also continue to work for the time being.
+* The `BIDSLayout` init argument `index_associated` has been removed as the
+various other filtering/indexing options mean there is longer a good reason for
+users to manipulate this.
+* `bids.layout.MetadataIndex` no longer exists. It's unlikely that anyone will
+notice this.
+
+NEW FUNCTIONALITY:
+* All file and metadata indexing and querying is now supported by a
+relational (SQLite) database (see #422). While this has few API implications,
+the efficiency of many operations is improved, and complex user-generated
+queries can now be performed via the SQLAlchemy `.session` stored in each
+`BIDSLayout`.
+* Adds `.save()` method to the `BIDSLayout` that saves the current SQLite DB
+to the specified location. Conversely, passing a filename as `database_file` at
+init will use the specified store instead of re-indexing all files. This
+eliminates the need for a pickling strategy (#435).
+* Related to the above, the `BIDSLayout` init adds a `reset_database` argument
+that forces reindexing even if a `database_file` is specified.
+* The `BIDSLayout` has a new `index_metadata` flag that controls whether or
+not the contents of JSON metadata files are indexed.
+* Added `metadata` flag to `BIDSLayout.to_df()` that controls whether or not
+metadata columns are included in the returned pandas `DataFrame` (#232).
+* Added `get_entities()` method to `BIDSLayout` that allows retrieval of all
+`Entity` instances available within a specified scope (#346).
+* Adds `drop_invalid_filters` argument to `BIDSLayout.get()`, enabling users to
+(optionally) ensure that invalid filters don't clobber all search results
+(#402).
+* `BIDSFile` instances now have a `get_associations()` method that returns
+associated files (see #431).
+* The `BIDSFile` class has been split into a hierarchy, with `BIDSImageFile`
+and `BIDSDataFile` subclasses. The former adds a `get_image()` method (returns
+a NiBabel image); the latter adds a `get_df()` method (returns a pandas DF).
+
+BUG FIXES AND OTHER MINOR CHANGES:
+* Metadata key/value pairs and file entities are now treated identically,
+eliminating a source of ambiguity in search (see #398).
+* Metadata no longer bleeds between raw and derivatives directories unless
+explicitly specified (see #383).
+* `BIDSLayout.get_collections()` no longer drops user-added columns (#273).
+* Various minor fixes/improvements/changes to tests.
+
 ## Version 0.8.0 (February 15, 2019)
 Version 0.8 refactors much of the layout module. It drops the grabbit
 dependency, overhauls the file indexing process, and features a number of other
