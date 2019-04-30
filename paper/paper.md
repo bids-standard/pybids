@@ -32,36 +32,33 @@ authors:
     name: Jean-Baptiste Poline
     orcid: 0000-0002-9794-749X
   - affiliation: 7
-    name: Dmitry Petrov
-  - affiliation: 8
     name: Valérie Hayot-Sasson
     orcid: 0000-0002-4830-4535
-  - affiliation: 9
+  - affiliation: 8
     name: Dylan M Nielson
     orcid: 0000-0003-4613-6643
-  - affiliation: 10
+  - affiliation: 9
     name: Johan Carlin
     orcid: 0000-0003-0933-1239
-  - affiliation: 11
+  - affiliation: 10
     name: Gregory Kiar
     orcid: 0000-0001-8915-496X
-  - affiliation: 12
+  - affiliation: 11
     name: Kirstie Whitaker
     orcid: 0000-0001-8498-4059
-  - affiliation: 11
+  - affiliation: 10
     name: Elizabeth DuPre
     orcid: 0000-0003-1358-196X
-  - affiliation: 13
+  - affiliation: 12
     name: Adina Wagner
     orcid: 0000-0003-2917-3450
-  - name: Alexander Ivanov
-  - affiliation: 14
+  - affiliation: 13
     name: Lee S Tirrell
     orcid: 0000-0001-9393-8361
-  - affiliation: 15
+  - affiliation: 14
     name: Mainak Jas
     orcid: 0000-0002-3199-9027
-  - affiliation: 13
+  - affiliation: 12
     name: Michael Hanke
     orcid: 0000-0001-6398-6370
   - affiliation: 2
@@ -70,36 +67,30 @@ authors:
   - affiliation: 2
     name: Oscar Esteban
     orcid: 0000-0001-8435-6191
-  - affiliation: 16
+  - affiliation: 15
     name: Stefan Appelhoff
     orcid: 0000-0001-8002-0877
-  - affiliation: 17
+  - affiliation: 16
     name: Chris Holdgraf
     orcid: 0000-0002-2391-0678
-  - affiliation: 18
+  - affiliation: 17
     name: Isla Staden
     orcid: 0000-0002-0795-1154
-  - affiliation: 19
-    name: Ariel Rokem
-    orcid: 0000-0003-0679-1985
-  - affiliation: 20
+  - affiliation: 18
     name: Bertrand Thirion
     orcid: 0000-0001-5018-7895
-  - affiliation: 21
+  - affiliation: 19
     name: Dave F Kleinschmidt
     orcid: 0000-0002-7442-2762
-  - affiliation: 9
+  - affiliation: 8
     name: John A Lee
     orcid: 0000-0001-5884-4247
-  - affiliation: 17
+  - affiliation: 16
     name: Matteo Visconti di Oleggio Castello
     orcid: 0000-0001-7931-5272
-  - affiliation: 22
+  - affiliation: 20
     name: Michael P Notter
     orcid: 0000-0002-5866-047X
-  - affiliation: 23
-    name: Pauline Roca
-    orcid: 0000-0003-2089-6636
   - affiliation: 2
     name: Ross Blair
     orcid: 0000-0003-3007-1056
@@ -117,39 +108,33 @@ affiliations:
 - index: 6
   name: McGill University
 - index: 7
-  name: Institute for Problems of Information Transmission
-- index: 8
   name: Concordia University
-- index: 9
+- index: 8
   name: National Institute of Mental Health
-- index: 10
+- index: 9
   name: MRC Cognition and Brain Sciences Unit
-- index: 11
+- index: 10
   name: Montreal Neurological Institute and Hospital
-- index: 12
+- index: 11
   name: Alan Turing Institute
-- index: 13
+- index: 12
   name: Otto-von-Guericke University Magdeburg
-- index: 14
+- index: 13
   name: CorticoMetrics LLC
-- index: 15
+- index: 14
   name: Télécom ParisTech, France
-- index: 16
+- index: 15
   name: Max Planck Institute for Human Development, Berlin, Germany
-- index: 17
+- index: 16
   name: University of California at Berkeley
-- index: 18
+- index: 17
   name: Queen Mary University London
-- index: 19
-  name: The University of Washington eScience Institute
-- index: 20
+- index: 18
   name: INRIA
-- index: 21
+- index: 19
   name: Rutgers University
-- index: 22
+- index: 20
   name: University of Lausanne
-- index: 23
-  name: Sainte-Anne Hospital Center, Université Paris Descartes
 date: 19 February 2019
 bibliography: paper.bib
 ---
