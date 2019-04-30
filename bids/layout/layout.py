@@ -6,6 +6,7 @@ from io import open
 from functools import reduce, partial
 from itertools import chain
 import copy
+import warnings
 
 from bids_validator import BIDSValidator
 from ..utils import listify, natural_sort, check_path_matches_patterns
@@ -110,15 +111,15 @@ class BIDSLayout(object):
         index_associated (bool): Argument passed onto the BIDSValidator;
             ignored if validate = False.
         absolute_paths (bool): If True, queries always return absolute paths.
-            If False, queries return relative paths, unless the root argument
-            was left empty (in which case the root defaults to the file system
-            root).
+            If False, queries return relative paths (for files and directories).
         derivatives (bool, str, list): Specifies whether and/or which
             derivatives to to index. If True, all pipelines found in the
             derivatives/ subdirectory will be indexed. If a str or list, gives
             the paths to one or more derivatives directories to index. If False
             or None, the derivatives/ directory is ignored during indexing, and
             derivatives will have to be added manually via add_derivatives().
+            Note: derivatives datasets MUST contain a dataset_description.json
+            file in order to be indexed.
         config (str, list): Optional name(s) of configuration file(s) to use.
             By default (None), uses 'bids'.
         sources (BIDLayout, list): Optional BIDSLayout(s) from which the
@@ -358,6 +359,10 @@ class BIDSLayout(object):
                 pipeline directory (e.g., derivatives/fmriprep).
             kwargs (dict): Optional keyword arguments to pass on to
                 BIDSLayout() when initializing each of the derivative datasets.
+
+        Note: Every derivatives directory intended for indexing MUST contain a
+            valid dataset_description.json file. See the BIDS-Derivatives
+            specification for details.
         '''
         paths = listify(path)
         deriv_dirs = []
@@ -379,6 +384,14 @@ class BIDSLayout(object):
                         sd = os.path.join(p, sd)
                         if check_for_description(sd):
                             deriv_dirs.append(sd)
+
+        if not deriv_dirs:
+            warnings.warn("Derivative indexing was enabled, but no valid "
+                          "derivatives datasets were found in any of the "
+                          "provided or default locations. Please make sure "
+                          "all derivatives datasets you intend to index "
+                          "contain a 'dataset_description.json' file, as "
+                          "described in the BIDS-derivatives specification.")
 
         for deriv in deriv_dirs:
             dd = os.path.join(deriv, 'dataset_description.json')
@@ -429,7 +442,9 @@ class BIDSLayout(object):
         return data
 
     def get(self, return_type='object', target=None, extensions=None,
-            scope='all', regex_search=False, defined_fields=None, **kwargs):
+            scope='all', regex_search=False, defined_fields=None,
+            absolute_paths=None,
+            **kwargs):
         """
         Retrieve files and/or metadata from the current Layout.
 
@@ -458,13 +473,24 @@ class BIDSLayout(object):
                 that must be defined in JSON sidecars in order to consider the
                 file a match, but which don't need to match any particular
                 value.
+            absolute_paths (bool): Optionally override the instance-wide option
+                to report either absolute or relative (to the top of the
+                dataset) paths. If None, will fall back on the value specified
+                at BIDSLayout initialization.
             kwargs (dict): Any optional key/values to filter the entities on.
                 Keys are entity names, values are regexes to filter on. For
-                example, passing filter={ 'subject': 'sub-[12]'} would return
+                example, passing filter={'subject': 'sub-[12]'} would return
                 only files that match the first two subjects.
 
         Returns:
             A list of BIDSFiles (default) or strings (see return_type).
+
+        Notes:
+            As of pybids 0.7.0 some keywords have been changed. Namely: 'type'
+            becomes 'suffix', 'modality' becomes 'datatype', 'acq' becomes 
+            'acquisition' and 'mod' becomes 'modality'. Using the wrong version 
+            could result in get() silently returning wrong or no results. See 
+            the changelog for more details.
         """
 
         # Warn users still expecting 0.6 behavior
@@ -520,7 +546,10 @@ class BIDSLayout(object):
                 results = [files[f] for f in results]
 
         # Convert to relative paths if needed
-        if not self.absolute_paths:
+        if absolute_paths is None:  # can be overloaded as option to .get
+            absolute_paths = self.absolute_paths
+
+        if not absolute_paths:
             for i, f in enumerate(results):
                 f = copy.copy(f)
                 f.path = os.path.relpath(f.path, self.root)
@@ -552,8 +581,12 @@ class BIDSLayout(object):
                     patt = entities[ent].pattern
                     template = template.replace('{%s}' % ent, patt)
                 template += r'[^\%s]*$' % os.path.sep
-                matches = [f.dirname for f in results
-                           if re.search(template, f.dirname)]
+                matches = [
+                    f.dirname if absolute_paths else os.path.relpath(f.dirname, self.root)
+                    for f in results
+                    if re.search(template, f.dirname)
+                ]
+
                 results = natural_sort(list(set(matches)))
 
             else:

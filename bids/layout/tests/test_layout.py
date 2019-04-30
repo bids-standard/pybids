@@ -19,6 +19,12 @@ def layout_7t_trt():
 
 
 @pytest.fixture(scope='module')
+def layout_7t_trt_relpath():
+    data_dir = join(get_test_data_path(), '7t_trt')
+    return BIDSLayout(data_dir, absolute_paths=False)
+
+
+@pytest.fixture(scope='module')
 def layout_ds005():
     data_dir = join(get_test_data_path(), 'ds005')
     return BIDSLayout(data_dir)
@@ -66,6 +72,21 @@ def test_layout_init(layout_7t_trt):
 
 def test_layout_repr(layout_7t_trt):
     assert "Subjects: 10 | Sessions: 20 | Runs: 20" in str(layout_7t_trt)
+
+
+def test_layout_copy(layout_7t_trt):
+    # Largely a smoke test to guarantee that copy() does not blow
+    # see https://github.com/bids-standard/pybids/pull/400#issuecomment-467961124
+    import copy
+    l = layout_7t_trt
+
+    lcopy = copy.copy(l)
+    assert repr(lcopy) == repr(l)
+    assert str(lcopy) == str(l)
+
+    lcopy = copy.deepcopy(l)
+    assert repr(lcopy) == repr(l)
+    assert str(lcopy) == str(l)
 
 
 def test_load_description(layout_7t_trt):
@@ -230,15 +251,27 @@ def test_bids_json(layout_7t_trt):
     assert set(res) == {'1', '2'}
 
 
-def test_get_return_type_dir(layout_7t_trt):
-    l = layout_7t_trt
-    res = l.get(target='subject', return_type='dir')
+def test_get_return_type_dir(layout_7t_trt, layout_7t_trt_relpath):
+    query = dict(target='subject', return_type='dir')
+    # In case of relative paths
+    res_relpath = layout_7t_trt_relpath.get(**query)
     # returned directories should be in sorted order so we can match exactly
+    target_relpath = ["sub-{:02d}".format(i) for i in range(1, 11)]
+    assert target_relpath == res_relpath
+
+    res = layout_7t_trt.get(**query)
     target = [
-        os.path.join(get_test_data_path(), '7t_trt', "sub-{:02d}".format(i))
-        for i in range(1, 11)
+        os.path.join(get_test_data_path(), '7t_trt', p)
+        for p in target_relpath
     ]
     assert target == res
+
+    # and we can overload the value for absolute_path in .get call
+    res_relpath2 = layout_7t_trt.get(absolute_paths=False, **query)
+    assert target_relpath == res_relpath2
+    res2 = layout_7t_trt_relpath.get(absolute_paths=True, **query)
+    assert target == res2
+
 
 
 def test_get_return_sorted(layout_7t_trt):
@@ -414,6 +447,21 @@ def test_parse_file_entities_from_layout(layout_synthetic):
     target = {'desc': 'bleargh'}
     assert target == layout.parse_file_entities(filename, config='derivatives')
 
+
+def test_deriv_indexing():
+    data_dir = join(get_test_data_path(), 'ds005')
+    deriv_dir = join(data_dir, 'derivatives', 'bbr')
+
+    # missing dataset_description.json
+    with pytest.warns(UserWarning):
+        layout = BIDSLayout(data_dir, derivatives=deriv_dir)
+
+    # Should work fine
+    deriv_dir = join(data_dir, 'derivatives', 'events')
+    layout = BIDSLayout(data_dir, derivatives=deriv_dir)
+    assert layout.get(scope='derivatives')
+    assert layout.get(scope='events')
+    assert not layout.get(scope='nonexistent')
 
 def test_add_config_paths():
     bids_dir = dirname(bids.__file__)

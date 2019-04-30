@@ -275,7 +275,10 @@ class BIDSFile(object):
     def __getattr__(self, attr):
         # Ensures backwards compatibility with old File_ namedtuple, which is
         # deprecated as of 0.7.
-        if attr in self.entities:
+        # _ check first to not mask away access to __setstate__ etc.
+        # AFAIK None of the entities are allowed to start with _ anyways
+        # so the check is more generic than __
+        if not attr.startswith('_') and attr in self.entities:
             warnings.warn("Accessing entities as attributes is deprecated as "
                           "of 0.7. Please use the .entities dictionary instead"
                           " (i.e., .entities['%s'] instead of .%s."

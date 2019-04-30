@@ -1,6 +1,5 @@
 # PyBIDS
-[![Build Status (Linux and OS X)](https://travis-ci.org/bids-standard/pybids.svg?branch=master)](https://travis-ci.org/bids-standard/pybids)
-[![Build Status (Windows)](https://ci.appveyor.com/api/projects/status/5aa4c6e3m15ew4v7?svg=true)](https://ci.appveyor.com/project/chrisfilo/pybids-ilb80)
+[![Build Status (Linux and OS X)](https://travis-ci.org/bids-standard/pybids.svg?branch=master)](https://travis-ci.org/bids-standard/pybids)<!---[![Build Status (Windows)](https://ci.appveyor.com/api/projects/status/5aa4c6e3m15ew4v7?svg=true)](https://ci.appveyor.com/project/chrisfilo/pybids-ilb80)-->
 [![Binder](https://mybinder.org/badge.svg)](https://mybinder.org/v2/gh/bids-standard/pybids/master)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.2537312.svg)](https://doi.org/10.5281/zenodo.2537312)
 
