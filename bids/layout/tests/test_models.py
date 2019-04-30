@@ -57,15 +57,6 @@ def test_entity_init_with_bad_dtype():
         assert msg.startswith("Invalid dtype")
 
 
-# def test_entity_deepcopy(subject_entity):
-#     e = subject_entity
-#     clone = copy.deepcopy(subject_entity)
-#     for attr in ['name', 'pattern', 'mandatory', 'directory',
-#                  'regex', 'kwargs']:
-#         assert getattr(e, attr) == getattr(clone, attr)
-#     assert e != clone
-
-
 def test_entity_matches(tmpdir):
     filename = "aardvark-4-reporting-for-duty.txt"
     tmpdir.mkdir("tmp").join(filename).write("###")

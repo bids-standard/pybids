@@ -364,9 +364,17 @@ class Entity(Base):
     def __deepcopy__(self, memo):
         cls = self.__class__
         result = cls.__new__(cls)
+
+        # Directly copy the SQLAlchemy connection before any setattr calls,
+        # otherwise failures occur sporadically on Python 3.5 when the
+        # _sa_instance_state attribute (randomly!) disappears.
+        result._sa_instance_state = self._sa_instance_state
+
         memo[id(self)] = result
 
         for k, v in self.__dict__.items():
+            if k == '_sa_instance_state':
+                continue
             new_val = getattr(self, k) if k == 'regex' else deepcopy(v, memo)
             setattr(result, k, new_val)
         return result
