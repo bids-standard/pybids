@@ -203,11 +203,20 @@ class BIDSLayoutIndexer(object):
                 to_store = (file_ents, payload, bf.path)
                 file_data[key][bf.dirname].append(to_store)
 
+        # To avoid integrity errors, track primary keys we've seen
+        seen_assocs = set()
+
         def create_association_pair(src, dst, kind, kind2=None):
             kind2 = kind2 or kind
-            assoc1 = FileAssociation(src=src, dst=dst, kind=kind)
-            assoc2 = FileAssociation(src=dst, dst=src, kind=kind2)
-            self.session.add_all([assoc1, assoc2])
+            pk1 = '#'.join([src, dst, kind])
+            if pk1 not in seen_assocs:
+                self.session.add(FileAssociation(src=src, dst=dst, kind=kind))
+                seen_assocs.add(pk1)
+            pk2 = '#'.join([src, dst, kind2])
+            print(pk1, pk2)
+            if pk2 not in seen_assocs:
+                self.session.add(FileAssociation(src=dst, dst=src, kind=kind2))
+                seen_assocs.add(pk2)
 
         # TODO: Efficiency of everything in this loop could be improved
         filenames = [bf for bf in all_files if not bf.path.endswith('.json')]
