@@ -486,7 +486,7 @@ class FileAssociation(Base):
 
     src = Column(String, ForeignKey('files.path'), primary_key=True)
     dst = Column(String, ForeignKey('files.path'), primary_key=True)
-    kind = Column(String)
+    kind = Column(String, primary_key=True)
 
 
 # Association objects
