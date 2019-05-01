@@ -212,8 +212,7 @@ class BIDSLayoutIndexer(object):
             if pk1 not in seen_assocs:
                 self.session.add(FileAssociation(src=src, dst=dst, kind=kind))
                 seen_assocs.add(pk1)
-            pk2 = '#'.join([src, dst, kind2])
-            print(pk1, pk2)
+            pk2 = '#'.join([dst, src, kind2])
             if pk2 not in seen_assocs:
                 self.session.add(FileAssociation(src=dst, dst=src, kind=kind2))
                 seen_assocs.add(pk2)
