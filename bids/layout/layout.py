@@ -409,14 +409,14 @@ class BIDSLayout(object):
         if replace_connection:
             self._set_session(filename)
 
-    def get_entities(self, scope='all', is_metadata=None):
+    def get_entities(self, scope='all', metadata=None):
         ''' Get entities for all layouts in the specified scope.
 
         Args:
             scope (str): The scope of the search space. Indicates which
                 BIDSLayouts' entities to extract. See BIDSLayout docstring
                 for valid values.
-            is_metadata (bool, None): By default (None), all available entities
+            metadata (bool, None): By default (None), all available entities
                 are returned. If True, only entities found in metadata files
                 (and not defined for filenames) are returned. If False, only
                 entities defined for filenames (and not those found in JSON
@@ -430,8 +430,8 @@ class BIDSLayout(object):
         entities = {}
         for l in layouts:
             query = l.session.query(Entity)
-            if is_metadata is not None:
-                query = query.filter_by(is_metadata=is_metadata)
+            if metadata is not None:
+                query = query.filter_by(is_metadata=metadata)
             results = query.all()
             entities.update({e.name: e for e in results})
         return entities
@@ -914,7 +914,7 @@ class BIDSLayout(object):
 
         # Collect matches for all entities
         entities = {}
-        for ent in self.get_entities(is_metadata=False).values():
+        for ent in self.get_entities(metadata=False).values():
             m = ent.regex.search(path)
             if m:
                 entities[ent.name] = ent._astype(m.group(1))
