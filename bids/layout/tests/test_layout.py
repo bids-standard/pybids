@@ -332,15 +332,6 @@ def test_query_derivatives(layout_ds005_derivs):
     assert 'sub-01_task-mixedgamblestask_run-01_desc-extra_events.tsv' in result
 
 
-def test_bidsimagefile_get_image():
-    path = "synthetic/sub-01/ses-01/func/sub-01_ses-01_task-nback_run-01_bold.nii.gz"
-    path = path.split('/')
-    path = join(get_test_data_path(), *path)
-    bf = BIDSImageFile(path, None)
-    assert bf.get_image() is not None
-    assert bf.get_image().shape == (64, 64, 64, 64)
-
-
 def test_restricted_words_in_path(tmpdir):
     orig_path = join(get_test_data_path(), 'synthetic')
     parent_dir = str(tmpdir / 'derivatives' / 'pipeline')

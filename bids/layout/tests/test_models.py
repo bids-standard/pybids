@@ -8,8 +8,9 @@ from sqlalchemy.orm import sessionmaker
 import numpy as np
 
 from bids.layout.models import (BIDSFile, Entity, Tag, Base, Config,
-                                FileAssociation)
+                                FileAssociation, BIDSImageFile)
 from bids.layout import BIDSLayout
+from bids.tests import get_test_data_path
 
 
 def create_session():
@@ -173,3 +174,12 @@ def test_bidsfile_get_df_from_tsv_gz(layout_synthetic):
     df3 = bf.get_df(adjust_onset=True)
     assert df1.iloc[:, 1:].equals(df3.iloc[:, 1:])
     assert np.allclose(df3.iloc[:,0], df1.iloc[:, 0] + 22.8)
+
+
+def test_bidsimagefile_get_image():
+    path = "synthetic/sub-01/ses-01/func/sub-01_ses-01_task-nback_run-01_bold.nii.gz"
+    path = path.split('/')
+    path = os.path.join(get_test_data_path(), *path)
+    bf = BIDSImageFile(path, None)
+    assert bf.get_image() is not None
+    assert bf.get_image().shape == (64, 64, 64, 64)
