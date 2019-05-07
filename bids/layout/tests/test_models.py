@@ -183,3 +183,39 @@ def test_bidsimagefile_get_image():
     bf = BIDSImageFile(path, None)
     assert bf.get_image() is not None
     assert bf.get_image().shape == (64, 64, 64, 64)
+
+
+def test_bidsfile_get_metadata(layout_synthetic):
+    bf = layout_synthetic.get(suffix='physio', extension='tsv.gz')[0]
+    md = bf.get_metadata()
+    assert set(md.keys()) == {'Columns', 'SamplingFrequency', 'StartTime'}
+
+
+def test_bidsfile_get_entities(layout_synthetic):
+    md_ents = {'Columns', 'SamplingFrequency', 'StartTime'}
+    file_ents = {'datatype', 'extension', 'run', 'session', 'subject',
+                 'suffix', 'task'}
+    bf = layout_synthetic.get(suffix='physio', extension='tsv.gz')[10]
+    # metadata=True and values='tags'; this is equivalent to get_metadata()
+    md = bf.get_entities(metadata=True)
+    assert md == bf.get_metadata()
+    assert set(md.keys()) == md_ents
+    assert md['StartTime'] == 22.8
+    # metadata=True and values='objects'
+    md = bf.get_entities(metadata=True, values='obj')
+    assert set(md.keys()) == md_ents
+    assert all([isinstance(v, Entity) for v in md.values()])
+    # metadata=False and values='tags'
+    md = bf.get_entities(metadata=False, values='tags')
+    assert set(md.keys()) == file_ents
+    assert md['session'] == '02'
+    assert md['task'] == 'nback'
+    # metadata=False and values='obj'
+    md = bf.get_entities(metadata=False, values='objects')
+    assert set(md.keys()) == file_ents
+    assert all([isinstance(v, Entity) for v in md.values()])
+    # No metadata constraint
+    md = bf.get_entities(metadata='all')
+    md2 = bf.get_entities(metadata=None)
+    assert md == md2
+    assert set(md.keys()) == md_ents | file_ents

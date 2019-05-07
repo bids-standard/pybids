@@ -193,16 +193,37 @@ class BIDSFile(Base):
 
     def get_metadata(self):
         """ Returns all metadata associated with the current file. """
+        return self.get_entities(metadata=True)
+
+    def get_entities(self, metadata=False, values='tags'):
+        """ Returns entity information for the current file.
+
+        Args:
+            metadata (bool, None): If False (default), only entities defined
+            for filenames (and not those found in the JSON sidecar) are
+            returned. If True, only entities found in metadata files (and not
+            defined for filenames) are returned. If None, all available
+            entities are returned.
+            values (str): The kind of object to return in the dict's values.
+                Must be one of:
+                    * 'tags': Returns only the tagged value--e.g., if the key
+                    is "subject", the value might be "01".
+                    * 'objects': Returns the corresponding Entity instance.
+
+        Returns: A dict, where keys are entity names and values are Entity
+            instances.
+        """
         session = object_session(self)
         query = (session.query(Tag)
                         .filter_by(file_path=self.path)
-                        .join(Entity)
-                        .filter(Entity.is_metadata))
-        return {t.entity_name: t.value for t in query.all()}
+                        .join(Entity))
+        if metadata not in (None, 'all'):
+            query = query.filter(Entity.is_metadata==metadata)
 
-    def get_entities(self):
-        """ Returns a dict of entity name --> Entity. """
-        return self.entities
+        results = query.all()
+        if values.startswith('obj'):
+            return {t.entity_name: t.entity for t in results}
+        return {t.entity_name: t.value for t in results}
 
     def copy(self, path_patterns, symbolic_link=False, root=None,
              conflicts='fail'):
@@ -248,6 +269,7 @@ class BIDSFile(Base):
         write_contents_to_file(new_filename, contents=contents,
                                link_to=link_to, content_mode='text', root=root,
                                conflicts=conflicts)
+
 
 class BIDSDataFile(BIDSFile):
 
