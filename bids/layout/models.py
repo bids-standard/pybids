@@ -135,6 +135,24 @@ class BIDSFile(Base):
         self.is_dir = not self.filename
         self._init_on_load()
 
+    def __getattr__(self, attr):
+        # Ensures backwards compatibility with old File_ namedtuple, which is
+        # deprecated as of 0.7.
+        # _ check first to not mask away access to __setstate__ etc.
+        # AFAIK None of the entities are allowed to start with _ anyways
+        # so the check is more generic than __
+        if not attr.startswith('_') and attr in self.entities:
+            warnings.warn("Accessing entities as attributes is deprecated as "
+                          "of 0.7. Please use the .entities dictionary instead"
+                          " (i.e., .entities['%s'] instead of .%s."
+                          % (attr, attr))
+            return self.entities[attr]
+        raise AttributeError("%s object has no attribute named %r" %
+                             (self.__class__.__name__, attr))
+
+    def __repr__(self):
+        return "<{} filename='{}'>".format(self.__class__.__name__, self.path)
+
     @reconstructor
     def _init_on_load(self):
         self._data = None
@@ -172,6 +190,19 @@ class BIDSFile(Base):
             return results
 
         return chain(*[collect_associations([], bf) for bf in associations])
+
+    def get_metadata(self):
+        """ Returns all metadata associated with the current file. """
+        session = object_session(self)
+        query = (session.query(Tag)
+                        .filter_by(file_path=self.path)
+                        .join(Entity)
+                        .filter(Entity.is_metadata))
+        return {t.entity_name: t.value for t in query.all()}
+
+    def get_entities(self):
+        """ Returns a dict of entity name --> Entity. """
+        return self.entities
 
     def copy(self, path_patterns, symbolic_link=False, root=None,
              conflicts='fail'):
@@ -217,34 +248,6 @@ class BIDSFile(Base):
         write_contents_to_file(new_filename, contents=contents,
                                link_to=link_to, content_mode='text', root=root,
                                conflicts=conflicts)
-
-    def __getattr__(self, attr):
-        # Ensures backwards compatibility with old File_ namedtuple, which is
-        # deprecated as of 0.7.
-        # _ check first to not mask away access to __setstate__ etc.
-        # AFAIK None of the entities are allowed to start with _ anyways
-        # so the check is more generic than __
-        if not attr.startswith('_') and attr in self.entities:
-            warnings.warn("Accessing entities as attributes is deprecated as "
-                          "of 0.7. Please use the .entities dictionary instead"
-                          " (i.e., .entities['%s'] instead of .%s."
-                          % (attr, attr))
-            return self.entities[attr]
-        raise AttributeError("%s object has no attribute named %r" %
-                             (self.__class__.__name__, attr))
-
-    def __repr__(self):
-        return "<{} filename='{}'>".format(self.__class__.__name__, self.path)
-
-    def get_metadata(self):
-        """ Returns all metadata associated with the current file. """
-        session = object_session(self)
-        query = (session.query(Tag)
-                        .filter_by(file_path=self.path)
-                        .join(Entity)
-                        .filter(Entity.is_metadata))
-        return {t.entity_name: t.value for t in query.all()}
-
 
 class BIDSDataFile(BIDSFile):
 

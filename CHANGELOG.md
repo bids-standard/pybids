@@ -17,6 +17,8 @@ various other filtering/indexing options mean there is longer a good reason for
 users to manipulate this.
 * `bids.layout.MetadataIndex` no longer exists. It's unlikely that anyone will
 notice this.
+* `BIDSLayout.get_metadata()` no longer takes additional entities as optional
+keyword arguments (they weren't necessary for anything).
 * Direct access to most `BIDSFile` properties is discouraged, and in one case
 is broken in 0.9 (for `.metadata`, which was unavoidable, because it's reserved
 by SQLAlchemy). Instead, users should use getters (`get_metadata`, `get_image`,
