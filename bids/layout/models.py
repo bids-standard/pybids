@@ -1,8 +1,7 @@
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.orm.collections import attribute_mapped_collection
-from sqlalchemy import (Column, Integer, String, Boolean, ForeignKey, JSON,
-                        Table)
+from sqlalchemy import (Column, Integer, String, Boolean, ForeignKey, Table)
 from sqlalchemy.orm import reconstructor, relationship, backref, object_session
 import re
 import os
