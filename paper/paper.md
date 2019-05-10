@@ -6,99 +6,95 @@ tags:
   - neuroimaging
 authors:
   - affiliation: 1
-    name: Yarkoni, Tal
+    name: Tal Yarkoni
     orcid: 0000-0002-6558-5113
   - affiliation: 2
-    name: Markiewicz, Christopher J.
+    name: Christopher J Markiewicz
     orcid: 0000-0002-6533-164X
   - affiliation: 1
-    name: de la Vega, Alejandro
+    name: Alejandro de la Vega
     orcid: 0000-0001-9062-3778
   - affiliation: 2
-    name: Gorgolewski, Krzysztof J.
+    name: Krzysztof J Gorgolewski
     orcid: 0000-0003-3321-7583
   - affiliation: 3
-    name: Salo, Taylor
+    name: Taylor Salo
     orcid: 0000-0001-9813-3167
   - affiliation: 4
-    name: Halchenko, Yaroslav O.
+    name: Yaroslav O Halchenko
     orcid: 0000-0003-3456-2493
   - affiliation: 1
-    name: McNamara, Quinten
+    name: Quinten McNamara
   - affiliation: 5
-    name: DeStasio, Krista
+    name: Krista DeStasio
     orcid: 0000-0002-3959-9060
   - affiliation: 6
-    name: Poline, Jean-Baptiste
+    name: Jean-Baptiste Poline
     orcid: 0000-0002-9794-749X
   - affiliation: 7
-    name: Petrov, Dmitry
+    name: Dmitry Petrov
   - affiliation: 8
-    name: Hayot-Sasson, Valérie
+    name: Valérie Hayot-Sasson
     orcid: 0000-0002-4830-4535
   - affiliation: 9
-    name: Nielson, Dylan M.
+    name: Dylan M Nielson
     orcid: 0000-0003-4613-6643
   - affiliation: 10
-    name: Carlin, Johan
+    name: Johan Carlin
     orcid: 0000-0003-0933-1239
   - affiliation: 11
-    name: Kiar, Gregory
+    name: Gregory Kiar
     orcid: 0000-0001-8915-496X
   - affiliation: 12
-    name: Whitaker, Kirstie
+    name: Kirstie Whitaker
     orcid: 0000-0001-8498-4059
   - affiliation: 11
-    name: DuPre, Elizabeth
+    name: Elizabeth DuPre
     orcid: 0000-0003-1358-196X
   - affiliation: 13
-    name: Wagner, Adina
+    name: Adina Wagner
     orcid: 0000-0003-2917-3450
-  - name: Ivanov, Alexander
   - affiliation: 14
-    name: Tirrell, Lee S.
+    name: Lee S Tirrell
     orcid: 0000-0001-9393-8361
   - affiliation: 15
-    name: Jas, Mainak
+    name: Mainak Jas
     orcid: 0000-0002-3199-9027
   - affiliation: 13
-    name: Hanke, Michael
+    name: Michael Hanke
     orcid: 0000-0001-6398-6370
   - affiliation: 2
-    name: Poldrack, Russell
+    name: Russell A Poldrack
     orcid: 0000-0001-6755-0259
   - affiliation: 2
-    name: Esteban, Oscar
+    name: Oscar Esteban
     orcid: 0000-0001-8435-6191
   - affiliation: 16
-    name: Appelhoff, Stefan
+    name: Stefan Appelhoff
     orcid: 0000-0001-8002-0877
   - affiliation: 17
-    name: Holdgraf, Chris
+    name: Chris Holdgraf
     orcid: 0000-0002-2391-0678
   - affiliation: 18
-    name: Staden, Isla
+    name: Isla Staden
     orcid: 0000-0002-0795-1154
   - affiliation: 19
-    name: Thirion, Bertrand
+    name: Bertrand Thirion
     orcid: 0000-0001-5018-7895
   - affiliation: 20
-    name: Kleinschmidt, Dave F.
+    name: Dave F Kleinschmidt
     orcid: 0000-0002-7442-2762
   - affiliation: 9
-    name: Lee, John A.
+    name: John A Lee
     orcid: 0000-0001-5884-4247
   - affiliation: 17
-    name: Visconti di Oleggio Castello, Matteo
+    name: Matteo Visconti di Oleggio Castello
     orcid: 0000-0001-7931-5272
   - affiliation: 21
-    name: Notter, Michael Philipp
+    name: Michael P Notter
     orcid: 0000-0002-5866-047X
-  - affiliation: 22
-    name: Roca, Pauline
-    orcid: 0000-0003-2089-6636
   - affiliation: 2
-    name: Blair, Ross
+    name: Ross Blair
     orcid: 0000-0003-3007-1056
 affiliations:
 - index: 1
@@ -114,7 +110,7 @@ affiliations:
 - index: 6
   name: McGill University
 - index: 7
-  name: Institute for Problems of Information Transmission
+  name: University of Southern California
 - index: 8
   name: Concordia University
 - index: 9
@@ -143,8 +139,6 @@ affiliations:
   name: Rutgers University
 - index: 21
   name: University of Lausanne
-- index: 22
-  name: Sainte-Anne Hospital Center, Université Paris Descartes
 date: 19 February 2019
 bibliography: paper.bib
 ---
