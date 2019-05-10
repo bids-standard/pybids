@@ -36,7 +36,7 @@ class Config(Base):
     __tablename__ = 'configs'
 
     name = Column(String, primary_key=True)
-    _default_path_patterns = Column(JSON)
+    _default_path_patterns = Column(String)
     entities = relationship(
         "Entity", secondary="config_to_entity_map",
         collection_class=attribute_mapped_collection('name'))
