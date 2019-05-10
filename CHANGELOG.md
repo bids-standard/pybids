@@ -1,6 +1,6 @@
 # Changelog
 
-## Version 0.9.0 (May ??, 2019)
+## Version 0.9.0 (May 10, 2019)
 Version 0.9 replaces the native Python backend with a SQLite database managed
 via SQLAlchemy. The layout module has been refactored (again), but API changes
 are minimal. This release also adds many new features and closes a number of
@@ -50,6 +50,7 @@ associated files (see #431).
 * The `BIDSFile` class has been split into a hierarchy, with `BIDSImageFile`
 and `BIDSDataFile` subclasses. The former adds a `get_image()` method (returns
 a NiBabel image); the latter adds a `get_df()` method (returns a pandas DF).
+All `BIDSFile` instances now also have a `get_entities()` method.
 
 BUG FIXES AND OTHER MINOR CHANGES:
 * Metadata key/value pairs and file entities are now treated identically,
@@ -58,6 +59,8 @@ eliminating a source of ambiguity in search (see #398).
 explicitly specified (see #383).
 * `BIDSLayout.get_collections()` no longer drops user-added columns (#273).
 * Various minor fixes/improvements/changes to tests.
+* The tutorial Jupyter notebook has been fixed and updated to reflect the
+latest changes.
 
 ## Version 0.8.0 (February 15, 2019)
 Version 0.8 refactors much of the layout module. It drops the grabbit
