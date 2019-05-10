@@ -110,7 +110,7 @@ affiliations:
 - index: 6
   name: McGill University
 - index: 7
-  name: Institute for Problems of Information Transmission
+  name: University of Southern California
 - index: 8
   name: Concordia University
 - index: 9
