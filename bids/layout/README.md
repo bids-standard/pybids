@@ -7,7 +7,7 @@ Use grabbit to interact with BIDS projects
 
 ## Quickstart
 
-Suppose we have a BIDS project directory that looks like this (partial listing):
+Suppose we have a BIDS project directory that looks like this (partial listing of `./bids/tests/data/7t_trt` shipped within pybids):
 
 ```
 ├── dataset_description.json
@@ -49,9 +49,9 @@ Suppose we have a BIDS project directory that looks like this (partial listing):
 We can initialize a `layout` Layout object like so:
 
 ```python
-from bids.layout import BIDSLayout
-project_root = '/my_bids_project'
-layout = BIDSLayout(project_root)
+>>> from bids.layout import BIDSLayout
+>>> project_root = 'bids/tests/data/7t_trt'
+>>> layout = BIDSLayout(project_root)
 ```
 
 The `BIDSLayout` instance is a lightweight container for all of the files in the BIDS project directory. It automatically detects any BIDS entities found in the file paths, and allows us to perform simple but relatively powerful queries over the file tree. By default, defined BIDS entities include things like "subject", "session", "run", and "type". In case you're curious, the definitions in the config file look like this (though you probably won't ever have to define them yourself):
@@ -91,7 +91,7 @@ Once we've initialized a `Layout`, we can do simple things like getting a list o
 Counting is kind of trivial; everyone can count! More usefully, we can run simple logical queries, returning the results in a variety of formats:
 
 ```python
->>> files = layout.get(subject='0[12]', run=1, extensions='.nii.gz')
+>>> files = layout.get(subject=['01', '02'], run=1, extensions='.nii.gz')
 >>> files[0]
 File(filename='7t_trt/sub-02/ses-1/fmap/sub-02_ses-1_run-1_magnitude1.nii.gz', subject='sub-02', run='run-1', session='ses-1', type='magnitude1')
 
@@ -116,13 +116,14 @@ Some other examples of `get()` requests:
  ]
 
 >>> # Return a list of unique file types available for subject 1
->>> layout.get(target='type', return_type='id', subject=1)
+>>> layout.get(target='datatype', return_type='id', subject=1)
 ['T1map', 'magnitude2', 'magnitude1', 'scans', 'bold', 'phasediff', 'T1w', 'physio']
 ```
 
 ### Get all metadata for a given file
 
 ```python
+>>> print(layout.get_metadata('sub-03/ses-2/func/sub-03_ses-2_task-rest_acq-fullbrain_run-2_bold.nii.gz'))
 >>> layout.get_metadata('sub-03/ses-2/func/sub-03_ses-2_task-rest_acq-fullbrain_run-2_bold.nii.gz')["RepetitionTime"]
 3.0
 ```
@@ -132,7 +133,7 @@ Some other examples of `get()` requests:
 ```python
 >>> layout.get_fieldmap('7t_trt/sub-03/ses-2/func/sub-03_ses-2_task-rest_acq-fullbrain_run-2_bold.nii.gz')
 {
-  'type': 'phasediff',
+  'datatype': 'phasediff',
   'phasediff': 'sub-03/ses-2/fmap/sub-03_ses-2_run-1_phasediff.nii.gz',
   'magnitude1': 'sub-03/ses-2/fmap/sub-03_ses-2_run-1_magnitude1.nii.gz',
   'magnitude2': 'sub-03/ses-2/fmap/sub-03_ses-2_run-1_magnitude2.nii.gz'
