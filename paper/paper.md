@@ -54,7 +54,6 @@ authors:
   - affiliation: 13
     name: Adina Wagner
     orcid: 0000-0003-2917-3450
-  - name: Alexander Ivanov
   - affiliation: 14
     name: Lee S Tirrell
     orcid: 0000-0001-9393-8361
@@ -80,12 +79,9 @@ authors:
     name: Isla Staden
     orcid: 0000-0002-0795-1154
   - affiliation: 19
-    name: Ariel Rokem
-    orcid: 0000-0003-0679-1985
-  - affiliation: 20
     name: Bertrand Thirion
     orcid: 0000-0001-5018-7895
-  - affiliation: 21
+  - affiliation: 20
     name: Dave F Kleinschmidt
     orcid: 0000-0002-7442-2762
   - affiliation: 9
@@ -94,12 +90,9 @@ authors:
   - affiliation: 17
     name: Matteo Visconti di Oleggio Castello
     orcid: 0000-0001-7931-5272
-  - affiliation: 22
+  - affiliation: 21
     name: Michael P Notter
     orcid: 0000-0002-5866-047X
-  - affiliation: 23
-    name: Pauline Roca
-    orcid: 0000-0003-2089-6636
   - affiliation: 2
     name: Ross Blair
     orcid: 0000-0003-3007-1056
@@ -117,7 +110,7 @@ affiliations:
 - index: 6
   name: McGill University
 - index: 7
-  name: Institute for Problems of Information Transmission
+  name: University of Southern California
 - index: 8
   name: Concordia University
 - index: 9
@@ -141,15 +134,11 @@ affiliations:
 - index: 18
   name: Queen Mary University London
 - index: 19
-  name: The University of Washington eScience Institute
-- index: 20
   name: INRIA
-- index: 21
+- index: 20
   name: Rutgers University
-- index: 22
+- index: 21
   name: University of Lausanne
-- index: 23
-  name: Sainte-Anne Hospital Center, Université Paris Descartes
 date: 19 February 2019
 bibliography: paper.bib
 ---
