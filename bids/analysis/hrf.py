@@ -434,7 +434,7 @@ def _hrf_kernel(hrf_model, tr, oversampling=50, fir_delays=None):
 
 def compute_regressor(exp_condition, hrf_model, frame_times, con_id='cond',
                       oversampling=50, fir_delays=None, min_onset=-24):
-    """ This is the main function to convolve regressors with hrf model
+    """ Convolve regressors with hrf model (the main function of the module)
 
     Parameters
     ----------
