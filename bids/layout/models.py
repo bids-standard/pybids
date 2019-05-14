@@ -271,6 +271,11 @@ class BIDSFile(Base):
 
 
 class BIDSDataFile(BIDSFile):
+    """ Represents a single data file in a BIDS dataset.
+
+    Derived from `BIDSFile` and provides additional functionality such as
+    obtaining pandas DataFrame data representation (via `get_df`).
+    """
 
     __mapper_args__ = {
         'polymorphic_identity': 'data_file'
@@ -313,6 +318,11 @@ class BIDSDataFile(BIDSFile):
 
 
 class BIDSImageFile(BIDSFile):
+    """ Represents a single neuroimaging data file in a BIDS dataset.
+
+    Derived from `BIDSFile` and provides additional functionality such as
+    obtaining nibabel's image file representation (via `get_image`).
+    """
 
     __mapper_args__ = {
         'polymorphic_identity': 'image_file'
@@ -440,8 +450,7 @@ class Entity(Base):
 
 
 class Tag(Base):
-    """
-    Represents an association between a File and and Entity.
+    """ Represents an association between a File and and Entity.
 
     Args:
         file (BIDSFile): The associated BIDSFile.
