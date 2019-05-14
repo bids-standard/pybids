@@ -2,6 +2,7 @@ import os
 import pytest
 import bids
 import copy
+import json
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -11,6 +12,7 @@ from bids.layout.models import (BIDSFile, Entity, Tag, Base, Config,
                                 FileAssociation, BIDSImageFile)
 from bids.layout import BIDSLayout
 from bids.tests import get_test_data_path
+from bids.external import six
 
 
 def create_session():
@@ -183,6 +185,17 @@ def test_bidsimagefile_get_image():
     bf = BIDSImageFile(path, None)
     assert bf.get_image() is not None
     assert bf.get_image().shape == (64, 64, 64, 64)
+
+
+def test_bidsjsonfile(layout_synthetic):
+    jf = layout_synthetic.get(suffix='bold', extension='json')[0]
+    d = jf.get_dict()
+    assert isinstance(d, dict)
+    assert d['RepetitionTime'] == 2.5
+    j = jf.get_json()
+    assert isinstance(j, six.string_types)
+    assert 'RepetitionTime' in j
+    assert json.loads(j) == d
 
 
 def test_bidsfile_get_metadata(layout_synthetic):
