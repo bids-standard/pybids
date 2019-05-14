@@ -1049,7 +1049,7 @@ class BIDSLayout(object):
         return fieldmap_set
 
     def get_tr(self, derivatives=False, **filters):
-        """ Returns the scanning repetition time (TR) for one or more runs.
+        """ Return the scanning repetition time (TR) for one or more runs.
 
         Args:
             derivatives (bool): If True, also checks derivatives images.

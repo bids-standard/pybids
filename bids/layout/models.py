@@ -191,11 +191,11 @@ class BIDSFile(Base):
         return chain(*[collect_associations([], bf) for bf in associations])
 
     def get_metadata(self):
-        """ Returns all metadata associated with the current file. """
+        """ Return all metadata associated with the current file. """
         return self.get_entities(metadata=True)
 
     def get_entities(self, metadata=False, values='tags'):
-        """ Returns entity information for the current file.
+        """ Return entity information for the current file.
 
         Args:
             metadata (bool, None): If False (default), only entities defined
@@ -277,7 +277,7 @@ class BIDSDataFile(BIDSFile):
     }
 
     def get_df(self, include_timing=True, adjust_onset=False):
-        """ Returns the contents of a tsv file as a pandas DataFrame.
+        """ Return the contents of a tsv file as a pandas DataFrame.
 
         Args:
             include_timing (bool): If True, adds an "onset" column to dense
@@ -420,11 +420,11 @@ class Entity(Base):
         return self._astype(val)
 
     def unique(self):
-        """ Returns all unique values/levels for the current entity. """
+        """ Return all unique values/levels for the current entity. """
         return list(set(self.files.values()))
 
     def count(self, files=False):
-        """ Returns a count of unique values or files.
+        """ Return a count of unique values or files.
 
         Args:
             files (bool): When True, counts all files mapped to the Entity.
