@@ -127,7 +127,7 @@ class BIDSFile(Base):
         'polymorphic_identity': 'file'
     }
 
-    def __init__(self, filename, derivatives=False, is_dir=False):
+    def __init__(self, filename):
         self.path = filename
         self.filename = os.path.basename(self.path)
         self.dirname = os.path.dirname(self.path)
