@@ -4,66 +4,14 @@ functionality should go in the grabbit package. """
 import os
 import pytest
 import bids
+import re
 from bids.layout import BIDSLayout, parse_file_entities, add_config_paths
-from bids.layout.core import BIDSFile, Entity, Config
+from bids.layout.models import (BIDSFile, BIDSImageFile, Entity, Config,
+                                FileAssociation)
 from os.path import join, abspath, basename, dirname
 from bids.tests import get_test_data_path
 from bids.utils import natural_sort
-
-
-# Fixture uses in the rest of the tests
-@pytest.fixture(scope='module')
-def layout_7t_trt():
-    data_dir = join(get_test_data_path(), '7t_trt')
-    return BIDSLayout(data_dir)
-
-
-@pytest.fixture(scope='module')
-def layout_7t_trt_relpath():
-    data_dir = join(get_test_data_path(), '7t_trt')
-    return BIDSLayout(data_dir, absolute_paths=False)
-
-
-@pytest.fixture(scope='module')
-def layout_ds005():
-    data_dir = join(get_test_data_path(), 'ds005')
-    return BIDSLayout(data_dir)
-
-
-@pytest.fixture(scope='module')
-def layout_ds117():
-    data_dir = join(get_test_data_path(), 'ds000117')
-    return BIDSLayout(data_dir)
-
-
-@pytest.fixture(scope='module')
-def layout_ds005_derivs():
-    data_dir = join(get_test_data_path(), 'ds005')
-    layout = BIDSLayout(data_dir)
-    deriv_dir = join(data_dir, 'derivatives', 'events')
-    layout.add_derivatives(deriv_dir)
-    return layout
-
-
-@pytest.fixture(scope='module')
-def layout_ds005_multi_derivs():
-    data_dir = join(get_test_data_path(), 'ds005')
-    layout = BIDSLayout(data_dir)
-    deriv_dir1 = join(get_test_data_path(), 'ds005_derivs')
-    deriv_dir2 = join(data_dir, 'derivatives', 'events')
-    layout.add_derivatives([deriv_dir1, deriv_dir2])
-    return layout
-
-
-@pytest.fixture(scope='module')
-def layout_ds005_models():
-    data_dir = join(get_test_data_path(), 'ds005')
-    return BIDSLayout(data_dir, validate=True, force_index=['models'])
-
-@pytest.fixture(scope='module')
-def layout_synthetic():
-    path = join(get_test_data_path(), 'synthetic')
-    return BIDSLayout(path, derivatives=True)
+import tempfile
 
 
 def test_layout_init(layout_7t_trt):
@@ -74,19 +22,19 @@ def test_layout_repr(layout_7t_trt):
     assert "Subjects: 10 | Sessions: 20 | Runs: 20" in str(layout_7t_trt)
 
 
-def test_layout_copy(layout_7t_trt):
-    # Largely a smoke test to guarantee that copy() does not blow
-    # see https://github.com/bids-standard/pybids/pull/400#issuecomment-467961124
-    import copy
-    l = layout_7t_trt
+# def test_layout_copy(layout_7t_trt):
+#     # Largely a smoke test to guarantee that copy() does not blow
+#     # see https://github.com/bids-standard/pybids/pull/400#issuecomment-467961124
+#     import copy
+#     l = layout_7t_trt
 
-    lcopy = copy.copy(l)
-    assert repr(lcopy) == repr(l)
-    assert str(lcopy) == str(l)
+#     lcopy = copy.copy(l)
+#     assert repr(lcopy) == repr(l)
+#     assert str(lcopy) == str(l)
 
-    lcopy = copy.deepcopy(l)
-    assert repr(lcopy) == repr(l)
-    assert str(lcopy) == str(l)
+#     lcopy = copy.deepcopy(l)
+#     assert repr(lcopy) == repr(l)
+#     assert str(lcopy) == str(l)
 
 
 def test_load_description(layout_7t_trt):
@@ -179,6 +127,7 @@ def test_get_metadata_meg(layout_ds117):
     metadata_keys = ['MEGChannelCount', 'SoftwareFilters', 'SubjectArtefactDescription']
     assert all([k in result for k in metadata_keys])
 
+
 def test_get_metadata5(layout_7t_trt):
     target = 'sub-01/ses-1/func/sub-01_ses-1_task-rest_acq-fullbrain_run-1_bold.nii.gz'
     target = target.split('/')
@@ -194,7 +143,7 @@ def test_get_metadata_via_bidsfile(layout_7t_trt):
     target = 'sub-01/ses-1/func/sub-01_ses-1_task-rest_acq-fullbrain_run-1_bold.nii.gz'
     target = target.split('/')
     path = join(layout_7t_trt.root, *target)
-    result = layout_7t_trt.files[path].metadata
+    result = layout_7t_trt.files[path].get_metadata()
     assert result['EchoTime'] == 0.020
     # include_entities is False when called through a BIDSFile
     assert 'subject' not in result
@@ -283,14 +232,57 @@ def test_get_return_sorted(layout_7t_trt):
     assert files == paths
 
 
-def test_force_index(layout_ds005, layout_ds005_models):
-    target= join(layout_ds005_models.root, 'models',
-                'ds-005_type-test_model.json')
+def test_force_index(layout_ds005):
+    data_dir = join(get_test_data_path(), 'ds005')
+    target= join(data_dir, 'models', 'ds-005_type-test_model.json')
+    model_layout = BIDSLayout(data_dir, validate=True, force_index=['models'])
     assert target not in layout_ds005.files
-    assert target in layout_ds005_models.files
-    assert 'all' not in layout_ds005_models.get_subjects()
-    for f in layout_ds005_models.files.values():
+    assert target in model_layout.files
+    assert 'all' not in model_layout.get_subjects()
+    for f in model_layout.files.values():
         assert 'derivatives' not in f.path
+
+
+def test_nested_include_exclude():
+    data_dir = join(get_test_data_path(), 'ds005')
+    target1 = join(data_dir, 'models', 'ds-005_type-test_model.json')
+    target2 = join(data_dir, 'models', 'extras', 'ds-005_type-test_model.json')
+
+    # Nest a directory exclusion within an inclusion
+    layout = BIDSLayout(data_dir, validate=True, force_index=['models'],
+                      ignore=[os.path.join('models', 'extras')])
+    assert layout.get_file(target1)
+    assert not layout.get_file(target2)
+
+    # Nest a directory inclusion within an exclusion
+    layout = BIDSLayout(data_dir, validate=True, ignore=['models'],
+                        force_index=[os.path.join('models', 'extras')])
+    assert not layout.get_file(target1)
+    assert layout.get_file(target2)
+
+    # Force file inclusion despite directory-level exclusion
+    models = ['models', target2]
+    layout = BIDSLayout(data_dir, validate=True, force_index=models,
+                      ignore=[os.path.join('models', 'extras')])
+    assert layout.get_file(target1)
+    assert layout.get_file(target2)
+
+
+def test_nested_include_exclude_with_regex():
+    # ~same as above test, but use regexps instead of strings
+    patt1 = re.compile('.*dels$')
+    patt2 = re.compile('xtra')
+    data_dir = join(get_test_data_path(), 'ds005')
+    target1 = join(data_dir, 'models', 'ds-005_type-test_model.json')
+    target2 = join(data_dir, 'models', 'extras', 'ds-005_type-test_model.json')
+
+    layout = BIDSLayout(data_dir, ignore=[patt2], force_index=[patt1])
+    assert layout.get_file(target1)
+    assert not layout.get_file(target2)
+
+    layout = BIDSLayout(data_dir, ignore=[patt1], force_index=[patt2])
+    assert not layout.get_file(target1)
+    assert layout.get_file(target2)
 
 
 def test_layout_with_derivs(layout_ds005_derivs):
@@ -340,15 +332,6 @@ def test_query_derivatives(layout_ds005_derivs):
     assert 'sub-01_task-mixedgamblestask_run-01_desc-extra_events.tsv' in result
 
 
-def test_get_bidsfile_image_prop():
-    path = "synthetic/sub-01/ses-01/func/sub-01_ses-01_task-nback_run-01_bold.nii.gz"
-    path = path.split('/')
-    path = join(get_test_data_path(), *path)
-    bf = BIDSFile(path, None)
-    assert bf.image is not None
-    assert bf.image.shape == (64, 64, 64, 64)
-
-
 def test_restricted_words_in_path(tmpdir):
     orig_path = join(get_test_data_path(), 'synthetic')
     parent_dir = str(tmpdir / 'derivatives' / 'pipeline')
@@ -389,26 +372,34 @@ def test_get_tr(layout_7t_trt):
 
 
 def test_to_df(layout_ds117):
+    # Only filename entities
     df = layout_ds117.to_df()
-    assert df.shape == (115, 11)
+    assert df.shape == (115, 12)
     target = {'datatype', 'fmap', 'run', 'path', 'acquisition', 'scans',
-              'session', 'subject', 'suffix', 'task', 'proc'}
+              'session', 'subject', 'suffix', 'task', 'proc', 'extension'}
     assert set(df.columns) == target
     assert set(df['subject'].dropna().unique()) == {'01', '02', 'emptyroom'}
+
+    # Include metadata entities
+    df = layout_ds117.to_df(metadata=True)
+    assert df.shape == (115, 56)
+    assert not ({'InstitutionAddress', 'TriggerChannelCount', 'EchoTime'} -
+                set(df.columns))
 
 
 def test_parse_file_entities():
     filename = '/sub-03_ses-07_run-4_desc-bleargh_sekret.nii.gz'
 
     # Test with entities taken from bids config
-    target = {'subject': '03', 'session': '07', 'run': 4, 'suffix': 'sekret'}
+    target = {'subject': '03', 'session': '07', 'run': 4, 'suffix': 'sekret',
+              'extension': 'nii.gz'}
     assert target == parse_file_entities(filename, config='bids')
     config = Config.load('bids')
     assert target == parse_file_entities(filename, config=[config])
 
     # Test with entities taken from bids and derivatives config
     target = {'subject': '03', 'session': '07', 'run': 4, 'suffix': 'sekret',
-              'desc': 'bleargh'}
+              'desc': 'bleargh', 'extension': 'nii.gz'}
     assert target == parse_file_entities(filename)
     assert target == parse_file_entities(filename, config=['bids', 'derivatives'])
 
@@ -429,7 +420,8 @@ def test_parse_file_entities_from_layout(layout_synthetic):
     filename = '/sub-03_ses-07_run-4_desc-bleargh_sekret.nii.gz'
 
     # Test with entities taken from bids config
-    target = {'subject': '03', 'session': '07', 'run': 4, 'suffix': 'sekret'}
+    target = {'subject': '03', 'session': '07', 'run': 4, 'suffix': 'sekret',
+              'extension': 'nii.gz'}
     assert target == layout.parse_file_entities(filename, config='bids')
     config = Config.load('bids')
     assert target == layout.parse_file_entities(filename, config=[config])
@@ -437,7 +429,7 @@ def test_parse_file_entities_from_layout(layout_synthetic):
 
     # Test with default scope--i.e., everything
     target = {'subject': '03', 'session': '07', 'run': 4, 'suffix': 'sekret',
-              'desc': 'bleargh'}
+              'desc': 'bleargh', 'extension': 'nii.gz'}
     assert target == layout.parse_file_entities(filename)
     # Test with only the fmriprep pipeline (which includes both configs)
     assert target == layout.parse_file_entities(filename, scope='fmriprep')
@@ -463,6 +455,7 @@ def test_deriv_indexing():
     assert layout.get(scope='events')
     assert not layout.get(scope='nonexistent')
 
+
 def test_add_config_paths():
     bids_dir = dirname(bids.__file__)
     bids_json = os.path.join(bids_dir, 'layout', 'config', 'bids.json')
@@ -475,3 +468,57 @@ def test_add_config_paths():
     add_config_paths(dummy=bids_json)
     config = Config.load('dummy')
     assert 'subject' in config.entities
+
+
+def test_layout_in_scope(layout_ds005, layout_ds005_derivs):
+    assert layout_ds005._in_scope(['all'])
+    assert layout_ds005._in_scope('raw')
+    assert layout_ds005._in_scope(['all', 'ignored'])
+    assert not layout_ds005._in_scope(['derivatives', 'ignored'])
+
+    deriv = layout_ds005_derivs.derivatives['events']
+    assert deriv._in_scope('all')
+    assert deriv._in_scope(['derivatives'])
+    assert deriv._in_scope('events')
+    assert not deriv._in_scope('raw')
+
+
+def test_get_layouts_in_scope(layout_ds005_multi_derivs):
+    l = layout_ds005_multi_derivs
+    assert len(l._get_layouts_in_scope('all')) == 3
+    assert len(l._get_layouts_in_scope('nonexistent')) == 0
+    assert len(l._get_layouts_in_scope(['events', 'dummy'])) == 2
+    assert len(l._get_layouts_in_scope(['derivatives'])) == 2
+    assert len(l._get_layouts_in_scope('raw')) == 1
+
+
+def test_indexed_file_associations(layout_7t_trt):
+    img = layout_7t_trt.get(subject='01', run=1, suffix='bold', session='1',
+                            acquisition='fullbrain', extension='nii.gz')[0]
+    assocs = img.get_associations()
+    assert len(assocs) == 3
+    targets = [
+        os.path.join(layout_7t_trt.root,
+                     'sub-01/ses-1/fmap/sub-01_ses-1_run-1_phasediff.nii.gz'),
+        os.path.join(img.dirname,
+                     'sub-01_ses-1_task-rest_acq-fullbrain_run-1_physio.tsv.gz'),
+        os.path.join(layout_7t_trt.root, 'task-rest_acq-fullbrain_bold.json')
+    ]
+    assert set([a.path for a in assocs]) == set(targets)
+
+    js = [a for a in assocs if a.path.endswith('json')][0]
+    assert len(js.get_associations()) == 41
+    assert len(js.get_associations('Parent')) == 1
+    assert len(js.get_associations('Metadata')) == 40
+    assert not js.get_associations('InformedBy')
+
+
+def test_layout_save(layout_7t_trt):
+    _, f = tempfile.mkstemp(suffix='.db')
+    layout_7t_trt.save(f, replace_connection=False)
+    data_dir = join(get_test_data_path(), '7t_trt')
+    layout = BIDSLayout(data_dir, database_file=f)
+    oldfies = set(layout_7t_trt.get(suffix='events', return_type='file'))
+    newfies = set(layout.get(suffix='events', return_type='file'))
+    assert oldfies == newfies
+    os.unlink(f)

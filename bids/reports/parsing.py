@@ -315,7 +315,7 @@ def fmap_info(metadata, img, config, layout):
         run_dict = {}
         for scan in scans:
             fn = basename(scan)
-            iff_file = [f for f in layout.get(extensions='nii.gz') if fn in f.path][0]
+            iff_file = [f for f in layout.get(extension='nii.gz') if fn in f.path][0]
             run_num = int(iff_file.run)
             ty = iff_file.entities['suffix'].upper()
             if ty == 'BOLD':
@@ -439,7 +439,7 @@ def parse_niftis(layout, niftis, subj, config, **kwargs):
 
             if nifti_struct.entities['datatype'] == 'func':
                 if not skip_task.get(nifti_struct.entities['task'], False):
-                    echos = layout.get_echoes(subject=subj, extensions='nii.gz',
+                    echos = layout.get_echoes(subject=subj, extension='nii.gz',
                                               task=nifti_struct.entities['task'],
                                               **kwargs)
                     n_echos = len(echos)
@@ -447,7 +447,7 @@ def parse_niftis(layout, niftis, subj, config, **kwargs):
                         metadata['EchoTime'] = []
                         for echo in sorted(echos):
                             echo_struct = layout.get(subject=subj, echo=echo,
-                                                     extensions='nii.gz',
+                                                     extension='nii.gz',
                                                      task=nifti_struct.entities['task'],
                                                      **kwargs)[0]
                             echo_file = echo_struct.path

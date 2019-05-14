@@ -88,13 +88,21 @@ def splitext(path):
     return li
 
 
-def check_path_matches_patterns(path, patterns):
-    ''' Check if the path matches at least one of the provided patterns. '''
-    path = os.path.abspath(path)
-    for patt in patterns:
-        if isinstance(patt, six.string_types):
-            if path == patt:
-                return True
-        elif patt.search(path):
-            return True
-    return False
+def make_bidsfile(filename):
+    """Create a BIDSFile instance of the appropriate class. """
+    from .layout import models
+
+    patt = re.compile("[._]*[a-zA-Z0-9]*?\\.([^/\\\\]+)$")
+    m = re.search(patt, filename)
+
+    ext = None if not m else m.group(1)
+
+    if ext in ['nii', 'nii.gz']:
+        cls = 'BIDSImageFile'
+    elif ext in ['tsv', 'tsv.gz']:
+        cls = 'BIDSDataFile'
+    else:
+        cls = 'BIDSFile'
+
+    Cls = getattr(models, cls)
+    return Cls(filename)

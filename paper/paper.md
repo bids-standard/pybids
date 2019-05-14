@@ -175,7 +175,7 @@ specific to one narrow context). At present, its core and most widely used
 module supports simple and flexible querying and manipulation of BIDS datasets.
 PyBIDS makes it easy for researchers and developers working in Python to search
 for BIDS files by keywords and/or metadata; to consolidate and retrieve
-file-associated metadata spread out across multiple levels of a BIDS hierarhcy;
+file-associated metadata spread out across multiple levels of a BIDS hierarchy;
 to construct BIDS-valid path names for new files; and to validate projects
 against the BIDS specification, among other applications.
 

@@ -1,5 +1,5 @@
 from .layout import BIDSLayout, add_config_paths, parse_file_entities
-from .core import BIDSFile
+from .models import BIDSFile
 # Backwards compatibility
 from bids_validator import BIDSValidator
 

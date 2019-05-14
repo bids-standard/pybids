@@ -43,19 +43,19 @@ def test_get_design_matrix_arguments(analysis):
                   sampling_rate='highest')
     result = analysis['run'].get_design_matrix(**kwargs)[0]
     assert result.sparse is None
-    assert result.dense.shape == (4800, 6)
+    assert result.dense.shape == (4800, 9)
 
     kwargs = dict(run=1, subject='01', mode='dense', force=True,
                   sampling_rate='TR')
     result = analysis['run'].get_design_matrix(**kwargs)[0]
     assert result.sparse is None
-    assert result.dense.shape == (240, 6)
+    assert result.dense.shape == (240, 9)
 
     kwargs = dict(run=1, subject='01', mode='dense', force=True,
                   sampling_rate=0.5)
     result = analysis['run'].get_design_matrix(**kwargs)[0]
     assert result.sparse is None
-    assert result.dense.shape == (240, 6)
+    assert result.dense.shape == (240, 9)
 
     # format='long' should be ignored for dense output
     kwargs = dict(run=1, subject='01', mode='dense', force=True,

@@ -3,18 +3,39 @@ import os
 import shutil
 from os.path import join, exists, islink, dirname
 
-from bids import BIDSLayout
-from bids.layout import BIDSFile
 from bids.layout.writing import build_path
 from bids.tests import get_test_data_path
+from bids import BIDSLayout
+from bids.layout.models import BIDSFile, Entity, Tag, Base
+
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
 
 
 @pytest.fixture
 def writable_file(tmpdir):
+    engine = create_engine('sqlite://')
+    Base.metadata.create_all(engine)
+    Session = sessionmaker(bind=engine)
+    session = Session()
+
     testfile = 'sub-03_ses-2_task-rest_acq-fullbrain_run-2_bold.nii.gz'
     fn = tmpdir.mkdir("tmp").join(testfile)
     fn.write('###')
-    return BIDSFile(os.path.join(str(fn)))
+    bf = BIDSFile(os.path.join(str(fn)))
+
+    tag_dict = {
+        'task': 'rest',
+        'run': 2,
+        'subject': '3'
+    }
+    ents = {name: Entity(name) for name in tag_dict.keys()}
+    tags = [Tag(bf, ents[k], value=v)
+            for k, v in tag_dict.items()]
+
+    session.add_all(list(ents.values()) + tags + [bf])
+    session.commit()
+    return bf
 
 
 @pytest.fixture(scope='module')
@@ -23,8 +44,10 @@ def tmp_bids(tmpdir_factory):
     yield tmp_bids
     shutil.rmtree(str(tmp_bids))
     # Ugly hack
-    shutil.rmtree(join(get_test_data_path(), '7t_trt', 'sub-Bob'),
-                  ignore_errors=True)
+    try:
+        shutil.rmtree(join(get_test_data_path(), '7t_trt', 'sub-Bob'))
+    except:
+        pass
 
 
 @pytest.fixture(scope='module')
@@ -39,11 +62,6 @@ def layout(tmp_bids):
 class TestWritableFile:
 
     def test_build_path(self, writable_file):
-        writable_file.entities = {
-            'task': 'rest',
-            'run': 2,
-            'subject': '3'
-        }
 
         # Single simple pattern
         with pytest.raises(TypeError):
@@ -110,11 +128,6 @@ class TestWritableFile:
         assert not build_path(entities, pats, True)
 
     def test_build_file(self, writable_file, tmp_bids, caplog):
-        writable_file.entities = {
-            'task': 'rest',
-            'run': 2,
-            'subject': '3'
-        }
 
         # Simple write out
         new_dir = join(writable_file.dirname, 'rest')
@@ -129,10 +142,11 @@ class TestWritableFile:
             writable_file.copy(pat)
         with pytest.raises(ValueError):
             writable_file.copy(pat, conflicts='fail')
-        writable_file.copy(pat, conflicts='skip')
-        log_message = caplog.records[0].message
-        assert log_message == 'A file at path {} already exists, ' \
-                              'skipping writing file.'.format(target)
+        with pytest.warns(UserWarning) as record:
+            writable_file.copy(pat, conflicts='skip')
+            log_message = record[0].message.args[0]
+            assert log_message == 'A file at path {} already exists, ' \
+                                  'skipping writing file.'.format(target)
         writable_file.copy(pat, conflicts='append')
         append_target = join(writable_file.dirname,
                              'rest/sub-3/run-2_1.nii.gz')

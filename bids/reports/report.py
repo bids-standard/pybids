@@ -123,7 +123,7 @@ class BIDSReport(object):
             sessions = [sessions]
 
         for ses in sessions:
-            niftis = self.layout.get(subject=subject, extensions='nii.gz',
+            niftis = self.layout.get(subject=subject, extension='nii.gz',
                                      **kwargs)
 
             if niftis:

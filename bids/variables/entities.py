@@ -46,9 +46,13 @@ class RunNode(Node):
         super(RunNode, self).__init__('run', entities)
 
     def get_info(self):
-
-        return RunInfo(self.entities, self.duration, self.repetition_time,
-                       self.image_file)
+        # Note: do not remove the dict() call! self.entities is a SQLAlchemy
+        # association_proxy mapping, and without the conversion, the connection
+        # to the DB persists, causing problems on Python 3.5 if we try to clone
+        # a RunInfo or any containing object.
+        entities = dict(self.entities)
+        return RunInfo(entities, self.duration,
+                       self.repetition_time, self.image_file)
 
 
 # Stores key information for each Run.
@@ -81,7 +85,8 @@ class NodeIndex(Node):
             entities: Optional constraints used to limit what gets returned.
 
         Returns:
-
+            A list of BIDSVariableCollections if merge=False; a single
+            BIDSVariableCollection if merge=True.
         '''
 
         nodes = self.get_nodes(unit, entities)

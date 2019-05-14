@@ -62,10 +62,10 @@ A number of ``BIDSLayout`` methods extract metadata associated with files.
 
 For example, if we want event (task timing) information for a given fMRI scan, we can use ``get_events``::
 
-    >>> f = layout.get(task='nback', run=1, extensions='nii.gz')[0].filename
+    >>> f = layout.get(task='nback', run=1, extension='nii.gz')[0].filename
     >>> layout.get_events(f)
 
 We can also extract metadata from the json files associated with a scan file::
 
-    >>> f = layout.get(task='nback', run=1, extensions='nii.gz')[0].filename
+    >>> f = layout.get(task='nback', run=1, extension='nii.gz')[0].filename
     >>> layout.get_metadata(f)

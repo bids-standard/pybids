@@ -1,5 +1,5 @@
 {
     "SamplingFrequency": 10.0,
-    "StartTime": 0.0,
+    "StartTime": 22.8,
     "Columns": ["respiratory", "cardiac"]
 }
