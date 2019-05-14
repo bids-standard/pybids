@@ -20,6 +20,7 @@ from .models import (Base, Config, BIDSFile, Entity, Tag, BIDSDataFile,
 from .index import BIDSLayoutIndexer
 from .. import config as cf
 
+import os.path as op
 try:
     from os.path import commonpath
 except ImportError:
@@ -856,7 +857,8 @@ class BIDSLayout(object):
             files, the values in files closer to the input filename will take
             precedence, per the inheritance rules in the BIDS specification.
         """
-
+        if path and not op.isabs(path):
+            path = op.join(self.root, path)
         for layout in self._get_layouts_in_scope(scope):
 
             query = (layout.session.query(Tag)
