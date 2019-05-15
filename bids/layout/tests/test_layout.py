@@ -490,6 +490,9 @@ def test_get_layouts_in_scope(layout_ds005_multi_derivs):
     assert len(l._get_layouts_in_scope(['events', 'dummy'])) == 2
     assert len(l._get_layouts_in_scope(['derivatives'])) == 2
     assert len(l._get_layouts_in_scope('raw')) == 1
+    self_scope = l._get_layouts_in_scope('self')
+    assert len(self_scope) == 1
+    assert self_scope == [l]
 
 
 def test_indexed_file_associations(layout_7t_trt):

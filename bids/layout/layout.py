@@ -364,6 +364,9 @@ class BIDSLayout(object):
     def _get_layouts_in_scope(self, scope):
         ''' Return all layouts in the passed scope. '''
 
+        if scope == 'self':
+            return [self]
+
         def collect_layouts(layout):
             ''' Recursively build a list of layouts '''
             children = list(layout.derivatives.values())
@@ -623,6 +626,7 @@ class BIDSLayout(object):
                     'all' (default): search all available directories.
                     'derivatives': search all derivatives directories
                     'raw': search only BIDS-Raw directories
+                    'self': search only the directly called BIDSLayout
                     <PipelineName>: the name of a BIDS-Derivatives pipeline
             regex_search (bool or None): Whether to require exact matching
                 (False) or regex search (True) when comparing the query string
@@ -844,8 +848,9 @@ class BIDSLayout(object):
                 from the filename (rather than JSON sidecars) are included in
                 the returned metadata dictionary.
             scope (str, list): The scope of the search space. Each element must
-                be one of 'all', 'raw', 'derivatives', or a BIDS-Derivatives
-                pipeline name. Defaults to searching all available datasets.
+                be one of 'all', 'raw', 'self', 'derivatives', or a
+                BIDS-Derivatives pipeline name. Defaults to searching all
+                available datasets.
 
         Returns: A dictionary of key/value pairs extracted from all of the
             target file's associated JSON sidecars.
@@ -871,7 +876,6 @@ class BIDSLayout(object):
                 return {t.entity_name: t.value for t in results}
 
         return {}
-
 
     def get_nearest(self, path, return_type='filename', strict=True,
                     all_=False, ignore_strict_entities='extension',
