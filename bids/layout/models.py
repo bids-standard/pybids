@@ -337,7 +337,10 @@ class BIDSJSONFile(BIDSFile):
 
     def get_dict(self):
         ''' Return the contents of the current file as a dictionary. '''
-        return json.loads(self.get_json())
+        d = json.loads(self.get_json())
+        if not isinstance(d, dict):
+            raise ValueError("File %s is a json containing %s, not a dict which was expected" % (self.path, type(d)))
+        return d
 
     def get_json(self):
         ''' Return the contents of the current file as a JSON string. '''
