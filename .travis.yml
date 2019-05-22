@@ -66,7 +66,9 @@ before_install:
     - virtualenv --python=python venv
     - source venv/bin/activate
     - python --version # just to check
-    - travis_retry pip install -U pip setuptools wheel  # needed at one point
+    - travis_retry pip install -U pip setuptools wheel twine
+    - python setup.py sdist bdist_wheel
+    - twine check dist/*
 
 install:
 - travis_retry pip install $EXTRA_PIP_FLAGS ".[analysis]"
@@ -94,6 +96,7 @@ deploy:
   user: $PYPI_USER
   password: $PYPI_PASS
   skip_cleanup: true
+  distributions: "sdist bdist_wheel"
   skip_existing: true
   on:
     tags: true
