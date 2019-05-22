@@ -21,14 +21,14 @@
       "orcid": "0000-0003-3321-7583"
     },
     {
-      "affiliation": "Florida International University",
-      "name": "Salo, Taylor",
-      "orcid": "0000-0001-9813-3167"
-    },
-    {
       "affiliation": "Dartmouth College",
       "name": "Halchenko, Yaroslav O.",
       "orcid": "0000-0003-3456-2493"
+    },
+    {
+      "affiliation": "Florida International University",
+      "name": "Salo, Taylor",
+      "orcid": "0000-0001-9813-3167"
     },
     {
       "affiliation": "University of Texas at Austin",
@@ -74,14 +74,14 @@
       "orcid": "0000-0001-8498-4059"
     },
     {
-      "affiliation": "Montreal Neurological Institute and Hospital",
-      "name": "DuPre, Elizabeth",
-      "orcid": "0000-0003-1358-196X"
-    },
-    {
       "affiliation": "Psychoinformatics Lab, Institute of Psychology, Otto-von-Guericke University Magdeburg",
       "name": "Wagner, Adina",
       "orcid": "0000-0003-2917-3450"
+    },
+    {
+      "affiliation": "Montreal Neurological Institute and Hospital",
+      "name": "DuPre, Elizabeth",
+      "orcid": "0000-0003-1358-196X"
     },
     {
       "name": "Ivanov, Alexander"
@@ -90,6 +90,9 @@
       "affiliation": "CorticoMetrics LLC",
       "name": "Tirrell, Lee S.",
       "orcid": "0000-0001-9393-8361"
+    },
+    {
+      "name": "TheJoggler"
     },
     {
       "affiliation": "T\u00e9l\u00e9com ParisTech, France",
@@ -137,9 +140,15 @@
       "orcid": "0000-0001-5018-7895"
     },
     {
+      "name": "Chadwick Boulay"
+    },
+    {
       "affiliation": "Rutgers University",
       "name": "Kleinschmidt, Dave F.",
       "orcid": "0000-0002-7442-2762"
+    },
+    {
+      "name": "Erin W Dickie"
     },
     {
       "affiliation": "NIMH IRP",
