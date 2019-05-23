@@ -39,7 +39,7 @@ with TemporaryDirectory() as tmpdir:
             ref = None
         repo_dir = str(tmppath / repo.rsplit('/', 1)[1].split('.', 1)[0])
         try:
-            clone = run(['git', 'clone', repo, repo_dir], check=True)
+            clone = run(['git', 'clone', '-q', repo, repo_dir], check=True)
         except CalledProcessError as err:
             raise RuntimeError("Could not clone {}".format(repo)) from err
 
