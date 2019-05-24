@@ -11,7 +11,7 @@ def decommify(name):
 
 
 # List of repositories whose commits should be counted as contributions
-codependents = ['https://github.com/grabbles/grabbit.git']
+codependents = [('https://github.com/grabbles/grabbit.git', '0.2.6')]
 
 # Last shablona commit
 origin_commit = 'd72caaf5933907ed699d57faddaec7bfc836ce6f'
@@ -33,15 +33,23 @@ counts = [line.split('\t', 1)[::-1]
 with TemporaryDirectory() as tmpdir:
     tmppath = Path(tmpdir)
     for repo in codependents:
+        try:
+            repo, ref = repo
+        except (TypeError, ValueError):
+            ref = None
         repo_dir = str(tmppath / repo.rsplit('/', 1)[1].split('.', 1)[0])
         try:
-            clone = run(['git', 'clone', repo, repo_dir], check=True)
+            clone = run(['git', 'clone', '-q', repo, repo_dir], check=True)
         except CalledProcessError as err:
             raise RuntimeError("Could not clone {}".format(repo)) from err
-        tag = run(['git', '-C', repo_dir, 'tag'], stdout=PIPE)
-        latest_tag = tag.stdout.decode().strip().rsplit('\n', 1)[1]
+
+        if ref is None:
+            tag = run(['git', '-C', repo_dir, 'tag'], stdout=PIPE)
+            # latest tag
+            ref = tag.stdout.decode().strip().rsplit('\n', 1)[1]
+
         dep_shortlog = run(
-            ['git', '-C', repo_dir, 'shortlog', '-ns', latest_tag],
+            ['git', '-C', repo_dir, 'shortlog', '-ns', ref],
             stdout=PIPE)
         counts.extend(line.split('\t', 1)[::-1]
                       for line in dep_shortlog.stdout.decode().split('\n')
