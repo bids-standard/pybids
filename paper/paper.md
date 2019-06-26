@@ -152,7 +152,7 @@ own preprocessing and analysis procedures. The resulting lack of field-wide
 standards has severely limited reproducibility and data sharing and reuse.
 
 To address this problem, we and others recently introduced the Brain Imaging
-Data Standard (``BIDS``; [@Gorgolewski2016-sk]), a specification meant to
+Data Standard (``BIDS``; [@Gorgolewski2016-nw]), a specification meant to
 standardize the process of representing brain imaging data. BIDS is
 deliberately designed with adoption in mind; it adheres to a user-focused
 philosophy that prioritizes common use cases and discourages complexity. By
