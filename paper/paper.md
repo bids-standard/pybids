@@ -168,7 +168,7 @@ almost every tool designed to work with BIDS datasets involves regular
 file-filtering operations—there is a strong incentive to develop utility
 libraries that provide common functionality via a standardized, simple API.
 
-``PyBIDS`` [@zenodo] is a Python package that makes it easier to work with BIDS
+``PyBIDS`` is a Python package that makes it easier to work with BIDS
 datasets. In principle, its scope includes virtually any functionality that is
 likely to be of general use when working with BIDS datasets (i.e., that is not
 specific to one narrow context). At present, its core and most widely used
