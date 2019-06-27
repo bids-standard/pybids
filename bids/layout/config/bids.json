@@ -67,7 +67,7 @@
         },
         {
             "name": "datatype",
-            "pattern": "[/\\\\]+(func|anat|fmap|dwi|meg)[/\\\\]+s"
+            "pattern": "[/\\\\]+(func|anat|fmap|dwi|meg|eeg)[/\\\\]+"
         },
         {
             "name": "extension",
