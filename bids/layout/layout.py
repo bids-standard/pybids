@@ -633,7 +633,7 @@ class BIDSLayout(object):
                 at BIDSLayout initialization.
            filters (dict): Any optional key/values to filter the entities on.
                 Keys are entity names, values are regexes to filter on. For
-                example, passing filter={'subject': 'sub-[12]'} would return
+                example, passing filters={'subject': 'sub-[12]'} would return
                 only files that match the first two subjects.
 
         Returns:
@@ -641,9 +641,9 @@ class BIDSLayout(object):
 
         Notes:
             * In pybids 0.7.0, some keywords were changed. Namely: 'type'
-            becomes 'suffix', 'modality' becomes 'datatype', 'acq' becomes 
-            'acquisition' and 'mod' becomes 'modality'. Using the wrong version 
-            could result in get() silently returning wrong or no results. See 
+            becomes 'suffix', 'modality' becomes 'datatype', 'acq' becomes
+            'acquisition' and 'mod' becomes 'modality'. Using the wrong version
+            could result in get() silently returning wrong or no results. See
             the changelog for more details.
             * In pybids 0.9.0, the 'extensions' argument has been removed in
             favor of the 'extension' entity.
@@ -1056,7 +1056,7 @@ class BIDSLayout(object):
             filters: Optional keywords used to constrain the selected runs.
                 Can be any arguments valid for a .get call (e.g., BIDS entities
                 or JSON sidecar keys).
-        
+
         Returns: A single float.
 
         Notes: Raises an exception if more than one unique TR is found.
@@ -1073,7 +1073,7 @@ class BIDSLayout(object):
         for img in images:
             md = self.get_metadata(img.path)
             all_trs.add(round(float(md['RepetitionTime']), 5))
- 
+
         if len(all_trs) > 1:
             raise ValueError("Unique TR cannot be found given filters {!r}"
                              .format(filters))
