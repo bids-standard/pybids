@@ -587,7 +587,7 @@ class BIDSLayout(object):
         query = self.session.query(Tag).filter(Tag.file_path.in_(file_paths))
 
         if not metadata:
-            query = query.join(Entity).filter(Entity.is_metadata is False)
+            query = query.join(Entity).filter(Entity.is_metadata == False)
 
         tags = query.all()
 
