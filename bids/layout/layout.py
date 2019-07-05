@@ -1,9 +1,10 @@
+"""BIDSLayout class."""
 import os
 import json
 import re
 from collections import defaultdict
 from io import open
-from functools import reduce, partial
+from functools import partial
 from itertools import chain
 import copy
 import warnings
@@ -15,8 +16,7 @@ from sqlalchemy.orm import joinedload
 from ..utils import listify, natural_sort, make_bidsfile
 from ..external import inflect, six
 from .writing import build_path, write_contents_to_file
-from .models import (Base, Config, BIDSFile, Entity, Tag, BIDSDataFile,
-                     BIDSImageFile)
+from .models import (Base, Config, BIDSFile, Entity, Tag)
 from .index import BIDSLayoutIndexer
 from .. import config as cf
 
@@ -35,7 +35,7 @@ __all__ = ['BIDSLayout']
 
 def parse_file_entities(filename, entities=None, config=None,
                         include_unmatched=False):
-    """ Parse the passed filename for entity/value pairs.
+    """Parse the passed filename for entity/value pairs.
 
     Args:
         filename (str): The filename to parse for entity values
@@ -52,7 +52,6 @@ def parse_file_entities(filename, entities=None, config=None,
     Returns: A dict, where keys are Entity names and values are the
         values extracted from the filename.
     """
-
     # Load Configs if needed
     if entities is None:
 
@@ -80,7 +79,7 @@ def parse_file_entities(filename, entities=None, config=None,
 
 
 def add_config_paths(**kwargs):
-    """ Add to the pool of available configuration files for BIDSLayout.
+    """Add to the pool of available configuration files for BIDSLayout.
 
     Args:
         kwargs: dictionary specifying where to find additional config files.
@@ -90,7 +89,6 @@ def add_config_paths(**kwargs):
         > add_config_paths(my_config='/path/to/config')
         > layout = BIDSLayout('/path/to/bids', config=['bids', 'my_config'])
     """
-
     for k, path in kwargs.items():
         if not os.path.exists(path):
             raise ValueError(
@@ -103,7 +101,7 @@ def add_config_paths(**kwargs):
 
 
 class BIDSLayout(object):
-    """ Layout class representing an entire BIDS dataset.
+    """Layout class representing an entire BIDS dataset.
 
     Args:
         root (str): The root directory of the BIDS dataset.
@@ -114,7 +112,8 @@ class BIDSLayout(object):
             will lead files in supplementary folders like derivatives/, code/,
             etc. to be ignored.
         absolute_paths (bool): If True, queries always return absolute paths.
-            If False, queries return relative paths (for files and directories).
+            If False, queries return relative paths (for files and
+            directories).
         derivatives (bool, str, list): Specifies whether and/or which
             derivatives to to index. If True, all pipelines found in the
             derivatives/ subdirectory will be indexed. If a str or list, gives
@@ -170,7 +169,7 @@ class BIDSLayout(object):
                  force_index=None, config_filename='layout_config.json',
                  regex_search=False, database_file=None, reset_database=False,
                  index_metadata=True):
-
+        """Initialize BIDSLayout."""
         self.root = root
         self.validate = validate
         self.absolute_paths = absolute_paths
@@ -201,7 +200,7 @@ class BIDSLayout(object):
             if config is None:
                 config = 'bids'
             config = [Config.load(c, session=self.session)
-                    for c in listify(config)]
+                      for c in listify(config)]
             self.config = {c.name: c for c in config}
 
             # Index files and (optionally) metadata
@@ -226,8 +225,8 @@ class BIDSLayout(object):
                 index_metadata=index_metadata)
 
     def __getattr__(self, key):
-        ''' Dynamically inspect missing methods for get_<entity>() calls
-        and return a partial function of get() if a match is found. '''
+        """Dynamically inspect missing methods for get_<entity>() calls
+        and return a partial function of get() if a match is found."""
         if key.startswith('get_'):
             ent_name = key.replace('get_', '')
             entities = self.get_entities()
@@ -246,7 +245,7 @@ class BIDSLayout(object):
                              (self.__class__.__name__, key))
 
     def __repr__(self):
-        # A tidy summary of key properties
+        """Provide a tidy summary of key properties."""
         # TODO: Replace each nested list comprehension with a single DB query
         n_sessions = len([session for isub in self.get_subjects()
                           for session in self.get_sessions(subject=isub)])
@@ -262,7 +261,7 @@ class BIDSLayout(object):
         engine = sa.create_engine('sqlite:///{}'.format(database_file))
 
         def regexp(expr, item):
-            ''' Regex function for SQLite's REGEXP. '''
+            """Regex function for SQLite's REGEXP."""
             reg = re.compile(expr, re.I)
             return reg.search(item) is not None
 
@@ -289,8 +288,10 @@ class BIDSLayout(object):
         self._set_session(database_file)
 
         # Reset database if needed and return whether or not it was reset
-        if (reset_database or not database_file or
-                           not os.path.exists(database_file)):
+        condi = (reset_database or
+                 not database_file or
+                 not os.path.exists(database_file))
+        if condi:
             engine = self.session.get_bind()
             Base.metadata.drop_all(engine)
             Base.metadata.create_all(engine)
@@ -305,8 +306,9 @@ class BIDSLayout(object):
             self.root = str(self.root)
         except:
             raise TypeError("root argument must be a string (or a type that "
-                    "supports casting to string, such as pathlib.Path)"
-                    " specifying the directory containing the BIDS dataset.")
+                            "supports casting to string, such as "
+                            "pathlib.Path) specifying the directory "
+                            "containing the BIDS dataset.")
 
         self.root = os.path.abspath(self.root)
 
@@ -334,20 +336,21 @@ class BIDSLayout(object):
         # Derivatives get special handling; they shouldn't be indexed normally
         if self.force_index is not None:
             for entry in self.force_index:
-                if (isinstance(entry, six.string_types) and
-                    os.path.normpath(entry).startswith('derivatives')):
-                        msg = ("Do not pass 'derivatives' in the force_index "
-                                "list. To index derivatives, either set "
-                                "derivatives=True, or use add_derivatives().")
-                        raise ValueError(msg)
+                condi = (isinstance(entry, six.string_types) and
+                         os.path.normpath(entry).startswith('derivatives'))
+                if condi:
+                    msg = ("Do not pass 'derivatives' in the force_index "
+                           "list. To index derivatives, either set "
+                           "derivatives=True, or use add_derivatives().")
+                    raise ValueError(msg)
 
     def _in_scope(self, scope):
-        ''' Determine whether current BIDSLayout is in the passed scope.
+        """Determine whether current BIDSLayout is in the passed scope.
 
         Args:
             scope (str, list): The intended scope(s). Each value must be one of
                 'all', 'raw', 'derivatives', or a pipeline name.
-        '''
+        """
         scope = listify(scope)
 
         if 'all' in scope:
@@ -358,14 +361,13 @@ class BIDSLayout(object):
         pl_name = self.description.get("PipelineDescription", {}).get("Name")
         is_deriv = bool(pl_name or ('derivatives' in self.config))
 
-        return (not is_deriv and 'raw' in scope) or (is_deriv and \
-                ('derivatives' in scope or pl_name in scope))
+        return ((not is_deriv and 'raw' in scope) or
+                (is_deriv and ('derivatives' in scope or pl_name in scope)))
 
     def _get_layouts_in_scope(self, scope):
-        ''' Return all layouts in the passed scope. '''
-
+        """Return all layouts in the passed scope."""
         def collect_layouts(layout):
-            ''' Recursively build a list of layouts '''
+            """Recursively build a list of layouts."""
             children = list(layout.derivatives.values())
             layouts = [collect_layouts(d) for d in children]
             return [layout] + list(chain(*layouts))
@@ -375,14 +377,16 @@ class BIDSLayout(object):
 
     @property
     def entities(self):
+        """Get the entities."""
         return self.get_entities()
 
     @property
     def files(self):
+        """Get the files."""
         return self.get_files()
 
     def save(self, filename='.index.db', replace_connection=True):
-        """ Saves the current index as a SQLite3 DB at the specified location.
+        """Save the current index as a SQLite3 DB at the specified location.
 
         Args:
             filename (str): The path to the desired database file. By default,
@@ -410,7 +414,7 @@ class BIDSLayout(object):
             self._set_session(filename)
 
     def get_entities(self, scope='all', metadata=None):
-        ''' Get entities for all layouts in the specified scope.
+        """Get entities for all layouts in the specified scope.
 
         Args:
             scope (str): The scope of the search space. Indicates which
@@ -424,7 +428,7 @@ class BIDSLayout(object):
 
         Returns: A dict, where keys are entity names and values are Entity
             instances.
-        '''
+        """
         # TODO: memoize results
         layouts = self._get_layouts_in_scope(scope)
         entities = {}
@@ -437,7 +441,7 @@ class BIDSLayout(object):
         return entities
 
     def get_files(self, scope='all'):
-        ''' Get BIDSFiles for all layouts in the specified scope.
+        """Get BIDSFiles for all layouts in the specified scope.
 
         Args:
             scope (str): The scope of the search space. Indicates which
@@ -446,7 +450,7 @@ class BIDSLayout(object):
 
         Returns: A dict, where keys are file paths and values are BIDSFile
             instances.
-        '''
+        """
         # TODO: memoize results
         layouts = self._get_layouts_in_scope(scope)
         files = {}
@@ -456,12 +460,12 @@ class BIDSLayout(object):
         return files
 
     def clone(self):
-        """ Return a deep copy of the current BIDSLayout. """
+        """Return a deep copy of the current BIDSLayout."""
         return copy.deepcopy(self)
 
     def parse_file_entities(self, filename, scope='all', entities=None,
                             config=None, include_unmatched=False):
-        ''' Parse the passed filename for entity/value pairs.
+        """Parse the passed filename for entity/value pairs.
 
         Args:
             filename (str): The filename to parse for entity values
@@ -480,8 +484,7 @@ class BIDSLayout(object):
 
         Returns: A dict, where keys are Entity names and values are the
             values extracted from the filename.
-        '''
-
+        """
         # If either entities or config is specified, just pass through
         if entities is None and config is None:
             layouts = self._get_layouts_in_scope(scope)
@@ -492,7 +495,7 @@ class BIDSLayout(object):
                                    include_unmatched)
 
     def add_derivatives(self, path, **kwargs):
-        ''' Add BIDS-Derivatives datasets to tracking.
+        """Add BIDS-Derivatives datasets to tracking.
 
         Args:
             path (str, list): One or more paths to BIDS-Derivatives datasets.
@@ -505,7 +508,7 @@ class BIDSLayout(object):
         Note: Every derivatives directory intended for indexing MUST contain a
             valid dataset_description.json file. See the BIDS-Derivatives
             specification for details.
-        '''
+        """
         paths = listify(path)
         deriv_dirs = []
 
@@ -556,9 +559,7 @@ class BIDSLayout(object):
             self.derivatives[pipeline_name] = BIDSLayout(deriv, **kwargs)
 
     def to_df(self, metadata=False, **filters):
-        """
-        Return information for all BIDSFiles tracked in the Layout as a pandas
-        DataFrame.
+        """Return information for BIDSFiles tracked in Layout as pd.DataFrame.
 
         Args:
             metadata (bool): If True, includes columns for all metadata fields.
@@ -570,13 +571,12 @@ class BIDSLayout(object):
             A pandas DataFrame, where each row is a file, and each column is
                 a tracked entity. NaNs are injected whenever a file has no
                 value for a given attribute.
+
         """
         try:
             import pandas as pd
         except ImportError:
-            raise ImportError("What are you doing trying to export a BIDSLayout"
-                              " as a pandas DataFrame when you don't have "
-                              "pandas installed? Eh? Eh?")
+            raise ImportError('Missing dependency: "pandas"')
 
         # TODO: efficiency could probably be improved further by joining the
         # BIDSFile and Tag tables and running a single query. But this would
@@ -587,7 +587,7 @@ class BIDSLayout(object):
         query = self.session.query(Tag).filter(Tag.file_path.in_(file_paths))
 
         if not metadata:
-            query = query.join(Entity).filter(Entity.is_metadata==False)
+            query = query.join(Entity).filter(Entity.is_metadata is False)
 
         tags = query.all()
 
@@ -605,8 +605,7 @@ class BIDSLayout(object):
     def get(self, return_type='object', target=None, scope='all',
             regex_search=False, absolute_paths=None, drop_invalid_filters=True,
             **filters):
-        """
-        Retrieve files and/or metadata from the current Layout.
+        """Retrieve files and/or metadata from the current Layout.
 
         Args:
             return_type (str): Type of result to return. Valid values:
@@ -647,8 +646,8 @@ class BIDSLayout(object):
             the changelog for more details.
             * In pybids 0.9.0, the 'extensions' argument has been removed in
             favor of the 'extension' entity.
-        """
 
+        """
         # Warn users still expecting 0.6 behavior
         if 'type' in filters:
             raise ValueError("As of pybids 0.7.0, the 'type' argument has been"
@@ -695,7 +694,7 @@ class BIDSLayout(object):
             # Eager load associations, because mixing queries from different
             # DB sessions causes objects to detach
             query = query.options(joinedload(BIDSFile.tags)
-                                 .joinedload(Tag.entity))
+                                  .joinedload(Tag.entity))
             results.extend(query.all())
 
         # Convert to relative paths if needed
@@ -703,10 +702,10 @@ class BIDSLayout(object):
             absolute_paths = self.absolute_paths
 
         if not absolute_paths:
-            for i, f in enumerate(results):
-                f = copy.copy(f)
-                f.path = os.path.relpath(f.path, self.root)
-                results[i] = f
+            for i, fi in enumerate(results):
+                fi = copy.copy(fi)
+                fi.path = os.path.relpath(fi.path, self.root)
+                results[i] = fi
 
         if return_type.startswith('file'):
             results = natural_sort([f.path for f in results])
@@ -736,7 +735,7 @@ class BIDSLayout(object):
                     template = template.replace('{%s}' % ent, patt)
                 template += r'[^\%s]*$' % os.path.sep
                 matches = [
-                    f.dirname if absolute_paths else os.path.relpath(f.dirname, self.root)
+                    f.dirname if absolute_paths else os.path.relpath(f.dirname, self.root)  # noqa: E501
                     for f in results
                     if re.search(template, f.dirname)
                 ]
@@ -752,7 +751,7 @@ class BIDSLayout(object):
         return results
 
     def get_file(self, filename, scope='all'):
-        ''' Returns the BIDSFile object with the specified path.
+        """Return the BIDSFile object with the specified path.
 
         Args:
             filename (str): The path of the file to retrieve. Must be either
@@ -762,10 +761,10 @@ class BIDSLayout(object):
                 searched. See BIDSLayout docstring for valid values.
 
         Returns: A BIDSFile, or None if no match was found.
-        '''
+        """
         filename = os.path.abspath(os.path.join(self.root, filename))
         for layout in self._get_layouts_in_scope(scope):
-            result = layout.session.query(BIDSFile).filter_by(path=filename).first()
+            result = layout.session.query(BIDSFile).filter_by(path=filename).first()  # noqa: E501
             if result:
                 return result
         return None
@@ -784,14 +783,14 @@ class BIDSLayout(object):
                 if regex:
                     if isinstance(val, (list, tuple)):
                         val_clause = sa.or_(*[Tag._value.op('REGEXP')(str(v))
-                                             for v in val])
+                                              for v in val])
                     else:
                         val_clause = Tag._value.op('REGEXP')(val)
-                    subq = sa.and_(Tag.entity_name==name, val_clause)
+                    subq = sa.and_(Tag.entity_name == name, val_clause)
                     query = query.filter(BIDSFile.tags.any(subq))
                 else:
                     if isinstance(val, (list, tuple)):
-                        subq = sa.and_(Tag.entity_name==name,
+                        subq = sa.and_(Tag.entity_name == name,
                                        Tag._value.in_(val))
                         query = query.filter(BIDSFile.tags.any(subq))
                     else:
@@ -855,16 +854,16 @@ class BIDSLayout(object):
             files is returned. In cases where the same key is found in multiple
             files, the values in files closer to the input filename will take
             precedence, per the inheritance rules in the BIDS specification.
-        """
 
+        """
         for layout in self._get_layouts_in_scope(scope):
 
             query = (layout.session.query(Tag)
                                    .join(BIDSFile)
-                                   .filter(BIDSFile.path==path))
+                                   .filter(BIDSFile.path == path))
 
             if not include_entities:
-                query = query.join(Entity).filter(Entity.is_metadata==True)
+                query = query.join(Entity).filter(Entity.is_metadata == True)
 
             results = query.all()
             if results:
@@ -872,12 +871,10 @@ class BIDSLayout(object):
 
         return {}
 
-
     def get_nearest(self, path, return_type='filename', strict=True,
                     all_=False, ignore_strict_entities='extension',
                     full_search=False, **filters):
-        ''' Walk up the file tree from the specified path and return the
-        nearest matching file(s).
+        """Walk up file tree from specified path and return nearest matching file(s).
 
         Args:
             path (str): The file to search from.
@@ -898,8 +895,7 @@ class BIDSLayout(object):
                 they don't share a common root with the provided path. If
                 False, only files that share a common root will be scanned.
             filters: Optional keywords to pass on to .get().
-        '''
-
+        """
         path = os.path.abspath(path)
 
         # Make sure we have a valid suffix
@@ -972,24 +968,24 @@ class BIDSLayout(object):
             if not all_:
                 break
 
-        matches = [m.path if return_type.startswith('file')
-                   else m for m in matches]
+        matches = [match.path if return_type.startswith('file')
+                   else match for match in matches]
         return matches if all_ else matches[0] if matches else None
 
     def get_bvec(self, path, **kwargs):
-        """ Get bvec file for passed path. """
+        """Get bvec file for passed path."""
         result = self.get_nearest(path, extension='bvec', suffix='dwi',
                                   all_=True, **kwargs)
         return listify(result)[0]
 
     def get_bval(self, path, **kwargs):
-        """ Get bval file for passed path. """
+        """Get bval file for passed path."""
         result = self.get_nearest(path, suffix='dwi', extension='bval',
                                   all_=True, **kwargs)
         return listify(result)[0]
 
     def get_fieldmap(self, path, return_list=False):
-        """ Get fieldmap(s) for specified path. """
+        """Get fieldmap(s) for specified path."""
         fieldmaps = self._get_fieldmaps(path)
 
         if return_list:
@@ -1049,7 +1045,7 @@ class BIDSLayout(object):
         return fieldmap_set
 
     def get_tr(self, derivatives=False, **filters):
-        """ Returns the scanning repetition time (TR) for one or more runs.
+        """Return the scanning repetition time (TR) for one or more runs.
 
         Args:
             derivatives (bool): If True, also checks derivatives images.
@@ -1079,8 +1075,9 @@ class BIDSLayout(object):
                              .format(filters))
         return all_trs.pop()
 
-    def build_path(self, source, path_patterns=None, strict=False, scope='all'):
-        ''' Constructs a target filename for a file or dictionary of entities.
+    def build_path(self, source, path_patterns=None, strict=False,
+                   scope='all'):
+        """Construct a target filename for a file or dictionary of entities.
 
         Args:
             source (str, BIDSFile, dict): The source data to use to construct
@@ -1112,8 +1109,7 @@ class BIDSLayout(object):
                 two or more values are provided, the order determines the
                 precedence of path patterns (i.e., earlier layouts will have
                 higher precedence).
-        '''
-
+        """
         # 'is_file' is a crude check for Path objects
         if isinstance(source, six.string_types) or hasattr(source, 'is_file'):
             source = str(source)
@@ -1140,9 +1136,10 @@ class BIDSLayout(object):
 
     def copy_files(self, files=None, path_patterns=None, symbolic_links=True,
                    root=None, conflicts='fail', **kwargs):
-        """
-        Copies one or more BIDSFiles to new locations defined by each
-        BIDSFile's entities and the specified path_patterns.
+        """Copy BIDSFile(s) to new locations.
+
+        The new locations are defined by each BIDSFile's entities and the
+        specified `path_patterns`.
 
         Args:
             files (list): Optional list of BIDSFile objects to write out. If
@@ -1175,8 +1172,7 @@ class BIDSLayout(object):
                                contents=None, link_to=None,
                                content_mode='text', conflicts='fail',
                                strict=False):
-        """
-        Write arbitrary data to a file defined by the passed entities and
+        """Write arbitrary data to a file defined by the passed entities and
         path patterns.
 
         Args:
