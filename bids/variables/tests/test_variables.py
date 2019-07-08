@@ -58,9 +58,8 @@ def test_merge_wrapper():
     data = pd.DataFrame({'amplitude': [4, 3, 2, 5]})
     sev = SimpleVariable('simple', data, 'dummy')
     # Should break if asked to merge different classes
-    with pytest.raises(ValueError) as e:
+    with pytest.raises(ValueError, match='Variables of different classes'):
         merge_variables([dev, sev])
-    assert "Variables of different classes" in str(e)
 
 
 def test_sparse_run_variable_to_dense(layout1):
