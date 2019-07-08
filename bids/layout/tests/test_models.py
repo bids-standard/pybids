@@ -1,7 +1,9 @@
+import sys
 import os
 import pytest
 import bids
 import copy
+from pathlib import Path
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -219,3 +221,11 @@ def test_bidsfile_get_entities(layout_synthetic):
     md2 = bf.get_entities(metadata=None)
     assert md == md2
     assert set(md.keys()) == md_ents | file_ents
+
+
+@pytest.mark.xfail(sys.version_info < (3, 6), reason="os.PathLike introduced in Python 3.6")
+def test_bidsfile_fspath(sample_bidsfile):
+    bf = sample_bidsfile
+    bf_path = Path(bf)
+    assert bf_path == Path(bf.path)
+    assert bf_path.read_text() == '###'
