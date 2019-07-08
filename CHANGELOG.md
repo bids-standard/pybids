@@ -1,6 +1,14 @@
 # Changelog
 
-## Version 0.9.0 (May 10, 2019)
+## Version 0.9.1 (May 24, 2019)
+Hotfix release:
+
+* Fixed package deployment issues (#446)
+* Updated author list (#447)
+
+Thanks to new contributors Erin Dickie, Chadwick Boulay and Johannes Wennberg.
+
+## Version 0.9.0 (May 21, 2019)
 Version 0.9 replaces the native Python backend with a SQLite database managed
 via SQLAlchemy. The layout module has been refactored (again), but API changes
 are minimal. This release also adds many new features and closes a number of

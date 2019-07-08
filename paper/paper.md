@@ -152,7 +152,7 @@ own preprocessing and analysis procedures. The resulting lack of field-wide
 standards has severely limited reproducibility and data sharing and reuse.
 
 To address this problem, we and others recently introduced the Brain Imaging
-Data Standard (``BIDS``; [@Gorgolewski2016-sk]), a specification meant to
+Data Standard (``BIDS``; [@Gorgolewski2016-nw]), a specification meant to
 standardize the process of representing brain imaging data. BIDS is
 deliberately designed with adoption in mind; it adheres to a user-focused
 philosophy that prioritizes common use cases and discourages complexity. By
@@ -168,9 +168,9 @@ almost every tool designed to work with BIDS datasets involves regular
 file-filtering operations—there is a strong incentive to develop utility
 libraries that provide common functionality via a standardized, simple API.
 
-``PyBIDS`` [@zenodo] is a Python package that makes it easier to work with BIDS
+``PyBIDS`` is a Python package that makes it easier to work with BIDS
 datasets. In principle, its scope includes virtually any functionality that is
-likely to be of general use when working with BIDS datasets (i.e., that is not
+likely to be of general use when working with BIDS datasets (*i.e.*, that is not
 specific to one narrow context). At present, its core and most widely used
 module supports simple and flexible querying and manipulation of BIDS datasets.
 PyBIDS makes it easy for researchers and developers working in Python to search
@@ -183,7 +183,7 @@ In addition to this core functionality, PyBIDS also contains an ever-growing
 set of modules that support additional capabilities meant to keep up with the
 evolution and expansion of the BIDS specification itself. Currently, PyBIDS
 includes tools for (1) reading and manipulating data contained in various
-BIDS-defined files (e.g., physiological recordings, event files, or
+BIDS-defined files (*e.g.*, physiological recordings, event files, or
 participant-level variables); (2) constructing design matrices and contrasts
 that support the new ``BIDS-StatsModel`` specification (for machine-readable
 representation of fMRI statistical models); and (3) automated generation of
@@ -192,17 +192,17 @@ partial Methods sections for inclusion in publications.
 PyBIDS can be easily installed on all platforms via pip (``pip install
 pybids``), though currently it is not officially supported on Windows. The
 package has few dependencies outside of standard Python numerical and image
-analysis libraries (i.e., numpy, scipy, pandas, and NiBabel). The core API
+analysis libraries (*i.e.*, numpy, scipy, pandas, and NiBabel). The core API
 is deliberately kept minimalistic: nearly all interactions with PyBIDS
 functionality occur through a core ``BIDSLayout`` object initialized by passing
 in a path to a BIDS dataset. For most applications, no custom configuration
 should be required.
 
 Although technically still in alpha release, PyBIDS is already being used both
-as a dependency in dozens of other open-source brain imaging packages--e.g.,
-fMRIPrep [@fmriprep], MRIQC [@mriqc], datalad-neuroimaging
+as a dependency in dozens of other open-source brain imaging packages --
+*e.g.*, fMRIPrep [@fmriprep], MRIQC [@mriqc], datalad-neuroimaging
 (https://github.com/datalad/datalad-neuroimaging), and fitlins
-(https://github.com/poldracklab/fitlins)--and directly in many researchers'
+(https://github.com/poldracklab/fitlins) -- and directly in many researchers'
 custom Python workflows. Development is extremely active, with bug fixes and
 new features continually being added (https://github.com/bids-standard/pybids),
 and major releases occurring approximately every 6 months. As of this writing,
