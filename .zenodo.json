@@ -21,14 +21,14 @@
       "orcid": "0000-0003-3321-7583"
     },
     {
-      "affiliation": "Florida International University",
-      "name": "Salo, Taylor",
-      "orcid": "0000-0001-9813-3167"
-    },
-    {
       "affiliation": "Dartmouth College",
       "name": "Halchenko, Yaroslav O.",
       "orcid": "0000-0003-3456-2493"
+    },
+    {
+      "affiliation": "Florida International University",
+      "name": "Salo, Taylor",
+      "orcid": "0000-0001-9813-3167"
     },
     {
       "affiliation": "University of Texas at Austin",
@@ -74,17 +74,21 @@
       "orcid": "0000-0001-8498-4059"
     },
     {
-      "affiliation": "Montreal Neurological Institute and Hospital",
-      "name": "DuPre, Elizabeth",
-      "orcid": "0000-0003-1358-196X"
-    },
-    {
       "affiliation": "Psychoinformatics Lab, Institute of Psychology, Otto-von-Guericke University Magdeburg",
       "name": "Wagner, Adina",
       "orcid": "0000-0003-2917-3450"
     },
     {
+      "affiliation": "Montreal Neurological Institute and Hospital",
+      "name": "DuPre, Elizabeth",
+      "orcid": "0000-0003-1358-196X"
+    },
+    {
       "name": "Ivanov, Alexander"
+    },
+    {
+      "affiliation": "KTH Royal Institute of Technology",
+      "name": "Wennberg, Johannes"
     },
     {
       "affiliation": "CorticoMetrics LLC",
@@ -137,9 +141,19 @@
       "orcid": "0000-0001-5018-7895"
     },
     {
+      "affiliation": "Ottawa Hospital Research Institute",
+      "name": "Boulay, Chadwick",
+      "orcid": "0000-0003-1747-3931"
+    },
+    {
       "affiliation": "Rutgers University",
       "name": "Kleinschmidt, Dave F.",
       "orcid": "0000-0002-7442-2762"
+    },
+    {
+      "affiliation": "Centre for Addiction and Mental Health, University of Toronto, Canada",
+      "name": "Dickie, Erin W",
+      "orcid": "0000-0003-3028-9864"
     },
     {
       "affiliation": "NIMH IRP",

@@ -10,7 +10,7 @@ ver_file = os.path.join('bids', 'version.py')
 with open(ver_file) as f:
     exec(f.read())
 
-opts = dict(name=NAME,
+opts = dict(name="pybids",
             maintainer=MAINTAINER,
             maintainer_email=MAINTAINER_EMAIL,
             description=DESCRIPTION,
