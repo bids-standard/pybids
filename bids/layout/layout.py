@@ -793,6 +793,10 @@ class BIDSLayout(object):
                         subq = sa.and_(Tag.entity_name == name,
                                        Tag._value.in_(val))
                         query = query.filter(BIDSFile.tags.any(subq))
+                    elif val is None:
+                        drop = query.filter(
+                            BIDSFile.tags.any(entity_name=name))
+                        query = query.except_(drop)
                     else:
                         query = query.filter(
                             BIDSFile.tags.any(entity_name=name, _value=val))
