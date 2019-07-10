@@ -228,6 +228,10 @@ def test_get_val_none(layout_7t_trt):
     assert 'acq' not in t1w_files[0].path
     t1w_files = layout_7t_trt.get(subject='01', ses='1', suffix='T1w', acquisition=None)
     assert len(t1w_files) == 1
+    t1w_files = layout_7t_trt.get(subject='01', ses='1', suffix='T1w', acquisition=[None])
+    assert len(t1w_files) == 1
+    bold_files = layout_7t_trt.get(subject='01', ses='1', suffix='bold', acquisition=None)
+    assert len(bold_files) == 0
 
 
 def test_get_return_sorted(layout_7t_trt):
