@@ -780,22 +780,30 @@ class BIDSLayout(object):
             query = query.join(BIDSFile.tags)
             regex = kwargs.get('regex_search', False)
             for name, val in filters.items():
+                if isinstance(val, (list, tuple)) and len(val) == 1:
+                    val = val[0]
+
+                if val is None:
+                    drop = query.filter(
+                        BIDSFile.tags.any(entity_name=name))
+                    query = query.except_(drop)
+                    continue
+
                 if regex:
                     if isinstance(val, (list, tuple)):
                         val_clause = sa.or_(*[Tag._value.op('REGEXP')(str(v))
                                               for v in val])
                     else:
                         val_clause = Tag._value.op('REGEXP')(val)
-                    subq = sa.and_(Tag.entity_name == name, val_clause)
-                    query = query.filter(BIDSFile.tags.any(subq))
                 else:
                     if isinstance(val, (list, tuple)):
-                        subq = sa.and_(Tag.entity_name == name,
-                                       Tag._value.in_(val))
-                        query = query.filter(BIDSFile.tags.any(subq))
+                        val_clause = Tag._value.in_(val)
                     else:
-                        query = query.filter(
-                            BIDSFile.tags.any(entity_name=name, _value=val))
+                        val_clause = Tag._value == val
+
+                subq = sa.and_(Tag.entity_name == name, val_clause)
+                query = query.filter(BIDSFile.tags.any(subq))
+
         return query
 
     def get_collections(self, level, types=None, variables=None, merge=False,
