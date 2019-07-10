@@ -152,6 +152,9 @@ class BIDSFile(Base):
     def __repr__(self):
         return "<{} filename='{}'>".format(self.__class__.__name__, self.path)
 
+    def __fspath__(self):
+        return self.path
+
     @reconstructor
     def _init_on_load(self):
         self._data = None
