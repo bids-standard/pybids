@@ -182,7 +182,7 @@ def test_bidsimagefile_get_image():
     path = "synthetic/sub-01/ses-01/func/sub-01_ses-01_task-nback_run-01_bold.nii.gz"
     path = path.split('/')
     path = os.path.join(get_test_data_path(), *path)
-    bf = BIDSImageFile(path, None)
+    bf = BIDSImageFile(path)
     assert bf.get_image() is not None
     assert bf.get_image().shape == (64, 64, 64, 64)
 

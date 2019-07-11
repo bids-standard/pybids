@@ -1055,6 +1055,7 @@ class BIDSLayout(object):
         return fieldmap_set
 
     def get_tr(self, derivatives=False, **filters):
+
         """Return the scanning repetition time (TR) for one or more runs.
 
         Args:

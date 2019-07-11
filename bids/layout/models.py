@@ -127,7 +127,7 @@ class BIDSFile(Base):
         'polymorphic_identity': 'file'
     }
 
-    def __init__(self, filename, derivatives=False, is_dir=False):
+    def __init__(self, filename):
         self.path = filename
         self.filename = os.path.basename(self.path)
         self.dirname = os.path.dirname(self.path)
@@ -194,11 +194,11 @@ class BIDSFile(Base):
         return chain(*[collect_associations([], bf) for bf in associations])
 
     def get_metadata(self):
-        """ Returns all metadata associated with the current file. """
+        """ Return all metadata associated with the current file. """
         return self.get_entities(metadata=True)
 
     def get_entities(self, metadata=False, values='tags'):
-        """ Returns entity information for the current file.
+        """ Return entity information for the current file.
 
         Args:
             metadata (bool, None): If False (default), only entities defined
@@ -274,13 +274,18 @@ class BIDSFile(Base):
 
 
 class BIDSDataFile(BIDSFile):
+    """ Represents a single data file in a BIDS dataset.
+
+    Derived from `BIDSFile` and provides additional functionality such as
+    obtaining pandas DataFrame data representation (via `get_df`).
+    """
 
     __mapper_args__ = {
         'polymorphic_identity': 'data_file'
     }
 
     def get_df(self, include_timing=True, adjust_onset=False):
-        """ Returns the contents of a tsv file as a pandas DataFrame.
+        """ Return the contents of a tsv file as a pandas DataFrame.
 
         Args:
             include_timing (bool): If True, adds an "onset" column to dense
@@ -316,6 +321,11 @@ class BIDSDataFile(BIDSFile):
 
 
 class BIDSImageFile(BIDSFile):
+    """ Represents a single neuroimaging data file in a BIDS dataset.
+
+    Derived from `BIDSFile` and provides additional functionality such as
+    obtaining nibabel's image file representation (via `get_image`).
+    """
 
     __mapper_args__ = {
         'polymorphic_identity': 'image_file'
@@ -423,11 +433,11 @@ class Entity(Base):
         return self._astype(val)
 
     def unique(self):
-        """ Returns all unique values/levels for the current entity. """
+        """ Return all unique values/levels for the current entity. """
         return list(set(self.files.values()))
 
     def count(self, files=False):
-        """ Returns a count of unique values or files.
+        """ Return a count of unique values or files.
 
         Args:
             files (bool): When True, counts all files mapped to the Entity.
@@ -443,8 +453,7 @@ class Entity(Base):
 
 
 class Tag(Base):
-    """
-    Represents an association between a File and and Entity.
+    """ Represents an association between a File and and Entity.
 
     Args:
         file (BIDSFile): The associated BIDSFile.
