@@ -1,5 +1,24 @@
 # Changelog
 
+## Version 0.9.2 (July 12, 2019)
+
+This version includes a number of minor fixes and improvements.
+EEG files are better handled, and `BIDSLayout` and `BIDSFile` play more
+nicely with `Path`-like objects.
+
+With thanks to new contributor Cecile Madjar.
+
+* FIX: Instantiate `ignore`/`force_index` after root validation (#457)
+* FIX: Restore `<entity>=None` query returning files lacking the entity (#458)
+* ENH: Add `BIDSJSONFile` (#444)
+* ENH: Add `BIDSFile.__fspath__` to work with pathlib (#449)
+* ENH: Add `eeg` datatype to layout config (#455)
+* RF: Remove unused kwargs to BIDSFile (#443)
+* DOC: Improve docstring consistency, style (#443)
+* DOC: Address final JOSS review (#453)
+* STY: PEP8 Fixes (#456)
+* MAINT: Set name explicitly in setup.py (#450)
+
 ## Version 0.9.1 (May 24, 2019)
 Hotfix release:
 
