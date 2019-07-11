@@ -368,6 +368,10 @@ class BIDSLayout(object):
 
     def _get_layouts_in_scope(self, scope):
         """Return all layouts in the passed scope."""
+
+        if scope == 'self':
+            return [self]
+
         def collect_layouts(layout):
             """Recursively build a list of layouts."""
             children = list(layout.derivatives.values())
@@ -420,8 +424,8 @@ class BIDSLayout(object):
 
         Args:
             scope (str): The scope of the search space. Indicates which
-                BIDSLayouts' entities to extract. See BIDSLayout docstring
-                for valid values.
+                BIDSLayouts' entities to extract. See BIDSLayout.get()
+                docstring for valid values.
             metadata (bool, None): By default (None), all available entities
                 are returned. If True, only entities found in metadata files
                 (and not defined for filenames) are returned. If False, only
@@ -447,8 +451,8 @@ class BIDSLayout(object):
 
         Args:
             scope (str): The scope of the search space. Indicates which
-                BIDSLayouts' entities to extract. See BIDSLayout docstring
-                for valid values.
+                BIDSLayouts' entities to extract. See BIDSLayout.get()
+                docstring for valid values.
 
         Returns: A dict, where keys are file paths and values are BIDSFile
             instances.
@@ -472,8 +476,8 @@ class BIDSLayout(object):
         Args:
             filename (str): The filename to parse for entity values
             scope (str, list): The scope of the search space. Indicates which
-                BIDSLayouts' entities to extract. See BIDSLayout docstring
-                for valid values. By default, extracts all entities.
+                BIDSLayouts' entities to extract. See BIDSLayout.get()
+                docstring for valid values. By default, extracts all entities.
             entities (list): An optional list of Entity instances to use in
                 extraction. If passed, the scope and config arguments are
                 ignored, and only the Entities in this list are used.
@@ -624,6 +628,7 @@ class BIDSLayout(object):
                     'all' (default): search all available directories.
                     'derivatives': search all derivatives directories
                     'raw': search only BIDS-Raw directories
+                    'self': search only the directly called BIDSLayout
                     <PipelineName>: the name of a BIDS-Derivatives pipeline
             regex_search (bool or None): Whether to require exact matching
                 (False) or regex search (True) when comparing the query string
@@ -760,7 +765,7 @@ class BIDSLayout(object):
                 an absolute path, or relative to the root of this BIDSLayout.
             scope (str, list): Scope of the search space. If passed, only
                 BIDSLayouts that match the specified scope will be
-                searched. See BIDSLayout docstring for valid values.
+                searched. See BIDSLayout.get() docstring for valid values.
 
         Returns: A BIDSFile, or None if no match was found.
         """
@@ -853,8 +858,9 @@ class BIDSLayout(object):
                 from the filename (rather than JSON sidecars) are included in
                 the returned metadata dictionary.
             scope (str, list): The scope of the search space. Each element must
-                be one of 'all', 'raw', 'derivatives', or a BIDS-Derivatives
-                pipeline name. Defaults to searching all available datasets.
+                be one of 'all', 'raw', 'self', 'derivatives', or a
+                BIDS-Derivatives pipeline name. Defaults to searching all
+                available datasets.
 
         Returns: A dictionary of key/value pairs extracted from all of the
             target file's associated JSON sidecars.
@@ -880,6 +886,27 @@ class BIDSLayout(object):
                 return {t.entity_name: t.value for t in results}
 
         return {}
+
+    def get_dataset_description(self, scope='self', all_=False):
+        """Return contents of dataset_description.json.
+
+        Args:
+            scope (str): The scope of the search space. Only descriptions of
+                BIDSLayouts that match the specified scope will be returned.
+                See BIDSLayout.get() docstring for valid values. Defaults to
+                'self'--i.e., returns the dataset_description.json file for
+                only the directly-called BIDSLayout.
+            all_ (bool): If True, returns a list containing descriptions for
+                all matching layouts. If False (default), returns for only the
+                first matching layout.
+
+        Returns: a dictionary or list of dictionaries (depending on all_).
+        """
+        layouts = self._get_layouts_in_scope(scope)
+        if not all_:
+            return layouts[0].get_file('dataset_description.json').get_dict()
+        return [l.get_file('dataset_description.json').get_dict()
+              for l in layouts]
 
     def get_nearest(self, path, return_type='filename', strict=True,
                     all_=False, ignore_strict_entities='extension',

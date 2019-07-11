@@ -501,6 +501,21 @@ def test_get_layouts_in_scope(layout_ds005_multi_derivs):
     assert len(l._get_layouts_in_scope(['events', 'dummy'])) == 2
     assert len(l._get_layouts_in_scope(['derivatives'])) == 2
     assert len(l._get_layouts_in_scope('raw')) == 1
+    self_scope = l._get_layouts_in_scope('self')
+    assert len(self_scope) == 1
+    assert self_scope == [l]
+
+
+def test_get_dataset_description(layout_ds005_multi_derivs):
+    l = layout_ds005_multi_derivs
+    dd = l.get_dataset_description()
+    assert isinstance(dd, dict)
+    assert dd['Name'] == 'Mixed-gambles task'
+    dd = l.get_dataset_description('all', True)
+    assert isinstance(dd, list)
+    assert len(dd) == 3
+    names = {'Mixed-gambles task', 'Mixed-gambles task -- dummy derivative'}
+    assert set([d['Name'] for d in dd]) == names
 
 
 def test_indexed_file_associations(layout_7t_trt):

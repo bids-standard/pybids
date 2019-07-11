@@ -101,6 +101,8 @@ def make_bidsfile(filename):
         cls = 'BIDSImageFile'
     elif ext in ['tsv', 'tsv.gz']:
         cls = 'BIDSDataFile'
+    elif ext == 'json':
+        cls = 'BIDSJSONFile'
     else:
         cls = 'BIDSFile'
 

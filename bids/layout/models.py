@@ -342,6 +342,25 @@ class BIDSImageFile(BIDSFile):
                              "NiBabel can read.".format(self.path))
 
 
+class BIDSJSONFile(BIDSFile):
+
+    __mapper_args__ = {
+        'polymorphic_identity': 'json_file'
+    }
+
+    def get_dict(self):
+        ''' Return the contents of the current file as a dictionary. '''
+        d = json.loads(self.get_json())
+        if not isinstance(d, dict):
+            raise ValueError("File %s is a json containing %s, not a dict which was expected" % (self.path, type(d)))
+        return d
+
+    def get_json(self):
+        ''' Return the contents of the current file as a JSON string. '''
+        with open(self.path, 'r') as f:
+            return f.read()
+
+
 class Entity(Base):
     """
     Represents a single entity defined in the JSON config.
