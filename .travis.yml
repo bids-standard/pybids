@@ -84,3 +84,5 @@ deploy:
   password: $PYPI_PASS
   skip_cleanup: true
   skip_existing: true
+  on:
+    tags: true
