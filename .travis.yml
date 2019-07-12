@@ -83,6 +83,4 @@ deploy:
   user: $PYPI_USER
   password: $PYPI_PASS
   skip_cleanup: true
-  on:
-    tags: true
-    condition: $PYTHON_VERSION = "3.6"
+  skip_existing: true
