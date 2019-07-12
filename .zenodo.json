@@ -84,6 +84,11 @@
       "orcid": "0000-0003-1358-196X"
     },
     {
+      "affiliation": "Center for Adaptive Rationality, Max Planck Institute for Human Development, Berlin, Germany",
+      "name": "Appelhoff, Stefan",
+      "orcid": "0000-0001-8002-0877"
+    },
+    {
       "name": "Ivanov, Alexander"
     },
     {
@@ -94,6 +99,11 @@
       "affiliation": "CorticoMetrics LLC",
       "name": "Tirrell, Lee S.",
       "orcid": "0000-0001-9393-8361"
+    },
+    {
+      "affiliation": "Department of Psychology, Stanford University",
+      "name": "Esteban, Oscar",
+      "orcid": "0000-0001-8435-6191"
     },
     {
       "affiliation": "T\u00e9l\u00e9com ParisTech, France",
@@ -109,16 +119,6 @@
       "affiliation": "Stanford University",
       "name": "Poldrack, Russell",
       "orcid": "0000-0001-6755-0259"
-    },
-    {
-      "affiliation": "Department of Psychology, Stanford University",
-      "name": "Esteban, Oscar",
-      "orcid": "0000-0001-8435-6191"
-    },
-    {
-      "affiliation": "Center for Adaptive Rationality, Max Planck Institute for Human Development, Berlin, Germany",
-      "name": "Appelhoff, Stefan",
-      "orcid": "0000-0001-8002-0877"
     },
     {
       "affiliation": "Berkeley Institute for Data Science; University of California at Berkeley",
