@@ -12,6 +12,7 @@ env:
   global:
     - EXTRA_WHEELS="https://5cf40426d9f06eb7461d-6fe47d9331aba7cd62fc36c7196769e4.ssl.cf2.rackcdn.com"
     - PRE_WHEELS="https://7933911d6844c6c53a7d-47bd50c35cd79bd838daf386af554a83.ssl.cf2.rackcdn.com"
+    - CHECK_TYPE="test"
   matrix:
     - EXTRA_PIP_FLAGS="--find-links=$EXTRA_WHEELS"
     - EXTRA_PIP_FLAGS="--pre --find-links=$EXTRA_WHEELS --find-links $PRE_WHEELS"
@@ -39,6 +40,8 @@ matrix:
       env:
         - PYTHON_VERSION=3.7
         - MINICONDA_URL="https://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-x86_64.sh"
+    - python: 3.6
+      env: CHECK_TYPE=tutorial
   allow_failures:
     - os: osx
       language: generic
@@ -69,9 +72,20 @@ before_install:
 
 install:
 - pip install $EXTRA_PIP_FLAGS ".[analysis]"
+- |
+  if [ "$CHECK_TYPE" = "tutorial" ]; then
+      pip install $EXTRA_PIP_FLAGS nbconvert jupyter_client ipykernel
+  fi
 
 script:
-- py.test -n 2 -v --cov bids --cov-config .coveragerc --cov-report xml:cov.xml bids
+- |
+  if [ "$CHECK_TYPE" = "test" ]; then
+      py.test -n 2 -v --cov bids --cov-config .coveragerc --cov-report xml:cov.xml bids
+  elif [ "$CHECK_TYPE" = "tutorial" ]; then
+      jupyter nbconvert --execute examples/pybids_tutorial.ipynb
+  else
+      false
+  fi
 
 after_script:
 - codecov --file cov.xml --flags unittests
