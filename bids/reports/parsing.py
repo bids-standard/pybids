@@ -469,7 +469,7 @@ def parse_niftis(layout, niftis, subj, config, **kwargs):
                 description_list.append(anat_info(suffix, metadata, img,
                                                   config))
             elif nifti_struct.entities['datatype'] == 'dwi':
-                bval_file = nii_file.replace('.nii', '.bval')
+                bval_file = nii_file.replace('.nii.gz', '.bval').replace('.nii', '.bval')
                 description_list.append(dwi_info(bval_file, metadata, img,
                                                  config))
             elif nifti_struct.entities['datatype'] == 'fmap':
