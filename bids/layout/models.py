@@ -491,6 +491,10 @@ class Tag(Base):
         self._dtype = dtype
 
         self._init_on_load()
+    
+    def __repr__(self):
+        msg = "Tag for file '{}' with entity name '{}' has value {}."
+        return msg.format(self.file_path, self.entity_name, self.value)
 
     @reconstructor
     def _init_on_load(self):

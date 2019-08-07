@@ -97,6 +97,13 @@ def test_file_associations():
     assert set(results) == {md1, md2}
 
 
+def test_tag_init(sample_bidsfile, subject_entity):
+    f, e = sample_bidsfile, subject_entity
+    tag = Tag(f, e, 'zzz')
+    rep = str(tag)
+    assert rep.startswith("Tag for file") and f.path in rep and 'zzz' in rep
+
+
 def test_tag_dtype(sample_bidsfile, subject_entity):
     f, e = sample_bidsfile, subject_entity
     # Various ways of initializing--should all give same result
