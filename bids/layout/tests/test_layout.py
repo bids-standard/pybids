@@ -549,3 +549,12 @@ def test_layout_save(layout_7t_trt):
     newfies = set(layout.get(suffix='events', return_type='file'))
     assert oldfies == newfies
     os.unlink(f)
+
+
+def test_indexing_tag_conflict():
+    data_dir = join(get_test_data_path(), 'ds005_conflict')
+    with pytest.raises(ValueError) as exc:
+        layout = BIDSLayout(data_dir)
+        print(exc.value.message)
+        assert exc.value.message.startswith("Conflicting values found")
+        assert 'run' in exc.value.message
