@@ -327,17 +327,18 @@ def test_layout_with_multi_derivs(layout_ds005_multi_derivs):
 
 
 def test_query_derivatives(layout_ds005_derivs):
-    result = layout_ds005_derivs.get(suffix='events', return_type='object')
+    result = layout_ds005_derivs.get(suffix='events', return_type='object',
+                                     extension='tsv')
     result = [f.filename for f in result]
     assert len(result) == 49
     assert 'sub-01_task-mixedgamblestask_run-01_desc-extra_events.tsv' in result
     result = layout_ds005_derivs.get(suffix='events', return_type='object',
-                                     scope='raw')
+                                     scope='raw', extension='tsv')
     assert len(result) == 48
     result = [f.filename for f in result]
     assert 'sub-01_task-mixedgamblestask_run-01_desc-extra_events.tsv' not in result
     result = layout_ds005_derivs.get(suffix='events', return_type='object',
-                                     desc='extra')
+                                     desc='extra', extension='tsv')
     assert len(result) == 1
     result = [f.filename for f in result]
     assert 'sub-01_task-mixedgamblestask_run-01_desc-extra_events.tsv' in result
@@ -548,3 +549,12 @@ def test_layout_save(layout_7t_trt):
     newfies = set(layout.get(suffix='events', return_type='file'))
     assert oldfies == newfies
     os.unlink(f)
+
+
+def test_indexing_tag_conflict():
+    data_dir = join(get_test_data_path(), 'ds005_conflict')
+    with pytest.raises(ValueError) as exc:
+        layout = BIDSLayout(data_dir)
+        print(exc.value.message)
+        assert exc.value.message.startswith("Conflicting values found")
+        assert 'run' in exc.value.message

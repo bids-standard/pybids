@@ -179,6 +179,15 @@ class BIDSLayoutIndexer(object):
         for c in self.config:
             all_entities.update(c.entities)
 
+        # If key/value pairs in JSON files duplicate ones extracted from files,
+        # we can end up with Tag collisions in the DB. To prevent this, we
+        # store all filename/entity pairs and the value, and then check against
+        # that before adding each new Tag.
+        all_tags = {}
+        for t in self.session.query(Tag).all():
+            key = '{}_{}'.format(t.file_path, t.entity_name)
+            all_tags[key] = str(t.value)
+
         # We build up a store of all file data as we iterate files. It looks
         # like: { extension/suffix: dirname: [(entities, payload)]}}.
         # The payload is left empty for non-JSON files.
@@ -326,6 +335,19 @@ class BIDSLayoutIndexer(object):
 
             # Create Tag <-> Entity mappings, and any newly discovered Entities
             for md_key, md_val in file_md.items():
+                tag_string = '{}_{}'.format(bf.path, md_key)
+                # Skip pairs that were already found in the filenames
+                if tag_string in all_tags:
+                    file_val = all_tags[tag_string]
+                    if str(md_val) != file_val:
+                        msg = (
+                            "Conflicting values found for entity '{}' in "
+                            "filename {} (value='{}') versus its JSON sidecar "
+                            "(value='{}'). Please reconcile this discrepancy."
+                            )
+                        raise ValueError(msg.format(md_key, bf.path, file_val,
+                                                    md_val))
+                    continue
                 if md_key not in all_entities:
                     all_entities[md_key] = Entity(md_key, is_metadata=True)
                     self.session.add(all_entities[md_key])
