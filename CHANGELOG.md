@@ -1,5 +1,16 @@
 # Changelog
 
+## Version 0.9.3 (August 7, 2019)
+This version includes a number of minor fixes and improvements, one of which
+breaks the existing API (by renaming two entities; see #464). Changes
+include:
+
+* FIX: Avoid DB collisions for redundant entities (#468)
+* FIX: Minor changes to entity names in core spec (#464)
+* FIX: Make bids.reports work properly with .nii images (#463)
+* CI: Execute notebook in Travis (#461)
+* ENH: More sensible __repr__ for Tag model (#467)
+
 ## Version 0.9.2 (July 12, 2019)
 
 This version includes a number of minor fixes and improvements.
