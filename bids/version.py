@@ -47,12 +47,15 @@ PLATFORMS = "OS Independent"
 # No data for now
 REQUIRES = ["num2words", "numpy", "scipy", "pandas>=0.23.0",
             "nibabel>=2.1", "patsy", "bids-validator", "SQLAlchemy"]
+TESTS_REQUIRE = ["pytest>=3.3.0", "mock", 'pathlib; python_version < "3.4"']
 EXTRAS_REQUIRE = {
+   'test': TESTS_REQUIRE,
+   "travis_tests": TESTS_REQUIRE + ["pytest-xdist", "pytest-cov", "codecov"],
+   "tutorial": ["nbconvert", "jupyter_client", "ipykernel"],
    # Just to not break compatibility with externals requiring
    # now deprecated installation schemes
-   'analysis': []
+   'analysis': [],
 }
-TESTS_REQUIRE = ["pytest>=3.3.0", 'pathlib; python_version < "3.4"']
 
 
 def package_files(directory):
