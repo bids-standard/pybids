@@ -23,7 +23,7 @@ matrix:
     - os: osx
       language: generic
       env:
-        - PYTHON_VERSION=2.7
+        - PYTHON_VERSION=2.7.16=h97142e2_0
         - MINICONDA_URL="https://repo.continuum.io/miniconda/Miniconda2-latest-MacOSX-x86_64.sh"
     - os: osx
       language: generic
@@ -60,9 +60,9 @@ before_install:
         conda config --set always_yes yes;
         conda info -a;
         conda install --quiet python=$PYTHON_VERSION;
+        hash -r;
       fi
-    - travis_retry pip install --upgrade pip
-    - travis_retry pip install --upgrade virtualenv
+    - travis_retry pip install --upgrade pip virtualenv
     - virtualenv --python=python venv
     - source venv/bin/activate
     - python --version # just to check
