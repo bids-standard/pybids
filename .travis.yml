@@ -23,7 +23,7 @@ matrix:
     - os: osx
       language: generic
       env:
-        - PYTHON_VERSION=2.7
+        - PYTHON_VERSION=2.7.16=h97142e2_0
         - MINICONDA_URL="https://repo.continuum.io/miniconda/Miniconda2-latest-MacOSX-x86_64.sh"
     - os: osx
       language: generic
