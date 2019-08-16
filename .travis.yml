@@ -60,8 +60,9 @@ before_install:
         conda config --set always_yes yes;
         conda info -a;
         conda install --quiet python=$PYTHON_VERSION;
+        hash -r;
       fi
-    - travis_retry pip install --upgrade pip "virtualenv!=16.7.3"
+    - travis_retry pip install --upgrade pip virtualenv
     - virtualenv --python=python venv
     - source venv/bin/activate
     - python --version # just to check
