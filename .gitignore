@@ -102,3 +102,9 @@ doc/generated/
 
 # Pytest
 .pytest_cache/
+
+# Vim
+.*.sw[op]
+
+# Emacs and others
+*~
