@@ -3,3 +3,4 @@ include bids/_version.py
 recursive-include bids/layout/config *.json
 recursive-include bids/reports/config *.json
 recursive-include bids/tests/data *
+recursive-include bids/layout/tests/data *
