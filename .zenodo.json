@@ -1,4 +1,6 @@
 {
+  "title": "PyBIDS: Python tools for BIDS datasets",
+  "description": "PyBIDS is a Python library to centralize interactions with datasets conforming BIDS (Brain Imaging Data Structure) format. For more information about BIDS visit <a href=\"https://bids.neuroimaging.io\">bids.neuroimaging.io</a>.",
   "creators": [
     {
       "affiliation": "University of Texas at Austin",
@@ -131,7 +133,7 @@
       "orcid": "0000-0002-0795-1154"
     },
     {
-      "affiliation": "Université catholique de Louvain",
+      "affiliation": "Universit\u00e9 catholique de Louvain",
       "name": "Gau, Remi",
       "orcid": "0000-0002-1535-9767"
     },
@@ -187,8 +189,12 @@
     }
   ],
   "keywords": [
+    "BIDS",
+    "brain imaging data structure",
+    "neuroscience",
     "neuroimaging",
-    "BIDS"
+    "neuroinformatics",
+    "python"
   ],
   "license": "mit-license",
   "upload_type": "software"
