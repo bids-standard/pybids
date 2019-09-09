@@ -1167,7 +1167,8 @@ class BIDSLayout(object):
                 for c in l.config.values():
                     if c in seen_configs:
                         continue
-                    path_patterns.extend(c.default_path_patterns)
+                    if c.default_path_patterns is not None:
+                        path_patterns.extend(c.default_path_patterns)
                     seen_configs.add(c)
 
         return build_path(source, path_patterns, strict)
