@@ -1,35 +1,17 @@
 #!/usr/bin/env python
-import os
-from setuptools import setup, find_packages
+import sys
+from setuptools import setup
 import versioneer
 
-PACKAGES = find_packages()
-
-# Get version and release info, which is all stored in bids/version.py
-ver_file = os.path.join('bids', 'version.py')
-with open(ver_file) as f:
-    exec(f.read())
-
-opts = dict(name="pybids",
-            maintainer=MAINTAINER,
-            maintainer_email=MAINTAINER_EMAIL,
-            description=DESCRIPTION,
-            long_description=LONG_DESCRIPTION,
-            url=URL,
-            download_url=DOWNLOAD_URL,
-            license=LICENSE,
-            classifiers=CLASSIFIERS,
-            author=AUTHOR,
-            author_email=AUTHOR_EMAIL,
-            platforms=PLATFORMS,
-            version=versioneer.get_version(),
-            cmdclass=versioneer.get_cmdclass(),
-            packages=PACKAGES,
-            package_data=PACKAGE_DATA,
-            install_requires=REQUIRES,
-            extras_require=EXTRAS_REQUIRE,
-            tests_require=TESTS_REQUIRE)
-
+# Give setuptools a hint to complain if it's too old a version
+# 30.3.0 allows us to put most metadata in setup.cfg
+# Should match pyproject.toml
+SETUP_REQUIRES = ['setuptools >= 30.3.0']
+# This enables setuptools to install wheel on-the-fly
+SETUP_REQUIRES += ['wheel'] if 'bdist_wheel' in sys.argv else []
 
 if __name__ == '__main__':
-    setup(**opts)
+    setup(name="pybids",
+          version=versioneer.get_version(),
+          cmdclass=versioneer.get_cmdclass(),
+          setup_requires=SETUP_REQUIRES)

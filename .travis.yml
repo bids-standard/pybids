@@ -1,6 +1,7 @@
 dist: xenial
 sudo: true
 language: python
+cache: false
 
 # python and global.matrix are crossed to create the base build matrix
 python:
@@ -10,6 +11,8 @@ python:
   - 3.7
 env:
   global:
+    - INSTALL_TYPE="pip"
+    - SETUP_REQUIRES="--upgrade pip setuptools wheel"
     - EXTRA_WHEELS="https://5cf40426d9f06eb7461d-6fe47d9331aba7cd62fc36c7196769e4.ssl.cf2.rackcdn.com"
     - PRE_WHEELS="https://7933911d6844c6c53a7d-47bd50c35cd79bd838daf386af554a83.ssl.cf2.rackcdn.com"
     - CHECK_TYPE="travis_tests"
@@ -42,12 +45,15 @@ matrix:
         - MINICONDA_URL="https://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-x86_64.sh"
     - python: 3.6
       env: CHECK_TYPE=tutorial
-  allow_failures:
-    - os: osx
-      language: generic
+    - python: 3.6
+      env: INSTALL_TYPE=sdist
+    - python: 3.6
+      env: INSTALL_TYPE=wheel
+    # Minimal setup requirements
+    - python: 3.6
       env:
-        - PYTHON_VERSION=3.5
-        - MINICONDA_URL="https://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-x86_64.sh"
+        - SETUP_REQUIRES="pip==10.0.1 setuptools==30.4.0"
+        - CHECK_TYPE=skiptests
 
 before_install:
     - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
@@ -66,34 +72,56 @@ before_install:
     - virtualenv --python=python venv
     - source venv/bin/activate
     - python --version # just to check
-    - travis_retry pip install -U pip setuptools wheel  # needed at one point
+    - travis_retry pip install $SETUP_REQUIRES
+    # Build package
+    - |
+      if [ "$INSTALL_TYPE" == "sdist" ]; then
+        python setup.py egg_info  # check egg_info while we're here
+        python setup.py sdist
+        export ARCHIVE=$( ls dist/*.tar.gz )
+      elif [ "$INSTALL_TYPE" == "wheel" ]; then
+        python setup.py bdist_wheel
+        export ARCHIVE=$( ls dist/*.whl )
+      elif [ "$INSTALL_TYPE" = "pip" ]; then
+        export ARCHIVE="."
+      fi
+    - |
+      if [ "${ARCHIVE:0:5}" = "dist/" ]; then
+        pip install twine
+        twine check $ARCHIVE
+      fi
 
 install:
-- travis_retry pip install $EXTRA_PIP_FLAGS ".[analysis]"
+    # analysis extra existed and people may have it in their dependencies, so
+    # install it to make sure we don't remove it (unintentionally)
+    - travis_retry pip install $EXTRA_PIP_FLAGS "$ARCHIVE[analysis]"
+    # Basic import check; ensures import doesn't depend on any extras
+    - python -c 'import bids; print(bids.__version__)'
+    - if [ "$CHECK_TYPE" == "skiptests" ]; then exit 0; fi
 
 before_script:
-- travis_retry pip install $EXTRA_PIP_FLAGS ".[$CHECK_TYPE]"
+    # Because pybids is already installed, will just look up the extra
+    - travis_retry pip install $EXTRA_PIP_FLAGS "pybids[$CHECK_TYPE]"
 
 script:
-- |
-  if [ "$CHECK_TYPE" = "travis_tests" ]; then
-      py.test -n 2 -v --cov bids --cov-config .coveragerc --cov-report xml:cov.xml bids
-  elif [ "$CHECK_TYPE" = "tutorial" ]; then
-      jupyter nbconvert --execute examples/pybids_tutorial.ipynb
-  else
-      false
-  fi
+    - |
+      if [ "$CHECK_TYPE" = "travis_tests" ]; then
+          py.test -n 2 -v --cov bids --cov-config .coveragerc --cov-report xml:cov.xml bids
+      elif [ "$CHECK_TYPE" = "tutorial" ]; then
+          jupyter nbconvert --execute examples/pybids_tutorial.ipynb
+      else
+          false
+      fi
 
 after_script:
-- codecov --file cov.xml --flags unittests
-
-cache: false
+    - codecov --file cov.xml --flags unittests
 
 deploy:
   provider: pypi
   user: $PYPI_USER
   password: $PYPI_PASS
   skip_cleanup: true
+  distributions: "sdist bdist_wheel"
   skip_existing: true
   on:
     tags: true
