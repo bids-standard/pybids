@@ -123,6 +123,19 @@ class NodeIndex(Node):
         return results
 
     def get_nodes(self, level=None, entities=None, strict=False):
+        ''' Retrieves all nodes that match the specified criteria.
+
+        Args:
+            level (str): The level of analysis of nodes to return.
+            entities (dict): Entities to filter on. All nodes must have
+                matching values on all defined keys to be included.
+            strict (bool): If True, an exception will be raised if the entities
+                dict contains any keys that aren't contained in the current
+                index.
+
+        Returns:
+            A list of Node instances.
+        '''
 
         entities = {} if entities is None else entities.copy()
 
