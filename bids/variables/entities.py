@@ -155,9 +155,9 @@ class NodeIndex(Node):
             return []
 
         # Sort and return
-        sort_cols = ['subject', 'session', 'task', 'run']
+        sort_cols = ['subject', 'session', 'task', 'run', 'node_index',
+                     'suffix', 'level', 'datatype']
         sort_cols = [sc for sc in sort_cols if sc in set(rows.columns)]
-        sort_cols += list(set(rows.columns) - set(sort_cols))
         rows = rows.sort_values(sort_cols)
         inds = rows['node_index'].astype(int)
         return [self.nodes[i] for i in inds]
