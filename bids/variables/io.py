@@ -165,8 +165,30 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
                        "available, or manually specify the scan duration.")
                 raise ValueError(msg)
 
-        run = dataset.get_or_create_node('run', entities, image_file=img_f,
-                                         duration=duration, repetition_time=tr)
+        # We don't want to pass all the image file's entities onto get_node(),
+        # as there can be unhashable nested slice timing values, and this also
+        # slows down querying unnecessarily. Instead, pick out files only based
+        # on the core BIDS entities and any entities explicitly passed as
+        # selectors.
+        # TODO: one downside of this approach is the stripped entities also
+        # won't be returned in the resulting node due to the way things are
+        # implemented. Consider adding a flag to control this.
+        select_on = {k: v for (k, v) in entities.items()
+                     if k in BASE_ENTITIES or k in selectors}
+
+        # If a matching node already exists, return it
+        result = dataset.get_nodes('run', select_on)
+
+        if result:
+            if len(result) > 1:
+                raise ValueError("More than one existing Node matches the "
+                                 "specified entities! You may need to pass "
+                                 "additional selectors to narrow the search.")
+            return result[0]
+
+        # Otherwise create a new node and use that
+        run = dataset.create_node('run', entities, image_file=img_f,
+                                  duration=duration, repetition_time=tr)
         run_info = run.get_info()
 
         # Process event files
@@ -395,6 +417,7 @@ def _load_tsv_variables(layout, suffix, dataset=None, columns=None,
 
         level = {'scans': 'session', 'sessions': 'subject',
                  'participants': 'dataset'}[suffix]
+
         node = dataset.get_or_create_node(level, f.entities)
 
         ent_cols = list(set(ALL_ENTITIES) & set(_data.columns))
