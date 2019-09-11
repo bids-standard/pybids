@@ -776,11 +776,31 @@ class BIDSLayout(object):
                 return result
         return None
 
+
+    def __normalize_filters(self, filters):
+        """ try to fix type of run
+        we could get the types from the Entity record
+        but this is going to be faster
+        """
+        numeric_entities = ['run', 'echo']
+        for nv in numeric_entities:
+            try:
+                filters[nv] = int(filters[nv])
+            except (KeyError, ValueError):
+                pass
+            except TypeError:
+                try:
+                    filters[nv] = [int(rr) for rr in filters[nv]]
+                except ValueError:
+                    pass
+        return filters
+
+
     def _build_file_query(self, **kwargs):
 
         query = self.session.query(BIDSFile).filter_by(is_dir=False)
 
-        filters = kwargs.get('filters')
+        filters = self.__normalize_filters(kwargs.get('filters'))
 
         # Entity filtering
         if filters:

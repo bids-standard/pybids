@@ -12,6 +12,7 @@ from os.path import join, abspath, basename, dirname
 from bids.tests import get_test_data_path
 from bids.utils import natural_sort
 import tempfile
+import numpy as np
 
 
 def test_layout_init(layout_7t_trt):
@@ -232,6 +233,35 @@ def test_get_val_none(layout_7t_trt):
     assert len(t1w_files) == 1
     bold_files = layout_7t_trt.get(subject='01', ses='1', suffix='bold', acquisition=None)
     assert len(bold_files) == 0
+
+def test_get_value_type(layout_ds005):
+    layout = layout_ds005
+    ents={'suffix':'bold',
+          'subject': '01',
+          'run': 1}
+    bold_files = layout.get(**ents)
+    assert len(bold_files) == 1
+
+    ents['run'] = str(ents['run'])
+    bold_files = layout.get(**ents)
+    assert len(bold_files) == 1
+
+    ents['run'] = np.int64(ents['run'])
+    bold_files = layout.get(**ents)
+    assert len(bold_files) == 1
+
+    ents['run'] = [1,2]
+    bold_files = layout.get(**ents)
+    assert len(bold_files) == 2
+
+    ents['run'] = np.array(ents['run'])
+    bold_files = layout.get(**ents)
+    assert len(bold_files) == 2
+
+    ents['subject'] = 1
+    bold_files = layout.get(**ents)
+    assert len(bold_files) == 0
+
 
 
 def test_get_return_sorted(layout_7t_trt):
