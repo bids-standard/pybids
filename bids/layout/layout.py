@@ -784,9 +784,22 @@ class BIDSLayout(object):
 
         # Entity filtering
         if filters:
+
+            # Retrieve Entity dtypes for value sanitization
+            names = list(filters.keys())
+            ents = {e.name: e for e in
+                    self.session.query(Entity)
+                        .filter(Entity.name.in_(names)).all()}
+
             query = query.join(BIDSFile.tags)
             regex = kwargs.get('regex_search', False)
             for name, val in filters.items():
+                # Try to apply Entity dtype to value. Fail silently because
+                # the DB may still know how to reconcile type differences.
+                try:
+                    val = ents[name]._astype(val)
+                except:
+                    pass
                 if isinstance(val, (list, tuple)) and len(val) == 1:
                     val = val[0]
 
