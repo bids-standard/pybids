@@ -381,6 +381,25 @@ class BIDSLayout(object):
         layouts = [l for l in collect_layouts(self) if l._in_scope(scope)]
         return list(set(layouts))
 
+    def _sanitize_query_dtypes(self, entities):
+        """ Automatically convert entity query values to correct dtypes. """
+        entities = entities.copy()
+        names = list(entities.keys())
+        ents = {e.name: e for e in
+                self.session.query(Entity)
+                    .filter(Entity.name.in_(names)).all()}
+            # Fail silently because the DB may still know how to reconcile
+            # type differences.
+        for name, val in entities.items():
+            try:
+                if isinstance(val, (list, tuple)):
+                    entities[name] = [ents[name]._astype(v) for v in val]
+                else:
+                    entities[name] = ents[name]._astype(val)
+            except:
+                pass
+        return entities
+
     @property
     def entities(self):
         """Get the entities."""
@@ -784,25 +803,12 @@ class BIDSLayout(object):
 
         # Entity filtering
         if filters:
-
-            # Retrieve Entity dtypes for value sanitization
-            names = list(filters.keys())
-            ents = {e.name: e for e in
-                    self.session.query(Entity)
-                        .filter(Entity.name.in_(names)).all()}
-
             query = query.join(BIDSFile.tags)
             regex = kwargs.get('regex_search', False)
+
+            filters = self._sanitize_query_dtypes(filters)
+
             for name, val in filters.items():
-                # Try to apply Entity dtype to value. Fail silently because
-                # the DB may still know how to reconcile type differences.
-                try:
-                    if isinstance(val, (list, tuple)):
-                        val = [ents[name]._astype(v) for v in val]
-                    else:
-                        val = ents[name]._astype(val)
-                except:
-                    pass
                 if isinstance(val, (list, tuple)) and len(val) == 1:
                     val = val[0]
 
