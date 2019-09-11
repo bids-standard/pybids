@@ -2,16 +2,20 @@
 functionality should go in the grabbit package. """
 
 import os
-import pytest
-import bids
 import re
+import tempfile
+from os.path import join, abspath, basename, dirname
+
+import numpy as np
+import pytest
+
+import bids
 from bids.layout import BIDSLayout, parse_file_entities, add_config_paths
 from bids.layout.models import (BIDSFile, BIDSImageFile, Entity, Config,
                                 FileAssociation)
-from os.path import join, abspath, basename, dirname
 from bids.tests import get_test_data_path
 from bids.utils import natural_sort
-import tempfile
+
 
 
 def test_layout_init(layout_7t_trt):
@@ -558,3 +562,12 @@ def test_indexing_tag_conflict():
         print(exc.value.message)
         assert exc.value.message.startswith("Conflicting values found")
         assert 'run' in exc.value.message
+
+
+def test_get_with_wrong_dtypes(layout_7t_trt):
+    ''' Test automatic dtype sanitization. '''
+    l = layout_7t_trt
+    assert (l.get(run=1) == l.get(run='1') == l.get(run=np.int64(1)) ==
+            l.get(run=[1, '15']))
+    assert not l.get(run='not_numeric')
+    assert l.get(session=1) == l.get(session='1')
