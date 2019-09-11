@@ -794,10 +794,14 @@ class BIDSLayout(object):
             query = query.join(BIDSFile.tags)
             regex = kwargs.get('regex_search', False)
             for name, val in filters.items():
+                _val = val
                 # Try to apply Entity dtype to value. Fail silently because
                 # the DB may still know how to reconcile type differences.
                 try:
-                    val = ents[name]._astype(val)
+                    if isinstance(val, (list, tuple)):
+                        val = [ents[name]._astype(v) for v in val]
+                    else:
+                        val = ents[name]._astype(val)
                 except:
                     pass
                 if isinstance(val, (list, tuple)) and len(val) == 1:

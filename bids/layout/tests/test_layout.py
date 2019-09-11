@@ -567,6 +567,7 @@ def test_indexing_tag_conflict():
 def test_get_with_wrong_dtypes(layout_7t_trt):
     ''' Test automatic dtype sanitization. '''
     l = layout_7t_trt
-    assert l.get(run=1) == l.get(run='1') == l.get(run=np.int64(1))
+    assert (l.get(run=1) == l.get(run='1') == l.get(run=np.int64(1)) ==
+            l.get(run=[1, '15']))
     assert not l.get(run='not_numeric')
     assert l.get(session=1) == l.get(session='1')
