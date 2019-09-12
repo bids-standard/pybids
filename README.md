@@ -29,6 +29,13 @@ Get started by checking out [the documentation](https://bids-standard.github.io/
 
 Or you can start at [our tutorial](examples/pybids_tutorial.ipynb)! You can run it interactively without installing anything via [binder](https://mybinder.org/v2/gh/bids-standard/pybids/master). Click on the link and then navigate to `examples/pybids_tutorial.ipynb` to explore.
 
+## How to cite
+To credit PyBIDS in your work, please cite both the [JOSS paper](https://joss.theoj.org/papers/10.21105/joss.01294) and the [Zenodo archive](https://zenodo.org/record/3363985). The former provides a high level description of the package, and the latter points to a permanent record of all PyBIDS versions (we encourage you to cite the specific version you used). Example citations (for PyBIDS 0.9.3):
+
+Yarkoni et al., (2019). PyBIDS: Python tools for BIDS datasets. Journal of Open Source Software, 4(40), 1294, https://doi.org/10.21105/joss.01294
+
+Yarkoni, Tal, Markiewicz, Christopher J., de la Vega, Alejandro, Gorgolewski, Krzysztof J., Halchenko, Yaroslav O., Salo, Taylor, … Blair, Ross. (2019, August 8). bids-standard/pybids: 0.9.3 (Version 0.9.3). Zenodo. http://doi.org/10.5281/zenodo.3363985
+
 ## Community guidelines
 Bug reports, feedback, and other contributions to PyBIDS are welcome. To report a bug, request a feature, or raise a technical (non-usage-related) question for discussion, please [open an issue on GitHub](https://github.com/bids-standard/pybids/issues). Requests for support and questions about usage (where no bug is suspected) should be posted on the [NeuroStars](https://neurostars.org) forum. For questions about the [BIDS specification](https://github.com/bids-standard/bids-specification) or [BIDS-Validator](https://github.com/bids-standard/bids-validator), please see the corresponding repositories. For general BIDS-related discussion, see the [bids-discussion](https://groups.google.com/forum/#!forum/bids-discussion) mailing list.
 
