@@ -123,6 +123,19 @@ class NodeIndex(Node):
         return results
 
     def get_nodes(self, level=None, entities=None, strict=False):
+        ''' Retrieves all nodes that match the specified criteria.
+
+        Args:
+            level (str): The level of analysis of nodes to return.
+            entities (dict): Entities to filter on. All nodes must have
+                matching values on all defined keys to be included.
+            strict (bool): If True, an exception will be raised if the entities
+                dict contains any keys that aren't contained in the current
+                index.
+
+        Returns:
+            A list of Node instances.
+        '''
 
         entities = {} if entities is None else entities.copy()
 
@@ -155,20 +168,19 @@ class NodeIndex(Node):
             return []
 
         # Sort and return
-        sort_cols = ['subject', 'session', 'task', 'run']
+        sort_cols = ['subject', 'session', 'task', 'run', 'node_index',
+                     'suffix', 'level', 'datatype']
         sort_cols = [sc for sc in sort_cols if sc in set(rows.columns)]
-        sort_cols += list(set(rows.columns) - set(sort_cols))
         rows = rows.sort_values(sort_cols)
         inds = rows['node_index'].astype(int)
         return [self.nodes[i] for i in inds]
 
-    def get_or_create_node(self, level, entities, *args, **kwargs):
-        ''' Retrieves a child Node based on the specified criteria, creating a
-        new Node if necessary.
+    def create_node(self, level, entities, *args, **kwargs):
+        ''' Creates a new child Node.
 
         Args:
-            entities (dict): Dictionary of entities specifying which Node to
-                return.
+            level (str): The level of analysis of the new Node.
+            entities (dict): Dictionary of entities belonging to Node
             args, kwargs: Optional positional or named arguments to pass onto
                 class-specific initializers. These arguments are only used if
                 a Node that matches the passed entities doesn't already exist,
@@ -176,7 +188,34 @@ class NodeIndex(Node):
 
         Returns:
             A Node instance.
+        '''
 
+        if level == 'run':
+            node = RunNode(entities, *args, **kwargs)
+        else:
+            node = Node(level, entities)
+
+        entities = dict(entities, node_index=len(self.nodes), level=level)
+        self.nodes.append(node)
+        node_row = pd.Series(entities)
+        self.index = self.index.append(node_row, ignore_index=True)
+        return node
+
+    def get_or_create_node(self, level, entities, *args, **kwargs):
+        ''' Retrieves a child Node based on the specified criteria, creating a
+        new Node if necessary.
+
+        Args:
+            level (str): The level of analysis of the Node.
+            entities (dict): Dictionary of entities to include in newly-created
+                Nodes or filter existing ones.
+            args, kwargs: Optional positional or named arguments to pass onto
+                class-specific initializers. These arguments are only used if
+                a Node that matches the passed entities doesn't already exist,
+                and a new one must be created.
+
+        Returns:
+            A Node instance.
         '''
 
         result = self.get_nodes(level, entities)
@@ -189,15 +228,4 @@ class NodeIndex(Node):
                                  )
             return result[0]
 
-        # Create Node
-        if level == 'run':
-            node = RunNode(entities, *args, **kwargs)
-        else:
-            node = Node(level, entities)
-
-        entities = dict(entities, node_index=len(self.nodes), level=level)
-        self.nodes.append(node)
-        node_row = pd.Series(entities)
-        self.index = self.index.append(node_row, ignore_index=True)
-
-        return node
+        return self.create_node(level, entities, *args, **kwargs)
