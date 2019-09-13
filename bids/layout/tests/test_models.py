@@ -191,8 +191,11 @@ def test_bidsdatafile_enforces_dtype(layout_synthetic):
     bf = layout_synthetic.get(suffix='participants', extension='tsv')[0]
     df = bf.get_df(enforce_dtypes=False)
     assert df.loc[:, 'subject_id'].dtype == int
+    assert df.loc[:, 'subject_id'][0] == 1
     df = bf.get_df(enforce_dtypes=True)
     assert df.loc[:, 'subject_id'].dtype == 'O'
+    assert df.loc[:, 'subject_id'][0] == '001'
+    assert df.loc[:, 'subject_id'][1] == '2'
 
 
 def test_bidsimagefile_get_image():

@@ -132,7 +132,6 @@ class BIDSFile(Base):
         self.filename = os.path.basename(self.path)
         self.dirname = os.path.dirname(self.path)
         self.is_dir = not self.filename
-        self._init_on_load()
 
     def __getattr__(self, attr):
         # Ensures backwards compatibility with old File_ namedtuple, which is
@@ -154,10 +153,6 @@ class BIDSFile(Base):
 
     def __fspath__(self):
         return self.path
-
-    @reconstructor
-    def _init_on_load(self):
-        self._data = None
 
     def get_associations(self, kind=None, include_parents=False):
         """ Get associated files, optionally limiting by association kind.
@@ -304,11 +299,22 @@ class BIDSDataFile(BIDSFile):
         import pandas as pd
         import numpy as np
 
-        # TODO: memoize method instead of just caching the raw data
-        if self._data is None:
-            self._data = pd.read_csv(self.path, sep='\t', na_values='n/a')
+        if enforce_dtypes:
+            dtype = {
+                'subject_id': str,
+                'session_id': str,
+                'participant_id': str
+            }
+        else:
+            dtype = None
 
-        data = self._data.copy()
+        # TODO: memoize this for efficiency. (Note: caching is insufficient,
+        # because the dtype enforcement will break if we ignore the value of
+        # enforce_dtypes).
+        self.data = pd.read_csv(self.path, sep='\t', na_values='n/a',
+                                    dtype=dtype)
+
+        data = self.data.copy()
 
         if self.entities['extension'] == 'tsv.gz':
             md = self.get_metadata()
@@ -320,11 +326,6 @@ class BIDSDataFile(BIDSFile):
                 if adjust_onset:
                     onsets += md['StartTime']
                 data.insert(0, 'onset', onsets)
-
-        if enforce_dtypes:
-            string_cols = {'subject_id', 'session_id', 'participant_id'}
-            for col in string_cols & set(data.columns):
-                data.loc[:, col] = data.loc[:, col].astype(str)
 
         return data
 
