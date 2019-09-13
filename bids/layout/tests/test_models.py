@@ -187,6 +187,14 @@ def test_bidsfile_get_df_from_tsv_gz(layout_synthetic):
     assert np.allclose(df3.iloc[:,0], df1.iloc[:, 0] + 22.8)
 
 
+def test_bidsdatafile_enforces_dtype(layout_synthetic):
+    bf = layout_synthetic.get(suffix='participants', extension='tsv')[0]
+    df = bf.get_df(enforce_dtypes=False)
+    assert df.loc[:, 'subject_id'].dtype == int
+    df = bf.get_df(enforce_dtypes=True)
+    assert df.loc[:, 'subject_id'].dtype == 'O'
+
+
 def test_bidsimagefile_get_image():
     path = "synthetic/sub-01/ses-01/func/sub-01_ses-01_task-nback_run-01_bold.nii.gz"
     path = path.split('/')

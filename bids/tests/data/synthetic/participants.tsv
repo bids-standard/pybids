@@ -1,6 +1,6 @@
-participant_id	age	sex
-sub-01	34	F
-sub-02	38	M
-sub-03	22	M
-sub-04	21	F
-sub-05	42	M
+participant_id	age	sex	subject_id
+sub-01	34	F	1
+sub-02	38	M	2
+sub-03	22	M	3
+sub-04	21	F	4
+sub-05	42	M	5
