@@ -1244,7 +1244,7 @@ class BIDSLayout(object):
     def write_contents_to_file(self, entities, path_patterns=None,
                                contents=None, link_to=None,
                                content_mode='text', conflicts='fail',
-                               strict=False):
+                               strict=False, validate=True):
         """Write arbitrary data to a file defined by the passed entities and
         path patterns.
 
@@ -1268,8 +1268,12 @@ class BIDSLayout(object):
                     'append': adds  a suffix to each file copy, starting with 1
             strict (bool): If True, all entities must be matched inside a
                 pattern in order to be a valid match. If False, extra entities
+            validate (bool): If True, built path must pass BIDS validator. If
+                False, no validation is attempted, and an invalid path may be
+                returned (e.g., if an entity value contains a hyphen).
         """
-        path = self.build_path(entities, path_patterns, strict)
+        path = self.build_path(entities, path_patterns, strict,
+                               validate=validate)
 
         if path is None:
             raise ValueError("Cannot construct any valid filename for "

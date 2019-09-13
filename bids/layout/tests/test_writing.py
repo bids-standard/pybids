@@ -108,14 +108,14 @@ class TestWritableFile:
         assert build_path(writable_file.entities, pats) == target
 
         # Pattern with default value
-        pats = ['sess-{session|A}/r-{run}.nii.gz']
-        assert build_path({'run': 3}, pats) == 'sess-A/r-3.nii.gz'
+        pats = ['ses-{session|A}/r-{run}.nii.gz']
+        assert build_path({'run': 3}, pats) == 'ses-A/r-3.nii.gz'
 
         # Pattern with both valid and default values
-        pats = ['sess-{session<A|B|C>|D}/r-{run}.nii.gz']
-        assert build_path({'session': 1, 'run': 3}, pats) == 'sess-D/r-3.nii.gz'
-        pats = ['sess-{session<A|B|C>|D}/r-{run}.nii.gz']
-        assert build_path({'session': 'B', 'run': 3}, pats) == 'sess-B/r-3.nii.gz'
+        pats = ['ses-{session<A|B|C>|D}/r-{run}.nii.gz']
+        assert build_path({'session': 1, 'run': 3}, pats) == 'ses-D/r-3.nii.gz'
+        pats = ['ses-{session<A|B|C>|D}/r-{run}.nii.gz']
+        assert build_path({'session': 'B', 'run': 3}, pats) == 'ses-B/r-3.nii.gz'
 
     def test_strict_build_path(self):
 
@@ -181,20 +181,20 @@ class TestWritableLayout:
 
         tmpdir = str(tmp_bids)
         pat = join(str(tmpdir), 'sub-{subject<02>}'
-                                '/sess-{session}'
+                                '/ses-{session}'
                                 '/r-{run}'
                                 '/suffix-{suffix}'
                                 '/acq-{acquisition}'
                                 '/task-{task}.nii.gz')
         layout.copy_files(path_patterns=pat)
         example_file = join(str(tmpdir), 'sub-02'
-                                         '/sess-2'
+                                         '/ses-2'
                                          '/r-1'
                                          '/suffix-bold'
                                          '/acq-fullbrain'
                                          '/task-rest.nii.gz')
         example_file2 = join(str(tmpdir), 'sub-01'
-                                          '/sess-2'
+                                          '/ses-2'
                                           '/r-1'
                                           '/suffix-bold'
                                           '/acq-fullbrain'
@@ -204,12 +204,12 @@ class TestWritableLayout:
         assert not exists(example_file2)
 
         pat = join(str(tmpdir), 'sub-{subject<01>}'
-                                '/sess-{session}'
+                                '/ses-{session}'
                                 '/r-{run}'
                                 '/suffix-{suffix}'
                                 '/task-{task}.nii.gz')
         example_file = join(str(tmpdir), 'sub-01'
-                                         '/sess-2'
+                                         '/ses-2'
                                          '/r-1'
                                          '/suffix-bold'
                                          '/task-rest.nii.gz')
@@ -227,10 +227,10 @@ class TestWritableLayout:
     def test_write_contents_to_file(self, tmp_bids, layout):
         contents = 'test'
         entities = {'subject': 'Bob', 'session': '01'}
-        pat = join('sub-{subject}/sess-{session}/desc.txt')
+        pat = join('sub-{subject}/ses-{session}/desc.txt')
         layout.write_contents_to_file(entities, path_patterns=pat,
-                                      contents=contents)
-        target = join(str(tmp_bids), 'bids', 'sub-Bob/sess-01/desc.txt')
+                                      contents=contents, validate=False)
+        target = join(str(tmp_bids), 'bids', 'sub-Bob/ses-01/desc.txt')
         assert exists(target)
         with open(target) as f:
             written = f.read()
@@ -253,13 +253,13 @@ class TestWritableLayout:
     def test_build_file_from_layout(self, tmpdir, layout):
         entities = {'subject': 'Bob', 'session': '01', 'run': '1'}
         pat = join(str(tmpdir), 'sub-{subject}'
-                   '/sess-{session}'
+                   '/ses-{session}'
                    '/r-{run}.nii.gz')
-        path = layout.build_path(entities, path_patterns=pat)
-        assert path == join(str(tmpdir), 'sub-Bob/sess-01/r-1.nii.gz')
+        path = layout.build_path(entities, path_patterns=pat, validate=False)
+        assert path == join(str(tmpdir), 'sub-Bob/ses-01/r-1.nii.gz')
 
         data_dir = join(dirname(__file__), 'data', '7t_trt')
         filename = 'sub-04_ses-1_task-rest_acq-fullbrain_run-1_physio.tsv.gz'
         file = join('sub-04', 'ses-1', 'func', filename)
-        path = layout.build_path(file, path_patterns=pat)
-        assert path.endswith('sub-04/sess-1/r-1.nii.gz')
+        path = layout.build_path(file, path_patterns=pat, validate=False)
+        assert path.endswith('sub-04/ses-1/r-1.nii.gz')
