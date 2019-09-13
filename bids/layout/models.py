@@ -284,7 +284,8 @@ class BIDSDataFile(BIDSFile):
         'polymorphic_identity': 'data_file'
     }
 
-    def get_df(self, include_timing=True, adjust_onset=False):
+    def get_df(self, include_timing=True, adjust_onset=False,
+               enforce_dtypes=True):
         """ Return the contents of a tsv file as a pandas DataFrame.
 
         Args:
@@ -294,6 +295,9 @@ class BIDSDataFile(BIDSFile):
                 timeseries file is shifted to reflect the "StartTime" value in
                 the JSON sidecar. If False, the first sample starts at 0 secs.
                 Ignored if include_timing=False.
+            enforce_dtypes (bool): If True, enforces the data types defined in
+                the BIDS spec on core columns (e.g., subject_id and session_id
+                must be represented as strings).
 
         Returns: A pandas DataFrame.
         """
@@ -305,9 +309,9 @@ class BIDSDataFile(BIDSFile):
             self._data = pd.read_csv(self.path, sep='\t', na_values='n/a')
 
         data = self._data.copy()
-        md = self.get_metadata()
 
         if self.entities['extension'] == 'tsv.gz':
+            md = self.get_metadata()
             # We could potentially include some validation here, but that seems
             # like a job for the BIDS Validator.
             data.columns = md['Columns']
@@ -316,6 +320,11 @@ class BIDSDataFile(BIDSFile):
                 if adjust_onset:
                     onsets += md['StartTime']
                 data.insert(0, 'onset', onsets)
+
+        if enforce_dtypes:
+            string_cols = {'subject_id', 'session_id', 'participant_id'}
+            for col in string_cols & set(data.columns):
+                data.loc[:, col] = data.loc[:, col].astype(str)
 
         return data
 
