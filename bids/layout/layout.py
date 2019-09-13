@@ -132,7 +132,9 @@ class BIDSLayout(object):
             absolute path, or be relative to the BIDS project root. If an
             SRE_Pattern is passed, the contained regular expression will be
             matched against the full (absolute) path of all files and
-            directories.
+            directories. By default, indexing ignores all files in 'code/',
+            'stimuli/', 'sourcedata/', 'models/', and any hidden files/dirs
+            beginning with '.' at root level.
         force_index (str, SRE_Pattern, list): Path(s) to forcibly index in the
             BIDSLayout, even if they would otherwise fail validation. See the
             documentation for the ignore argument for input format details.
@@ -161,8 +163,8 @@ class BIDSLayout(object):
             indexing will be faster).
     """
 
-    _default_ignore = {"code", "stimuli", "sourcedata", "models",
-                       "derivatives", re.compile(r'^\.')}
+    _default_ignore = ["code", "stimuli", "sourcedata", "models",
+                       re.compile(r'^\.')]
 
     def __init__(self, root, validate=True, absolute_paths=True,
                  derivatives=False, config=None, sources=None, ignore=None,
@@ -183,6 +185,9 @@ class BIDSLayout(object):
 
         # Do basic BIDS validation on root directory
         self._validate_root()
+
+        if ignore is None:
+            ignore = self._default_ignore
 
         # Instantiate after root validation to ensure os.path.join works
         self.ignore = [os.path.abspath(os.path.join(self.root, patt))
