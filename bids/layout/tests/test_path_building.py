@@ -15,3 +15,10 @@ def test_bold_construction(layout):
     assert layout.build_path(ents) == "sub-01/func/sub-01_task-rest_run-1_bold.nii.gz"
     ents['acquisition'] = 'random'
     assert layout.build_path(ents) == "sub-01/func/sub-01_task-rest_acq-random_run-1_bold.nii.gz"
+
+
+def test_invalid_file_construction(layout):
+    # no hyphens allowed!
+    ents = dict(subject='01', run=1, task='resting-state', suffix='bold')
+    with pytest.raises(ValueError):
+        layout.build_path(ents)

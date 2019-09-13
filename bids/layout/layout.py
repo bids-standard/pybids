@@ -12,6 +12,7 @@ import sqlite3
 
 import sqlalchemy as sa
 from sqlalchemy.orm import joinedload
+from bids_validator import BIDSValidator
 
 from ..utils import listify, natural_sort, make_bidsfile
 from ..external import inflect, six
@@ -1193,7 +1194,15 @@ class BIDSLayout(object):
                         path_patterns.extend(c.default_path_patterns)
                     seen_configs.add(c)
 
-        return build_path(source, path_patterns, strict)
+        built = build_path(source, path_patterns, strict)
+        to_check = os.path.join(os.path.sep, built)
+
+        if BIDSValidator().is_bids(to_check):
+            return built
+
+        raise ValueError("Built path {} is not a valid BIDS filename. Please "
+                         "make sure all provided entity values are "
+                         "spec-compliant.".format(built))
 
     def copy_files(self, files=None, path_patterns=None, symbolic_links=True,
                    root=None, conflicts='fail', **kwargs):
