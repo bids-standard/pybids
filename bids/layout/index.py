@@ -207,10 +207,10 @@ class BIDSLayoutIndexer(object):
                     with open(bf.path, 'r') as handle:
                         try:
                             payload = json.load(handle)
-                        except Exception as e:
+                        except json.JSONDecodeError as e:
                             msg = ("Error occurred while trying to decode JSON"
                                    " from file '{}'.".format(bf.path))
-                            raise Exception(msg) from e
+                            raise IOError(msg) from e
                 else:
                     payload = None
 
