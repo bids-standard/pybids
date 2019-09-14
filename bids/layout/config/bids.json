@@ -80,16 +80,23 @@
     ],
 
     "default_path_patterns": [
-        "sub-{subject}[/ses-{session}]/anat/sub-{subject}[_ses-{session}][_acq-{acquisition}][_ce-{ceagent}][_rec-{reconstruction}]_{suffix<T1w|T2w|T1rho|T1map|T2map|T2star|FLAIR|FLASH|PDmap|PD|PDT2|inplaneT[12]|angio>}.{extension<nii|nii.gz>|nii.gz}",
-        "sub-{subject}[/ses-{session}]/anat/sub-{subject}[_ses-{session}][_acq-{acquisition}][_ce-{ceagent}][_rec-{reconstruction}][_mod-{modality}]_{suffix<defacemask>}.{extension<nii|nii.gz>|nii.gz}",
-        "sub-{subject}[/ses-{session}]/func/sub-{subject}[_ses-{session}]_task-{task}[_acq-{acquisition}][_ce-{ceagent}][_dir-{direction}][_rec-{reconstruction}][_run-{run}][_echo-{echo}]_{suffix<bold|cbv|phase|sbref>}.{extension<nii|nii.gz>|nii.gz}",
+        "sub-{subject}[/ses-{session}]/anat/sub-{subject}[_ses-{session}][_acq-{acquisition}][_ce-{ceagent}][_rec-{reconstruction}]_{suffix<T1w|T2w|T1rho|T1map|T2map|T2star|FLAIR|FLASH|PDmap|PD|PDT2|inplaneT[12]|angio>}.{extension<nii|nii.gz|json>|nii.gz}",
+        "sub-{subject}[/ses-{session}]/anat/sub-{subject}[_ses-{session}][_acq-{acquisition}][_ce-{ceagent}][_rec-{reconstruction}][_mod-{modality}]_{suffix<defacemask>}.{extension<nii|nii.gz|json>|nii.gz}",
+        "sub-{subject}[/ses-{session}]/func/sub-{subject}[_ses-{session}]_task-{task}[_acq-{acquisition}][_ce-{ceagent}][_dir-{direction}][_rec-{reconstruction}][_run-{run}][_echo-{echo}]_{suffix<bold|cbv|phase|sbref>}.{extension<nii|nii.gz|json>|nii.gz}",
         "sub-{subject}[/ses-{session}]/dwi/sub-{subject}[_ses-{session}][_acq-{acquisition}]_{suffix<dwi>}.{extension<bval|bvec|json|nii.gz|nii>|nii.gz}",
-        "sub-{subject}[/ses-{session}]/fmap/sub-{subject}[_ses-{session}][_acq-{acquisition}][_dir-{direction}][_run-{run}]_{fmap<phasediff|magnitude[1-2]|phase[1-2]|fieldmap|epi>}.{extension<nii|nii.gz>|nii.gz}",
-        "sub-{subject}[/ses-{session}]/[{datatype<func|meg>|func}/]sub-{subject}[_ses-{session}]_task-{task}[_acq-{acquisition}][_rec-{reconstruction}][_run-{run}][_echo-{echo}][_recording-{recording}]_{suffix<events>}.{extension<tsv>|tsv}",
-        "sub-{subject}[/ses-{session}]/func/sub-{subject}[_ses-{session}]_task-{task}[_acq-{acquisition}][_rec-{reconstruction}][_run-{run}][_echo-{echo}][_recording-{recording}]_{suffix<physio|stim>}.{extension<tsv.gz>|tsv.gz}",
+        "sub-{subject}[/ses-{session}]/fmap/sub-{subject}[_ses-{session}][_acq-{acquisition}][_dir-{direction}][_run-{run}]_{fmap<phasediff|magnitude[1-2]|phase[1-2]|fieldmap|epi>}.{extension<nii|nii.gz|json>|nii.gz}",
+        "sub-{subject}[/ses-{session}]/[{datatype<func|meg>|func}/]sub-{subject}[_ses-{session}]_task-{task}[_acq-{acquisition}][_rec-{reconstruction}][_run-{run}][_echo-{echo}][_recording-{recording}]_{suffix<events>}.{extension<tsv|json>|tsv}",
+        "sub-{subject}[/ses-{session}]/func/sub-{subject}[_ses-{session}]_task-{task}[_acq-{acquisition}][_rec-{reconstruction}][_run-{run}][_echo-{echo}][_recording-{recording}]_{suffix<physio|stim>}.{extension<tsv.gz|json>|tsv.gz}",
         "sub-{subject}[/ses-{session}]/meg/sub-{subject}[_ses-{session}]_task-{task}[_acq-{acquisition}][_run-{run}][_proc-{proc}]_meg.{extension}",
-        "sub-{subject}[/ses-{session}]/meg/sub-{subject}[_ses-{session}]_task-{task}[_acq-{acquisition}][_run-{run}][_proc-{proc}]_{suffix<channels>}.{extension<tsv>|tsv}",
-        "sub-{subject}[/ses-{session}]/meg/sub-{subject}[_ses-{session}]_task-{task}[_acq-{acquisition}]_{suffix<coordsystem>}.json",
-        "sub-{subject}[/ses-{session}]/meg/sub-{subject}[_ses-{session}]_task-{task}[_acq-{acquisition}]_{suffix<photo>}.jpg"
+        "sub-{subject}[/ses-{session}]/meg/sub-{subject}[_ses-{session}]_task-{task}[_acq-{acquisition}][_run-{run}][_proc-{proc}]_{suffix<channels>}.{extension<tsv|json>|tsv}",
+        "sub-{subject}[/ses-{session}]/meg/sub-{subject}[_ses-{session}]_task-{task}[_acq-{acquisition}]_{suffix<coordsystem>}.{extension<json>|json}",
+        "sub-{subject}[/ses-{session}]/meg/sub-{subject}[_ses-{session}]_task-{task}[_acq-{acquisition}]_{suffix<photo>}.{extension<jpg>|jpg}",
+        "[acq-{acquisition}_][ce-{ceagent}_][rec-{reconstruction}_]{suffix<T1w|T2w|T1rho|T1map|T2map|T2star|FLAIR|FLASH|PDmap|PD|PDT2|inplaneT[12]|angio>}.{extension<json>|json}",
+        "[acq-{acquisition}_][ce-{ceagent}_][rec-{reconstruction}_][mod-{modality}_]{suffix<defacemask>}.{extension<json>|json}",
+        "task-{task}[_acq-{acquisition}][_ce-{ceagent}][_dir-{direction}][_rec-{reconstruction}][_run-{run}][_echo-{echo}]_{suffix<bold|cbv|phase|sbref>}.{extension<json>|json}",
+        "[acq-{acquisition}_]{suffix<dwi>}.{extension<json>|json}",
+        "[acq-{acquisition}_][dir-{direction}_][run-{run}_]{fmap<phasediff|magnitude[1-2]|phase[1-2]|fieldmap|epi>}.{extension<json>|json}",
+        "task-{task}[_acq-{acquisition}][_rec-{reconstruction}][_run-{run}][_echo-{echo}][_recording-{recording}]_{suffix<events>}.{extension<json>|json}",
+        "task-{task}[_acq-{acquisition}][_rec-{reconstruction}][_run-{run}][_echo-{echo}][_recording-{recording}]_{suffix<physio|stim>}.{extension<json>}"
     ]
 }
