@@ -365,7 +365,7 @@ def _load_tsv_variables(layout, suffix, dataset=None, columns=None,
 
     for f in files:
 
-        _data = pd.read_csv(f.path, sep='\t')
+        _data = f.get_df(include_timing=False)
 
         # Entities can be defined either within the first column of the .tsv
         # file (for entities that vary by row), or from the full file path
