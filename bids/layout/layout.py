@@ -163,8 +163,8 @@ class BIDSLayout(object):
             indexing will be faster).
     """
 
-    _default_ignore = ["code", "stimuli", "sourcedata", "models",
-                       re.compile(r'^\.')]
+    _default_ignore = ("code", "stimuli", "sourcedata", "models",
+                       re.compile(r'^\.'))
 
     def __init__(self, root, validate=True, absolute_paths=True,
                  derivatives=False, config=None, sources=None, ignore=None,
