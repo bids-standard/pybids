@@ -312,7 +312,7 @@ class BIDSDataFile(BIDSFile):
         # because the dtype enforcement will break if we ignore the value of
         # enforce_dtypes).
         self.data = pd.read_csv(self.path, sep='\t', na_values='n/a',
-                                    dtype=dtype)
+                                dtype=dtype)
 
         data = self.data.copy()
 
