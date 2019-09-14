@@ -256,7 +256,7 @@ def test_ignore_files(layout_ds005):
     assert target1 not in layout1.files
     assert target2 not in layout1.files
     # now the models/ dir should show up, because passing ignore explicitly
-    # overrides the default—but 'model/extras/' should still be ignored because
+    # overrides the default - but 'model/extras/' should still be ignored because
     # of the regex.
     ignore = [re.compile('xtra'), 'dummy']
     layout2 = BIDSLayout(data_dir, validate=False, ignore=ignore)
