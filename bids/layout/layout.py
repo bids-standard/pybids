@@ -12,6 +12,7 @@ import sqlite3
 
 import sqlalchemy as sa
 from sqlalchemy.orm import joinedload
+from bids_validator import BIDSValidator
 
 from ..utils import listify, natural_sort, make_bidsfile
 from ..external import inflect, six
@@ -1136,7 +1137,7 @@ class BIDSLayout(object):
         return all_trs.pop()
 
     def build_path(self, source, path_patterns=None, strict=False,
-                   scope='all'):
+                   scope='all', validate=True):
         """Construct a target filename for a file or dictionary of entities.
 
         Args:
@@ -1169,6 +1170,9 @@ class BIDSLayout(object):
                 two or more values are provided, the order determines the
                 precedence of path patterns (i.e., earlier layouts will have
                 higher precedence).
+            validate (bool): If True, built path must pass BIDS validator. If
+                False, no validation is attempted, and an invalid path may be
+                returned (e.g., if an entity value contains a hyphen).
         """
         # 'is_file' is a crude check for Path objects
         if isinstance(source, six.string_types) or hasattr(source, 'is_file'):
@@ -1193,7 +1197,15 @@ class BIDSLayout(object):
                         path_patterns.extend(c.default_path_patterns)
                     seen_configs.add(c)
 
-        return build_path(source, path_patterns, strict)
+        built = build_path(source, path_patterns, strict)
+        to_check = os.path.join(os.path.sep, built)
+
+        if not validate or BIDSValidator().is_bids(to_check):
+            return built
+
+        raise ValueError("Built path {} is not a valid BIDS filename. Please "
+                         "make sure all provided entity values are "
+                         "spec-compliant.".format(built))
 
     def copy_files(self, files=None, path_patterns=None, symbolic_links=True,
                    root=None, conflicts='fail', **kwargs):
@@ -1232,7 +1244,7 @@ class BIDSLayout(object):
     def write_contents_to_file(self, entities, path_patterns=None,
                                contents=None, link_to=None,
                                content_mode='text', conflicts='fail',
-                               strict=False):
+                               strict=False, validate=True):
         """Write arbitrary data to a file defined by the passed entities and
         path patterns.
 
@@ -1256,8 +1268,12 @@ class BIDSLayout(object):
                     'append': adds  a suffix to each file copy, starting with 1
             strict (bool): If True, all entities must be matched inside a
                 pattern in order to be a valid match. If False, extra entities
+            validate (bool): If True, built path must pass BIDS validator. If
+                False, no validation is attempted, and an invalid path may be
+                returned (e.g., if an entity value contains a hyphen).
         """
-        path = self.build_path(entities, path_patterns, strict)
+        path = self.build_path(entities, path_patterns, strict,
+                               validate=validate)
 
         if path is None:
             raise ValueError("Cannot construct any valid filename for "
