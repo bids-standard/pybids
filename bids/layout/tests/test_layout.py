@@ -247,6 +247,23 @@ def test_get_return_sorted(layout_7t_trt):
     assert files == paths
 
 
+def test_ignore_files(layout_ds005):
+    data_dir = join(get_test_data_path(), 'ds005')
+    target1 = join(data_dir, 'models', 'ds-005_type-test_model.json')
+    target2 = join(data_dir, 'models', 'extras', 'ds-005_type-test_model.json')
+    layout1 = BIDSLayout(data_dir, validate=False)
+    assert target1 not in layout_ds005.files
+    assert target1 not in layout1.files
+    assert target2 not in layout1.files
+    # now the models/ dir should show up, because passing ignore explicitly
+    # overrides the default - but 'model/extras/' should still be ignored because
+    # of the regex.
+    ignore = [re.compile('xtra'), 'dummy']
+    layout2 = BIDSLayout(data_dir, validate=False, ignore=ignore)
+    assert target1 in layout2.files
+    assert target2 not in layout2.files
+
+
 def test_force_index(layout_ds005):
     data_dir = join(get_test_data_path(), 'ds005')
     target= join(data_dir, 'models', 'ds-005_type-test_model.json')

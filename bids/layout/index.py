@@ -205,7 +205,12 @@ class BIDSLayoutIndexer(object):
 
                 if ext == 'json':
                     with open(bf.path, 'r') as handle:
-                        payload = json.load(handle)
+                        try:
+                            payload = json.load(handle)
+                        except json.JSONDecodeError as e:
+                            msg = ("Error occurred while trying to decode JSON"
+                                   " from file '{}'.".format(bf.path))
+                            six.raise_from(IOError(msg), e)
                 else:
                     payload = None
 
