@@ -22,16 +22,22 @@ def auto_model(layout, scan_length=None, one_vs_rest=False):
     at the run level and then uses t-tests at each other level present to
     aggregate these results up.
 
-    Args:
-        layout (BIDSLayout) A BIDSLayout instance
-        scan_length (Int) Scan length for loading event varibles in cases
-             where the scan length can not be read from the nifti.
-             Primarily for testing.
-        one_vs_rest (Bool) Set to True if you would like to autogenerate
-             contrasts of each trial type against everyother trialtype.
+    Parameters
+    ----------
+    layout : :obj:`bids.layout.BIDSLayout`
+        A BIDSLayout instance
+    scan_length : int
+        Scan length for loading event varibles in cases
+        where the scan length can not be read from the nifti.
+        Primarily for testing.
+    one_vs_rest : bool
+        Set to True if you would like to autogenerate
+        contrasts of each trial type against everyother trialtype.
 
-    Returns:
-        models (list) list of model dictionaries for each task
+    Returns
+    -------
+    list
+        list of model dictionaries for each task
     """
 
     base_name = split(layout.root)[-1]
