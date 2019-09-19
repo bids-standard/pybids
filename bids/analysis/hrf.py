@@ -13,35 +13,26 @@ import numpy as np
 def _gamma_difference_hrf(tr, oversampling=50, time_length=32., onset=0.,
                           delay=6, undershoot=16., dispersion=1.,
                           u_dispersion=1., ratio=0.167):
-    """ Compute an hrf as the difference of two gamma functions
+    """Compute an hrf as the difference of two gamma functions
 
     Parameters
     ----------
-
     tr : float
         scan repeat time, in seconds
-
     oversampling : int, optional (default=16)
         temporal oversampling factor
-
     time_length : float, optional (default=32)
         hrf kernel length, in seconds
-
     onset: float
         onset time of the hrf
-
     delay: float, optional
         delay parameter of the hrf (in s.)
-
     undershoot: float, optional
         undershoot parameter of the hrf (in s.)
-
     dispersion : float, optional
         dispersion parameter for the first gamma function
-
     u_dispersion : float, optional
         dispersion parameter for the second gamma function
-
     ratio : float, optional
         ratio of the two gamma components
 
@@ -62,19 +53,16 @@ def _gamma_difference_hrf(tr, oversampling=50, time_length=32., onset=0.,
 
 
 def spm_hrf(tr, oversampling=50, time_length=32., onset=0.):
-    """ Implementation of the SPM hrf model
+    """Implementation of the SPM hrf model
 
     Parameters
     ----------
     tr : float
         scan repeat time, in seconds
-
     oversampling : int, optional
         temporal oversampling factor
-
     time_length : float, optional
         hrf kernel length, in seconds
-
     onset : float, optional
         hrf onset time, in seconds
 
@@ -87,19 +75,16 @@ def spm_hrf(tr, oversampling=50, time_length=32., onset=0.):
 
 
 def glover_hrf(tr, oversampling=50, time_length=32., onset=0.):
-    """ Implementation of the Glover hrf model
+    """Implementation of the Glover hrf model
 
     Parameters
     ----------
     tr : float
         scan repeat time, in seconds
-
     oversampling : int, optional
         temporal oversampling factor
-
     time_length : float, optional
         hrf kernel length, in seconds
-
     onset : float, optional
         onset of the response
 
@@ -120,13 +105,10 @@ def spm_time_derivative(tr, oversampling=50, time_length=32., onset=0.):
     ----------
     tr: float
         scan repeat time, in seconds
-
     oversampling: int, optional
         temporal oversampling factor, optional
-
     time_length: float, optional
         hrf kernel length, in seconds
-
     onset: float, optional
         onset of the response in seconds
 
@@ -173,13 +155,10 @@ def spm_dispersion_derivative(tr, oversampling=50, time_length=32., onset=0.):
     ----------
     tr: float
         scan repeat time, in seconds
-
     oversampling: int, optional
         temporal oversampling factor in seconds
-
     time_length: float, optional
         hrf kernel length, in seconds
-
     onset : float, optional
         onset of the response in seconds
 
@@ -204,13 +183,10 @@ def glover_dispersion_derivative(tr, oversampling=50, time_length=32.,
     ----------
     tr: float
         scan repeat time, in seconds
-
     oversampling: int, optional
         temporal oversampling factor in seconds
-
     time_length: float, optional
         hrf kernel length, in seconds
-
     onset : float, optional
         onset of the response in seconds
 
@@ -239,13 +215,10 @@ def _sample_condition(exp_condition, frame_times, oversampling=50,
     exp_condition : arraylike of shape (3, n_events)
         yields description of events for this condition as a
         (onsets, durations, amplitudes) triplet
-
     frame_times : array of shape(n_scans)
         sample time points
-
     over_sampling : int, optional
         factor for oversampling event regressor
-
     min_onset : float, optional
         minimal onset relative to frame_times[0] (in seconds)
         events that start before frame_times[0] + min_onset are not considered
@@ -296,16 +269,14 @@ def _sample_condition(exp_condition, frame_times, oversampling=50,
 
 
 def _resample_regressor(hr_regressor, hr_frame_times, frame_times):
-    """ this function sub-samples the regressors at frame times
+    """this function sub-samples the regressors at frame times
 
     Parameters
     ----------
     hr_regressor : array of shape(n_samples),
         the regressor time course sampled at high temporal resolution
-
     hr_frame_times : array of shape(n_samples),
         the corresponding time stamps
-
     frame_times: array of shape(n_scans),
          the desired time stamps
 
@@ -320,16 +291,16 @@ def _resample_regressor(hr_regressor, hr_frame_times, frame_times):
 
 
 def _orthogonalize(X):
-    """ Orthogonalize every column of design `X` w.r.t preceding columns
+    """Orthogonalize every column of design `X` w.r.t preceding columns
 
     Parameters
     ----------
-    X: array of shape(n, p)
+    X : array of shape(n, p)
        the data to be orthogonalized
 
     Returns
     -------
-    X: array of shape(n, p)
+    X : array of shape(n, p)
        the data after orthogonalization
 
     Notes
@@ -346,16 +317,14 @@ def _orthogonalize(X):
 
 
 def _regressor_names(con_name, hrf_model, fir_delays=None):
-    """ Return a list of regressor names, computed from con-name and hrf type
+    """Return a list of regressor names, computed from con-name and hrf type
 
     Parameters
     ----------
     con_name: string
         identifier of the condition
-
     hrf_model: string or None,
        hrf model chosen
-
     fir_delays: 1D array_like, optional,
         Delays used in case of an FIR model
 
@@ -376,20 +345,17 @@ def _regressor_names(con_name, hrf_model, fir_delays=None):
 
 
 def _hrf_kernel(hrf_model, tr, oversampling=50, fir_delays=None):
-    """ Given the specification of the hemodynamic model and time parameters,
+    """Given the specification of the hemodynamic model and time parameters,
     return the list of matching kernels
 
     Parameters
     ----------
     hrf_model : string or None,
         identifier of the hrf model
-
     tr : float
         the repetition time in seconds
-
     oversampling : int, optional
         temporal oversampling factor to have a smooth hrf
-
     fir_delays : list of floats,
         list of delays for finite impulse response models
 
@@ -434,30 +400,24 @@ def _hrf_kernel(hrf_model, tr, oversampling=50, fir_delays=None):
 
 def compute_regressor(exp_condition, hrf_model, frame_times, con_id='cond',
                       oversampling=50, fir_delays=None, min_onset=-24):
-    """ Convolve regressors with hrf model (the main function of the module)
+    """Convolve regressors with hrf model (the main function of the module)
 
     Parameters
     ----------
     exp_condition : array-like of shape (3, n_events)
         yields description of events for this condition as a
         (onsets, durations, amplitudes) triplet
-
     hrf_model : {'spm', 'spm + derivative', 'spm + derivative + dispersion',
         'glover', 'glover + derivative', 'fir', None}
         Name of the hrf model to be used
-
     frame_times : array of shape (n_scans)
         the desired sampling times
-
     con_id : string
         optional identifier of the condition
-
     oversampling : int, optional
         oversampling factor to perform the convolution
-
     fir_delays : 1D-array-like, optional
         delays (in seconds) used in case of a finite impulse reponse model
-
     min_onset : float, optional
         minimal onset relative to frame_times[0] (in seconds)
         events that start before frame_times[0] + min_onset are not considered
@@ -466,7 +426,6 @@ def compute_regressor(exp_condition, hrf_model, frame_times, con_id='cond',
     -------
     computed_regressors: array of shape(n_scans, n_reg)
         computed regressors sampled at frame times
-
     reg_names: list of strings
         corresponding regressor names
 

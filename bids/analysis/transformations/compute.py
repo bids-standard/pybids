@@ -1,6 +1,6 @@
-'''
+"""
 Transformations that primarily involve numerical computation on variables.
-'''
+"""
 from __future__ import division
 import math
 import numpy as np
@@ -14,16 +14,24 @@ from bids.variables import SparseRunVariable,  DenseRunVariable
 class Convolve(Transformation):
     """Convolve the input variable with an HRF.
 
-    Args:
-        var (Variable): The variable to convolve.
-        model (str): The name of the HRF model to apply. Must be one of 'spm',
-            'glover', or 'fir'.
-        derivative (bool): Whether or not to include the temporal derivative.
-        dispersion (bool): Whether or not to include the dispersion derivative.
-        fir_delays (iterable): A list or iterable of delays to use if model is
-            'fir' (ignored otherwise). Spacing between delays must be fixed.
+    Parameters
+    ----------
+    var : Variable
+        The variable to convolve.
+    model : str
+        The name of the HRF model to apply. Must be one of 'spm',
+        'glover', or 'fir'.
+    derivative : bool
+        Whether or not to include the temporal derivative.
+    dispersion : bool
+        Whether or not to include the dispersion derivative.
+    fir_delays : iterable
+        A list or iterable of delays to use if model is
+        'fir' (ignored otherwise). Spacing between delays must be fixed.
 
-    Note: Uses the HRF convolution functions implemented in nistats.
+    Notes
+    -----
+    Uses the HRF convolution functions implemented in nistats.
     """
 
     _input_type = 'variable'
@@ -116,18 +124,22 @@ class Product(Transformation):
 
 
 class Scale(Transformation):
-    ''' Scale a variable.
+    """Scale a variable.
 
-    Args:
-        data (Series/DF): The variables to scale.
-        demean (bool): If True, demean each column.
-        rescale (bool): If True, divide variables by their standard deviation.
-        replace_na (str): Whether/when to replace missing values with 0. If
-            None, no replacement is performed. If 'before', missing values are
-            replaced with 0's before scaling. If 'after', missing values are
-            replaced with 0 after scaling.
-
-    '''
+    Parameters
+    ----------
+    data : :obj:`pandas.Series` or :obj:`pandas.DataFrame`
+        The variables to scale.
+    demean : bool
+        If True, demean each column.
+    rescale : bool
+        If True, divide variables by their standard deviation.
+    replace_na : str
+        Whether/when to replace missing values with 0. If
+        None, no replacement is performed. If 'before', missing values are
+        replaced with 0's before scaling. If 'after', missing values are
+        replaced with 0 after scaling.
+    """
 
     def _transform(self, data, demean=True, rescale=True, replace_na=None):
         if replace_na == 'before':
@@ -163,25 +175,30 @@ class Sum(Transformation):
 
 
 class Threshold(Transformation):
-    ''' Threshold and/or binarize a variable.
+    """Threshold and/or binarize a variable.
 
-    Args:
-        data (Series/DF): The pandas structure to threshold.
-        threshold (float): The value to binarize around (values above will
-            be assigned 1, values below will be assigned 0).
-        binarize (bool): If True, binarizes all non-zero values (i.e., every
-            non-zero value will be set to 1).
-        above (bool): Specifies which values to retain with respect to the
-            cut-off. If True, all value above the threshold will be kept; if
-            False, all values below the threshold will be kept. Defaults to
-            True.
-        signed (bool): Specifies whether to treat the threshold as signed
+    Parameters
+    ----------
+    data :obj:`pandas.Series` or :obj:`pandas.DataFrame`
+        The pandas structure to threshold.
+    threshold : float
+        The value to binarize around (values above will
+        be assigned 1, values below will be assigned 0).
+    binarize : bool
+        If True, binarizes all non-zero values (i.e., every
+        non-zero value will be set to 1).
+    above : bool
+        Specifies which values to retain with respect to the
+        cut-off. If True, all value above the threshold will be kept; if
+        False, all values below the threshold will be kept. Defaults to
+        True.
+    signed : bool
+        Specifies whether to treat the threshold as signed
         (default) or unsigned. For example, when passing above=True and
         threshold=3, if signed=True, all and only values above +3 would be
         retained. If signed=False, all absolute values > 3 would be retained
         (i.e.,values in  the range -3 < X < 3 would be set to 0).
-
-    '''
+    """
 
     _groupable = False
 
@@ -198,11 +215,13 @@ class Threshold(Transformation):
 
 
 class And(Transformation):
-    ''' Logical AND on two or more variables.
+    """Logical AND on two or more variables.
 
-    Args:
-        dfs (list of DFs): variables to enter into the conjunction.
-    '''
+    Parameters
+    ----------
+    dfs : list of :obj:`pandas.DataFrame`
+        variables to enter into the conjunction.
+    """
 
     _loopable = False
     _groupable = False
@@ -214,11 +233,13 @@ class And(Transformation):
 
 
 class Not(Transformation):
-    ''' Logical negation of a variable.
+    """Logical negation of a variable.
 
-    Args:
-        var (Series): Variable to negate. Must be convertible to bool.
-    '''
+    Parameters
+    ----------
+    var : :obj:`pandas.Series`
+        Variable to negate. Must be convertible to bool.
+    """
 
     _loopable = True
     _groupable = False
@@ -228,11 +249,13 @@ class Not(Transformation):
 
 
 class Or(Transformation):
-    ''' Logical OR (inclusive) on two or more variables.
+    """Logical OR (inclusive) on two or more variables.
 
-    Args:
-        dfs (list of DFs): variables to enter into the disjunction.
-    '''
+    Parameters
+    ----------
+    dfs : list of :obj:`pandas.DataFrame`
+        variables to enter into the disjunction.
+    """
 
     _loopable = False
     _groupable = False

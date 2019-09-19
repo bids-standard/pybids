@@ -17,7 +17,7 @@ def _make_passthrough_contrast(level, contrast_names):
 
 
 def auto_model(layout, scan_length=None, one_vs_rest=False):
-    '''Create a simple default model for each of the tasks in a BIDSLayout.
+    """Create a simple default model for each of the tasks in a BIDSLayout.
     Contrasts each trial type against all other trial types and trial types
     at the run level and then uses t-tests at each other level present to
     aggregate these results up.
@@ -32,7 +32,7 @@ def auto_model(layout, scan_length=None, one_vs_rest=False):
 
     Returns:
         models (list) list of model dictionaries for each task
-    '''
+    """
 
     base_name = split(layout.root)[-1]
     tasks = layout.entities['task'].unique()
