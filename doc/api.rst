@@ -12,6 +12,16 @@ API Reference
 
    bids.layout.BIDSLayout
    bids.layout.BIDSValidator
+   bids.layout.BIDSFile
+   bids.layout.BIDSImageFIle
+   bids.layout.BIDSDataFile
+   bids.layout.BIDSJSONFile
+
+   :template: module.rst
+
+   bids.layout.models
+   bids.layout.writing
+   bids.layout.index
 
 .. currentmodule:: bids
 
