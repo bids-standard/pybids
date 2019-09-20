@@ -123,6 +123,9 @@
       "orcid": "0000-0001-6755-0259"
     },
     {
+      "name": "Gorro\u00f1o, Jon Haitz Legarreta"
+    },
+    {
       "affiliation": "Berkeley Institute for Data Science; University of California at Berkeley",
       "name": "Holdgraf, Chris",
       "orcid": "0000-0002-2391-0678"
@@ -136,6 +139,11 @@
       "affiliation": "Universit\u00e9 catholique de Louvain",
       "name": "Gau, Remi",
       "orcid": "0000-0002-1535-9767"
+    },
+    {
+      "affiliation": "Holland Bloorview Kids Rehabilitation Hospital",
+      "name": "Tilley II, Steven",
+      "orcid": "0000-0003-4853-5082"
     },
     {
       "affiliation": "The University of Washington eScience Institute",
@@ -186,11 +194,6 @@
       "affiliation": "Stanford University",
       "name": "Blair, Ross",
       "orcid": "0000-0003-3007-1056"
-    },
-    {
-      "affiliation": "Holland Bloorview Kids Rehabilitation Hospital",
-      "name": "Tilley II, Steven",
-      "orcid": "0000-0003-4853-5082"
     }
   ],
   "keywords": [
