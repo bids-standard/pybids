@@ -9,6 +9,11 @@ from tempfile import TemporaryDirectory
 def decommify(name):
     return ' '.join(name.split(', ')[::-1])
 
+# Users who have asked not to be cited at this time
+# XXX We should add a shortlog since the most recent tag and explicitly note
+# that a blacklisted user has contributed again recently, and verify they still
+# do not want to be cited.
+blacklist = {'Cecile Madjar'}
 
 # List of repositories whose commits should be counted as contributions
 codependents = [('https://github.com/grabbles/grabbit.git', '0.2.6')]
@@ -75,6 +80,7 @@ if committers[0] != first_author:
 creators = [
     creator_map.get(committer, {'name': committer})
     for committer in committers
+    if committer not in blacklist
     ]
 
 zenodo['creators'] = creators
