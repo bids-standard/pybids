@@ -62,7 +62,7 @@ intersphinx_mapping = {
 needs_sphinx = '2.2.0'
 
 # Generate stubs
-autosummary_generate = True
+# autosummary_generate = False
 autodoc_default_flags = ['members', 'inherited-members']
 add_module_names = False
 

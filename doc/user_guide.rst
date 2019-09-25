@@ -1,8 +1,8 @@
 
 .. _user_guide:
 
-User guide: table of contents
-==============================
+User guide
+==========
 
 .. sidebar:: **Download for offline viewing**
 
@@ -14,6 +14,5 @@ User guide: table of contents
 
    introduction.rst
    layout/index.rst
-   variables/index.rst
    analysis/index.rst
    reports/index.rst
