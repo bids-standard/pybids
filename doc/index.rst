@@ -21,12 +21,11 @@ Contents
 
 Citing pybids
 =============
-To cite ``pybids``, please cite the original paper proposing BIDS:
+To credit PyBIDS in your work, please cite both the `JOSS paper <https://joss.theoj.org/papers/10.21105/joss.01294>`_ and the `Zenodo archive <https://zenodo.org/record/3363985>`_. The former provides a high level description of the package, and the latter points to a permanent record of all PyBIDS versions (we encourage you to cite the specific version you used). Example citations (for PyBIDS 0.9.3):
 
-  Gorgolewski, K. J., Auer, T., Calhoun, V. D., Craddock, R. C., Das, S.,
-  Duff, E. P., ... & Handwerker, D. A. (2016). The brain imaging data structure,
-  a format for organizing and describing outputs of neuroimaging experiments.
-  Scientific Data, 3, 160044. https://doi.org/10.1038/sdata.2016.44
+  Yarkoni et al., (2019). PyBIDS: Python tools for BIDS datasets. Journal of Open Source Software, 4(40), 1294, https://doi.org/10.21105/joss.01294
+
+  Yarkoni, Tal, Markiewicz, Christopher J., de la Vega, Alejandro, Gorgolewski, Krzysztof J., Halchenko, Yaroslav O., Salo, Taylor, … Blair, Ross. (2019, August 8). bids-standard/pybids: 0.9.3 (Version 0.9.3). Zenodo. http://doi.org/10.5281/zenodo.3363985
 
 Indices and tables
 ==================
@@ -34,3 +33,5 @@ Indices and tables
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
+
+.. _joss: https://nistats.github.io
