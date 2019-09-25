@@ -1,3 +1,5 @@
+""" Model classes used in BIDSLayouts. """
+
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.orm.collections import attribute_mapped_collection
@@ -353,7 +355,11 @@ class BIDSImageFile(BIDSFile):
 
 
 class BIDSJSONFile(BIDSFile):
+    """ Represents a single JSON metadata file in a BIDS dataset.
 
+    Derived from `BIDSFile` and provides additional functionality for reading
+    the contents of JSON files as either dicts or strings.
+    """
     __mapper_args__ = {
         'polymorphic_identity': 'json_file'
     }

@@ -1,3 +1,5 @@
+""" Utility functions. """
+
 import re
 import os
 
