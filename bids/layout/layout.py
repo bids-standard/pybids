@@ -1203,6 +1203,8 @@ class BIDSLayout(object):
                     seen_configs.add(c)
 
         built = build_path(source, path_patterns, strict)
+        if built is None:
+            raise ValueError(f"Unable to construct build path with source {source}")
         to_check = os.path.join(os.path.sep, built)
 
         if not validate or BIDSValidator().is_bids(to_check):
