@@ -1,5 +1,4 @@
-''' The config module contains package-level settings and tools for
-manipulating them. '''
+''' Utilities for manipulating package-level settings. '''
 
 import json
 from os.path import join, expanduser, exists
@@ -20,23 +19,48 @@ _default_settings = {
 
 
 def set_option(key, value):
+    """ Set a package-wide option.
+
+    Args:
+        key (str): The name of the option to set.
+        value (object): The new value of the option.
+    """
     if key not in _settings:
         raise ValueError("Invalid pybids setting: '%s'" % key)
     _settings[key] = value
 
 
 def set_options(**kwargs):
+    """ Set multiple package-wide options.
+
+    Args:
+        kwargs: Keyword arguments to pass onto set_option().
+    """
     for k, v in kwargs.items():
         set_option(k, v)
 
 
 def get_option(key):
+    """ Retrieve the current value of a package-wide option.
+    
+    Args:
+        key (str): The name of the option to retrieve.
+
+    """
     if key not in _settings:
         raise ValueError("Invalid pybids setting: '%s'" % key)
     return _settings[key]
 
 
 def from_file(filenames, error_on_missing=True):
+    """ Load package-wide settings from specified file(s).
+
+    Args:
+        filenames (str, list): Filename or list of filenames containing JSON
+            dictionary of settings.
+        error_on_missing (bool): If True, raises an error if a file doesn't
+            exist.
+    """
     if isinstance(filenames, string_types):
         filenames = [filenames]
     for f in filenames:
@@ -50,8 +74,9 @@ def from_file(filenames, error_on_missing=True):
 
 def reset_options(update_from_file=False):
     ''' Reset all options to the package defaults.
+
     Args:
-        from_file (bool): If True, re-applies any config files found in
+        update_from_file (bool): If True, re-applies any config files found in
             standard locations.
     '''
     global _settings
@@ -61,10 +86,10 @@ def reset_options(update_from_file=False):
 
 
 def _update_from_standard_locations():
-    ''' Check standard locations for config files and update settings if found.
+    """ Check standard locations for config files and update settings if found.
     Order is user's home dir, environment variable ($PYBIDS_CONFIG), and then
     current directory--with later files taking precedence over earlier ones.
-    '''
+    """
     locs = [
         join(expanduser('~'), _config_name),
         join('.', _config_name)

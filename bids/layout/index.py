@@ -43,6 +43,11 @@ def _check_path_matches_patterns(path, patterns):
 
 
 class BIDSLayoutIndexer(object):
+    """ Indexer class for BIDSLayout.
+    
+    Args:
+        layout (BIDSLayout): The BIDSLayout to index.
+    """
 
     def __init__(self, layout):
 

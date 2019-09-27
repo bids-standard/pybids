@@ -897,7 +897,7 @@ class BIDSLayout(object):
                         val_clause = sa.or_(*[Tag._value.op('REGEXP')(str(v))
                                               for v in val])
                     else:
-                        val_clause = Tag._value.op('REGEXP')(val)
+                        val_clause = Tag._value.op('REGEXP')(str(val))
                 else:
                     if isinstance(val, (list, tuple)):
                         val_clause = Tag._value.in_(val)
@@ -1308,6 +1308,8 @@ class BIDSLayout(object):
                     seen_configs.add(c)
 
         built = build_path(source, path_patterns, strict)
+        if built is None:
+            raise ValueError("Unable to construct build path with source {}".format(source))
         to_check = os.path.join(os.path.sep, built)
 
         if not validate or BIDSValidator().is_bids(to_check):

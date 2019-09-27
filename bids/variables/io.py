@@ -1,3 +1,5 @@
+""" Tools for reading/writing BIDS data files. """
+
 from os.path import join
 import warnings
 import json

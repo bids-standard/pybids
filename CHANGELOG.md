@@ -1,5 +1,27 @@
 # Changelog
 
+## Version 0.9.4 (September 20, 2019)
+
+Bug fix release in the 0.9.x series.
+
+* FIX: Ignore `default_ignore` paths by default (#495)
+* FIX: Filter and sort on scalar metadata in `get_nodes()` (#488)
+* FIX: Automatically sanitize dtype of `get()` arguments (#492)
+* FIX: Check that `default_path_patterns` is not `None` before using in `build_path` (#485)
+* FIX: Add CBV and phase modalities to func datatype path pattern (#479)
+* FIX: Drop bold suffix constraint from echo entity (#477)
+* ENH: Enforce dtypes on spec-defined columns when reading in DFs (#494)
+* ENH: Validate built paths (#496)
+* ENH: Update contrast enhancing agent query name (ceagent) (#497)
+* DOC: Add citation information to README (#493)
+* DOC: Improve wording in Python notebook example comment (#484)
+* DOC: Finish sentence in Python Notebook example documentation (#483)
+* DOC: Add JOSS Badge (#472)
+* STY: Apply syntax highlight to Python notebook example doc (#482)
+* MAINT: Move setup configuration to setup.cfg (#448)
+* MAINT: Additional Zenodo metadata (#470)
+* MAINT/CI: Use `extras_require` to declare dependencies for tests  (#471)
+
 ## Version 0.9.3 (August 7, 2019)
 This version includes a number of minor fixes and improvements, one of which
 breaks the existing API (by renaming two entities; see #464). Changes
