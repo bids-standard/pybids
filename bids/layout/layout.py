@@ -829,7 +829,7 @@ class BIDSLayout(object):
                         val_clause = sa.or_(*[Tag._value.op('REGEXP')(str(v))
                                               for v in val])
                     else:
-                        val_clause = Tag._value.op('REGEXP')(val)
+                        val_clause = Tag._value.op('REGEXP')(str(val))
                 else:
                     if isinstance(val, (list, tuple)):
                         val_clause = Tag._value.in_(val)
