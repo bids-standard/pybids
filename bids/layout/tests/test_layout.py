@@ -587,3 +587,33 @@ def test_get_with_wrong_dtypes(layout_7t_trt):
             l.get(run=[1, '15']))
     assert not l.get(run='not_numeric')
     assert l.get(session=1) == l.get(session='1')
+
+
+def test_get_with_regex_search(layout_7t_trt):
+    """ Tests that regex-based searching works. """
+    l = layout_7t_trt
+
+    # subject matches both '10' and '01'
+    results = l.get(subject='1', session='1', task='rest', suffix='bold',
+                    acquisition='fron.al', extension='nii.gz',
+                    regex_search=True)
+    assert len(results) == 2
+
+    # subject matches '10'
+    results = l.get(subject='^1', session='1', task='rest', suffix='bold',
+                    acquisition='fron.al', extension='nii.gz',
+                    regex_search=True, return_type='filename')
+    assert len(results) == 1
+    assert results[0].endswith('sub-10_ses-1_task-rest_acq-prefrontal_bold.nii.gz')
+
+
+def test_get_with_regex_search_bad_dtype(layout_7t_trt):
+    """ Tests that passing in a non-string dtype for an entity doesn't crash
+    regexp-based searching (i.e., that implicit conversion is done
+    appropriately). """
+    l = layout_7t_trt
+    results = l.get(subject='1', run=1, task='rest', suffix='bold',
+                    acquisition='fullbrain', extension='nii.gz',
+                    regex_search=True)
+    # Two runs (1 per session) for each of subjects '10' and '01'
+    assert len(results) == 4
