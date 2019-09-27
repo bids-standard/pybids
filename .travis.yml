@@ -46,6 +46,8 @@ matrix:
     - python: 3.6
       env: CHECK_TYPE=tutorial
     - python: 3.6
+      env: CHECK_TYPE=doc
+    - python: 3.6
       env: INSTALL_TYPE=sdist
     - python: 3.6
       env: INSTALL_TYPE=wheel
@@ -104,14 +106,7 @@ before_script:
     - travis_retry pip install $EXTRA_PIP_FLAGS "pybids[$CHECK_TYPE]"
 
 script:
-    - |
-      if [ "$CHECK_TYPE" = "travis_tests" ]; then
-          py.test -n 2 -v --cov bids --cov-config .coveragerc --cov-report xml:cov.xml bids
-      elif [ "$CHECK_TYPE" = "tutorial" ]; then
-          jupyter nbconvert --execute examples/pybids_tutorial.ipynb
-      else
-          false
-      fi
+    - make $CHECK_TYPE
 
 after_script:
     - codecov --file cov.xml --flags unittests

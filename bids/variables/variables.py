@@ -1,3 +1,5 @@
+""" Classes for representing BIDS variables. """
+
 import numpy as np
 import pandas as pd
 import math

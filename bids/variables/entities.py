@@ -1,3 +1,5 @@
+""" Data classes for internal BIDS data hierarchy. """
+
 from itertools import chain
 from collections import namedtuple
 from . import kollekshuns as clc
@@ -56,7 +58,15 @@ class RunNode(Node):
 
 
 # Stores key information for each Run.
-RunInfo = namedtuple('RunInfo', ['entities', 'duration', 'tr', 'image'])
+RunInfo_ = namedtuple('RunInfo', ['entities', 'duration', 'tr', 'image'])
+
+# Wrap with class to provide docstring
+class RunInfo(RunInfo_):
+    """ A namedtuple storing run-related information.
+
+    Properties include 'entities', 'duration', 'tr', and 'image'.
+    """
+    pass
 
 
 class NodeIndex(Node):

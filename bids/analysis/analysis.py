@@ -91,7 +91,6 @@ class Analysis(object):
 
 
 class Step(object):
-
     ''' Represents a single analysis block from a BIDS-Model specification.
 
     Args:
