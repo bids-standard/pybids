@@ -31,6 +31,7 @@ def replace_entities(entities, pattern):
         A new string with the entity values inserted where entity names
         were denoted in the provided pattern.
     """
+    entities = entities.copy()  # make a local copy, since dicts are mutable
     ents = re.findall(r'\{(.*?)\}', pattern)
     new_path = pattern
     for ent in ents:
