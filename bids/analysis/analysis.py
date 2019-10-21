@@ -115,8 +115,8 @@ class Step(object):
     '''
 
     def __init__(self, layout, level, index, name=None, transformations=None,
-                model=None, contrasts=None, input_nodes=None,
-                auto_contrasts=False):
+                 model=None, contrasts=None, input_nodes=None,
+                 auto_contrasts=False):
 
         self.layout = layout
         self.level = level.lower()
@@ -304,9 +304,9 @@ class AnalysisNode(object):
             containing variables at this Node.
         contrasts (list): A list of contrasts defined in the originating Step.
         auto_contrasts (list): Optional list of variable names to create
-            an indicator contrast for. Alternatively, if the boolean value True
-            is passed, a contrast is automatically generated for _all_
-            available variables.
+            an indicator 't' contrast for. Alternatively, a string value of 't'
+            or 'FEMA' indicates a contrast of that type
+            is automatically generated for _all_ available variables.
     '''
 
     def __init__(self, level, collection, contrasts, input_nodes=None,
@@ -315,9 +315,15 @@ class AnalysisNode(object):
         self.collection = collection
         self._block_contrasts = contrasts
         self.input_nodes = input_nodes
-        if auto_contrasts == True:
+
+        auto_contrasts = auto_contrasts or []
+        if auto_contrasts in ['FEMA', 't']:
+            ac_type = auto_contrasts
             auto_contrasts = collection.variables.keys()
-        self.auto_contrasts = auto_contrasts or []
+        else:
+            ac_type = 't'
+        self.auto_contrasts = (ac_type, auto_contrasts)
+
         self._contrasts = None
 
     @property
@@ -442,14 +448,15 @@ class AnalysisNode(object):
         contrast_names = list(set(contrast_names))
 
         if self.auto_contrasts:
-            for col_name in self.auto_contrasts:
+            ac_type, auto_variables = self.auto_contrasts
+            for col_name in auto_variables:
                 if (col_name in self.collection.variables.keys()
-                    and col_name not in contrast_names):
+                   and col_name not in contrast_names):
                     contrasts.append({
                         'name': col_name,
                         'condition_list': [col_name],
                         'weights': [1],
-                        'type': 't'
+                        'type': ac_type
                     })
 
         # Filter on desired contrast names if passed
