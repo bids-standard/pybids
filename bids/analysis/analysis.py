@@ -126,7 +126,7 @@ class Step(object):
         self.model = model or None
         self.contrasts = contrasts or []
         self.input_nodes = input_nodes or []
-        self.auto_contrasts = auto_contrasts or []
+        self.auto_contrasts = auto_contrasts
         self.output_nodes = []
 
     def _filter_objects(self, objects, kwargs):
@@ -310,19 +310,15 @@ class AnalysisNode(object):
     '''
 
     def __init__(self, level, collection, contrasts, input_nodes=None,
-                 auto_contrasts=None):
+                 auto_contrasts=False):
         self.level = level.lower()
         self.collection = collection
         self._block_contrasts = contrasts
         self.input_nodes = input_nodes
 
-        if auto_contrasts is not None:
-            if auto_contrasts is True:
-                auto_contrasts = 't'
-            elif auto_contrasts is None:
-                auto_contrasts = []
-            if auto_contrasts in ['FEMA', 't']:
-                ac_type = auto_contrasts
+        if auto_contrasts:
+            ac_type = 'FEMA' if auto_contrasts == 'FEMA' else 't'
+            if not isinstance(auto_contrasts, list):
                 auto_contrasts = collection.variables.keys()
 
             auto_contrasts = (ac_type, auto_contrasts)
