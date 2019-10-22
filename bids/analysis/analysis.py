@@ -316,13 +316,18 @@ class AnalysisNode(object):
         self._block_contrasts = contrasts
         self.input_nodes = input_nodes
 
-        auto_contrasts = auto_contrasts or []
-        if auto_contrasts in ['FEMA', 't']:
-            ac_type = auto_contrasts
-            auto_contrasts = collection.variables.keys()
-        else:
-            ac_type = 't'
-        self.auto_contrasts = (ac_type, auto_contrasts)
+        if auto_contrasts is not None:
+            if auto_contrasts is True:
+                auto_contrasts = 't'
+            elif auto_contrasts is None:
+                auto_contrasts = []
+            if auto_contrasts in ['FEMA', 't']:
+                ac_type = auto_contrasts
+                auto_contrasts = collection.variables.keys()
+
+            auto_contrasts = (ac_type, auto_contrasts)
+
+        self.auto_contrasts = auto_contrasts
 
         self._contrasts = None
 
