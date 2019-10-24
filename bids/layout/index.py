@@ -268,7 +268,7 @@ class BIDSLayoutIndexer(object):
                 json_data = file_data.get(json_key, {}).get(dirname, [])
                 for js_ents, js_md, js_path in json_data:
                     js_keys = set(js_ents.keys())
-                    if (js_keys - file_ent_keys):
+                    if js_keys - file_ent_keys:
                         continue
                     matches = [js_ents[name] == file_ents[name]
                                 for name in js_keys]
@@ -279,7 +279,7 @@ class BIDSLayoutIndexer(object):
                 candidates = file_data.get(ext_key, {}).get(dirname, [])
                 for ents, _, path in candidates:
                     keys = set(ents.keys())
-                    if (keys - file_ent_keys):
+                    if keys - file_ent_keys:
                         continue
                     matches = [ents[name] == file_ents[name] for name in keys]
                     if all(matches):
