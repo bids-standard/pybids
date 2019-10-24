@@ -275,10 +275,29 @@ class BIDSLayout(object):
         return s
 
     def _set_session(self, database_file):
-        if database_file:
-            engine = sa.create_engine('sqlite:///{filepath}'.format(filepath=database_file))
+        if database_file is not None:
+            # https://docs.sqlalchemy.org/en/13/dialects/sqlite.html
+            # When a file-based database is specified, the dialect will use NullPool as the source of connections. This
+            # pool closes and discards connections which are returned to the pool immediately. SQLite file-based
+            # connections have extremely low overhead, so pooling is not necessary. The scheme also prevents a
+            # connection from being used again in a different thread and works best with SQLite's coarse-grained
+            # file locking.
+            from sqlalchemy.pool import NullPool
+            engine = sa.create_engine('sqlite:///{dbfilepath}'.format(dbfilepath=database_file),
+                                      connect_args={'check_same_thread':False},
+                                      poolclass=NullPool)
         else:
-            engine = sa.create_engine('sqlite://') # In memory database
+            # https://docs.sqlalchemy.org/en/13/dialects/sqlite.html
+            # Using a Memory Database in Multiple Threads
+            # To use a :memory: database in a multithreaded scenario, the same connection object must be shared among
+            # threads, since the database exists only within the scope of that connection. The StaticPool
+            # implementation will maintain a single connection globally, and the check_same_thread flag can be passed
+            # to Pysqlite as False:
+            from sqlalchemy.pool import StaticPool
+            engine = sa.create_engine('sqlite://', # In memory database
+                                   connect_args={'check_same_thread':False},
+                                   poolclass=StaticPool)
+            # Note that using a :memory: database in multiple threads requires a recent version of SQLite.
         def regexp(expr, item):
             """Regex function for SQLite's REGEXP."""
             reg = re.compile(expr, re.I)
