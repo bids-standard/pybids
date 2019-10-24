@@ -266,7 +266,7 @@ class BIDSLayout(object):
                 validate=validate, absolute_paths=absolute_paths,
                 derivatives=None, config=None, sources=self, ignore=ignore,
                 force_index=force_index, config_filename=config_filename,
-                regex_search=regex_search, reset_database=reset_database,
+                regex_search=regex_search, reset_database=index_dataset or reset_database,
                 index_metadata=index_metadata)
 
     def __getattr__(self, key):
