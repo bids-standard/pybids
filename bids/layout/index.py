@@ -102,7 +102,7 @@ class BIDSLayoutIndexer(object):
         if abs_path.startswith(os.path.join(self.root, 'derivatives')):
             return
 
-        config = list(config)     # Shallow copy
+        config = list(config)  # Shallow copy
 
         # Check for additional config file in directory
         layout_file = self.config_filename
@@ -271,7 +271,7 @@ class BIDSLayoutIndexer(object):
                     if js_keys - file_ent_keys:
                         continue
                     matches = [js_ents[name] == file_ents[name]
-                                for name in js_keys]
+                               for name in js_keys]
                     if all(matches):
                         payloads.append((js_md, js_path))
 
@@ -306,14 +306,14 @@ class BIDSLayoutIndexer(object):
             n_pl = len(payloads)
             for i, (pl, js_file) in enumerate(payloads):
                 if (i + 1) < n_pl:
-                    other = payloads[i+1][1]
+                    other = payloads[i + 1][1]
                     create_association_pair(js_file, other, 'Child', 'Parent')
 
             # Inheritance for current file
             n_pl = len(ancestors)
             for i, src in enumerate(ancestors):
                 if (i + 1) < n_pl:
-                    dst = ancestors[i+1]
+                    dst = ancestors[i + 1]
                     create_association_pair(src, dst, 'Child', 'Parent')
 
             # Files with IntendedFor field always get mapped to targets
@@ -354,7 +354,7 @@ class BIDSLayoutIndexer(object):
                             "Conflicting values found for entity '{}' in "
                             "filename {} (value='{}') versus its JSON sidecar "
                             "(value='{}'). Please reconcile this discrepancy."
-                            )
+                        )
                         raise ValueError(msg.format(md_key, bf.path, file_val,
                                                     md_val))
                     continue

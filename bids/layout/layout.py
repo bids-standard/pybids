@@ -30,7 +30,6 @@ except ImportError:
             prefix = os.path.dirname(prefix)
         return prefix
 
-
 __all__ = ['BIDSLayout']
 
 
@@ -290,7 +289,7 @@ class BIDSLayout(object):
             # file locking.
             from sqlalchemy.pool import NullPool
             engine = sa.create_engine('sqlite:///{dbfilepath}'.format(dbfilepath=database_file),
-                                      connect_args={'check_same_thread':False},
+                                      connect_args={'check_same_thread': False},
                                       poolclass=NullPool)
         else:
             # https://docs.sqlalchemy.org/en/13/dialects/sqlite.html
@@ -300,16 +299,18 @@ class BIDSLayout(object):
             # implementation will maintain a single connection globally, and the check_same_thread flag can be passed
             # to Pysqlite as False:
             from sqlalchemy.pool import StaticPool
-            engine = sa.create_engine('sqlite://', # In memory database
-                                   connect_args={'check_same_thread':False},
-                                   poolclass=StaticPool)
+            engine = sa.create_engine('sqlite://',  # In memory database
+                                      connect_args={'check_same_thread': False},
+                                      poolclass=StaticPool)
             # Note that using a :memory: database in multiple threads requires a recent version of SQLite.
+
         def regexp(expr, item):
             """Regex function for SQLite's REGEXP."""
             reg = re.compile(expr, re.I)
             return reg.search(item) is not None
 
         conn = engine.connect()
+
         # Do not remove this decorator!!! An in-line create_function call will
         # work when using an in-memory SQLite DB, but fails when using a file.
         # For more details, see https://stackoverflow.com/questions/12461814/
@@ -323,8 +324,8 @@ class BIDSLayout(object):
         # Reset database if needed and return whether or not it was reset
         # determining if the database needs resetting must be done prior
         # prior to setting the session (which creates the empty database file)
-        reset_database = (reset_database or                   # Manual Request
-                          not database_file or                # In memory transient database
+        reset_database = (reset_database or  # Manual Request
+                          not database_file or  # In memory transient database
                           not os.path.exists(database_file))  # New file based database created
 
         self._set_session(database_file)
@@ -424,8 +425,8 @@ class BIDSLayout(object):
         ents = {e.name: e for e in
                 self.session.query(Entity)
                     .filter(Entity.name.in_(names)).all()}
-            # Fail silently because the DB may still know how to reconcile
-            # type differences.
+        # Fail silently because the DB may still know how to reconcile
+        # type differences.
         for name, val in entities.items():
             try:
                 if isinstance(val, (list, tuple)):
@@ -621,8 +622,8 @@ class BIDSLayout(object):
             kwargs['config'] = kwargs.get('config') or ['bids', 'derivatives']
             kwargs['sources'] = kwargs.get('sources') or self
             if create_derivative_database_files:
-                current_database_file = os.path.join(deriv, pipeline_name+".sql")
-                kwargs['database_file']=current_database_file
+                current_database_file = os.path.join(deriv, pipeline_name + ".sql")
+                kwargs['database_file'] = current_database_file
 
             self.derivatives[pipeline_name] = BIDSLayout(deriv, **kwargs)
 
@@ -940,8 +941,8 @@ class BIDSLayout(object):
         for layout in self._get_layouts_in_scope(scope):
 
             query = (layout.session.query(Tag)
-                                   .join(BIDSFile)
-                                   .filter(BIDSFile.path == path))
+                     .join(BIDSFile)
+                     .filter(BIDSFile.path == path))
 
             if not include_entities:
                 query = query.join(Entity).filter(Entity.is_metadata == True)
@@ -971,7 +972,7 @@ class BIDSLayout(object):
         if not all_:
             return layouts[0].get_file('dataset_description.json').get_dict()
         return [l.get_file('dataset_description.json').get_dict()
-              for l in layouts]
+                for l in layouts]
 
     def get_nearest(self, path, return_type='filename', strict=True,
                     all_=False, ignore_strict_entities='extension',

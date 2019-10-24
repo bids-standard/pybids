@@ -9,7 +9,6 @@ import sys
 from ..utils import splitext, listify
 from os.path import join, dirname, exists, islink, isabs, isdir
 
-
 __all__ = ['replace_entities', 'build_path', 'write_contents_to_file']
 
 
@@ -147,7 +146,7 @@ def write_contents_to_file(path, contents=None, link_to=None,
         elif conflicts == 'overwrite':
             if isdir(path):
                 warnings.warn('New path is a directory, not going to '
-                             'overwrite it, skipping instead.')
+                              'overwrite it, skipping instead.')
                 return
             os.remove(path)
         elif conflicts == 'append':
@@ -157,7 +156,7 @@ def write_contents_to_file(path, contents=None, link_to=None,
                 path_splits[0] = path_splits[0] + '_%d' % i
                 appended_filename = os.extsep.join(path_splits)
                 if not exists(appended_filename) and \
-                   not islink(appended_filename):
+                        not islink(appended_filename):
                     path = appended_filename
                     break
                 i += 1
