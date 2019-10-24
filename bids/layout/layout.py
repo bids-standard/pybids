@@ -237,10 +237,8 @@ class BIDSLayout(object):
         if derivatives:
             if derivatives is True:
                 derivatives = os.path.join(root, 'derivatives')
-            if database_file is not None:  # if creating db files for bids, also create db files for derivatives
-                create_derivative_database_files = True
-            else:
-                create_derivative_database_files = False
+            # if creating db files for bids, also create db files for derivatives
+            create_derivative_database_files = (database_file is not None)
             self.add_derivatives(
                 derivatives, create_derivative_database_files=create_derivative_database_files,
                 validate=validate, absolute_paths=absolute_paths,
