@@ -627,8 +627,8 @@ class BIDSLayout(object):
         deriv_dirs = []
 
         # Collect all paths that contain a dataset_description.json
-        def check_for_description(dir):
-            dd = os.path.join(dir, 'dataset_description.json')
+        def check_for_description(bids_dir):
+            dd = os.path.join(bids_dir, 'dataset_description.json')
             return os.path.exists(dd)
 
         for p in paths:
