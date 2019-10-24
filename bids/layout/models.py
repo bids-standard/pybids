@@ -68,7 +68,7 @@ class Config(Base):
 
     @classmethod
     def load(self, config, session=None):
-        ''' Load a Config instance from the passed configuration data.
+        """ Load a Config instance from the passed configuration data.
 
         Args:
             config (str, dict): A string or dict containing configuration
@@ -82,7 +82,7 @@ class Config(Base):
                 return) an existing Config with name defined in config['name'].
 
         Returns: A Config instance.
-        '''
+        """
 
         if isinstance(config, six.string_types):
             config_paths = get_option('config_paths')
@@ -109,7 +109,7 @@ class BIDSFile(Base):
 
     Args:
         filename (str): The path to the corresponding file.
- 
+
     """
     __tablename__ = 'files'
 
@@ -227,7 +227,7 @@ class BIDSFile(Base):
     def copy(self, path_patterns, symbolic_link=False, root=None,
              conflicts='fail'):
         """ Copy the contents of a file to a new location.
-        
+
         Args:
             path_patterns (list): List of patterns use to construct the new
                 filename. See build_path documentation for details.
@@ -365,14 +365,14 @@ class BIDSJSONFile(BIDSFile):
     }
 
     def get_dict(self):
-        ''' Return the contents of the current file as a dictionary. '''
+        """ Return the contents of the current file as a dictionary. """
         d = json.loads(self.get_json())
         if not isinstance(d, dict):
             raise ValueError("File %s is a json containing %s, not a dict which was expected" % (self.path, type(d)))
         return d
 
     def get_json(self):
-        ''' Return the contents of the current file as a JSON string. '''
+        """ Return the contents of the current file as a JSON string. """
         with open(self.path, 'r') as f:
             return f.read()
 
@@ -538,7 +538,7 @@ class Tag(Base):
         self._dtype = dtype
 
         self._init_on_load()
-    
+
     def __repr__(self):
         msg = "<Tag file:{!r} entity:{!r} value:{!r}>"
         return msg.format(self.file_path, self.entity_name, self.value)

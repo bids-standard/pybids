@@ -1,6 +1,6 @@
-'''
+"""
 Contains helper functions that involve writing operations.
-'''
+"""
 
 import warnings
 import os
