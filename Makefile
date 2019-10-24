@@ -1,7 +1,7 @@
 .PHONY: doc tutorial travis_tests
 
 travis_tests:
-	py.test -n 2 -v --cov bids --cov-config .coveragerc --cov-report xml:cov.xml bids
+	pytest -n 2 -v --cov bids --cov-config .coveragerc --cov-report xml:cov.xml bids
 
 tutorial:
 	jupyter nbconvert --execute examples/pybids_tutorial.ipynb

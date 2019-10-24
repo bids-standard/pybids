@@ -5,7 +5,6 @@ cache: false
 
 # python and global.matrix are crossed to create the base build matrix
 python:
-  - 2.7
   - 3.5
   - 3.6
   - 3.7
@@ -23,11 +22,6 @@ env:
 # Add OSX entries to the build matrix
 matrix:
   include:
-    - os: osx
-      language: generic
-      env:
-        - PYTHON_VERSION=2.7.16=h97142e2_0
-        - MINICONDA_URL="https://repo.continuum.io/miniconda/Miniconda2-latest-MacOSX-x86_64.sh"
     - os: osx
       language: generic
       env:
