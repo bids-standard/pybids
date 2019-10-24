@@ -256,8 +256,13 @@ class BIDSLayout(object):
         if derivatives:
             if derivatives is True:
                 derivatives = os.path.join(root, 'derivatives')
+            if database_file is not None:  # if creating db files for bids, also create db files for derivatives
+                create_derivative_database_files = True
+            else:
+                create_derivative_database_files = False
             self.add_derivatives(
-                derivatives, validate=validate, absolute_paths=absolute_paths,
+                derivatives, create_derivative_database_files=create_derivative_database_files,
+                validate=validate, absolute_paths=absolute_paths,
                 derivatives=None, config=None, sources=self, ignore=ignore,
                 force_index=force_index, config_filename=config_filename,
                 regex_search=regex_search, reset_database=reset_database,
@@ -593,7 +598,7 @@ class BIDSLayout(object):
         return parse_file_entities(filename, entities, config,
                                    include_unmatched)
 
-    def add_derivatives(self, path, **kwargs):
+    def add_derivatives(self, path, create_derivative_database_files=False, **kwargs):
         """Add BIDS-Derivatives datasets to tracking.
 
         Parameters
@@ -603,6 +608,10 @@ class BIDSLayout(object):
             Each path can point to either a derivatives/ directory
             containing one more more pipeline directories, or to a single
             pipeline directory (e.g., derivatives/fmriprep).
+        create_derivative_database_files : bool
+            If True, use the pipline name from the dataset_description.json
+            file as the database filename and write the file to disk in the
+            derivatives directory.
         kwargs : dict
             Optional keyword arguments to pass on to
             BIDSLayout() when initializing each of the derivative datasets.
@@ -660,6 +669,10 @@ class BIDSLayout(object):
             # Default config and sources values
             kwargs['config'] = kwargs.get('config') or ['bids', 'derivatives']
             kwargs['sources'] = kwargs.get('sources') or self
+            if create_derivative_database_files:
+                current_database_file = os.path.join(deriv, pipeline_name+".sql")
+                kwargs['database_file']=current_database_file
+
             self.derivatives[pipeline_name] = BIDSLayout(deriv, **kwargs)
 
     def to_df(self, metadata=False, **filters):
