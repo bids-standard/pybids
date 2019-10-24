@@ -17,7 +17,6 @@ from ..utils import listify
 from ..config import get_option
 from ..external import six
 
-
 Base = declarative_base()
 
 
@@ -57,7 +56,7 @@ class Config(Base):
             for ent in entities:
                 if session is not None:
                     existing = (session.query(Config)
-                                       .filter_by(name=ent['name']).first())
+                                .filter_by(name=ent['name']).first())
                 else:
                     existing = None
                 ent = existing or Entity(**ent)
@@ -106,7 +105,7 @@ class Config(Base):
         # Return existing Config record if one exists
         if session is not None:
             result = (session.query(Config)
-                             .filter_by(name=config['name']).first())
+                      .filter_by(name=config['name']).first())
             if result:
                 return result
 
@@ -131,8 +130,8 @@ class BIDSFile(Base):
     class_ = Column(String(20))
 
     _associations = relationship('BIDSFile', secondary='associations',
-        primaryjoin='FileAssociation.dst == BIDSFile.path',
-        secondaryjoin='FileAssociation.src == BIDSFile.path')
+                                 primaryjoin='FileAssociation.dst == BIDSFile.path',
+                                 secondaryjoin='FileAssociation.src == BIDSFile.path')
 
     __mapper_args__ = {
         'polymorphic_on': class_,
@@ -191,8 +190,8 @@ class BIDSFile(Base):
             return self._associations
         session = object_session(self)
         q = (session.query(BIDSFile)
-                    .join(FileAssociation, BIDSFile.path == FileAssociation.dst)
-                    .filter_by(kind=kind, src=self.path))
+             .join(FileAssociation, BIDSFile.path == FileAssociation.dst)
+             .filter_by(kind=kind, src=self.path))
         associations = q.all()
 
         if not include_parents:
@@ -236,10 +235,10 @@ class BIDSFile(Base):
         """
         session = object_session(self)
         query = (session.query(Tag)
-                        .filter_by(file_path=self.path)
-                        .join(Entity))
+                 .filter_by(file_path=self.path)
+                 .join(Entity))
         if metadata not in (None, 'all'):
-            query = query.filter(Entity.is_metadata==metadata)
+            query = query.filter(Entity.is_metadata == metadata)
 
         results = query.all()
         if values.startswith('obj'):
@@ -472,7 +471,7 @@ class Entity(Base):
 
     def __iter__(self):
         for i in self.unique():
-            yield(i)
+            yield (i)
 
     def __deepcopy__(self, memo):
         cls = self.__class__
@@ -623,6 +622,6 @@ class FileAssociation(Base):
 
 # Association objects
 config_to_entity_map = Table('config_to_entity_map', Base.metadata,
-    Column('config', String, ForeignKey('configs.name')),
-    Column('entity', String, ForeignKey('entities.name'))
-)
+                             Column('config', String, ForeignKey('configs.name')),
+                             Column('entity', String, ForeignKey('entities.name'))
+                             )
