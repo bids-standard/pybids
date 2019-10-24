@@ -798,7 +798,7 @@ class BIDSLayout(object):
                                      'target entity (\"%s\").' % target)
                 # Construct regex search pattern from target directory template
                 template = self.root + template
-                to_rep = re.findall(r'\{(.*?)\}', template)
+                to_rep = re.findall(r'{(.*?)\}', template)
                 for ent in to_rep:
                     patt = entities[ent].pattern
                     template = template.replace('{%s}' % ent, patt)
