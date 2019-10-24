@@ -1,7 +1,6 @@
 """
 Transformations that primarily involve numerical computation on variables.
 """
-from __future__ import division
 import math
 import numpy as np
 import pandas as pd

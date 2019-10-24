@@ -48,8 +48,6 @@ Exceptions:
 
 """
 
-from __future__ import unicode_literals
-
 import ast
 import sys
 import re

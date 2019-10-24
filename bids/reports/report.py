@@ -1,7 +1,6 @@
 """Generate publication-quality data acquisition methods section from BIDS
 dataset.
 """
-from __future__ import print_function
 import json
 from os.path import dirname
 from os.path import abspath
