@@ -15,7 +15,6 @@ from itertools import chain
 from .writing import build_path, write_contents_to_file
 from ..utils import listify
 from ..config import get_option
-from ..external import six
 
 Base = declarative_base()
 
@@ -92,7 +91,7 @@ class Config(Base):
         A Config instance.
         """
 
-        if isinstance(config, six.string_types):
+        if isinstance(config, str):
             config_paths = get_option('config_paths')
             if config in config_paths:
                 config = config_paths[config]
@@ -455,7 +454,7 @@ class Entity(Base):
         self.directory = directory
         self.is_metadata = is_metadata
 
-        if not isinstance(dtype, six.string_types):
+        if not isinstance(dtype, str):
             dtype = dtype.__name__
         self._dtype = dtype
 
@@ -575,7 +574,7 @@ class Tag(Base):
 
         self.value = value
 
-        if not isinstance(dtype, six.string_types):
+        if not isinstance(dtype, str):
             dtype = dtype.__name__
         if dtype not in ('str', 'float', 'int', 'bool'):
             # Try serializing to JSON first

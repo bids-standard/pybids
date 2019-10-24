@@ -9,11 +9,8 @@ from copy import deepcopy
 import itertools
 import inspect
 from bids.variables import SparseRunVariable
-from six import add_metaclass
 
-
-@add_metaclass(ABCMeta)
-class Transformation(object):
+class Transformation(metaclass=ABCMeta):
 
     ### Class-level settings ###
     # The following settings govern the way Transformations are applied to the
