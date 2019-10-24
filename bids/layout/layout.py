@@ -241,13 +241,16 @@ class BIDSLayout(object):
             config = [Config.load(c, session=self.session)
                       for c in listify(config)]
             self.config = {c.name: c for c in config}
+            # Missing persistence of configs to the database
+            for config_obj in self.config.values():
+                self.session.add(config_obj)
+                self.session.commit()
 
             # Index files and (optionally) metadata
             indexer = BIDSLayoutIndexer(self)
             indexer.index_files()
             if index_metadata:
                 indexer.index_metadata()
-
         else:
             # Load Configs from DB
             self.config = {c.name: c for c in self.session.query(Config).all()}
