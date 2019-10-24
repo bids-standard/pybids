@@ -84,6 +84,7 @@ class NodeIndex(Node):
     """Represents the top level in a BIDS hierarchy. """
 
     def __init__(self):
+        super().__init__("top_of_bids_heirarchy", None)
         self.index = pd.DataFrame()
         self.nodes = []
 
