@@ -181,7 +181,17 @@ class BIDSLayout(object):
         self.regex_search = regex_search
         self.config_filename = config_filename
 
-        self.database_file = database_file
+        def _normalize_db_name(default_root_dir, db_file):
+            if db_file is None:
+                return None
+            # If a full absolute path is given, use it, else make path
+            if not os.path.isabs(db_file):
+                db_file = os.path.abspath(os.path.join(default_root_dir, db_file))
+            return db_file
+
+        self.database_file = _normalize_db_name(self.root, database_file)
+        del database_file
+
         self.session = None
 
         # Do basic BIDS validation on root directory
@@ -201,7 +211,7 @@ class BIDSLayout(object):
         # Initialize the BIDS validator and examine ignore/force_index args
         self._validate_force_index()
 
-        index_dataset = self._init_db(database_file, reset_database)
+        index_dataset = self._init_db(self.database_file, reset_database)
 
         if index_dataset:
             # Create Config objects
@@ -266,8 +276,10 @@ class BIDSLayout(object):
         return s
 
     def _set_session(self, database_file):
-        engine = sa.create_engine('sqlite:///{}'.format(database_file))
-
+        if database_file:
+            engine = sa.create_engine('sqlite:///{filepath}'.format(filepath=database_file))
+        else:
+            engine = sa.create_engine('sqlite://') # In memory database
         def regexp(expr, item):
             """Regex function for SQLite's REGEXP."""
             reg = re.compile(expr, re.I)
@@ -281,25 +293,17 @@ class BIDSLayout(object):
         def do_begin(conn):
             conn.connection.create_function('regexp', 2, regexp)
 
-        if database_file:
-            self.database_file = os.path.relpath(database_file, self.root)
         self.session = sa.orm.sessionmaker(bind=engine)()
 
     def _init_db(self, database_file=None, reset_database=False):
-
-        if database_file is None:
-            database_file = ''
-        else:
-            database_file = os.path.join(self.root, database_file)
-            database_file = os.path.abspath(database_file)
-
-        self._set_session(database_file)
+        assert(database_file == self.database_file) # NOTE: database_file is not needed as a parameter here
+        self._set_session(self.database_file)
 
         # Reset database if needed and return whether or not it was reset
-        condi = (reset_database or
-                 not database_file or
-                 not os.path.exists(database_file))
-        if condi:
+        reset_database = (reset_database or                        # Manual Request
+                          not self.database_file or                # In memory transient database
+                          not os.path.exists(self.database_file))  # New file based database created
+        if reset_database:
             engine = self.session.get_bind()
             Base.metadata.drop_all(engine)
             Base.metadata.create_all(engine)
