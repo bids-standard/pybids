@@ -36,7 +36,7 @@ def replace_entities(entities, pattern):
     were denoted in the provided pattern.
     """
     entities = entities.copy()  # make a local copy, since dicts are mutable
-    ents = re.findall(r'\{(.*?)\}', pattern)
+    ents = re.findall(r'{(.*?)\}', pattern)
     new_path = pattern
     for ent in ents:
         match = re.search(r'([^|<]+)(<.*?>)?(\|.*)?', ent)
@@ -96,7 +96,7 @@ def build_path(entities, path_patterns, strict=False):
     for pattern in path_patterns:
         # If strict, all entities must be contained in the pattern
         if strict:
-            defined = re.findall(r'\{(.*?)(?:<[^>]+>)?\}', pattern)
+            defined = re.findall(r'{(.*?)(?:<[^>]+>)?\}', pattern)
             if set(entities.keys()) - set(defined):
                 continue
         # Iterate through the provided path patterns
