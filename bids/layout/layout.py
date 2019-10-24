@@ -317,12 +317,15 @@ class BIDSLayout(object):
         self.session = sa.orm.sessionmaker(bind=engine)()
 
     def _init_db(self, database_file=None, reset_database=False):
-        self._set_session(database_file)
-
         # Reset database if needed and return whether or not it was reset
+        # determining if the database needs resetting must be done prior
+        # prior to setting the session (which creates the empty database file)
         reset_database = (reset_database or                   # Manual Request
                           not database_file or                # In memory transient database
                           not os.path.exists(database_file))  # New file based database created
+
+        self._set_session(database_file)
+
         if reset_database:
             engine = self.session.get_bind()
             Base.metadata.drop_all(engine)
