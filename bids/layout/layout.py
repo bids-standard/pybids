@@ -189,8 +189,7 @@ class BIDSLayout(object):
                 db_file = os.path.abspath(os.path.join(default_root_dir, db_file))
             return db_file
 
-        self.database_file = _normalize_db_name(self.root, database_file)
-        del database_file
+        database_file = _normalize_db_name(self.root, database_file)
 
         self.session = None
 
@@ -211,7 +210,7 @@ class BIDSLayout(object):
         # Initialize the BIDS validator and examine ignore/force_index args
         self._validate_force_index()
 
-        index_dataset = self._init_db(self.database_file, reset_database)
+        index_dataset = self._init_db(database_file, reset_database)
 
         if index_dataset:
             # Create Config objects
@@ -296,13 +295,12 @@ class BIDSLayout(object):
         self.session = sa.orm.sessionmaker(bind=engine)()
 
     def _init_db(self, database_file=None, reset_database=False):
-        assert(database_file == self.database_file) # NOTE: database_file is not needed as a parameter here
-        self._set_session(self.database_file)
+        self._set_session(database_file)
 
         # Reset database if needed and return whether or not it was reset
-        reset_database = (reset_database or                        # Manual Request
-                          not self.database_file or                # In memory transient database
-                          not os.path.exists(self.database_file))  # New file based database created
+        reset_database = (reset_database or                   # Manual Request
+                          not database_file or                # In memory transient database
+                          not os.path.exists(database_file))  # New file based database created
         if reset_database:
             engine = self.session.get_bind()
             Base.metadata.drop_all(engine)
