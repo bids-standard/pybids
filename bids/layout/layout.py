@@ -34,24 +34,29 @@ except ImportError:
 __all__ = ['BIDSLayout']
 
 
-def parse_file_entities(filename, entities=None, config=None,
-                        include_unmatched=False):
+def parse_file_entities(filename, entities=None, config=None, include_unmatched=False):
     """Parse the passed filename for entity/value pairs.
 
-    Args:
-        filename (str): The filename to parse for entity values
-        entities (list): An optional list of Entity instances to use in
-            extraction. If passed, the config argument is ignored.
-        config (str, Config, list): One or more Config objects or names of
-            configurations to use in matching. Each element must be a Config
-            object, or a valid Config name (e.g., 'bids' or 'derivatives').
-            If None, all available configs are used.
-        include_unmatched (bool): If True, unmatched entities are included
-            in the returned dict, with values set to None. If False
-            (default), unmatched entities are ignored.
+    Parameters
+    ----------
+    filename : str
+        The filename to parse for entity values
+    entities : list or None, optional
+        An optional list of Entity instances to use in extraction. If passed, the config argument
+        is ignored. Default is None.
+    config : str or :obj:`bids.layout.models.Config` or list or None, optional
+        One or more :obj:`bids.layout.models.Config` objects or names of configurations to use in
+        matching. Each element must be a :obj:`bids.layout.models.Config` object, or a valid
+        :obj:`bids.layout.models.Config` name (e.g., 'bids' or 'derivatives').
+        If None, all available configs are used. Default is None.
+    include_unmatched : bool, optional
+        If True, unmatched entities are included in the returned dict, with values set to None.
+        If False (default), unmatched entities are ignored.
 
-    Returns: A dict, where keys are Entity names and values are the
-        values extracted from the filename.
+    Returns
+    -------
+    dict
+        Keys are Entity names and values are the values extracted from the filename.
     """
     # Load Configs if needed
     if entities is None:
@@ -82,13 +87,16 @@ def parse_file_entities(filename, entities=None, config=None,
 def add_config_paths(**kwargs):
     """Add to the pool of available configuration files for BIDSLayout.
 
-    Args:
-        kwargs: dictionary specifying where to find additional config files.
-            Keys are names, values are paths to the corresponding .json file.
+    Parameters
+    ----------
+    kwargs : dict
+        Dictionary specifying where to find additional config files.
+        Keys are names, values are paths to the corresponding .json file.
 
-    Example:
-        > add_config_paths(my_config='/path/to/config')
-        > layout = BIDSLayout('/path/to/bids', config=['bids', 'my_config'])
+    Examples
+    --------
+    > add_config_paths(my_config='/path/to/config')
+    > layout = BIDSLayout('/path/to/bids', config=['bids', 'my_config'])
     """
     for k, path in kwargs.items():
         if not os.path.exists(path):
@@ -104,64 +112,78 @@ def add_config_paths(**kwargs):
 class BIDSLayout(object):
     """Layout class representing an entire BIDS dataset.
 
-    Args:
-        root (str): The root directory of the BIDS dataset.
-        validate (bool): If True, all files are checked for BIDS compliance
-            when first indexed, and non-compliant files are ignored. This
-            provides a convenient way to restrict file indexing to only those
-            files defined in the "core" BIDS spec, as setting validate=True
-            will lead files in supplementary folders like derivatives/, code/,
-            etc. to be ignored.
-        absolute_paths (bool): If True, queries always return absolute paths.
-            If False, queries return relative paths (for files and
-            directories).
-        derivatives (bool, str, list): Specifies whether and/or which
-            derivatives to to index. If True, all pipelines found in the
-            derivatives/ subdirectory will be indexed. If a str or list, gives
-            the paths to one or more derivatives directories to index. If False
-            or None, the derivatives/ directory is ignored during indexing, and
-            derivatives will have to be added manually via add_derivatives().
-            Note: derivatives datasets MUST contain a dataset_description.json
-            file in order to be indexed.
-        config (str, list): Optional name(s) of configuration file(s) to use.
-            By default (None), uses 'bids'.
-        sources (BIDLayout, list): Optional BIDSLayout(s) from which the
-            current BIDSLayout is derived.
-        ignore (str, SRE_Pattern, list): Path(s) to exclude from indexing. Each
-            path is either a string or a SRE_Pattern object (i.e., compiled
-            regular expression). If a string is passed, it must be either an
-            absolute path, or be relative to the BIDS project root. If an
-            SRE_Pattern is passed, the contained regular expression will be
-            matched against the full (absolute) path of all files and
-            directories. By default, indexing ignores all files in 'code/',
-            'stimuli/', 'sourcedata/', 'models/', and any hidden files/dirs
-            beginning with '.' at root level.
-        force_index (str, SRE_Pattern, list): Path(s) to forcibly index in the
-            BIDSLayout, even if they would otherwise fail validation. See the
-            documentation for the ignore argument for input format details.
-            Note that paths in force_index takes precedence over those in
-            ignore (i.e., if a file matches both ignore and force_index, it
-            *will* be indexed). Note: NEVER include 'derivatives' here; use
-            the derivatives argument (or add_derivatives()) for that.
-        config_filename (str): Optional name of filename within directories
-            that contains configuration information.
-        regex_search (bool): Whether to require exact matching (True) or regex
-            search (False, default) when comparing the query string to each
-            entity in .get() calls. This sets a default for the instance, but
-            can be overridden in individual .get() requests.
-        database_file (str): Optional path to SQLite database containing the
-            index for this BIDS dataset. If a value is passed and the file
-            already exists, indexing is skipped. By default (i.e., if None),
-            an in-memory SQLite database is used, and the index will not
-            persist unless .save() is explicitly called.
-        reset_database (bool): If True, any existing file specified in the
-            database_file argument is deleted, and the BIDS dataset provided
-            in the root argument is reindexed. If False, indexing will be
-            skipped and the existing database file will be used. Ignored if
-            database_file is not provided.
-        index_metadata (bool): If True, all metadata files are indexed at
-            initialization. If False, metadata will not be available (but
-            indexing will be faster).
+    Parameters
+    ----------
+    root : str
+        The root directory of the BIDS dataset.
+    validate : bool, optional
+        If True, all files are checked for BIDS compliance
+        when first indexed, and non-compliant files are ignored. This
+        provides a convenient way to restrict file indexing to only those
+        files defined in the "core" BIDS spec, as setting validate=True
+        will lead files in supplementary folders like derivatives/, code/,
+        etc. to be ignored.
+    absolute_paths : bool, optional
+        If True, queries always return absolute paths.
+        If False, queries return relative paths (for files and
+        directories).
+    derivatives : bool or str or list, optional
+        Specifies whether and/or which
+        derivatives to to index. If True, all pipelines found in the
+        derivatives/ subdirectory will be indexed. If a str or list, gives
+        the paths to one or more derivatives directories to index. If False
+        or None, the derivatives/ directory is ignored during indexing, and
+        derivatives will have to be added manually via add_derivatives().
+        Note: derivatives datasets MUST contain a dataset_description.json
+        file in order to be indexed.
+    config : str or list or None, optional
+        Optional name(s) of configuration file(s) to use.
+        By default (None), uses 'bids'.
+    sources : :obj:`bids.layout.BIDSLayout` or list or None, optional
+        Optional BIDSLayout(s) from which the current BIDSLayout is derived.
+    ignore : str or SRE_Pattern or list
+        Path(s) to exclude from indexing. Each
+        path is either a string or a SRE_Pattern object (i.e., compiled
+        regular expression). If a string is passed, it must be either an
+        absolute path, or be relative to the BIDS project root. If an
+        SRE_Pattern is passed, the contained regular expression will be
+        matched against the full (absolute) path of all files and
+        directories. By default, indexing ignores all files in 'code/',
+        'stimuli/', 'sourcedata/', 'models/', and any hidden files/dirs
+        beginning with '.' at root level.
+    force_index : str or SRE_Pattern or list
+        Path(s) to forcibly index in the
+        BIDSLayout, even if they would otherwise fail validation. See the
+        documentation for the ignore argument for input format details.
+        Note that paths in force_index takes precedence over those in
+        ignore (i.e., if a file matches both ignore and force_index, it
+        *will* be indexed).
+        Note: NEVER include 'derivatives' here; use
+        the derivatives argument (or :obj:`bids.layout.BIDSLayout.add_derivatives`) for that.
+    config_filename : str
+        Optional name of filename within directories
+        that contains configuration information.
+    regex_search : bool
+        Whether to require exact matching (True) or regex
+        search (False, default) when comparing the query string to each
+        entity in .get() calls. This sets a default for the instance, but
+        can be overridden in individual .get() requests.
+    database_file : str
+        Optional path to SQLite database containing the
+        index for this BIDS dataset. If a value is passed and the file
+        already exists, indexing is skipped. By default (i.e., if None),
+        an in-memory SQLite database is used, and the index will not
+        persist unless .save() is explicitly called.
+    reset_database : bool
+        If True, any existing file specified in the
+        database_file argument is deleted, and the BIDS dataset provided
+        in the root argument is reindexed. If False, indexing will be
+        skipped and the existing database file will be used. Ignored if
+        database_file is not provided.
+    index_metadata : bool
+        If True, all metadata files are indexed at
+        initialization. If False, metadata will not be available (but
+        indexing will be faster).
     """
 
     _default_ignore = ("code", "stimuli", "sourcedata", "models",
@@ -355,9 +377,11 @@ class BIDSLayout(object):
     def _in_scope(self, scope):
         """Determine whether current BIDSLayout is in the passed scope.
 
-        Args:
-            scope (str, list): The intended scope(s). Each value must be one of
-                'all', 'raw', 'derivatives', or a pipeline name.
+        Parameters
+        ----------
+        scope : str or list
+            The intended scope(s). Each value must be one of 'all', 'raw',
+            'derivatives', or a pipeline name.
         """
         scope = listify(scope)
 
@@ -388,7 +412,7 @@ class BIDSLayout(object):
         return list(set(layouts))
 
     def _sanitize_query_dtypes(self, entities):
-        """ Automatically convert entity query values to correct dtypes. """
+        """Automatically convert entity query values to correct dtypes."""
         entities = entities.copy()
         names = list(entities.keys())
         ents = {e.name: e for e in
@@ -419,17 +443,20 @@ class BIDSLayout(object):
     def save(self, filename='.index.db', replace_connection=True):
         """Save the current index as a SQLite3 DB at the specified location.
 
-        Args:
-            filename (str): The path to the desired database file. By default,
-                uses .index.db. If a relative path is passed, it is assumed to
-                be relative to the BIDSLayout root directory.
-            replace_connection (bool): If True, the newly created database will
-                be used for all subsequent connections. This means that any
-                changes to the index made after the .save() call will be
-                reflected in the database file. If False, the previous database
-                will continue to be used, and any subsequent changes will not
-                be reflected in the new file unless save() is explicitly called
-                again.
+        Parameters
+        ----------
+        filename : str, optional
+            The path to the desired database file. By default,
+            uses .index.db. If a relative path is passed, it is assumed to
+            be relative to the BIDSLayout root directory.
+        replace_connection : bool, optional
+            If True, the newly created database will
+            be used for all subsequent connections. This means that any
+            changes to the index made after the .save() call will be
+            reflected in the database file. If False, the previous database
+            will continue to be used, and any subsequent changes will not
+            be reflected in the new file unless save() is explicitly called
+            again.
         """
         filename = os.path.join(self.root, filename)
         new_db = sqlite3.connect(filename)
@@ -447,18 +474,23 @@ class BIDSLayout(object):
     def get_entities(self, scope='all', metadata=None):
         """Get entities for all layouts in the specified scope.
 
-        Args:
-            scope (str): The scope of the search space. Indicates which
-                BIDSLayouts' entities to extract. See BIDSLayout.get()
-                docstring for valid values.
-            metadata (bool, None): By default (None), all available entities
-                are returned. If True, only entities found in metadata files
-                (and not defined for filenames) are returned. If False, only
-                entities defined for filenames (and not those found in JSON
-                sidecars) are returned.
+        Parameters
+        ----------
+        scope : str
+            The scope of the search space. Indicates which
+            BIDSLayouts' entities to extract. See :obj:`bids.layout.BIDSLayout.get`
+            docstring for valid values.
+        metadata : bool or None
+            By default (None), all available entities
+            are returned. If True, only entities found in metadata files
+            (and not defined for filenames) are returned. If False, only
+            entities defined for filenames (and not those found in JSON
+            sidecars) are returned.
 
-        Returns: A dict, where keys are entity names and values are Entity
-            instances.
+        Returns
+        -------
+        dict
+            Dictionary where keys are entity names and values are Entity instances.
         """
         # TODO: memoize results
         layouts = self._get_layouts_in_scope(scope)
@@ -474,12 +506,15 @@ class BIDSLayout(object):
     def get_files(self, scope='all'):
         """Get BIDSFiles for all layouts in the specified scope.
 
-        Args:
-            scope (str): The scope of the search space. Indicates which
-                BIDSLayouts' entities to extract. See BIDSLayout.get()
-                docstring for valid values.
+        Parameters
+        ----------
+        scope : str
+            The scope of the search space. Indicates which
+            BIDSLayouts' entities to extract. See :obj:`bids.layout.BIDSLayout.get`
+            docstring for valid values.
 
-        Returns: A dict, where keys are file paths and values are BIDSFile
+        Returns:
+            A dict, where keys are file paths and values are :obj:`bids.layout.BIDSFile`
             instances.
         """
         # TODO: memoize results
@@ -498,22 +533,31 @@ class BIDSLayout(object):
                             config=None, include_unmatched=False):
         """Parse the passed filename for entity/value pairs.
 
-        Args:
-            filename (str): The filename to parse for entity values
-            scope (str, list): The scope of the search space. Indicates which
-                BIDSLayouts' entities to extract. See BIDSLayout.get()
-                docstring for valid values. By default, extracts all entities.
-            entities (list): An optional list of Entity instances to use in
-                extraction. If passed, the scope and config arguments are
-                ignored, and only the Entities in this list are used.
-            config (str, Config, list): One or more Config objects, or paths
-                to JSON config files on disk, containing the Entity definitions
-                to use in extraction. If passed, scope is ignored.
-            include_unmatched (bool): If True, unmatched entities are included
-                in the returned dict, with values set to None. If False
-                (default), unmatched entities are ignored.
+        Parameters
+        ----------
+        filename : str
+            The filename to parse for entity values
+        scope : str or list, optional
+            The scope of the search space. Indicates which
+            BIDSLayouts' entities to extract. See :obj:`bids.layout.BIDSLayout.get`
+            docstring for valid values. By default, extracts all entities.
+        entities : list or None, optional
+            An optional list of Entity instances to use in
+            extraction. If passed, the scope and config arguments are
+            ignored, and only the Entities in this list are used.
+        config : str or :obj:`bids.layout.models.Config` or list or None, optional
+            One or more :obj:`bids.layout.models.Config` objects, or paths
+            to JSON config files on disk, containing the Entity definitions
+            to use in extraction. If passed, scope is ignored.
+        include_unmatched : bool, optional
+            If True, unmatched entities are included
+            in the returned dict, with values set to None. If False
+            (default), unmatched entities are ignored.
 
-        Returns: A dict, where keys are Entity names and values are the
+        Returns
+        -------
+        dict
+            Dictionary where keys are Entity names and values are the
             values extracted from the filename.
         """
         # If either entities or config is specified, just pass through
@@ -528,17 +572,22 @@ class BIDSLayout(object):
     def add_derivatives(self, path, **kwargs):
         """Add BIDS-Derivatives datasets to tracking.
 
-        Args:
-            path (str, list): One or more paths to BIDS-Derivatives datasets.
-                Each path can point to either a derivatives/ directory
-                containing one more more pipeline directories, or to a single
-                pipeline directory (e.g., derivatives/fmriprep).
-            kwargs (dict): Optional keyword arguments to pass on to
-                BIDSLayout() when initializing each of the derivative datasets.
+        Parameters
+        ----------
+        path : str or list
+            One or more paths to BIDS-Derivatives datasets.
+            Each path can point to either a derivatives/ directory
+            containing one more more pipeline directories, or to a single
+            pipeline directory (e.g., derivatives/fmriprep).
+        kwargs : dict
+            Optional keyword arguments to pass on to
+            BIDSLayout() when initializing each of the derivative datasets.
 
-        Note: Every derivatives directory intended for indexing MUST contain a
-            valid dataset_description.json file. See the BIDS-Derivatives
-            specification for details.
+        Notes
+        -----
+        Every derivatives directory intended for indexing MUST contain a
+        valid dataset_description.json file. See the BIDS-Derivatives
+        specification for details.
         """
         paths = listify(path)
         deriv_dirs = []
@@ -592,16 +641,21 @@ class BIDSLayout(object):
     def to_df(self, metadata=False, **filters):
         """Return information for BIDSFiles tracked in Layout as pd.DataFrame.
 
-        Args:
-            metadata (bool): If True, includes columns for all metadata fields.
-                If False, only filename-based entities are included as columns.
-            filters: Optional keyword arguments passed on to get(). This allows
-                one to easily select only a subset of files for export.
+        Parameters
+        ----------
+        metadata : bool, optional
+            If True, includes columns for all metadata fields.
+            If False, only filename-based entities are included as columns.
+        filters : dict, optional
+            Optional keyword arguments passed on to get(). This allows
+            one to easily select only a subset of files for export.
 
-        Returns:
+        Returns
+        -------
+        :obj:`pandas.DataFrame`
             A pandas DataFrame, where each row is a file, and each column is
-                a tracked entity. NaNs are injected whenever a file has no
-                value for a given attribute.
+            a tracked entity. NaNs are injected whenever a file has no
+            value for a given attribute.
 
         """
         try:
@@ -638,47 +692,55 @@ class BIDSLayout(object):
             **filters):
         """Retrieve files and/or metadata from the current Layout.
 
-        Args:
-            return_type (str): Type of result to return. Valid values:
-                'object' (default): return a list of matching BIDSFile objects.
-                'file' or 'filename': return a list of matching filenames.
-                'dir': return a list of directories.
-                'id': return a list of unique IDs. Must be used together with
-                    a valid target.
-            target (str): Optional name of the target entity to get results for
-                (only used if return_type is 'dir' or 'id').
-            scope (str, list): Scope of the search space. If passed, only
-                nodes/directories that match the specified scope will be
-                searched. Possible values include:
-                    'all' (default): search all available directories.
-                    'derivatives': search all derivatives directories
-                    'raw': search only BIDS-Raw directories
-                    'self': search only the directly called BIDSLayout
-                    <PipelineName>: the name of a BIDS-Derivatives pipeline
-            regex_search (bool or None): Whether to require exact matching
-                (False) or regex search (True) when comparing the query string
-                to each entity.
-            absolute_paths (bool): Optionally override the instance-wide option
-                to report either absolute or relative (to the top of the
-                dataset) paths. If None, will fall back on the value specified
-                at BIDSLayout initialization.
-           filters (dict): Any optional key/values to filter the entities on.
-                Keys are entity names, values are regexes to filter on. For
-                example, passing filters={'subject': 'sub-[12]'} would return
-                only files that match the first two subjects.
+        Parameters
+        ----------
+        return_type : str, optional
+            Type of result to return. Valid values:
+            'object' (default): return a list of matching BIDSFile objects.
+            'file' or 'filename': return a list of matching filenames.
+            'dir': return a list of directories.
+            'id': return a list of unique IDs. Must be used together with a valid target.
+        target : str, optional
+            Optional name of the target entity to get results for
+            (only used if return_type is 'dir' or 'id').
+        scope : str or list, optional
+            Scope of the search space. If passed, only
+            nodes/directories that match the specified scope will be
+            searched. Possible values include:
+            'all' (default): search all available directories.
+            'derivatives': search all derivatives directories
+            'raw': search only BIDS-Raw directories
+            'self': search only the directly called BIDSLayout
+            <PipelineName>: the name of a BIDS-Derivatives pipeline
+        regex_search : bool or None, optional
+            Whether to require exact matching
+            (False) or regex search (True) when comparing the query string
+            to each entity.
+        absolute_paths : bool, optional
+            Optionally override the instance-wide option
+            to report either absolute or relative (to the top of the
+            dataset) paths. If None, will fall back on the value specified
+            at BIDSLayout initialization.
+        filters : dict
+            Any optional key/values to filter the entities on.
+            Keys are entity names, values are regexes to filter on. For
+            example, passing filters={'subject': 'sub-[12]'} would return
+            only files that match the first two subjects.
 
-        Returns:
+        Returns
+        -------
+        list of :obj:`bids.layout.BIDSFile` or str
             A list of BIDSFiles (default) or strings (see return_type).
 
-        Notes:
-            * In pybids 0.7.0, some keywords were changed. Namely: 'type'
-            becomes 'suffix', 'modality' becomes 'datatype', 'acq' becomes
-            'acquisition' and 'mod' becomes 'modality'. Using the wrong version
-            could result in get() silently returning wrong or no results. See
-            the changelog for more details.
-            * In pybids 0.9.0, the 'extensions' argument has been removed in
-            favor of the 'extension' entity.
-
+        Notes
+        -----
+        * In pybids 0.7.0, some keywords were changed. Namely: 'type'
+          becomes 'suffix', 'modality' becomes 'datatype', 'acq' becomes
+          'acquisition' and 'mod' becomes 'modality'. Using the wrong version
+          could result in get() silently returning wrong or no results. See
+          the changelog for more details.
+        * In pybids 0.9.0, the 'extensions' argument has been removed in
+          favor of the 'extension' entity.
         """
         # Warn users still expecting 0.6 behavior
         if 'type' in filters:
@@ -785,14 +847,20 @@ class BIDSLayout(object):
     def get_file(self, filename, scope='all'):
         """Return the BIDSFile object with the specified path.
 
-        Args:
-            filename (str): The path of the file to retrieve. Must be either
-                an absolute path, or relative to the root of this BIDSLayout.
-            scope (str, list): Scope of the search space. If passed, only
-                BIDSLayouts that match the specified scope will be
-                searched. See BIDSLayout.get() docstring for valid values.
+        Parameters
+        ----------
+        filename : str
+            The path of the file to retrieve. Must be either an absolute path, or relative to the
+            root of this BIDSLayout.
+        scope : str or list, optional
+            Scope of the search space. If passed, only BIDSLayouts that match the specified scope
+            will be searched. See :obj:`BIDSLayout.get` docstring for valid values.
+            Default is 'all'.
 
-        Returns: A BIDSFile, or None if no match was found.
+        Returns
+        -------
+        :obj:`bids.layout.BIDSFile` or None
+            File found, or None if no match was found.
         """
         filename = os.path.abspath(os.path.join(self.root, filename))
         for layout in self._get_layouts_in_scope(scope):
@@ -845,30 +913,37 @@ class BIDSLayout(object):
                         sampling_rate=None, skip_empty=False, **kwargs):
         """Return one or more variable Collections in the BIDS project.
 
-        Args:
-            level (str): The level of analysis to return variables for. Must be
-                one of 'run', 'session', 'subject', or 'dataset'.
-            types (str, list): Types of variables to retrieve. All valid values
-            reflect the filename stipulated in the BIDS spec for each kind of
-            variable. Valid values include: 'events', 'physio', 'stim',
-            'scans', 'participants', 'sessions', and 'regressors'.
-            variables (list): Optional list of variables names to return. If
-                None, all available variables are returned.
-            merge (bool): If True, variables are merged across all observations
-                of the current level. E.g., if level='subject', variables from
-                all subjects will be merged into a single collection. If False,
-                each observation is handled separately, and the result is
-                returned as a list.
-            sampling_rate (int, str): If level='run', the sampling rate to
-                pass onto the returned BIDSRunVariableCollection.
-            skip_empty (bool): Whether or not to skip empty Variables (i.e.,
-                where there are no rows/records in a file after applying any
-                filtering operations like dropping NaNs).
-            kwargs: Optional additional arguments to pass onto load_variables.
+        Parameters
+        ----------
+        level : {'run', 'session', 'subject', 'dataset'}
+            The level of analysis to return variables for. Must be one of 'run', 'session',
+            'subject', or 'dataset'.
+        types : str or list
+            Types of variables to retrieve. All valid values reflect the filename stipulated in the
+            BIDS spec for each kind of variable. Valid values include: 'events', 'physio', 'stim',
+            'scans', 'participants', 'sessions', and 'regressors'. Default is None.
+        variables : list
+            Optional list of variables names to return. If None, all available variables are
+            returned.
+        merge : bool
+            If True, variables are merged across all observations of the current level.
+            E.g., if level='subject', variables from all subjects will be merged into a single
+            collection. If False, each observation is handled separately, and the result is
+            returned as a list.
+        sampling_rate : int or str
+            If level='run', the sampling rate to pass onto the returned
+            :obj:`bids.variables.kollekshuns.BIDSRunVariableCollection`.
+        skip_empty : bool
+            Whether or not to skip empty Variables (i.e., where there are no rows/records in a file
+            after applying any filtering operations like dropping NaNs).
+        kwargs
+            Optional additional arguments to pass onto :obj:`bids.variables.io.load_variables`.
 
-        Returns:
-            A list of BIDSVariableCollections if merge=False; a single
-            BIDSVariableCollection if merge=True.
+        Returns
+        -------
+        list of :obj:`bids.variables.kollekshuns.BIDSVariableCollection` or :obj:`bids.variables.kollekshuns.BIDSVariableCollection`
+            A list if merge=False; a single :obj:`bids.variables.kollekshuns.BIDSVariableCollection`
+            if merge=True.
 
         """
         from bids.variables import load_variables
@@ -880,24 +955,32 @@ class BIDSLayout(object):
     def get_metadata(self, path, include_entities=False, scope='all'):
         """Return metadata found in JSON sidecars for the specified file.
 
-        Args:
-            path (str): Path to the file to get metadata for.
-            include_entities (bool): If True, all available entities extracted
-                from the filename (rather than JSON sidecars) are included in
-                the returned metadata dictionary.
-            scope (str, list): The scope of the search space. Each element must
-                be one of 'all', 'raw', 'self', 'derivatives', or a
-                BIDS-Derivatives pipeline name. Defaults to searching all
-                available datasets.
+        Parameters
+        ----------
+        path : str
+            Path to the file to get metadata for.
+        include_entities : bool, optional
+            If True, all available entities extracted
+            from the filename (rather than JSON sidecars) are included in
+            the returned metadata dictionary.
+        scope : str or list, optional
+            The scope of the search space. Each element must
+            be one of 'all', 'raw', 'self', 'derivatives', or a
+            BIDS-Derivatives pipeline name. Defaults to searching all
+            available datasets.
 
-        Returns: A dictionary of key/value pairs extracted from all of the
+        Returns
+        -------
+        dict
+            A dictionary of key/value pairs extracted from all of the
             target file's associated JSON sidecars.
 
-        Notes:
-            A dictionary containing metadata extracted from all matching .json
-            files is returned. In cases where the same key is found in multiple
-            files, the values in files closer to the input filename will take
-            precedence, per the inheritance rules in the BIDS specification.
+        Notes
+        -----
+        A dictionary containing metadata extracted from all matching .json
+        files is returned. In cases where the same key is found in multiple
+        files, the values in files closer to the input filename will take
+        precedence, per the inheritance rules in the BIDS specification.
 
         """
         for layout in self._get_layouts_in_scope(scope):
@@ -918,17 +1001,23 @@ class BIDSLayout(object):
     def get_dataset_description(self, scope='self', all_=False):
         """Return contents of dataset_description.json.
 
-        Args:
-            scope (str): The scope of the search space. Only descriptions of
-                BIDSLayouts that match the specified scope will be returned.
-                See BIDSLayout.get() docstring for valid values. Defaults to
-                'self'--i.e., returns the dataset_description.json file for
-                only the directly-called BIDSLayout.
-            all_ (bool): If True, returns a list containing descriptions for
-                all matching layouts. If False (default), returns for only the
-                first matching layout.
+        Parameters
+        ----------
+        scope : str
+            The scope of the search space. Only descriptions of
+            BIDSLayouts that match the specified scope will be returned.
+            See :obj:`bids.layout.BIDSLayout.get` docstring for valid values. Defaults to
+            'self' --i.e., returns the dataset_description.json file for
+            only the directly-called BIDSLayout.
+        all_ : bool
+            If True, returns a list containing descriptions for
+            all matching layouts. If False (default), returns for only the
+            first matching layout.
 
-        Returns: a dictionary or list of dictionaries (depending on all_).
+        Returns
+        -------
+        dict or list of dict
+            a dictionary or list of dictionaries (depending on all_).
         """
         layouts = self._get_layouts_in_scope(scope)
         if not all_:
@@ -941,25 +1030,27 @@ class BIDSLayout(object):
                     full_search=False, **filters):
         """Walk up file tree from specified path and return nearest matching file(s).
 
-        Args:
-            path (str): The file to search from.
-            return_type (str): What to return; must be one of 'filename'
-                (default) or 'tuple'.
-            strict (bool): When True, all entities present in both the input
-                path and the target file(s) must match perfectly. When False,
-                files will be ordered by the number of matching entities, and
-                partial matches will be allowed.
-            all_ (bool): When True, returns all matching files. When False
-                (default), only returns the first match.
-            ignore_strict_entities (str, list): Optional entity/entities to
-                exclude from strict matching when strict is True. This allows
-                one to search, e.g., for files of a different type while
-                matching all other entities perfectly by passing
-                ignore_strict_entities=['type']. Ignores extension by default.
-            full_search (bool): If True, searches all indexed files, even if
-                they don't share a common root with the provided path. If
-                False, only files that share a common root will be scanned.
-            filters: Optional keywords to pass on to .get().
+        Parameters
+        ----------
+        path (str): The file to search from.
+        return_type (str): What to return; must be one of 'filename'
+            (default) or 'tuple'.
+        strict (bool): When True, all entities present in both the input
+            path and the target file(s) must match perfectly. When False,
+            files will be ordered by the number of matching entities, and
+            partial matches will be allowed.
+        all_ (bool): When True, returns all matching files. When False
+            (default), only returns the first match.
+        ignore_strict_entities (str, list): Optional entity/entities to
+            exclude from strict matching when strict is True. This allows
+            one to search, e.g., for files of a different type while
+            matching all other entities perfectly by passing
+            ignore_strict_entities=['type']. Ignores extension by default.
+        full_search (bool): If True, searches all indexed files, even if
+            they don't share a common root with the provided path. If
+            False, only files that share a common root will be scanned.
+        filters : dict
+            Optional keywords to pass on to :obj:`bids.layout.BIDSLayout.get`.
         """
         path = os.path.abspath(path)
 
@@ -1113,15 +1204,23 @@ class BIDSLayout(object):
 
         """Return the scanning repetition time (TR) for one or more runs.
 
-        Args:
-            derivatives (bool): If True, also checks derivatives images.
-            filters: Optional keywords used to constrain the selected runs.
-                Can be any arguments valid for a .get call (e.g., BIDS entities
-                or JSON sidecar keys).
+        Parameters
+        ----------
+        derivatives : bool
+            If True, also checks derivatives images.
+        filters : dict
+            Optional keywords used to constrain the selected runs.
+            Can be any arguments valid for a .get call (e.g., BIDS entities
+            or JSON sidecar keys).
 
-        Returns: A single float.
+        Returns
+        -------
+        float
+            A single float.
 
-        Notes: Raises an exception if more than one unique TR is found.
+        Notes
+        -----
+        Raises an exception if more than one unique TR is found.
         """
         # Constrain search to functional images
         filters.update(suffix='bold', datatype='func')
@@ -1145,39 +1244,45 @@ class BIDSLayout(object):
                    scope='all', validate=True):
         """Construct a target filename for a file or dictionary of entities.
 
-        Args:
-            source (str, BIDSFile, dict): The source data to use to construct
-                the new file path. Must be one of:
-                - A BIDSFile object
-                - A string giving the path of a BIDSFile contained within the
-                  current Layout.
-                - A dict of entities, with entity names in keys and values in
-                  values
-            path_patterns (list): Optional path patterns to use to construct
-                the new file path. If None, the Layout-defined patterns will
-                be used. Entities should be represented by the name
-                surrounded by curly braces. Optional portions of the patterns
-                should be denoted by square brackets. Entities that require a
-                specific value for the pattern to match can pass them inside
-                carets. Default values can be assigned by specifying a string
-                after the pipe operator. E.g., (e.g., {type<image>|bold} would
-                only match the pattern if the entity 'type' was passed and its
-                value is "image", otherwise the default value "bold" will be
-                used).
-                    Example: 'sub-{subject}/[var-{name}/]{id}.csv'
-                    Result: 'sub-01/var-SES/1045.csv'
-            strict (bool): If True, all entities must be matched inside a
-                pattern in order to be a valid match. If False, extra entities
-                will be ignored so long as all mandatory entities are found.
-            scope (str, list): The scope of the search space. Indicates which
-                BIDSLayouts' path patterns to use. See BIDSLayout docstring
-                for valid values. By default, uses all available layouts. If
-                two or more values are provided, the order determines the
-                precedence of path patterns (i.e., earlier layouts will have
-                higher precedence).
-            validate (bool): If True, built path must pass BIDS validator. If
-                False, no validation is attempted, and an invalid path may be
-                returned (e.g., if an entity value contains a hyphen).
+        Parameters
+        ----------
+        source : str or :obj:`bids.layout.BIDSFile` or dict
+            The source data to use to construct the new file path.
+            Must be one of:
+            - A BIDSFile object
+            - A string giving the path of a BIDSFile contained within the
+              current Layout.
+            - A dict of entities, with entity names in keys and values in
+              values
+        path_patterns : list
+            Optional path patterns to use to construct
+            the new file path. If None, the Layout-defined patterns will
+            be used. Entities should be represented by the name
+            surrounded by curly braces. Optional portions of the patterns
+            should be denoted by square brackets. Entities that require a
+            specific value for the pattern to match can pass them inside
+            carets. Default values can be assigned by specifying a string
+            after the pipe operator. E.g., (e.g., {type<image>|bold} would
+            only match the pattern if the entity 'type' was passed and its
+            value is "image", otherwise the default value "bold" will be
+            used).
+                Example: 'sub-{subject}/[var-{name}/]{id}.csv'
+                Result: 'sub-01/var-SES/1045.csv'
+        strict : bool, optional
+            If True, all entities must be matched inside a
+            pattern in order to be a valid match. If False, extra entities
+            will be ignored so long as all mandatory entities are found.
+        scope : str or list, optional
+            The scope of the search space. Indicates which
+            BIDSLayouts' path patterns to use. See BIDSLayout docstring
+            for valid values. By default, uses all available layouts. If
+            two or more values are provided, the order determines the
+            precedence of path patterns (i.e., earlier layouts will have
+            higher precedence).
+        validate : bool, optional
+            If True, built path must pass BIDS validator. If
+            False, no validation is attempted, and an invalid path may be
+            returned (e.g., if an entity value contains a hyphen).
         """
         # 'is_file' is a crude check for Path objects
         if isinstance(source, six.string_types) or hasattr(source, 'is_file'):
@@ -1221,24 +1326,28 @@ class BIDSLayout(object):
         The new locations are defined by each BIDSFile's entities and the
         specified `path_patterns`.
 
-        Args:
-            files (list): Optional list of BIDSFile objects to write out. If
-                none provided, use files from running a get() query using
-                remaining **kwargs.
-            path_patterns (str, list): Write patterns to pass to each file's
-                write_file method.
-            symbolic_links (bool): Whether to copy each file as a symbolic link
-                or a deep copy.
-            root (str): Optional root directory that all patterns are relative
-                to. Defaults to current working directory.
-            conflicts (str):  Defines the desired action when the output path
-                already exists. Must be one of:
-                    'fail': raises an exception
-                    'skip' does nothing
-                    'overwrite': overwrites the existing file
-                    'append': adds  a suffix to each file copy, starting with 1
-            kwargs (kwargs): Optional key word arguments to pass into a get()
-                query.
+        Parameters
+        ----------
+        files : list
+            Optional list of BIDSFile objects to write out. If
+            none provided, use files from running a get() query using
+            remaining **kwargs.
+        path_patterns : str or list
+            Write patterns to pass to each file's write_file method.
+        symbolic_links : bool
+            Whether to copy each file as a symbolic link or a deep copy.
+        root : str
+            Optional root directory that all patterns are relative
+            to. Defaults to current working directory.
+        conflicts : str
+            Defines the desired action when the output path already exists.
+            Must be one of:
+                'fail': raises an exception
+                'skip' does nothing
+                'overwrite': overwrites the existing file
+                'append': adds  a suffix to each file copy, starting with 1
+        kwargs : dict
+            Optional key word arguments to pass into a get() query.
         """
         _files = self.get(**kwargs)
         if files:
@@ -1255,29 +1364,37 @@ class BIDSLayout(object):
         """Write arbitrary data to a file defined by the passed entities and
         path patterns.
 
-        Args:
-            entities (dict): A dictionary of entities, with Entity names in
-                keys and values for the desired file in values.
-            path_patterns (list): Optional path patterns to use when building
-                the filename. If None, the Layout-defined patterns will be
-                used.
-            contents (object): Contents to write to the generate file path.
-                Can be any object serializable as text or binary data (as
-                defined in the content_mode argument).
-            link_to (str): Optional path with which to create a symbolic link
-                to. Used as an alternative to and takes priority over the
-                contents argument.
-            conflicts (str):  Defines the desired action when the output path
-                already exists. Must be one of:
-                    'fail': raises an exception
-                    'skip' does nothing
-                    'overwrite': overwrites the existing file
-                    'append': adds  a suffix to each file copy, starting with 1
-            strict (bool): If True, all entities must be matched inside a
-                pattern in order to be a valid match. If False, extra entities
-            validate (bool): If True, built path must pass BIDS validator. If
-                False, no validation is attempted, and an invalid path may be
-                returned (e.g., if an entity value contains a hyphen).
+        Parameters
+        ----------
+        entities : dict
+            A dictionary of entities, with Entity names in
+            keys and values for the desired file in values.
+        path_patterns : list
+            Optional path patterns to use when building
+            the filename. If None, the Layout-defined patterns will be
+            used.
+        contents : object
+            Contents to write to the generate file path.
+            Can be any object serializable as text or binary data (as
+            defined in the content_mode argument).
+        link_to : str
+            Optional path with which to create a symbolic link
+            to. Used as an alternative to and takes priority over the
+            contents argument.
+        conflicts : str
+            Defines the desired action when the output path already exists.
+            Must be one of:
+                'fail': raises an exception
+                'skip' does nothing
+                'overwrite': overwrites the existing file
+                'append': adds  a suffix to each file copy, starting with 1
+        strict : bool
+            If True, all entities must be matched inside a
+            pattern in order to be a valid match. If False, extra entities
+        validate : bool
+            If True, built path must pass BIDS validator. If
+            False, no validation is attempted, and an invalid path may be
+            returned (e.g., if an entity value contains a hyphen).
         """
         path = self.build_path(entities, path_patterns, strict,
                                validate=validate)

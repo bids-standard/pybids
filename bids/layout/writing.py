@@ -1,6 +1,6 @@
-'''
+"""
 Contains helper functions that involve writing operations.
-'''
+"""
 
 import warnings
 import os
@@ -18,19 +18,24 @@ def replace_entities(entities, pattern):
     Replaces all entity names in a given pattern with the corresponding
     values provided by entities.
 
-    Args:
-        entities (dict): A dictionary mapping entity names to entity values.
-        pattern (str): A path pattern that contains entity names denoted
-            by curly braces. Optional portions denoted by square braces.
-            For example: 'sub-{subject}/[var-{name}/]{id}.csv'
-            Accepted entity values, using regex matching, denoted within angle
-            brackets.
-            For example: 'sub-{subject<01|02>}/{task}.csv'
+    Parameters
+    ----------
+    entities : dict
+        A dictionary mapping entity names to entity values.
+    pattern : str
+        A path pattern that contains entity names denoted
+        by curly braces. Optional portions denoted by square braces.
+        For example: 'sub-{subject}/[var-{name}/]{id}.csv'
+        Accepted entity values, using regex matching, denoted within angle
+        brackets.
+        For example: 'sub-{subject<01|02>}/{task}.csv'
 
-    Returns:
-        A new string with the entity values inserted where entity names
-        were denoted in the provided pattern.
+    Returns
+    -------
+    A new string with the entity values inserted where entity names
+    were denoted in the provided pattern.
     """
+    entities = entities.copy()  # make a local copy, since dicts are mutable
     ents = re.findall(r'\{(.*?)\}', pattern)
     new_path = pattern
     for ent in ents:
@@ -60,25 +65,30 @@ def build_path(entities, path_patterns, strict=False):
     Constructs a path given a set of entities and a list of potential
     filename patterns to use.
 
-    Args:
-        entities (dict): A dictionary mapping entity names to entity values.
-        path_patterns (str, list): One or more filename patterns to write
-            the file to. Entities should be represented by the name
-            surrounded by curly braces. Optional portions of the patterns
-            should be denoted by square brackets. Entities that require a
-            specific value for the pattern to match can pass them inside
-            carets. Default values can be assigned by specifying a string after
-            the pipe operator. E.g., (e.g., {type<image>|bold} would only match
-            the pattern if the entity 'type' was passed and its value is
-            "image", otherwise the default value "bold" will be used).
-                Example 1: 'sub-{subject}/[var-{name}/]{id}.csv'
-                Result 2: 'sub-01/var-SES/1045.csv'
-        strict (bool): If True, all passed entities must be matched inside a
-            pattern in order to be a valid match. If False, extra entities will
-            be ignored so long as all mandatory entities are found.
+    Parameters
+    ----------
+    entities : dict
+        A dictionary mapping entity names to entity values.
+    path_patterns : str or list
+        One or more filename patterns to write
+        the file to. Entities should be represented by the name
+        surrounded by curly braces. Optional portions of the patterns
+        should be denoted by square brackets. Entities that require a
+        specific value for the pattern to match can pass them inside
+        carets. Default values can be assigned by specifying a string after
+        the pipe operator. E.g., (e.g., {type<image>|bold} would only match
+        the pattern if the entity 'type' was passed and its value is
+        "image", otherwise the default value "bold" will be used).
+            Example 1: 'sub-{subject}/[var-{name}/]{id}.csv'
+            Result 2: 'sub-01/var-SES/1045.csv'
+    strict : bool
+        If True, all passed entities must be matched inside a
+        pattern in order to be a valid match. If False, extra entities will
+        be ignored so long as all mandatory entities are found.
 
-    Returns:
-        A constructed path for this file based on the provided patterns.
+    Returns
+    -------
+    A constructed path for this file based on the provided patterns.
     """
     path_patterns = listify(path_patterns)
 
@@ -112,22 +122,29 @@ def write_contents_to_file(path, contents=None, link_to=None,
     Uses provided filename patterns to write contents to a new path, given
     a corresponding entity map.
 
-    Args:
-        path (str): Destination path of the desired contents.
-        contents (str): Raw text or binary encoded string of contents to write
-            to the new path.
-        link_to (str): Optional path with which to create a symbolic link to.
-            Used as an alternative to and takes priority over the contents
-            argument.
-        content_mode (str): Either 'text' or 'binary' to indicate the writing
-            mode for the new file. Only relevant if contents is provided.
-        root (str): Optional root directory that all patterns are relative
-            to. Defaults to current working directory.
-        conflicts (str): One of 'fail', 'skip', 'overwrite', or 'append'
-            that defines the desired action when the output path already
-            exists. 'fail' raises an exception; 'skip' does nothing;
-            'overwrite' overwrites the existing file; 'append' adds  a suffix
-            to each file copy, starting with 1. Default is 'fail'.
+    Parameters
+    ----------
+    path : str
+        Destination path of the desired contents.
+    contents : str
+        Raw text or binary encoded string of contents to write
+        to the new path.
+    link_to : str
+        Optional path with which to create a symbolic link to.
+        Used as an alternative to and takes priority over the contents
+        argument.
+    content_mode : {'text', 'binary'}
+        Either 'text' or 'binary' to indicate the writing
+        mode for the new file. Only relevant if contents is provided.
+    root : str
+        Optional root directory that all patterns are relative
+        to. Defaults to current working directory.
+    conflicts : {'fail', 'skip', 'overwrite', 'append'}
+        One of 'fail', 'skip', 'overwrite', or 'append'
+        that defines the desired action when the output path already
+        exists. 'fail' raises an exception; 'skip' does nothing;
+        'overwrite' overwrites the existing file; 'append' adds  a suffix
+        to each file copy, starting with 1. Default is 'fail'.
     """
 
     if root is None and not isabs(path):

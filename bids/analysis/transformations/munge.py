@@ -1,7 +1,7 @@
-'''
+"""
 Transformations that primarily involve manipulating/munging variables into
 other formats or shapes.
-'''
+"""
 
 import numpy as np
 import pandas as pd
@@ -17,8 +17,9 @@ from bids.variables import DenseRunVariable, SimpleVariable
 
 
 class Assign(Transformation):
-    ''' Assign one variable's amplitude, duration, or onset attribute to
-    another. '''
+    """Assign one variable's amplitude, duration, or onset attribute to
+    another.
+    """
 
     _groupable = False
     _input_type = 'variable'
@@ -71,11 +72,13 @@ class Assign(Transformation):
 
 
 class Copy(Transformation):
-    ''' Copy/clone a variable.
+    """Copy/clone a variable.
 
-    Args:
-        col (str): Name of variable to copy.
-    '''
+    Parameters
+    ----------
+    col : str
+        Name of variable to copy.
+    """
 
     _groupable = False
     _output_required = True
@@ -87,11 +90,13 @@ class Copy(Transformation):
 
 
 class Delete(Transformation):
-    ''' Delete variables from the namespace.
+    """Delete variables from the namespace.
 
-    Args:
-        variables (list, str): Name(s) of variables to delete.
-    '''
+    Parameters
+    ----------
+    variables : list or str
+        Name(s) of variables to delete.
+    """
     _groupable = False
     _loopable = False
     _input_type = 'variable'
@@ -113,7 +118,7 @@ class DropNA(Transformation):
     _allow_categorical = ('variables',)
 
     def _transform(self, var):
-        
+
         # Identify non-NA rows
         valid = var.values.notna().values
         var.select_rows(valid)
@@ -165,7 +170,7 @@ class Factor(Transformation):
 
 
 class Filter(Transformation):
-    '''Filter (remove) the values given a query to satisfy'''
+    """Filter (remove) the values given a query to satisfy"""
 
     _groupable = False
     _input_type = 'variable'
@@ -202,27 +207,27 @@ class Filter(Transformation):
 
 
 class Rename(Transformation):
-    ''' Rename a variable.
+    """Rename a variable.
 
-    Args:
-        var (str): Name of existing variable to rename.
-    '''
+    Parameters
+    ----------
+    var : str
+        Name of existing variable to rename.
+    """
     _groupable = False
     _output_required = True
     _input_type = 'variable'
     _allow_categorical = ('variables',)
 
     def _transform(self, var):
-        ''' Rename happens automatically in the base class, so all we need to
-        do is unset the original variable in the collection. '''
+        """Rename happens automatically in the base class, so all we need to
+        do is unset the original variable in the collection. """
         self.collection.variables.pop(var.name)
         return var.values
 
 
 class Replace(Transformation):
-    ''' Replace values in the values, onset, or duration attributes.
-
-    '''
+    """Replace values in the values, onset, or duration attributes."""
     _groupable = False
     _input_type = 'variable'
     _return_type = 'variable'
@@ -244,12 +249,14 @@ class Replace(Transformation):
 
 
 class Select(Transformation):
-    ''' Select variables to retain.
+    """Select variables to retain.
 
-    Args:
-        variables (list, str): Name(s) of variables to retain. All variables
-            not in the list will be dropped from the collection.
-    '''
+    Parameters
+    ----------
+    variables : list or str
+        Name(s) of variables to retain. All variables
+        not in the list will be dropped from the collection.
+    """
     _groupable = False
     _loopable = False
     _input_type = 'variable'
@@ -261,12 +268,14 @@ class Select(Transformation):
 
 
 class Split(Transformation):
-    ''' Split a single variable into N variables as defined by the levels of one or
+    """Split a single variable into N variables as defined by the levels of one or
     more other variables.
 
-    Args:
-        by (str, list): Name(s) of variable(s) to split on.
-    '''
+    Parameters
+    ----------
+    by : str or list
+        Name(s) of variable(s) to split on.
+    """
 
     _variables_used = ('variables', 'by')
     _groupable = False
@@ -316,7 +325,7 @@ class Split(Transformation):
 
 
 class ToDense(Transformation):
-    ''' Convert variable to dense representation. '''
+    """Convert variable to dense representation."""
 
     _groupable = False
     _input_type = 'variable'

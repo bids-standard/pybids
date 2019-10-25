@@ -1,4 +1,4 @@
-""" File-indexing functionality. """
+"""File-indexing functionality. """
 
 import os
 import re
@@ -29,7 +29,7 @@ def _extract_entities(bidsfile, entities):
 
 
 def _check_path_matches_patterns(path, patterns):
-    ''' Check if the path matches at least one of the provided patterns. '''
+    """Check if the path matches at least one of the provided patterns. """
     if not patterns:
         return False
     path = os.path.abspath(path)
@@ -143,7 +143,7 @@ class BIDSLayoutIndexer(object):
             break
 
     def _index_file(self, f, dirpath, entities, default_action=None):
-        ''' Create DB record for file and its tags. '''
+        """Create DB record for file and its tags. """
         abs_fn = os.path.join(dirpath, f)
 
         # Skip files that fail validation, unless forcibly indexing
@@ -171,11 +171,11 @@ class BIDSLayoutIndexer(object):
         return bf
 
     def index_files(self):
-        ''' Index all files in the BIDS dataset. '''
+        """Index all files in the BIDS dataset. """
         self._index_dir(self.root, self.config)
 
     def index_metadata(self):
-        ''' Index metadata for all files in the BIDS dataset. '''
+        """Index metadata for all files in the BIDS dataset. """
         # Process JSON files first if we're indexing metadata
         all_files = self.layout.get(absolute_paths=True)
 

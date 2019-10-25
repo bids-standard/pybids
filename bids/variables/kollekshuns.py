@@ -1,9 +1,9 @@
-''' Classes and functions related to the management of sets of BIDSVariables.
+"""Classes and functions related to the management of sets of BIDSVariables.
 
 Why 'kollekshuns'? Because 'collections' would conflict with the standard lib
 module of the same name on Python 2. We could go with something sensible but
 verbose like 'variable_collections', but that would make far too much sense.
-'''
+"""
 
 import pandas as pd
 from copy import copy
@@ -19,18 +19,20 @@ import numpy as np
 
 
 class BIDSVariableCollection(object):
-
-    ''' A container for one or more variables extracted from variable files
+    """A container for one or more variables extracted from variable files
     at a single level of analysis.
 
-    Args:
-        variables (list): A list of BIDSVariables or SimpleVariables.
+    Parameters
+    ----------
+    variables : list
+        A list of BIDSVariables or SimpleVariables.
 
-    Notes:
-        * Variables in the list must all share the same analysis level, which
-          must be one of 'session', 'subject', or 'dataset' level. For
-          run-level Variables, use the BIDSRunVariableCollection.
-    '''
+    Notes
+    -----
+    Variables in the list must all share the same analysis level, which
+    must be one of 'session', 'subject', or 'dataset' level. For
+    run-level Variables, use the BIDSRunVariableCollection.
+    """
 
     def __init__(self, variables):
 
@@ -67,16 +69,20 @@ class BIDSVariableCollection(object):
 
     @staticmethod
     def merge_variables(variables, **kwargs):
-        ''' Concatenates Variables along row axis.
+        """Concatenates Variables along row axis.
 
-        Args:
-            variables (list): List of Variables to merge. Variables can have
-                different names (and all Variables that share a name will be
-                concatenated together).
+        Parameters
+        ----------
+        variables : list
+            List of Variables to merge. Variables can have
+            different names (and all Variables that share a name will be
+            concatenated together).
 
-        Returns:
+        Returns
+        -------
+        list
             A list of Variables.
-        '''
+        """
         var_dict = OrderedDict()
         for v in variables:
             if v.name not in var_dict:
@@ -86,23 +92,31 @@ class BIDSVariableCollection(object):
                 for vars_ in list(var_dict.values())]
 
     def to_df(self, variables=None, format='wide', fillna=np.nan, **kwargs):
-        ''' Merge variables into a single pandas DataFrame.
+        """Merge variables into a single pandas DataFrame.
 
-        Args:
-            variables (list): Optional list of column names to retain; if None,
-                all variables are returned.
-            format (str): Whether to return a DataFrame in 'wide' or 'long'
-                format. In 'wide' format, each row is defined by a unique
-                entity combination, and each variable is in a separate column.
-                In 'long' format, each row is a unique combination of entities
-                and variable names, and a single 'amplitude' column provides
-                the value.
-            fillna: Replace missing values with the specified value.
-            kwargs: Optional keyword arguments to pass onto each Variable's
-                to_df() call (e.g., condition, entities, and timing).
+        Parameters
+        ----------
+        variables : list
+            Optional list of column names to retain; if None,
+            all variables are returned.
+        format : {'wide', 'long'}
+            Whether to return a DataFrame in 'wide' or 'long'
+            format. In 'wide' format, each row is defined by a unique
+            entity combination, and each variable is in a separate column.
+            In 'long' format, each row is a unique combination of entities
+            and variable names, and a single 'amplitude' column provides
+            the value.
+        fillna : value
+            Replace missing values with the specified value.
+        kwargs : dict
+            Optional keyword arguments to pass onto each Variable's
+            to_df() call (e.g., condition, entities, and timing).
 
-        Returns: A pandas DataFrame.
-        '''
+        Returns
+        -------
+        :obj:`pandas.DataFrame`
+            A pandas DataFrame.
+        """
 
         if variables is None:
             variables = list(self.variables.keys())
@@ -129,18 +143,23 @@ class BIDSVariableCollection(object):
 
     @classmethod
     def from_df(cls, data, entities=None, source='contrast'):
-        ''' Create a Collection from a pandas DataFrame.
+        """Create a Collection from a pandas DataFrame.
 
-        Args:
-            df (DataFrame): The DataFrame to convert to a Collection. Each
-                column will be converted to a SimpleVariable.
-            entities (DataFrame): An optional second DataFrame containing
-                entity information.
-            source (str): The value to set as the source for all Variables.
+        Parameters
+        ----------
+        df : :obj:`pandas.DataFrame`
+            The DataFrame to convert to a Collection. Each
+            column will be converted to a SimpleVariable.
+        entities : :obj:`pandas.DataFrame`
+            An optional second DataFrame containing
+            entity information.
+        source : str
+            The value to set as the source for all Variables.
 
-        Returns:
-            A BIDSVariableCollection.
-        '''
+        Returns
+        -------
+        BIDSVariableCollection
+        """
         variables = []
         for col in data.columns:
             _data = pd.DataFrame(data[col].values, columns=['amplitude'])
@@ -150,26 +169,28 @@ class BIDSVariableCollection(object):
         return BIDSVariableCollection(variables)
 
     def clone(self):
-        ''' Returns a shallow copy of the current instance, except that all
+        """Returns a shallow copy of the current instance, except that all
         variables are deep-cloned.
-        '''
+        """
         clone = copy(self)
         clone.variables = {k: v.clone() for (k, v) in self.variables.items()}
         return clone
 
     def matches_entities(self, entities, strict=False):
-        ''' Checks whether current Collection's entities match the input. '''
+        """Checks whether current Collection's entities match the input. """
         return matches_entities(self, entities, strict)
 
     def _index_entities(self):
-        ''' Sets current instance's entities based on the existing index.
+        """Sets current instance's entities based on the existing index.
 
-        Note: Only entity key/value pairs common to all rows in all contained
-            Variables are returned. E.g., if a Collection contains Variables
-            extracted from runs 1, 2 and 3 from subject '01', the returned dict
-            will be {'subject': '01'}; the runs will be excluded as they vary
-            across the Collection contents.
-        '''
+        Notes
+        -----
+        Only entity key/value pairs common to all rows in all contained
+        Variables are returned. E.g., if a Collection contains Variables
+        extracted from runs 1, 2 and 3 from subject '01', the returned dict
+        will be {'subject': '01'}; the runs will be excluded as they vary
+        across the Collection contents.
+        """
         all_ents = pd.DataFrame.from_records(
             [v.entities for v in self.variables.values()])
         constant = all_ents.apply(lambda x: x.nunique() == 1)
@@ -194,15 +215,18 @@ class BIDSVariableCollection(object):
         self.variables[var] = obj
 
     def match_variables(self, pattern, return_type='name'):
-        ''' Return columns whose names match the provided regex pattern.
+        """Return columns whose names match the provided regex pattern.
 
-        Args:
-            pattern (str): A regex pattern to match all variable names against.
-            return_type (str): What to return. Must be one of:
-                'name': Returns a list of names of matching variables.
-                'variable': Returns a list of Variable objects whose names
-                match.
-        '''
+        Parameters
+        ----------
+        pattern : str
+            A regex pattern to match all variable names against.
+        return_type : {'name', 'variable'}
+            What to return. Must be one of:
+            'name': Returns a list of names of matching variables.
+            'variable': Returns a list of Variable objects whose names
+            match.
+        """
         pattern = re.compile(pattern)
         vars_ = [v for v in self.variables.values() if pattern.search(v.name)]
         return vars_ if return_type.startswith('var') \
@@ -210,20 +234,23 @@ class BIDSVariableCollection(object):
 
 
 class BIDSRunVariableCollection(BIDSVariableCollection):
-
-    ''' A container for one or more RunVariables--i.e., Variables that have a
+    """A container for one or more RunVariables--i.e., Variables that have a
     temporal dimension.
 
-    Args:
-        variables (list): A list of SparseRunVariable and/or DenseRunVariable.
-        sampling_rate (float): Sampling rate (in Hz) to use when working with
-            dense representations of variables. If None, defaults to 10.
+    Parameters
+    ----------
+    variables : list
+        A list of SparseRunVariable and/or DenseRunVariable.
+    sampling_rate : float
+        Sampling rate (in Hz) to use when working with
+        dense representations of variables. If None, defaults to 10.
 
-    Notes:
-        * Variables in the list must all be at the 'run' level. For other
-          levels (session, subject, or dataset), use the
-          BIDSVariableCollection.
-    '''
+    Notes
+    -----
+    Variables in the list must all be at the 'run' level. For other
+    levels (session, subject, or dataset), use the
+    BIDSVariableCollection.
+    """
 
     def __init__(self, variables, sampling_rate=None):
         # Don't put the default value in signature because None is passed from
@@ -244,22 +271,28 @@ class BIDSRunVariableCollection(BIDSVariableCollection):
 
     def resample(self, sampling_rate=None, variables=None, force_dense=False,
                  in_place=False, kind='linear'):
-        ''' Resample all dense variables (and optionally, sparse ones) to the
+        """Resample all dense variables (and optionally, sparse ones) to the
         specified sampling rate.
 
-        Args:
-            sampling_rate (int, float): Target sampling rate (in Hz). If None,
-                uses the instance sampling rate.
-            variables (list): Optional list of Variables to resample. If None,
-                all variables are resampled.
-            force_dense (bool): if True, all sparse variables will be forced to
-                dense.
-            in_place (bool): When True, all variables are overwritten in-place.
-                When False, returns resampled versions of all variables.
-            kind (str): Argument to pass to scipy's interp1d; indicates the
-                kind of interpolation approach to use. See interp1d docs for
-                valid values.
-        '''
+        Parameters
+        ----------
+        sampling_rate : int or float
+            Target sampling rate (in Hz). If None,
+            uses the instance sampling rate.
+        variables : list
+            Optional list of Variables to resample. If None,
+            all variables are resampled.
+        force_dense : bool
+            if True, all sparse variables will be forced to
+            dense.
+        in_place : bool
+            When True, all variables are overwritten in-place.
+            When False, returns resampled versions of all variables.
+        kind : str
+            Argument to pass to scipy's interp1d; indicates the
+            kind of interpolation approach to use. See interp1d docs for
+            valid values.
+        """
 
         # Store old sampling rate-based variables
         sampling_rate = sampling_rate or self.sampling_rate
@@ -290,32 +323,43 @@ class BIDSRunVariableCollection(BIDSVariableCollection):
     def to_df(self, variables=None, format='wide', sparse=True,
               sampling_rate=None, include_sparse=True, include_dense=True,
               **kwargs):
-        ''' Merge columns into a single pandas DataFrame.
+        """Merge columns into a single pandas DataFrame.
 
-        Args:
-            variables (list): Optional list of variable names to retain;
-                if None, all variables are written out.
-            format (str): Whether to return a DataFrame in 'wide' or 'long'
-                format. In 'wide' format, each row is defined by a unique
-                onset/duration, and each variable is in a separate column. In
-                'long' format, each row is a unique combination of onset,
-                duration, and variable name, and a single 'amplitude' column
-                provides the value.
-            sparse (bool): If True, variables will be kept in a sparse
-                format provided they are all internally represented as such.
-                If False, a dense matrix (i.e., uniform sampling rate for all
-                events) will be exported. Will be ignored if at least one
-                variable is dense.
-            sampling_rate (float): If a dense matrix is written out, the
-                sampling rate (in Hz) to use for downsampling. Defaults to the
-                value currently set in the instance.
-            kwargs: Optional keyword arguments to pass onto each Variable's
-                to_df() call (e.g., condition, entities, and timing).
-            include_sparse (bool): Whether or not to include sparse Variables.
-            include_dense (bool): Whether or not to include dense Variables.
+        Parameters
+        ----------
+        variables : list
+            Optional list of variable names to retain;
+            if None, all variables are written out.
+        format : str
+            Whether to return a DataFrame in 'wide' or 'long'
+            format. In 'wide' format, each row is defined by a unique
+            onset/duration, and each variable is in a separate column. In
+            'long' format, each row is a unique combination of onset,
+            duration, and variable name, and a single 'amplitude' column
+            provides the value.
+        sparse : bool
+            If True, variables will be kept in a sparse
+            format provided they are all internally represented as such.
+            If False, a dense matrix (i.e., uniform sampling rate for all
+            events) will be exported. Will be ignored if at least one
+            variable is dense.
+        sampling_rate : float
+            If a dense matrix is written out, the
+            sampling rate (in Hz) to use for downsampling. Defaults to the
+            value currently set in the instance.
+        kwargs : dict
+            Optional keyword arguments to pass onto each Variable's
+            to_df() call (e.g., condition, entities, and timing).
+        include_sparse : bool
+            Whether or not to include sparse Variables.
+        include_dense : bool
+            Whether or not to include dense Variables.
 
-        Returns: A pandas DataFrame.
-        '''
+        Returns
+        -------
+        :obj:`pandas.DataFrame`
+            A pandas DataFrame.
+        """
 
         if not include_sparse and not include_dense:
             raise ValueError("You can't exclude both dense and sparse "
@@ -352,18 +396,22 @@ class BIDSRunVariableCollection(BIDSVariableCollection):
 
 
 def merge_collections(collections, force_dense=False, sampling_rate='auto'):
-    ''' Merge two or more collections at the same level of analysis.
+    """Merge two or more collections at the same level of analysis.
 
-    Args:
-        collections (list): List of Collections to merge.
-        sampling_rate (int, str): Sampling rate to use if it becomes necessary
-            to resample DenseRunVariables. Either an integer or 'auto' (see
-            merge_variables docstring for further explanation).
+    Parameters
+    ----------
+    collections : list
+        List of Collections to merge.
+    sampling_rate : int or str
+        Sampling rate to use if it becomes necessary
+        to resample DenseRunVariables. Either an integer or 'auto' (see
+        merge_variables docstring for further explanation).
 
-    Returns:
-        A BIDSVariableCollection or BIDSRunVariableCollection, depending
-        on the type of the input collections.
-    '''
+    Returns
+    -------
+    BIDSVariableCollection or BIDSRunVariableCollection
+        Result type depends on the type of the input collections.
+    """
     if len(listify(collections)) == 1:
         return collections
 

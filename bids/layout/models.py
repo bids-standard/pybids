@@ -22,17 +22,21 @@ Base = declarative_base()
 
 
 class Config(Base):
-    """ Container for BIDS configuration information.
+    """Container for BIDS configuration information.
 
-    Args:
-        name (str): The name to give the Config (e.g., 'bids').
-        entities (list): A list of dictionaries containing entity configuration
-            information.
-        default_path_patterns (list): Optional list of patterns used to build
-            new paths.
-        session (Session, None): an optional SQLAlchemy session. If passed,
-            the session is used to update the database with any newly created
-            Entity objects. If None, no database update occurs.
+    Parameters
+    ----------
+    name : str
+        The name to give the Config (e.g., 'bids').
+    entities : list
+        A list of dictionaries containing entity configuration
+        information.
+    default_path_patterns : list
+        Optional list of patterns used to build new paths.
+    session : :obj:`sqlalchemy.orm.session.Session` or None
+        An optional SQLAlchemy session. If passed,
+        the session is used to update the database with any newly created
+        Entity objects. If None, no database update occurs.
     """
     __tablename__ = 'configs'
 
@@ -68,21 +72,26 @@ class Config(Base):
 
     @classmethod
     def load(self, config, session=None):
-        ''' Load a Config instance from the passed configuration data.
+        """Load a Config instance from the passed configuration data.
 
-        Args:
-            config (str, dict): A string or dict containing configuration
-                information. Must be one of:
-                * A string giving the name of a predefined config file
-                    (e.g., 'bids' or 'derivatives')
-                * A path to a JSON file containing config information
-                * A dictionary containing config information
-            session (Session, None): An optional SQLAlchemy Session instance.
-                If passed, the session is used to check the database for (and
-                return) an existing Config with name defined in config['name'].
+        Parameters
+        ----------
+        config : str or dict
+            A string or dict containing configuration information.
+            Must be one of:
+            * A string giving the name of a predefined config file
+                (e.g., 'bids' or 'derivatives')
+            * A path to a JSON file containing config information
+            * A dictionary containing config information
+        session : :obj:`sqlalchemy.orm.session.Session` or None
+            An optional SQLAlchemy Session instance.
+            If passed, the session is used to check the database for (and
+            return) an existing Config with name defined in config['name'].
 
-        Returns: A Config instance.
-        '''
+        Returns
+        -------
+        A Config instance.
+        """
 
         if isinstance(config, six.string_types):
             config_paths = get_option('config_paths')
@@ -105,11 +114,12 @@ class Config(Base):
 
 
 class BIDSFile(Base):
-    """ Represents a single file or directory in a BIDS dataset.
+    """Represents a single file or directory in a BIDS dataset.
 
-    Args:
-        filename (str): The path to the corresponding file.
- 
+    Parameters
+    ----------
+    filename : str
+        The path to the corresponding file.
     """
     __tablename__ = 'files'
 
@@ -157,19 +167,25 @@ class BIDSFile(Base):
         return self.path
 
     def get_associations(self, kind=None, include_parents=False):
-        """ Get associated files, optionally limiting by association kind.
+        """Get associated files, optionally limiting by association kind.
 
-        Args:
-            kind (str): The kind of association to return (e.g., "Child").
-                By default, all associations are returned.
-            include_parents (bool): If True, files related through inheritance
-                are included in the returned list. If False, only directly
-                associated files are returned. For example, a file's JSON
-                sidecar will always be returned, but other JSON files from
-                which the sidecar inherits will only be returned if
-                include_parents=True.
+        Parameters
+        ----------
+        kind : str
+            The kind of association to return (e.g., "Child").
+            By default, all associations are returned.
+        include_parents : bool
+            If True, files related through inheritance
+            are included in the returned list. If False, only directly
+            associated files are returned. For example, a file's JSON
+            sidecar will always be returned, but other JSON files from
+            which the sidecar inherits will only be returned if
+            include_parents=True.
 
-        Returns: A list of BIDSFile instances.
+        Returns
+        -------
+        list
+            A list of BIDSFile instances.
         """
         if kind is None:
             return self._associations
@@ -191,25 +207,31 @@ class BIDSFile(Base):
         return chain(*[collect_associations([], bf) for bf in associations])
 
     def get_metadata(self):
-        """ Return all metadata associated with the current file. """
+        """Return all metadata associated with the current file. """
         return self.get_entities(metadata=True)
 
     def get_entities(self, metadata=False, values='tags'):
-        """ Return entity information for the current file.
+        """Return entity information for the current file.
 
-        Args:
-            metadata (bool, None): If False (default), only entities defined
+        Parameters
+        ----------
+        metadata : bool or None
+            If False (default), only entities defined
             for filenames (and not those found in the JSON sidecar) are
             returned. If True, only entities found in metadata files (and not
             defined for filenames) are returned. If None, all available
             entities are returned.
-            values (str): The kind of object to return in the dict's values.
-                Must be one of:
-                    * 'tags': Returns only the tagged value--e.g., if the key
-                    is "subject", the value might be "01".
-                    * 'objects': Returns the corresponding Entity instance.
+        values : str
+            The kind of object to return in the dict's values.
+            Must be one of:
+                * 'tags': Returns only the tagged value--e.g., if the key
+                is "subject", the value might be "01".
+                * 'objects': Returns the corresponding Entity instance.
 
-        Returns: A dict, where keys are entity names and values are Entity
+        Returns
+        -------
+        dict
+            A dict, where keys are entity names and values are Entity
             instances.
         """
         session = object_session(self)
@@ -226,20 +248,25 @@ class BIDSFile(Base):
 
     def copy(self, path_patterns, symbolic_link=False, root=None,
              conflicts='fail'):
-        """ Copy the contents of a file to a new location.
-        
-        Args:
-            path_patterns (list): List of patterns use to construct the new
-                filename. See build_path documentation for details.
-            symbolic_link (bool): If True, use a symbolic link to point to the
-                existing file. If False, creates a new file.
-            root (str): Optional path to prepend to the constructed filename.
-            conflicts (str): Defines the desired action when the output path
-                already exists. Must be one of:
-                    'fail': raises an exception
-                    'skip' does nothing
-                    'overwrite': overwrites the existing file
-                    'append': adds  a suffix to each file copy, starting with 1
+        """Copy the contents of a file to a new location.
+
+        Parameters
+        ----------
+        path_patterns : list
+            List of patterns use to construct the new
+            filename. See :obj:`build_path` documentation for details.
+        symbolic_link : bool
+            If True, use a symbolic link to point to the
+            existing file. If False, creates a new file.
+        root : str
+            Optional path to prepend to the constructed filename.
+        conflicts : str
+            Defines the desired action when the output path already exists.
+            Must be one of:
+                'fail': raises an exception
+                'skip' does nothing
+                'overwrite': overwrites the existing file
+                'append': adds  a suffix to each file copy, starting with 1
         """
         new_filename = build_path(self.entities, path_patterns)
         if not new_filename:
@@ -271,7 +298,7 @@ class BIDSFile(Base):
 
 
 class BIDSDataFile(BIDSFile):
-    """ Represents a single data file in a BIDS dataset.
+    """Represents a single data file in a BIDS dataset.
 
     Derived from `BIDSFile` and provides additional functionality such as
     obtaining pandas DataFrame data representation (via `get_df`).
@@ -283,20 +310,27 @@ class BIDSDataFile(BIDSFile):
 
     def get_df(self, include_timing=True, adjust_onset=False,
                enforce_dtypes=True):
-        """ Return the contents of a tsv file as a pandas DataFrame.
+        """Return the contents of a tsv file as a pandas DataFrame.
 
-        Args:
-            include_timing (bool): If True, adds an "onset" column to dense
-                timeseries files (e.g., *_physio.tsv.gz).
-            adjust_onset (bool): If True, the onset of each sample in a dense
-                timeseries file is shifted to reflect the "StartTime" value in
-                the JSON sidecar. If False, the first sample starts at 0 secs.
-                Ignored if include_timing=False.
-            enforce_dtypes (bool): If True, enforces the data types defined in
-                the BIDS spec on core columns (e.g., subject_id and session_id
-                must be represented as strings).
+        Parameters
+        ----------
+        include_timing : bool
+            If True, adds an "onset" column to dense
+            timeseries files (e.g., *_physio.tsv.gz).
+        adjust_onset : bool
+            If True, the onset of each sample in a dense
+            timeseries file is shifted to reflect the "StartTime" value in
+            the JSON sidecar. If False, the first sample starts at 0 secs.
+            Ignored if include_timing=False.
+        enforce_dtypes : bool
+            If True, enforces the data types defined in
+            the BIDS spec on core columns (e.g., subject_id and session_id
+            must be represented as strings).
 
-        Returns: A pandas DataFrame.
+        Returns
+        -------
+        :obj:`pandas.DataFrame`
+            A pandas DataFrame.
         """
         import pandas as pd
         import numpy as np
@@ -333,7 +367,7 @@ class BIDSDataFile(BIDSFile):
 
 
 class BIDSImageFile(BIDSFile):
-    """ Represents a single neuroimaging data file in a BIDS dataset.
+    """Represents a single neuroimaging data file in a BIDS dataset.
 
     Derived from `BIDSFile` and provides additional functionality such as
     obtaining nibabel's image file representation (via `get_image`).
@@ -344,7 +378,7 @@ class BIDSImageFile(BIDSFile):
     }
 
     def get_image(self):
-        """ Return the associated image file (if it exists) as a NiBabel object
+        """Return the associated image file (if it exists) as a NiBabel object
         """
         try:
             import nibabel as nb
@@ -355,7 +389,7 @@ class BIDSImageFile(BIDSFile):
 
 
 class BIDSJSONFile(BIDSFile):
-    """ Represents a single JSON metadata file in a BIDS dataset.
+    """Represents a single JSON metadata file in a BIDS dataset.
 
     Derived from `BIDSFile` and provides additional functionality for reading
     the contents of JSON files as either dicts or strings.
@@ -365,14 +399,14 @@ class BIDSJSONFile(BIDSFile):
     }
 
     def get_dict(self):
-        ''' Return the contents of the current file as a dictionary. '''
+        """Return the contents of the current file as a dictionary. """
         d = json.loads(self.get_json())
         if not isinstance(d, dict):
             raise ValueError("File %s is a json containing %s, not a dict which was expected" % (self.path, type(d)))
         return d
 
     def get_json(self):
-        ''' Return the contents of the current file as a JSON string. '''
+        """Return the contents of the current file as a JSON string. """
         with open(self.path, 'r') as f:
             return f.read()
 
@@ -381,21 +415,28 @@ class Entity(Base):
     """
     Represents a single entity defined in the JSON config.
 
-    Args:
-        name (str): The name of the entity (e.g., 'subject', 'run', etc.)
-        pattern (str): A regex pattern used to match against file names.
-            Must define at least one group, and only the first group is
-            kept as the match.
-        mandatory (bool): If True, every File _must_ match this entity.
-        directory (str): Optional pattern defining a directory associated
-            with the entity.
-        dtype (str): The optional data type of the Entity values. Must be
-            one of 'int', 'float', 'bool', or 'str'. If None, no type
-            enforcement will be attempted, which means the dtype of the
-            value may be unpredictable.
-        is_metadata (bool): Indicates whether or not the Entity is derived
-            from JSON sidecars (True) or is a predefined Entity from a
-            config (False).
+    Parameters
+    ----------
+    name : str
+        The name of the entity (e.g., 'subject', 'run', etc.)
+    pattern : str
+        A regex pattern used to match against file names.
+        Must define at least one group, and only the first group is
+        kept as the match.
+    mandatory : bool
+        If True, every File _must_ match this entity.
+    directory : str
+        Optional pattern defining a directory associated
+        with the entity.
+    dtype : str
+        The optional data type of the Entity values. Must be
+        one of 'int', 'float', 'bool', or 'str'. If None, no type
+        enforcement will be attempted, which means the dtype of the
+        value may be unpredictable.
+    is_metadata : bool
+        Indicates whether or not the Entity is derived
+        from JSON sidecars (True) or is a predefined Entity from a
+        config (False).
     """
     __tablename__ = 'entities'
 
@@ -455,10 +496,14 @@ class Entity(Base):
         """
         Determine whether the passed file matches the Entity.
 
-        Args:
-            f (File): The BIDSFile instance to match against.
+        Parameters
+        ----------
+        f : BIDSFile
+            The BIDSFile instance to match against.
 
-        Returns: the matched value if a match was found, otherwise None.
+        Returns
+        -------
+        the matched value if a match was found, otherwise None.
         """
         if self.regex is None:
             return None
@@ -468,16 +513,23 @@ class Entity(Base):
         return self._astype(val)
 
     def unique(self):
-        """ Return all unique values/levels for the current entity. """
+        """Return all unique values/levels for the current entity.
+        """
         return list(set(self.files.values()))
 
     def count(self, files=False):
-        """ Return a count of unique values or files.
+        """Return a count of unique values or files.
 
-        Args:
-            files (bool): When True, counts all files mapped to the Entity.
-                When False, counts all unique values.
-        Returns: an int.
+        Parameters
+        ----------
+        files : bool
+            When True, counts all files mapped to the Entity.
+            When False, counts all unique values.
+
+        Returns
+        -------
+        int
+            Count of unique values or files.
         """
         return len(self.files) if files else len(self.unique())
 
@@ -488,17 +540,22 @@ class Entity(Base):
 
 
 class Tag(Base):
-    """ Represents an association between a File and and Entity.
+    """Represents an association between a File and and Entity.
 
-    Args:
-        file (BIDSFile): The associated BIDSFile.
-        entity (Entity): The associated Entity.
-        value: The value to store for this file/entity pair. Must be of type
-            str, int, float, bool, or any json-serializable structure.
-        dtype (str): Optional type for the value field. If None, inferred from
-            value. If passed, must be one of str, int, float, bool, or json.
-            Any other value will be treated as json (and will fail if the
-            value can't be serialized to json).
+    Parameters
+    ----------
+    file : BIDSFile
+        The associated BIDSFile.
+    entity : Entity
+        The associated Entity.
+    value : json-serializable type
+        The value to store for this file/entity pair. Must be of type
+        str, int, float, bool, or any json-serializable structure.
+    dtype : str
+        Optional type for the value field. If None, inferred from
+        value. If passed, must be one of str, int, float, bool, or json.
+        Any other value will be treated as json (and will fail if the
+        value can't be serialized to json).
     """
     __tablename__ = 'tags'
 
@@ -538,7 +595,7 @@ class Tag(Base):
         self._dtype = dtype
 
         self._init_on_load()
-    
+
     def __repr__(self):
         msg = "<Tag file:{!r} entity:{!r} value:{!r}>"
         return msg.format(self.file_path, self.entity_name, self.value)

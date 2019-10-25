@@ -17,22 +17,28 @@ def _make_passthrough_contrast(level, contrast_names, type="t"):
 
 
 def auto_model(layout, scan_length=None, one_vs_rest=False):
-    '''Create a simple default model for each of the tasks in a BIDSLayout.
+    """Create a simple default model for each of the tasks in a BIDSLayout.
     Contrasts each trial type against all other trial types and trial types
     at the run level and then uses identity at each other level present to
     aggregate these results up.
 
-    Args:
-        layout (BIDSLayout) A BIDSLayout instance
-        scan_length (Int) Scan length for loading event varibles in cases
-             where the scan length can not be read from the nifti.
-             Primarily for testing.
-        one_vs_rest (Bool) Set to True if you would like to autogenerate
-             contrasts of each trial type against everyother trialtype.
+    Parameters
+    ----------
+    layout : :obj:`bids.layout.BIDSLayout`
+        A BIDSLayout instance
+    scan_length : int
+        Scan length for loading event varibles in cases
+        where the scan length can not be read from the nifti.
+        Primarily for testing.
+    one_vs_rest : bool
+        Set to True if you would like to autogenerate
+        contrasts of each trial type against everyother trialtype.
 
-    Returns:
-        models (list) list of model dictionaries for each task
-    '''
+    Returns
+    -------
+    list
+        list of model dictionaries for each task
+    """
 
     base_name = split(layout.root)[-1]
     tasks = layout.entities['task'].unique()
