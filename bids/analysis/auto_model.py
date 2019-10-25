@@ -4,13 +4,13 @@ from collections import OrderedDict
 import numpy as np
 
 
-def _make_passthrough_contrast(level, contrast_names):
+def _make_passthrough_contrast(level, contrast_names, type="t"):
     block = OrderedDict(Level=level, Name=level,
                         Model={'X': contrast_names})
     contrasts = []
     for cn in contrast_names:
         cdict = OrderedDict(Name=level.lower() + "_" + cn, ConditionList=[cn],
-                            Weights=[1], Type='t')
+                            Weights=[1], Type=type)
         contrasts.append(cdict)
     block["Contrasts"] = contrasts
     return block
@@ -19,7 +19,7 @@ def _make_passthrough_contrast(level, contrast_names):
 def auto_model(layout, scan_length=None, one_vs_rest=False):
     '''Create a simple default model for each of the tasks in a BIDSLayout.
     Contrasts each trial type against all other trial types and trial types
-    at the run level and then uses t-tests at each other level present to
+    at the run level and then uses identity at each other level present to
     aggregate these results up.
 
     Args:
@@ -101,20 +101,20 @@ def auto_model(layout, scan_length=None, one_vs_rest=False):
             if len(sessions) > 1:
                 # get contrasts names from previous block
                 contrast_names = [cc["Name"] for cc in steps[-1]["Contrasts"]]
-                steps.append(_make_passthrough_contrast("Session",
-                                                         contrast_names))
+                steps.append(_make_passthrough_contrast(
+                    "Session", contrast_names, "FEMA"))
 
             subjects = layout.get_subjects()
             if len(subjects) > 1:
                 # get contrasts names from previous block
                 contrast_names = [cc["Name"] for cc in steps[-1]["Contrasts"]]
-                steps.append(_make_passthrough_contrast("Subject",
-                                                         contrast_names))
+                steps.append(_make_passthrough_contrast(
+                    "Subject", contrast_names, "FEMA"))
 
             # get contrasts names from previous block
             contrast_names = [cc["Name"] for cc in steps[-1]["Contrasts"]]
-            steps.append(_make_passthrough_contrast("Dataset",
-                                                     contrast_names))
+            steps.append(_make_passthrough_contrast(
+                "Dataset", contrast_names, "t"))
 
         model["Steps"] = steps
         task_models.append(model)
