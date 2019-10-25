@@ -1,4 +1,4 @@
-''' Base Transformation class and associated utilities. '''
+"""Base Transformation class and associated utilities. """
 
 import numpy as np
 import pandas as pd
@@ -87,8 +87,8 @@ class Transformation(object):
         return t.transform()
 
     def _setup(self, collection, variables, *args, **kwargs):
-        ''' Replaces __init__ to set instance attributes because on Python
-        >= 3.3, we can't override both new and init. '''
+        """Replaces __init__ to set instance attributes because on Python
+        >= 3.3, we can't override both new and init. """
         self.collection = collection
         self.variables = listify(variables)
         self.groupby = kwargs.pop('groupby', None)
@@ -115,8 +115,8 @@ class Transformation(object):
             self._regex_replace_variables(replace_args)
 
     def _clone_variables(self):
-        ''' Deep copy all variables the transformation touches. This prevents us
-        from unnecessarily overwriting existing variables. '''
+        """Deep copy all variables the transformation touches. This prevents us
+        from unnecessarily overwriting existing variables. """
 
         # Always clone the target variables
         self._variables = {v: self.collection[v].clone()
@@ -136,7 +136,7 @@ class Transformation(object):
                 self._variables[v] = deepcopy(self.collection[v])
 
     def _check_categorical_variables(self):
-        ''' Convert categorical variables to dummy-coded indicators. '''
+        """Convert categorical variables to dummy-coded indicators. """
 
         # Collect variable names to pass through
         pass_thru = []
@@ -174,9 +174,9 @@ class Transformation(object):
                 self._variables[v] = var.to_dense(sr)
 
     def _regex_replace_variables(self, args):
-        ''' For each argument named in args, interpret the values set in the
+        """For each argument named in args, interpret the values set in the
         argument as regex patterns to potentially be replaced with variables
-        that match the pattern. '''
+        that match the pattern. """
 
         args = listify(args)
 
@@ -310,12 +310,12 @@ class Transformation(object):
         return col
 
     def _align_variables(self, variables, force=True):
-        ''' Checks whether the specified variables have aligned indexes. This
+        """Checks whether the specified variables have aligned indexes. This
         implies either that all variables are dense, or that all variables are
         sparse and have exactly the same onsets and durations. If variables are
         not aligned and force = True, all variables will be forced to dense
         format in order to ensure alignment.
-        '''
+        """
 
         if self._align is None or self._align == 'none':
             return

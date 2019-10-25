@@ -18,38 +18,48 @@ ALL_ENTITIES = BASE_ENTITIES + ['datatype', 'suffix', 'acquisition']
 
 def load_variables(layout, types=None, levels=None, skip_empty=True,
                    dataset=None, scope='all', **kwargs):
-    ''' A convenience wrapper for one or more load_*_variables() calls.
+    """A convenience wrapper for one or more load_*_variables() calls.
 
-    Args:
-        layout (BIDSLayout): BIDSLayout containing variable files.
-        types (str, list): Types of variables to retrieve. All valid values
-            reflect the filename stipulated in the BIDS spec for each kind of
-            variable. Valid values include: 'events', 'physio', 'stim',
-            'scans', 'participants', 'sessions', and 'regressors'.
-        levels (str, list): Optional level(s) of variables to load. Valid
-            values are 'run', 'session', 'subject', or 'dataset'. This is
-            simply a shorthand way to specify types--e.g., 'run' will be
-            converted to types=['events', 'physio', 'stim', 'regressors'].
-        skip_empty (bool): Whether or not to skip empty Variables (i.e.,
-            where there are no rows/records in a file after applying any
-            filtering operations like dropping NaNs).
-        dataset (NodeIndex): An existing NodeIndex container to store the
-            loaded data in. Can be used to iteratively construct a dataset
-            that contains otherwise heterogeneous sets of variables. If None,
-            a new NodeIndex is used.
-        scope (str, list): The scope of the space to search for variables. See
-            docstring for BIDSLayout for details and valid predefined values.
-        kwargs: Optional keyword arguments to pass onto the individual
-            load_*_variables() calls.
+    Parameters
+    ----------
+    layout : :obj:`bids.layout.BIDSLayout`
+        BIDSLayout containing variable files.
+    types : str or list
+        Types of variables to retrieve. All valid values
+        reflect the filename stipulated in the BIDS spec for each kind of
+        variable. Valid values include: 'events', 'physio', 'stim',
+        'scans', 'participants', 'sessions', and 'regressors'.
+    levels : str or list
+        Optional level(s) of variables to load. Valid
+        values are 'run', 'session', 'subject', or 'dataset'. This is
+        simply a shorthand way to specify types--e.g., 'run' will be
+        converted to types=['events', 'physio', 'stim', 'regressors'].
+    skip_empty : bool
+        Whether or not to skip empty Variables (i.e.,
+        where there are no rows/records in a file after applying any
+        filtering operations like dropping NaNs).
+    dataset : NodeIndex
+        An existing NodeIndex container to store the
+        loaded data in. Can be used to iteratively construct a dataset
+        that contains otherwise heterogeneous sets of variables. If None,
+        a new NodeIndex is used.
+    scope : str or list
+        The scope of the space to search for variables. See
+        docstring for BIDSLayout for details and valid predefined values.
+    kwargs : dict
+        Optional keyword arguments to pass onto the individual
+        load_*_variables() calls.
 
-    Returns:
-        A NodeIndex instance.
+    Returns
+    -------
+    A NodeIndex instance.
 
-    Example:
-        >>> load_variables(layout, ['events', 'physio'], subject='01')
-        # returns all variables stored in _events.tsv and _physio.tsv.gz files
-        # for runs that belong to subject with id '01'.
-    '''
+    Examples
+    --------
+    >>> load_variables(layout, ['events', 'physio'], subject='01')
+    # returns all variables stored in _events.tsv and _physio.tsv.gz files
+    # for runs that belong to subject with id '01'.
+    """
 
     TYPES = ['events', 'physio', 'stim', 'scans', 'participants', 'sessions',
              'regressors']
@@ -94,38 +104,51 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
                          drop_na=True, events=True, physio=True, stim=True,
                          regressors=True, skip_empty=True, scope='all',
                          **selectors):
-    ''' Loads all variables found in *_events.tsv files and returns them as a
+    """Loads all variables found in *_events.tsv files and returns them as a
     BIDSVariableCollection.
 
-    Args:
-        layout (BIDSLayout): A BIDSLayout to scan.
-        dataset (NodeIndex): A BIDS NodeIndex container. If None, a new one is
-            initialized.
-        columns (list): Optional list of names specifying which columns in the
-            event files to read. By default, reads all columns found.
-        scan_length (float): Optional duration of runs (in seconds). By
-            default, this will be extracted from the BOLD image. However, in
-            cases where the user doesn't have access to the images (e.g.,
-            because only file handles are locally available), a fixed duration
-            can be manually specified as a fallback.
-        drop_na (bool): If True, removes all events where amplitude is n/a. If
-            False, leaves n/a values intact. Note that in the latter case,
-            transformations that requires numeric values may fail.
-        events (bool): If True, extracts variables from events.tsv
-            files.
-        physio (bool): If True, extracts variables from _physio files.
-        stim (bool): If True, extracts variables from _stim files.
-        skip_empty (bool): Whether or not to skip empty Variables (i.e.,
-            where there are no rows/records in a file, or all onsets,
-            durations, and amplitudes are 0).
-        scope (str, list): The scope of the space to search for variables. See
-            docstring for BIDSLayout for details and valid predefined values.
-        selectors (dict): Optional keyword arguments passed onto the
-            BIDSLayout instance's get() method; can be used to constrain
-            which data are loaded.
+    Parameters
+    ----------
+    layout : :obj:`bids.layout.BIDSLayout`
+        A BIDSLayout to scan.
+    dataset : NodeIndex
+        A BIDS NodeIndex container. If None, a new one is
+        initialized.
+    columns : list
+        Optional list of names specifying which columns in the
+        event files to read. By default, reads all columns found.
+    scan_length : float
+        Optional duration of runs (in seconds). By
+        default, this will be extracted from the BOLD image. However, in
+        cases where the user doesn't have access to the images (e.g.,
+        because only file handles are locally available), a fixed duration
+        can be manually specified as a fallback.
+    drop_na : bool
+        If True, removes all events where amplitude is n/a. If
+        False, leaves n/a values intact. Note that in the latter case,
+        transformations that requires numeric values may fail.
+    events : bool
+        If True, extracts variables from events.tsv files.
+    physio : bool
+        If True, extracts variables from _physio files.
+    stim : bool
+        If True, extracts variables from _stim files.
+    skip_empty : bool
+        Whether or not to skip empty Variables (i.e.,
+        where there are no rows/records in a file, or all onsets,
+        durations, and amplitudes are 0).
+    scope : str or list
+        The scope of the space to search for variables. See
+        docstring for BIDSLayout for details and valid predefined values.
+    selectors : dict
+        Optional keyword arguments passed onto the
+        BIDSLayout instance's get() method; can be used to constrain
+        which data are loaded.
 
-    Returns: A NodeIndex instance.
-    '''
+    Returns
+    -------
+    A NodeIndex instance.
+    """
 
     # Extract any non-keyword arguments
     selectors = selectors.copy()
@@ -332,26 +355,36 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
 
 def _load_tsv_variables(layout, suffix, dataset=None, columns=None,
                         prepend_type=False, scope='all', **selectors):
-    ''' Reads variables from scans.tsv, sessions.tsv, and participants.tsv.
+    """Reads variables from scans.tsv, sessions.tsv, and participants.tsv.
 
-    Args:
-        layout (BIDSLayout): The BIDSLayout to use.
-        suffix (str): The suffix of file to read from. Must be one of 'scans',
-            'sessions', or 'participants'.
-        dataset (NodeIndex): A BIDS NodeIndex container. If None, a new one is
-            initialized.
-        columns (list): Optional list of names specifying which columns in the
-            files to return. If None, all columns are returned.
-        prepend_type (bool): If True, variable names are prepended with the
-            type name (e.g., 'age' becomes 'participants.age').
-        scope (str, list): The scope of the space to search for variables. See
-            docstring for BIDSLayout for details and valid predefined values.
-        selectors (dict): Optional keyword arguments passed onto the
-            BIDSLayout instance's get() method; can be used to constrain
-            which data are loaded.
+    Parameters
+    ----------
+    layout : :obj:`bids.layout.BIDSLayout`
+        The BIDSLayout to use.
+    suffix : str
+        The suffix of file to read from. Must be one of 'scans',
+        'sessions', or 'participants'.
+    dataset : NodeIndex
+        A BIDS NodeIndex container. If None, a new one is
+        initialized.
+    columns : list
+        Optional list of names specifying which columns in the
+        files to return. If None, all columns are returned.
+    prepend_type : bool
+        If True, variable names are prepended with the
+        type name (e.g., 'age' becomes 'participants.age').
+    scope : str or list
+        The scope of the space to search for variables. See
+        docstring for BIDSLayout for details and valid predefined values.
+    selectors : dict
+        Optional keyword arguments passed onto the
+        BIDSLayout instance's get() method; can be used to constrain
+        which data are loaded.
 
-    Returns: A NodeIndex instance.
-    '''
+    Returns
+    -------
+    A NodeIndex instance.
+    """
 
     # Sanitize the selectors: only keep entities at current level or above
     remap = {'scans': 'run', 'sessions': 'session', 'participants': 'subject'}
