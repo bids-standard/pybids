@@ -203,7 +203,16 @@ class BIDSLayout(object):
         self.regex_search = regex_search
         self.config_filename = config_filename
 
-        self.database_file = database_file
+        def _normalize_db_name(default_root_dir, db_file):
+            if db_file is None:
+                return None
+            # If a full absolute path is given, use it, else make path
+            if not os.path.isabs(db_file):
+                db_file = os.path.abspath(os.path.join(default_root_dir, db_file))
+            return db_file
+
+        database_file = _normalize_db_name(self.root, database_file)
+
         self.session = None
 
         # Do basic BIDS validation on root directory
@@ -232,13 +241,16 @@ class BIDSLayout(object):
             config = [Config.load(c, session=self.session)
                       for c in listify(config)]
             self.config = {c.name: c for c in config}
+            # Missing persistence of configs to the database
+            for config_obj in self.config.values():
+                self.session.add(config_obj)
+                self.session.commit()
 
             # Index files and (optionally) metadata
             indexer = BIDSLayoutIndexer(self)
             indexer.index_files()
             if index_metadata:
                 indexer.index_metadata()
-
         else:
             # Load Configs from DB
             self.config = {c.name: c for c in self.session.query(Config).all()}
@@ -247,11 +259,14 @@ class BIDSLayout(object):
         if derivatives:
             if derivatives is True:
                 derivatives = os.path.join(root, 'derivatives')
+            # if creating db files for bids, also create db files for derivatives
+            create_derivative_database_files = (database_file is not None)
             self.add_derivatives(
-                derivatives, validate=validate, absolute_paths=absolute_paths,
+                derivatives, create_derivative_database_files=create_derivative_database_files,
+                validate=validate, absolute_paths=absolute_paths,
                 derivatives=None, config=None, sources=self, ignore=ignore,
                 force_index=force_index, config_filename=config_filename,
-                regex_search=regex_search, reset_database=reset_database,
+                regex_search=regex_search, reset_database=index_dataset or reset_database,
                 index_metadata=index_metadata)
 
     def __getattr__(self, key):
@@ -288,8 +303,29 @@ class BIDSLayout(object):
         return s
 
     def _set_session(self, database_file):
-        engine = sa.create_engine('sqlite:///{}'.format(database_file))
-
+        if database_file is not None:
+            # https://docs.sqlalchemy.org/en/13/dialects/sqlite.html
+            # When a file-based database is specified, the dialect will use NullPool as the source of connections. This
+            # pool closes and discards connections which are returned to the pool immediately. SQLite file-based
+            # connections have extremely low overhead, so pooling is not necessary. The scheme also prevents a
+            # connection from being used again in a different thread and works best with SQLite's coarse-grained
+            # file locking.
+            from sqlalchemy.pool import NullPool
+            engine = sa.create_engine('sqlite:///{dbfilepath}'.format(dbfilepath=database_file),
+                                      connect_args={'check_same_thread':False},
+                                      poolclass=NullPool)
+        else:
+            # https://docs.sqlalchemy.org/en/13/dialects/sqlite.html
+            # Using a Memory Database in Multiple Threads
+            # To use a :memory: database in a multithreaded scenario, the same connection object must be shared among
+            # threads, since the database exists only within the scope of that connection. The StaticPool
+            # implementation will maintain a single connection globally, and the check_same_thread flag can be passed
+            # to Pysqlite as False:
+            from sqlalchemy.pool import StaticPool
+            engine = sa.create_engine('sqlite://', # In memory database
+                                   connect_args={'check_same_thread':False},
+                                   poolclass=StaticPool)
+            # Note that using a :memory: database in multiple threads requires a recent version of SQLite.
         def regexp(expr, item):
             """Regex function for SQLite's REGEXP."""
             reg = re.compile(expr, re.I)
@@ -303,25 +339,19 @@ class BIDSLayout(object):
         def do_begin(conn):
             conn.connection.create_function('regexp', 2, regexp)
 
-        if database_file:
-            self.database_file = os.path.relpath(database_file, self.root)
         self.session = sa.orm.sessionmaker(bind=engine)()
 
     def _init_db(self, database_file=None, reset_database=False):
-
-        if database_file is None:
-            database_file = ''
-        else:
-            database_file = os.path.join(self.root, database_file)
-            database_file = os.path.abspath(database_file)
+        # Reset database if needed and return whether or not it was reset
+        # determining if the database needs resetting must be done prior
+        # prior to setting the session (which creates the empty database file)
+        reset_database = (reset_database or                   # Manual Request
+                          not database_file or                # In memory transient database
+                          not os.path.exists(database_file))  # New file based database created
 
         self._set_session(database_file)
 
-        # Reset database if needed and return whether or not it was reset
-        condi = (reset_database or
-                 not database_file or
-                 not os.path.exists(database_file))
-        if condi:
+        if reset_database:
             engine = self.session.get_bind()
             Base.metadata.drop_all(engine)
             Base.metadata.create_all(engine)
@@ -569,7 +599,7 @@ class BIDSLayout(object):
         return parse_file_entities(filename, entities, config,
                                    include_unmatched)
 
-    def add_derivatives(self, path, **kwargs):
+    def add_derivatives(self, path, create_derivative_database_files=False, **kwargs):
         """Add BIDS-Derivatives datasets to tracking.
 
         Parameters
@@ -579,6 +609,10 @@ class BIDSLayout(object):
             Each path can point to either a derivatives/ directory
             containing one more more pipeline directories, or to a single
             pipeline directory (e.g., derivatives/fmriprep).
+        create_derivative_database_files : bool
+            If True, use the pipline name from the dataset_description.json
+            file as the database filename and write the file to disk in the
+            derivatives directory.
         kwargs : dict
             Optional keyword arguments to pass on to
             BIDSLayout() when initializing each of the derivative datasets.
@@ -636,6 +670,10 @@ class BIDSLayout(object):
             # Default config and sources values
             kwargs['config'] = kwargs.get('config') or ['bids', 'derivatives']
             kwargs['sources'] = kwargs.get('sources') or self
+            if create_derivative_database_files:
+                current_database_file = os.path.join(deriv, pipeline_name+".sql")
+                kwargs['database_file']=current_database_file
+
             self.derivatives[pipeline_name] = BIDSLayout(deriv, **kwargs)
 
     def to_df(self, metadata=False, **filters):
