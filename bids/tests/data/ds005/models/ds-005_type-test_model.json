@@ -40,12 +40,12 @@
     {
       "Name": "session",
       "Level": "Session",
-      "AutoContrasts": true
+      "AutoContrasts": "FEMA"
     },
     {
       "Name": "participant",
       "Level": "Subject",
-      "AutoContrasts": true
+      "AutoContrasts": "FEMA"
     },
     {
       "Name": "group",
