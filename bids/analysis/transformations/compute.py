@@ -106,7 +106,7 @@ class Orthogonalize(Transformation):
         assert len(X) == len(var)
         y = var.values
         _aX = np.c_[np.ones(len(y)), X]
-        coefs, resids, rank, s = np.linalg.lstsq(_aX, y)
+        coefs, resids, rank, s = np.linalg.lstsq(_aX, y, rcond=None)
         result = pd.DataFrame(y - X.dot(coefs[1:]), index=var.index)
         return result
 
