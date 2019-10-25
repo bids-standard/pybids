@@ -330,21 +330,6 @@ ContrastInfo = namedtuple('ContrastInfo', ('name', 'weights', 'type',
 
 
 class AnalysisNode(object):
-<<<<<<< HEAD
-    ''' A single analysis node generated within a Step.
-
-    Args:
-        level (str): The level of the Node. Most be one of 'run', 'session',
-            'subject', or 'dataset'.
-        collection (BIDSVariableCollection): The BIDSVariableCollection
-            containing variables at this Node.
-        contrasts (list): A list of contrasts defined in the originating Step.
-        auto_contrasts (list): Optional list of variable names to create
-            an indicator 't' contrast for. Alternatively, a string value of 't'
-            or 'FEMA' indicates a contrast of that type
-            is automatically generated for _all_ available variables.
-    '''
-=======
     """A single analysis node generated within a Step.
 
     Parameters
@@ -357,12 +342,10 @@ class AnalysisNode(object):
     contrasts : list
         A list of contrasts defined in the originating Step.
     auto_contrasts : list
-        Optional list of variable names to create
-        an indicator contrast for. Alternatively, if the boolean value True
-        is passed, a contrast is automatically generated for _all_
-        available variables.
+        Optional list of variable names to create a 't' indicator contrast for.
+        Alternatively, a string value of 't' or 'FEMA' indicates a contrast of
+        that type is automatically generated for _all_ available variables.
     """
->>>>>>> master
 
     def __init__(self, level, collection, contrasts, input_nodes=None,
                  auto_contrasts=False):
