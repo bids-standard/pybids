@@ -19,8 +19,8 @@ def _make_passthrough_contrast(level, contrast_names, type="t"):
 def auto_model(layout, scan_length=None, one_vs_rest=False):
     """Create a simple default model for each of the tasks in a BIDSLayout.
     Contrasts each trial type against all other trial types and trial types
-    at the run level and then uses identity at each other level present to
-    aggregate these results up.
+    at the run level and then uses identity contrasts at each other level
+    present to aggregate these results up.
 
     Parameters
     ----------
