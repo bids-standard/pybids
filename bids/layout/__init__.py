@@ -10,7 +10,7 @@ __all__ = [
     "add_config_paths",
     "parse_file_entities",
     "BIDSFile",
-    "BIDSImageFIle",
+    "BIDSImageFile",
     "BIDSDataFile",
     "BIDSJSONFile",
     "Config",
