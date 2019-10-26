@@ -202,3 +202,30 @@ def test_resampling_edge_case(tmpdir, TR, nvols):
     dense_var = coll.variables['val'].to_dense(coll.sampling_rate)
     regressor = dense_var.resample(1.0 / TR).values
     assert regressor.shape == (nvols, 1)
+
+
+@pytest.mark.parametrize(
+    "TR, newTR, nvols, newvols",
+    [(2.00000, 6.0, 90, 30),])
+def test_downsampling(tmpdir, TR, newTR, nvols, newvols):
+    tmpdir.chdir()
+    os.makedirs('sub-01/func')
+    with open('sub-01/func/sub-01_task-task_events.tsv', 'w') as fobj:
+        fobj.write('onset\tduration\tval\n1\t0.1\t1\n')
+    with open('sub-01/func/sub-01_task-task_bold.json', 'w') as fobj:
+        json.dump({'RepetitionTime': TR}, fobj)
+
+    dataobj = np.zeros((5, 5, 5, nvols), dtype=np.int16)
+    Fs = 1/TR
+    x = np.arange(nvols)
+    dataobj[3, 3, 3, :] = np.sin(2*np.pi*0.2*x*Fs)
+    affine = np.diag((2.5, 2.5, 2.5, 1))
+    img = nb.Nifti1Image(dataobj, affine)
+    img.header.set_zooms((2.5, 2.5, 2.5, TR))
+    img.to_filename('sub-01/func/sub-01_task-task_bold.nii.gz')
+
+    layout = BIDSLayout('.', validate=False)
+    coll = load_variables(layout).get_collections('run')[0]
+    dense_var = coll.variables['val'].to_dense(coll.sampling_rate)
+    regressor = dense_var.resample(1.0 / newTR).values
+    assert regressor.shape == (newvols, 1)
