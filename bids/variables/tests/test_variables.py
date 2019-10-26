@@ -218,7 +218,7 @@ def test_downsampling(tmpdir, TR, newTR, nvols, newvols):
     dataobj = np.zeros((5, 5, 5, nvols), dtype=np.int16)
     Fs = 1/TR
     t = np.linspace(0, int(nvols / Fs), nvols, endpoint=False)
-    dataobj[3, 3, 3, :] = np.sin(2*np.pi*0.15*t)
+    dataobj[3, 3, 3, :] = np.sin(0.025*2*np.pi*t) + np.cos(0.1166*2*np.pi*t)
     affine = np.diag((2.5, 2.5, 2.5, 1))
     img = nb.Nifti1Image(dataobj, affine)
     img.header.set_zooms((2.5, 2.5, 2.5, TR))
