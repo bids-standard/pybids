@@ -80,10 +80,11 @@ class RunInfo(RunInfo_):
     pass
 
 
-class NodeIndex(Node):
+class NodeIndex(object):
     """Represents the top level in a BIDS hierarchy. """
 
     def __init__(self):
+        super(NodeIndex, self).__init__()
         self.index = pd.DataFrame()
         self.nodes = []
 
