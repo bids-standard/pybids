@@ -515,7 +515,7 @@ class DenseRunVariable(BIDSVariable):
         if sampling_rate < self.sampling_rate:
             # Downsampling, so filter the signal
             from scipy.signal import butter, filtfilt
-            b, a = butter(5, (sampling_rate / 2) / (self.sampling_rate / 2),
+            b, a = butter(5, (sampling_rate / 2.0) / (self.sampling_rate / 2.0),
                           btype='low', output='ba', analog=False)
             y = filtfilt(b, a, self.values.values.ravel())
         else:
