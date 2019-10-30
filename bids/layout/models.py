@@ -470,7 +470,7 @@ class Entity(Base):
 
     def __iter__(self):
         for i in self.unique():
-            yield (i)
+            yield i
 
     def __deepcopy__(self, memo):
         cls = self.__class__
