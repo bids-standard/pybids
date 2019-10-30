@@ -5,7 +5,6 @@ from .layout import BIDSLayout
 # For backwards compatibility
 from bids_validator import BIDSValidator
 
-
 __all__ = [
     "analysis",
     "BIDSLayout",
@@ -26,5 +25,6 @@ due.cite(Doi("10.1038/sdata.2016.44"),
 del due, Doi
 
 from ._version import get_versions
+
 __version__ = get_versions()['version']
 del get_versions
