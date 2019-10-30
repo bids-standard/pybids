@@ -210,15 +210,18 @@ def test_resampling_edge_case(tmpdir, TR, nvols):
 def test_downsampling(tmpdir, TR, newTR, nvols, newvols):
     tmpdir.chdir()
     os.makedirs('sub-01/func')
+    import numpy as np
+    Fs = 1 / TR
+    t = np.linspace(0, int(nvols / Fs), nvols, endpoint=False)
+    values = np.sin(0.025 * 2 * np.pi * t) + np.cos(0.1166 * 2 * np.pi * t)
     with open('sub-01/func/sub-01_task-task_events.tsv', 'w') as fobj:
-        fobj.write('onset\tduration\tval\n1\t0.1\t1\n')
+        fobj.write('onset\tduration\tval\n')
+        for idx, val in enumerate(values):
+            fobj.write('%f\t%f\t%f\n' % (idx*TR, TR, val))
     with open('sub-01/func/sub-01_task-task_bold.json', 'w') as fobj:
         json.dump({'RepetitionTime': TR}, fobj)
 
     dataobj = np.zeros((5, 5, 5, nvols), dtype=np.int16)
-    Fs = 1/TR
-    t = np.linspace(0, int(nvols / Fs), nvols, endpoint=False)
-    dataobj[3, 3, 3, :] = np.sin(0.025*2*np.pi*t) + np.cos(0.1166*2*np.pi*t)
     affine = np.diag((2.5, 2.5, 2.5, 1))
     img = nb.Nifti1Image(dataobj, affine)
     img.header.set_zooms((2.5, 2.5, 2.5, TR))
@@ -226,6 +229,10 @@ def test_downsampling(tmpdir, TR, newTR, nvols, newvols):
 
     layout = BIDSLayout('.', validate=False)
     coll = load_variables(layout).get_collections('run')[0]
-    dense_var = coll.variables['val'].to_dense(coll.sampling_rate)
+    dense_var = coll.variables['val'].to_dense(1.0 / TR)
     regressor = dense_var.resample(1.0 / newTR).values
     assert regressor.shape == (newvols, 1)
+    assert np.allclose(np.abs(np.fft.fft(regressor.values.ravel()))[9],
+                       0.46298273)
+    assert np.allclose(np.abs(np.fft.fft(regressor.values.ravel()))[4],
+                       8.88189504)
