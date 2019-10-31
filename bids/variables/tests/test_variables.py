@@ -204,7 +204,7 @@ def test_resampling_edge_case(tmpdir, TR, nvols):
     assert regressor.shape == (nvols, 1)
 
 
-def test_downsampling(tmpdir, TR, newTR, nvols, newvols):
+def test_downsampling(tmpdir):
     tmpdir.chdir()
     os.makedirs('sub-01/func')
     import numpy as np
