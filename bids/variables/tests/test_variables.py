@@ -202,3 +202,40 @@ def test_resampling_edge_case(tmpdir, TR, nvols):
     dense_var = coll.variables['val'].to_dense(coll.sampling_rate)
     regressor = dense_var.resample(1.0 / TR).values
     assert regressor.shape == (nvols, 1)
+
+
+def test_downsampling(tmpdir):
+    tmpdir.chdir()
+    os.makedirs('sub-01/func')
+    import numpy as np
+    TR, newTR, nvols, newvols = 2.00000, 6.0, 90, 30
+    Fs = 1 / TR
+    t = np.linspace(0, int(nvols / Fs), nvols, endpoint=False)
+    values = np.sin(0.025 * 2 * np.pi * t) + np.cos(0.1166 * 2 * np.pi * t)
+    with open('sub-01/func/sub-01_task-task_events.tsv', 'w') as fobj:
+        fobj.write('onset\tduration\tval\n')
+        for idx, val in enumerate(values):
+            fobj.write('%f\t%f\t%f\n' % (idx*TR, TR, val))
+    with open('sub-01/func/sub-01_task-task_bold.json', 'w') as fobj:
+        json.dump({'RepetitionTime': TR}, fobj)
+
+    dataobj = np.zeros((5, 5, 5, nvols), dtype=np.int16)
+    affine = np.diag((2.5, 2.5, 2.5, 1))
+    img = nb.Nifti1Image(dataobj, affine)
+    img.header.set_zooms((2.5, 2.5, 2.5, TR))
+    img.to_filename('sub-01/func/sub-01_task-task_bold.nii.gz')
+
+    layout = BIDSLayout('.', validate=False)
+    coll = load_variables(layout).get_collections('run')[0]
+    dense_var = coll.variables['val'].to_dense(1.0 / TR)
+    regressor = dense_var.resample(1.0 / newTR).values
+    assert regressor.shape == (newvols, 1)
+    # This checks that the filtering has happened. If it has not, then
+    # this value for this frequency bin will be an alias and have a
+    # very different amplitude
+    assert np.allclose(np.abs(np.fft.fft(regressor.values.ravel()))[9],
+                       0.46298273)
+    # This checks that the signal (0.025 Hz) within the new Nyquist
+    # rate actually gets passed through.
+    assert np.allclose(np.abs(np.fft.fft(regressor.values.ravel()))[4],
+                       8.88189504)

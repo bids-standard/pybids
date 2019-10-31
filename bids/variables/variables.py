@@ -512,8 +512,18 @@ class DenseRunVariable(BIDSVariable):
         x = np.arange(n)
         num = len(self.index)
 
+        if sampling_rate < self.sampling_rate:
+            # Downsampling, so filter the signal
+            from scipy.signal import butter, filtfilt
+            # cutoff = new Nyqist / old Nyquist
+            b, a = butter(5, (sampling_rate / 2.0) / (self.sampling_rate / 2.0),
+                          btype='low', output='ba', analog=False)
+            y = filtfilt(b, a, self.values.values.ravel())
+        else:
+            y = self.values.values.ravel()
+
         from scipy.interpolate import interp1d
-        f = interp1d(x, self.values.values.ravel(), kind=kind)
+        f = interp1d(x, y, kind=kind)
         x_new = np.linspace(0, n - 1, num=num)
         self.values = pd.DataFrame(f(x_new))
         assert len(self.values) == len(self.index)
