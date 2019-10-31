@@ -59,9 +59,9 @@ def layout_synthetic():
 @pytest.fixture(scope="module")
 def layout_synthetic_cached_db():
     path = join(get_test_data_path(), 'synthetic')
-    return BIDSLayout(path, derivatives=True, database_file="bidsdb.sql")
+    return BIDSLayout(path, derivatives=True, database_file="bidsdb.sqlite")
 
 @pytest.fixture(scope="module")
 def layout_synthetic_cached_db_replay():
     path = join(get_test_data_path(), 'synthetic')
-    return BIDSLayout(path, derivatives=True, database_file="bidsdb.sql")
+    return BIDSLayout(path, derivatives=True, database_file="bidsdb.sqlite")

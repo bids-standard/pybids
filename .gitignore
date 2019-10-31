@@ -110,5 +110,5 @@ doc/generated/
 *~
 
 # Ignore test sql database files
-bidsdb.sql
-fmriprep.sql
+bidsdb.sqlite
+fmriprep.sqlite

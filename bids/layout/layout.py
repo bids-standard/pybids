@@ -672,7 +672,7 @@ class BIDSLayout(object):
             kwargs['config'] = kwargs.get('config') or ['bids', 'derivatives']
             kwargs['sources'] = kwargs.get('sources') or self
             if create_derivative_database_files:
-                current_database_file = os.path.join(deriv, pipeline_name + ".sql")
+                current_database_file = os.path.join(deriv, pipeline_name + ".sqlite")
                 kwargs['database_file'] = current_database_file
 
             self.derivatives[pipeline_name] = BIDSLayout(deriv, **kwargs)
