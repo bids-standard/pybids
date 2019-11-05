@@ -116,7 +116,7 @@ deploy:
   user: $PYPI_USER
   password: $PYPI_PASS
   skip_cleanup: true
-  distributions: "sdist bdist_wheel"
+  distributions: "-q sdist bdist_wheel"
   skip_existing: true
   on:
     tags: true
