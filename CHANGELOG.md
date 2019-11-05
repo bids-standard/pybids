@@ -1,5 +1,23 @@
 # Changelog
 
+## Version 0.9.5 (November 6, 2019)
+
+Bug fix release in the 0.9.x series.
+
+Final planned release with Python 2 support.
+
+* FIX: Filter before downsampling (#529)
+* FIX: Copy input dict in ``replace_entities``; Typos in ``default_path_patterns`` (#517)
+* FIX: Use string dtype for all entities when using regex search (#511)
+* FIX: Update Sphinx docs for 2.2 (#507)
+* ENH: Enable automatic derivative database caching (#523)
+* ENH: Raise ValueError if BIDSLayout.build_path fails to match any pattern (#508)
+* RF: Subclass analysis Node from object (#528)
+* DOC: Unify docstring format (#499)
+* DOC: Auto-generate stubs (#513)
+* STY: .sql is a misleading extension to sqlite files (#531)
+* STY: General cleanups (#526, #527)
+
 ## Version 0.9.4 (September 20, 2019)
 
 Bug fix release in the 0.9.x series.
