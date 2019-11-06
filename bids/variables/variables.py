@@ -141,7 +141,7 @@ class BIDSVariable(metaclass=ABCMeta):
         if len(variables) == 1:
             return variables[0]
 
-        var_names = set([v.name for v in variables])
+        var_names = {v.name for v in variables}
         if len(var_names) > 1:
             raise ValueError("Columns with different names cannot be merged. "
                              "Column names provided: %s" % var_names)
@@ -272,7 +272,7 @@ class SimpleVariable(BIDSVariable):
         values = data['amplitude'].reset_index(drop=True)
         values.name = name
 
-        super(SimpleVariable, self).__init__(name, values, source)
+        super().__init__(name, values, source)
 
     def split(self, grouper):
         """Split the current SparseRunVariable into multiple columns.
@@ -293,7 +293,7 @@ class SimpleVariable(BIDSVariable):
 
         subsets = []
         for i, (name, g) in enumerate(data.groupby(grouper)):
-            name = '%s.%s' % (self.name, name)
+            name = f'{self.name}.{name}'
             col = self.__class__(name=name, data=g, source=self.source,
                                  run_info=getattr(self, 'run_info', None))
             subsets.append(col)
@@ -354,7 +354,7 @@ class SparseRunVariable(SimpleVariable):
         self.run_info = run_info
         for sc in self._property_columns:
             setattr(self, sc, data.pop(sc).values)
-        super(SparseRunVariable, self).__init__(name, data, source, **kwargs)
+        super().__init__(name, data, source, **kwargs)
 
     def get_duration(self):
         """Return the total duration of the Variable's run(s). """
@@ -403,7 +403,7 @@ class SparseRunVariable(SimpleVariable):
     @classmethod
     def _merge(cls, variables, name, **kwargs):
         run_info = list(chain(*[v.run_info for v in variables]))
-        return super(SparseRunVariable, cls)._merge(variables, name,
+        return super()._merge(variables, name,
                                                     run_info=run_info,
                                                     **kwargs)
 
@@ -437,7 +437,7 @@ class DenseRunVariable(BIDSVariable):
         self.sampling_rate = sampling_rate
         self.index = self._build_entity_index(run_info, sampling_rate)
 
-        super(DenseRunVariable, self).__init__(name, values, source)
+        super().__init__(name, values, source)
 
     def split(self, grouper):
         """Split the current DenseRunVariable into multiple columns.
@@ -455,7 +455,7 @@ class DenseRunVariable(BIDSVariable):
         """
         values = grouper.values * self.values.values
         df = pd.DataFrame(values, columns=grouper.columns)
-        return [DenseRunVariable(name='%s.%s' % (self.name, name),
+        return [DenseRunVariable(name=f'{self.name}.{name}',
                                  values=df[name].values,
                                  run_info=self.run_info,
                                  source=self.source,
@@ -545,7 +545,7 @@ class DenseRunVariable(BIDSVariable):
         if sampling_rate not in (None, self.sampling_rate):
             return self.resample(sampling_rate).to_df(condition, entities)
 
-        df = super(DenseRunVariable, self).to_df(condition, entities)
+        df = super().to_df(condition, entities)
 
         if timing:
             df['onset'] = self.timestamps.values.astype(float) / 1e+9
@@ -557,7 +557,7 @@ class DenseRunVariable(BIDSVariable):
     def _merge(cls, variables, name, sampling_rate=None, **kwargs):
 
         if not isinstance(sampling_rate, int):
-            rates = set([v.sampling_rate for v in variables])
+            rates = {v.sampling_rate for v in variables}
             if len(rates) == 1:
                 sampling_rate = list(rates)[0]
             else:
@@ -613,12 +613,12 @@ def merge_variables(variables, name=None, **kwargs):
       possible to merge two different variables into a single variable.)
     """
 
-    classes = set([v.__class__ for v in variables])
+    classes = {v.__class__ for v in variables}
     if len(classes) > 1:
         raise ValueError("Variables of different classes cannot be merged. "
                          "Variables passed are of classes: %s" % classes)
 
-    sources = set([v.source for v in variables])
+    sources = {v.source for v in variables}
     if len(sources) > 1:
         raise ValueError("Variables extracted from different types of files "
                          "cannot be merged. Sources found: %s" % sources)

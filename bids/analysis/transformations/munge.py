@@ -104,7 +104,7 @@ class Delete(Transformation):
     _allow_categorical = ('variables',)
 
     def _transform(self, variables):
-        variables = set([v.name for v in variables])
+        variables = {v.name for v in variables}
         self.collection.variables = {k: v for k, v in
                                      self.collection.variables.items()
                                      if k not in variables}

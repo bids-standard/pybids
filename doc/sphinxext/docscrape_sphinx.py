@@ -39,7 +39,7 @@ class SphinxDocString(NumpyDocString):
             out += self._str_field_list(name)
             out += ['']
             for param,param_type,desc in self[name]:
-                out += self._str_indent(['**%s** : %s' % (param.strip(),
+                out += self._str_indent(['**{}** : {}'.format(param.strip(),
                                                           param_type)])
                 out += ['']
                 out += self._str_indent(desc,8)
@@ -73,7 +73,7 @@ class SphinxDocString(NumpyDocString):
             for param, param_type, desc in self[name]:
                 param = param.strip()
                 if not self._obj or hasattr(self._obj, param):
-                    autosum += ["   %s%s" % (prefix, param)]
+                    autosum += [f"   {prefix}{param}"]
                 else:
                     others.append((param, param_type, desc))
 
@@ -108,7 +108,7 @@ class SphinxDocString(NumpyDocString):
     def _str_see_also(self, func_role):
         out = []
         if self['See Also']:
-            see_also = super(SphinxDocString, self)._str_see_also(func_role)
+            see_also = super()._str_see_also(func_role)
             out = ['.. seealso::', '']
             out += self._str_indent(see_also[2:])
         return out
@@ -133,7 +133,7 @@ class SphinxDocString(NumpyDocString):
             elif section == 'refguide':
                 out += ['   single: %s' % (', '.join(references))]
             else:
-                out += ['   %s: %s' % (section, ','.join(references))]
+                out += ['   {}: {}'.format(section, ','.join(references))]
         return out
 
     def _str_references(self):

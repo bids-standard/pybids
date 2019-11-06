@@ -79,7 +79,7 @@ class Transformation(metaclass=ABCMeta):
     _allow_categorical = None
 
     def __new__(cls, collection, variables, *args, **kwargs):
-        t = super(Transformation, cls).__new__(cls)
+        t = super().__new__(cls)
         t._setup(collection, variables, *args, **kwargs)
         return t.transform()
 

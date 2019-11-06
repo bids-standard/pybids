@@ -41,7 +41,7 @@ def _check_path_matches_patterns(path, patterns):
     return False
 
 
-class BIDSLayoutIndexer(object):
+class BIDSLayoutIndexer:
     """ Indexer class for BIDSLayout.
     
     Args:
@@ -189,7 +189,7 @@ class BIDSLayoutIndexer(object):
         # that before adding each new Tag.
         all_tags = {}
         for t in self.session.query(Tag).all():
-            key = '{}_{}'.format(t.file_path, t.entity_name)
+            key = f'{t.file_path}_{t.entity_name}'
             all_tags[key] = str(t.value)
 
         # We build up a store of all file data as we iterate files. It looks
@@ -203,7 +203,7 @@ class BIDSLayoutIndexer(object):
             ext = file_ents.pop('extension', None)
 
             if suffix is not None and ext is not None:
-                key = "{}/{}".format(ext, suffix)
+                key = f"{ext}/{suffix}"
                 if key not in file_data:
                     file_data[key] = defaultdict(list)
 
@@ -214,7 +214,7 @@ class BIDSLayoutIndexer(object):
                         except json.JSONDecodeError as e:
                             msg = ("Error occurred while trying to decode JSON"
                                    " from file '{}'.".format(bf.path))
-                            raise IOError(msg) from e
+                            raise OSError(msg) from e
                 else:
                     payload = None
 
@@ -255,8 +255,8 @@ class BIDSLayoutIndexer(object):
             # the current file. If so, it's a valid candidate, and we
             # add the payload to the stack. Finally, we invert the
             # stack and merge the payloads in order.
-            ext_key = "{}/{}".format(ext, suffix)
-            json_key = "json/{}".format(suffix)
+            ext_key = f"{ext}/{suffix}"
+            json_key = f"json/{suffix}"
             dirname = bf.dirname
 
             payloads = []
@@ -344,7 +344,7 @@ class BIDSLayoutIndexer(object):
 
             # Create Tag <-> Entity mappings, and any newly discovered Entities
             for md_key, md_val in file_md.items():
-                tag_string = '{}_{}'.format(bf.path, md_key)
+                tag_string = f'{bf.path}_{md_key}'
                 # Skip pairs that were already found in the filenames
                 if tag_string in all_tags:
                     file_val = all_tags[tag_string]

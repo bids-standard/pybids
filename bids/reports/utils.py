@@ -37,7 +37,7 @@ def num_to_str(num):
         2.500 -> '2.5'
         3. -> '3'
     """
-    return '{0:0.02f}'.format(num).rstrip('0').rstrip('.')
+    return f'{num:0.02f}'.rstrip('0').rstrip('.')
 
 
 def list_to_str(lst):
@@ -61,7 +61,7 @@ def list_to_str(lst):
         str_ = ' and '.join(lst)
     elif len(lst) > 2:
         str_ = ', '.join(lst[:-1])
-        str_ += ', and {0}'.format(lst[-1])
+        str_ += ', and {}'.format(lst[-1])
     else:
         raise ValueError('List of length 0 provided.')
     return str_
@@ -99,7 +99,7 @@ def get_slice_info(slice_times):
         slice_order_name = 'interleaved descending'
     else:
         slice_order = [str(s) for s in slice_order]
-        raise Exception('Unknown slice order: [{0}]'.format(', '.join(slice_order)))
+        raise Exception('Unknown slice order: [{}]'.format(', '.join(slice_order)))
 
     return slice_order_name
 
@@ -130,7 +130,7 @@ def get_seqstr(config, metadata):
                 metadata.get('SequenceVariant', '').split('_')]
     seqs = list_to_str(seqs)
     if seq_abbrs[0]:
-        seqs += ' ({0})'.format(os.path.sep.join(seq_abbrs))
+        seqs += ' ({})'.format(os.path.sep.join(seq_abbrs))
     variants = list_to_str(variants)
     return seqs, variants
 
@@ -159,7 +159,7 @@ def get_sizestr(img):
     n_x, n_y, n_slices = img.shape[:3]
     import numpy as np
     voxel_dims = np.array(img.header.get_zooms()[:3])
-    matrix_size = '{0}x{1}'.format(num_to_str(n_x), num_to_str(n_y))
+    matrix_size = '{}x{}'.format(num_to_str(n_x), num_to_str(n_y))
     voxel_size = 'x'.join([num_to_str(s) for s in voxel_dims])
     fov = [n_x, n_y] * voxel_dims[:2]
     fov = 'x'.join([num_to_str(s) for s in fov])

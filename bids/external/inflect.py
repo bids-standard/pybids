@@ -2241,7 +2241,7 @@ class engine:
             or self._pl_special_verb(word, count)
             or self._plnoun(word, count),
         )
-        return "{}{}{}".format(pre, plural, post)
+        return f"{pre}{plural}{post}"
 
     def plural_noun(self, text, count=None):
         """
@@ -2258,7 +2258,7 @@ class engine:
         if not word:
             return text
         plural = self.postprocess(word, self._plnoun(word, count))
-        return "{}{}{}".format(pre, plural, post)
+        return f"{pre}{plural}{post}"
 
     def plural_verb(self, text, count=None):
         """
@@ -2278,7 +2278,7 @@ class engine:
             word,
             self._pl_special_verb(word, count) or self._pl_general_verb(word, count),
         )
-        return "{}{}{}".format(pre, plural, post)
+        return f"{pre}{plural}{post}"
 
     def plural_adj(self, text, count=None):
         """
@@ -2295,7 +2295,7 @@ class engine:
         if not word:
             return text
         plural = self.postprocess(word, self._pl_special_adjective(word, count) or word)
-        return "{}{}{}".format(pre, plural, post)
+        return f"{pre}{plural}{post}"
 
     def compare(self, word1, word2):
         """
@@ -2379,7 +2379,7 @@ class engine:
             plural = self.postprocess(
                 word, self._sinoun(word, count=count, gender=gender)
             )
-            return "{}{}{}".format(pre, plural, post)
+            return f"{pre}{plural}{post}"
         return False
 
     def _plequal(self, word1, word2, pl):
@@ -2409,7 +2409,7 @@ class engine:
         return False
 
     def _pl_reg_plurals(self, pair, stems, end1, end2):
-        pattern = r"({})({}\|\1{}|{}\|\1{})".format(stems, end1, end2, end2, end1)
+        pattern = fr"({stems})({end1}\|\1{end2}|{end2}\|\1{end1})"
         return bool(re.search(pattern, pair))
 
     def _pl_check_plurals_N(self, word1, word2):
@@ -2431,7 +2431,7 @@ class engine:
             (".*tri", "xes", "ces"),
             (".{2,}[yia]n", "xes", "ges"),
         )
-        pair = "{}|{}".format(word1, word2)
+        pair = f"{word1}|{word2}"
 
         return (
             pair in pl_sb_irregular_s.values()
@@ -2909,7 +2909,7 @@ class engine:
         if mo:
             pl = self.plural_noun(mo.group(1))
             trailing_s = "" if pl[-1] == "s" else "s"
-            return "{}'{}".format(pl, trailing_s)
+            return f"{pl}'{trailing_s}"
 
         # OTHERWISE, NO IDEA
 
@@ -3274,7 +3274,7 @@ class engine:
             pre = mo.group(1)
             post = mo.group(3)
             result = self._indef_article(word, count)
-            return "{}{}{}".format(pre, result, post)
+            return f"{pre}{result}{post}"
         return ""
 
     an = a
@@ -3283,13 +3283,13 @@ class engine:
         mycount = self.get_count(count)
 
         if mycount != 1:
-            return "{} {}".format(count, word)
+            return f"{count} {word}"
 
         # HANDLE USER-DEFINED VARIANTS
 
         value = self.ud_match(word, self.A_a_user_defined)
         if value is not None:
-            return "{} {}".format(value, word)
+            return f"{value} {word}"
 
         # HANDLE ORDINAL FORMS
 
@@ -3455,7 +3455,7 @@ class engine:
                 post = nth[n % 100]
             except KeyError:
                 post = nth[n % 10]
-            return "{}{}".format(num, post)
+            return f"{num}{post}"
         else:
             mo = re.search(r"(%s)\Z" % ordinal_suff, num)
             try:
@@ -3539,7 +3539,7 @@ class engine:
             tenword = " {} {}".format(
                 self.number_args["zero"], self.number_args["zero"]
             )
-        return "{} {}, ".format(hunword, tenword)
+        return f"{hunword} {tenword}, "
 
     def hundsub(self, mo):
         ret = self.hundfn(
@@ -3744,7 +3744,7 @@ class engine:
                     num += " %s" % nc
                     first = 0
                 elif first:
-                    num += "{} {}".format(comma, nc)
+                    num += f"{comma} {nc}"
                 else:
                     num += " %s" % nc
             return num
@@ -3794,7 +3794,7 @@ class engine:
         if final_sep is None:
             final_sep = sep
 
-        final_sep = "{}{}".format(final_sep, conj)
+        final_sep = f"{final_sep}{conj}"
 
         if sep_spaced:
             sep += " "

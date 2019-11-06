@@ -10,7 +10,7 @@ import pandas as pd
 from itertools import chain
 
 
-class Analysis(object):
+class Analysis:
     """Represents an entire BIDS-Model analysis.
 
     Parameters
@@ -33,8 +33,7 @@ class Analysis(object):
         self._load_model(model)
 
     def __iter__(self):
-        for b in self.steps:
-            yield b
+        yield from self.steps
 
     def __getitem__(self, index):
         if isinstance(index, int):
@@ -95,7 +94,7 @@ class Analysis(object):
             input_nodes = b.output_nodes
 
 
-class Step(object):
+class Step:
     """Represents a single analysis block from a BIDS-Model specification.
 
     Parameters
@@ -328,7 +327,7 @@ ContrastInfo = namedtuple('ContrastInfo', ('name', 'weights', 'type',
                                            'entities'))
 
 
-class AnalysisNode(object):
+class AnalysisNode:
     """A single analysis node generated within a Step.
 
     Parameters

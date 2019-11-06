@@ -215,7 +215,7 @@ def test_downsampling(tmpdir):
     with open('sub-01/func/sub-01_task-task_events.tsv', 'w') as fobj:
         fobj.write('onset\tduration\tval\n')
         for idx, val in enumerate(values):
-            fobj.write('%f\t%f\t%f\n' % (idx*TR, TR, val))
+            fobj.write('{:f}\t{:f}\t{:f}\n'.format(idx*TR, TR, val))
     with open('sub-01/func/sub-01_task-task_bold.json', 'w') as fobj:
         json.dump({'RepetitionTime': TR}, fobj)
 

@@ -1,4 +1,3 @@
-
 # Version: 0.18
 
 """The Versioneer - like a rocketeer, but for versions.
@@ -394,7 +393,7 @@ def run_command(commands, args, cwd=None, verbose=False, hide_stderr=False,
                                  stderr=(subprocess.PIPE if hide_stderr
                                          else None))
             break
-        except EnvironmentError:
+        except OSError:
             e = sys.exc_info()[1]
             if e.errno == errno.ENOENT:
                 continue
@@ -404,7 +403,7 @@ def run_command(commands, args, cwd=None, verbose=False, hide_stderr=False,
             return None, None
     else:
         if verbose:
-            print("unable to find command, tried %s" % (commands,))
+            print(f"unable to find command, tried {commands}")
         return None, None
     stdout = p.communicate()[0].strip()
     if sys.version_info[0] >= 3:
@@ -417,7 +416,7 @@ def run_command(commands, args, cwd=None, verbose=False, hide_stderr=False,
     return stdout, p.returncode
 
 
-LONG_VERSION_PY['git'] = '''
+LONG_VERSION_PY['git'] = r'''
 # This file helps to compute a version number in source trees obtained from
 # git-archive tarball (such as those provided by githubs download-from-tag
 # feature). Distribution tarballs (built by setup.py sdist) and build
@@ -964,7 +963,7 @@ def git_get_keywords(versionfile_abs):
                 if mo:
                     keywords["date"] = mo.group(1)
         f.close()
-    except EnvironmentError:
+    except OSError:
         pass
     return keywords
 
@@ -988,11 +987,11 @@ def git_versions_from_keywords(keywords, tag_prefix, verbose):
         if verbose:
             print("keywords are unexpanded, not using")
         raise NotThisMethod("unexpanded keywords, not a git-archive tarball")
-    refs = set([r.strip() for r in refnames.strip("()").split(",")])
+    refs = {r.strip() for r in refnames.strip("()").split(",")}
     # starting in git-1.8.3, tags are listed as "tag: foo-1.0" instead of
     # just "foo-1.0". If we see a "tag: " prefix, prefer those.
     TAG = "tag: "
-    tags = set([r[len(TAG):] for r in refs if r.startswith(TAG)])
+    tags = {r[len(TAG):] for r in refs if r.startswith(TAG)}
     if not tags:
         # Either we're using git < 1.8.3, or there really are no tags. We use
         # a heuristic: assume all version tags have a digit. The old git %d
@@ -1001,7 +1000,7 @@ def git_versions_from_keywords(keywords, tag_prefix, verbose):
         # between branches and tags. By ignoring refnames without digits, we
         # filter out many common branch names like "release" and
         # "stabilization", as well as "HEAD" and "master".
-        tags = set([r for r in refs if re.search(r'\d', r)])
+        tags = {r for r in refs if re.search(r'\d', r)}
         if verbose:
             print("discarding '%s', no digits" % ",".join(refs - tags))
     if verbose:
@@ -1144,7 +1143,7 @@ def do_vcs_install(manifest_in, versionfile_source, ipy):
                 if "export-subst" in line.strip().split()[1:]:
                     present = True
         f.close()
-    except EnvironmentError:
+    except OSError:
         pass
     if not present:
         f = open(".gitattributes", "a+")
@@ -1202,7 +1201,7 @@ def versions_from_file(filename):
     try:
         with open(filename) as f:
             contents = f.read()
-    except EnvironmentError:
+    except OSError:
         raise NotThisMethod("unable to read _version.py")
     mo = re.search(r"version_json = '''\n(.*)'''  # END VERSION_JSON",
                    contents, re.M | re.S)
@@ -1222,7 +1221,7 @@ def write_to_version_file(filename, versions):
     with open(filename, "w") as f:
         f.write(SHORT_VERSION_PY % contents)
 
-    print("set %s to '%s'" % (filename, versions["version"]))
+    print("set {} to '{}'".format(filename, versions["version"]))
 
 
 def plus_or_dot(pieces):
@@ -1441,7 +1440,7 @@ def get_versions(verbose=False):
     try:
         ver = versions_from_file(versionfile_abs)
         if verbose:
-            print("got version from file %s %s" % (versionfile_abs, ver))
+            print(f"got version from file {versionfile_abs} {ver}")
         return ver
     except NotThisMethod:
         pass
@@ -1698,8 +1697,7 @@ def do_setup():
     root = get_root()
     try:
         cfg = get_config_from_root(root)
-    except (EnvironmentError, configparser.NoSectionError,
-            configparser.NoOptionError) as e:
+    except (OSError, configparser.NoSectionError, configparser.NoOptionError) as e:
         if isinstance(e, (EnvironmentError, configparser.NoSectionError)):
             print("Adding sample versioneer config to setup.cfg",
                   file=sys.stderr)
@@ -1724,7 +1722,7 @@ def do_setup():
         try:
             with open(ipy, "r") as f:
                 old = f.read()
-        except EnvironmentError:
+        except OSError:
             old = ""
         if INIT_PY_SNIPPET not in old:
             print(" appending to %s" % ipy)
@@ -1748,7 +1746,7 @@ def do_setup():
                 if line.startswith("include "):
                     for include in line.split()[1:]:
                         simple_includes.add(include)
-    except EnvironmentError:
+    except OSError:
         pass
     # That doesn't cover everything MANIFEST.in can do
     # (http://docs.python.org/2/distutils/sourcedist.html#commands), so

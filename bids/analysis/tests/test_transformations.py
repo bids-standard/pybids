@@ -328,7 +328,7 @@ def test_factor(collection):
     # full-rank dummy-coding, multiple values
     coll = collection.clone()
     transform.Factor(coll, 'respnum')
-    targets = set(['respnum.%d' % d for d in range(0, 5)])
+    targets = {'respnum.%d' % d for d in range(0, 5)}
     assert not targets - set(coll.variables.keys())
     assert all([set(coll.variables[t].values.unique()) == {0.0, 1.0}
                 for t in targets])
@@ -339,7 +339,7 @@ def test_factor(collection):
     # reduced-rank dummy-coding, multiple values
     coll = collection.clone()
     transform.Factor(coll, 'respnum', constraint='drop_one')
-    targets = set(['respnum.%d' % d for d in range(1, 5)])
+    targets = {'respnum.%d' % d for d in range(1, 5)}
     assert not targets - set(coll.variables.keys())
     assert 'respnum.0' not in coll.variables.keys()
     assert all([set(coll.variables[t].values.unique()) == {0.0, 1.0}
@@ -351,7 +351,7 @@ def test_factor(collection):
     # Effect coding, multiple values
     coll = collection.clone()
     transform.Factor(coll, 'respnum', constraint='mean_zero')
-    targets = set(['respnum.%d' % d for d in range(1, 5)])
+    targets = {'respnum.%d' % d for d in range(1, 5)}
     assert not targets - set(coll.variables.keys())
     assert 'respnum.0' not in coll.variables.keys()
     assert all([set(coll.variables[t].values.unique()) == {-0.25, 0.0, 1.0}

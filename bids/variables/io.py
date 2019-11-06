@@ -482,7 +482,7 @@ def _load_tsv_variables(layout, suffix, dataset=None, columns=None,
             df.columns = ['amplitude'] + ent_cols
 
             if prepend_type:
-                col_name = '%s.%s' % (suffix, col_name)
+                col_name = f'{suffix}.{col_name}'
 
             node.add_variable(SimpleVariable(name=col_name, data=df, source=suffix))
 

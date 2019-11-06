@@ -147,7 +147,7 @@ def test_config_init_with_args():
     config = Config('custom', entities=ents, default_path_patterns=patterns)
     assert config.name == 'custom'
     target = {'task', 'acquisition'}
-    assert set(ent.name for ent in config.entities.values()) == target
+    assert {ent.name for ent in config.entities.values()} == target
     assert config.default_path_patterns  == patterns
 
 

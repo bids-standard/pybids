@@ -96,7 +96,7 @@ class Config(Base):
             if config in config_paths:
                 config = config_paths[config]
             if not os.path.exists(config):
-                raise ValueError("{} is not a valid path.".format(config))
+                raise ValueError(f"{config} is not a valid path.")
             else:
                 with open(config, 'r') as f:
                     config = json.load(f)
@@ -159,7 +159,7 @@ class BIDSFile(Base):
                              (self.__class__.__name__, attr))
 
     def __repr__(self):
-        return "<{} filename='{}'>".format(self.__class__.__name__, self.path)
+        return f"<{self.__class__.__name__} filename='{self.path}'>"
 
     def __fspath__(self):
         return self.path
@@ -400,7 +400,7 @@ class BIDSJSONFile(BIDSFile):
         """Return the contents of the current file as a dictionary. """
         d = json.loads(self.get_json())
         if not isinstance(d, dict):
-            raise ValueError("File %s is a json containing %s, not a dict which was expected" % (self.path, type(d)))
+            raise ValueError("File {} is a json containing {}, not a dict which was expected".format(self.path, type(d)))
         return d
 
     def get_json(self):
@@ -469,8 +469,7 @@ class Entity(Base):
         self.regex = re.compile(self.pattern) if self.pattern is not None else None
 
     def __iter__(self):
-        for i in self.unique():
-            yield i
+        yield from self.unique()
 
     def __deepcopy__(self, memo):
         cls = self.__class__

@@ -209,7 +209,7 @@ def test_get_return_type_dir(layout_7t_trt, layout_7t_trt_relpath):
     # In case of relative paths
     res_relpath = layout_7t_trt_relpath.get(**query)
     # returned directories should be in sorted order so we can match exactly
-    target_relpath = ["sub-{:02d}".format(i) for i in range(1, 11)]
+    target_relpath = [f"sub-{i:02d}" for i in range(1, 11)]
     assert target_relpath == res_relpath
 
     res = layout_7t_trt.get(**query)
@@ -374,8 +374,8 @@ def test_restricted_words_in_path(tmpdir):
     orig_layout = BIDSLayout(orig_path)
     new_layout = BIDSLayout(new_path)
 
-    orig_files = set(f.replace(orig_path, '') for f in orig_layout.files)
-    new_files = set(f.replace(new_path, '') for f in new_layout.files)
+    orig_files = {f.replace(orig_path, '') for f in orig_layout.files}
+    new_files = {f.replace(new_path, '') for f in new_layout.files}
     assert orig_files == new_files
 
 
@@ -590,7 +590,7 @@ def test_get_dataset_description(layout_ds005_multi_derivs):
     assert isinstance(dd, list)
     assert len(dd) == 3
     names = {'Mixed-gambles task', 'Mixed-gambles task -- dummy derivative'}
-    assert set([d['Name'] for d in dd]) == names
+    assert {d['Name'] for d in dd} == names
 
 
 def test_indexed_file_associations(layout_7t_trt):
@@ -605,7 +605,7 @@ def test_indexed_file_associations(layout_7t_trt):
                      'sub-01_ses-1_task-rest_acq-fullbrain_run-1_physio.tsv.gz'),
         os.path.join(layout_7t_trt.root, 'task-rest_acq-fullbrain_bold.json')
     ]
-    assert set([a.path for a in assocs]) == set(targets)
+    assert {a.path for a in assocs} == set(targets)
 
     js = [a for a in assocs if a.path.endswith('json')][0]
     assert len(js.get_associations()) == 41

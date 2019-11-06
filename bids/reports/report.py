@@ -11,7 +11,7 @@ from bids.reports import utils
 from bids.reports import parsing
 
 
-class BIDSReport(object):
+class BIDSReport:
     """
     Generates publication-quality data acquisition methods section from BIDS
     dataset.
@@ -86,7 +86,7 @@ class BIDSReport(object):
         for sid in subjs:
             descriptions.append(self._report_subject(subject=sid, **kwargs))
         counter = Counter(descriptions)
-        print('Number of patterns detected: {0}'.format(len(counter.keys())))
+        print('Number of patterns detected: {}'.format(len(counter.keys())))
         print(utils.reminder())
         return counter
 
@@ -126,13 +126,13 @@ class BIDSReport(object):
                                      **kwargs)
 
             if niftis:
-                description_list.append('For session {0}:'.format(ses))
+                description_list.append(f'For session {ses}:')
                 description_list += parsing.parse_niftis(self.layout, niftis,
                                                          subject, self.config,
                                                          session=ses)
                 metadata = self.layout.get_metadata(niftis[0].path)
             else:
-                raise Exception('No niftis for subject {0}'.format(subject))
+                raise Exception(f'No niftis for subject {subject}')
 
         # Assume all data were converted the same way and use the last nifti
         # file's json for conversion information.
@@ -142,5 +142,5 @@ class BIDSReport(object):
 
         description = '\n\t'.join(description_list)
         description = description.replace('\tFor session', '\nFor session')
-        description += '\n\n{0}'.format(parsing.final_paragraph(metadata))
+        description += '\n\n{}'.format(parsing.final_paragraph(metadata))
         return description

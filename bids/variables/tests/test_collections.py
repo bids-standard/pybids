@@ -34,7 +34,7 @@ def test_resample_run_variable_collection(run_coll):
     resampled = run_coll.resample(force_dense=True)
     assert len(resampled) == 7
     assert all([isinstance(v, DenseRunVariable) for v in resampled.values()])
-    assert len(set([v.sampling_rate for v in resampled.values()])) == 1
+    assert len({v.sampling_rate for v in resampled.values()}) == 1
     targ_len = 480 * 16 * 3 * 10
     assert all([len(v.values) == targ_len for v in resampled.values()])
 

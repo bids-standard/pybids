@@ -100,15 +100,15 @@ def add_config_paths(**kwargs):
     for k, path in kwargs.items():
         if not os.path.exists(path):
             raise ValueError(
-                'Configuration file "{}" does not exist'.format(k))
+                f'Configuration file "{k}" does not exist')
         if k in cf.get_option('config_paths'):
-            raise ValueError('Configuration {!r} already exists'.format(k))
+            raise ValueError(f'Configuration {k!r} already exists')
 
     kwargs.update(**cf.get_option('config_paths'))
     cf.set_option('config_paths', kwargs)
 
 
-class BIDSLayout(object):
+class BIDSLayout:
     """Layout class representing an entire BIDS dataset.
 
     Parameters
@@ -310,7 +310,7 @@ class BIDSLayout(object):
             # connection from being used again in a different thread and works best with SQLite's coarse-grained
             # file locking.
             from sqlalchemy.pool import NullPool
-            engine = sa.create_engine('sqlite:///{dbfilepath}'.format(dbfilepath=database_file),
+            engine = sa.create_engine(f'sqlite:///{database_file}',
                                       connect_args={'check_same_thread': False},
                                       poolclass=NullPool)
         else:
@@ -814,9 +814,9 @@ class BIDSLayout(object):
             potential = list(entities.keys())
             suggestions = difflib.get_close_matches(target, potential)
             if suggestions:
-                message = "Did you mean one of: {}?".format(suggestions)
+                message = f"Did you mean one of: {suggestions}?"
             else:
-                message = "Valid targets are: {}".format(potential)
+                message = f"Valid targets are: {potential}"
             raise ValueError(("Unknown target '{}'. " + message)
                              .format(target))
 
@@ -851,7 +851,7 @@ class BIDSLayout(object):
             results = [x for x in results if target in x.entities]
 
             if return_type == 'id':
-                results = list(set([x.entities[target] for x in results]))
+                results = list({x.entities[target] for x in results})
                 results = natural_sort(results)
 
             elif return_type == 'dir':
@@ -1348,7 +1348,7 @@ class BIDSLayout(object):
 
         built = build_path(source, path_patterns, strict)
         if built is None:
-            raise ValueError("Unable to construct build path with source {}".format(source))
+            raise ValueError(f"Unable to construct build path with source {source}")
         to_check = os.path.join(os.path.sep, built)
 
         if not validate or BIDSValidator().is_bids(to_check):

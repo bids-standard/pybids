@@ -78,7 +78,7 @@ def func_info(task, n_runs, metadata, img, config):
         pr_str = ''
 
     if 'SliceTiming' in metadata.keys():
-        so_str = ' in {0} order'.format(get_slice_info(metadata['SliceTiming']))
+        so_str = ' in {} order'.format(get_slice_info(metadata['SliceTiming']))
     else:
         so_str = ''
 
@@ -104,12 +104,12 @@ def func_info(task, n_runs, metadata, img, config):
     n_tps = img.shape[3]
     run_secs = math.ceil(n_tps * tr)
     mins, secs = divmod(run_secs, 60)
-    length = '{0}:{1:02.0f}'.format(int(mins), int(secs))
+    length = '{}:{:02.0f}'.format(int(mins), int(secs))
 
     if n_runs == 1:
-        run_str = '{0} run'.format(num2words(n_runs).title())
+        run_str = '{} run'.format(num2words(n_runs).title())
     else:
-        run_str = '{0} runs'.format(num2words(n_runs).title())
+        run_str = '{} runs'.format(num2words(n_runs).title())
 
     desc = '''
            {run_str} of {task} {variants} {seqs} {me_str} fMRI data were
@@ -231,15 +231,15 @@ def dwi_info(bval_file, metadata, img, config):
         bval_str = ' and '.join(bvals)
     else:
         bval_str = ', '.join(bvals[:-1])
-        bval_str += ', and {0}'.format(bvals[-1])
+        bval_str += ', and {}'.format(bvals[-1])
 
     if metadata.get('MultibandAccelerationFactor', 1) > 1:
-        mb_str = '; MB factor={0}'.format(metadata['MultibandAccelerationFactor'])
+        mb_str = '; MB factor={}'.format(metadata['MultibandAccelerationFactor'])
     else:
         mb_str = ''
 
     if 'SliceTiming' in metadata.keys():
-        so_str = ' in {0} order'.format(get_slice_info(metadata['SliceTiming']))
+        so_str = ' in {} order'.format(get_slice_info(metadata['SliceTiming']))
     else:
         so_str = ''
 
@@ -320,9 +320,9 @@ def fmap_info(metadata, img, config, layout):
             if ty == 'BOLD':
                 iff_meta = layout.get_metadata(iff_file.path)
                 task = iff_meta.get('TaskName', iff_file.entities['task'])
-                ty_str = '{0} {1} scan'.format(task, ty)
+                ty_str = f'{task} {ty} scan'
             else:
-                ty_str = '{0} scan'.format(ty)
+                ty_str = f'{ty} scan'
 
             if ty_str not in run_dict.keys():
                 run_dict[ty_str] = []
@@ -342,7 +342,7 @@ def fmap_info(metadata, img, config, layout):
                                                       s=s,
                                                       sc=scan)
             out_list.append(string)
-        for_str = ' for the {0}'.format(list_to_str(out_list))
+        for_str = ' for the {}'.format(list_to_str(out_list))
     else:
         for_str = ''
 
@@ -387,7 +387,7 @@ def final_paragraph(metadata):
     if 'ConversionSoftware' in metadata.keys():
         soft = metadata['ConversionSoftware']
         vers = metadata['ConversionSoftwareVersion']
-        software_str = ' using {soft} ({conv_vers})'.format(soft=soft, conv_vers=vers)
+        software_str = f' using {soft} ({vers})'
     else:
         software_str = ''
     desc = '''

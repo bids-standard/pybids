@@ -46,7 +46,7 @@ with TemporaryDirectory() as tmpdir:
         try:
             clone = run(['git', 'clone', '-q', repo, repo_dir], check=True)
         except CalledProcessError as err:
-            raise RuntimeError("Could not clone {}".format(repo)) from err
+            raise RuntimeError(f"Could not clone {repo}") from err
 
         if ref is None:
             tag = run(['git', '-C', repo_dir, 'tag'], stdout=PIPE)

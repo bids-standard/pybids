@@ -6,7 +6,7 @@ from . import kollekshuns as clc
 import pandas as pd
 
 
-class Node(object):
+class Node:
     """Base class for objects that represent a single object in the BIDS
     hierarchy.
 
@@ -56,7 +56,7 @@ class RunNode(Node):
         self.image_file = image_file
         self.duration = duration
         self.repetition_time = repetition_time
-        super(RunNode, self).__init__('run', entities)
+        super().__init__('run', entities)
 
     def get_info(self):
         # Note: do not remove the dict() call! self.entities is a SQLAlchemy
@@ -80,11 +80,11 @@ class RunInfo(RunInfo_):
     pass
 
 
-class NodeIndex(object):
+class NodeIndex:
     """Represents the top level in a BIDS hierarchy. """
 
     def __init__(self):
-        super(NodeIndex, self).__init__()
+        super().__init__()
         self.index = pd.DataFrame()
         self.nodes = []
 

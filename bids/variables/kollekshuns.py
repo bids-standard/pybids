@@ -18,7 +18,7 @@ from bids.utils import listify, matches_entities
 import numpy as np
 
 
-class BIDSVariableCollection(object):
+class BIDSVariableCollection:
     """A container for one or more variables extracted from variable files
     at a single level of analysis.
 
@@ -47,8 +47,8 @@ class BIDSVariableCollection(object):
             'sessions': 'subject',
             'participants': 'dataset'
         }
-        var_levels = set([SOURCE_TO_LEVEL[v.source] if v.source in
-                          SOURCE_TO_LEVEL else v.source for v in variables])
+        var_levels = {SOURCE_TO_LEVEL[v.source] if v.source in
+                          SOURCE_TO_LEVEL else v.source for v in variables}
 
         # TODO: relax this requirement & allow implicit merging between levels
         if len(var_levels) > 1:
@@ -259,7 +259,7 @@ class BIDSRunVariableCollection(BIDSVariableCollection):
             if isinstance(sampling_rate, str):
                 raise ValueError("Sampling rate must be numeric.")
         self.sampling_rate = sampling_rate or 10
-        super(BIDSRunVariableCollection, self).__init__(variables)
+        super().__init__(variables)
 
     def _none_dense(self):
         return all([isinstance(v, SimpleVariable)
@@ -391,7 +391,7 @@ class BIDSRunVariableCollection(BIDSVariableCollection):
                                            force_dense=True,
                                            in_place=False).values())
 
-        return super(BIDSRunVariableCollection, self).to_df(variables, format,
+        return super().to_df(variables, format,
                                                             **kwargs)
 
 
@@ -415,7 +415,7 @@ def merge_collections(collections, force_dense=False, sampling_rate='auto'):
     if len(listify(collections)) == 1:
         return collections
 
-    levels = set([c.level for c in collections])
+    levels = {c.level for c in collections}
     if len(levels) > 1:
         raise ValueError("At the moment, it's only possible to merge "
                          "Collections at the same level of analysis. You "
