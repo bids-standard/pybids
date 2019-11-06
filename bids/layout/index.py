@@ -14,7 +14,6 @@ from .writing import build_path, write_contents_to_file
 from .models import Config, BIDSFile, Entity, Tag, FileAssociation
 from ..utils import listify, make_bidsfile
 from ..config import get_option
-from ..external import six
 
 
 def _extract_entities(bidsfile, entities):
@@ -34,7 +33,7 @@ def _check_path_matches_patterns(path, patterns):
         return False
     path = os.path.abspath(path)
     for patt in patterns:
-        if isinstance(patt, six.string_types):
+        if isinstance(patt, str):
             if path == patt:
                 return True
         elif patt.search(path):
@@ -215,7 +214,7 @@ class BIDSLayoutIndexer(object):
                         except json.JSONDecodeError as e:
                             msg = ("Error occurred while trying to decode JSON"
                                    " from file '{}'.".format(bf.path))
-                            six.raise_from(IOError(msg), e)
+                            raise IOError(msg) from e
                 else:
                     payload = None
 

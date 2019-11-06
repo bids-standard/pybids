@@ -4,7 +4,6 @@ dataset.
 Parsing functions for generating the MRI data acquisition portion of a
 methods section from a BIDS dataset.
 """
-from __future__ import print_function
 import logging
 from os.path import basename
 

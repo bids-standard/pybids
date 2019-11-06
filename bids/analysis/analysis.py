@@ -5,7 +5,6 @@ from bids.utils import matches_entities, convert_JSON
 from bids.variables import BIDSVariableCollection, merge_collections
 from . import transformations as transform
 from collections import namedtuple, OrderedDict
-from six import string_types
 import numpy as np
 import pandas as pd
 from itertools import chain
@@ -557,7 +556,7 @@ def apply_transformations(collection, transformations, select=None):
         func = kwargs.pop('name')
         cols = kwargs.pop('input', None)
 
-        if isinstance(func, string_types):
+        if isinstance(func, str):
             if func in ('and', 'or'):
                 func += '_'
             if not hasattr(transform, func):

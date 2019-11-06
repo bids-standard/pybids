@@ -8,12 +8,9 @@ from copy import deepcopy
 from abc import abstractmethod, ABCMeta
 from bids.utils import listify
 from itertools import chain
-from six import add_metaclass
 from bids.utils import matches_entities
 
-
-@add_metaclass(ABCMeta)
-class BIDSVariable(object):
+class BIDSVariable(metaclass=ABCMeta):
     """Base representation of a column in a BIDS project. """
 
     # Columns that define special properties (e.g., onset, duration). These

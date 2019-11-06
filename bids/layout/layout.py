@@ -15,7 +15,7 @@ from sqlalchemy.orm import joinedload
 from bids_validator import BIDSValidator
 
 from ..utils import listify, natural_sort, make_bidsfile
-from ..external import inflect, six
+from ..external import inflect
 from .writing import build_path, write_contents_to_file
 from .models import (Base, Config, BIDSFile, Entity, Tag)
 from .index import BIDSLayoutIndexer
@@ -222,10 +222,10 @@ class BIDSLayout(object):
 
         # Instantiate after root validation to ensure os.path.join works
         self.ignore = [os.path.abspath(os.path.join(self.root, patt))
-                       if isinstance(patt, six.string_types) else patt
+                       if isinstance(patt, str) else patt
                        for patt in listify(ignore or [])]
         self.force_index = [os.path.abspath(os.path.join(self.root, patt))
-                            if isinstance(patt, six.string_types) else patt
+                            if isinstance(patt, str) else patt
                             for patt in listify(force_index or [])]
 
         # Initialize the BIDS validator and examine ignore/force_index args
@@ -397,7 +397,7 @@ class BIDSLayout(object):
         # Derivatives get special handling; they shouldn't be indexed normally
         if self.force_index is not None:
             for entry in self.force_index:
-                condi = (isinstance(entry, six.string_types) and
+                condi = (isinstance(entry, str) and
                          os.path.normpath(entry).startswith('derivatives'))
                 if condi:
                     msg = ("Do not pass 'derivatives' in the force_index "
@@ -862,7 +862,7 @@ class BIDSLayout(object):
                                      'target entity (\"%s\").' % target)
                 # Construct regex search pattern from target directory template
                 template = self.root + template
-                to_rep = re.findall(r'\{(.*?)\}', template)
+                to_rep = re.findall(r'{(.*?)\}', template)
                 for ent in to_rep:
                     patt = entities[ent].pattern
                     template = template.replace('{%s}' % ent, patt)
@@ -1324,7 +1324,7 @@ class BIDSLayout(object):
             returned (e.g., if an entity value contains a hyphen).
         """
         # 'is_file' is a crude check for Path objects
-        if isinstance(source, six.string_types) or hasattr(source, 'is_file'):
+        if isinstance(source, str) or hasattr(source, 'is_file'):
             source = str(source)
             if source not in self.files:
                 source = os.path.join(self.root, source)

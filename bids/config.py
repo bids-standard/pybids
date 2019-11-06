@@ -4,7 +4,6 @@ import json
 from os.path import join, expanduser, exists
 import os
 from io import open
-from six import string_types
 
 __all__ = ['set_option', 'set_options', 'get_option']
 
@@ -42,7 +41,7 @@ def set_options(**kwargs):
 
 def get_option(key):
     """ Retrieve the current value of a package-wide option.
-    
+
     Args:
         key (str): The name of the option to retrieve.
 
@@ -61,7 +60,7 @@ def from_file(filenames, error_on_missing=True):
         error_on_missing (bool): If True, raises an error if a file doesn't
             exist.
     """
-    if isinstance(filenames, string_types):
+    if isinstance(filenames, str):
         filenames = [filenames]
     for f in filenames:
         if exists(f):

@@ -9,11 +9,8 @@ from copy import deepcopy
 import itertools
 import inspect
 from bids.variables import SparseRunVariable
-from six import add_metaclass
 
-
-@add_metaclass(ABCMeta)
-class Transformation(object):
+class Transformation(metaclass=ABCMeta):
 
     ### Class-level settings ###
     # The following settings govern the way Transformations are applied to the
@@ -101,7 +98,7 @@ class Transformation(object):
         # that operations like densification, alignment, etc. correctly detect
         # all named arguments.
         if args:
-            arg_spec = inspect.getargspec(self._transform)
+            arg_spec = inspect.getfullargspec(self._transform)
             for i, arg_val in enumerate(args):
                 # Skip first two argnames--they're always 'self' and
                 # 'variables'

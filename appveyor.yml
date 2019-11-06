@@ -2,11 +2,6 @@ build: false
 
 environment:
   matrix:
-    - PYTHON: "C:\\Python27"
-      PYTHON_VERSION: "2.7.8"
-      PYTHON_ARCH: "32"
-      MINICONDA: C:\Miniconda
-
     - PYTHON: "C:\\Python35"
       PYTHON_VERSION: "3.5.1"
       PYTHON_ARCH: "32"
@@ -25,7 +20,7 @@ install:
   - pip install -e ".[analysis]"
 
 test_script:
-  - py.test --pyargs bids
+  - pytest --pyargs bids
 
 after_test:
   - bash <(curl -s https://codecov.io/bash)
