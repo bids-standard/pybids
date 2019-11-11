@@ -122,18 +122,21 @@ class Step(object):
     input_nodes : list
         Optional list of AnalysisNodes to use as input to
         this Step (typically, the output from the preceding Step).
-    auto_contrasts : list or bool
-        Optional list of variable names to create
-        an indicator contrast for. Alternatively, if the boolean value True
-        is passed, a contrast is automatically generated for _all_
-        available variables. This parameter is over-written by the setting
+    one_hot_contrasts : dict
+        Optional dictionary specifying which conditions to create
+        indicator contrasts for. Dictionary must include  "Conditions" and
+        "Type" keys. This parameter is over-written by the setting
         in setup() if the latter is passed.
     """
 
     def __init__(self, layout, level, index, name=None, transformations=None,
                  model=None, contrasts=None, input_nodes=None,
+<<<<<<< Updated upstream
                  auto_contrasts=False):
 
+=======
+                 one_hot_contrasts=False):
+>>>>>>> Stashed changes
         self.layout = layout
         self.level = level.lower()
         self.index = index
@@ -142,7 +145,11 @@ class Step(object):
         self.model = model or None
         self.contrasts = contrasts or []
         self.input_nodes = input_nodes or []
+<<<<<<< Updated upstream
         self.auto_contrasts = auto_contrasts
+=======
+        self.one_hot_contrasts = one_hot_contrasts
+>>>>>>> Stashed changes
         self.output_nodes = []
 
     def _filter_objects(self, objects, kwargs):
@@ -232,7 +239,7 @@ class Step(object):
                 transform.Select(coll, X)
 
             node = AnalysisNode(self.level, coll, self.contrasts, input_nodes,
-                                self.auto_contrasts)
+                                self.one_hot_contrasts)
 
             self.output_nodes.append(node)
 
@@ -341,28 +348,21 @@ class AnalysisNode(object):
         The BIDSVariableCollection containing variables at this Node.
     contrasts : list
         A list of contrasts defined in the originating Step.
-    auto_contrasts : list
-        Optional list of variable names to create a 't' indicator contrast for.
-        Alternatively, a string value of 't' or 'FEMA' indicates a contrast of
-        that type is automatically generated for _all_ available variables.
+    one_hot_contrasts : list
+        Optional dictionary specifying which conditions to create
+        indicator contrasts for. Dictionary must include a
+        "type" key ('t' or 'FEMA'), and optionally a subset of "conditions".
+        This parameter is over-written by the setting
+        in setup() if the latter is passed.
     """
 
     def __init__(self, level, collection, contrasts, input_nodes=None,
-                 auto_contrasts=False):
+                 one_hot_contrasts=None):
         self.level = level.lower()
         self.collection = collection
         self._block_contrasts = contrasts
         self.input_nodes = input_nodes
-
-        if auto_contrasts:
-            ac_type = 'FEMA' if auto_contrasts == 'FEMA' else 't'
-            if not isinstance(auto_contrasts, list):
-                auto_contrasts = collection.variables.keys()
-
-            auto_contrasts = (ac_type, auto_contrasts)
-
-        self.auto_contrasts = auto_contrasts
-
+        self.one_hot_contrasts = one_hot_contrasts
         self._contrasts = None
 
     @property
@@ -500,16 +500,20 @@ class AnalysisNode(object):
             raise ValueError("One or more contrasts have the same name")
         contrast_names = list(set(contrast_names))
 
-        if self.auto_contrasts:
-            ac_type, auto_variables = self.auto_contrasts
-            for col_name in auto_variables:
-                if (col_name in self.collection.variables.keys()
-                   and col_name not in contrast_names):
+        if self.one_hot_contrasts:
+            if 'conditions' in self.one_hot_contrasts:
+                conditions = [c for c in self.one_hot_contrasts['conditions']
+                              if c in self.collection.variables.keys()]
+            else:
+                conditions = self.collection.variables.keys()
+
+            for col_name in conditions:
+                if col_name not in contrast_names:
                     contrasts.append({
                         'name': col_name,
                         'condition_list': [col_name],
                         'weights': [1],
-                        'type': ac_type
+                        'type': self.one_hot_contrasts['type']
                     })
 
         # Filter on desired contrast names if passed

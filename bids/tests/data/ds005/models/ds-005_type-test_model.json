@@ -14,7 +14,10 @@
           "Input": "RT"
         }
       ],
-      "AutoContrasts": ["RT"],
+      "OneHotContrasts": {
+        "Conditions": ["RT"],
+        "Type": "t"
+        },
       "Contrasts": [
         {
           "Name": "RT-trial_type",
@@ -40,17 +43,23 @@
     {
       "Name": "session",
       "Level": "Session",
-      "AutoContrasts": "FEMA"
+      "OneHotContrasts": {
+        "Type": "FEMA"
+      },
     },
     {
       "Name": "participant",
       "Level": "Subject",
-      "AutoContrasts": "FEMA"
+      "OneHotContrasts": {
+        "Type": "FEMA"
+      },
     },
     {
       "Name": "group",
       "Level": "Dataset",
-      "AutoContrasts": true
+      "OneHotContrasts": {
+        "Type": "t"
+      },
     }
   ]
 }
