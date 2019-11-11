@@ -122,7 +122,7 @@ class Step(object):
     input_nodes : list
         Optional list of AnalysisNodes to use as input to
         this Step (typically, the output from the preceding Step).
-    one_hot_contrasts : dict
+    dummy_contrasts : dict
         Optional dictionary specifying which conditions to create
         indicator contrasts for. Dictionary must include  "Conditions" and
         "Type" keys. This parameter is over-written by the setting
@@ -131,7 +131,7 @@ class Step(object):
 
     def __init__(self, layout, level, index, name=None, transformations=None,
                  model=None, contrasts=None, input_nodes=None,
-                 one_hot_contrasts=False):
+                 dummy_contrasts=False):
         self.layout = layout
         self.level = level.lower()
         self.index = index
@@ -140,7 +140,7 @@ class Step(object):
         self.model = model or None
         self.contrasts = contrasts or []
         self.input_nodes = input_nodes or []
-        self.one_hot_contrasts = one_hot_contrasts
+        self.dummy_contrasts = dummy_contrasts
         self.output_nodes = []
 
     def _filter_objects(self, objects, kwargs):
@@ -230,7 +230,7 @@ class Step(object):
                 transform.Select(coll, X)
 
             node = AnalysisNode(self.level, coll, self.contrasts, input_nodes,
-                                self.one_hot_contrasts)
+                                self.dummy_contrasts)
 
             self.output_nodes.append(node)
 
@@ -339,7 +339,7 @@ class AnalysisNode(object):
         The BIDSVariableCollection containing variables at this Node.
     contrasts : list
         A list of contrasts defined in the originating Step.
-    one_hot_contrasts : list
+    dummy_contrasts : list
         Optional dictionary specifying which conditions to create
         indicator contrasts for. Dictionary must include a
         "type" key ('t' or 'FEMA'), and optionally a subset of "conditions".
@@ -348,12 +348,12 @@ class AnalysisNode(object):
     """
 
     def __init__(self, level, collection, contrasts, input_nodes=None,
-                 one_hot_contrasts=None):
+                 dummy_contrasts=None):
         self.level = level.lower()
         self.collection = collection
         self._block_contrasts = contrasts
         self.input_nodes = input_nodes
-        self.one_hot_contrasts = one_hot_contrasts
+        self.dummy_contrasts = dummy_contrasts
         self._contrasts = None
 
     @property
@@ -491,9 +491,9 @@ class AnalysisNode(object):
             raise ValueError("One or more contrasts have the same name")
         contrast_names = list(set(contrast_names))
 
-        if self.one_hot_contrasts:
-            if 'conditions' in self.one_hot_contrasts:
-                conditions = [c for c in self.one_hot_contrasts['conditions']
+        if self.dummy_contrasts:
+            if 'conditions' in self.dummy_contrasts:
+                conditions = [c for c in self.dummy_contrasts['conditions']
                               if c in self.collection.variables.keys()]
             else:
                 conditions = self.collection.variables.keys()
@@ -504,7 +504,7 @@ class AnalysisNode(object):
                         'name': col_name,
                         'condition_list': [col_name],
                         'weights': [1],
-                        'type': self.one_hot_contrasts['type']
+                        'type': self.dummy_contrasts['type']
                     })
 
         # Filter on desired contrast names if passed

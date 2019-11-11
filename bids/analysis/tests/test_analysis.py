@@ -163,7 +163,7 @@ def test_contrast_info_F_contrast(analysis):
         assert c._fields == ('name', 'weights', 'type', 'entities')
 
 
-def test_onehot_contrasts(analysis):
+def test_dummy_contrasts(analysis):
     names = [c.name for c in analysis['run'].get_contrasts(subject='01')[0]]
     session = analysis['session'].get_contrasts(subject='01')[0]
     for cl in session:

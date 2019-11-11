@@ -14,7 +14,7 @@
           "Input": "RT"
         }
       ],
-      "OneHotContrasts": {
+      "DummyContrasts": {
         "Conditions": ["RT"],
         "Type": "t"
         },
@@ -43,21 +43,21 @@
     {
       "Name": "session",
       "Level": "Session",
-      "OneHotContrasts": {
+      "DummyContrasts": {
         "Type": "FEMA"
       },
     },
     {
       "Name": "participant",
       "Level": "Subject",
-      "OneHotContrasts": {
+      "DummyContrasts": {
         "Type": "FEMA"
       },
     },
     {
       "Name": "group",
       "Level": "Dataset",
-      "OneHotContrasts": {
+      "DummyContrasts": {
         "Type": "t"
       },
     }
