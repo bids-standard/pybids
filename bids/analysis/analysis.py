@@ -131,12 +131,7 @@ class Step(object):
 
     def __init__(self, layout, level, index, name=None, transformations=None,
                  model=None, contrasts=None, input_nodes=None,
-<<<<<<< Updated upstream
-                 auto_contrasts=False):
-
-=======
                  one_hot_contrasts=False):
->>>>>>> Stashed changes
         self.layout = layout
         self.level = level.lower()
         self.index = index
@@ -145,11 +140,7 @@ class Step(object):
         self.model = model or None
         self.contrasts = contrasts or []
         self.input_nodes = input_nodes or []
-<<<<<<< Updated upstream
-        self.auto_contrasts = auto_contrasts
-=======
         self.one_hot_contrasts = one_hot_contrasts
->>>>>>> Stashed changes
         self.output_nodes = []
 
     def _filter_objects(self, objects, kwargs):
