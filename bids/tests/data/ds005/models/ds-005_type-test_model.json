@@ -45,21 +45,21 @@
       "Level": "Session",
       "DummyContrasts": {
         "Type": "FEMA"
-      },
+      }
     },
     {
       "Name": "participant",
       "Level": "Subject",
       "DummyContrasts": {
         "Type": "FEMA"
-      },
+      }
     },
     {
       "Name": "group",
       "Level": "Dataset",
       "DummyContrasts": {
         "Type": "t"
-      },
+      }
     }
   ]
 }
