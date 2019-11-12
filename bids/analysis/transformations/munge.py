@@ -206,6 +206,18 @@ class Filter(Transformation):
         return var
 
 
+class Group(Transformation):
+    """Groups a list of variables."""
+
+    _groupable = False
+    _loopable = False
+    _input_type = 'variable'
+    _return_type = 'none'
+
+    def _transform(self, variables, name):
+        self.collection.groups[name] = [v.name for v in variables]
+
+
 class Rename(Transformation):
     """Rename a variable.
 
