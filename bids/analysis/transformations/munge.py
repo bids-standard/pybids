@@ -215,6 +215,9 @@ class Group(Transformation):
     _return_type = 'none'
 
     def _transform(self, variables, name):
+        if name in self.variables:
+            raise ValueError("Variable group name '{}' conflicts with an "
+                             "existing variable name!".format(name))
         self.collection.groups[name] = [v.name for v in variables]
 
 

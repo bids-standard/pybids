@@ -457,6 +457,10 @@ def test_dropna(sparse_run_variable_with_missing_values):
 
 def test_group(collection):
     coll = collection.clone()
+    with pytest.raises(ValueError):
+        # Can't use an existing variable name as the group name
+        transform.Group(coll, ['gain', 'loss'], name='gain')
+
     transform.Group(coll, ['gain', 'loss'], name='outcome_vars')
     assert coll.groups == { 'outcome_vars': ['gain', 'loss'] }
 
