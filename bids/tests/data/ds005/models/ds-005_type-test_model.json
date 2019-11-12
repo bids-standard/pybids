@@ -56,7 +56,7 @@
           "ConditionList": [
             "RT"
           ],
-          "Type": "t",
+          "Type": "FEMA",
           "Weights": [1]
         },
         {
@@ -64,7 +64,7 @@
           "ConditionList": [
             "RT-trial_type"
           ],
-          "Type": "t",
+          "Type": "FEMA",
           "Weights": [1]
         },
         {
@@ -72,7 +72,7 @@
           "ConditionList": [
             "crummy-F"
           ],
-          "Type": "t",
+          "Type": "FEMA",
           "Weights": [
             [1]
           ]
