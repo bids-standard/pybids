@@ -456,8 +456,14 @@ def test_dropna(sparse_run_variable_with_missing_values):
 
 
 def test_group(collection):
-    transform.Group(collection, ['gain', 'loss', 'parametric gain'],
-                    name='outcome_vars')
-    assert collection.groups == {
-        'outcome_vars': ['gain', 'loss', 'parametric gain']
-    }
+    coll = collection.clone()
+    transform.Group(coll, ['gain', 'loss'], name='outcome_vars')
+    assert coll.groups == { 'outcome_vars': ['gain', 'loss'] }
+
+    # Checks that variable groups are replaced properly
+    transform.Rename(coll, ['outcome_vars'],
+                     output=['gain_renamed', 'loss_renamed'])
+    assert 'gain_renamed' in coll.variables
+    assert 'loss_renamed' in coll.variables
+    assert 'gain' not in coll.variables
+    assert 'loss' not in coll.variables

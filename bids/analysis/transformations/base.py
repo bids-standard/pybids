@@ -10,6 +10,7 @@ import itertools
 import inspect
 from bids.variables import SparseRunVariable
 
+
 class Transformation(metaclass=ABCMeta):
 
     ### Class-level settings ###
@@ -106,10 +107,21 @@ class Transformation(metaclass=ABCMeta):
 
         self.kwargs = kwargs
 
+        # Replace variable groups with full variable lists
+        self._replace_variable_groups()
+
         # Expand regex variable names
         replace_args = self.kwargs.pop('regex_variables', None)
         if replace_args is not None:
             self._regex_replace_variables(replace_args)
+
+    def _replace_variable_groups(self):
+        """ Replace any detected variable groups with the associated lists of
+        variable names.
+        """
+        groups = self.collection.groups
+        variables = [groups[v] if v in groups else [v] for v in self.variables]
+        self.variables = list(itertools.chain(*variables))
 
     def _clone_variables(self):
         """Deep copy all variables the transformation touches. This prevents us
