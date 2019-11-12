@@ -67,6 +67,10 @@ class BIDSVariableCollection(object):
         self.variables = {v.name: v for v in variables}
         self._index_entities()
 
+        # Container for variable groups (see BIDS-StatsModels spec)--maps from
+        # group names to lists of variables.
+        self.groups = {}
+
     @staticmethod
     def merge_variables(variables, **kwargs):
         """Concatenates Variables along row axis.
