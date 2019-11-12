@@ -161,3 +161,25 @@ def test_contrast_info_F_contrast(analysis):
         assert np.array_equal(c.weights.values, np.array([[1, 0], [0, 1]]))
         assert isinstance(c, ContrastInfo)
         assert c._fields == ('name', 'weights', 'type', 'entities')
+
+
+def test_dummy_contrasts(analysis):
+    names = [c.name for c in analysis['run'].get_contrasts(subject='01')[0]]
+    session = analysis['session'].get_contrasts(subject='01')[0]
+    for cl in session:
+        assert cl.type == 'FEMA'
+        assert cl.name in names
+
+    participant = analysis['participant'].get_contrasts(subject='01')[0]
+    assert len(participant) == 3
+    for cl in participant:
+        assert cl.type == 'FEMA'
+        assert cl.name in names
+
+    group = analysis['group'].get_contrasts()[0]
+    group_names = []
+    for cl in group:
+        assert cl.type == 't'
+        group_names.append(cl.name)
+
+    assert set(names) < set(group_names)

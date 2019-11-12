@@ -14,7 +14,10 @@
           "Input": "RT"
         }
       ],
-      "AutoContrasts": ["RT"],
+      "DummyContrasts": {
+        "Conditions": ["RT"],
+        "Type": "t"
+        },
       "Contrasts": [
         {
           "Name": "RT-trial_type",
@@ -40,17 +43,48 @@
     {
       "Name": "session",
       "Level": "Session",
-      "AutoContrasts": true
+      "DummyContrasts": {
+        "Type": "FEMA"
+      }
     },
     {
       "Name": "participant",
       "Level": "Subject",
-      "AutoContrasts": true
+      "Contrasts": [
+        {
+          "Name": "RT",
+          "ConditionList": [
+            "RT"
+          ],
+          "Type": "FEMA",
+          "Weights": [1]
+        },
+        {
+          "Name": "RT-trial_type",
+          "ConditionList": [
+            "RT-trial_type"
+          ],
+          "Type": "FEMA",
+          "Weights": [1]
+        },
+        {
+          "Name": "crummy-F",
+          "ConditionList": [
+            "crummy-F"
+          ],
+          "Type": "FEMA",
+          "Weights": [
+            [1]
+          ]
+        }
+      ]
     },
     {
       "Name": "group",
       "Level": "Dataset",
-      "AutoContrasts": true
+      "DummyContrasts": {
+        "Type": "t"
+      }
     }
   ]
 }

@@ -34,6 +34,7 @@ def test_auto_model_analysis(model):
     assert block['Transformations'][0]['Name'] == 'Factor'
     assert block['Contrasts'][0]['Name'] == 'run_parametric gain'
     assert block['Contrasts'][0]['Weights'] == [1]
+    assert block['Contrasts'][0]['Type'] == 't'
 
     # subject level
     block = model['Steps'][1]
@@ -41,6 +42,7 @@ def test_auto_model_analysis(model):
     assert block['Level'] == 'Subject'
     assert block['Model']['X'][0] == 'run_parametric gain'
     assert block['Contrasts'][0]['Name'] == 'subject_run_parametric gain'
+    assert block['Contrasts'][0]['Type'] == 'FEMA'
 
     # dataset level
     block = model['Steps'][2]
@@ -48,3 +50,4 @@ def test_auto_model_analysis(model):
     assert block['Level'] == 'Dataset'
     assert block['Model']['X'][0] == 'subject_run_parametric gain'
     assert block['Contrasts'][0]['Name'] == 'dataset_subject_run_parametric gain'
+    assert block['Contrasts'][0]['Type'] == 't'
