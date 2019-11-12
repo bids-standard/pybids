@@ -124,8 +124,9 @@ class Step(object):
         this Step (typically, the output from the preceding Step).
     dummy_contrasts : dict
         Optional dictionary specifying which conditions to create
-        indicator contrasts for. Dictionary must include  "Conditions" and
-        "Type" keys. This parameter is over-written by the setting
+        indicator contrasts for. Dictionary must include a
+        "type" key ('t' or 'FEMA'), and optionally a subset of "conditions".
+        This parameter is over-written by the setting
         in setup() if the latter is passed.
     """
 
@@ -482,7 +483,7 @@ class AnalysisNode(object):
             raise ValueError("Invalid condition names passed in one or more "
                              " contrast condition lists: %s." % bad_conds)
 
-        # Construct a list of all contrasts, including identity contrasts
+        # Construct a list of all contrasts, including dummy contrasts
         contrasts = list(self._block_contrasts)
 
         # Check that all contrasts have unique name

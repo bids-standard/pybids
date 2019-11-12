@@ -171,6 +171,7 @@ def test_dummy_contrasts(analysis):
         assert cl.name in names
 
     participant = analysis['participant'].get_contrasts(subject='01')[0]
+    assert len(participant) == 3
     for cl in participant:
         assert cl.type == 'FEMA'
         assert cl.name in names

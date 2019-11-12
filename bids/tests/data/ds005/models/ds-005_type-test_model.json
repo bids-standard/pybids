@@ -50,9 +50,34 @@
     {
       "Name": "participant",
       "Level": "Subject",
-      "DummyContrasts": {
-        "Type": "FEMA"
-      }
+      "Contrasts": [
+        {
+          "Name": "RT",
+          "ConditionList": [
+            "RT"
+          ],
+          "Type": "t",
+          "Weights": [1]
+        },
+        {
+          "Name": "RT-trial_type",
+          "ConditionList": [
+            "RT-trial_type"
+          ],
+          "Type": "t",
+          "Weights": [1]
+        },
+        {
+          "Name": "crummy-F",
+          "ConditionList": [
+            "crummy-F"
+          ],
+          "Type": "t",
+          "Weights": [
+            [1]
+          ]
+        }
+      ]
     },
     {
       "Name": "group",
