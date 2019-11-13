@@ -167,18 +167,18 @@ class BIDSLayout(object):
         search (False, default) when comparing the query string to each
         entity in .get() calls. This sets a default for the instance, but
         can be overridden in individual .get() requests.
-    database_file : str
-        Optional path to SQLite database containing the
-        index for this BIDS dataset. If a value is passed and the file
+    database_dir : str
+        Optional path to directory containing SQLite database file index
+        for this BIDS dataset. If a value is passed and the folder
         already exists, indexing is skipped. By default (i.e., if None),
         an in-memory SQLite database is used, and the index will not
         persist unless .save() is explicitly called.
     reset_database : bool
-        If True, any existing file specified in the
-        database_file argument is deleted, and the BIDS dataset provided
+        If True, any existing folder specified in the
+        database_dir argument is deleted, and the BIDS dataset provided
         in the root argument is reindexed. If False, indexing will be
         skipped and the existing database file will be used. Ignored if
-        database_file is not provided.
+        database_dir is not provided.
     index_metadata : bool
         If True, all metadata files are indexed at
         initialization. If False, metadata will not be available (but
@@ -191,7 +191,7 @@ class BIDSLayout(object):
     def __init__(self, root, validate=True, absolute_paths=True,
                  derivatives=False, config=None, sources=None, ignore=None,
                  force_index=None, config_filename='layout_config.json',
-                 regex_search=False, database_file=None, reset_database=False,
+                 regex_search=False, database_dir=None, reset_database=False,
                  index_metadata=True):
         """Initialize BIDSLayout."""
         self.root = root
@@ -202,15 +202,8 @@ class BIDSLayout(object):
         self.regex_search = regex_search
         self.config_filename = config_filename
 
-        def _normalize_db_name(default_root_dir, db_file):
-            if db_file is None:
-                return None
-            # If a full absolute path is given, use it, else make path
-            if not os.path.isabs(db_file):
-                db_file = os.path.abspath(os.path.join(default_root_dir, db_file))
-            return db_file
-
-        database_file = _normalize_db_name(self.root, database_file)
+        if database_dir:
+            database_dir = os.path.abspath(database_dir)
 
         self.session = None
 
@@ -231,7 +224,7 @@ class BIDSLayout(object):
         # Initialize the BIDS validator and examine ignore/force_index args
         self._validate_force_index()
 
-        index_dataset = self._init_db(database_file, reset_database)
+        index_dataset = self._init_db(database_dir, reset_database)
 
         if index_dataset:
             # Create Config objects
@@ -258,15 +251,14 @@ class BIDSLayout(object):
         if derivatives:
             if derivatives is True:
                 derivatives = os.path.join(root, 'derivatives')
-            # if creating db files for bids, also create db files for derivatives
-            create_derivative_database_files = (database_file is not None)
             self.add_derivatives(
-                derivatives, create_derivative_database_files=create_derivative_database_files,
+                derivatives, parent_database_dir=database_dir,
                 validate=validate, absolute_paths=absolute_paths,
-                derivatives=None, config=None, sources=self, ignore=ignore,
+                derivatives=None, sources=self, ignore=ignore,  config=None,
                 force_index=force_index, config_filename=config_filename,
-                regex_search=regex_search, reset_database=index_dataset or reset_database,
-                index_metadata=index_metadata)
+                regex_search=regex_search, index_metadata=index_metadata,
+                reset_database=index_dataset or reset_database
+                )
 
     def __getattr__(self, key):
         """Dynamically inspect missing methods for get_<entity>() calls
@@ -342,20 +334,44 @@ class BIDSLayout(object):
 
         self.session = sa.orm.sessionmaker(bind=engine)()
 
-    def _init_db(self, database_file=None, reset_database=False):
+    def _init_db(self, database_dir=None, reset_database=False):
+        if database_dir is not None:
+            database_file = os.path.join(database_dir, 'layout_index.sqlilte')
+            os.makedirs(database_dir, exist_ok=True)
+            database_sidecar = os.path.join(database_dir, 'layout_args.json')
+
         # Reset database if needed and return whether or not it was reset
         # determining if the database needs resetting must be done prior
-        # prior to setting the session (which creates the empty database file)
-        reset_database = (reset_database or  # Manual Request
-                          not database_file or  # In memory transient database
-                          not os.path.exists(database_file))  # New file based database created
+        # to setting the session (which creates the empty database file)
+        reset_database = (
+            reset_database or  # Manual Request
+            not database_file or  # In memory transient db
+            not os.path.exists(database_file)  # New file based db created
+        )
+
+        # Prepare instance arguments for serialization
+        instance_args = self.__dict__.copy()
+        for k in ['ignore', 'force_index']:
+            instance_args[k] = [str(a) for a in instance_args[k]]
+        instance_args.pop('sources', None)
 
         self._set_session(database_file)
 
-        if reset_database:
+        if not reset_database:
+            saved_args = json.load(open(database_sidecar))
+            for k, v in instance_args.items():
+                if saved_args[k] != v:
+                    raise ValueError(
+                        "Initaliation arguments do not match for database dir:"
+                        f" {database_dir}"
+                        )
+        else:
+            json.dump(instance_args, open(database_sidecar, 'w'))
             engine = self.session.get_bind()
             Base.metadata.drop_all(engine)
             Base.metadata.create_all(engine)
+
+            # Write out arguments to json sidecar
             return True
 
         return False
@@ -600,7 +616,7 @@ class BIDSLayout(object):
         return parse_file_entities(filename, entities, config,
                                    include_unmatched)
 
-    def add_derivatives(self, path, create_derivative_database_files=False, **kwargs):
+    def add_derivatives(self, path, parent_database_dir=None, **kwargs):
         """Add BIDS-Derivatives datasets to tracking.
 
         Parameters
@@ -610,10 +626,10 @@ class BIDSLayout(object):
             Each path can point to either a derivatives/ directory
             containing one more more pipeline directories, or to a single
             pipeline directory (e.g., derivatives/fmriprep).
-        create_derivative_database_files : bool
-            If True, use the pipline name from the dataset_description.json
-            file as the database filename and write the file to disk in the
-            derivatives directory.
+        parent_database_dir : str
+            If not None, use the pipline name from the dataset_description.json
+            file as the database folder name to nest within the parent database
+            folder name to write out derivatie index to.
         kwargs : dict
             Optional keyword arguments to pass on to
             BIDSLayout() when initializing each of the derivative datasets.
@@ -671,9 +687,10 @@ class BIDSLayout(object):
             # Default config and sources values
             kwargs['config'] = kwargs.get('config') or ['bids', 'derivatives']
             kwargs['sources'] = kwargs.get('sources') or self
-            if create_derivative_database_files:
-                current_database_file = os.path.join(deriv, pipeline_name + ".sqlite")
-                kwargs['database_file'] = current_database_file
+            if parent_database_dir:
+                child_database_dir = os.path.join(
+                    parent_database_dir, pipeline_name)
+                kwargs['database_dir'] = child_database_dir
 
             self.derivatives[pipeline_name] = BIDSLayout(deriv, **kwargs)
 
