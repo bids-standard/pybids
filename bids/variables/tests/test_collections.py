@@ -2,7 +2,8 @@ from bids.layout import BIDSLayout
 import pytest
 from os.path import join, dirname, abspath
 from bids.tests import get_test_data_path
-from bids.variables import DenseRunVariable, merge_collections
+from bids.variables import (DenseRunVariable, SparseRunVariable,
+                            merge_collections)
 
 
 @pytest.fixture(scope="module")
@@ -104,3 +105,15 @@ def test_get_collection_entities(run_coll_list):
     ents = merged.entities
     assert {'task', 'subject', 'suffix', 'datatype'} == set(ents.keys())
     assert ents['subject'] == '02'
+
+
+def test_match_variables(run_coll):
+    matches = run_coll.match_variables('^.{1,2}a', match_type='regex')
+    assert set(matches) == {'gain', 'parametric gain'}
+    assert not run_coll.match_variables('.{1,3}a')
+    matches = run_coll.match_variables('^.{1,2}a', match_type='regex',
+                                       return_type='variable')
+    assert len(matches) == 2
+    assert all([isinstance(m, SparseRunVariable) for m in matches])
+    matches = run_coll.match_variables('*gain')
+    assert set(matches) == {'gain', 'parametric gain'}

@@ -182,19 +182,9 @@ class Transformation(metaclass=ABCMeta):
                 sr = self.collection.sampling_rate
                 self._variables[v] = var.to_dense(sr)
 
-    def _regex_replace_variables(self, args):
-        """For each argument named in args, interpret the values set in the
-        argument as regex patterns to potentially be replaced with variables
-        that match the pattern. """
-
-        args = listify(args)
-
-        if 'variables' in args:
-            args.remove('variables')
-            variables = True
-        else:
-            variables = False
-
+    def _match_variables(self):
+        """Filter all available arguments against collection's variables using
+        unix-style pattern matching."""
         # Ensure all keyword arguments user wants to scan are valid
         missing = set(args) - set(self.kwargs.keys())
         if missing:
