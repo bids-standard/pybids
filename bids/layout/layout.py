@@ -341,15 +341,25 @@ class BIDSLayout(object):
 
         self.session = sa.orm.sessionmaker(bind=engine)()
 
-    def _make_db_paths(database_dir):
+    def _make_db_paths(self, database_dir):
         if database_dir is not None:
             database_file = os.path.join(database_dir, 'layout_index.sqlilte')
-            os.makedirs(database_dir, exist_ok=True)
             database_sidecar = os.path.join(database_dir, 'layout_args.json')
+            os.makedirs(database_dir, exist_ok=True)
         else:
             database_file = None
             database_sidecar = None
         return database_file, database_sidecar
+
+    def _sanitize_instance_args(self):
+        instance_args = {
+            a: self.__dict__[a] for a in
+            ['root', 'validate', 'absolute_paths', 'regex_search', 'config_file']
+            if a in self.__dict__
+        }
+        for k in ['ignore', 'force_index']:
+            instance_args[k] = [str(a) for a in self.__dict__[k]]
+        return instance_args
 
     def _init_db(self, database_dir=None, reset_database=False):
         database_file, database_sidecar = self._make_db_paths(database_dir)
@@ -362,33 +372,23 @@ class BIDSLayout(object):
             not os.path.exists(database_file)  # New file based db created
         )
 
-        # Prepare instance arguments for serialization
-        instance_args = {
-            a: self.__dict__[a] for a in
-            ['root', 'validate', 'absolute_paths', 'regex_search', 'config_file']
-            if a in self.__dict__
-        }
-        for k in ['ignore', 'force_index']:
-            instance_args[k] = [str(a) for a in self.__dict__[k]]
-
         self._set_session(database_file)
+
+        instance_args = self._sanitize_instance_args()
 
         if not reset_database:
             saved_args = json.load(open(database_sidecar))
-            for k, v in instance_args.items():
-                if saved_args[k] != v:
+            for k, v in saved_args.items():
+                if instance_args[k] != v:
                     raise ValueError(
-                        "Initaliation arguments do not match for database dir:"
+                        "Initialization arguments do not match for database_dir:"
                         " {}".format(database_dir)
                         )
         else:
             engine = self.session.get_bind()
             Base.metadata.drop_all(engine)
             Base.metadata.create_all(engine)
-
-            # Write out arguments to json sidecar
-            if database_sidecar is not None:
-                json.dump(instance_args, open(database_sidecar, 'w'))
+            self._dump_initalization_args(database_sidecar)
 
             return True
 
@@ -505,8 +505,13 @@ class BIDSLayout(object):
         """Get the files."""
         return self.get_files()
 
-    def save(self, database_dir='.db_cache', replace_connection=True):
+    def save(self, database_dir, replace_connection=True):
         """Save the current index as a SQLite3 DB at the specified location.
+
+        Note: This is only necessary if a database_dir was not specified
+        at initalization, and the user now wants to save the index.
+        If a database_dir was specified originally, there is no need to re-save
+        using this method.
 
         Parameters
         ----------
@@ -523,8 +528,6 @@ class BIDSLayout(object):
             be reflected in the new file unless save() is explicitly called
             again.
         """
-        if not os.path.isabs(database_dir):
-            database_dir = os.path.join(self.root, database_dir)
         database_file, database_sidecar = self._make_db_paths(database_dir)
         new_db = sqlite3.connect(database_file)
         old_db = self.session.get_bind().connect().connection
@@ -537,6 +540,15 @@ class BIDSLayout(object):
 
         if replace_connection:
             self._set_session(database_file)
+
+        # Dump instance arguments to JSON
+        instance_args = self._sanitize_instance_args()
+        json.dump(instance_args, open(database_sidecar, 'w'))
+
+        # Recursively save children
+        for pipeline_name, der in self.derivatives.items():
+            der.save(os.path.join(
+                database_dir, pipeline_name))
 
     def get_entities(self, scope='all', metadata=None):
         """Get entities for all layouts in the specified scope.
