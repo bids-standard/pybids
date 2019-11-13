@@ -3,7 +3,7 @@
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.orm.collections import attribute_mapped_collection
-from sqlalchemy import (Column, Integer, String, Boolean, ForeignKey, Table)
+from sqlalchemy import (Column, String, Boolean, ForeignKey, Table)
 from sqlalchemy.orm import reconstructor, relationship, backref, object_session
 import re
 import os
@@ -13,7 +13,6 @@ from copy import deepcopy
 from itertools import chain
 
 from .writing import build_path, write_contents_to_file
-from ..utils import listify
 from ..config import get_option
 
 Base = declarative_base()

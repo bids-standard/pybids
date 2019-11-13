@@ -33,7 +33,8 @@ except ImportError:
 __all__ = ['BIDSLayout']
 
 
-def parse_file_entities(filename, entities=None, config=None, include_unmatched=False):
+def parse_file_entities(filename, entities=None, config=None,
+                        include_unmatched=False):
     """Parse the passed filename for entity/value pairs.
 
     Parameters
@@ -41,21 +42,23 @@ def parse_file_entities(filename, entities=None, config=None, include_unmatched=
     filename : str
         The filename to parse for entity values
     entities : list or None, optional
-        An optional list of Entity instances to use in extraction. If passed, the config argument
-        is ignored. Default is None.
+        An optional list of Entity instances to use in extraction.
+        If passed, the config argument is ignored. Default is None.
     config : str or :obj:`bids.layout.models.Config` or list or None, optional
-        One or more :obj:`bids.layout.models.Config` objects or names of configurations to use in
-        matching. Each element must be a :obj:`bids.layout.models.Config` object, or a valid
+        One or more :obj:`bids.layout.models.Config` objects or names of
+        configurations to use in matching. Each element must be a
+        :obj:`bids.layout.models.Config` object, or a valid
         :obj:`bids.layout.models.Config` name (e.g., 'bids' or 'derivatives').
         If None, all available configs are used. Default is None.
     include_unmatched : bool, optional
-        If True, unmatched entities are included in the returned dict, with values set to None.
+        If True, unmatched entities are included in the returned dict,
+        with values set to None.
         If False (default), unmatched entities are ignored.
 
     Returns
     -------
     dict
-        Keys are Entity names and values are the values extracted from the filename.
+        Keys are Entity names and values are the values from the filename.
     """
     # Load Configs if needed
     if entities is None:
@@ -157,8 +160,8 @@ class BIDSLayout(object):
         Note that paths in force_index takes precedence over those in
         ignore (i.e., if a file matches both ignore and force_index, it
         *will* be indexed).
-        Note: NEVER include 'derivatives' here; use
-        the derivatives argument (or :obj:`bids.layout.BIDSLayout.add_derivatives`) for that.
+        Note: NEVER include 'derivatives' here; use the derivatives argument
+        (or :obj:`bids.layout.BIDSLayout.add_derivatives`) for that.
     config_filename : str
         Optional name of filename within directories
         that contains configuration information.
@@ -207,7 +210,8 @@ class BIDSLayout(object):
                 return None
             # If a full absolute path is given, use it, else make path
             if not os.path.isabs(db_file):
-                db_file = os.path.abspath(os.path.join(default_root_dir, db_file))
+                db_file = os.path.abspath(
+                    os.path.join(default_root_dir, db_file))
             return db_file
 
         database_file = _normalize_db_name(self.root, database_file)
@@ -258,7 +262,7 @@ class BIDSLayout(object):
         if derivatives:
             if derivatives is True:
                 derivatives = os.path.join(root, 'derivatives')
-            # if creating db files for bids, also create db files for derivatives
+            # if creating db files for bids, also create db files for derivs
             create_derivative_database_files = (database_file is not None)
             self.add_derivatives(
                 derivatives, create_derivative_database_files=create_derivative_database_files,
@@ -304,27 +308,34 @@ class BIDSLayout(object):
     def _set_session(self, database_file):
         if database_file is not None:
             # https://docs.sqlalchemy.org/en/13/dialects/sqlite.html
-            # When a file-based database is specified, the dialect will use NullPool as the source of connections. This
-            # pool closes and discards connections which are returned to the pool immediately. SQLite file-based
-            # connections have extremely low overhead, so pooling is not necessary. The scheme also prevents a
-            # connection from being used again in a different thread and works best with SQLite's coarse-grained
-            # file locking.
+            # When a file-based database is specified, the dialect will use
+            # NullPool as the source of connections. This pool closes and
+            # discards connections which are returned to the pool immediately.
+            # SQLite file-based connections have extremely low overhead, so
+            # pooling is not necessary. The scheme also prevents a connection
+            # from being used again in a different thread and works best
+            # with SQLite's coarse-grained file locking.
             from sqlalchemy.pool import NullPool
-            engine = sa.create_engine('sqlite:///{dbfilepath}'.format(dbfilepath=database_file),
-                                      connect_args={'check_same_thread': False},
-                                      poolclass=NullPool)
+            engine = sa.create_engine(
+                'sqlite:///{dbfilepath}'.format(dbfilepath=database_file),
+                connect_args={'check_same_thread': False},
+                poolclass=NullPool)
         else:
             # https://docs.sqlalchemy.org/en/13/dialects/sqlite.html
             # Using a Memory Database in Multiple Threads
-            # To use a :memory: database in a multithreaded scenario, the same connection object must be shared among
-            # threads, since the database exists only within the scope of that connection. The StaticPool
-            # implementation will maintain a single connection globally, and the check_same_thread flag can be passed
+            # To use a :memory: database in a multithreaded scenario, the same
+            # connection object must be shared among
+            # threads, since the database exists only within the scope of that
+            # connection. The StaticPool implementation will maintain a single
+            # connection globally, and the check_same_thread flag can be passed
             # to Pysqlite as False:
             from sqlalchemy.pool import StaticPool
-            engine = sa.create_engine('sqlite://',  # In memory database
-                                      connect_args={'check_same_thread': False},
-                                      poolclass=StaticPool)
-            # Note that using a :memory: database in multiple threads requires a recent version of SQLite.
+            engine = sa.create_engine(
+                'sqlite://',  # In memory database
+                connect_args={'check_same_thread': False},
+                poolclass=StaticPool)
+            # Note that using a :memory: database in multiple threads requires
+            # a recent version of SQLite.
 
         def regexp(expr, item):
             """Regex function for SQLite's REGEXP."""
@@ -346,9 +357,11 @@ class BIDSLayout(object):
         # Reset database if needed and return whether or not it was reset
         # determining if the database needs resetting must be done prior
         # prior to setting the session (which creates the empty database file)
-        reset_database = (reset_database or  # Manual Request
-                          not database_file or  # In memory transient database
-                          not os.path.exists(database_file))  # New file based database created
+        reset_database = (
+            reset_database or  # Manual Request
+            not database_file or  # In memory transient database
+            not os.path.exists(database_file)  # New file based db created
+        )
 
         self._set_session(database_file)
 
@@ -509,8 +522,9 @@ class BIDSLayout(object):
         ----------
         scope : str
             The scope of the search space. Indicates which
-            BIDSLayouts' entities to extract. See :obj:`bids.layout.BIDSLayout.get`
-            docstring for valid values.
+            BIDSLayouts' entities to extract.
+            See :obj:`bids.layout.BIDSLayout.get` docstring for valid values.
+
         metadata : bool or None
             By default (None), all available entities
             are returned. If True, only entities found in metadata files
@@ -521,7 +535,8 @@ class BIDSLayout(object):
         Returns
         -------
         dict
-            Dictionary where keys are entity names and values are Entity instances.
+            Dictionary where keys are entity names and
+            values are Entity instances.
         """
         # TODO: memoize results
         layouts = self._get_layouts_in_scope(scope)
@@ -541,12 +556,14 @@ class BIDSLayout(object):
         ----------
         scope : str
             The scope of the search space. Indicates which
-            BIDSLayouts' entities to extract. See :obj:`bids.layout.BIDSLayout.get`
-            docstring for valid values.
+            BIDSLayouts' entities to extract.
+            See :obj:`bids.layout.BIDSLayout.get` docstring for valid values.
+
 
         Returns:
-            A dict, where keys are file paths and values are :obj:`bids.layout.BIDSFile`
-            instances.
+            A dict, where keys are file paths and values
+            are :obj:`bids.layout.BIDSFile` instances.
+
         """
         # TODO: memoize results
         layouts = self._get_layouts_in_scope(scope)
@@ -569,8 +586,8 @@ class BIDSLayout(object):
         filename : str
             The filename to parse for entity values
         scope : str or list, optional
-            The scope of the search space. Indicates which
-            BIDSLayouts' entities to extract. See :obj:`bids.layout.BIDSLayout.get`
+            The scope of the search space. Indicates which BIDSLayouts'
+            entities to extract. See :obj:`bids.layout.BIDSLayout.get`
             docstring for valid values. By default, extracts all entities.
         entities : list or None, optional
             An optional list of Entity instances to use in
@@ -600,7 +617,8 @@ class BIDSLayout(object):
         return parse_file_entities(filename, entities, config,
                                    include_unmatched)
 
-    def add_derivatives(self, path, create_derivative_database_files=False, **kwargs):
+    def add_derivatives(self, path, create_derivative_database_files=False,
+                        **kwargs):
         """Add BIDS-Derivatives datasets to tracking.
 
         Parameters
@@ -738,7 +756,8 @@ class BIDSLayout(object):
             'object' (default): return a list of matching BIDSFile objects.
             'file' or 'filename': return a list of matching filenames.
             'dir': return a list of directories.
-            'id': return a list of unique IDs. Must be used together with a valid target.
+            'id': return a list of unique IDs. Must be used together
+                  with a valid target.
         target : str, optional
             Optional name of the target entity to get results for
             (only used if return_type is 'dir' or 'id').
@@ -889,12 +908,12 @@ class BIDSLayout(object):
         Parameters
         ----------
         filename : str
-            The path of the file to retrieve. Must be either an absolute path, or relative to the
-            root of this BIDSLayout.
+            The path of the file to retrieve. Must be either an absolute path,
+            or relative to the root of this BIDSLayout.
         scope : str or list, optional
-            Scope of the search space. If passed, only BIDSLayouts that match the specified scope
-            will be searched. See :obj:`BIDSLayout.get` docstring for valid values.
-            Default is 'all'.
+            Scope of the search space. If passed, only BIDSLayouts that match
+            the specified scope will be searched. See :obj:`BIDSLayout.get`
+            docstring for valid values. Default is 'all'.
 
         Returns
         -------
@@ -903,7 +922,8 @@ class BIDSLayout(object):
         """
         filename = os.path.abspath(os.path.join(self.root, filename))
         for layout in self._get_layouts_in_scope(scope):
-            result = layout.session.query(BIDSFile).filter_by(path=filename).first()  # noqa: E501
+            result = layout.session.query(
+                BIDSFile).filter_by(path=filename).first()  # noqa: E501
             if result:
                 return result
         return None
@@ -955,33 +975,39 @@ class BIDSLayout(object):
         Parameters
         ----------
         level : {'run', 'session', 'subject', 'dataset'}
-            The level of analysis to return variables for. Must be one of 'run', 'session',
-            'subject', or 'dataset'.
+            The level of analysis to return variables for.
+            Must be one of 'run', 'session','subject', or 'dataset'.
         types : str or list
-            Types of variables to retrieve. All valid values reflect the filename stipulated in the
-            BIDS spec for each kind of variable. Valid values include: 'events', 'physio', 'stim',
-            'scans', 'participants', 'sessions', and 'regressors'. Default is None.
+            Types of variables to retrieve. All valid values reflect the
+            filename stipulated in the BIDS spec for each kind of variable.
+            Valid values include: 'events', 'physio', 'stim', 'scans',
+            'participants', 'sessions', and 'regressors'. Default is None.
         variables : list
-            Optional list of variables names to return. If None, all available variables are
-            returned.
+            Optional list of variables names to return. If None, all available
+            variables are returned.
         merge : bool
-            If True, variables are merged across all observations of the current level.
-            E.g., if level='subject', variables from all subjects will be merged into a single
-            collection. If False, each observation is handled separately, and the result is
-            returned as a list.
+            If True, variables are merged across all observations of the
+            current level. E.g., if level='subject', variables from all
+            subjects will be merged into a single collection. If False, each
+            observation is handled separately, and the result is returned
+            as a list.
         sampling_rate : int or str
             If level='run', the sampling rate to pass onto the returned
             :obj:`bids.variables.kollekshuns.BIDSRunVariableCollection`.
         skip_empty : bool
-            Whether or not to skip empty Variables (i.e., where there are no rows/records in a file
-            after applying any filtering operations like dropping NaNs).
+            Whether or not to skip empty Variables (i.e., where there are no
+            rows/records in a file after applying any filtering operations
+            like dropping NaNs).
         kwargs
-            Optional additional arguments to pass onto :obj:`bids.variables.io.load_variables`.
+            Optional additional arguments to pass onto
+            :obj:`bids.variables.io.load_variables`.
 
         Returns
         -------
-        list of :obj:`bids.variables.kollekshuns.BIDSVariableCollection` or :obj:`bids.variables.kollekshuns.BIDSVariableCollection`
-            A list if merge=False; a single :obj:`bids.variables.kollekshuns.BIDSVariableCollection`
+        list of :obj:`bids.variables.kollekshuns.BIDSVariableCollection`
+            or :obj:`bids.variables.kollekshuns.BIDSVariableCollection`
+            A list if merge=False;
+            a single :obj:`bids.variables.kollekshuns.BIDSVariableCollection`
             if merge=True.
 
         """
@@ -1045,9 +1071,9 @@ class BIDSLayout(object):
         scope : str
             The scope of the search space. Only descriptions of
             BIDSLayouts that match the specified scope will be returned.
-            See :obj:`bids.layout.BIDSLayout.get` docstring for valid values. Defaults to
-            'self' --i.e., returns the dataset_description.json file for
-            only the directly-called BIDSLayout.
+            See :obj:`bids.layout.BIDSLayout.get` docstring for valid values.
+            Defaults to 'self' --i.e., returns the dataset_description.json
+            file for only the directly-called BIDSLayout.
         all_ : bool
             If True, returns a list containing descriptions for
             all matching layouts. If False (default), returns for only the
@@ -1348,7 +1374,8 @@ class BIDSLayout(object):
 
         built = build_path(source, path_patterns, strict)
         if built is None:
-            raise ValueError("Unable to construct build path with source {}".format(source))
+            raise ValueError(
+                "Unable to construct build path with source {}".format(source))
         to_check = os.path.join(os.path.sep, built)
 
         if not validate or BIDSValidator().is_bids(to_check):
