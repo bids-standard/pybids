@@ -781,19 +781,9 @@ class BIDSLayout(object):
 
         Notes
         -----
-        * In pybids 0.7.0, some keywords were changed. Namely: 'type'
-          becomes 'suffix', 'modality' becomes 'datatype', 'acq' becomes
-          'acquisition' and 'mod' becomes 'modality'. Using the wrong version
-          could result in get() silently returning wrong or no results. See
-          the changelog for more details.
         * In pybids 0.9.0, the 'extensions' argument has been removed in
           favor of the 'extension' entity.
         """
-        # Warn users still expecting 0.6 behavior
-        if 'type' in filters:
-            raise ValueError("As of pybids 0.7.0, the 'type' argument has been"
-                             " replaced with 'suffix'.")
-
         if 'extensions' in filters:
             filters['extension'] = filters.pop('extensions')
             warnings.warn("In pybids 0.9.0, the 'extensions' filter was "
