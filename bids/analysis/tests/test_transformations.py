@@ -196,24 +196,33 @@ def test_split(collection):
         .clone(name='RT_3').to_dense(collection.sampling_rate)
 
     rt_pre_onsets = collection['RT'].onset
+    rt_pre_values = collection['RT'].values.values
 
     # Grouping SparseEventVariable by one column
     transform.Split(collection, ['RT'], ['respcat'])
-    assert 'RT.0' in collection.variables.keys() and \
-           'RT.-1' in collection.variables.keys()
-    rt_post_onsets = np.r_[collection['RT.0'].onset,
-                           collection['RT.-1'].onset,
-                           collection['RT.1'].onset]
+
+    # Verify names
+    assert 'RT.respcat[0]' in collection.variables.keys() and \
+           'RT.respcat[-1]' in collection.variables.keys()
+
+    # Verify values
+    rt_post_onsets = np.r_[collection['RT.respcat[0]'].onset,
+                           collection['RT.respcat[-1]'].onset,
+                           collection['RT.respcat[1]'].onset]
     assert np.array_equal(rt_pre_onsets.sort(), rt_post_onsets.sort())
+
+    rt_post_values = np.r_[collection['RT.respcat[0]'].values.values,
+                           collection['RT.respcat[-1]'].values.values,
+                           collection['RT.respcat[1]'].values.values]
+    assert np.array_equal(rt_pre_values.sort(), rt_post_values.sort())
 
     # Grouping SparseEventVariable by multiple columns
     transform.Split(collection, variables=['RT_2'], by=['respcat', 'loss'])
-    assert 'RT_2.-1_13' in collection.variables.keys() and \
-           'RT_2.1_13' in collection.variables.keys()
+    assert 'RT_2.respcat[-1].loss[13]' in collection.variables.keys() and \
+           'RT_2.respcat[1].loss[13]' in collection.variables.keys()
 
     # Grouping by DenseEventVariable
-    transform.Split(collection, variables='RT_3', by='respcat',
-                    drop_orig=False)
+    transform.Split(collection, variables='RT_3', by='respcat')
     targets = ['RT_3.respcat[-1]', 'RT_3.respcat[0]', 'RT_3.respcat[1]']
     assert not set(targets) - set(collection.variables.keys())
     assert collection['respcat'].values.nunique() == 3
@@ -223,7 +232,7 @@ def test_split(collection):
     # Grouping by entities in the index
     collection['RT_4'] = orig.clone(name='RT_4')
     transform.Split(collection, variables=['RT_4'], by=['respcat', 'run'])
-    assert 'RT_4.-1_3' in collection.variables.keys()
+    assert 'RT_4.respcat[-1].run[3]' in collection.variables.keys()
 
 
 def test_resample_dense(collection):

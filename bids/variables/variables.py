@@ -279,22 +279,24 @@ class SimpleVariable(BIDSVariable):
 
         Parameters
         ----------
-        grouper : iterable
-            list to groupby, where each unique value will
-            be taken as the name of the resulting column.
+        grouper : :obj:`pandas.DataFrame`
+            Binary DF specifying the design matrix to use for splitting. Number
+            of rows must match current ``SparseRunVariable``;
+            a new ``SparseRunVariable`` will be generated for each column in
+            the grouper.
 
         Returns
         -------
-        A list of SparseRunVariables, one per unique value in the
-        grouper.
+        A list of SparseRunVariables, one per column in the grouper DF.
         """
         data = self.to_df(condition=True, entities=True)
         data = data.drop('condition', axis=1)
 
         subsets = []
-        for i, (name, g) in enumerate(data.groupby(grouper)):
-            name = '%s.%s' % (self.name, name)
-            col = self.__class__(name=name, data=g, source=self.source,
+        for i, col_name in enumerate(grouper.columns):
+            col_data = data.loc[grouper[col_name], :]
+            name = '{}.{}'.format(self.name, col_name)
+            col = self.__class__(name=name, data=col_data, source=self.source,
                                  run_info=getattr(self, 'run_info', None))
             subsets.append(col)
         return subsets
