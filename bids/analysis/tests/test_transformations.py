@@ -301,13 +301,12 @@ def test_copy(collection):
                           collection['RT_copy'].values.values)
 
 
-def test_regex_variable_expansion(collection):
+def test_expand_variable_names(collection):
     # Should fail because two output values are required following expansion
     with pytest.raises(Exception):
-        transform.Copy(collection, 'resp', regex_variables='variables')
+        transform.Copy(collection, '*resp*')
 
-    transform.Copy(collection, 'resp', output_suffix='_copy',
-                   regex_variables='variables')
+    transform.Copy(collection, '*resp*', output_suffix='_copy')
     assert 'respnum_copy' in collection.variables.keys()
     assert 'respcat_copy' in collection.variables.keys()
     assert np.array_equal(collection['respcat'].values.values,
