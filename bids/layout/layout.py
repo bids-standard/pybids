@@ -635,7 +635,7 @@ class BIDSLayout(object):
             containing one more more pipeline directories, or to a single
             pipeline directory (e.g., derivatives/fmriprep).
         parent_database_dir : str
-            If not None, use the pipline name from the dataset_description.json
+            If not None, use the pipeline name from the dataset_description.json
             file as the database folder name to nest within the parent database
             folder name to write out derivatie index to.
         kwargs : dict
