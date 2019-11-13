@@ -191,8 +191,8 @@ class BIDSLayout(object):
     def __init__(self, root, validate=True, absolute_paths=True,
                  derivatives=False, config=None, sources=None, ignore=None,
                  force_index=None, config_filename='layout_config.json',
-                 regex_search=False, database_dir=None, reset_database=False,
-                 index_metadata=True):
+                 regex_search=False, database_dir=None, database_file=None,
+                 reset_database=False, index_metadata=True):
         """Initialize BIDSLayout."""
         self.root = root
         self.validate = validate
@@ -202,6 +202,12 @@ class BIDSLayout(object):
         self.regex_search = regex_search
         self.config_filename = config_filename
 
+        if database_file is not None:
+            database_dir = database_file
+            warnings.warn(
+                'database_file argument is deprecated, and will be removed'
+                ' in 0.12. Use database_dir, instead. For now, treating '
+                'database_file as a diretory', DeprecationWarning)
         if database_dir:
             database_dir = os.path.abspath(database_dir)
 
