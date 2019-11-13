@@ -23,7 +23,7 @@ jobs:
           name: Build documentation
           command: make -C doc html
       - store_artifacts:
-          path: /home/circleci/pybids/docs/_build/html
+          path: /root/project/doc/_build/html
 
 workflows:
   version: 2
