@@ -9,6 +9,7 @@ from itertools import chain
 import copy
 import warnings
 import sqlite3
+import enum
 
 import sqlalchemy as sa
 from sqlalchemy.orm import joinedload
@@ -452,6 +453,8 @@ class BIDSLayout(object):
         # Fail silently because the DB may still know how to reconcile
         # type differences.
         for name, val in entities.items():
+            if isinstance(val, enum.Enum):
+                continue
             try:
                 if isinstance(val, (list, tuple)):
                     entities[name] = [ents[name]._astype(v) for v in val]
@@ -764,7 +767,12 @@ class BIDSLayout(object):
             Any optional key/values to filter the entities on.
             Keys are entity names, values are regexes to filter on. For
             example, passing filters={'subject': 'sub-[12]'} would return
-            only files that match the first two subjects.
+            only files that match the first two subjects. In addition to
+            ordinary data types, the following enums are defined (in the 
+            Query class):
+                * Query.NONE: The named entity must not be defined.
+                * Query.ANY: the named entity must be defined, but can have any
+                    value.
 
         Returns
         -------
@@ -924,11 +932,12 @@ class BIDSLayout(object):
             for name, val in filters.items():
                 if isinstance(val, (list, tuple)) and len(val) == 1:
                     val = val[0]
-
-                if val is None:
-                    drop = query.filter(
-                        BIDSFile.tags.any(entity_name=name))
-                    query = query.except_(drop)
+                if val is None or isinstance(val, enum.Enum):
+                    name_clause = query.filter(BIDSFile.tags.any(entity_name=name))
+                    if val == Query.ANY:
+                        query = query.filter(name_clause)
+                    else:
+                        query = query.except_(name_clause)
                     continue
 
                 if regex:
@@ -1446,3 +1455,9 @@ class BIDSLayout(object):
         write_contents_to_file(path, contents=contents, link_to=link_to,
                                content_mode=content_mode, conflicts=conflicts,
                                root=self.root)
+
+
+class Query(enum.Enum):
+    """Enums for use with BIDSLayout.get()."""
+    NONE = enum.auto() # Entity must not be present
+    ANY = enum.auto()  # Entity must be defined, but with an arbitrary value
