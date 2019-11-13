@@ -13,15 +13,20 @@ jobs:
       - run:
           name: Check Python version and upgrade pip
           command: |
+            source /tmp/venv/bin/activate
             which python
             python --version
             python -m pip install --upgrade pip setuptools
       - run:
           name: Install PyBIDS
-          command: python -m pip install -e ".[doc]"
+          command: |
+            source /tmp/venv/bin/activate
+            python -m pip install -e ".[doc]"
       - run:
           name: Build documentation
-          command: make -C doc html
+          command: |
+            source /tmp/venv/bin/activate
+            make -C doc html
       - store_artifacts:
           path: /root/project/doc/_build/html
 
