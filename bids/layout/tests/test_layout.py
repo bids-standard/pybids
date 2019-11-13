@@ -11,11 +11,9 @@ import pytest
 
 import bids
 from bids.layout import BIDSLayout, parse_file_entities, add_config_paths
-from bids.layout.models import (BIDSFile, BIDSImageFile, Entity, Config,
-                                FileAssociation)
+from bids.layout.models import Entity, Config
 from bids.tests import get_test_data_path
 from bids.utils import natural_sort
-
 
 
 def test_layout_init(layout_7t_trt):
@@ -59,7 +57,7 @@ def test_get_file(layout_ds005_derivs):
     assert not layout.get_file(target, scope='derivatives')
 
     # absolute path in BIDS-Raw
-    target = (layout.root + '/' +  orig_file).split('/')
+    target = (layout.root + '/' + orig_file).split('/')
     target = os.path.sep + os.path.join(*target)
     assert layout.get_file(target)
     assert layout.get_file(target, scope='raw')
@@ -73,7 +71,7 @@ def test_get_file(layout_ds005_derivs):
     assert layout.get_file(target, scope='derivatives')
 
     # absolute path in derivatives pipeline
-    target = (layout.root + '/' +  orig_file).split('/')
+    target = (layout.root + '/' + orig_file).split('/')
     target = os.path.sep + os.path.join(*target)
     assert layout.get_file(target)
     assert not layout.get_file(target, scope='raw')
@@ -447,11 +445,8 @@ def test_parse_file_entities():
     assert target == parse_file_entities(filename, entities=entities)
 
 
-@pytest.mark.parametrize("database_file",
-                         [None, "bidsdb.sqlite", "bidsdb.sqlite"])
-def test_parse_file_entities_from_layout(database_file):
-    path = join(get_test_data_path(), 'synthetic')
-    layout = BIDSLayout(path, derivatives=True, database_file=database_file)
+def test_parse_file_entities_from_layout(layout_synthetic):
+    layout = layout_synthetic
     filename = '/sub-03_ses-07_run-4_desc-bleargh_sekret.nii.gz'
 
     # Test with entities taken from bids config
