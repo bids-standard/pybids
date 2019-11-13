@@ -1,14 +1,18 @@
 """Base Transformation class and associated utilities. """
 
-import numpy as np
-import pandas as pd
-from bids.utils import listify
+import re
 import warnings
 from abc import ABCMeta, abstractmethod
 from copy import deepcopy
 import itertools
 import inspect
+
+import numpy as np
+import pandas as pd
+
+from bids.utils import listify
 from bids.variables import SparseRunVariable
+
 
 class Transformation(metaclass=ABCMeta):
 
@@ -106,10 +110,43 @@ class Transformation(metaclass=ABCMeta):
 
         self.kwargs = kwargs
 
-        # Expand regex variable names
-        replace_args = self.kwargs.pop('regex_variables', None)
-        if replace_args is not None:
-            self._regex_replace_variables(replace_args)
+        # Expand any detected variable group names or wild cards
+        self._expand_variable_groups()
+        self._expand_variable_names()
+
+    def _expand_variable_groups(self):
+        """ Replace any detected variable groups with the associated lists of
+        variable names.
+        """
+        groups = self.collection.groups
+        variables = [groups[v] if v in groups else [v] for v in self.variables]
+        self.variables = list(itertools.chain(*variables))
+
+    def _expand_variable_names(self):
+        """Filter all available arguments against collection's variables using
+        unix-style pattern matching."""
+        def _replace_arg_values(values):
+            is_iter = isinstance(values, (list, tuple))
+            values = listify(values)
+            result = []
+            # Only try to match strings containing a relevant special character
+            for v in values:
+                if isinstance(v, str) and re.search('[\*\?\[\]]', v):
+                    result.append(self.collection.match_variables(v))
+                else:
+                    result.append([v])
+
+            result = list(itertools.chain(*result))
+            # Don't return a list unless we have to
+            if is_iter or len(result) > 1:
+                return result
+            return result[0]
+
+        # 'variables' is stored separately, so handle it separately
+        self.variables = _replace_arg_values(self.variables)
+
+        for k, arg in self.kwargs.items():
+            self.kwargs[k] = _replace_arg_values(arg)
 
     def _clone_variables(self):
         """Deep copy all variables the transformation touches. This prevents us
@@ -169,39 +206,6 @@ class Transformation(metaclass=ABCMeta):
             if isinstance(var, SparseRunVariable):
                 sr = self.collection.sampling_rate
                 self._variables[v] = var.to_dense(sr)
-
-    def _regex_replace_variables(self, args):
-        """For each argument named in args, interpret the values set in the
-        argument as regex patterns to potentially be replaced with variables
-        that match the pattern. """
-
-        args = listify(args)
-
-        if 'variables' in args:
-            args.remove('variables')
-            variables = True
-        else:
-            variables = False
-
-        # Ensure all keyword arguments user wants to scan are valid
-        missing = set(args) - set(self.kwargs.keys())
-        if missing:
-            raise ValueError("Arguments '%s' specified for regex-based "
-                             "variable name replacement, but were not found "
-                             "among keyword arguments." % missing)
-
-        def _replace_arg_values(names):
-            variables = listify(names)
-            variables = [self.collection.match_variables(c) for c in names]
-            variables = itertools.chain(*variables)
-            return list(set(variables))
-
-        # 'variables' is stored separately, so handle it separately
-        if variables:
-            self.variables = _replace_arg_values(self.variables)
-
-        for arg in args:
-            self.kwargs[arg] = _replace_arg_values(self.kwargs[arg])
 
     def transform(self):
 
