@@ -1449,5 +1449,5 @@ class BIDSLayout(object):
 
 class Query(enum.Enum):
     """Enums for use with BIDSLayout.get()."""
-    NONE = enum.auto() # Entity must not be present
-    ANY = enum.auto()  # Entity must be defined, but with an arbitrary value
+    NONE = 1 # Entity must not be present
+    ANY = 2  # Entity must be defined, but with an arbitrary value
