@@ -339,13 +339,16 @@ class BIDSLayout(object):
             database_file = os.path.join(database_dir, 'layout_index.sqlilte')
             os.makedirs(database_dir, exist_ok=True)
             database_sidecar = os.path.join(database_dir, 'layout_args.json')
+        else:
+            database_file = None
+            database_sidecar = None
 
         # Reset database if needed and return whether or not it was reset
         # determining if the database needs resetting must be done prior
         # to setting the session (which creates the empty database file)
         reset_database = (
             reset_database or  # Manual Request
-            not database_file or  # In memory transient db
+            not database_dir or  # In memory transient db
             not os.path.exists(database_file)  # New file based db created
         )
 
@@ -366,7 +369,8 @@ class BIDSLayout(object):
                         f" {database_dir}"
                         )
         else:
-            json.dump(instance_args, open(database_sidecar, 'w'))
+            if database_sidecar is not None:
+                json.dump(instance_args, open(database_sidecar, 'w'))
             engine = self.session.get_bind()
             Base.metadata.drop_all(engine)
             Base.metadata.create_all(engine)
