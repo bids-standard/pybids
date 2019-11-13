@@ -559,14 +559,14 @@ def test_indexed_file_associations(layout_7t_trt):
 
 
 def test_layout_save(layout_7t_trt):
-    _, f = tempfile.mkstemp(suffix='.db')
-    layout_7t_trt.save(f, replace_connection=False)
+    fdir = tempfile.mkdtemp()
+    layout_7t_trt.save(os.path.join(fdir, "f.sqlite"),
+                       replace_connection=False)
     data_dir = join(get_test_data_path(), '7t_trt')
-    layout = BIDSLayout(data_dir, database_file=f)
+    layout = BIDSLayout(data_dir, database_dir=fdir)
     oldfies = set(layout_7t_trt.get(suffix='events', return_type='file'))
     newfies = set(layout.get(suffix='events', return_type='file'))
     assert oldfies == newfies
-    os.unlink(f)
 
 
 def test_indexing_tag_conflict():

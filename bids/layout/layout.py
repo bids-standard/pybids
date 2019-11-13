@@ -353,10 +353,13 @@ class BIDSLayout(object):
         )
 
         # Prepare instance arguments for serialization
-        instance_args = self.__dict__.copy()
+        instance_args = {
+            a: self.__dict__[a] for a in
+            ['root', 'validate', 'absolute_paths', 'regex_search', 'config_file']
+            if a in self.__dict__
+        }
         for k in ['ignore', 'force_index']:
-            instance_args[k] = [str(a) for a in instance_args[k]]
-        instance_args.pop('sources', None)
+            instance_args[k] = [str(a) for a in self.__dict__[k]]
 
         self._set_session(database_file)
 
@@ -366,14 +369,15 @@ class BIDSLayout(object):
                 if saved_args[k] != v:
                     raise ValueError(
                         "Initaliation arguments do not match for database dir:"
-                        f" {database_dir}"
+                        " {}".format(database_dir)
                         )
         else:
-            if database_sidecar is not None:
-                json.dump(instance_args, open(database_sidecar, 'w'))
             engine = self.session.get_bind()
             Base.metadata.drop_all(engine)
             Base.metadata.create_all(engine)
+
+            if database_sidecar is not None:
+                json.dump(instance_args, open(database_sidecar, 'w'))
 
             # Write out arguments to json sidecar
             return True
