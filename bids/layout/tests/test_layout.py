@@ -229,7 +229,6 @@ def test_get_return_type_dir(layout_7t_trt, layout_7t_trt_relpath):
 
 @pytest.mark.parametrize("acq", [None, Query.NONE])
 def test_get_val_none(layout_7t_trt, acq):
-    import enum
     t1w_files = layout_7t_trt.get(subject='01', ses='1', suffix='T1w')
     assert len(t1w_files) == 1
     assert 'acq' not in t1w_files[0].path
@@ -239,7 +238,13 @@ def test_get_val_none(layout_7t_trt, acq):
     assert len(bold_files) == 0
 
 
-# def test_get_val_enum_none()
+def test_get_val_enum_any(layout_7t_trt):
+    t1w_files = layout_7t_trt.get(subject='01', ses='1', suffix='T1w', acquisition=Query.ANY)
+    assert not t1w_files
+    bold_files = layout_7t_trt.get(subject='01', ses='1', run=1, suffix='bold',
+                                   acquisition=Query.ANY)
+    assert len(bold_files) == 3
+
 
 def test_get_return_sorted(layout_7t_trt):
     bids_files = layout_7t_trt.get(target='subject')

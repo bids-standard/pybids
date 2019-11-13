@@ -925,7 +925,7 @@ class BIDSLayout(object):
                 if val is None or isinstance(val, enum.Enum):
                     name_clause = query.filter(BIDSFile.tags.any(entity_name=name))
                     if val == Query.ANY:
-                        query = query.filter(name_clause)
+                        query = name_clause
                     else:
                         query = query.except_(name_clause)
                     continue
