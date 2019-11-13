@@ -168,7 +168,7 @@ class Sum(Transformation):
             if len(weights.ravel()) != data.shape[1]:
                 raise ValueError("If weights are passed to sum(), the number "
                                  "of elements must equal number of variables"
-                                 "being summed.")
+                                 " being summed.")
         return (data * weights).sum(axis=1)
 
 
