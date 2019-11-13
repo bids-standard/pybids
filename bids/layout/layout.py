@@ -205,9 +205,10 @@ class BIDSLayout(object):
         if database_file is not None:
             database_dir = database_file
             warnings.warn(
-                'database_file argument is deprecated, and will be removed'
-                ' in 0.12. Use database_dir, instead. For now, treating '
-                'database_file as a diretory', DeprecationWarning)
+                'In pybids 0.10 database_file argument was deprecated in favor'
+                'of database_dir, and will and will be removed in 0.12.'
+                'For now, treating database_file as a diretory',
+                DeprecationWarning)
         if database_dir:
             database_dir = os.path.abspath(database_dir)
 
@@ -821,7 +822,7 @@ class BIDSLayout(object):
             filters['extension'] = filters.pop('extensions')
             warnings.warn("In pybids 0.9.0, the 'extensions' filter was "
                           "deprecated in favor of 'extension'. The former will"
-                          " stop working in 0.11.0.")
+                          " stop working in 0.11.0.", DeprecationWarning)
 
         layouts = self._get_layouts_in_scope(scope)
 
