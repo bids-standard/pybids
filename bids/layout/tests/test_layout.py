@@ -447,62 +447,11 @@ def test_parse_file_entities():
     assert target == parse_file_entities(filename, entities=entities)
 
 
-def test_parse_file_entities_from_layout(layout_synthetic):
-    layout = layout_synthetic
-    filename = '/sub-03_ses-07_run-4_desc-bleargh_sekret.nii.gz'
-
-    # Test with entities taken from bids config
-    target = {'subject': '03', 'session': '07', 'run': 4, 'suffix': 'sekret',
-              'extension': 'nii.gz'}
-    assert target == layout.parse_file_entities(filename, config='bids')
-    config = Config.load('bids')
-    assert target == layout.parse_file_entities(filename, config=[config])
-    assert target == layout.parse_file_entities(filename, scope='raw')
-
-    # Test with default scope--i.e., everything
-    target = {'subject': '03', 'session': '07', 'run': 4, 'suffix': 'sekret',
-              'desc': 'bleargh', 'extension': 'nii.gz'}
-    assert target == layout.parse_file_entities(filename)
-    # Test with only the fmriprep pipeline (which includes both configs)
-    assert target == layout.parse_file_entities(filename, scope='fmriprep')
-    assert target == layout.parse_file_entities(filename, scope='derivatives')
-
-    # Test with only the derivative config
-    target = {'desc': 'bleargh'}
-    assert target == layout.parse_file_entities(filename, config='derivatives')
-
-def test_parse_file_entities_from_layout_cached_db(layout_synthetic_cached_db):
-    layout = layout_synthetic_cached_db
-    filename = '/sub-03_ses-07_run-4_desc-bleargh_sekret.nii.gz'
-
-    # Test with entities taken from bids config
-    target = {'subject': '03', 'session': '07', 'run': 4, 'suffix': 'sekret',
-              'extension': 'nii.gz'}
-    assert target == layout.parse_file_entities(filename, config='bids')
-    config = Config.load('bids')
-    assert target == layout.parse_file_entities(filename, config=[config])
-    assert target == layout.parse_file_entities(filename, scope='raw')
-
-    # Test with default scope--i.e., everything
-    target = {'subject': '03', 'session': '07', 'run': 4, 'suffix': 'sekret',
-              'desc': 'bleargh', 'extension': 'nii.gz'}
-    assert target == layout.parse_file_entities(filename)
-    # Test with only the fmriprep pipeline (which includes both configs)
-    assert target == layout.parse_file_entities(filename, scope='fmriprep')
-    assert target == layout.parse_file_entities(filename, scope='derivatives')
-
-    # Test with only the derivative config
-    target = {'desc': 'bleargh'}
-    assert target == layout.parse_file_entities(filename, config='derivatives')
-
-
-def test_parse_file_entities_from_layout_cached_db_replay(layout_synthetic_cached_db_replay):
-    """
-    We need to ensure that after caching the database requesting cached values
-    provides all the original values.
-    :param layout_synthetic_cached_db_replay:
-    """
-    layout = layout_synthetic_cached_db_replay
+@pytest.mark.parametrize("database_file",
+                         [None, "bidsdb.sqlite", "bidsdb.sqlite"])
+def test_parse_file_entities_from_layout(database_file):
+    path = join(get_test_data_path(), 'synthetic')
+    layout = BIDSLayout(path, derivatives=True, database_file=database_file)
     filename = '/sub-03_ses-07_run-4_desc-bleargh_sekret.nii.gz'
 
     # Test with entities taken from bids config

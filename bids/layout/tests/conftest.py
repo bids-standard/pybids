@@ -48,20 +48,3 @@ def layout_ds005_multi_derivs():
     deriv_dir2 = join(data_dir, 'derivatives', 'events')
     layout.add_derivatives([deriv_dir1, deriv_dir2])
     return layout
-
-
-@pytest.fixture(scope="module")
-def layout_synthetic():
-    path = join(get_test_data_path(), 'synthetic')
-    return BIDSLayout(path, derivatives=True)
-
-
-@pytest.fixture(scope="module")
-def layout_synthetic_cached_db():
-    path = join(get_test_data_path(), 'synthetic')
-    return BIDSLayout(path, derivatives=True, database_file="bidsdb.sqlite")
-
-@pytest.fixture(scope="module")
-def layout_synthetic_cached_db_replay():
-    path = join(get_test_data_path(), 'synthetic')
-    return BIDSLayout(path, derivatives=True, database_file="bidsdb.sqlite")
