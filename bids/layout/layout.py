@@ -341,7 +341,7 @@ class BIDSLayout(object):
 
         self.session = sa.orm.sessionmaker(bind=engine)()
 
-    def _init_db(self, database_dir=None, reset_database=False):
+    def _make_db_paths(database_dir):
         if database_dir is not None:
             database_file = os.path.join(database_dir, 'layout_index.sqlilte')
             os.makedirs(database_dir, exist_ok=True)
@@ -349,7 +349,10 @@ class BIDSLayout(object):
         else:
             database_file = None
             database_sidecar = None
+        return database_file, database_sidecar
 
+    def _init_db(self, database_dir=None, reset_database=False):
+        database_file, database_sidecar = self._make_db_paths(database_dir)
         # Reset database if needed and return whether or not it was reset
         # determining if the database needs resetting must be done prior
         # to setting the session (which creates the empty database file)
@@ -383,10 +386,10 @@ class BIDSLayout(object):
             Base.metadata.drop_all(engine)
             Base.metadata.create_all(engine)
 
+            # Write out arguments to json sidecar
             if database_sidecar is not None:
                 json.dump(instance_args, open(database_sidecar, 'w'))
 
-            # Write out arguments to json sidecar
             return True
 
         return False
@@ -502,14 +505,14 @@ class BIDSLayout(object):
         """Get the files."""
         return self.get_files()
 
-    def save(self, filename='.index.db', replace_connection=True):
+    def save(self, database_dir='.db_cache', replace_connection=True):
         """Save the current index as a SQLite3 DB at the specified location.
 
         Parameters
         ----------
-        filename : str, optional
-            The path to the desired database file. By default,
-            uses .index.db. If a relative path is passed, it is assumed to
+        database_dir : str
+            The path to the desired database folder. By default,
+            uses .db_cache. If a relative path is passed, it is assumed to
             be relative to the BIDSLayout root directory.
         replace_connection : bool, optional
             If True, the newly created database will
@@ -520,8 +523,10 @@ class BIDSLayout(object):
             be reflected in the new file unless save() is explicitly called
             again.
         """
-        filename = os.path.join(self.root, filename)
-        new_db = sqlite3.connect(filename)
+        if not os.path.isabs(database_dir):
+            database_dir = os.path.join(self.root, database_dir)
+        database_file, database_sidecar = self._make_db_paths(database_dir)
+        new_db = sqlite3.connect(database_file)
         old_db = self.session.get_bind().connect().connection
 
         with new_db:
@@ -531,7 +536,7 @@ class BIDSLayout(object):
             new_db.commit()
 
         if replace_connection:
-            self._set_session(filename)
+            self._set_session(database_file)
 
     def get_entities(self, scope='all', metadata=None):
         """Get entities for all layouts in the specified scope.
