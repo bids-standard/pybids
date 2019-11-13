@@ -244,7 +244,6 @@ class BIDSVariableCollection(object):
             else [self.variables[v] for v in vars_]
 
 
-
 class BIDSRunVariableCollection(BIDSVariableCollection):
     """A container for one or more RunVariables--i.e., Variables that have a
     temporal dimension.
