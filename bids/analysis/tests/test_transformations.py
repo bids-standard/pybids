@@ -479,3 +479,15 @@ def test_group(collection):
     assert 'loss_renamed' in coll.variables
     assert 'gain' not in coll.variables
     assert 'loss' not in coll.variables
+
+
+def test_resample(collection):
+    coll = collection.clone()
+
+    transform.ToDense(coll, 'RT', output='rt_dense')
+    old_shape = coll.variables['rt_dense'].values.shape
+    transform.Resample(coll, 'rt_dense', 1)
+    new_shape = coll.variables['rt_dense'].values.shape
+
+    # Shape from 10hz to 1hz
+    assert new_shape[0] == old_shape[0] / 10
