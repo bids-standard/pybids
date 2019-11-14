@@ -571,7 +571,7 @@ def test_indexed_file_associations(layout_7t_trt):
     assert not js.get_associations('InformedBy')
 
 
-def test_layout_save(layout_7t_trt):
+def test_layout_save(tmp_path, layout_7t_trt):
     layout_7t_trt.save(str(tmp_path / "f.sqlite"),
                        replace_connection=False)
     data_dir = join(get_test_data_path(), '7t_trt')
