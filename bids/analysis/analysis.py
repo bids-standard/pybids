@@ -504,7 +504,7 @@ class AnalysisNode(object):
                         'name': col_name,
                         'condition_list': [col_name],
                         'weights': [1],
-                        'type': self.dummy_contrasts['type']
+                        'type': self.dummy_contrasts[col_name]['type']
                     })
 
         # Filter on desired contrast names if passed
