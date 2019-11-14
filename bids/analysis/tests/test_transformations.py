@@ -10,6 +10,7 @@ from os.path import join, sep
 from bids.tests import get_test_data_path
 import numpy as np
 import pandas as pd
+from sklearn.metrics import auc
 
 try:
     from unittest import mock
@@ -470,7 +471,7 @@ def test_group(collection):
         transform.Group(coll, ['gain', 'loss'], name='gain')
 
     transform.Group(coll, ['gain', 'loss'], name='outcome_vars')
-    assert coll.groups == { 'outcome_vars': ['gain', 'loss'] }
+    assert coll.groups == {'outcome_vars': ['gain', 'loss']}
 
     # Checks that variable groups are replaced properly
     transform.Rename(coll, ['outcome_vars'],
@@ -484,10 +485,18 @@ def test_group(collection):
 def test_resample(collection):
     coll = collection.clone()
 
-    transform.ToDense(coll, 'RT', output='rt_dense')
-    old_shape = coll.variables['rt_dense'].values.shape
-    transform.Resample(coll, 'rt_dense', 1)
-    new_shape = coll.variables['rt_dense'].values.shape
+    transform.ToDense(coll, 'parametric gain', output='pg_dense')
+    pg = coll.variables['pg_dense']
+    old_shape = pg.values.shape
+    old_auc = auc(pg.index.index, pg.values.values)
+    transform.Resample(coll, 'pg_dense', 1)
+    pg = coll.variables['pg_dense']
+    new_shape = pg.values.shape
+    new_auc = auc(pg.index.index, pg.values.values)
 
     # Shape from 10hz to 1hz
     assert new_shape[0] == old_shape[0] / 10
+
+    # Assert that the auc is more or less the same (not exact, rounding error)
+    # Values are around 0.25
+    assert np.allclose(old_auc, new_auc*10, 0.01)
