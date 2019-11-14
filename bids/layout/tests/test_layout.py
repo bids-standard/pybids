@@ -576,7 +576,7 @@ def test_layout_save(layout_7t_trt):
     layout_7t_trt.save(os.path.join(fdir, "f.sqlite"),
                        replace_connection=False)
     data_dir = join(get_test_data_path(), '7t_trt')
-    layout = BIDSLayout(data_dir, database_path=fdir)
+    layout = BIDSLayout(data_dir, database_path=str(tmp_path))
     oldfies = set(layout_7t_trt.get(suffix='events', return_type='file'))
     newfies = set(layout.get(suffix='events', return_type='file'))
     assert oldfies == newfies
