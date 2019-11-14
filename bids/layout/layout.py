@@ -10,6 +10,7 @@ import copy
 import warnings
 import sqlite3
 import enum
+from pathlib import Path
 
 import sqlalchemy as sa
 from sqlalchemy.orm import joinedload

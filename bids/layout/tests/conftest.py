@@ -40,13 +40,17 @@ def layout_ds005_derivs():
     return layout
 
 
-fdir = tempfile.mkdtemp()
+@pytest.fixture(scope="session")
+def db_dir(tmpdir_factory):
+    fn = tmpdir_factory.mktemp("data")
+    return fn
+
 
 @pytest.fixture(scope="module",
                 params=[None, "bidsdb", "bidsdb"])
-def layout_ds005_multi_derivs(request):
+def layout_ds005_multi_derivs(request, db_dir):
     data_dir = join(get_test_data_path(), 'ds005')
-    database_path = join(fdir, request.param) if request.param else None
+    database_path = str(db_dir / request.param) if request.param else None
 
     layout = BIDSLayout(data_dir,
                         database_path=database_path)
@@ -58,8 +62,8 @@ def layout_ds005_multi_derivs(request):
 
 @pytest.fixture(
     scope="module", params=[None, "bidsdb-synth", "bidsdb-synth"])
-def layout_synthetic(request):
+def layout_synthetic(request, db_dir):
     path = join(get_test_data_path(), 'synthetic')
-    database_path = join(fdir, request.param) if request.param else None
+    database_path = str(db_dir / request.param) if request.param else None
     return BIDSLayout(path, derivatives=True,
                       database_path=database_path)
