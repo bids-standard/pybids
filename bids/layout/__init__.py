@@ -1,4 +1,4 @@
-from .layout import BIDSLayout, add_config_paths, parse_file_entities
+from .layout import BIDSLayout, add_config_paths, parse_file_entities, Query
 from .models import (BIDSFile, BIDSImageFile, BIDSDataFile, BIDSJSONFile,
                      Config, Entity, Tag)
 # Backwards compatibility
@@ -15,5 +15,6 @@ __all__ = [
     "BIDSJSONFile",
     "Config",
     "Entity",
-    "Tag"
+    "Tag",
+    "Query"
 ]
