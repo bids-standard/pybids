@@ -391,12 +391,12 @@ class BIDSLayout(object):
         if not reset_database:
             with open(database_sidecar) as fobj:
                 saved_args = json.load(fobj)
-                for k, v in saved_args.items():
-                    if instance_args[k] != v:
-                        raise ValueError(
-                            "Initialization arguments do not match for database_path:"
-                            " {}".format(database_path)
-                            )
+            for k, v in saved_args.items():
+                if instance_args[k] != v:
+                    raise ValueError(
+                        "Initialization arguments do not match for database_path:"
+                        " {}".format(database_path)
+                        )
         else:
             engine = self.session.get_bind()
             Base.metadata.drop_all(engine)
