@@ -399,7 +399,8 @@ class BIDSLayout(object):
             engine = self.session.get_bind()
             Base.metadata.drop_all(engine)
             Base.metadata.create_all(engine)
-            json.dump(instance_args, open(database_sidecar, 'w'))
+            if database_sidecar:
+                json.dump(instance_args, open(database_sidecar, 'w'))
 
             return True
 

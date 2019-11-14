@@ -10,7 +10,8 @@ import numpy as np
 import pytest
 
 import bids
-from bids.layout import BIDSLayout, parse_file_entities, add_config_paths
+from bids.layout import (BIDSLayout, parse_file_entities, add_config_paths,
+                         Query)
 from bids.layout.models import Entity, Config
 from bids.tests import get_test_data_path
 from bids.utils import natural_sort
@@ -133,8 +134,8 @@ def test_get_metadata_meg(layout_ds117):
 def test_get_metadata5(layout_7t_trt):
     target = 'sub-01/ses-1/func/sub-01_ses-1_task-rest_acq-fullbrain_run-1_bold.nii.gz'
     target = target.split('/')
-    result = layout_7t_trt.get_metadata(join(layout_7t_trt.root, *target),
-                                      include_entities=True)
+    result = layout_7t_trt.get_metadata(
+        join(layout_7t_trt.root, *target), include_entities=True)
     assert result['EchoTime'] == 0.020
     assert result['subject'] == '01'
     assert result['acquisition'] == 'fullbrain'
@@ -229,14 +230,17 @@ def test_get_val_none(layout_7t_trt, acq):
     t1w_files = layout_7t_trt.get(subject='01', ses='1', suffix='T1w')
     assert len(t1w_files) == 1
     assert 'acq' not in t1w_files[0].path
-    t1w_files = layout_7t_trt.get(subject='01', ses='1', suffix='T1w', acquisition=acq)
+    t1w_files = layout_7t_trt.get(
+        subject='01', ses='1', suffix='T1w', acquisition=acq)
     assert len(t1w_files) == 1
-    bold_files = layout_7t_trt.get(subject='01', ses='1', suffix='bold', acquisition=acq)
+    bold_files = layout_7t_trt.get(
+        subject='01', ses='1', suffix='bold', acquisition=acq)
     assert len(bold_files) == 0
 
 
 def test_get_val_enum_any(layout_7t_trt):
-    t1w_files = layout_7t_trt.get(subject='01', ses='1', suffix='T1w', acquisition=Query.ANY)
+    t1w_files = layout_7t_trt.get(
+        subject='01', ses='1', suffix='T1w', acquisition=Query.ANY)
     assert not t1w_files
     bold_files = layout_7t_trt.get(subject='01', ses='1', run=1, suffix='bold',
                                    acquisition=Query.ANY)
@@ -261,8 +265,8 @@ def test_ignore_files(layout_ds005):
     assert target1 not in layout1.files
     assert target2 not in layout1.files
     # now the models/ dir should show up, because passing ignore explicitly
-    # overrides the default - but 'model/extras/' should still be ignored because
-    # of the regex.
+    # overrides the default - but 'model/extras/' should still be ignored
+    # because of the regex.
     ignore = [re.compile('xtra'), 'dummy']
     layout2 = BIDSLayout(data_dir, validate=False, ignore=ignore)
     assert target1 in layout2.files
@@ -271,7 +275,7 @@ def test_ignore_files(layout_ds005):
 
 def test_force_index(layout_ds005):
     data_dir = join(get_test_data_path(), 'ds005')
-    target= join(data_dir, 'models', 'ds-005_type-test_model.json')
+    target = join(data_dir, 'models', 'ds-005_type-test_model.json')
     model_layout = BIDSLayout(data_dir, validate=True, force_index=['models'])
     assert target not in layout_ds005.files
     assert target in model_layout.files
@@ -287,7 +291,7 @@ def test_nested_include_exclude():
 
     # Nest a directory exclusion within an inclusion
     layout = BIDSLayout(data_dir, validate=True, force_index=['models'],
-                      ignore=[os.path.join('models', 'extras')])
+                        ignore=[os.path.join('models', 'extras')])
     assert layout.get_file(target1)
     assert not layout.get_file(target2)
 
@@ -300,7 +304,7 @@ def test_nested_include_exclude():
     # Force file inclusion despite directory-level exclusion
     models = ['models', target2]
     layout = BIDSLayout(data_dir, validate=True, force_index=models,
-                      ignore=[os.path.join('models', 'extras')])
+                        ignore=[os.path.join('models', 'extras')])
     assert layout.get_file(target1)
     assert layout.get_file(target2)
 
@@ -438,7 +442,8 @@ def test_parse_file_entities():
     target = {'subject': '03', 'session': '07', 'run': 4, 'suffix': 'sekret',
               'desc': 'bleargh', 'extension': 'nii.gz'}
     assert target == parse_file_entities(filename)
-    assert target == parse_file_entities(filename, config=['bids', 'derivatives'])
+    assert target == parse_file_entities(
+        filename, config=['bids', 'derivatives'])
 
     # Test with list of Entities
     entities = [
@@ -552,8 +557,9 @@ def test_indexed_file_associations(layout_7t_trt):
     targets = [
         os.path.join(layout_7t_trt.root,
                      'sub-01/ses-1/fmap/sub-01_ses-1_run-1_phasediff.nii.gz'),
-        os.path.join(img.dirname,
-                     'sub-01_ses-1_task-rest_acq-fullbrain_run-1_physio.tsv.gz'),
+        os.path.join(
+            img.dirname,
+            'sub-01_ses-1_task-rest_acq-fullbrain_run-1_physio.tsv.gz'),
         os.path.join(layout_7t_trt.root, 'task-rest_acq-fullbrain_bold.json')
     ]
     assert set([a.path for a in assocs]) == set(targets)
