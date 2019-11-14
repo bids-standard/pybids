@@ -46,10 +46,10 @@ fdir = tempfile.mkdtemp()
                 params=[None, "bidsdb", "bidsdb"])
 def layout_ds005_multi_derivs(request):
     data_dir = join(get_test_data_path(), 'ds005')
-    database_dir = join(fdir, request.param) if request.param else None
+    database_path = join(fdir, request.param) if request.param else None
 
     layout = BIDSLayout(data_dir,
-                        database_dir=database_dir)
+                        database_path=database_path)
     deriv_dir1 = join(get_test_data_path(), 'ds005_derivs')
     deriv_dir2 = join(data_dir, 'derivatives', 'events')
     layout.add_derivatives([deriv_dir1, deriv_dir2])
@@ -60,6 +60,6 @@ def layout_ds005_multi_derivs(request):
     scope="module", params=[None, "bidsdb-synth", "bidsdb-synth"])
 def layout_synthetic(request):
     path = join(get_test_data_path(), 'synthetic')
-    database_dir = join(fdir, request.param) if request.param else None
+    database_path = join(fdir, request.param) if request.param else None
     return BIDSLayout(path, derivatives=True,
-                      database_dir=database_dir)
+                      database_path=database_path)
