@@ -335,6 +335,7 @@ class ToDense(Transformation):
 
 
 class Resample(Transformation):
+    """ Frequency concersion and resampling of variable """
     _groupable = False
     _input_type = 'variable'
     _return_type = 'variable'
