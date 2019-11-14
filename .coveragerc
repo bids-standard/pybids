@@ -2,7 +2,10 @@
 branch = True
 source = bids/*
 include = bids/*
-omit = */setup.py
-
+omit =
+    */setup.py
+    */external/*
+    */due.py
+    */*version.py
 [report]
 include = bids/*

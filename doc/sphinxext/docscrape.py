@@ -1,8 +1,6 @@
 """Extract reference documentation from the NumPy source tree.
 
 """
-from __future__ import division, absolute_import, print_function
-
 import inspect
 import textwrap
 import re
@@ -464,7 +462,7 @@ class FunctionDoc(NumpyDocString):
                 if sys.version_info[0] >= 3:
                     argspec = inspect.getfullargspec(func)
                 else:
-                    argspec = inspect.getargspec(func)
+                    argspec = inspect.getfullargspec(func)
                 argspec = inspect.formatargspec(*argspec)
                 argspec = argspec.replace('*', '\*')
                 signature = '%s%s' % (func_name, argspec)

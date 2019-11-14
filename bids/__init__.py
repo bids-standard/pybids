@@ -1,7 +1,8 @@
-from __future__ import absolute_import, division, print_function
 from .due import due, Doi
-from .layout import BIDSLayout, BIDSValidator
+from .layout import BIDSLayout
 
+# For backwards compatibility
+from bids_validator import BIDSValidator
 
 __all__ = [
     "analysis",
@@ -23,5 +24,6 @@ due.cite(Doi("10.1038/sdata.2016.44"),
 del due, Doi
 
 from ._version import get_versions
+
 __version__ = get_versions()['version']
 del get_versions

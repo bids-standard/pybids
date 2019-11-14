@@ -102,3 +102,13 @@ doc/generated/
 
 # Pytest
 .pytest_cache/
+
+# Vim
+.*.sw[op]
+
+# Emacs and others
+*~
+
+# Ignore test sql database files
+bidsdb.sqlite
+fmriprep.sqlite

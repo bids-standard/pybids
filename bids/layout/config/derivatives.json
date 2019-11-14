@@ -2,10 +2,6 @@
     "name": "derivatives",
     "entities": [
         {
-            "name": "space",
-            "pattern": "space-([a-zA-Z0-9]+)"
-        },
-        {
             "name": "atlas",
             "pattern": "atlas-([a-zA-Z0-9]+)"
         },

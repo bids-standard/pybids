@@ -98,7 +98,7 @@ def test_parsing_parse(testlayout, testconfig):
     which is combined within task, across runs)
     """
     subj = '01'
-    niftis = testlayout.get(subject=subj, extensions='nii.gz')
+    niftis = testlayout.get(subject=subj, extension=[".nii", ".nii.gz"])
     desc = parsing.parse_niftis(testlayout, niftis, subj, testconfig)
     assert isinstance(desc, list)
     assert isinstance(desc[0], str)

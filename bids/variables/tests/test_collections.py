@@ -2,7 +2,8 @@ from bids.layout import BIDSLayout
 import pytest
 from os.path import join, dirname, abspath
 from bids.tests import get_test_data_path
-from bids.variables import DenseRunVariable, merge_collections
+from bids.variables import (DenseRunVariable, SparseRunVariable,
+                            merge_collections)
 
 
 @pytest.fixture(scope="module")
@@ -57,36 +58,29 @@ def test_run_variable_collection_to_df(run_coll):
 
     # All variables sparse, wide format
     df = run_coll.to_df()
-    assert df.shape == (4096, 13)
+    assert df.shape == (4096, 15)
     wide_cols = {'onset', 'duration', 'subject', 'run', 'task',
                  'PTval', 'RT', 'gain', 'loss', 'parametric gain', 'respcat',
-                 'respnum', 'trial_type'}
+                 'respnum', 'trial_type', 'suffix', 'datatype'}
     assert set(df.columns) == wide_cols
 
     # All variables sparse, wide format
     df = run_coll.to_df(format='long')
-    assert df.shape == (32768, 7)
+    assert df.shape == (32768, 9)
     long_cols = {'amplitude', 'duration', 'onset', 'condition', 'run',
-                 'task', 'subject'}
+                 'task', 'subject', 'suffix', 'datatype'}
     assert set(df.columns) == long_cols
 
     # All variables dense, wide format
     df = run_coll.to_df(sparse=False)
-    assert df.shape == (230400, 14)
-    # The inclusion of 'modality' and 'type' here is a minor bug that should
-    # be fixed at some point. There is no reason why to_df() should return
-    # more columns for a DenseRunVariable than a SparseRunVariable, but this
-    # is happening because these columns are not included in the original
-    # SparseRunVariable data, and are being rebuilt from the entity list in
-    # the DenseRunVariable init.
-    wide_cols |= {'datatype', 'suffix'}
-    assert set(df.columns) == wide_cols - {'trial_type'}
+    assert df.shape == (230400, 18)
+    extra_cols = {'TaskName', 'RepetitionTime', 'extension', 'SliceTiming'}
+    assert set(df.columns) == (wide_cols | extra_cols) - {'trial_type'}
 
     # All variables dense, wide format
     df = run_coll.to_df(sparse=False, format='long')
-    assert df.shape == (1612800, 9)
-    long_cols |= {'datatype', 'suffix'}
-    assert set(df.columns) == long_cols
+    assert df.shape == (1612800, 13)
+    assert set(df.columns) == (long_cols | extra_cols)
 
 
 def test_merge_collections(run_coll, run_coll_list):
@@ -100,14 +94,26 @@ def test_merge_collections(run_coll, run_coll_list):
 def test_get_collection_entities(run_coll_list):
     coll = run_coll_list[0]
     ents = coll.entities
-    assert {'run', 'task', 'subject'} == set(ents.keys())
+    assert {'run', 'task', 'subject', 'suffix', 'datatype'} == set(ents.keys())
 
     merged = merge_collections(run_coll_list[:3])
     ents = merged.entities
-    assert {'task', 'subject'} == set(ents.keys())
+    assert {'task', 'subject', 'suffix', 'datatype'} == set(ents.keys())
     assert ents['subject'] == '01'
 
     merged = merge_collections(run_coll_list[3:6])
     ents = merged.entities
-    assert {'task', 'subject'} == set(ents.keys())
+    assert {'task', 'subject', 'suffix', 'datatype'} == set(ents.keys())
     assert ents['subject'] == '02'
+
+
+def test_match_variables(run_coll):
+    matches = run_coll.match_variables('^.{1,2}a', match_type='regex')
+    assert set(matches) == {'gain', 'parametric gain'}
+    assert not run_coll.match_variables('.{1,3}a')
+    matches = run_coll.match_variables('^.{1,2}a', match_type='regex',
+                                       return_type='variable')
+    assert len(matches) == 2
+    assert all([isinstance(m, SparseRunVariable) for m in matches])
+    matches = run_coll.match_variables('*gain')
+    assert set(matches) == {'gain', 'parametric gain'}

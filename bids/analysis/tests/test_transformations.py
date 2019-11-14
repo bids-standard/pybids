@@ -4,21 +4,43 @@ from bids.variables import SparseRunVariable
 from bids.variables.entities import RunInfo
 from bids.variables.kollekshuns import BIDSRunVariableCollection
 from bids.layout import BIDSLayout
+import math
 import pytest
 from os.path import join, sep
 from bids.tests import get_test_data_path
 import numpy as np
 import pandas as pd
 
+try:
+    from unittest import mock
+except ImportError:
+    import mock
+
+
+# Sub-select collection for faster testing, without sacrificing anything
+# in the tests
+SUBJECTS = ['01', '02']
+NRUNS = 3
+SCAN_LENGTH = 480
+
+cached_collections = {}
+
 
 @pytest.fixture
 def collection():
-    layout_path = join(get_test_data_path(), 'ds005')
-    layout = BIDSLayout(layout_path)
-    collection = layout.get_collections('run', types=['events'],
-                                        scan_length=480, merge=True,
-                                        sampling_rate=10)
-    return collection
+    if 'ds005' not in cached_collections:
+        layout_path = join(get_test_data_path(), 'ds005')
+        layout = BIDSLayout(layout_path)
+        cached_collections['ds005'] = layout.get_collections(
+            'run',
+            types=['events'],
+            scan_length=SCAN_LENGTH,
+            merge=True,
+            sampling_rate=10,
+            subject=SUBJECTS
+        )
+    # Always return a clone!
+    return cached_collections['ds005'].clone()
 
 
 @pytest.fixture
@@ -29,13 +51,51 @@ def sparse_run_variable_with_missing_values():
         'amplitude': [1, 1, np.nan, 1]
     })
     run_info = [RunInfo({'subject': '01'}, 20, 2, 'dummy.nii.gz')]
-    var = SparseRunVariable('var', data, run_info, 'events')
+    var = SparseRunVariable(
+        name='var', data=data, run_info=run_info, source='events')
     return BIDSRunVariableCollection([var])
 
 
+def test_convolve(collection):
+    rt = collection.variables['RT']
+    transform.Convolve(collection, 'RT', output='reaction_time')
+    rt_conv = collection.variables['reaction_time']
+
+    assert rt_conv.values.shape[0] == \
+        rt.get_duration() * collection.sampling_rate
+
+    transform.ToDense(collection, 'RT', output='rt_dense')
+    transform.Convolve(collection, 'rt_dense', output='dense_convolved')
+
+    dense_conv = collection.variables['reaction_time']
+
+    assert dense_conv.values.shape[0] == \
+        rt.get_duration() * collection.sampling_rate
+
+    # Test adapative oversampling computation
+    with mock.patch('bids.analysis.transformations.compute.hrf') as mocked:
+        transform.Convolve(collection, 'RT', output='rt_mock')
+        mocked.compute_regressor.assert_called_with(
+            mock.ANY, 'spm', mock.ANY, fir_delays=None, min_onset=0,
+            oversampling=1.0)
+
+    with mock.patch('bids.analysis.transformations.compute.hrf') as mocked:
+        transform.Convolve(collection, 'rt_dense', output='rt_mock')
+        mocked.compute_regressor.assert_called_with(
+            mock.ANY, 'spm', mock.ANY, fir_delays=None, min_onset=0,
+            oversampling=3.0)
+
+    with mock.patch('bids.analysis.transformations.compute.hrf') as mocked:
+        collection.sampling_rate = 0.5
+        transform.Convolve(collection, 'RT', output='rt_mock')
+        mocked.compute_regressor.assert_called_with(
+            mock.ANY, 'spm', mock.ANY, fir_delays=None, min_onset=0,
+            oversampling=2.0)
+
+
 def test_rename(collection):
-    dense_rt = collection.variables['RT'].to_dense(10)
-    assert len(dense_rt.values) == 230400
+    dense_rt = collection.variables['RT'].to_dense(collection.sampling_rate)
+    assert len(dense_rt.values) == math.ceil(len(SUBJECTS) * NRUNS * SCAN_LENGTH * collection.sampling_rate)
     transform.Rename(collection, 'RT', output='reaction_time')
     assert 'reaction_time' in collection.variables
     assert 'RT' not in collection.variables
@@ -54,13 +114,14 @@ def test_product(collection):
 
 def test_sum(collection):
     c = collection
-    transform.Sum(collection, variables=['parametric gain', 'gain'],
-                      output='sum')
+    transform.Sum(
+        collection, variables=['parametric gain', 'gain'], output='sum')
     res = c['sum'].values
     target = c['parametric gain'].values + c['gain'].values
     assert np.array_equal(res, target)
-    transform.Sum(collection, variables=['parametric gain', 'gain'],
-                      output='sum', weights=[2, 2])
+    transform.Sum(
+        collection,
+        variables=['parametric gain', 'gain'], output='sum', weights=[2, 2])
     assert np.array_equal(c['sum'].values, target * 2)
     with pytest.raises(ValueError):
         transform.Sum(collection, variables=['parametric gain', 'gain'],
@@ -88,9 +149,10 @@ def test_demean(collection):
 def test_orthogonalize_dense(collection):
     transform.Factor(collection, 'trial_type', sep=sep)
 
+    sampling_rate = collection.sampling_rate
     # Store pre-orth variables needed for tests
-    pg_pre = collection['trial_type/parametric gain'].to_dense(10)
-    rt = collection['RT'].to_dense(10)
+    pg_pre = collection['trial_type/parametric gain'].to_dense(sampling_rate)
+    rt = collection['RT'].to_dense(sampling_rate)
 
     # Orthogonalize and store result
     transform.Orthogonalize(collection, variables='trial_type/parametric gain',
@@ -130,27 +192,37 @@ def test_split(collection):
 
     orig = collection['RT'].clone(name='RT_2')
     collection['RT_2'] = orig.clone()
-    collection['RT_3'] = collection['RT'].clone(name='RT_3').to_dense(10)
+    collection['RT_3'] = collection['RT']\
+        .clone(name='RT_3').to_dense(collection.sampling_rate)
 
     rt_pre_onsets = collection['RT'].onset
+    rt_pre_values = collection['RT'].values.values
 
     # Grouping SparseEventVariable by one column
     transform.Split(collection, ['RT'], ['respcat'])
-    assert 'RT.0' in collection.variables.keys() and \
-           'RT.-1' in collection.variables.keys()
-    rt_post_onsets = np.r_[collection['RT.0'].onset,
-                           collection['RT.-1'].onset,
-                           collection['RT.1'].onset]
+
+    # Verify names
+    assert 'RT.respcat[0]' in collection.variables.keys() and \
+           'RT.respcat[-1]' in collection.variables.keys()
+
+    # Verify values
+    rt_post_onsets = np.r_[collection['RT.respcat[0]'].onset,
+                           collection['RT.respcat[-1]'].onset,
+                           collection['RT.respcat[1]'].onset]
     assert np.array_equal(rt_pre_onsets.sort(), rt_post_onsets.sort())
+
+    rt_post_values = np.r_[collection['RT.respcat[0]'].values.values,
+                           collection['RT.respcat[-1]'].values.values,
+                           collection['RT.respcat[1]'].values.values]
+    assert np.array_equal(rt_pre_values.sort(), rt_post_values.sort())
 
     # Grouping SparseEventVariable by multiple columns
     transform.Split(collection, variables=['RT_2'], by=['respcat', 'loss'])
-    assert 'RT_2.-1_13' in collection.variables.keys() and \
-           'RT_2.1_13' in collection.variables.keys()
+    assert 'RT_2.respcat[-1].loss[13]' in collection.variables.keys() and \
+           'RT_2.respcat[1].loss[13]' in collection.variables.keys()
 
     # Grouping by DenseEventVariable
-    transform.Split(collection, variables='RT_3', by='respcat',
-                    drop_orig=False)
+    transform.Split(collection, variables='RT_3', by='respcat')
     targets = ['RT_3.respcat[-1]', 'RT_3.respcat[0]', 'RT_3.respcat[1]']
     assert not set(targets) - set(collection.variables.keys())
     assert collection['respcat'].values.nunique() == 3
@@ -160,18 +232,26 @@ def test_split(collection):
     # Grouping by entities in the index
     collection['RT_4'] = orig.clone(name='RT_4')
     transform.Split(collection, variables=['RT_4'], by=['respcat', 'run'])
-    assert 'RT_4.-1_3' in collection.variables.keys()
+    assert 'RT_4.respcat[-1].run[3]' in collection.variables.keys()
 
 
 def test_resample_dense(collection):
-    collection['RT'] = collection['RT'].to_dense(10)
+    new_sampling_rate = 50
+    old_sampling_rate = collection.sampling_rate
+    upsampling = float(new_sampling_rate) / old_sampling_rate
+
+    collection['RT'] = collection['RT'].to_dense(old_sampling_rate)
     old_rt = collection['RT'].clone()
-    collection.resample(50, in_place=True)
-    assert len(old_rt.values) * 5 == len(collection['RT'].values)
+    collection.resample(new_sampling_rate, in_place=True)
+    assert math.floor(len(old_rt.values) * upsampling) == len(collection['RT'].values)
     # Should work after explicitly converting categoricals
     transform.Factor(collection, 'trial_type')
-    collection.resample(5, force_dense=True, in_place=True)
-    assert len(old_rt.values) == len(collection['parametric gain'].values) * 2
+
+    new_sampling_rate2 = 5
+    upsampling2 = float(new_sampling_rate2) / old_sampling_rate
+
+    collection.resample(new_sampling_rate2, force_dense=True, in_place=True)
+    assert len(old_rt.values) == math.ceil(float(len(collection['parametric gain'].values) / upsampling2))
 
 
 def test_threshold(collection):
@@ -221,13 +301,12 @@ def test_copy(collection):
                           collection['RT_copy'].values.values)
 
 
-def test_regex_variable_expansion(collection):
+def test_expand_variable_names(collection):
     # Should fail because two output values are required following expansion
     with pytest.raises(Exception):
-        transform.Copy(collection, 'resp', regex_variables='variables')
+        transform.Copy(collection, '*resp*')
 
-    transform.Copy(collection, 'resp', output_suffix='_copy',
-                   regex_variables='variables')
+    transform.Copy(collection, '*resp*', output_suffix='_copy')
     assert 'respnum_copy' in collection.variables.keys()
     assert 'respcat_copy' in collection.variables.keys()
     assert np.array_equal(collection['respcat'].values.values,
@@ -301,13 +380,7 @@ def test_filter(collection):
     q = 'parametric gain > 0.1'
     transform.Filter(collection, 'RT', query=q, by='parametric gain')
     assert len(orig.values) != len(collection['RT'].values)
-    # There is some bizarro thing going on where, on travis, the result is
-    # randomly either 1536 or 3909 when running on Python 3 (on linux or mac).
-    # Never happens locally, and I've had no luck tracking down the problem.
-    # Best guess is it reflects either some non-deterministic ordering of
-    # variables somewhere, or some weird precision issues when resampling to
-    # dense. Needs to be tracked down and fixed.
-    assert len(collection['RT'].values) in [1536, 3909]
+    assert len(collection['RT'].values) == 96 * len(SUBJECTS)
 
 
 def test_replace(collection):
@@ -388,3 +461,21 @@ def test_dropna(sparse_run_variable_with_missing_values):
     assert np.array_equal(post_trans.onset, [2, 5, 17])
     assert np.array_equal(post_trans.duration, [1.2, 1.6, 2])
     assert len(post_trans.index) == 3
+
+
+def test_group(collection):
+    coll = collection.clone()
+    with pytest.raises(ValueError):
+        # Can't use an existing variable name as the group name
+        transform.Group(coll, ['gain', 'loss'], name='gain')
+
+    transform.Group(coll, ['gain', 'loss'], name='outcome_vars')
+    assert coll.groups == { 'outcome_vars': ['gain', 'loss'] }
+
+    # Checks that variable groups are replaced properly
+    transform.Rename(coll, ['outcome_vars'],
+                     output=['gain_renamed', 'loss_renamed'])
+    assert 'gain_renamed' in coll.variables
+    assert 'loss_renamed' in coll.variables
+    assert 'gain' not in coll.variables
+    assert 'loss' not in coll.variables

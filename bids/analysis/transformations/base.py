@@ -1,19 +1,20 @@
-''' Base Transformation class and associated utilities. '''
+"""Base Transformation class and associated utilities. """
 
-import numpy as np
-import pandas as pd
-from bids.utils import listify
+import re
 import warnings
 from abc import ABCMeta, abstractmethod
 from copy import deepcopy
 import itertools
 import inspect
+
+import numpy as np
+import pandas as pd
+
+from bids.utils import listify
 from bids.variables import SparseRunVariable
-from six import add_metaclass
 
 
-@add_metaclass(ABCMeta)
-class Transformation(object):
+class Transformation(metaclass=ABCMeta):
 
     ### Class-level settings ###
     # The following settings govern the way Transformations are applied to the
@@ -87,8 +88,8 @@ class Transformation(object):
         return t.transform()
 
     def _setup(self, collection, variables, *args, **kwargs):
-        ''' Replaces __init__ to set instance attributes because on Python
-        >= 3.3, we can't override both new and init. '''
+        """Replaces __init__ to set instance attributes because on Python
+        >= 3.3, we can't override both new and init. """
         self.collection = collection
         self.variables = listify(variables)
         self.groupby = kwargs.pop('groupby', None)
@@ -101,7 +102,7 @@ class Transformation(object):
         # that operations like densification, alignment, etc. correctly detect
         # all named arguments.
         if args:
-            arg_spec = inspect.getargspec(self._transform)
+            arg_spec = inspect.getfullargspec(self._transform)
             for i, arg_val in enumerate(args):
                 # Skip first two argnames--they're always 'self' and
                 # 'variables'
@@ -109,14 +110,47 @@ class Transformation(object):
 
         self.kwargs = kwargs
 
-        # Expand regex variable names
-        replace_args = self.kwargs.pop('regex_variables', None)
-        if replace_args is not None:
-            self._regex_replace_variables(replace_args)
+        # Expand any detected variable group names or wild cards
+        self._expand_variable_groups()
+        self._expand_variable_names()
+
+    def _expand_variable_groups(self):
+        """ Replace any detected variable groups with the associated lists of
+        variable names.
+        """
+        groups = self.collection.groups
+        variables = [groups[v] if v in groups else [v] for v in self.variables]
+        self.variables = list(itertools.chain(*variables))
+
+    def _expand_variable_names(self):
+        """Filter all available arguments against collection's variables using
+        unix-style pattern matching."""
+        def _replace_arg_values(values):
+            is_iter = isinstance(values, (list, tuple))
+            values = listify(values)
+            result = []
+            # Only try to match strings containing a relevant special character
+            for v in values:
+                if isinstance(v, str) and re.search('[\*\?\[\]]', v):
+                    result.append(self.collection.match_variables(v))
+                else:
+                    result.append([v])
+
+            result = list(itertools.chain(*result))
+            # Don't return a list unless we have to
+            if is_iter or len(result) > 1:
+                return result
+            return result[0]
+
+        # 'variables' is stored separately, so handle it separately
+        self.variables = _replace_arg_values(self.variables)
+
+        for k, arg in self.kwargs.items():
+            self.kwargs[k] = _replace_arg_values(arg)
 
     def _clone_variables(self):
-        ''' Deep copy all variables the transformation touches. This prevents us
-        from unnecessarily overwriting existing variables. '''
+        """Deep copy all variables the transformation touches. This prevents us
+        from unnecessarily overwriting existing variables. """
 
         # Always clone the target variables
         self._variables = {v: self.collection[v].clone()
@@ -136,7 +170,7 @@ class Transformation(object):
                 self._variables[v] = deepcopy(self.collection[v])
 
     def _check_categorical_variables(self):
-        ''' Convert categorical variables to dummy-coded indicators. '''
+        """Convert categorical variables to dummy-coded indicators. """
 
         # Collect variable names to pass through
         pass_thru = []
@@ -172,39 +206,6 @@ class Transformation(object):
             if isinstance(var, SparseRunVariable):
                 sr = self.collection.sampling_rate
                 self._variables[v] = var.to_dense(sr)
-
-    def _regex_replace_variables(self, args):
-        ''' For each argument named in args, interpret the values set in the
-        argument as regex patterns to potentially be replaced with variables
-        that match the pattern. '''
-
-        args = listify(args)
-
-        if 'variables' in args:
-            args.remove('variables')
-            variables = True
-        else:
-            variables = False
-
-        # Ensure all keyword arguments user wants to scan are valid
-        missing = set(args) - set(self.kwargs.keys())
-        if missing:
-            raise ValueError("Arguments '%s' specified for regex-based "
-                             "variable name replacement, but were not found "
-                             "among keyword arguments." % missing)
-
-        def _replace_arg_values(names):
-            variables = listify(names)
-            variables = [self.collection.match_variables(c) for c in names]
-            variables = itertools.chain(*variables)
-            return list(set(variables))
-
-        # 'variables' is stored separately, so handle it separately
-        if variables:
-            self.variables = _replace_arg_values(self.variables)
-
-        for arg in args:
-            self.kwargs[arg] = _replace_arg_values(self.kwargs[arg])
 
     def transform(self):
 
@@ -310,12 +311,12 @@ class Transformation(object):
         return col
 
     def _align_variables(self, variables, force=True):
-        ''' Checks whether the specified variables have aligned indexes. This
+        """Checks whether the specified variables have aligned indexes. This
         implies either that all variables are dense, or that all variables are
         sparse and have exactly the same onsets and durations. If variables are
         not aligned and force = True, all variables will be forced to dense
         format in order to ensure alignment.
-        '''
+        """
 
         if self._align is None or self._align == 'none':
             return

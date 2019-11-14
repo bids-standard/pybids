@@ -1,4 +1,6 @@
 {
+  "title": "PyBIDS: Python tools for BIDS datasets",
+  "description": "PyBIDS is a Python library to centralize interactions with datasets conforming BIDS (Brain Imaging Data Structure) format. For more information about BIDS visit <a href=\"https://bids.neuroimaging.io\">bids.neuroimaging.io</a>.",
   "creators": [
     {
       "affiliation": "University of Texas at Austin",
@@ -21,6 +23,11 @@
       "orcid": "0000-0003-3321-7583"
     },
     {
+      "affiliation": "Dartmouth College",
+      "name": "Halchenko, Yaroslav O.",
+      "orcid": "0000-0003-3456-2493"
+    },
+    {
       "affiliation": "Florida International University",
       "name": "Salo, Taylor",
       "orcid": "0000-0001-9813-3167"
@@ -35,11 +42,6 @@
       "orcid": "0000-0002-3959-9060"
     },
     {
-      "affiliation": "Dartmouth College",
-      "name": "Halchenko, Yaroslav O.",
-      "orcid": "0000-0003-3456-2493"
-    },
-    {
       "affiliation": "McGill University",
       "name": "Poline, Jean-Baptiste",
       "orcid": "0000-0002-9794-749X"
@@ -47,6 +49,11 @@
     {
       "affiliation": "Institute for Problems of Information Transmission",
       "name": "Petrov, Dmitry"
+    },
+    {
+      "affiliation": "University of Iowa",
+      "name": "Johnson, Hans",
+      "orcid": "0000-0001-9513-2660"
     },
     {
       "affiliation": "Concordia University",
@@ -59,6 +66,11 @@
       "orcid": "0000-0003-4613-6643"
     },
     {
+      "affiliation": "MRC Cognition and Brain Sciences Unit",
+      "name": "Carlin, Johan",
+      "orcid": "0000-0003-0933-1239"
+    },
+    {
       "affiliation": "Montreal Neurological Institute and Hospital",
       "name": "Kiar, Gregory",
       "orcid": "0000-0001-8915-496X"
@@ -69,17 +81,51 @@
       "orcid": "0000-0001-8498-4059"
     },
     {
+      "affiliation": "MIT, HMS",
+      "name": "Ghosh, Satrajit",
+      "orcid": "0000-0002-5312-6729"
+    },
+    {
+      "affiliation": "Psychoinformatics Lab, Institute of Psychology, Otto-von-Guericke University Magdeburg",
+      "name": "Wagner, Adina",
+      "orcid": "0000-0003-2917-3450"
+    },
+    {
       "affiliation": "Montreal Neurological Institute and Hospital",
       "name": "DuPre, Elizabeth",
       "orcid": "0000-0003-1358-196X"
     },
     {
+      "affiliation": "Center for Adaptive Rationality, Max Planck Institute for Human Development, Berlin, Germany",
+      "name": "Appelhoff, Stefan",
+      "orcid": "0000-0001-8002-0877"
+    },
+    {
+      "affiliation": "Department of Psychology, Stanford University",
+      "name": "Esteban, Oscar",
+      "orcid": "0000-0001-8435-6191"
+    },
+    {
       "name": "Ivanov, Alexander"
+    },
+    {
+      "affiliation": "KTH Royal Institute of Technology",
+      "name": "Wennberg, Johannes"
     },
     {
       "affiliation": "CorticoMetrics LLC",
       "name": "Tirrell, Lee S.",
       "orcid": "0000-0001-9393-8361"
+    },
+    {
+      "affiliation": "Holland Bloorview Kids Rehabilitation Hospital",
+      "name": "Tilley II, Steven",
+      "orcid": "0000-0003-4853-5082"
+    },
+    {
+      "affiliation": "Universit\u00e9 de Sherbrooke",
+      "name": "Legarreta, Jon Haitz",
+      "orcid": "0000-0002-9661-1396"
     },
     {
       "affiliation": "T\u00e9l\u00e9com ParisTech, France",
@@ -97,16 +143,6 @@
       "orcid": "0000-0001-6755-0259"
     },
     {
-      "affiliation": "Department of Psychology, Stanford University",
-      "name": "Esteban, Oscar",
-      "orcid": "0000-0001-8435-6191"
-    },
-    {
-      "affiliation": "Center for Adaptive Rationality, Max Planck Institute for Human Development, Berlin, Germany",
-      "name": "Appelhoff, Stefan",
-      "orcid": "0000-0001-8002-0877"
-    },
-    {
       "affiliation": "Berkeley Institute for Data Science; University of California at Berkeley",
       "name": "Holdgraf, Chris",
       "orcid": "0000-0002-2391-0678"
@@ -117,9 +153,9 @@
       "orcid": "0000-0002-0795-1154"
     },
     {
-      "affiliation": "Psychoinformatics Lab, Institute of Psychology, Otto-von-Guericke University Magdeburg",
-      "name": "Wagner, Adina",
-      "orcid": "0000-0003-2917-3450"
+      "affiliation": "Universit\u00e9 catholique de Louvain",
+      "name": "Gau, Remi",
+      "orcid": "0000-0002-1535-9767"
     },
     {
       "affiliation": "The University of Washington eScience Institute",
@@ -127,9 +163,19 @@
       "orcid": "0000-0003-0679-1985"
     },
     {
+      "affiliation": "Australian eHealth Research Centre, Commonwealth Scientific and Industrial Research Organisation; University of Queensland",
+      "name": "Gillman, Ashley",
+      "orcid": "0000-0001-9130-1092"
+    },
+    {
       "affiliation": "INRIA",
       "name": "Thirion, Bertrand",
       "orcid": "0000-0001-5018-7895"
+    },
+    {
+      "affiliation": "Ottawa Hospital Research Institute",
+      "name": "Boulay, Chadwick",
+      "orcid": "0000-0003-1747-3931"
     },
     {
       "affiliation": "Rutgers University",
@@ -137,9 +183,9 @@
       "orcid": "0000-0002-7442-2762"
     },
     {
-      "affiliation": "MRC Cognition and Brain Sciences Unit",
-      "name": "Carlin, Johan",
-      "orcid": "0000-0003-0933-1239"
+      "affiliation": "Centre for Addiction and Mental Health, University of Toronto, Canada",
+      "name": "Dickie, Erin W",
+      "orcid": "0000-0003-3028-9864"
     },
     {
       "affiliation": "NIMH IRP",
@@ -150,6 +196,11 @@
       "affiliation": "UC Berkeley",
       "name": "Visconti di Oleggio Castello, Matteo",
       "orcid": "0000-0001-7931-5272"
+    },
+    {
+      "affiliation": "The Laboratory for Investigative Neurophysiology (The LINE), Department of Radiology and Department of Clinical Neurosciences, Lausanne, Switzerland; Center for Biomedical Imaging (CIBM), Lausanne, Switzerland",
+      "name": "Notter, Michael Philipp",
+      "orcid": "0000-0002-5866-047X"
     },
     {
       "affiliation": "Sainte-Anne Hospital Center, Universit\u00e9 Paris Descartes",
@@ -163,8 +214,12 @@
     }
   ],
   "keywords": [
+    "BIDS",
+    "brain imaging data structure",
+    "neuroscience",
     "neuroimaging",
-    "BIDS"
+    "neuroinformatics",
+    "python"
   ],
   "license": "mit-license",
   "upload_type": "software"

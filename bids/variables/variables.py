@@ -1,17 +1,17 @@
+""" Classes for representing BIDS variables. """
+
 import numpy as np
 import pandas as pd
 import math
+import warnings
 from copy import deepcopy
 from abc import abstractmethod, ABCMeta
 from bids.utils import listify
 from itertools import chain
-from six import add_metaclass
 from bids.utils import matches_entities
 
-
-@add_metaclass(ABCMeta)
-class BIDSVariable(object):
-    ''' Base representation of a column in a BIDS project. '''
+class BIDSVariable(metaclass=ABCMeta):
+    """Base representation of a column in a BIDS project. """
 
     # Columns that define special properties (e.g., onset, duration). These
     # will be stored separately from the main data object, and are accessible
@@ -25,18 +25,21 @@ class BIDSVariable(object):
         self._index_entities()
 
     def clone(self, data=None, **kwargs):
-        ''' Clone (deep copy) the current column, optionally replacing its
+        """Clone (deep copy) the current column, optionally replacing its
         data and/or any other attributes.
 
-        Args:
-            data (DataFrame, ndarray): Optional new data to substitute into
-                the cloned column. Must have same dimensionality as the
-                original.
-            kwargs (dict): Optional keyword arguments containing new attribute
-                values to set in the copy. E.g., passing `name='my_name'`
-                would set the `.name` attribute on the cloned instance to the
-                passed value.
-        '''
+        Parameters
+        ----------
+        data : :obj:`pandas.DataFrame` or array_like
+            Optional new data to substitute into
+            the cloned column. Must have same dimensionality as the
+            original.
+        kwargs : dict
+            Optional keyword arguments containing new attribute
+            values to set in the copy. E.g., passing `name='my_name'`
+            would set the `.name` attribute on the cloned instance to the
+            passed value.
+        """
         result = deepcopy(self)
         if data is not None:
             if data.shape != self.values.shape:
@@ -54,25 +57,31 @@ class BIDSVariable(object):
         return result
 
     def filter(self, filters=None, query=None, strict=False, inplace=False):
-        ''' Returns a copy of the current Variable with only rows that match
+        """Returns a copy of the current Variable with only rows that match
         the filters retained.
 
-        Args:
-            filters (dict): Dictionary of filters to apply. Keys can be either
-                'amplitude' or any named entity. Values must be single values
-                or lists.
-            query (str): Optional query string to pass to df.query(). Will not
-                be validated in any way, so must have valid column names. Takes
-                precedence over filters in the event that both are passed.
-            strict (bool): By default, keys in 'filters' that cannot be found
-                in the Variable will be silently ignored. If strict=True, None
-                will be returned in such cases.
-            inplace (bool): If True, filtering is performed in place. If False,
-                a filtered copy of the Variable is returned.
+        Parameters
+        ----------
+        filters : dict
+            Dictionary of filters to apply. Keys can be either
+            'amplitude' or any named entity. Values must be single values
+            or lists.
+        query : str
+            Optional query string to pass to df.query(). Will not
+            be validated in any way, so must have valid column names. Takes
+            precedence over filters in the event that both are passed.
+        strict : bool
+            By default, keys in 'filters' that cannot be found
+            in the Variable will be silently ignored. If strict=True, None
+            will be returned in such cases.
+        inplace : bool
+            If True, filtering is performed in place. If False,
+            a filtered copy of the Variable is returned.
 
-        Returns:
-            A BIDSVariable, or None if no rows are left after filtering.
-        '''
+        Returns
+        -------
+        BIDSVariable or None if no rows are left after filtering.
+        """
 
         if filters is None and query is None:
             raise ValueError("Either the 'filters' or the 'query' argument "
@@ -106,20 +115,27 @@ class BIDSVariable(object):
 
     @classmethod
     def merge(cls, variables, name=None, **kwargs):
-        ''' Merge/concatenate a list of variables along the row axis.
+        """Merge/concatenate a list of variables along the row axis.
 
-        Args:
-            variables (list): A list of Variables to merge.
-            name (str): Optional name to assign to the output Variable. By
-                default, uses the same name as the input variables.
-            kwargs: Optional keyword arguments to pass onto the class-specific
-                merge() call. See merge_variables docstring for details.
+        Parameters
+        ----------
+        variables : list
+            A list of Variables to merge.
+        name : str
+            Optional name to assign to the output Variable. By
+            default, uses the same name as the input variables.
+        kwargs : dict
+            Optional keyword arguments to pass onto the class-specific
+            merge() call. See merge_variables docstring for details.
 
-        Returns:
-            A single BIDSVariable of the same class as the input variables.
+        Returns
+        -------
+        A single BIDSVariable of the same class as the input variables.
 
-        Notes: see merge_variables docstring for additional details.
-        '''
+        See also
+        --------
+        merge_variables
+        """
 
         variables = listify(variables)
         if len(variables) == 1:
@@ -141,39 +157,54 @@ class BIDSVariable(object):
         pass
 
     def get_grouper(self, groupby='run'):
-        ''' Return a list suitable for use in groupby calls.
-        Args:
-            groupby (str, list): Name(s) of column(s) defining the grouper
-                object. Anything that would be valid inside a .groupby() call
-                on a pandas structure.
-        Returns:
+        """Return a list suitable for use in groupby calls.
+
+        Parameters
+        ----------
+        groupby : str or list
+            Name(s) of column(s) defining the grouper
+            object. Anything that would be valid inside a .groupby() call
+            on a pandas structure.
+
+        Returns
+        -------
+        list
             A list defining the groups.
-        '''
+        """
         grouper = self.index.loc[:, groupby]
         return grouper.apply(lambda x: '@@@'.join(x.astype(str).values),
                              axis=1)
 
     def apply(self, func, groupby='run', *args, **kwargs):
-        ''' Applies the passed function to the groups defined by the groupby
+        """Applies the passed function to the groups defined by the groupby
         argument. Works identically to the standard pandas df.groupby() call.
-        Args:
-            func (callable): The function to apply to each group.
-            groupby (str, list): Name(s) of column(s) defining the grouping.
-            args, kwargs: Optional positional and keyword arguments to pass
-                onto the function call.
-        '''
+
+        Parameters
+        ----------
+        func : callable
+            The function to apply to each group.
+        groupby : str or list
+            Name(s) of column(s) defining the grouping.
+        args, kwargs : dict
+            Optional positional and keyword arguments to pass
+            onto the function call.
+        """
         grouper = self.get_grouper(groupby)
         return self.values.groupby(grouper).apply(func, *args, **kwargs)
 
     def to_df(self, condition=True, entities=True, **kwargs):
-        ''' Convert to a DataFrame, with columns for name and entities.
-        Args:
-            condition (bool): If True, adds a column for condition name, and
-                names the amplitude column 'amplitude'. If False, returns just
-                onset, duration, and amplitude, and gives the amplitude column
-                the current column name.
-            entities (bool): If True, adds extra columns for all entities.
-        '''
+        """Convert to a DataFrame, with columns for name and entities.
+
+        Parameters
+        ----------
+        condition : bool
+            If True, adds a column for condition name, and
+            names the amplitude column 'amplitude'. If False, returns just
+            onset, duration, and amplitude, and gives the amplitude column
+            the current column name.
+        entities : bool
+            If True, adds extra columns for all entities.
+        """
         amp = 'amplitude' if condition else self.name
         data = pd.DataFrame({amp: self.values.values.ravel()})
 
@@ -190,18 +221,20 @@ class BIDSVariable(object):
         return data.reset_index(drop=True)
 
     def matches_entities(self, entities, strict=False):
-        ''' Checks whether current Variable's entities match the input. '''
+        """Checks whether current Variable's entities match the input. """
         return matches_entities(self, entities, strict)
 
     def _index_entities(self):
-        ''' Returns a dict of entities for the current Variable.
+        """Returns a dict of entities for the current Variable.
 
-        Note: Only entity key/value pairs common to all rows in the Variable
-            are returned. E.g., if a Variable contains events extracted from
-            runs 1, 2 and 3 from subject '01', the returned dict will be
-            {'subject': '01'}; the runs will be excluded as they vary across
-            the Variable contents.
-        '''
+        Notes
+        -----
+        Only entity key/value pairs common to all rows in the Variable
+        are returned. E.g., if a Variable contains events extracted from
+        runs 1, 2 and 3 from subject '01', the returned dict will be
+        {'subject': '01'}; the runs will be excluded as they vary across
+        the Variable contents.
+        """
         constant = self.index.apply(lambda x: x.nunique() == 1)
         if constant.empty:
             self.entities = {}
@@ -211,18 +244,23 @@ class BIDSVariable(object):
 
 
 class SimpleVariable(BIDSVariable):
-    ''' Represents a simple design matrix column that has no timing
+    """Represents a simple design matrix column that has no timing
     information.
 
-    Args:
-        name (str): Name of the column.
-        data (DataFrame): A pandas DataFrame minimally containing a column
-            named 'amplitude' as well as any identifying entities.
-        source (str): The type of BIDS variable file the data were extracted
-            from. Must be one of: 'events', 'physio', 'stim', 'regressors',
-            'scans', 'sessions', 'participants', or 'beh'.
-        kwargs: Optional keyword arguments passed onto superclass.
-    '''
+    Parameters
+    ----------
+    name : str
+        Name of the column.
+    data : :obj:`pandas.DataFrame`
+        A pandas DataFrame minimally containing a column
+        named 'amplitude' as well as any identifying entities.
+    source : str
+        The type of BIDS variable file the data were extracted
+        from. Must be one of: 'events', 'physio', 'stim', 'regressors',
+        'scans', 'sessions', 'participants', or 'beh'.
+    kwargs : dict
+        Optional keyword arguments passed onto superclass.
+    """
 
     _entity_columns = {'condition', 'amplitude'}
 
@@ -237,24 +275,29 @@ class SimpleVariable(BIDSVariable):
         super(SimpleVariable, self).__init__(name, values, source)
 
     def split(self, grouper):
-        ''' Split the current SparseRunVariable into multiple columns.
+        """Split the current SparseRunVariable into multiple columns.
 
-        Args:
-            grouper (iterable): list to groupby, where each unique value will
-                be taken as the name of the resulting column.
+        Parameters
+        ----------
+        grouper : :obj:`pandas.DataFrame`
+            Binary DF specifying the design matrix to use for splitting. Number
+            of rows must match current ``SparseRunVariable``;
+            a new ``SparseRunVariable`` will be generated for each column in
+            the grouper.
 
-        Returns:
-            A list of SparseRunVariables, one per unique value in the
-            grouper.
-        '''
+        Returns
+        -------
+        A list of SparseRunVariables, one per column in the grouper DF.
+        """
         data = self.to_df(condition=True, entities=True)
         data = data.drop('condition', axis=1)
 
         subsets = []
-        for i, (name, g) in enumerate(data.groupby(grouper)):
-            name = '%s.%s' % (self.name, name)
-            args = [name, g, getattr(self, 'run_info', None), self.source]
-            col = self.__class__(*args)
+        for i, col_name in enumerate(grouper.columns):
+            col_data = data.loc[grouper[col_name], :]
+            name = '{}.{}'.format(self.name, col_name)
+            col = self.__class__(name=name, data=col_data, source=self.source,
+                                 run_info=getattr(self, 'run_info', None))
             subsets.append(col)
         return subsets
 
@@ -266,12 +309,14 @@ class SimpleVariable(BIDSVariable):
         return cls(name, data, source=variables[0].source, **kwargs)
 
     def select_rows(self, rows):
-        ''' Truncate internal arrays to keep only the specified rows.
+        """Truncate internal arrays to keep only the specified rows.
 
-        Args:
-            rows (array): An integer or boolean array identifying the indices
-                of rows to keep.
-        '''
+        Parameters
+        ----------
+        rows : array_like
+            An integer or boolean array identifying the indices
+            of rows to keep.
+        """
         self.values = self.values.iloc[rows]
         self.index = self.index.iloc[rows, :]
         for prop in self._property_columns:
@@ -280,19 +325,25 @@ class SimpleVariable(BIDSVariable):
 
 
 class SparseRunVariable(SimpleVariable):
-    ''' A sparse representation of a single column of events.
+    """A sparse representation of a single column of events.
 
-    Args:
-        name (str): Name of the column.
-        data (DataFrame): A pandas DataFrame minimally containing the columns
-            'onset', 'duration', and 'amplitude'.
-        run_info (list): A list of RunInfo objects carrying information about
-            all runs represented in the Variable.
-        source (str): The type of BIDS variable file the data were extracted
-            from. Must be one of: 'events', 'physio', 'stim', 'regressors',
-            'scans', 'sessions', 'participants', or 'beh'.
-        kwargs: Optional keyword arguments passed onto superclass.
-    '''
+    Parameters
+    ----------
+    name : str
+        Name of the column.
+    data : :obj:`pandas.DataFrame`
+        A pandas DataFrame minimally containing the columns
+        'onset', 'duration', and 'amplitude'.
+    run_info : list
+        A list of RunInfo objects carrying information about
+        all runs represented in the Variable.
+    source : str
+        The type of BIDS variable file the data were extracted
+        from. Must be one of: 'events', 'physio', 'stim', 'regressors',
+        'scans', 'sessions', 'participants', or 'beh'.
+    kwargs : dict
+        Optional keyword arguments passed onto superclass.
+    """
 
     _property_columns = {'onset', 'duration'}
 
@@ -308,21 +359,22 @@ class SparseRunVariable(SimpleVariable):
         super(SparseRunVariable, self).__init__(name, data, source, **kwargs)
 
     def get_duration(self):
-        ''' Return the total duration of the Variable's run(s). '''
+        """Return the total duration of the Variable's run(s). """
         return sum([r.duration for r in self.run_info])
 
     def to_dense(self, sampling_rate):
-        ''' Convert the current sparse column to a dense representation.
-        Returns: A DenseRunVariable.
+        """Convert the current sparse column to a dense representation.
 
-        Args:
-            sampling_rate (int, str): Sampling rate (in Hz) to use when
-                constructing the DenseRunVariable.
+        Parameters
+        ----------
+        sampling_rate : int or str
+            Sampling rate (in Hz) to use when
+            constructing the DenseRunVariable.
 
-        Returns:
-            A DenseRunVariable.
-
-        '''
+        Returns
+        -------
+        DenseRunVariable
+        """
         duration = int(math.ceil(sampling_rate * self.get_duration()))
         ts = np.zeros(duration, dtype=self.values.dtype)
 
@@ -336,12 +388,19 @@ class SparseRunVariable(SimpleVariable):
                 run_i += 1
             _onset = int(start + onsets[i])
             _offset = int(_onset + durations[i])
+            if _onset >= duration:
+                warnings.warn("The onset time of a variable seems to exceed the runs"
+                              "duration, hence runs are incremented by one internally.")
             ts[_onset:_offset] = val
             last_ind = onsets[i]
 
         run_info = list(self.run_info)
-        return DenseRunVariable(self.name, ts, run_info, self.source,
-                                sampling_rate)
+        return DenseRunVariable(
+            name=self.name,
+            values=ts,
+            run_info=run_info,
+            source=self.source,
+            sampling_rate=sampling_rate)
 
     @classmethod
     def _merge(cls, variables, name, **kwargs):
@@ -352,7 +411,7 @@ class SparseRunVariable(SimpleVariable):
 
 
 class DenseRunVariable(BIDSVariable):
-    ''' A dense representation of a single column.
+    """A dense representation of a single column.
 
     Parameters
     ----------
@@ -368,7 +427,7 @@ class DenseRunVariable(BIDSVariable):
     sampling_rate : :obj:`float`
         Optional sampling rate (in Hz) to use. Must match the sampling rate used
         to generate the values. If None, the collection's sampling rate will be used.
-    '''
+    """
 
     def __init__(self, name, values, run_info, source, sampling_rate):
 
@@ -383,7 +442,7 @@ class DenseRunVariable(BIDSVariable):
         super(DenseRunVariable, self).__init__(name, values, source)
 
     def split(self, grouper):
-        '''Split the current DenseRunVariable into multiple columns.
+        """Split the current DenseRunVariable into multiple columns.
 
         Parameters
         ----------
@@ -395,16 +454,18 @@ class DenseRunVariable(BIDSVariable):
         Returns
         -------
         A list of DenseRunVariables, one per unique value in the grouper.
-        '''
+        """
         values = grouper.values * self.values.values
         df = pd.DataFrame(values, columns=grouper.columns)
-        return [DenseRunVariable('%s.%s' % (self.name, name), df[name].values,
-                                 self.run_info, self.source,
-                                 self.sampling_rate)
+        return [DenseRunVariable(name='%s.%s' % (self.name, name),
+                                 values=df[name].values,
+                                 run_info=self.run_info,
+                                 source=self.source,
+                                 sampling_rate=self.sampling_rate)
                 for i, name in enumerate(df.columns)]
 
     def _build_entity_index(self, run_info, sampling_rate):
-        ''' Build the entity index from run information. '''
+        """Build the entity index from run information. """
 
         index = []
         interval = int(round(1000. / sampling_rate))
@@ -420,7 +481,7 @@ class DenseRunVariable(BIDSVariable):
         return pd.concat(index, axis=0, sort=True).reset_index(drop=True)
 
     def resample(self, sampling_rate, inplace=False, kind='linear'):
-        '''Resample the Variable to the specified sampling rate.
+        """Resample the Variable to the specified sampling rate.
 
         Parameters
         ----------
@@ -433,7 +494,7 @@ class DenseRunVariable(BIDSVariable):
             Argument to pass to :obj:`scipy.interpolate.interp1d`; indicates
             the kind of interpolation approach to use. See interp1d docs for
             valid values. Default is 'linear'.
-        '''
+        """
         if not inplace:
             var = self.clone()
             var.resample(sampling_rate, True, kind)
@@ -448,17 +509,28 @@ class DenseRunVariable(BIDSVariable):
         self.index = self._build_entity_index(self.run_info, sampling_rate)
 
         x = np.arange(n)
-        num = int(np.ceil(n * sampling_rate / old_sr))
+        num = len(self.index)
+
+        if sampling_rate < self.sampling_rate:
+            # Downsampling, so filter the signal
+            from scipy.signal import butter, filtfilt
+            # cutoff = new Nyqist / old Nyquist
+            b, a = butter(5, (sampling_rate / 2.0) / (self.sampling_rate / 2.0),
+                          btype='low', output='ba', analog=False)
+            y = filtfilt(b, a, self.values.values.ravel())
+        else:
+            y = self.values.values.ravel()
 
         from scipy.interpolate import interp1d
-        f = interp1d(x, self.values.values.ravel(), kind=kind)
+        f = interp1d(x, y, kind=kind)
         x_new = np.linspace(0, n - 1, num=num)
         self.values = pd.DataFrame(f(x_new))
+        assert len(self.values) == len(self.index)
 
         self.sampling_rate = sampling_rate
 
     def to_df(self, condition=True, entities=True, timing=True, sampling_rate=None):
-        '''Convert to a DataFrame, with columns for name and entities.
+        """Convert to a DataFrame, with columns for name and entities.
 
         Parameters
         ----------
@@ -471,7 +543,7 @@ class DenseRunVariable(BIDSVariable):
         timing : :obj:`bool`
             If True, includes onset and duration columns (even though events are
             sampled uniformly). If False, omits them.
-        '''
+        """
         if sampling_rate not in (None, self.sampling_rate):
             return self.resample(sampling_rate).to_df(condition, entities)
 
@@ -505,11 +577,16 @@ class DenseRunVariable(BIDSVariable):
         values = pd.concat([v.values for v in variables], axis=0, sort=True)
         run_info = list(chain(*[v.run_info for v in variables]))
         source = variables[0].source
-        return DenseRunVariable(name, values, run_info, source, sampling_rate)
+        return DenseRunVariable(
+            name=name,
+            values=values,
+            run_info=run_info,
+            source=source,
+            sampling_rate=sampling_rate)
 
 
 def merge_variables(variables, name=None, **kwargs):
-    '''Merge/concatenate a list of variables along the row axis.
+    """Merge/concatenate a list of variables along the row axis.
 
     Parameters
     ----------
@@ -536,7 +613,7 @@ def merge_variables(variables, name=None, **kwargs):
       future, it may be extended to support implicit conversion.
     - Variables in the list must all share the same name (i.e., it is not
       possible to merge two different variables into a single variable.)
-    '''
+    """
 
     classes = set([v.__class__ for v in variables])
     if len(classes) > 1:

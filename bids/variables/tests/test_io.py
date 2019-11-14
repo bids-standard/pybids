@@ -38,7 +38,7 @@ def test_load_events(layout1):
     targ_cols = {'parametric gain', 'PTval', 'trial_type', 'respnum'}
     assert not (targ_cols - set(variables.keys()))
     assert isinstance(variables['parametric gain'], SparseRunVariable)
-    assert variables['parametric gain'].index.shape == (86, 3)
+    assert variables['parametric gain'].index.shape == (86, 5)
     assert variables['parametric gain'].source == 'events'
 
 
@@ -51,16 +51,17 @@ def test_load_participants(layout1):
     assert {'age', 'sex'} == set(dataset.variables.keys())
     age = dataset.variables['age']
     assert isinstance(age, SimpleVariable)
-    assert age.index.shape == (16, 1)
+    assert age.index.shape == (16, 2)
     assert age.values.shape == (16,)
 
     index = load_variables(layout1, types='participants', subject=['^1.*'])
     age = index.get_nodes(level='dataset')[0].variables['age']
-    assert age.index.shape == (7, 1)
+    assert age.index.shape == (7, 2)
     assert age.values.shape == (7,)
 
 
 def test_load_synthetic_dataset(synthetic):
+
     param, index = synthetic
     # Runs
     runs = index.get_nodes('run')
@@ -72,10 +73,11 @@ def test_load_synthetic_dataset(synthetic):
     if param == 'preproc':
         # non-exhaustive
         match = ['Cosine01', 'stdDVARS', 'RotZ', 'FramewiseDisplacement']
-        sum_dense = 54
+        sum_dense = 56
     else:
-        match = ['trial_type', 'weight', 'respiratory', 'cardiac']
-        sum_dense = 2
+        match = ['trial_type', 'weight', 'respiratory', 'cardiac', 'stimA',
+                 'stimB']
+        sum_dense = 4
 
     for v in match:
         assert v in variables.keys()
@@ -87,7 +89,8 @@ def test_load_synthetic_dataset(synthetic):
     # Sessions
     sessions = index.get_nodes('session')
     assert len(sessions) == 5 * 2
-    assert set(sessions[0].variables.keys()) == {'acq_time'}
+    target_cols = {'acq_time', 'TaskName', 'RepetitionTime'}
+    assert set(sessions[0].variables.keys()) == target_cols
     data = sessions[0].variables['acq_time'].filter({'task': 'nback'})
     assert len(data.values) == 2
 

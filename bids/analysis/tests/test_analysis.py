@@ -31,7 +31,7 @@ def test_get_design_matrix_arguments(analysis):
     kwargs = dict(run=1, subject='01', sparse=True)
     result = analysis['run'].get_design_matrix(**kwargs)
     result = result[0]
-    assert result.sparse.shape == (172, 7)
+    assert result.sparse.shape == (172, 9)
     assert result.dense is None
 
     kwargs = dict(run=1, subject='01', mode='dense', force=False)
@@ -39,20 +39,23 @@ def test_get_design_matrix_arguments(analysis):
     assert result.sparse is None
     assert result.dense is None
 
-    kwargs = dict(run=1, subject='01', mode='dense', force=True, sampling_rate='highest')
+    kwargs = dict(run=1, subject='01', mode='dense', force=True,
+                  sampling_rate='highest')
     result = analysis['run'].get_design_matrix(**kwargs)[0]
     assert result.sparse is None
-    assert result.dense.shape == (4800, 6)
+    assert result.dense.shape == (4800, 10)
 
-    kwargs = dict(run=1, subject='01', mode='dense', force=True, sampling_rate='TR')
+    kwargs = dict(run=1, subject='01', mode='dense', force=True,
+                  sampling_rate='TR')
     result = analysis['run'].get_design_matrix(**kwargs)[0]
     assert result.sparse is None
-    assert result.dense.shape == (240, 6)
+    assert result.dense.shape == (240, 10)
 
-    kwargs = dict(run=1, subject='01', mode='dense', force=True, sampling_rate=0.5)
+    kwargs = dict(run=1, subject='01', mode='dense', force=True,
+                  sampling_rate=0.5)
     result = analysis['run'].get_design_matrix(**kwargs)[0]
     assert result.sparse is None
-    assert result.dense.shape == (240, 6)
+    assert result.dense.shape == (240, 10)
 
     # format='long' should be ignored for dense output
     kwargs = dict(run=1, subject='01', mode='dense', force=True,
@@ -72,11 +75,11 @@ def test_first_level_sparse_design_matrix(analysis):
     result = analysis['run'].get_design_matrix(subject=['01'])
     assert len(result) == 3
     df = result[0].sparse
-    assert df.shape == (172, 7)
+    assert df.shape == (172, 9)
     assert df['condition'].nunique() == 2
     assert set(result[0][0].columns) == {'amplitude', 'onset', 'duration',
                                          'condition', 'subject', 'run',
-                                         'task'}
+                                         'task', 'datatype', 'suffix'}
 
 
 def test_post_first_level_sparse_design_matrix(analysis):
@@ -87,7 +90,9 @@ def test_post_first_level_sparse_design_matrix(analysis):
     assert result[0].sparse.shape == (9, 2)
     assert result[0].entities == {
         'subject': '01',
-        'task': 'mixedgamblestask'}
+        'task': 'mixedgamblestask',
+        'datatype': 'func',
+        'suffix': 'bold'}
 
     # Participant level and also check integer-based indexing
     result = analysis['participant'].get_design_matrix()
@@ -156,3 +161,25 @@ def test_contrast_info_F_contrast(analysis):
         assert np.array_equal(c.weights.values, np.array([[1, 0], [0, 1]]))
         assert isinstance(c, ContrastInfo)
         assert c._fields == ('name', 'weights', 'type', 'entities')
+
+
+def test_dummy_contrasts(analysis):
+    names = [c.name for c in analysis['run'].get_contrasts(subject='01')[0]]
+    session = analysis['session'].get_contrasts(subject='01')[0]
+    for cl in session:
+        assert cl.type == 'FEMA'
+        assert cl.name in names
+
+    participant = analysis['participant'].get_contrasts(subject='01')[0]
+    assert len(participant) == 3
+    for cl in participant:
+        assert cl.type == 'FEMA'
+        assert cl.name in names
+
+    group = analysis['group'].get_contrasts()[0]
+    group_names = []
+    for cl in group:
+        assert cl.type == 't'
+        group_names.append(cl.name)
+
+    assert set(names) < set(group_names)

@@ -1,19 +1,25 @@
-'''
+"""
 Transformations that primarily involve manipulating/munging variables into
 other formats or shapes.
-'''
+"""
 
 import numpy as np
 import pandas as pd
+# Might not be needed since python 3.7
+# See https://github.com/bids-standard/pybids/issues/423 for more info
+from collections import OrderedDict as odict
+
 from bids.utils import listify
 from .base import Transformation
 from patsy import dmatrix
 import re
 from bids.variables import DenseRunVariable, SimpleVariable
 
+
 class Assign(Transformation):
-    ''' Assign one variable's amplitude, duration, or onset attribute to
-    another. '''
+    """Assign one variable's amplitude, duration, or onset attribute to
+    another.
+    """
 
     _groupable = False
     _input_type = 'variable'
@@ -66,11 +72,13 @@ class Assign(Transformation):
 
 
 class Copy(Transformation):
-    ''' Copy/clone a variable.
+    """Copy/clone a variable.
 
-    Args:
-        col (str): Name of variable to copy.
-    '''
+    Parameters
+    ----------
+    col : str
+        Name of variable to copy.
+    """
 
     _groupable = False
     _output_required = True
@@ -82,11 +90,13 @@ class Copy(Transformation):
 
 
 class Delete(Transformation):
-    ''' Delete variables from the namespace.
+    """Delete variables from the namespace.
 
-    Args:
-        variables (list, str): Name(s) of variables to delete.
-    '''
+    Parameters
+    ----------
+    variables : list or str
+        Name(s) of variables to delete.
+    """
     _groupable = False
     _loopable = False
     _input_type = 'variable'
@@ -108,7 +118,7 @@ class DropNA(Transformation):
     _allow_categorical = ('variables',)
 
     def _transform(self, var):
-        
+
         # Identify non-NA rows
         valid = var.values.notna().values
         var.select_rows(valid)
@@ -160,6 +170,7 @@ class Factor(Transformation):
 
 
 class Filter(Transformation):
+    """Filter (remove) the values given a query to satisfy"""
 
     _groupable = False
     _input_type = 'variable'
@@ -174,13 +185,15 @@ class Filter(Transformation):
 
         names = [var.name] + listify(by)
 
+        # assure ordered dict so we have consistent (if not correct) operation,
+        # because later we ask for name_map.values
         # pandas .query can't handle non-identifiers in variable names, so we
         # need to replace them in both the variable names and the query string.
-        name_map = {n: re.sub('[^a-zA-Z0-9_]+', '_', n) for n in names}
+        name_map = odict((n, re.sub('[^a-zA-Z0-9_]+', '_', n)) for n in names)
         for k, v in name_map.items():
             query = query.replace(k, v)
 
-        data = pd.concat([self.collection[c].values for c in names],
+        data = pd.concat([self.collection[n].values for n in names],
                          axis=1, sort=True)
         # Make sure we can use integer index
         data = data.reset_index(drop=True)
@@ -193,28 +206,43 @@ class Filter(Transformation):
         return var
 
 
-class Rename(Transformation):
-    ''' Rename a variable.
+class Group(Transformation):
+    """Groups a list of variables."""
 
-    Args:
-        var (str): Name of existing variable to rename.
-    '''
+    _groupable = False
+    _loopable = False
+    _input_type = 'variable'
+    _return_type = 'none'
+
+    def _transform(self, variables, name):
+        if name in self.variables:
+            raise ValueError("Variable group name '{}' conflicts with an "
+                             "existing variable name!".format(name))
+        self.collection.groups[name] = [v.name for v in variables]
+
+
+class Rename(Transformation):
+    """Rename a variable.
+
+    Parameters
+    ----------
+    var : str
+        Name of existing variable to rename.
+    """
     _groupable = False
     _output_required = True
     _input_type = 'variable'
     _allow_categorical = ('variables',)
 
     def _transform(self, var):
-        ''' Rename happens automatically in the base class, so all we need to
-        do is unset the original variable in the collection. '''
+        """Rename happens automatically in the base class, so all we need to
+        do is unset the original variable in the collection. """
         self.collection.variables.pop(var.name)
         return var.values
 
 
 class Replace(Transformation):
-    ''' Replace values in the values, onset, or duration attributes.
-
-    '''
+    """Replace values in the values, onset, or duration attributes."""
     _groupable = False
     _input_type = 'variable'
     _return_type = 'variable'
@@ -236,12 +264,14 @@ class Replace(Transformation):
 
 
 class Select(Transformation):
-    ''' Select variables to retain.
+    """Select variables to retain.
 
-    Args:
-        variables (list, str): Name(s) of variables to retain. All variables
-            not in the list will be dropped from the collection.
-    '''
+    Parameters
+    ----------
+    variables : list or str
+        Name(s) of variables to retain. All variables
+        not in the list will be dropped from the collection.
+    """
     _groupable = False
     _loopable = False
     _input_type = 'variable'
@@ -253,12 +283,14 @@ class Select(Transformation):
 
 
 class Split(Transformation):
-    ''' Split a single variable into N variables as defined by the levels of one or
-    more other variables.
+    """Split a single variable into N variables as defined by the levels of one
+    or more other variables.
 
-    Args:
-        by (str, list): Name(s) of variable(s) to split on.
-    '''
+    Parameters
+    ----------
+    by : str or list
+        Name(s) of variable(s) to split on.
+    """
 
     _variables_used = ('variables', 'by')
     _groupable = False
@@ -267,7 +299,7 @@ class Split(Transformation):
     _allow_categorical = ('by',)
     _densify = ('variables', 'by')
 
-    def _transform(self, var, by, drop_orig=True):
+    def _transform(self, var, by):
 
         if not isinstance(var, SimpleVariable):
             self._densify_variables()
@@ -282,33 +314,17 @@ class Split(Transformation):
         group_data = pd.concat(by_variables, axis=1, sort=True)
         group_data.columns = listify(by)
 
-        # For sparse data, we need to set up a 1D grouper
-        if isinstance(var, SimpleVariable):
-            # Create single grouping variable by combining all 'by' variables
-            if group_data.shape[1] == 1:
-                group_labels = group_data.iloc[:, 0].values
-            else:
-                group_rows = group_data.astype(str).values.tolist()
-                group_labels = ['_'.join(r) for r in group_rows]
+        # Use patsy to create splitting design matrix
+        group_data = group_data.astype(str)
+        formula = '0+' + ':'.join(listify(by))
+        dm = dmatrix(formula, data=group_data, return_type='dataframe')
+        dm.columns = [col.replace(':', '.') for col in dm.columns]
 
-            result = var.split(group_labels)
-
-        # For dense data, use patsy to create design matrix, then multiply
-        # it by target variable
-        else:
-            group_data = group_data.astype(str)
-            formula = '0+' + '*'.join(listify(by))
-            dm = dmatrix(formula, data=group_data, return_type='dataframe')
-            result = var.split(dm)
-
-        if drop_orig:
-            self.collection.variables.pop(var.name)
-
-        return result
+        return var.split(dm)
 
 
 class ToDense(Transformation):
-    ''' Convert variable to dense representation. '''
+    """Convert variable to dense representation."""
 
     _groupable = False
     _input_type = 'variable'

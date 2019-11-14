@@ -4,14 +4,22 @@ API Reference
 .. _base_ref:
 
 :mod:`bids.layout`: Querying BIDS datasets
---------------------------------------------------
+------------------------------------------
 
 .. autosummary:: bids.layout
    :toctree: generated/
-   :template: class.rst
 
    bids.layout.BIDSLayout
    bids.layout.BIDSValidator
+   bids.layout.BIDSFile
+   bids.layout.BIDSDataFile
+   bids.layout.BIDSJSONFile
+   bids.layout.Config
+   bids.layout.Entity
+   bids.layout.Tag
+   bids.layout.parse_file_entities
+   bids.layout.add_config_paths
+   bids.layout.index.BIDSLayoutIndexer
 
 .. currentmodule:: bids
 
@@ -23,13 +31,12 @@ API Reference
 
 .. autosummary:: bids.analysis
    :toctree: generated/
-   :template: class.rst
 
    bids.analysis.Analysis
-
-   :template: function.rst
-
    bids.analysis.auto_model
+   bids.analysis.analysis.Step
+   bids.analysis.analysis.AnalysisNode
+   bids.analysis.analysis.apply_transformations
 
 .. currentmodule:: bids
 
@@ -41,13 +48,8 @@ API Reference
 
 .. autosummary:: bids.reports
    :toctree: generated/
-   :template: class.rst
 
    bids.reports.BIDSReport
-
-   :toctree: generated/
-   :template: module.rst
-
    bids.reports.utils
 
 .. currentmodule:: bids
@@ -60,12 +62,36 @@ API Reference
 
 .. autosummary:: bids.variables
    :toctree: generated/
-   :template: module.rst
 
+   bids.variables.SimpleVariable
+   bids.variables.SparseRunVariable
+   bids.variables.DenseRunVariable
+   bids.variables.BIDSVariableCollection
+   bids.variables.BIDSRunVariableCollection
+   bids.variables.merge_collections
+   bids.variables.load_variables
+   bids.variables.merge_variables
    bids.variables.io
    bids.variables.entities
    bids.variables.kollekshuns
    bids.variables.variables
+
+.. currentmodule:: bids
+
+.. _calibration_ref:
+
+
+:mod:`bids.config`: PyBIDS Configuration utilities
+--------------------------------------------------
+
+.. autosummary:: bids.config
+   :toctree: generated/
+
+   bids.config.set_option
+   bids.config.set_options
+   bids.config.get_option
+   bids.config.from_file
+   bids.config.reset_options
 
 .. currentmodule:: bids
 
@@ -77,10 +103,12 @@ API Reference
 
 .. autosummary:: bids.utils
    :toctree: generated/
-   :template: function.rst
 
    bids.utils.listify
    bids.utils.matches_entities
+   bids.utils.convert_JSON
+   bids.utils.make_bidsfile
+
 
 .. currentmodule:: bids
 
