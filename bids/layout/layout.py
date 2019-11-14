@@ -214,7 +214,7 @@ class BIDSLayout(object):
                 'For now, treating database_file as a directory.',
                 DeprecationWarning)
         if database_path:
-            database_path = os.path.abspath(database_path)
+            database_path = str(Path(database_path).absolute())
 
         self.session = None
 
