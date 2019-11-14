@@ -209,7 +209,7 @@ class BIDSLayout(object):
         if database_file is not None:
             database_path = database_file
             warnings.warn(
-                'In pybids 0.10 database_file argument was deprecated in favor'
+                'In pybids 0.10 database_file argument was deprecated in favor '
                 'of database_path, and will and will be removed in 0.12.'
                 'For now, treating database_file as a diretory',
                 DeprecationWarning)
