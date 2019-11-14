@@ -178,7 +178,7 @@ class BIDSLayout(object):
         an in-memory SQLite database is used, and the index will not
         persist unless .save() is explicitly called.
     reset_database : bool
-        If True, any existing folder specified in the
+        If True, any existing directory specified in the
         database_path argument is deleted, and the BIDS dataset provided
         in the root argument is reindexed. If False, indexing will be
         skipped and the existing database file will be used. Ignored if
