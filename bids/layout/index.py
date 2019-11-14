@@ -1,19 +1,11 @@
 """File-indexing functionality. """
 
 import os
-import re
 import json
-from keyword import iskeyword
-import warnings
-from copy import deepcopy
-from collections import defaultdict, namedtuple
-
+from collections import defaultdict
 from bids_validator import BIDSValidator
-
-from .writing import build_path, write_contents_to_file
-from .models import Config, BIDSFile, Entity, Tag, FileAssociation
+from .models import Config, Entity, Tag, FileAssociation
 from ..utils import listify, make_bidsfile
-from ..config import get_option
 
 
 def _extract_entities(bidsfile, entities):
@@ -43,7 +35,7 @@ def _check_path_matches_patterns(path, patterns):
 
 class BIDSLayoutIndexer(object):
     """ Indexer class for BIDSLayout.
-    
+
     Args:
         layout (BIDSLayout): The BIDSLayout to index.
     """
@@ -56,7 +48,6 @@ class BIDSLayoutIndexer(object):
         self.root = layout.root
         self.config_filename = layout.config_filename
         self.validator = BIDSValidator(index_associated=True)
-
         # Create copies of list attributes we'll modify during indexing
         self.config = list(layout.config.values())
         self.include_patterns = list(layout.force_index)

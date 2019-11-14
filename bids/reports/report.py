@@ -122,8 +122,9 @@ class BIDSReport(object):
             sessions = [sessions]
 
         for ses in sessions:
-            niftis = self.layout.get(subject=subject, extension= [".nii", ".nii.gz"],
-                                     **kwargs)
+            niftis = self.layout.get(
+                subject=subject, extension=[".nii", ".nii.gz"],
+                **kwargs)
 
             if niftis:
                 description_list.append('For session {0}:'.format(ses))
