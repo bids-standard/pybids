@@ -542,7 +542,8 @@ class BIDSLayout(object):
         # To load from a database, set initalization parameters to those
         # found in database_path JSON
         database_file, database_sidecar = cls._make_db_paths(database_path)
-        init_args = json.load(database_sidecar.open())
+        with database_sidecar.open() as fobj:
+            init_args = json.load(fobj)
 
         return cls(database_path=database_path, **init_args)
 
