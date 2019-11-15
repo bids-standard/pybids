@@ -407,7 +407,7 @@ class BIDSLayout(object):
             for k, v in saved_args.items():
                 if self.init_args[k] != v:
                     raise ValueError(
-                        f"Initialization argument (\"{k}\") directories "
+                        f"Initialization argument ({k!r}) directories "
                         f" not match fordatabase_path: {database_path}.\n"
                         f"Saved value: {v}. \n"
                         f"Current value: {self.init_args[k]}"
