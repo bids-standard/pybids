@@ -249,13 +249,13 @@ class BIDSVariableCollection(object):
         results = []
         for patt in pattern:
             if match_type.lower().startswith('re'):
-                pattern = re.compile(pattern)
-                vars_ = [v for v in self.variables.keys() if pattern.search(v)]
+                patt = re.compile(patt)
+                vars_ = [v for v in self.variables.keys() if patt.search(v)]
             else:
-                vars_ = fnmatch.filter(list(self.variables.keys()), pattern)
-            vars_ = [v for v in self.variables.values() if patt.search(v.name)]
-            results.extend(vars_ if return_type.startswith('var')
-                                 else [v.name for v in vars_])
+                vars_ = fnmatch.filter(list(self.variables.keys()), patt)
+            if return_type.startswith('var'):
+                vars_ = [self.variables[v] for v in vars_]
+            results.extend(vars_)
         return results
 
 
