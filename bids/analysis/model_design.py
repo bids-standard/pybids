@@ -79,7 +79,7 @@ class GLMMSpec(ModelSpec):
         if X is not None:
             self.build_fixed_terms(X)
         if Z is not None:
-            self.build_var_comps(Z, groups, sigma)
+            self.build_variance_components(Z, groups, sigma)
 
     def set_priors(self, fixed=None, random=None):
         pass
@@ -93,7 +93,7 @@ class GLMMSpec(ModelSpec):
             t = Term(col, data, categorical=cat)
             self.add_term(t)
 
-    def build_var_comps(self, Z, groups=None, sigma=None, names=None):
+    def build_variance_components(self, Z, groups=None, sigma=None, names=None):
         """Build one or more variance components from the columns of a binary
         grouping matrix and variance specification.
         
@@ -136,20 +136,30 @@ class GLMMSpec(ModelSpec):
     @property
     def X(self):
         """Return X design matrix (i.e., fixed component of model)."""
-        pass
+        if not self.fixed_terms:
+            return None
+        names, cols = zip([(c.name, c.values) for c in self.fixed_terms])
+        return pd.DataFrame(np.concatenate(cols, axis=1), columns=names)
 
     @property
     def Z(self):
         """Return Z design matrix (i.e., random effects/variance components).
         """
-        pass
+        if not self.variance_components:
+            return None
+        names, cols = [], []
+        for c in self.variance_components:
+            cols.append(c.values)
+            names.extend(['{}.{}'.format(c.name, i)
+                          for i in range(c.values.shape[1])])
+        return pd.DataFrame(np.concatenate(cols, axis=1), columns=names)
 
     @property
     def fixed_terms(self):
         return [t for t in self.terms.values() if not isinstance(t, VarComp)]
 
     @property
-    def random_terms(self):
+    def variance_components(self):
         return [t for t in self.terms.values() if isinstance(t, VarComp)]
 
     @classmethod

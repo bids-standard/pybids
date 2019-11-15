@@ -37,6 +37,8 @@ def test_bvc_to_model_design(collection):
     index_vec = md.terms['SubjectSlopes'].index_vec
     assert index_vec.shape == (40,)
     assert np.array_equal(np.sort(np.unique(index_vec)), np.arange(10) + 1)
+    assert md.Z.shape == (40, 10)
+    assert md.Z.columns[0] == 'SubjectSlopes.0'
 
 
 def test_glmmspec_empty_init():
