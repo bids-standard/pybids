@@ -221,7 +221,8 @@ class BIDSLayout(object):
 
         self.session = None
 
-        index_dataset = self._init_db(database_path, reset_database)
+        index_dataset = self._init_db(
+            database_path, reset_database, derivatives=derivatives)
 
         # Do basic BIDS validation on root directory
         self._validate_root()
@@ -355,30 +356,50 @@ class BIDSLayout(object):
 
         self.session = sa.orm.sessionmaker(bind=engine)()
 
-    def _make_db_paths(self, database_path):
+    @staticmethod
+    def _make_db_paths(database_path):
         if database_path is not None:
-            database_file = os.path.join(database_path, 'layout_index.sqlilte')
-            database_sidecar = os.path.join(database_path, 'layout_args.json')
-            os.makedirs(database_path, exist_ok=True)
+            database_path = Path(database_path)
+            database_file = database_path / 'layout_index.sqlilte'
+            database_sidecar = database_path / 'layout_args.json'
+            database_path.mkdir(exist_ok=True)
         else:
             database_file = None
             database_sidecar = None
         return database_file, database_sidecar
 
-    def _sanitize_instance_args(self):
+    def _sanitize_instance_args(self, **kwargs):
+        """ Clean up initalization arguments for saving.
+            Additional variables that should be saved are passed in as kwargs
+        """
+        # Get instance args
         instance_args = {
             a: self.__dict__[a] for a in
             ['root', 'validate', 'absolute_paths', 'regex_search', 'config_file']
             if a in self.__dict__
         }
+
+        # Save additional args
+        instance_args = {**instance_args, **kwargs}
+
+        # Make ignore and force_index hashable
         for k in ['ignore', 'force_index']:
             kv = self.__dict__[k]
             instance_args[k] = [
                 str(a) for a in kv if a is not None] if kv is not None else None
 
+        instance_args['root'] = str(Path(instance_args['root']).absolute())
+
+        # Get abspaths
+        if instance_args['derivatives'] is not None:
+            abs_dirs = []
+            for der in listify(instance_args['derivatives']):
+                abs_dirs.append(str(Path(der).absolute()))
+            instance_args['derivatives'] = abs_dirs
+
         return instance_args
 
-    def _init_db(self, database_path=None, reset_database=False):
+    def _init_db(self, database_path=None, reset_database=False, **kwargs):
         database_file, database_sidecar = self._make_db_paths(database_path)
         # Reset database if needed and return whether or not it was reset
         # determining if the database needs resetting must be done prior
@@ -391,7 +412,7 @@ class BIDSLayout(object):
 
         self._set_session(database_file)
 
-        instance_args = self._sanitize_instance_args()
+        instance_args = self._sanitize_instance_args(**kwargs)
 
         if not reset_database:
             with open(database_sidecar) as fobj:
@@ -527,6 +548,15 @@ class BIDSLayout(object):
         """Get the files."""
         return self.get_files()
 
+    @classmethod
+    def load_from_db(cls, database_path):
+        # To load from a database, set initalization parameters to those
+        # found in database_path JSON
+        database_file, database_sidecar = cls._make_db_paths(database_path)
+        init_args = json.load(database_sidecar.open())
+
+        return cls(database_path=database_path, **init_args)
+
     def save(self, database_path, replace_connection=True):
         """Save the current index as a SQLite3 DB at the specified location.
 
@@ -551,7 +581,7 @@ class BIDSLayout(object):
             again.
         """
         database_file, database_sidecar = self._make_db_paths(database_path)
-        new_db = sqlite3.connect(database_file)
+        new_db = sqlite3.connect(str(database_file))
         old_db = self.session.get_bind().connect().connection
 
         with new_db:
@@ -561,11 +591,11 @@ class BIDSLayout(object):
             new_db.commit()
 
         if replace_connection:
-            self._set_session(database_file)
+            self._set_session(str(database_file))
 
         # Dump instance arguments to JSON
         instance_args = self._sanitize_instance_args()
-        json.dump(instance_args, open(database_sidecar, 'w'))
+        json.dump(instance_args, database_sidecar.open('w'))
 
         # Recursively save children
         for pipeline_name, der in self.derivatives.items():
