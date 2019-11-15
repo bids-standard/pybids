@@ -219,6 +219,8 @@ class BIDSLayout(object):
 
         self.session = None
 
+        index_dataset = self._init_db(database_path, reset_database)
+
         # Do basic BIDS validation on root directory
         self._validate_root()
 
@@ -235,8 +237,6 @@ class BIDSLayout(object):
 
         # Initialize the BIDS validator and examine ignore/force_index args
         self._validate_force_index()
-
-        index_dataset = self._init_db(database_path, reset_database)
 
         if index_dataset:
             # Create Config objects
