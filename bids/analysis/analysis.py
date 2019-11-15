@@ -87,7 +87,7 @@ class Analysis(object):
 
         for i, b in enumerate(self.steps):
 
-            # Skip any steps whose names or indexes don't match block list
+            # Skip any steps whose names or indexes don't match step list
             if steps is not None and i not in steps and b.name not in steps:
                 continue
 

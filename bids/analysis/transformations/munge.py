@@ -220,8 +220,8 @@ class Rename(Transformation):
     _allow_categorical = ('variables',)
 
     def _transform(self, var):
-        """Rename happens automatically in the base class, so all we need to
-        do is unset the original variable in the collection. """
+        # Rename happens automatically in the base class, so all we need to
+        # do is unset the original variable in the collection.
         self.collection.variables.pop(var.name)
         return var.values
 

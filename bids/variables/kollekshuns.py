@@ -127,6 +127,9 @@ class BIDSVariableCollection(object):
                          if v.name in variables]
 
         dfs = [v.to_df(**kwargs) for v in variables]
+        # Always concatenate along row axis, even for wide format. Then we
+        # reset the index if format == 'long', which will produce the desired
+        # behavior when we pivot the table.
         df = pd.concat(dfs, axis=0, sort=True)
 
         if format == 'long':
