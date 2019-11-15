@@ -261,11 +261,11 @@ class BIDSRunVariableCollection(BIDSVariableCollection):
         self.sampling_rate = sampling_rate or 10
         super(BIDSRunVariableCollection, self).__init__(variables)
 
-    def _none_dense(self):
+    def none_dense(self):
         return all([isinstance(v, SimpleVariable)
                     for v in self.variables.values()])
 
-    def _all_dense(self):
+    def all_dense(self):
         return all([isinstance(v, DenseRunVariable)
                     for v in self.variables.values()])
 
