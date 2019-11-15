@@ -542,8 +542,7 @@ class BIDSLayout(object):
         # To load from a database, set initalization parameters to those
         # found in database_path JSON
         database_file, database_sidecar = cls._make_db_paths(database_path)
-        with database_sidecar.open() as fobj:
-            init_args = json.load(fobj)
+        init_args = json.loads(database_sidecar.read_text())
 
         return cls(database_path=database_path, **init_args)
 
@@ -584,8 +583,7 @@ class BIDSLayout(object):
             self._set_session(str(database_file))
 
         # Dump instance arguments to JSON
-        with database_sidecar.open('w') as fobj:
-            json.dump(self.init_args, fobj)
+        database_sidecar.write_text(json.dumps(self.init_args))
 
         # Recursively save children
         for pipeline_name, der in self.derivatives.items():
