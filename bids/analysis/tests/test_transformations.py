@@ -10,7 +10,6 @@ from os.path import join, sep
 from bids.tests import get_test_data_path
 import numpy as np
 import pandas as pd
-from sklearn.metrics import auc
 
 try:
     from unittest import mock
@@ -488,15 +487,16 @@ def test_resample(collection):
     transform.ToDense(coll, 'parametric gain', output='pg_dense')
     pg = coll.variables['pg_dense']
     old_shape = pg.values.shape
-    old_auc = auc(pg.index.index, pg.values.values)
+    old_auc = np.trapz(pg.values.values.squeeze(), dx=0.1)
     transform.Resample(coll, 'pg_dense', 1)
     pg = coll.variables['pg_dense']
     new_shape = pg.values.shape
-    new_auc = auc(pg.index.index, pg.values.values)
+    # Spacing (dx) is 10* larger when downsampled fro 10hz to 1hz
+    new_auc = np.trapz(pg.values.values.squeeze(), dx=1)
 
     # Shape from 10hz to 1hz
     assert new_shape[0] == old_shape[0] / 10
 
     # Assert that the auc is more or less the same (not exact, rounding error)
     # Values are around 0.25
-    assert np.allclose(old_auc, new_auc*10, 0.01)
+    assert np.allclose(old_auc, new_auc, 0.01)
