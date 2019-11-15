@@ -1,0 +1,42 @@
+{
+  "Name": "mfx_model",
+  "Description": "simple test MFX model",
+  "Steps": [
+    {
+      "Name": "run",
+      "Level": "Run",
+      "Model": {
+        "X": ["RT", "trial_type"]
+      },
+      "Transformations": [
+        {
+          "Name": "Scale",
+          "Input": "RT"
+        }
+      ],
+      "DummyContrasts": {
+        "Conditions": ["trial_type", "RT"],
+        "Type": "t"
+      }
+    },
+    {
+      "Name": "group",
+      "Level": "Dataset",
+      "Transformations": [
+        {
+          "Name": "Factor",
+          "Input": "subject"
+        }
+      ],
+      "Model": {
+        "X": ["age"],
+        "VarianceComponents": [
+          {
+            "Name": "SubjectSlopes",
+            "Levels": "subject*"
+          }
+        ]
+      }
+    }
+  ]
+}
