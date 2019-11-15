@@ -206,6 +206,8 @@ class BIDSLayout(object):
         self.sources = sources
         self.regex_search = regex_search
         self.config_filename = config_filename
+        self.ignore = ignore
+        self.force_index = force_index
 
         if database_file is not None:
             database_path = database_file
@@ -224,16 +226,16 @@ class BIDSLayout(object):
         # Do basic BIDS validation on root directory
         self._validate_root()
 
-        if ignore is None:
-            ignore = self._default_ignore
+        if self.ignore is None:
+            self.ignore = self._default_ignore
 
         # Instantiate after root validation to ensure os.path.join works
         self.ignore = [os.path.abspath(os.path.join(self.root, patt))
                        if isinstance(patt, str) else patt
-                       for patt in listify(ignore or [])]
+                       for patt in listify(self.ignore or [])]
         self.force_index = [os.path.abspath(os.path.join(self.root, patt))
                             if isinstance(patt, str) else patt
-                            for patt in listify(force_index or [])]
+                            for patt in listify(self.force_index or [])]
 
         # Initialize the BIDS validator and examine ignore/force_index args
         self._validate_force_index()
