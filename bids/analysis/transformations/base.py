@@ -192,8 +192,7 @@ class Transformation(metaclass=ABCMeta):
 
         def _replace_arg_values(names):
             variables = listify(names)
-            variables = [self.collection.match_variables(c) for c in names]
-            variables = itertools.chain(*variables)
+            variables = self.collection.match_variables(names)
             return list(set(variables))
 
         # 'variables' is stored separately, so handle it separately

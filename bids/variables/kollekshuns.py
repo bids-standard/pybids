@@ -219,18 +219,26 @@ class BIDSVariableCollection(object):
 
         Parameters
         ----------
-        pattern : str
-            A regex pattern to match all variable names against.
+        pattern : str, list
+            One or more regex patterns to match all variable names against.
         return_type : {'name', 'variable'}
             What to return. Must be one of:
             'name': Returns a list of names of matching variables.
             'variable': Returns a list of Variable objects whose names
             match.
+
+        Returns
+        -------
+        A list of all matching variables or variable names
         """
-        pattern = re.compile(pattern)
-        vars_ = [v for v in self.variables.values() if pattern.search(v.name)]
-        return vars_ if return_type.startswith('var') \
-            else [v.name for v in vars_]
+        pattern = listify(pattern)
+        results = []
+        for patt in pattern:
+            patt = re.compile(patt)
+            vars_ = [v for v in self.variables.values() if patt.search(v.name)]
+            results.extend(vars_ if return_type.startswith('var')
+                                 else [v.name for v in vars_])
+        return results
 
 
 class BIDSRunVariableCollection(BIDSVariableCollection):
