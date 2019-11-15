@@ -1,7 +1,7 @@
 from os.path import join
 
 import pytest
-
+import tempfile
 from bids.layout import BIDSLayout
 from bids.tests import get_test_data_path
 
@@ -40,28 +40,30 @@ def layout_ds005_derivs():
     return layout
 
 
-@pytest.fixture(scope="module")
-def layout_ds005_multi_derivs():
+@pytest.fixture(scope="session")
+def db_dir(tmpdir_factory):
+    fn = tmpdir_factory.mktemp("data")
+    return fn
+
+
+@pytest.fixture(scope="module",
+                params=[None, "bidsdb", "bidsdb"])
+def layout_ds005_multi_derivs(request, db_dir):
     data_dir = join(get_test_data_path(), 'ds005')
-    layout = BIDSLayout(data_dir)
+    database_path = str(db_dir / request.param) if request.param else None
+
+    layout = BIDSLayout(data_dir,
+                        database_path=database_path)
     deriv_dir1 = join(get_test_data_path(), 'ds005_derivs')
     deriv_dir2 = join(data_dir, 'derivatives', 'events')
     layout.add_derivatives([deriv_dir1, deriv_dir2])
     return layout
 
 
-@pytest.fixture(scope="module")
-def layout_synthetic():
+@pytest.fixture(
+    scope="module", params=[None, "bidsdb-synth", "bidsdb-synth"])
+def layout_synthetic(request, db_dir):
     path = join(get_test_data_path(), 'synthetic')
-    return BIDSLayout(path, derivatives=True)
-
-
-@pytest.fixture(scope="module")
-def layout_synthetic_cached_db():
-    path = join(get_test_data_path(), 'synthetic')
-    return BIDSLayout(path, derivatives=True, database_file="bidsdb.sqlite")
-
-@pytest.fixture(scope="module")
-def layout_synthetic_cached_db_replay():
-    path = join(get_test_data_path(), 'synthetic')
-    return BIDSLayout(path, derivatives=True, database_file="bidsdb.sqlite")
+    database_path = str(db_dir / request.param) if request.param else None
+    return BIDSLayout(path, derivatives=True,
+                      database_path=database_path)

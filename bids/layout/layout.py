@@ -10,6 +10,7 @@ import copy
 import warnings
 import sqlite3
 import enum
+from pathlib import Path
 
 import sqlalchemy as sa
 from sqlalchemy.orm import joinedload
@@ -171,18 +172,18 @@ class BIDSLayout(object):
         search (False, default) when comparing the query string to each
         entity in .get() calls. This sets a default for the instance, but
         can be overridden in individual .get() requests.
-    database_file : str
-        Optional path to SQLite database containing the
-        index for this BIDS dataset. If a value is passed and the file
+    database_path : str
+        Optional path to directory containing SQLite database file index
+        for this BIDS dataset. If a value is passed and the folder
         already exists, indexing is skipped. By default (i.e., if None),
         an in-memory SQLite database is used, and the index will not
         persist unless .save() is explicitly called.
     reset_database : bool
-        If True, any existing file specified in the
-        database_file argument is deleted, and the BIDS dataset provided
+        If True, any existing directory specified in the
+        database_path argument is deleted, and the BIDS dataset provided
         in the root argument is reindexed. If False, indexing will be
         skipped and the existing database file will be used. Ignored if
-        database_file is not provided.
+        database_path is not provided.
     index_metadata : bool
         If True, all metadata files are indexed at
         initialization. If False, metadata will not be available (but
@@ -195,8 +196,8 @@ class BIDSLayout(object):
     def __init__(self, root, validate=True, absolute_paths=True,
                  derivatives=False, config=None, sources=None, ignore=None,
                  force_index=None, config_filename='layout_config.json',
-                 regex_search=False, database_file=None, reset_database=False,
-                 index_metadata=True):
+                 regex_search=False, database_path=None, database_file=None,
+                 reset_database=False, index_metadata=True):
         """Initialize BIDSLayout."""
         self.root = root
         self.validate = validate
@@ -206,16 +207,15 @@ class BIDSLayout(object):
         self.regex_search = regex_search
         self.config_filename = config_filename
 
-        def _normalize_db_name(default_root_dir, db_file):
-            if db_file is None:
-                return None
-            # If a full absolute path is given, use it, else make path
-            if not os.path.isabs(db_file):
-                db_file = os.path.abspath(
-                    os.path.join(default_root_dir, db_file))
-            return db_file
-
-        database_file = _normalize_db_name(self.root, database_file)
+        if database_file is not None:
+            database_path = database_file
+            warnings.warn(
+                'In pybids 0.10 database_file argument was deprecated in favor '
+                'of database_path, and will and will be removed in 0.12. '
+                'For now, treating database_file as a directory.',
+                DeprecationWarning)
+        if database_path:
+            database_path = str(Path(database_path).absolute())
 
         self.session = None
 
@@ -236,7 +236,7 @@ class BIDSLayout(object):
         # Initialize the BIDS validator and examine ignore/force_index args
         self._validate_force_index()
 
-        index_dataset = self._init_db(database_file, reset_database)
+        index_dataset = self._init_db(database_path, reset_database)
 
         if index_dataset:
             # Create Config objects
@@ -263,15 +263,14 @@ class BIDSLayout(object):
         if derivatives:
             if derivatives is True:
                 derivatives = os.path.join(root, 'derivatives')
-            # if creating db files for bids, also create db files for derivs
-            create_derivative_database_files = (database_file is not None)
             self.add_derivatives(
-                derivatives, create_derivative_database_files=create_derivative_database_files,
+                derivatives, parent_database_path=database_path,
                 validate=validate, absolute_paths=absolute_paths,
-                derivatives=None, config=None, sources=self, ignore=ignore,
+                derivatives=None, sources=self, ignore=ignore,  config=None,
                 force_index=force_index, config_filename=config_filename,
-                regex_search=regex_search, reset_database=index_dataset or reset_database,
-                index_metadata=index_metadata)
+                regex_search=regex_search, index_metadata=index_metadata,
+                reset_database=index_dataset or reset_database
+                )
 
     def __getattr__(self, key):
         """Dynamically inspect missing methods for get_<entity>() calls
@@ -354,22 +353,57 @@ class BIDSLayout(object):
 
         self.session = sa.orm.sessionmaker(bind=engine)()
 
-    def _init_db(self, database_file=None, reset_database=False):
+    def _make_db_paths(self, database_path):
+        if database_path is not None:
+            database_file = os.path.join(database_path, 'layout_index.sqlilte')
+            database_sidecar = os.path.join(database_path, 'layout_args.json')
+            os.makedirs(database_path, exist_ok=True)
+        else:
+            database_file = None
+            database_sidecar = None
+        return database_file, database_sidecar
+
+    def _sanitize_instance_args(self):
+        instance_args = {
+            a: self.__dict__[a] for a in
+            ['root', 'validate', 'absolute_paths', 'regex_search', 'config_file']
+            if a in self.__dict__
+        }
+        for k in ['ignore', 'force_index']:
+            instance_args[k] = [str(a) for a in self.__dict__[k]]
+        return instance_args
+
+    def _init_db(self, database_path=None, reset_database=False):
+        database_file, database_sidecar = self._make_db_paths(database_path)
         # Reset database if needed and return whether or not it was reset
         # determining if the database needs resetting must be done prior
-        # prior to setting the session (which creates the empty database file)
+        # to setting the session (which creates the empty database file)
         reset_database = (
             reset_database or  # Manual Request
-            not database_file or  # In memory transient database
+            not database_path or  # In memory transient db
             not os.path.exists(database_file)  # New file based db created
         )
 
         self._set_session(database_file)
 
-        if reset_database:
+        instance_args = self._sanitize_instance_args()
+
+        if not reset_database:
+            with open(database_sidecar) as fobj:
+                saved_args = json.load(fobj)
+            for k, v in saved_args.items():
+                if instance_args[k] != v:
+                    raise ValueError(
+                        "Initialization arguments do not match for database_path:"
+                        " {}".format(database_path)
+                        )
+        else:
             engine = self.session.get_bind()
             Base.metadata.drop_all(engine)
             Base.metadata.create_all(engine)
+            if database_sidecar:
+                json.dump(instance_args, open(database_sidecar, 'w'))
+
             return True
 
         return False
@@ -487,14 +521,19 @@ class BIDSLayout(object):
         """Get the files."""
         return self.get_files()
 
-    def save(self, filename='.index.db', replace_connection=True):
+    def save(self, database_path, replace_connection=True):
         """Save the current index as a SQLite3 DB at the specified location.
+
+        Note: This is only necessary if a database_path was not specified
+        at initalization, and the user now wants to save the index.
+        If a database_path was specified originally, there is no need to re-save
+        using this method.
 
         Parameters
         ----------
-        filename : str, optional
-            The path to the desired database file. By default,
-            uses .index.db. If a relative path is passed, it is assumed to
+        database_path : str
+            The path to the desired database folder. By default,
+            uses .db_cache. If a relative path is passed, it is assumed to
             be relative to the BIDSLayout root directory.
         replace_connection : bool, optional
             If True, the newly created database will
@@ -505,8 +544,8 @@ class BIDSLayout(object):
             be reflected in the new file unless save() is explicitly called
             again.
         """
-        filename = os.path.join(self.root, filename)
-        new_db = sqlite3.connect(filename)
+        database_file, database_sidecar = self._make_db_paths(database_path)
+        new_db = sqlite3.connect(database_file)
         old_db = self.session.get_bind().connect().connection
 
         with new_db:
@@ -516,7 +555,16 @@ class BIDSLayout(object):
             new_db.commit()
 
         if replace_connection:
-            self._set_session(filename)
+            self._set_session(database_file)
+
+        # Dump instance arguments to JSON
+        instance_args = self._sanitize_instance_args()
+        json.dump(instance_args, open(database_sidecar, 'w'))
+
+        # Recursively save children
+        for pipeline_name, der in self.derivatives.items():
+            der.save(os.path.join(
+                database_path, pipeline_name))
 
     def get_entities(self, scope='all', metadata=None):
         """Get entities for all layouts in the specified scope.
@@ -620,8 +668,7 @@ class BIDSLayout(object):
         return parse_file_entities(filename, entities, config,
                                    include_unmatched)
 
-    def add_derivatives(self, path, create_derivative_database_files=False,
-                        **kwargs):
+    def add_derivatives(self, path, parent_database_path=None, **kwargs):
         """Add BIDS-Derivatives datasets to tracking.
 
         Parameters
@@ -631,10 +678,10 @@ class BIDSLayout(object):
             Each path can point to either a derivatives/ directory
             containing one more more pipeline directories, or to a single
             pipeline directory (e.g., derivatives/fmriprep).
-        create_derivative_database_files : bool
-            If True, use the pipline name from the dataset_description.json
-            file as the database filename and write the file to disk in the
-            derivatives directory.
+        parent_database_path : str
+            If not None, use the pipeline name from the dataset_description.json
+            file as the database folder name to nest within the parent database
+            folder name to write out derivatie index to.
         kwargs : dict
             Optional keyword arguments to pass on to
             BIDSLayout() when initializing each of the derivative datasets.
@@ -692,9 +739,10 @@ class BIDSLayout(object):
             # Default config and sources values
             kwargs['config'] = kwargs.get('config') or ['bids', 'derivatives']
             kwargs['sources'] = kwargs.get('sources') or self
-            if create_derivative_database_files:
-                current_database_file = os.path.join(deriv, pipeline_name + ".sqlite")
-                kwargs['database_file'] = current_database_file
+            if parent_database_path:
+                child_database_path = os.path.join(
+                    parent_database_path, pipeline_name)
+                kwargs['database_path'] = child_database_path
 
             self.derivatives[pipeline_name] = BIDSLayout(deriv, **kwargs)
 
@@ -787,7 +835,7 @@ class BIDSLayout(object):
             Keys are entity names, values are regexes to filter on. For
             example, passing filters={'subject': 'sub-[12]'} would return
             only files that match the first two subjects. In addition to
-            ordinary data types, the following enums are defined (in the 
+            ordinary data types, the following enums are defined (in the
             Query class):
                 * Query.NONE: The named entity must not be defined.
                 * Query.ANY: the named entity must be defined, but can have any
@@ -807,7 +855,7 @@ class BIDSLayout(object):
             filters['extension'] = filters.pop('extensions')
             warnings.warn("In pybids 0.9.0, the 'extensions' filter was "
                           "deprecated in favor of 'extension'. The former will"
-                          " stop working in 0.11.0.")
+                          " stop working in 0.11.0.", DeprecationWarning)
 
         layouts = self._get_layouts_in_scope(scope)
 
