@@ -394,8 +394,9 @@ class BIDSLayout(object):
             for k, v in saved_args.items():
                 if instance_args[k] != v:
                     raise ValueError(
-                        "Initialization arguments do not match for database_path:"
-                        " {}".format(database_path)
+                        f"Initialization argument ({k}) do not match for "
+                        f"database_path: {database_path}. Saved value: f{v}."
+                        f"Current value: f{instance_args[k]}"
                         )
         else:
             engine = self.session.get_bind()
