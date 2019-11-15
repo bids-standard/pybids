@@ -32,3 +32,6 @@ def test_bvc_to_model_design():
     assert len(md.terms) == 2
     assert md.terms['age'].values.shape == (40, )
     assert md.terms['SubjectSlopes'].values.shape == (40, 10)
+    index_vec = md.terms['SubjectSlopes'].index_vec
+    assert index_vec.shape == (40,)
+    assert np.array_equal(np.sort(np.unique(index_vec)), np.arange(10) + 1)

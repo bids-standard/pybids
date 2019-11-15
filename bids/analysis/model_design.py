@@ -113,7 +113,7 @@ class GLMMSpec:
             groups = groups.values
 
         for i in range(n_grps):
-            z_grp = Z[:, groups[:, i].astype(int)]
+            z_grp = Z[:, groups[:, i].astype(bool)]
             # TODO: select default prior
             vc = VarComp(names[i], z_grp)
             self.add_term(vc)
@@ -226,8 +226,8 @@ class VarComp(Term):
         coefficients.
         """
         vec = np.zeros(len(dummies), dtype=int)
-        for i in range(1, dummies.shape[1]):
-            vec[dummies[:, i] == 1] = i
+        for i in range(dummies.shape[1]):
+            vec[(dummies[:, i] == 1)] = i + 1
         return vec
 
 
