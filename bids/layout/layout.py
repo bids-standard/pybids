@@ -362,7 +362,7 @@ class BIDSLayout(object):
     def _make_db_paths(database_path):
         if database_path is not None:
             database_path = Path(database_path)
-            database_file = database_path / 'layout_index.sqlilte'
+            database_file = database_path / 'layout_index.sqlite'
             database_sidecar = database_path / 'layout_args.json'
             database_path.mkdir(exist_ok=True, parents=True)
         else:
