@@ -1,3 +1,5 @@
+from abc import ABCMeta, abstractmethod
+
 import pandas as pd
 import numpy as np
 
@@ -52,7 +54,14 @@ class TransformerManager(object):
         return collection
 
 
-class GLMMSpec:
+class ModelSpec(metaclass=ABCMeta):
+
+    @abstractmethod
+    def from_collection(self):
+        pass
+
+
+class GLMMSpec(ModelSpec):
 
     def __init__(self, terms=None, X=None, Z=None, groups=None, sigma=None,
                  family=None, link=None, priors=None):
