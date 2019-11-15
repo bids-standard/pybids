@@ -538,7 +538,7 @@ class BIDSLayout(object):
         return self.get_files()
 
     @classmethod
-    def load_from_db(cls, database_path):
+    def load(cls, database_path):
         # To load from a database, set initalization parameters to those
         # found in database_path JSON
         database_file, database_sidecar = cls._make_db_paths(database_path)
