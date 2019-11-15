@@ -499,4 +499,4 @@ def test_resample(collection):
 
     # Assert that the auc is more or less the same (not exact, rounding error)
     # Values are around 0.25
-    assert np.allclose(old_auc, new_auc, 0.01)
+    assert np.allclose(old_auc, new_auc, rtol=0.05)
