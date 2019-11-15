@@ -373,8 +373,9 @@ class BIDSLayout(object):
         }
         for k in ['ignore', 'force_index']:
             kv = self.__dict__[k]
-            if kv is not None:
-                instance_args[k] = [str(a) for a in kv if a is not None]
+            instance_args[k] = [
+                str(a) for a in kv if a is not None] if kv is not None else None
+
         return instance_args
 
     def _init_db(self, database_path=None, reset_database=False):
