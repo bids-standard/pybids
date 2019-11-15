@@ -364,7 +364,7 @@ class BIDSLayout(object):
             database_path = Path(database_path)
             database_file = database_path / 'layout_index.sqlilte'
             database_sidecar = database_path / 'layout_args.json'
-            database_path.mkdir(exist_ok=True)
+            database_path.mkdir(exist_ok=True, parents=True)
         else:
             database_file = None
             database_sidecar = None
