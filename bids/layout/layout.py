@@ -208,12 +208,17 @@ class BIDSLayout(object):
         self.config_filename = config_filename
         self.ignore = ignore
         self.force_index = force_index
+        # Store init arguments for saving
+        self._sanitize_init_args(
+            root=root, validate=validate, absolute_paths=absolute_paths,
+            derivatives=derivatives, ignore=ignore, force_index=force_index,
+            index_metadata=index_metadata, config=config)
 
         if database_file is not None:
             database_path = database_file
             warnings.warn(
-                'In pybids 0.10 database_file argument was deprecated in favor '
-                'of database_path, and will and will be removed in 0.12. '
+                'In pybids 0.10 database_file argument was deprecated in favor'
+                ' of database_path, and will and will be removed in 0.12. '
                 'For now, treating database_file as a directory.',
                 DeprecationWarning)
         if database_path:
@@ -221,8 +226,7 @@ class BIDSLayout(object):
 
         self.session = None
 
-        index_dataset = self._init_db(
-            database_path, reset_database, derivatives=derivatives)
+        index_dataset = self._init_db(database_path, reset_database)
 
         # Do basic BIDS validation on root directory
         self._validate_root()
@@ -368,38 +372,25 @@ class BIDSLayout(object):
             database_sidecar = None
         return database_file, database_sidecar
 
-    def _sanitize_instance_args(self, **kwargs):
-        """ Clean up initalization arguments for saving.
-            Additional variables that should be saved are passed in as kwargs
-        """
-        # Get instance args
-        instance_args = {
-            a: self.__dict__[a] for a in
-            ['root', 'validate', 'absolute_paths', 'regex_search', 'config_file']
-            if a in self.__dict__
-        }
-
-        # Save additional args
-        instance_args = {**instance_args, **kwargs}
-
+    def _sanitize_init_args(self, **kwargs):
+        """ Clean up initalization arguments for saving. """
+        self.init_args = kwargs
         # Make ignore and force_index hashable
         for k in ['ignore', 'force_index']:
-            kv = self.__dict__[k]
-            instance_args[k] = [
-                str(a) for a in kv if a is not None] if kv is not None else None
+            self.init_args[k] = [
+                str(a) for a in self.init_args[k] if a is not None] \
+              if self.init_args[k] is not None else None
 
-        instance_args['root'] = str(Path(instance_args['root']).absolute())
+        self.init_args['root'] = str(Path(self.init_args['root']).absolute())
 
         # Get abspaths
-        if instance_args['derivatives'] is not None:
-            abs_dirs = []
-            for der in listify(instance_args['derivatives']):
-                abs_dirs.append(str(Path(der).absolute()))
-            instance_args['derivatives'] = abs_dirs
+        if isinstance(self.init_args['derivatives'], list):
+            self.init_args['derivatives'] = [
+                str(Path(der).absolute())
+                for der in listify(self.init_args['derivatives'])
+                ]
 
-        return instance_args
-
-    def _init_db(self, database_path=None, reset_database=False, **kwargs):
+    def _init_db(self, database_path=None, reset_database=False):
         database_file, database_sidecar = self._make_db_paths(database_path)
         # Reset database if needed and return whether or not it was reset
         # determining if the database needs resetting must be done prior
@@ -412,24 +403,24 @@ class BIDSLayout(object):
 
         self._set_session(database_file)
 
-        instance_args = self._sanitize_instance_args(**kwargs)
-
         if not reset_database:
             with open(database_sidecar) as fobj:
                 saved_args = json.load(fobj)
             for k, v in saved_args.items():
-                if instance_args[k] != v:
+                if self.init_args[k] != v:
                     raise ValueError(
-                        f"Initialization argument (\"{k}\") do not match for "
-                        f"database_path: {database_path}.\nSaved value: {v}."
-                        f"\nCurrent value: {instance_args[k]}"
+                        f"Initialization argument (\"{k}\") directories "
+                        f" not match fordatabase_path: {database_path}.\n"
+                        f"Saved value: {v}. \n"
+                        f"Current value: {self.init_args[k]}"
                         )
         else:
             engine = self.session.get_bind()
             Base.metadata.drop_all(engine)
             Base.metadata.create_all(engine)
             if database_sidecar:
-                json.dump(instance_args, open(database_sidecar, 'w'))
+                with open(database_sidecar, 'w') as fobj:
+                    json.dump(self.init_args, fobj)
 
             return True
 
@@ -594,8 +585,8 @@ class BIDSLayout(object):
             self._set_session(str(database_file))
 
         # Dump instance arguments to JSON
-        instance_args = self._sanitize_instance_args()
-        json.dump(instance_args, database_sidecar.open('w'))
+        with database_sidecar.open('w') as fobj:
+            json.dump(self.init_args, fobj)
 
         # Recursively save children
         for pipeline_name, der in self.derivatives.items():
