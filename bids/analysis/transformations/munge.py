@@ -206,6 +206,21 @@ class Filter(Transformation):
         return var
 
 
+class Group(Transformation):
+    """Groups a list of variables."""
+
+    _groupable = False
+    _loopable = False
+    _input_type = 'variable'
+    _return_type = 'none'
+
+    def _transform(self, variables, name):
+        if name in self.variables:
+            raise ValueError("Variable group name '{}' conflicts with an "
+                             "existing variable name!".format(name))
+        self.collection.groups[name] = [v.name for v in variables]
+
+
 class Rename(Transformation):
     """Rename a variable.
 
@@ -268,8 +283,8 @@ class Select(Transformation):
 
 
 class Split(Transformation):
-    """Split a single variable into N variables as defined by the levels of one or
-    more other variables.
+    """Split a single variable into N variables as defined by the levels of one
+    or more other variables.
 
     Parameters
     ----------
@@ -284,7 +299,7 @@ class Split(Transformation):
     _allow_categorical = ('by',)
     _densify = ('variables', 'by')
 
-    def _transform(self, var, by, drop_orig=True):
+    def _transform(self, var, by):
 
         if not isinstance(var, SimpleVariable):
             self._densify_variables()
@@ -299,29 +314,13 @@ class Split(Transformation):
         group_data = pd.concat(by_variables, axis=1, sort=True)
         group_data.columns = listify(by)
 
-        # For sparse data, we need to set up a 1D grouper
-        if isinstance(var, SimpleVariable):
-            # Create single grouping variable by combining all 'by' variables
-            if group_data.shape[1] == 1:
-                group_labels = group_data.iloc[:, 0].values
-            else:
-                group_rows = group_data.astype(str).values.tolist()
-                group_labels = ['_'.join(r) for r in group_rows]
+        # Use patsy to create splitting design matrix
+        group_data = group_data.astype(str)
+        formula = '0+' + ':'.join(listify(by))
+        dm = dmatrix(formula, data=group_data, return_type='dataframe')
+        dm.columns = [col.replace(':', '.') for col in dm.columns]
 
-            result = var.split(group_labels)
-
-        # For dense data, use patsy to create design matrix, then multiply
-        # it by target variable
-        else:
-            group_data = group_data.astype(str)
-            formula = '0+' + '*'.join(listify(by))
-            dm = dmatrix(formula, data=group_data, return_type='dataframe')
-            result = var.split(dm)
-
-        if drop_orig:
-            self.collection.variables.pop(var.name)
-
-        return result
+        return var.split(dm)
 
 
 class ToDense(Transformation):

@@ -5,17 +5,20 @@ module of the same name on Python 2. We could go with something sensible but
 verbose like 'variable_collections', but that would make far too much sense.
 """
 
-import pandas as pd
 from copy import copy
-from pandas.api.types import is_numeric_dtype
 import warnings
 import re
-from .variables import (SparseRunVariable, SimpleVariable, DenseRunVariable,
-                        merge_variables, BIDSVariable)
 from collections import OrderedDict
 from itertools import chain
-from bids.utils import listify, matches_entities
+import fnmatch
+
 import numpy as np
+import pandas as pd
+from pandas.api.types import is_numeric_dtype
+
+from .variables import (SparseRunVariable, SimpleVariable, DenseRunVariable,
+                        merge_variables, BIDSVariable)
+from bids.utils import listify, matches_entities
 
 
 class BIDSVariableCollection(object):
@@ -66,6 +69,10 @@ class BIDSVariableCollection(object):
         variables = self.merge_variables(variables)
         self.variables = {v.name: v for v in variables}
         self._index_entities()
+
+        # Container for variable groups (see BIDS-StatsModels spec)--maps from
+        # group names to lists of variables.
+        self.groups = {}
 
     @staticmethod
     def merge_variables(variables, **kwargs):
@@ -217,8 +224,8 @@ class BIDSVariableCollection(object):
             obj.name = var
         self.variables[var] = obj
 
-    def match_variables(self, pattern, return_type='name'):
-        """Return columns whose names match the provided regex pattern.
+    def match_variables(self, pattern, return_type='name', match_type='unix'):
+        """Return columns whose names match the provided pattern.
 
         Parameters
         ----------
@@ -229,6 +236,10 @@ class BIDSVariableCollection(object):
             'name': Returns a list of names of matching variables.
             'variable': Returns a list of Variable objects whose names
             match.
+        match_type : str
+            Matching approach to use. Either 'regex' (full-blown regular
+                expression matching) or 'unix' (unix-style pattern matching
+                via the fnmatch module).
 
         Returns
         -------
@@ -237,7 +248,11 @@ class BIDSVariableCollection(object):
         pattern = listify(pattern)
         results = []
         for patt in pattern:
-            patt = re.compile(patt)
+            if match_type.lower().startswith('re'):
+                pattern = re.compile(pattern)
+                vars_ = [v for v in self.variables.keys() if pattern.search(v)]
+            else:
+                vars_ = fnmatch.filter(list(self.variables.keys()), pattern)
             vars_ = [v for v in self.variables.values() if patt.search(v.name)]
             results.extend(vars_ if return_type.startswith('var')
                                  else [v.name for v in vars_])
