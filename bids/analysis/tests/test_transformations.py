@@ -470,7 +470,7 @@ def test_group(collection):
         transform.Group(coll, ['gain', 'loss'], name='gain')
 
     transform.Group(coll, ['gain', 'loss'], name='outcome_vars')
-    assert coll.groups == { 'outcome_vars': ['gain', 'loss'] }
+    assert coll.groups == {'outcome_vars': ['gain', 'loss']}
 
     # Checks that variable groups are replaced properly
     transform.Rename(coll, ['outcome_vars'],
@@ -479,3 +479,24 @@ def test_group(collection):
     assert 'loss_renamed' in coll.variables
     assert 'gain' not in coll.variables
     assert 'loss' not in coll.variables
+
+
+def test_resample(collection):
+    coll = collection.clone()
+
+    transform.ToDense(coll, 'parametric gain', output='pg_dense')
+    pg = coll.variables['pg_dense']
+    old_shape = pg.values.shape
+    old_auc = np.trapz(np.abs(pg.values.values.squeeze()), dx=0.1)
+    transform.Resample(coll, 'pg_dense', 1)
+    pg = coll.variables['pg_dense']
+    new_shape = pg.values.shape
+    # Spacing (dx) is 10* larger when downsampled fro 10hz to 1hz
+    new_auc = np.trapz(np.abs(pg.values.values.squeeze()), dx=1)
+
+    # Shape from 10hz to 1hz
+    assert new_shape[0] == old_shape[0] / 10
+
+    # Assert that the auc is more or less the same (not exact, rounding error)
+    # Values are around 0.25
+    assert np.allclose(old_auc, new_auc, rtol=0.05)
