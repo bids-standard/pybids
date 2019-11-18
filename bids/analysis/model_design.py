@@ -8,6 +8,17 @@ from bids.variables import BIDSRunVariableCollection
 
 
 class TransformerManager(object):
+    """Handles registration and application of transformations to
+    BIDSVariableCollections.
+
+    Parameters
+    ----------
+    default: object
+        A module or other object containing default transformations as
+            attributes. Any named transformation not explicitly registered on
+            the TransformerManager instance is expected to be found here.
+            If None, the PyBIDS transformations module is used.
+    """
 
     def __init__(self, default=None):
         self.transformations = {}
@@ -18,12 +29,27 @@ class TransformerManager(object):
 
     def _sanitize_name(self, name):
         """ Replace any invalid/reserved transformation names with acceptable
-        equivalents. """
+        equivalents.
+
+        Parameters
+        ----------
+        name: str
+            The name of the transformation to sanitize.
+        """
         if name in ('And', 'Or'):
             name += '_'
         return name
 
     def register(self, name, func):
+        """Register a new transformation handler.
+
+        Parameters
+        ----------
+        name : str
+            The name of the transformation to handle.
+        func : callable
+            The callable to invoke when the named transformation is applied.
+        """
         name = self._sanitize_name(name)
         self.transformations[name] = func
 
@@ -55,14 +81,48 @@ class TransformerManager(object):
 
 
 class ModelSpec(metaclass=ABCMeta):
-
+    """Base class for all ModelSpec classes."""
     @abstractmethod
     def from_collection(self):
+        """Initialize from a BIDSVariableCollection instance."""
         pass
 
 
 class GLMMSpec(ModelSpec):
-
+    """Generalized Linear Mixed Model specification.
+s
+    Parameters
+    ----------
+    terms : list of Term
+        A list of Term instances to include in the GLMMSpec instance.
+    X: pd.DataFrame
+        A pandas DataFrame containing the fixed effect design matrix
+        (i.e., the X matrix in the typical mixed effect formulation). Each
+        column will be internally converted to a separate Term instance.
+    Z: pd.DataFrame
+        A pandas DataFrame containing the random effect/grouping matrix
+        (i.e., the Z matrix in the typical mixed effect formulation). Columns
+        that share variance components are identified by the groups argument.
+    groups: NDArray
+        A binary 2d array with dimension k x v, where k is the number of
+        columns in Z and v is the number of distinct variance components. A
+        value of 1 indicates that the i'th of k rows is a level in the j's of
+        v variance components. If Z is passed and groups is None, it is assumed
+        that all columns in Z share the same single variance.
+    sigma: NDArray
+        A 2d array giving the covariance matrix for the variance components
+        defined in the groups argument. Has dimension v x v, where v is the
+        number of columns in groups. If None (default), no constraint is
+        imposed and the covariance is directly estimated.
+    family: str
+        The name of the family to use for the error distribution. By default,
+        gaussian.
+    link: str
+        The name of the link function to use. Default depends on family. In the
+        case of a gaussian (default family), an identity link is used.
+    priors: dict
+        Optional specification of default priors to use for new terms.
+    """
     def __init__(self, terms=None, X=None, Z=None, groups=None, sigma=None,
                  family=None, link=None, priors=None):
         self.terms = {}
@@ -85,7 +145,15 @@ class GLMMSpec(ModelSpec):
         pass
 
     def build_fixed_terms(self, X):
-        """Build one or more fixed terms from the columns of a pandas DF."""
+        """Build one or more fixed terms from the columns of a pandas DF.
+
+        Parameters
+        ----------
+        X : pd.DataFrame
+            A pandas DataFrame containing variables to convert to Term
+            instances. Each column is converted to a different (fixed) Term,
+            with the name taken from the column name.
+        """
         for col in X.columns:
             data = X.loc[:, col]
             cat = data.dtype.name in ('str', 'category', 'object')
@@ -96,7 +164,7 @@ class GLMMSpec(ModelSpec):
     def build_variance_components(self, Z, groups=None, sigma=None, names=None):
         """Build one or more variance components from the columns of a binary
         grouping matrix and variance specification.
-        
+
         Arguments:
             Z (DataFrame, NDArray): A binary 2D array or pandas DataFrame. Each
                 column represents a column/predictor, each row represents an
@@ -128,6 +196,13 @@ class GLMMSpec(ModelSpec):
             self.add_term(vc)
 
     def add_term(self, term):
+        """Add a new Term to the instance.
+
+        Parameters
+        ----------
+        term : Term
+            A Term instance to add to the current instance.
+        """
         if term.name in self.terms:
             raise ValueError("Term with name {} already exists!"
                              .format(term.name))
@@ -156,17 +231,30 @@ class GLMMSpec(ModelSpec):
 
     @property
     def fixed_terms(self):
+        """Return a list of all available fixed effects."""
         return [t for t in self.terms.values() if not isinstance(t, VarComp)]
 
     @property
     def variance_components(self):
+        """Return a list of all available variance components."""
         return [t for t in self.terms.values() if isinstance(t, VarComp)]
 
     @classmethod
     def from_collection(cls, collection, model):
         """ Initialize a GLMMSpec instance from a BIDSVariableCollection and
-        a BIDS-StatsModels JSON spec."""
+        a BIDS-StatsModels JSON spec.
 
+        Parameters
+        ----------
+        collection : BIDSVariableCollection
+            A BIDSVariableCollection containing variable information.
+        model : dict
+            The "Model" section from a BIDS-StatsModel specification.
+
+        Returns
+        -------
+        A GLMMSpec instance.
+        """
         if isinstance(collection, BIDSRunVariableCollection):
             if not collection.all_dense():
                 raise ValueError("Input BIDSRunVariableCollection contains at "

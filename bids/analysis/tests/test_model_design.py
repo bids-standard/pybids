@@ -11,6 +11,7 @@ from bids.analysis.model_design import (GLMMSpec, TransformerManager, Term,
 from bids.layout import BIDSLayout
 from bids.tests import get_test_data_path
 
+
 @pytest.fixture(scope='module')
 def collection():
     """Create a collection at dataset level."""
