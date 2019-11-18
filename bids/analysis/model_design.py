@@ -376,4 +376,22 @@ class VarComp(Term):
 
 
 class Prior(object):
-    pass
+    '''Abstract specification of a term prior.
+
+    Parameters
+    ----------
+    name : str
+        Name of prior distribution (e.g., Normal, Bernoulli, etc.)
+    kwargs: dict
+        Optional keywords specifying the parameters of the named distribution.
+
+    Notes
+    -----
+    At present there's no controlled vocabulary of supported prior names and
+    arguments, but users implementing new Bayesian estimators are encouraged to
+    use the names used in PyMC3 (e.g., 'Normal', parameterized with mu and
+    sd arguments).
+    '''
+    def __init__(self, name, **kwargs):
+        self.name = name
+        self.kwargs = kwargs
