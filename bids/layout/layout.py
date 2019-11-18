@@ -397,8 +397,8 @@ class BIDSLayout(object):
         # to setting the session (which creates the empty database file)
         reset_database = (
             reset_database or  # Manual Request
-            not database_path or  # In memory transient db
-            not os.path.exists(database_file)  # New file based db created
+            not database_file or  # In memory transient db
+            not database_file.exists()  # New file based db created
         )
 
         self._set_session(database_file)
