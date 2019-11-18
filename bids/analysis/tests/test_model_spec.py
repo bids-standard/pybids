@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 
 from bids.variables import BIDSVariableCollection
-from bids.analysis.model_design import (GLMMSpec, TransformerManager, Term,
+from bids.analysis.model_spec import (GLMMSpec, TransformerManager, Term,
                                         VarComp)
 from bids.layout import BIDSLayout
 from bids.tests import get_test_data_path
