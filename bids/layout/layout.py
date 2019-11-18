@@ -206,8 +206,8 @@ class BIDSLayout(object):
         self.sources = sources
         self.regex_search = regex_search
         self.config_filename = config_filename
-        # Store init arguments for saving
-        self._sanitize_init_args(
+        # Store original init arguments as dictionary
+        self._init_args = self._sanitize_init_args(
             root=root, validate=validate, absolute_paths=absolute_paths,
             derivatives=derivatives, ignore=ignore, force_index=force_index,
             index_metadata=index_metadata, config=config)
@@ -370,23 +370,25 @@ class BIDSLayout(object):
             database_sidecar = None
         return database_file, database_sidecar
 
-    def _sanitize_init_args(self, **kwargs):
-        """ Clean up initalization arguments for saving. """
-        self.init_args = kwargs
-        # Make ignore and force_index hashable
+    @staticmethod
+    def _sanitize_init_args(**kwargs):
+        """ Prepare initalization arguments for serialization """
+        # Make ignore and force_index serializable
         for k in ['ignore', 'force_index']:
-            self.init_args[k] = [
-                str(a) for a in self.init_args[k] if a is not None] \
-              if self.init_args[k] is not None else None
+            kwargs[k] = [
+                str(a) for a in kwargs[k] if a is not None] \
+              if kwargs[k] is not None else None
 
-        self.init_args['root'] = str(Path(self.init_args['root']).absolute())
+        kwargs['root'] = str(Path(kwargs['root']).absolute())
 
         # Get abspaths
-        if isinstance(self.init_args['derivatives'], list):
-            self.init_args['derivatives'] = [
+        if isinstance(kwargs['derivatives'], list):
+            kwargs['derivatives'] = [
                 str(Path(der).absolute())
-                for der in listify(self.init_args['derivatives'])
+                for der in listify(kwargs['derivatives'])
                 ]
+
+        return kwargs
 
     def _init_db(self, database_path=None, reset_database=False):
         database_file, database_sidecar = self._make_db_paths(database_path)
@@ -405,12 +407,12 @@ class BIDSLayout(object):
             with open(database_sidecar) as fobj:
                 saved_args = json.load(fobj)
             for k, v in saved_args.items():
-                if self.init_args[k] != v:
+                if self._init_args[k] != v:
                     raise ValueError(
                         f"Initialization argument ({k!r}) directories "
                         f" not match fordatabase_path: {database_path}.\n"
                         f"Saved value: {v}. \n"
-                        f"Current value: {self.init_args[k]}"
+                        f"Current value: {self._init_args[k]}"
                         )
         else:
             engine = self.session.get_bind()
@@ -418,7 +420,7 @@ class BIDSLayout(object):
             Base.metadata.create_all(engine)
             if database_sidecar:
                 with open(database_sidecar, 'w') as fobj:
-                    json.dump(self.init_args, fobj)
+                    json.dump(self._init_args, fobj)
 
             return True
 
@@ -539,8 +541,16 @@ class BIDSLayout(object):
 
     @classmethod
     def load(cls, database_path):
-        # To load from a database, set initalization parameters to those
-        # found in database_path JSON
+        """ Load index from database path. Initalization parameters are set to
+        those found in database_path JSON sidecar.
+
+        Parameters
+        ----------
+        database_path : str
+            The path to the desired database folder. By default,
+            uses .db_cache. If a relative path is passed, it is assumed to
+            be relative to the BIDSLayout root directory.
+        """
         database_file, database_sidecar = cls._make_db_paths(database_path)
         init_args = json.loads(database_sidecar.read_text())
 
@@ -551,8 +561,8 @@ class BIDSLayout(object):
 
         Note: This is only necessary if a database_path was not specified
         at initalization, and the user now wants to save the index.
-        If a database_path was specified originally, there is no need to re-save
-        using this method.
+        If a database_path was specified originally, there is no need to
+        re-save using this method.
 
         Parameters
         ----------
@@ -583,7 +593,7 @@ class BIDSLayout(object):
             self._set_session(str(database_file))
 
         # Dump instance arguments to JSON
-        database_sidecar.write_text(json.dumps(self.init_args))
+        database_sidecar.write_text(json.dumps(self._init_args))
 
         # Recursively save children
         for pipeline_name, der in self.derivatives.items():
