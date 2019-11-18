@@ -233,12 +233,12 @@ class BIDSLayout(object):
             ignore = self._default_ignore
 
         # Instantiate after root validation to ensure os.path.join works
-        ignore = [os.path.abspath(os.path.join(self.root, patt))
-                  if isinstance(patt, str) else patt
-                  for patt in listify(ignore or [])]
-        force_index = [os.path.abspath(os.path.join(self.root, patt))
+        self.ignore = [os.path.abspath(os.path.join(self.root, patt))
                        if isinstance(patt, str) else patt
-                       for patt in listify(force_index or [])]
+                       for patt in listify(ignore or [])]
+        self.force_index = [os.path.abspath(os.path.join(self.root, patt))
+                            if isinstance(patt, str) else patt
+                            for patt in listify(force_index or [])]
 
         # Initialize the BIDS validator and examine ignore/force_index args
         self._validate_force_index()
