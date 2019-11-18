@@ -409,10 +409,11 @@ class BIDSLayout(object):
             for k, v in saved_args.items():
                 if self._init_args[k] != v:
                     raise ValueError(
-                        f"Initialization argument ({k!r}) directories "
-                        f" not match fordatabase_path: {database_path}.\n"
-                        f"Saved value: {v}. \n"
-                        f"Current value: {self._init_args[k]}"
+                        "Initialization argument ('{}') does not match "
+                        "for database_path: {}.\n"
+                        "Saved value: {}.\n"
+                        "Current value: {}.".format(
+                            k, database_path, v, self._init_args[k])
                         )
         else:
             engine = self.session.get_bind()
