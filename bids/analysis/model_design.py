@@ -307,7 +307,21 @@ s
 
 
 class Term(object):
+    """Represents a model term.
 
+    Parameters
+    ----------
+    name : str
+        The name of the term.
+    values : iterable
+        A 1d array or other iterable containing the predictor values.
+    categorical : bool
+        Indicates whether or not the Term represents a categorical variable.
+    prior : dict
+        Optional specification of the prior distribution for the Term.
+    metadata : dict
+        Arbitrary metadata to store internally.
+    """
     def __init__(self, name, values, categorical=False, prior=None,
                  metadata=None):
         self.name = name
@@ -318,7 +332,22 @@ class Term(object):
 
 
 class VarComp(Term):
+    """Represents a variance component/random effect.
 
+    Parameters
+    ----------
+    name : str
+        The name of the variance component.
+    values : iterable
+        A 2d binary array identifying the observations that belong to the
+        levels of the variance component. Has dimension n x k, where n is the
+        number of observed rows in the dataset and k is the number of levels
+        in the factor.
+    prior : dict
+        Optional specification of the prior distribution for the VarComp.
+    metadata : dict
+        Arbitrary metadata to store internally.
+    """
     def __init__(self, name, values, prior=None, metadata=None):
         super(VarComp, self).__init__(name, values, categorical=True,
                                       prior=prior, metadata=metadata)
@@ -326,8 +355,16 @@ class VarComp(Term):
 
     @staticmethod
     def dummies_to_vec(dummies):
-        """
-        For the sake of computational efficiency (i.e., to avoid lots of
+        """Convert dummy-coded columns to a single integer index.
+
+        Parameters
+        ----------
+        dummies : NDArray
+            2d binary array to recode as a single vector.
+
+        Notes
+        -----
+        Used for the sake of computational efficiency (i.e., to avoid lots of
         large matrix multiplications in the backends), invert the dummy-coding
         process and represent full-rank dummies as a vector of indices into the
         coefficients.
