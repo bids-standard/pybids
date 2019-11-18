@@ -12,6 +12,7 @@ import pandas as pd
 
 from bids.utils import listify
 from bids.variables import SparseRunVariable
+from bids.analysis import transformations as pbt
 
 
 class Transformation(metaclass=ABCMeta):
@@ -372,3 +373,76 @@ class Transformation(metaclass=ABCMeta):
                 _align([c] + align_variables)
         else:
             _align(listify(variables) + align_variables)
+
+
+class TransformerManager(object):
+    """Handles registration and application of transformations to
+    BIDSVariableCollections.
+
+    Parameters
+    ----------
+    default: object
+        A module or other object containing default transformations as
+            attributes. Any named transformation not explicitly registered on
+            the TransformerManager instance is expected to be found here.
+            If None, the PyBIDS transformations module is used.
+    """
+
+    def __init__(self, default=None):
+        self.transformations = {}
+        if default is None:
+            # Default to PyBIDS transformations
+            default = pbt
+        self.default = default
+
+    def _sanitize_name(self, name):
+        """ Replace any invalid/reserved transformation names with acceptable
+        equivalents.
+
+        Parameters
+        ----------
+        name: str
+            The name of the transformation to sanitize.
+        """
+        if name in ('And', 'Or'):
+            name += '_'
+        return name
+
+    def register(self, name, func):
+        """Register a new transformation handler.
+
+        Parameters
+        ----------
+        name : str
+            The name of the transformation to handle.
+        func : callable
+            The callable to invoke when the named transformation is applied.
+        """
+        name = self._sanitize_name(name)
+        self.transformations[name] = func
+
+    def transform(self, collection, transformations):
+        """Apply all transformations to the variables in the collection.
+
+        Parameters
+        ----------
+        collection: BIDSVariableCollection
+            The BIDSVariableCollection containing variables to transform.
+        transformations : list
+            List of transformations to apply.
+        """
+        for t in transformations:
+            kwargs = dict(t)
+            name = self._sanitize_name(kwargs.pop('Name'))
+            cols = kwargs.pop('Input', None)
+
+            # Check registered transformations; fall back on default module
+            func = self.transformations.get(name, None)
+            if func is None:
+                if not hasattr(self.default, name):
+                    raise ValueError("No transformation '%s' found: either "
+                                     "explicitly register a handler, or pass a"
+                                     " default module that supports it." % name)
+                func = getattr(self.default, name)
+                func(collection, cols, **kwargs)
+        return collection

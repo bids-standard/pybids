@@ -2,6 +2,7 @@ from .compute import (Sum, Product, Scale, Orthogonalize, Threshold, And, Or,
                       Not, Demean, Convolve)
 from .munge import (Split, Rename, Assign, Copy, Factor, Filter, Select,
                     Delete, DropNA, Replace, ToDense, Group)
+from .base import TransformerManager
 
 __all__ = [
     'And',
@@ -25,5 +26,6 @@ __all__ = [
     'Split',
     'Sum',
     'Threshold',
-    'ToDense'
+    'ToDense',
+    'TransformerManager'
 ]
