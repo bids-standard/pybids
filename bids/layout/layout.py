@@ -420,8 +420,7 @@ class BIDSLayout(object):
             Base.metadata.drop_all(engine)
             Base.metadata.create_all(engine)
             if database_sidecar:
-                with open(database_sidecar, 'w') as fobj:
-                    json.dump(self._init_args, fobj)
+                database_sidecar.write_text(json.dumps(self.init_args))
 
             return True
 
