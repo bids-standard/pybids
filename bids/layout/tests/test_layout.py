@@ -627,3 +627,11 @@ def test_get_with_regex_search_bad_dtype(layout_7t_trt):
                     regex_search=True)
     # Two runs (1 per session) for each of subjects '10' and '01'
     assert len(results) == 4
+
+def test_load_layout(layout_synthetic_nodb, db_dir):
+    db_path = str(db_dir / 'tmp_db')
+    layout_synthetic_nodb.save(db_path)
+    reloaded = BIDSLayout.load(db_path)
+    assert sorted(layout_synthetic_nodb.get(return_type='file')) == \
+        sorted(reloaded.get(return_type='file'))
+    assert layout_synthetic_nodb._init_args == reloaded._init_args
