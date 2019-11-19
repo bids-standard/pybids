@@ -404,8 +404,7 @@ class BIDSLayout(object):
         self._set_session(database_file)
 
         if not reset_database:
-            with open(database_sidecar) as fobj:
-                saved_args = json.load(fobj)
+            saved_args = json.loads(database_sidecar.read_text())
             for k, v in saved_args.items():
                 if self._init_args[k] != v:
                     raise ValueError(
