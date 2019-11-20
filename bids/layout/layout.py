@@ -206,18 +206,25 @@ class BIDSLayout(object):
         self.sources = sources
         self.regex_search = regex_search
         self.config_filename = config_filename
+        # Store original init arguments as dictionary
+        self._init_args = self._sanitize_init_args(
+            root=root, validate=validate, absolute_paths=absolute_paths,
+            derivatives=derivatives, ignore=ignore, force_index=force_index,
+            index_metadata=index_metadata, config=config)
 
-        if database_file is not None:
+        if database_path is None and database_file is not None:
             database_path = database_file
             warnings.warn(
-                'In pybids 0.10 database_file argument was deprecated in favor '
-                'of database_path, and will and will be removed in 0.12. '
+                'In pybids 0.10 database_file argument was deprecated in favor'
+                ' of database_path, and will be removed in 0.12. '
                 'For now, treating database_file as a directory.',
                 DeprecationWarning)
         if database_path:
             database_path = str(Path(database_path).absolute())
 
         self.session = None
+
+        index_dataset = self._init_db(database_path, reset_database)
 
         # Do basic BIDS validation on root directory
         self._validate_root()
@@ -235,8 +242,6 @@ class BIDSLayout(object):
 
         # Initialize the BIDS validator and examine ignore/force_index args
         self._validate_force_index()
-
-        index_dataset = self._init_db(database_path, reset_database)
 
         if index_dataset:
             # Create Config objects
@@ -353,25 +358,37 @@ class BIDSLayout(object):
 
         self.session = sa.orm.sessionmaker(bind=engine)()
 
-    def _make_db_paths(self, database_path):
+    @staticmethod
+    def _make_db_paths(database_path):
         if database_path is not None:
-            database_file = os.path.join(database_path, 'layout_index.sqlilte')
-            database_sidecar = os.path.join(database_path, 'layout_args.json')
-            os.makedirs(database_path, exist_ok=True)
+            database_path = Path(database_path)
+            database_file = database_path / 'layout_index.sqlite'
+            database_sidecar = database_path / 'layout_args.json'
+            database_path.mkdir(exist_ok=True, parents=True)
         else:
             database_file = None
             database_sidecar = None
         return database_file, database_sidecar
 
-    def _sanitize_instance_args(self):
-        instance_args = {
-            a: self.__dict__[a] for a in
-            ['root', 'validate', 'absolute_paths', 'regex_search', 'config_file']
-            if a in self.__dict__
-        }
+    @staticmethod
+    def _sanitize_init_args(**kwargs):
+        """ Prepare initalization arguments for serialization """
+        # Make ignore and force_index serializable
         for k in ['ignore', 'force_index']:
-            instance_args[k] = [str(a) for a in self.__dict__[k]]
-        return instance_args
+            kwargs[k] = [
+                str(a) for a in kwargs[k] if a is not None] \
+              if kwargs[k] is not None else None
+
+        kwargs['root'] = str(Path(kwargs['root']).absolute())
+
+        # Get abspaths
+        if isinstance(kwargs['derivatives'], list):
+            kwargs['derivatives'] = [
+                str(Path(der).absolute())
+                for der in listify(kwargs['derivatives'])
+                ]
+
+        return kwargs
 
     def _init_db(self, database_path=None, reset_database=False):
         database_file, database_sidecar = self._make_db_paths(database_path)
@@ -380,29 +397,29 @@ class BIDSLayout(object):
         # to setting the session (which creates the empty database file)
         reset_database = (
             reset_database or  # Manual Request
-            not database_path or  # In memory transient db
-            not os.path.exists(database_file)  # New file based db created
+            not database_file or  # In memory transient db
+            not database_file.exists()  # New file based db created
         )
 
         self._set_session(database_file)
 
-        instance_args = self._sanitize_instance_args()
-
         if not reset_database:
-            with open(database_sidecar) as fobj:
-                saved_args = json.load(fobj)
+            saved_args = json.loads(database_sidecar.read_text())
             for k, v in saved_args.items():
-                if instance_args[k] != v:
+                if self._init_args[k] != v:
                     raise ValueError(
-                        "Initialization arguments do not match for database_path:"
-                        " {}".format(database_path)
+                        "Initialization argument ('{}') does not match "
+                        "for database_path: {}.\n"
+                        "Saved value: {}.\n"
+                        "Current value: {}.".format(
+                            k, database_path, v, self._init_args[k])
                         )
         else:
             engine = self.session.get_bind()
             Base.metadata.drop_all(engine)
             Base.metadata.create_all(engine)
             if database_sidecar:
-                json.dump(instance_args, open(database_sidecar, 'w'))
+                database_sidecar.write_text(json.dumps(self._init_args))
 
             return True
 
@@ -521,13 +538,30 @@ class BIDSLayout(object):
         """Get the files."""
         return self.get_files()
 
+    @classmethod
+    def load(cls, database_path):
+        """ Load index from database path. Initalization parameters are set to
+        those found in database_path JSON sidecar.
+
+        Parameters
+        ----------
+        database_path : str
+            The path to the desired database folder. By default,
+            uses .db_cache. If a relative path is passed, it is assumed to
+            be relative to the BIDSLayout root directory.
+        """
+        database_file, database_sidecar = cls._make_db_paths(database_path)
+        init_args = json.loads(database_sidecar.read_text())
+
+        return cls(database_path=database_path, **init_args)
+
     def save(self, database_path, replace_connection=True):
         """Save the current index as a SQLite3 DB at the specified location.
 
         Note: This is only necessary if a database_path was not specified
         at initalization, and the user now wants to save the index.
-        If a database_path was specified originally, there is no need to re-save
-        using this method.
+        If a database_path was specified originally, there is no need to
+        re-save using this method.
 
         Parameters
         ----------
@@ -545,7 +579,7 @@ class BIDSLayout(object):
             again.
         """
         database_file, database_sidecar = self._make_db_paths(database_path)
-        new_db = sqlite3.connect(database_file)
+        new_db = sqlite3.connect(str(database_file))
         old_db = self.session.get_bind().connect().connection
 
         with new_db:
@@ -555,11 +589,10 @@ class BIDSLayout(object):
             new_db.commit()
 
         if replace_connection:
-            self._set_session(database_file)
+            self._set_session(str(database_file))
 
         # Dump instance arguments to JSON
-        instance_args = self._sanitize_instance_args()
-        json.dump(instance_args, open(database_sidecar, 'w'))
+        database_sidecar.write_text(json.dumps(self._init_args))
 
         # Recursively save children
         for pipeline_name, der in self.derivatives.items():
