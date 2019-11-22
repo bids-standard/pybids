@@ -15,5 +15,5 @@ if __name__ == '__main__':
           version=versioneer.get_version(),
           cmdclass=versioneer.get_cmdclass(),
           setup_requires=SETUP_REQUIRES,
-          install_requires=['packaging']
+          install_requires=['packaging', 'sqlalchemy']
           )
