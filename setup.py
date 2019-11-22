@@ -14,4 +14,6 @@ if __name__ == '__main__':
     setup(name="pybids",
           version=versioneer.get_version(),
           cmdclass=versioneer.get_cmdclass(),
-          setup_requires=SETUP_REQUIRES)
+          setup_requires=SETUP_REQUIRES,
+          install_requires=['packaging']
+          )
