@@ -1,8 +1,6 @@
 """ Test-related utilities """
 
 from pathlib import Path
-from ..utils import write_derivative_description
-from .. import BIDSLayout
 
 
 def get_test_data_path(return_type="str"):
@@ -19,11 +17,3 @@ def get_test_data_path(return_type="str"):
         return path
     else:
         raise ValueError("return_type can be 'str' or 'Path. Got {}.".format(return_type))
-
-
-def test_write_derivative_description(exist_ok=True):
-    """Test write_derivative_description(source_dir, name, bids_version='1.1.1', **desc_kwargs). """
-
-    source_dir = get_test_data_path("Path") / '7t_trt'
-    write_derivative_description(source_dir, name="test", bids_version='1.1.1', exist_ok=exist_ok)
-    BIDSLayout(source_dir, derivatives=True)
