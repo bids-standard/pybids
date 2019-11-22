@@ -4,6 +4,7 @@ from pathlib import Path
 from ..utils import write_derivative_description
 from .. import BIDSLayout
 
+
 def get_test_data_path(return_type="str"):
     """
     :param return_type: Specify the type of object returned. Can be 'str'
