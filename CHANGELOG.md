@@ -1,5 +1,22 @@
 # Changelog
 
+## Version 0.10.0 (December 03, 2019)
+
+New feature release in the 0.10.x series.
+
+This release removes Python 2 support.
+
+* ENH: Helpful error for db argument mismatch, and add classmethod load_from_db (#547)
+* ENH: Add Resample transformation (#373)
+* ENH: Save BIDSLayout + Derivatives to folder (with init arguments) (#540)
+* ENH: Adds support for NONE and ANY query Enums (#542)
+* ENH: Transformation-related improvements (#541)
+* ENH: FEMA contrasts (#520)
+* STY: Minor PEP8 Fixes (#545)
+* MNT: Various (#543)
+* MNT: Remove Python 2.7 support (#524)
+* CI: Configure Circle Artifact Redirector (#544)
+
 ## Version 0.9.5 (November 6, 2019)
 
 Bug fix release in the 0.9.x series.
