@@ -199,7 +199,7 @@ class BIDSLayout(object):
                  regex_search=False, database_path=None, database_file=None,
                  reset_database=False, index_metadata=True):
         """Initialize BIDSLayout."""
-        self.root = root
+        self.root = str(root)
         self.validate = validate
         self.absolute_paths = absolute_paths
         self.derivatives = {}
