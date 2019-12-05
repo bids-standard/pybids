@@ -1,4 +1,4 @@
-""" Test-related utilities """
+''' Test-related utilities '''
 from pathlib import Path
 import pkg_resources
 
