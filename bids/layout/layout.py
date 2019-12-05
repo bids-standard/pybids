@@ -208,7 +208,7 @@ class BIDSLayout(object):
         self.config_filename = config_filename
         # Store original init arguments as dictionary
         self._init_args = self._sanitize_init_args(
-            root=root, validate=validate, absolute_paths=absolute_paths,
+            root=self.root, validate=validate, absolute_paths=absolute_paths,
             derivatives=derivatives, ignore=ignore, force_index=force_index,
             index_metadata=index_metadata, config=config)
 
@@ -267,7 +267,7 @@ class BIDSLayout(object):
         # Add derivatives if any are found
         if derivatives:
             if derivatives is True:
-                derivatives = os.path.join(root, 'derivatives')
+                derivatives = os.path.join(self.root, 'derivatives')
             self.add_derivatives(
                 derivatives, parent_database_path=database_path,
                 validate=validate, absolute_paths=absolute_paths,
