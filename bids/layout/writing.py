@@ -91,7 +91,7 @@ def build_path(entities, path_patterns, strict=False):
     """
     path_patterns = listify(path_patterns)
 
-    # Loop over available patherns, return first one that matches all
+    # Loop over available patterns, return first one that matches all
     for pattern in path_patterns:
         # If strict, all entities must be contained in the pattern
         if strict:
