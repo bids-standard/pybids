@@ -21,6 +21,25 @@ def test_layout_init(layout_7t_trt):
     assert isinstance(layout_7t_trt.files, dict)
 
 
+@pytest.mark.parametrize(
+    'index_metadata,result',
+    [
+        (True, 3.0),
+        (False, None),
+        ({}, 3.0),
+        ({'task': 'rest'}, 3.0),
+        ({'task': 'rest', 'extension': ['nii.gz']}, 3.0),
+        ({'task': 'rest', 'extension': 'nii.gz'}, 3.0),
+        ({'task': 'rest', 'extension': ['nii.gz', 'json'], 'return_type': 'file'}, 3.0),
+    ])
+def test_index_metadata(index_metadata, result):
+    data_dir = join(get_test_data_path(), '7t_trt')
+    layout = BIDSLayout(data_dir, index_metadata=index_metadata)
+    sample_file = layout.get(task='rest', extension='nii.gz', acq='fullbrain')[0]
+    metadata = sample_file.get_metadata()
+    assert metadata.get('RepetitionTime') == result
+
+
 def test_layout_repr(layout_7t_trt):
     assert "Subjects: 10 | Sessions: 20 | Runs: 20" in str(layout_7t_trt)
 
