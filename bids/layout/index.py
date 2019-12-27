@@ -2,6 +2,7 @@
 
 import os
 import json
+import warnings
 from collections import defaultdict
 from bids_validator import BIDSValidator
 from .models import Config, Entity, Tag, FileAssociation
@@ -164,10 +165,37 @@ class BIDSLayoutIndexer(object):
         """Index all files in the BIDS dataset. """
         self._index_dir(self.root, self.config)
 
-    def index_metadata(self):
+    def index_metadata(self, **filters):
         """Index metadata for all files in the BIDS dataset. """
+        if filters:
+            default_ext = ['[.]+']
+            # ensure we are returning objects
+            filters['return_type'] = 'object'
+            # until 0.11.0, user can specify extension or extensions
+            if filters.get('extension'):
+                ext_key = 'extension'
+            elif filters.get('extensions'):
+                ext_key = 'extensions'
+            else:
+                ext_key = 'extension'
+                msg = (
+                    "You should explicitly set the extension argument. "
+                    "We set the extension argument to match all extensions: "
+                    "{ext} for convienence"
+                    ", but this may not be correct for your use case."
+                ).format(ext=default_ext)
+                warnings.warn(msg, SyntaxWarning)
+                filters[ext_key] = default_ext
+                filters['regex_search'] = True
+            # ensure extension argument is a list
+            if isinstance(filters.get(ext_key), str):
+                filters[ext_key] = [filters[ext_key]]
+            # ensure json files are being indexed
+            if 'json' not in filters[ext_key]:
+                filters[ext_key].append('json')
+
         # Process JSON files first if we're indexing metadata
-        all_files = self.layout.get(absolute_paths=True)
+        all_files = self.layout.get(absolute_paths=True, **filters)
 
         # Track ALL entities we've seen in file names or metadatas
         all_entities = {}

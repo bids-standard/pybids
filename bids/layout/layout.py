@@ -184,10 +184,13 @@ class BIDSLayout(object):
         in the root argument is reindexed. If False, indexing will be
         skipped and the existing database file will be used. Ignored if
         database_path is not provided.
-    index_metadata : bool
+    index_metadata : bool or dict
         If True, all metadata files are indexed at
         initialization. If False, metadata will not be available (but
-        indexing will be faster).
+        indexing will be faster). ADVANCED: If a dictionary, the keys of the
+        dictionary must be arguments that can be passed to the
+        .get() method. Minimally, include "extension" as a key with the
+        extensions you would like to track (e.g., "nii.gz", "nii").
     """
 
     _default_ignore = ("code", "stimuli", "sourcedata", "models",
@@ -258,8 +261,10 @@ class BIDSLayout(object):
             # Index files and (optionally) metadata
             indexer = BIDSLayoutIndexer(self)
             indexer.index_files()
-            if index_metadata:
+            if index_metadata is True:
                 indexer.index_metadata()
+            elif isinstance(index_metadata, dict):
+                indexer.index_metadata(**index_metadata)
         else:
             # Load Configs from DB
             self.config = {c.name: c for c in self.session.query(Config).all()}
