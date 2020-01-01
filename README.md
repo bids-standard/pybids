@@ -10,7 +10,7 @@ PyBIDS is a Python library to centralize interactions with datasets conforming
 BIDS (Brain Imaging Data Structure) format.  For more information about BIDS
 visit http://bids.neuroimaging.io.
 
-PyBIDS currently supports Python 2 and 3 on POSIX operating systems (including Mac OS). We anticipate dropping Python 2 support in the near future, and Python 2 users are encouraged to switch to Python 3. Windows is not officially supported, though most PyBIDS functionality will probably work fine.
+PyBIDS currently supports Python 3 on POSIX operating systems (including Mac OS).  Windows is not officially supported, though most PyBIDS functionality will probably work fine.
 
 ## Installation
 PyBIDS is most easily installed from pip. To install the latest official release:
