@@ -108,6 +108,7 @@ doc/generated/
 
 # Emacs and others
 *~
+.vscode
 
 # Ignore test sql database files
 bidsdb.sqlite
