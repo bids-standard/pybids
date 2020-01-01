@@ -154,7 +154,7 @@ class BIDSVariableCollection(object):
 
         Parameters
         ----------
-        df : :obj:`pandas.DataFrame`
+        data : :obj:`pandas.DataFrame`
             The DataFrame to convert to a Collection. Each
             column will be converted to a SimpleVariable.
         entities : :obj:`pandas.DataFrame`

@@ -71,6 +71,7 @@ class RunNode(Node):
 # Stores key information for each Run.
 RunInfo_ = namedtuple('RunInfo', ['entities', 'duration', 'tr', 'image'])
 
+
 # Wrap with class to provide docstring
 class RunInfo(RunInfo_):
     """ A namedtuple storing run-related information.
@@ -103,7 +104,7 @@ class NodeIndex(object):
         merge : bool
             If True, variables are merged across all observations
             of the current unit. E.g., if unit='subject' and return_type=
-            'collection', variablesfrom all subjects will be merged into a
+            'collection', variables from all subjects will be merged into a
             single collection. If False, each observation is handled
             separately, and the result is returned as a list.
         sampling_rate : int or str
@@ -217,9 +218,9 @@ class NodeIndex(object):
         level : str
             The level of analysis of the new Node.
         entities : dict
-            Dictionary of entities belonging to Node
+            Dictionary of entities belonging to Node.
         args, kwargs : dict
-            Optional positional or named arguments to pass onto
+            Optional positional or named arguments to pass on to
             class-specific initializers. These arguments are only used if
             a Node that matches the passed entities doesn't already exist,
             and a new one must be created.
@@ -252,7 +253,7 @@ class NodeIndex(object):
             Dictionary of entities to include in newly-created
             Nodes or filter existing ones.
         args, kwargs : dict
-            Optional positional or named arguments to pass onto
+            Optional positional or named arguments to pass on to
             class-specific initializers. These arguments are only used if
             a Node that matches the passed entities doesn't already exist,
             and a new one must be created.

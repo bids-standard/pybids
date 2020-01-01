@@ -52,7 +52,7 @@ def list_to_str(lst):
     Returns
     -------
     str_ : :obj:`str`
-        A string with commas and/or ands separating th elements from ``lst``.
+        A string with commas and/or ands separating the elements from ``lst``.
 
     """
     if len(lst) == 1:

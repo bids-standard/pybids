@@ -141,7 +141,7 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
         The scope of the space to search for variables. See
         docstring for BIDSLayout for details and valid predefined values.
     selectors : dict
-        Optional keyword arguments passed onto the
+        Optional keyword arguments passed on to the
         BIDSLayout instance's get() method; can be used to constrain
         which data are loaded.
 
@@ -241,11 +241,11 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
                     if (_data['amplitude'].astype(int) == 1).all() and \
                             'trial_type' in _data.columns:
                         msg = ("Column 'amplitude' with constant value 1 "
-                                "is unnecessary in event files; ignoring it.")
+                               "is unnecessary in event files; ignoring it.")
                         _data = _data.drop('amplitude', axis=1)
                     else:
                         msg = ("Column name 'amplitude' is reserved; "
-                                "renaming it to 'amplitude_'.")
+                               "renaming it to 'amplitude_'.")
                         _data = _data.rename(
                             columns={'amplitude': 'amplitude_'})
                     warnings.warn(msg)
