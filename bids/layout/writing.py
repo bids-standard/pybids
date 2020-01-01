@@ -74,7 +74,7 @@ def build_path(entities, path_patterns, strict=False):
         surrounded by curly braces. Optional portions of the patterns
         should be denoted by square brackets. Entities that require a
         specific value for the pattern to match can pass them inside
-        carets. Default values can be assigned by specifying a string after
+        angle brackets. Default values can be assigned by specifying a string after
         the pipe operator. E.g., (e.g., {type<image>|bold} would only match
         the pattern if the entity 'type' was passed and its value is
         "image", otherwise the default value "bold" will be used).
