@@ -323,6 +323,8 @@ class BIDSRunVariableCollection(BIDSVariableCollection):
                     if self.sampling_rate == sampling_rate:
                         _variables[name] = var
                         continue
+                else:
+                    continue
 
             _var = var.resample(sampling_rate,
                                 inplace=in_place,
