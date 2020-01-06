@@ -1537,6 +1537,7 @@ class BIDSLayout(object):
         strict : bool
             If True, all entities must be matched inside a
             pattern in order to be a valid match. If False, extra entities
+            will be ignored so long as all mandatory entities are found.
         validate : bool
             If True, built path must pass BIDS validator. If
             False, no validation is attempted, and an invalid path may be
