@@ -207,7 +207,7 @@ def glover_dispersion_derivative(tr, oversampling=50, time_length=32.,
 
 
 def _sample_condition(exp_condition, frame_times, oversampling=50,
-                     min_onset=-24):
+                      min_onset=-24):
     """Make a possibly oversampled event regressor from condition information.
 
     Parameters
@@ -217,7 +217,7 @@ def _sample_condition(exp_condition, frame_times, oversampling=50,
         (onsets, durations, amplitudes) triplet
     frame_times : array of shape(n_scans)
         sample time points
-    over_sampling : int, optional
+    oversampling : int, optional
         factor for oversampling event regressor
     min_onset : float, optional
         minimal onset relative to frame_times[0] (in seconds)
@@ -305,7 +305,7 @@ def _orthogonalize(X):
 
     Notes
     -----
-    X is changed in place. The columns are not normalized
+    X is changed in place. The columns are not normalized.
     """
     if X.size == X.shape[0]:
         return X
@@ -324,7 +324,7 @@ def _regressor_names(con_name, hrf_model, fir_delays=None):
     con_name: string
         identifier of the condition
     hrf_model: string or None,
-       hrf model chosen
+        hrf model chosen
     fir_delays: 1D array_like, optional,
         Delays used in case of an FIR model
 
@@ -455,7 +455,7 @@ def compute_regressor(exp_condition, hrf_model, frame_times, con_id='cond',
     hr_regressor, hr_frame_times = _sample_condition(
         exp_condition, frame_times, oversampling, min_onset)
 
-    # 2. create the  hrf model(s)
+    # 2. create the hrf model(s)
     hkernel = _hrf_kernel(hrf_model, tr, oversampling, fir_delays)
 
     # 3. convolve the regressor and hrf, and downsample the regressor
@@ -466,7 +466,7 @@ def compute_regressor(exp_condition, hrf_model, frame_times, con_id='cond',
     computed_regressors = _resample_regressor(
         conv_reg, hr_frame_times, frame_times)
 
-    # 5. ortogonalize the regressors
+    # 5. orthogonalize the regressors
     if hrf_model != 'fir':
         computed_regressors = _orthogonalize(computed_regressors)
 

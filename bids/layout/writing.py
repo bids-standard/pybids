@@ -142,7 +142,7 @@ def write_contents_to_file(path, contents=None, link_to=None,
         One of 'fail', 'skip', 'overwrite', or 'append'
         that defines the desired action when the output path already
         exists. 'fail' raises an exception; 'skip' does nothing;
-        'overwrite' overwrites the existing file; 'append' adds  a suffix
+        'overwrite' overwrites the existing file; 'append' adds a suffix
         to each file copy, starting with 1. Default is 'fail'.
     """
 

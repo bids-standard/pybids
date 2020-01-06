@@ -27,7 +27,7 @@ def auto_model(layout, scan_length=None, one_vs_rest=False):
     layout : :obj:`bids.layout.BIDSLayout`
         A BIDSLayout instance
     scan_length : int
-        Scan length for loading event varibles in cases
+        Scan length for loading event variables in cases
         where the scan length can not be read from the nifti.
         Primarily for testing.
     one_vs_rest : bool
@@ -76,7 +76,7 @@ def auto_model(layout, scan_length=None, one_vs_rest=False):
         run["Model"] = run_model
 
         if one_vs_rest:
-            # if there are multiple trial types, build contrasts
+            # If there are multiple trial types, build contrasts
             contrasts = []
             for i, tt in enumerate(trial_types):
                 cdict = OrderedDict()

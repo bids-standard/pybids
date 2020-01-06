@@ -129,7 +129,7 @@ class BIDSLayoutIndexer(object):
                 d = os.path.join(dirpath, d)
                 self._index_dir(d, list(config), default_action=default)
 
-            # prevent subdirectory traversal
+            # Prevent subdirectory traversal
             break
 
     def _index_file(self, f, dirpath, entities, default_action=None):

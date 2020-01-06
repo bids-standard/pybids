@@ -72,12 +72,12 @@ def from_file(filenames, error_on_missing=True):
 
 
 def reset_options(update_from_file=False):
-    ''' Reset all options to the package defaults.
+    """ Reset all options to the package defaults.
 
     Args:
         update_from_file (bool): If True, re-applies any config files found in
             standard locations.
-    '''
+    """
     global _settings
     _settings = _default_settings.copy()
     if update_from_file:

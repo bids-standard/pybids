@@ -392,8 +392,8 @@ class BIDSLayout(object):
 
     def _init_db(self, database_path=None, reset_database=False):
         database_file, database_sidecar = self._make_db_paths(database_path)
-        # Reset database if needed and return whether or not it was reset
-        # determining if the database needs resetting must be done prior
+        # Reset database if needed and return whether or not it was reset.
+        # Determining if the database needs resetting must be done prior
         # to setting the session (which creates the empty database file)
         reset_database = (
             reset_database or  # Manual Request
@@ -559,7 +559,7 @@ class BIDSLayout(object):
         """Save the current index as a SQLite3 DB at the specified location.
 
         Note: This is only necessary if a database_path was not specified
-        at initalization, and the user now wants to save the index.
+        at initialization, and the user now wants to save the index.
         If a database_path was specified originally, there is no need to
         re-save using this method.
 
@@ -714,7 +714,7 @@ class BIDSLayout(object):
         parent_database_path : str
             If not None, use the pipeline name from the dataset_description.json
             file as the database folder name to nest within the parent database
-            folder name to write out derivatie index to.
+            folder name to write out derivative index to.
         kwargs : dict
             Optional keyword arguments to pass on to
             BIDSLayout() when initializing each of the derivative datasets.
@@ -850,10 +850,10 @@ class BIDSLayout(object):
             nodes/directories that match the specified scope will be
             searched. Possible values include:
             'all' (default): search all available directories.
-            'derivatives': search all derivatives directories
-            'raw': search only BIDS-Raw directories
-            'self': search only the directly called BIDSLayout
-            <PipelineName>: the name of a BIDS-Derivatives pipeline
+            'derivatives': search all derivatives directories.
+            'raw': search only BIDS-Raw directories.
+            'self': search only the directly called BIDSLayout.
+            <PipelineName>: the name of a BIDS-Derivatives pipeline.
         regex_search : bool or None, optional
             Whether to require exact matching
             (False) or regex search (True) when comparing the query string
@@ -1072,7 +1072,7 @@ class BIDSLayout(object):
             observation is handled separately, and the result is returned
             as a list.
         sampling_rate : int or str
-            If level='run', the sampling rate to pass onto the returned
+            If level='run', the sampling rate to pass on to the returned
             :obj:`bids.variables.kollekshuns.BIDSRunVariableCollection`.
         skip_empty : bool
             Whether or not to skip empty Variables (i.e., where there are no
@@ -1491,7 +1491,7 @@ class BIDSLayout(object):
                 'fail': raises an exception
                 'skip' does nothing
                 'overwrite': overwrites the existing file
-                'append': adds  a suffix to each file copy, starting with 1
+                'append': adds a suffix to each file copy, starting with 1
         kwargs : dict
             Optional key word arguments to pass into a get() query.
         """
@@ -1533,7 +1533,7 @@ class BIDSLayout(object):
                 'fail': raises an exception
                 'skip' does nothing
                 'overwrite': overwrites the existing file
-                'append': adds  a suffix to each file copy, starting with 1
+                'append': adds a suffix to each file copy, starting with 1
         strict : bool
             If True, all entities must be matched inside a
             pattern in order to be a valid match. If False, extra entities

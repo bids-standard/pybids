@@ -250,7 +250,7 @@ class BIDSFile(Base):
         Parameters
         ----------
         path_patterns : list
-            List of patterns use to construct the new
+            List of patterns used to construct the new
             filename. See :obj:`build_path` documentation for details.
         symbolic_link : bool
             If True, use a symbolic link to point to the
@@ -537,7 +537,7 @@ class Entity(Base):
 
 
 class Tag(Base):
-    """Represents an association between a File and and Entity.
+    """Represents an association between a File and an Entity.
 
     Parameters
     ----------

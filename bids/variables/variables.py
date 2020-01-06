@@ -609,7 +609,7 @@ def merge_variables(variables, name=None, **kwargs):
 
     Notes
     -----
-    - Currently, this function only support homogenously-typed lists. In
+    - Currently, this function only support homogeneously-typed lists. In
       future, it may be extended to support implicit conversion.
     - Variables in the list must all share the same name (i.e., it is not
       possible to merge two different variables into a single variable.)
