@@ -487,7 +487,7 @@ class BIDSLayout(object):
         # We assume something is a BIDS-derivatives dataset if it either has a
         # defined pipeline name, or is applying the 'derivatives' rules.
         pl_name = self.description.get("PipelineDescription", {}).get("Name")
-        is_deriv = bool(pl_name or ('derivatives' in self.config))
+        is_deriv = bool('derivatives' in self.config)
 
         return ((not is_deriv and 'raw' in scope) or
                 (is_deriv and ('derivatives' in scope or pl_name in scope)))
