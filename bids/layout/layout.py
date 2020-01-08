@@ -299,11 +299,11 @@ class BIDSLayout(object):
 
     def __repr__(self):
         """Provide a tidy summary of key properties."""
-        # TODO: Replace each nested list comprehension with a single DB query
-        subjects = [s.value for s in self.session.query(Tag).filter_by(
-                entity_name='subject').group_by(Tag._value)]
-
-        n_subjects = len(subjects)
+        n_subjects = len(
+            [s.value
+             for s in self.session.query(Tag).filter_by(
+                 entity_name='subject').group_by(Tag._value)]
+            )
 
         n_sessions = len(
             set(
