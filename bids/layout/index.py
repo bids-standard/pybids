@@ -168,15 +168,12 @@ class BIDSLayoutIndexer(object):
     def index_metadata(self, **filters):
         """Index metadata for all files in the BIDS dataset. """
         if filters:
-            default_ext = ['[.]+']
             # ensure we are returning objects
             filters['return_type'] = 'object'
             # until 0.11.0, user can specify extension or extensions
-            if filters.get('extension'):
-                ext_key = 'extension'
-            elif filters.get('extensions'):
-                ext_key = 'extensions'
-            else:
+            ext_key = 'extensions' if 'extensions' in filters else 'extension'
+            if not filters.get(ext_key):
+                default_ext = ['[.]+']
                 ext_key = 'extension'
                 msg = (
                     "You should explicitly set the extension argument. "
@@ -188,8 +185,7 @@ class BIDSLayoutIndexer(object):
                 filters[ext_key] = default_ext
                 filters['regex_search'] = True
             # ensure extension argument is a list
-            if isinstance(filters.get(ext_key), str):
-                filters[ext_key] = [filters[ext_key]]
+            filters[ext_key] = listify(filters[ext_key])
             # ensure json files are being indexed
             if 'json' not in filters[ext_key]:
                 filters[ext_key].append('json')
