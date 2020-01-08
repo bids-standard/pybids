@@ -319,7 +319,7 @@ class BIDSRunVariableCollection(BIDSVariableCollection):
                 continue
             if isinstance(var, SparseRunVariable):
                 if force_dense and is_numeric_dtype(var.values):
-                    var = var.to_dense(self.sampling_rate)
+                    var = var.to_dense()
                     _variables[name] = var
                 else:
                     continue
