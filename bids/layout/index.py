@@ -172,23 +172,11 @@ class BIDSLayoutIndexer(object):
             filters['return_type'] = 'object'
             # until 0.11.0, user can specify extension or extensions
             ext_key = 'extensions' if 'extensions' in filters else 'extension'
-            if not filters.get(ext_key):
-                default_ext = ['[.]+']
-                ext_key = 'extension'
-                msg = (
-                    "You should explicitly set the extension argument. "
-                    "We set the extension argument to match all extensions: "
-                    "{ext} for convienence"
-                    ", but this may not be correct for your use case."
-                ).format(ext=default_ext)
-                warnings.warn(msg, SyntaxWarning)
-                filters[ext_key] = default_ext
-                filters['regex_search'] = True
-            # ensure extension argument is a list
-            filters[ext_key] = listify(filters[ext_key])
-            # ensure json files are being indexed
-            if 'json' not in filters[ext_key]:
-                filters[ext_key].append('json')
+            if filters.get(ext_key, None):
+                filters[ext_key] = listify(filters[ext_key])
+                # ensure json files are being indexed
+                if 'json' not in filters[ext_key]:
+                    filters[ext_key].append('json')
 
         # Process JSON files first if we're indexing metadata
         all_files = self.layout.get(absolute_paths=True, **filters)
