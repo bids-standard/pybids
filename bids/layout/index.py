@@ -172,7 +172,7 @@ class BIDSLayoutIndexer(object):
             filters['return_type'] = 'object'
             # until 0.11.0, user can specify extension or extensions
             ext_key = 'extensions' if 'extensions' in filters else 'extension'
-            if filters.get(ext_key, None):
+            if filters.get(ext_key):
                 filters[ext_key] = listify(filters[ext_key])
                 # ensure json files are being indexed
                 if 'json' not in filters[ext_key]:
