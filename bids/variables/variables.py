@@ -8,6 +8,7 @@ from copy import deepcopy
 from abc import abstractmethod, ABCMeta
 from bids.utils import listify
 from itertools import chain
+from functools import reduce
 from bids.utils import matches_entities
 
 class BIDSVariable(metaclass=ABCMeta):
@@ -362,19 +363,28 @@ class SparseRunVariable(SimpleVariable):
         """Return the total duration of the Variable's run(s). """
         return sum([r.duration for r in self.run_info])
 
-    def to_dense(self, sampling_rate):
+    def to_dense(self, sampling_rate=None):
         """Convert the current sparse column to a dense representation.
+
+        If sampling_rate is not provided, the largest interval able to
+        faithfully represent all onsets and durations will be determined.
+        The sampling rate is the reciprocal of that interval.
 
         Parameters
         ----------
-        sampling_rate : int or str
-            Sampling rate (in Hz) to use when
-            constructing the DenseRunVariable.
+        sampling_rate : float or None
+            Sampling rate (in Hz) to use when constructing the DenseRunVariable.
 
         Returns
         -------
         DenseRunVariable
         """
+        if sampling_rate is None:
+            # Cast onsets and durations to milliseconds
+            onsets = np.round(self.onset * 1000).astype(int)
+            durations = np.round(self.duration * 1000).astype(int)
+            sampling_rate = 1000. / reduce(math.gcd, [*onsets, *durations])
+
         duration = int(math.ceil(sampling_rate * self.get_duration()))
         ts = np.zeros(duration, dtype=self.values.dtype)
 
