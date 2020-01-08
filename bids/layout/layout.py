@@ -300,11 +300,25 @@ class BIDSLayout(object):
     def __repr__(self):
         """Provide a tidy summary of key properties."""
         # TODO: Replace each nested list comprehension with a single DB query
-        n_sessions = len([session for isub in self.get_subjects()
-                          for session in self.get_sessions(subject=isub)])
-        n_runs = len([run for isub in self.get_subjects()
-                      for run in self.get_runs(subject=isub)])
-        n_subjects = len(self.get_subjects())
+        subjects = [s.value for s in self.session.query(Tag).filter_by(
+                entity_name='subject').group_by(Tag._value)]
+
+        n_subjects = len(subjects)
+
+        n_sessions = len(
+            set(
+                [(t.value, t.file.entities.get('subject'))
+                 for t in
+                 self.session.query(Tag).filter_by(entity_name='session')])
+            )
+
+        n_runs = len(
+            set(
+                [(t.value, t.file.entities.get('subject'))
+                 for t in
+                 self.session.query(Tag).filter_by(entity_name='run')])
+            )
+
         root = self.root[-30:]
         s = ("BIDS Layout: ...{} | Subjects: {} | Sessions: {} | "
              "Runs: {}".format(root, n_subjects, n_sessions, n_runs))
