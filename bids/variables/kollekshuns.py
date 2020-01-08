@@ -319,16 +319,18 @@ class BIDSRunVariableCollection(BIDSVariableCollection):
                 continue
             if isinstance(var, SparseRunVariable):
                 if force_dense and is_numeric_dtype(var.values):
-                    _variables[name] = var.to_dense(sampling_rate)
-            else:
-                # None if in_place; no update needed
-                _var = var.resample(sampling_rate,
-                                    inplace=in_place,
-                                    kind=kind)
-                if not in_place:
-                    _variables[name] = _var
+                    var = var.to_dense()
+                    _variables[name] = var
+                else:
+                    continue
 
-        if in_place:
+            _var = var.resample(sampling_rate,
+                                inplace=in_place,
+                                kind=kind)
+            if not in_place:  # None if in_place; no update needed
+                _variables[name] = _var
+
+        if in_place:  # Replace densified variables
             for k, v in _variables.items():
                 self.variables[k] = v
             self.sampling_rate = sampling_rate
