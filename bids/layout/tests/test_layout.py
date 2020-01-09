@@ -12,6 +12,7 @@ import pytest
 import bids
 from bids.layout import (BIDSLayout, parse_file_entities, add_config_paths,
                          Query)
+from bids.layout.index import BIDSLayoutIndexer
 from bids.layout.models import Entity, Config
 from bids.tests import get_test_data_path
 from bids.utils import natural_sort
@@ -19,6 +20,28 @@ from bids.utils import natural_sort
 
 def test_layout_init(layout_7t_trt):
     assert isinstance(layout_7t_trt.files, dict)
+
+
+@pytest.mark.parametrize(
+    'index_metadata,query,result',
+    [
+        (True, None, 3.0),
+        (False, None, None),
+        (False, {}, 3.0),
+        (False, {'task': 'rest'}, 3.0),
+        (False, {'task': 'rest', 'extension': ['nii.gz']}, 3.0),
+        (False, {'task': 'rest', 'extension': 'nii.gz'}, 3.0),
+        (False, {'task': 'rest', 'extension': ['nii.gz', 'json'], 'return_type': 'file'}, 3.0),
+    ])
+def test_index_metadata(index_metadata, query, result):
+    data_dir = join(get_test_data_path(), '7t_trt')
+    layout = BIDSLayout(data_dir, index_metadata=index_metadata)
+    if not index_metadata and query is not None:
+        indexer = BIDSLayoutIndexer(layout)
+        indexer.index_metadata(**query)
+    sample_file = layout.get(task='rest', extension='nii.gz', acq='fullbrain')[0]
+    metadata = sample_file.get_metadata()
+    assert metadata.get('RepetitionTime') == result
 
 
 def test_layout_repr(layout_7t_trt):
