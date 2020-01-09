@@ -2,7 +2,6 @@
 
 import os
 import json
-import warnings
 from collections import defaultdict
 from bids_validator import BIDSValidator
 from .models import Config, Entity, Tag, FileAssociation
