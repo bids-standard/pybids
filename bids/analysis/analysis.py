@@ -9,7 +9,8 @@ import pandas as pd
 
 from bids.layout import BIDSLayout
 from bids.utils import matches_entities, convert_JSON
-from bids.variables import BIDSVariableCollection, merge_collections
+from bids.variables import (BIDSVariableCollection, SparseRunVariable,
+                            merge_collections)
 from bids.analysis import transformations as tm
 from .model_spec import create_model_spec
 
@@ -519,4 +520,13 @@ class AnalysisNode(object):
             raise ValueError("Cannot generate a ModelSpec instance; no "
                              "BIDS-StatsModels model specification found!")
 
-        return create_model_spec(self.collection, model)
+        if self.collection.all_dense():
+            collection = self.collection
+        else:
+            # TODO: move this logic to a to_dense() method in the Collection
+            collection = self.collection.clone()
+            sr = self.collection.sampling_rate
+            for name, var in collection.variables.items():
+                if isinstance(var, SparseRunVariable):
+                    collection.variables[name] = var.to_dense(sr)
+            return create_model_spec(collection, model)

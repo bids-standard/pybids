@@ -169,3 +169,6 @@ def test_get_model_spec(analysis):
     node = analysis['run'].get_nodes(subject='01', run=1)[0]
     model_spec = node.get_model_spec()
     assert model_spec.__class__.__name__ == 'GLMMSpec'
+    assert model_spec.X.shape == (4800, 2)
+    assert model_spec.Z is None
+    assert {'trial_type', 'RT'} == set(model_spec.terms.keys())

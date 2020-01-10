@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np
 
 from bids.variables import BIDSRunVariableCollection
+from bids.utils import convert_JSON
 
 
 def create_model_spec(collection, model):
@@ -89,7 +90,7 @@ s
             with the name taken from the column name.
         """
         for col in X.columns:
-            data = X.loc[:, col]
+            data = X.loc[:, col].values
             cat = data.dtype.name in ('str', 'category', 'object')
             # TODO: get default prior
             t = Term(col, data, categorical=cat)
@@ -147,8 +148,8 @@ s
         """Return X design matrix (i.e., fixed component of model)."""
         if not self.fixed_terms:
             return None
-        names, cols = zip([(c.name, c.values) for c in self.fixed_terms])
-        return pd.DataFrame(np.concatenate(cols, axis=1), columns=names)
+        names, cols = zip(*[(c.name, c.values) for c in self.fixed_terms])
+        return pd.DataFrame(np.c_[cols], columns=names)
 
     @property
     def Z(self):
@@ -198,24 +199,25 @@ s
         kwargs = {}
 
         # Fixed terms
-        names = model.get('X', [])
+        model = convert_JSON(model)
+        names = model.get('x', [])
         if names:
             names = collection.match_variables(names)
             X = collection.to_df(names).loc[:, names]
             kwargs['X'] = X
 
         # Variance components
-        vcs = model.get('VarianceComponents', [])
+        vcs = model.get('variance_components', [])
         Z_list = []
         if vcs:
             for vc in vcs:
                 # Levels can either be defined by the levels of a single
                 # categorical ("LevelsFrom") or by a set of binary variables.
-                if 'LevelsFrom' in vc:
-                    data = collection.variables[vc['LevelsFrom']].values
+                if 'levels_from' in vc:
+                    data = collection.variables[vc['levels_from']].values
                     Z_list.append(pd.get_dummies(data).values)
                 else:
-                    names = collection.match_variables(vc['Levels'])
+                    names = collection.match_variables(vc['levels'])
                     df = collection.to_df(names).loc[:, names]
                     Z_list.append(df.values)
 
@@ -226,15 +228,15 @@ s
                 n = vc.shape[1]
                 groups[c:(c+n), i] = 1
                 c += n
-            groups = pd.DataFrame(groups, columns=[vc['Name'] for vc in vcs])
+            groups = pd.DataFrame(groups, columns=[vc['name'] for vc in vcs])
 
             kwargs['Z'] = Z
             kwargs['groups'] = groups
-        
-        error = model.get('Error')
+
+        error = model.get('error')
         if error:
-            kwargs['family'] = error.get('Family')
-            kwargs['link'] = error.get('Link')
+            kwargs['family'] = error.get('family')
+            kwargs['link'] = error.get('link')
 
         return GLMMSpec(**kwargs)
 
