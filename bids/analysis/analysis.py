@@ -262,7 +262,8 @@ class Step(object):
             level='run', each element in the list represents the AnalysisNode
             for a single run).
         """
-        return self._filter_objects(self.output_nodes, filters)
+        nodes, _ = self._filter_objects(self.output_nodes, filters)
+        return nodes
 
     def get_contrasts(self, names=None, variables=None, **kwargs):
         """Return contrast information for the current step.

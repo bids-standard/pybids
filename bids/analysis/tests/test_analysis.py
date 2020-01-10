@@ -1,6 +1,6 @@
 from os.path import join
 from bids.analysis import Analysis
-from bids.analysis.analysis import ContrastInfo, DesignMatrixInfo
+from bids.analysis.analysis import ContrastInfo
 from bids.layout import BIDSLayout
 from bids.tests import get_test_data_path
 import numpy as np
@@ -17,92 +17,72 @@ def analysis():
     return analysis
 
 
-def test_design_matrix_info(analysis):
-    result = analysis['run'].get_design_matrix(subject=['01', '02', '03'])
-    for dmi in result:
-        assert isinstance(dmi, DesignMatrixInfo)
-        assert dmi._fields == ('sparse', 'dense', 'entities')
-        assert hasattr(dmi.sparse, 'shape')
-        assert dmi.dense is None
-        assert isinstance(dmi.entities, dict)
-
-
 def test_get_design_matrix_arguments(analysis):
     kwargs = dict(run=1, subject='01', sparse=True)
-    result = analysis['run'].get_design_matrix(**kwargs)
-    result = result[0]
-    assert result.sparse.shape == (172, 9)
-    assert result.dense is None
+    nodes = analysis['run'].get_nodes(**kwargs)
+    assert len(nodes) == 1
+    result = nodes[0].get_design_matrix(mode='sparse')
+    assert result.shape == (172, 9)
 
-    kwargs = dict(run=1, subject='01', mode='dense', force=False)
-    result = analysis['run'].get_design_matrix(**kwargs)[0]
-    assert result.sparse is None
-    assert result.dense is None
+    result = nodes[0].get_design_matrix(mode='dense', force=False)
+    assert result is None
 
-    kwargs = dict(run=1, subject='01', mode='dense', force=True,
-                  sampling_rate='highest')
-    result = analysis['run'].get_design_matrix(**kwargs)[0]
-    assert result.sparse is None
-    assert result.dense.shape == (4800, 10)
+    result = nodes[0].get_design_matrix(mode='dense', force=True,
+                                        sampling_rate='highest')
+    assert result.shape == (4800, 10)
 
-    kwargs = dict(run=1, subject='01', mode='dense', force=True,
-                  sampling_rate='TR')
-    result = analysis['run'].get_design_matrix(**kwargs)[0]
-    assert result.sparse is None
-    assert result.dense.shape == (240, 10)
+    result = nodes[0].get_design_matrix(mode='dense', force=True,
+                                        sampling_rate='TR')
+    assert result.shape == (240, 10)
 
-    kwargs = dict(run=1, subject='01', mode='dense', force=True,
-                  sampling_rate=0.5)
-    result = analysis['run'].get_design_matrix(**kwargs)[0]
-    assert result.sparse is None
-    assert result.dense.shape == (240, 10)
+    result = nodes[0].get_design_matrix(mode='dense', force=True,
+                                        sampling_rate=0.5)
+    assert result.shape == (240, 10)
 
     # format='long' should be ignored for dense output
-    kwargs = dict(run=1, subject='01', mode='dense', force=True,
-                  format='long', entities=False)
-    result = analysis['run'].get_design_matrix(**kwargs)[0]
-    assert result.sparse is None
-    assert result.dense.shape == (240, 1)
+    result = nodes[0].get_design_matrix(mode='dense', force=True, format='long',
+                                        entities=False)
+    assert result.shape == (240, 1)
 
-    kwargs = dict(run=1, subject='01', mode='sparse', format='wide',
-                  entities=False)
-    result = analysis['run'].get_design_matrix(**kwargs)[0]
-    assert result.dense is None
-    assert result.sparse.shape == (86, 4)
+    result = nodes[0].get_design_matrix(mode='sparse', format='wide',
+                                        entities=False)
+    assert result.shape == (86, 4)
 
 
 def test_first_level_sparse_design_matrix(analysis):
-    result = analysis['run'].get_design_matrix(subject=['01'])
-    assert len(result) == 3
-    df = result[0].sparse
+    nodes = analysis['run'].get_nodes(subject=['01'])
+    assert len(nodes) == 3
+    df = nodes[0].get_design_matrix(mode='sparse')
     assert df.shape == (172, 9)
     assert df['condition'].nunique() == 2
-    assert set(result[0][0].columns) == {'amplitude', 'onset', 'duration',
+    assert set(df.columns) == {'amplitude', 'onset', 'duration',
                                          'condition', 'subject', 'run',
                                          'task', 'datatype', 'suffix'}
 
 
 def test_post_first_level_sparse_design_matrix(analysis):
 
-    result = analysis['session'].get_design_matrix(entities=False)
-    assert len(result) == 2
-    assert len(result[0]) == 3
-    assert result[0].sparse.shape == (9, 2)
-    assert result[0].entities == {
+    nodes = analysis['session'].get_nodes()
+    assert len(nodes) == 2
+    result = nodes[0].get_design_matrix(mode='sparse')
+    assert result.shape == (9, 7)
+    result = nodes[0].get_design_matrix(mode='sparse', entities=False)
+    assert result.shape == (9, 2)
+    assert nodes[0].entities == {
         'subject': '01',
         'task': 'mixedgamblestask',
         'datatype': 'func',
         'suffix': 'bold'}
 
     # Participant level and also check integer-based indexing
-    result = analysis['participant'].get_design_matrix()
-    assert len(result) == 2
+    nodes = analysis['participant'].get_nodes()
+    assert len(nodes) == 2
     assert analysis[2].name == 'participant'
 
     # Dataset level
-    result = analysis['group'].get_design_matrix()
-    assert len(result) == 1
-    data = result[0].sparse
+    nodes = analysis['group'].get_nodes()
+    assert len(nodes) == 1
+    data = nodes[0].get_design_matrix(mode='sparse')
     assert len(data) == 10
     assert data['subject'].nunique() == 2
 
