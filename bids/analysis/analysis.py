@@ -169,6 +169,9 @@ class Step(object):
         return list(groups.values())
 
     def _concatenate_input_nodes(self, nodes):
+        # Creates a new BIDSVariableCollection that has each node as a row
+        # and each contrast as a column. Values are always 1, as this is just
+        # a pass-through for data from the previous level.
         data, entities = [], []
         for n in nodes:
             contrasts = [c.name for c in n.contrasts]
@@ -208,7 +211,9 @@ class Step(object):
                                                   **kwargs)
         objects = collections + input_nodes
 
+        # Keep only objects that match the specified kwargs
         objects, _ = self._filter_objects(objects, kwargs)
+        # Group objects by unit of the current level (e.g., subject)
         groups = self._group_objects(objects)
 
         # Set up and validate variable lists
@@ -528,16 +533,13 @@ class AnalysisNode(object):
         return self._contrasts
 
 
-def apply_transformations(collection, transformations, select=None):
+def apply_transformations(collection, transformations):
     """Apply all transformations to the variables in the collection.
 
     Parameters
     ----------
     transformations : list
         List of transformations to apply.
-    select : list
-        Optional list of names of variables to retain after all
-        transformations are applied.
     """
     for t in transformations:
         kwargs = dict(t)
@@ -551,8 +553,5 @@ def apply_transformations(collection, transformations, select=None):
                 raise ValueError("No transformation '%s' found!" % func)
             func = getattr(transform, func)
             func(collection, cols, **kwargs)
-
-    if select is not None:
-        transform.Select(collection, select)
 
     return collection

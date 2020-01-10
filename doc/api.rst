@@ -73,7 +73,7 @@ API Reference
    bids.variables.merge_variables
    bids.variables.io
    bids.variables.entities
-   bids.variables.kollekshuns
+   bids.variables.collections
    bids.variables.variables
 
 .. currentmodule:: bids

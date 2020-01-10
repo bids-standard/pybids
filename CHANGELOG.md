@@ -274,7 +274,7 @@ This is a major release that introduces the following features:
 	* `bids.variables.entities.py`: Classes for representing BIDS hierarchies as a graph-like structure.
 	* `bids.variables.variables.py`: Classes and functions for representing and manipulating non-imaging data read from BIDS projects (e.g., fMRI events, densely-sampled physiological measures, etc.).
 	* `bids.variables.io.py`: Tools for loading variable data from BIDS projects.
-	* `bids.variables.kollekshuns`: Containers that facilitate aggregation and manipulation of `Variable` classes.
+	* `bids.variables.collections`: Containers that facilitate aggregation and manipulation of `Variable` classes.
 * Extensions to the `BIDSLayout` class that make it easy to retrieve data/variables from the project (i.e., `Layout.get_collections`)
 * A new `auto_model` utility that generates simple BIDS-Model specifications from BIDS projects (thanks to @Shotgunosine)
 * A new `reports` module that generates methods sections from metadata in BIDS projects (thanks to @tsalo)

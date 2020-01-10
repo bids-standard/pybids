@@ -5,7 +5,7 @@ from collections import namedtuple
 
 import pandas as pd
 
-from . import kollekshuns as clc
+from . import collections as clc
 from bids.utils import matches_entities
 
 
