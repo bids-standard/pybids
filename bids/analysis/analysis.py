@@ -168,7 +168,7 @@ class Step(object):
             groups[key].append(o)
         return list(groups.values())
 
-    def _concatenate_input_nodes(self, nodes):
+    def _input_nodes_to_collection(self, nodes):
         # Creates a new BIDSVariableCollection that contains each contrast
         # found in one or more of the input nodes as a SimpleVariable. Values
         # are always 1 when present and 0 when absent, as this is just a pass
@@ -189,13 +189,11 @@ class Step(object):
         Parameters
         ----------
         input_nodes : list
-            Optional list of Node objects produced by
-            the preceding Step in the analysis. If None, uses any inputs
-            passed in at Step initialization.
+            Optional list of Node objects produced by the preceding Step in the
+            analysis. If None, uses inputs passed at initialization (if any).
         drop_na : bool
-            Boolean indicating whether or not to automatically
-            drop events that have a n/a amplitude when reading in data
-            from event files.
+            Boolean indicating whether or not to automatically drop events that
+            have a n/a amplitude when reading in data from event files.
         kwargs : dict
             Optional keyword arguments to pass onto load_variables.
         """
@@ -214,7 +212,8 @@ class Step(object):
 
         # Keep only objects that match the specified kwargs
         objects, _ = self._filter_objects(objects, kwargs)
-        # Group objects by unit of the current level (e.g., subject)
+
+        # Group objects by unit of the current level (e.g., subject 1, 2, etc.)
         groups = self._group_objects(objects)
 
         # Set up and validate variable lists
@@ -226,13 +225,15 @@ class Step(object):
             input_nodes = [o for o in grp if isinstance(o, AnalysisNode)]
             colls = list(set(grp) - set(input_nodes))
 
+            # If we have input nodes, consolidate them as a single collection.
             if input_nodes:
-                node_coll = self._concatenate_input_nodes(input_nodes)
+                node_coll = self._input_nodes_to_collection(input_nodes)
                 colls.append(node_coll)
 
             coll = merge_collections(colls) if len(colls) > 1 else colls[0]
 
             coll = apply_transformations(coll, self.transformations)
+
             if X:
                 transform.Select(coll, X)
 
@@ -248,47 +249,43 @@ class Step(object):
         Parameters
         ----------
         names : list
-            Optional list of names of variables to include in the
-            returned design matrix. If None, all variables are included.
+            Optional list of names of variables to include in the returned
+            design matrix. If None, all variables are included.
         format : str
-            Whether to return the design matrix in 'long' or
-            'wide' format. Note that dense design matrices are always
-            returned in 'wide' format.
+            Whether to return the design matrix in 'long' or 'wide' format.
+            Note that dense design matrices are always returned in 'wide' format.
         mode : str
-            Specifies whether to return variables in a sparse
-            representation ('sparse'), dense representation ('dense'), or
-            both ('both').
+            Specifies whether to return variables in a sparse representation
+            ('sparse'), dense representation ('dense'), or both ('both').
         force : bool
-            Indicates how to handle columns not of the type
-            indicated by the mode argument. When False, variables of the
-            non-selected type will be silently ignored. When True,
-            variables will be forced to the desired representation. For
-            example, if mode='dense' and force=True, sparse variables will
-            be converted to dense variables and included in the returned
-            design matrix in the .dense attribute. The force argument is
-            ignored entirely if mode='both'.
+            Indicates how to handle columns not of the type indicated by the
+            mode argument. When False, variables of the non-selected type will
+            be silently ignored. When True, variables will be forced to the
+            desired representation. For example, if mode='dense' and
+            force=True, sparse variables will be converted to dense variables
+            and included in the returned design matrix in the .dense attribute.
+            The force argument is ignored entirely if mode='both'.
         sampling_rate : {'TR', 'highest'} or float
-            Sampling rate at which to
-            generate the dense design matrix. When 'TR', the repetition
-            time is used, if available, to select the sampling rate (1/TR).
-            When 'highest', all variables are resampled to the highest
-            sampling rate of any variable. The sampling rate may also be
-            specified explicitly in Hz. Has no effect on sparse design
+            Sampling rate at which to generate the dense design matrix. When
+            'TR', the repetition time is used, if available, to select the
+            sampling rate (1/TR). When 'highest', all variables are resampled
+            to the highest sampling rate of any variable. The sampling rate may
+            also be specified explicitly in Hz. Has no effect on sparse design
             matrices.
         kwargs : dict
-            Optional keyword arguments. Includes (1) selectors used
-            to constrain which of the available nodes get returned
-            (e.g., passing subject=['01', '02'] will return design
-            information only for subjects '01' and '02'), and (2) arguments
-            passed on to each Variable's to_df() call (e.g.,
-            sampling_rate, entities, timing, etc.).
+            Optional keyword arguments. Includes (1) selectors used to
+            constrain which of the available nodes get returned (e.g., passing
+            subject=['01', '02'] will return design information only for
+            subjects '01' and '02'), and (2) arguments passed on to each
+            Variable's to_df() call (e.g., sampling_rate, entities, timing,
+            etc.).
 
         Returns
         -------
         list of DesignMatrixInfo namedtuples
-            one tuple per unit of the current
-            analysis level (e.g., if level='run', each element in the list
-            represents the design matrix for a single run).
+            one tuple per unit of the current analysis level (e.g., if
+            level='run', each element in the list represents the design matrix
+            for a single run).
         """
         nodes, kwargs = self._filter_objects(self.output_nodes, kwargs)
         return [n.get_design_matrix(names, format, mode=mode, force=force,
@@ -301,12 +298,11 @@ class Step(object):
         Parameters
         ----------
         names : list
-            Optional list of names of contrasts to return. If
-            None (default), all contrasts are returned.
+            Optional list of names of contrasts to return. If None (default),
+            all contrasts are returned.
         variables : bool
-            Optional list of strings giving the names of
-            design matrix columns to use when generating the matrix of
-            weights.
+            Optional list of strings giving the names of design matrix columns
+            to use when generating the matrix of weights.
         kwargs : dict
             Optional keyword arguments used to constrain which of the
             available nodes get returned (e.g., passing subject=['01',
@@ -340,18 +336,17 @@ class AnalysisNode(object):
     Parameters
     ----------
     level : str
-        The level of the Node. Most be one of 'run', 'session',
-        'subject', or 'dataset'.
+        The level of the Node. Most be one of 'run', 'session', 'subject', or
+        'dataset'.
     collection : :obj:`bids.variables.kollekshuns.BIDSVariableCollection`
         The BIDSVariableCollection containing variables at this Node.
     contrasts : list
         A list of contrasts defined in the originating Step.
     dummy_contrasts : list
-        Optional dictionary specifying which conditions to create
-        indicator contrasts for. Dictionary must include a
-        "type" key ('t' or 'FEMA'), and optionally a subset of "conditions".
-        This parameter is over-written by the setting
-        in setup() if the latter is passed.
+        Optional dictionary specifying which conditions to create indicator
+        contrasts for. Dictionary must include a "type" key ('t' or 'FEMA'),
+        and optionally a subset of "conditions". This parameter is over-written
+        by the setting in setup() if the latter is passed.
     """
 
     def __init__(self, level, collection, contrasts, input_nodes=None,
