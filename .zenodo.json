@@ -47,13 +47,13 @@
       "orcid": "0000-0002-9794-749X"
     },
     {
-      "affiliation": "Institute for Problems of Information Transmission",
-      "name": "Petrov, Dmitry"
-    },
-    {
       "affiliation": "University of Iowa",
       "name": "Johnson, Hans",
       "orcid": "0000-0001-9513-2660"
+    },
+    {
+      "affiliation": "Institute for Problems of Information Transmission",
+      "name": "Petrov, Dmitry"
     },
     {
       "affiliation": "Concordia University",
@@ -211,6 +211,10 @@
       "affiliation": "Stanford University",
       "name": "Blair, Ross",
       "orcid": "0000-0003-3007-1056"
+    },
+    {
+      "name": "Janke, Andrew",
+      "orcid": "0000-0002-6314-9027"
     }
   ],
   "keywords": [

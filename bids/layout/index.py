@@ -129,7 +129,7 @@ class BIDSLayoutIndexer(object):
                 d = os.path.join(dirpath, d)
                 self._index_dir(d, list(config), default_action=default)
 
-            # prevent subdirectory traversal
+            # Prevent subdirectory traversal
             break
 
     def _index_file(self, f, dirpath, entities, default_action=None):
@@ -164,10 +164,32 @@ class BIDSLayoutIndexer(object):
         """Index all files in the BIDS dataset. """
         self._index_dir(self.root, self.config)
 
-    def index_metadata(self):
-        """Index metadata for all files in the BIDS dataset. """
+    def index_metadata(self, **filters):
+        """Index metadata for all files in the BIDS dataset.
+
+        Parameters
+        ----------
+
+        **filters
+            keyword arguments passed to the .get() method of a
+            :obj:`bids.layout.BIDSLayout` object.
+            These keyword arguments define what files get selected
+            for metadata indexing.
+        """
+        
+        if filters:
+            # ensure we are returning objects
+            filters['return_type'] = 'object'
+            # until 0.11.0, user can specify extension or extensions
+            ext_key = 'extensions' if 'extensions' in filters else 'extension'
+            if filters.get(ext_key):
+                filters[ext_key] = listify(filters[ext_key])
+                # ensure json files are being indexed
+                if 'json' not in filters[ext_key]:
+                    filters[ext_key].append('json')
+
         # Process JSON files first if we're indexing metadata
-        all_files = self.layout.get(absolute_paths=True)
+        all_files = self.layout.get(absolute_paths=True, **filters)
 
         # Track ALL entities we've seen in file names or metadatas
         all_entities = {}

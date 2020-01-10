@@ -74,7 +74,7 @@ def build_path(entities, path_patterns, strict=False):
         surrounded by curly braces. Optional portions of the patterns
         should be denoted by square brackets. Entities that require a
         specific value for the pattern to match can pass them inside
-        carets. Default values can be assigned by specifying a string after
+        angle brackets. Default values can be assigned by specifying a string after
         the pipe operator. E.g., (e.g., {type<image>|bold} would only match
         the pattern if the entity 'type' was passed and its value is
         "image", otherwise the default value "bold" will be used).
@@ -142,7 +142,7 @@ def write_contents_to_file(path, contents=None, link_to=None,
         One of 'fail', 'skip', 'overwrite', or 'append'
         that defines the desired action when the output path already
         exists. 'fail' raises an exception; 'skip' does nothing;
-        'overwrite' overwrites the existing file; 'append' adds  a suffix
+        'overwrite' overwrites the existing file; 'append' adds a suffix
         to each file copy, starting with 1. Default is 'fail'.
     """
 

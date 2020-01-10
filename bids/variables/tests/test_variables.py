@@ -82,6 +82,29 @@ def test_sparse_run_variable_to_dense(layout1):
         assert dense.source == 'events'
 
 
+def test_sparse_run_variable_to_dense_default_sr(layout1):
+    index = load_variables(layout1, types='events', scan_length=480)
+    runs = index.get_nodes('run', {'subject': ['01', '02']})
+
+    for i, run in enumerate(runs):
+        var = run.variables['RT']
+        dense = var.to_dense()
+
+        # Check that a sensible sampling rate was found
+        assert np.allclose(dense.sampling_rate, 1)
+
+        # Check that all unique values are identical
+        sparse_vals = set(np.unique(var.values.values)) | {0}
+        dense_vals = set(np.unique(dense.values.values))
+        assert sparse_vals == dense_vals
+
+        assert len(dense.values) > len(var.values)
+        assert isinstance(dense, DenseRunVariable)
+        assert dense.values.shape == (480, 1)
+        assert len(dense.run_info) == len(var.run_info)
+        assert dense.source == 'events'
+
+
 def test_merge_densified_variables(layout1):
     SR = 10
     dataset = load_variables(layout1, types='events', scan_length=480)

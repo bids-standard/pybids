@@ -67,3 +67,8 @@ def layout_synthetic(request, db_dir):
     database_path = str(db_dir / request.param) if request.param else None
     return BIDSLayout(path, derivatives=True,
                       database_path=database_path)
+
+@pytest.fixture(scope="module")
+def layout_synthetic_nodb(request, db_dir):
+    path = join(get_test_data_path(), 'synthetic')
+    return BIDSLayout(path, derivatives=True)
