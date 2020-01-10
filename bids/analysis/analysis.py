@@ -325,10 +325,6 @@ class Step(object):
         return [n.get_contrasts(names, variables) for n in nodes]
 
 
-DesignMatrixInfo = namedtuple('DesignMatrixInfo',
-                              ('sparse', 'dense', 'entities'))
-
-
 ContrastInfo = namedtuple('ContrastInfo', ('name', 'weights', 'type',
                                            'entities'))
 
@@ -350,15 +346,18 @@ class AnalysisNode(object):
         contrasts for. Dictionary must include a "type" key ('t' or 'FEMA'),
         and optionally a subset of "conditions". This parameter is over-written
         by the setting in setup() if the latter is passed.
+    model : dict
+        Optional BIDS-StatsModels model specification.
     """
 
     def __init__(self, level, collection, contrasts, input_nodes=None,
-                 dummy_contrasts=None):
+                 dummy_contrasts=None, model=None):
         self.level = level.lower()
         self.collection = collection
         self._step_contrasts = contrasts
         self.input_nodes = input_nodes
         self.dummy_contrasts = dummy_contrasts
+        self.model = model
         self._contrasts = None
 
     @property
@@ -371,23 +370,19 @@ class AnalysisNode(object):
             self.get_contrasts()
         return self._contrasts
 
-    def get_design_matrix(self, names=None, format='long', mode='both',
-                          force=False, sampling_rate='TR', **kwargs):
+    def get_design_matrix(self, format='long', mode='dense', force=False,
+                          sampling_rate='TR', **kwargs):
         """Get design matrix and associated information.
 
         Parameters
         ----------
-        names : list
-            Optional list of names of variables to include in the
-            returned design matrix. If None, all variables are included.
         format : str
             Whether to return the design matrix in 'long' or
             'wide' format. Note that dense design matrices are always
             returned in 'wide' format.
         mode : str
-            Specifies whether to return variables in a sparse
-            representation ('sparse'), dense representation ('dense'), or
-            both ('both').
+            Specifies whether to return variables in a 'sparse' or 'dense'
+            representation.
         force : bool
             Indicates how to handle columns not of the type
             indicated by the mode argument. When False, variables of the
@@ -395,8 +390,7 @@ class AnalysisNode(object):
             variables will be forced to the desired representation. For
             example, if mode='dense' and force=True, sparse variables will
             be converted to dense variables and included in the returned
-            design matrix in the .dense attribute. The force argument is
-            ignored entirely if mode='both'.
+            design matrix in the .dense attribute.
         sampling_rate : {'TR', 'highest'} or float
             Sampling rate at which to generate the dense design matrix. When
             'TR', the repetition time is used, if available, to select the
@@ -410,47 +404,46 @@ class AnalysisNode(object):
 
         Returns
         -------
-        A DesignMatrixInfo namedtuple.
+        A pandas DataFrame.
         """
-        sparse_df, dense_df = None, None
         coll = self.collection
 
+        # Outside of run level, 'dense' has no meaning
         if self.level != 'run' and mode != 'sparse':
             mode = 'sparse'
 
-        include_sparse = include_dense = (force and mode != 'both')
+        kwargs['sparse'] == mode == 'sparse'
 
-        if mode in ['sparse', 'both']:
-            kwargs['sparse'] = True
-            sparse_df = coll.to_df(names, format, include_dense=include_dense,
-                                   **kwargs)
+        if mode == 'sparse':
+            return coll.to_df(format=format, include_dense=force, **kwargs)
 
-        if mode in ['dense', 'both']:
+        elif mode == 'dense':
             # The current implementation of pivoting to wide in
             # BIDSVariableCollection.to_df() breaks if we don't have the
             # temporal columns to index on, so we force their inclusion first
             # and then drop them afterwards.
             kwargs['timing'] = True
-            kwargs['sparse'] = False
 
             if sampling_rate == 'TR':
-                trs = {var.run_info[0].tr for var in self.collection.variables.values()}
+                trs = {var.run_info[0].tr
+                       for var in self.collection.variables.values()}
                 if not trs:
-                    raise ValueError("Repetition time unavailable; specify sampling_rate "
-                                     "explicitly")
+                    raise ValueError("Repetition time unavailable; specify "
+                                     "sampling_rate in Hz explicitly or set to"
+                                     " 'highest'.")
                 elif len(trs) > 1:
-                    raise ValueError("Non-unique Repetition times found ({!r}); specify "
-                                     "sampling_rate explicitly")
+                    raise ValueError("Non-unique Repetition times found "
+                                     "({!r}); specify sampling_rate explicitly"
+                                     .format(trs))
                 sampling_rate = 1. / trs.pop()
             elif sampling_rate == 'highest':
                 sampling_rate = None
-            dense_df = coll.to_df(names, format='wide',
-                                  include_sparse=include_sparse,
-                                  sampling_rate=sampling_rate, **kwargs)
-            if dense_df is not None:
-                dense_df = dense_df.drop(['onset', 'duration'], axis=1)
 
-        return DesignMatrixInfo(sparse_df, dense_df, self.entities)
+            df = coll.to_df(format='wide', include_sparse=force,
+                                  sampling_rate=sampling_rate, **kwargs)
+            if df is not None:
+                df = df.drop(['onset', 'duration'], axis=1)
+            return df
 
     def get_contrasts(self, names=None, variables=None):
         """Return contrast information for the current step.

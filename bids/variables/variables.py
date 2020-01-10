@@ -500,7 +500,6 @@ class DenseRunVariable(BIDSVariable):
         if sampling_rate == self.sampling_rate:
             return
 
-        old_sr = self.sampling_rate
         n = len(self.index)
 
         self.index = self._build_entity_index(self.run_info, sampling_rate)
