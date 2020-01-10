@@ -45,7 +45,7 @@ class Analysis(object):
         level = index.lower()
         name_matches = list(filter(lambda x: x.name == level, self.steps))
         if not name_matches:
-            raise KeyError('There is no block with the name "%s".' % index)
+            raise KeyError('There is no step with the name "%s".' % index)
         return name_matches[0]
 
 
@@ -72,7 +72,7 @@ class Analysis(object):
         steps : list
             Optional list of steps to set up. Each element
             must be either an int giving the index of the step in the
-            JSON config block list, or a str giving the (unique) name of
+            JSON config step list, or a str giving the (unique) name of
             the step, as specified in the JSON config. Steps that do not
             match either index or name will be skipped.
         drop_na : bool
@@ -99,7 +99,7 @@ class Analysis(object):
 
 
 class Step(object):
-    """Represents a single analysis block from a BIDS-Model specification.
+    """Represents a single analysis step from a BIDS-Model specification.
 
     Parameters
     ----------
@@ -111,7 +111,7 @@ class Step(object):
     index : int
         The numerical index of the current Step within the sequence of steps.
     name : str
-        Optional name to assign to the block. Must be specified in order to
+        Optional name to assign to the step. Must be specified in order to
         enable name-based indexing in the parent Analysis.
     transformations : list
         List of BIDS-Model transformations to apply.
@@ -296,7 +296,7 @@ class Step(object):
                 for n in nodes]
 
     def get_contrasts(self, names=None, variables=None, **kwargs):
-        """Return contrast information for the current block.
+        """Return contrast information for the current step.
 
         Parameters
         ----------
@@ -356,7 +356,7 @@ class AnalysisNode(object):
                  dummy_contrasts=None):
         self.level = level.lower()
         self.collection = collection
-        self._block_contrasts = contrasts
+        self._step_contrasts = contrasts
         self.input_nodes = input_nodes
         self.dummy_contrasts = dummy_contrasts
         self._contrasts = None
@@ -453,7 +453,7 @@ class AnalysisNode(object):
         return DesignMatrixInfo(sparse_df, dense_df, self.entities)
 
     def get_contrasts(self, names=None, variables=None):
-        """Return contrast information for the current block.
+        """Return contrast information for the current step.
 
         Parameters
         ----------
@@ -477,7 +477,7 @@ class AnalysisNode(object):
         """
 
         # Verify that there are no invalid columns in the condition_lists
-        all_conds = [c['condition_list'] for c in self._block_contrasts]
+        all_conds = [c['condition_list'] for c in self._step_contrasts]
         all_conds = set(chain(*all_conds))
         bad_conds = all_conds - set(self.collection.variables.keys())
         if bad_conds:
@@ -485,7 +485,7 @@ class AnalysisNode(object):
                              " contrast condition lists: %s." % bad_conds)
 
         # Construct a list of all contrasts, including dummy contrasts
-        contrasts = list(self._block_contrasts)
+        contrasts = list(self._step_contrasts)
 
         # Check that all contrasts have unique name
         contrast_names = [c['name'] for c in contrasts]
