@@ -186,9 +186,6 @@ class BIDSVariableCollection(object):
         clone.variables = {k: v.clone() for (k, v) in self.variables.items()}
         return clone
 
-    def matches_entities(self, entities, strict=False):
-        """Checks whether current Collection's entities match the input. """
-        return matches_entities(self, entities, strict)
 
     def _index_entities(self):
         """Sets current instance's entities based on the existing index.

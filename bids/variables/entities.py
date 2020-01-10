@@ -2,8 +2,11 @@
 
 from itertools import chain
 from collections import namedtuple
-from . import kollekshuns as clc
+
 import pandas as pd
+
+from . import kollekshuns as clc
+from bids.utils import matches_entities
 
 
 class Node(object):
@@ -123,7 +126,7 @@ class NodeIndex(object):
 
         for n in nodes:
             var_set = list(n.variables.values())
-            var_set = [v for v in var_set if v.matches_entities(entities)]
+            var_set = [v for v in var_set if matches_entities(v, entities)]
             if names is not None:
                 var_set = [v for v in var_set if v.name in names]
             # Additional filtering on Variables past run level, because their

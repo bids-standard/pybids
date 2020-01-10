@@ -103,30 +103,28 @@ class Step(object):
     layout : :obj:`bids.layout.BIDSLayout`
         The BIDSLayout containing all project files.
     level : str
-        The BIDS keyword to use as the grouping variable; must be
-        one of ['run', 'session', 'subject', or 'dataset'].
+        The BIDS keyword to use as the grouping variable; must be one of
+        ['run', 'session', 'subject', or 'dataset'].
     index : int
-        The numerical index of the current Step within the
-        sequence of steps.
+        The numerical index of the current Step within the sequence of steps.
     name : str
-        Optional name to assign to the block. Must be specified
-        in order to enable name-based indexing in the parent Analysis.
+        Optional name to assign to the block. Must be specified in order to
+        enable name-based indexing in the parent Analysis.
     transformations : list
         List of BIDS-Model transformations to apply.
     model : dict
-        The 'model' part of the BIDS-Model block specification.
+        The 'model' part of the BIDS-StatsModels specification.
     contrasts : list
-        List of contrasts to apply to the parameter estimates
-        generated when the model is fit.
+        List of contrasts to apply to the parameter estimates generated when
+        the model is fit.
     input_nodes : list
-        Optional list of AnalysisNodes to use as input to
-        this Step (typically, the output from the preceding Step).
+        Optional list of AnalysisNodes to use as input to this Step (typically,
+        the output from the preceding Step).
     dummy_contrasts : dict
-        Optional dictionary specifying which conditions to create
-        indicator contrasts for. Dictionary must include a
-        "type" key ('t' or 'FEMA'), and optionally a subset of "conditions".
-        This parameter is over-written by the setting
-        in setup() if the latter is passed.
+        Optional dictionary specifying which conditions to create indicator
+        contrasts for. Dictionary must include a "type" key ('t' or 'FEMA'),
+        and optionally a subset of "conditions". This parameter is over-written
+        by the setting in setup() if the latter is passed.
     """
 
     def __init__(self, layout, level, index, name=None, transformations=None,
@@ -148,12 +146,15 @@ class Step(object):
         # keys from the kwargs dict.
         valid_ents = {'task', 'subject', 'session', 'run'}
         entities = {k: kwargs.pop(k) for k in dict(kwargs) if k in valid_ents}
-        objects = [o for o in objects if o.matches_entities(entities)]
+        objects = [o for o in objects if matches_entities(o, entities)]
         return (objects, kwargs)
 
     def _group_objects(self, objects):
         # Group list of objects into bins defined by all entities at current
-        # Step level or higher.
+        # Step level or higher. E.g., if the level is 'subject', the returned
+        # list will have one element per subject, where each element is a list
+        # containing all objects (BIDSVariableCollection or AnalysisNode) that
+        # belongs to that subject.
         if self.level == 'dataset':
             return [objects]
         groups = OrderedDict()
@@ -207,7 +208,7 @@ class Step(object):
                                                   **kwargs)
         objects = collections + input_nodes
 
-        objects, kwargs = self._filter_objects(objects, kwargs)
+        objects, _ = self._filter_objects(objects, kwargs)
         groups = self._group_objects(objects)
 
         # Set up and validate variable lists
@@ -454,12 +455,11 @@ class AnalysisNode(object):
         Parameters
         ----------
         names : list
-            Optional list of names of contrasts to return. If
-            None (default), all contrasts are returned.
+            Optional list of names of contrasts to return. If None (default),
+            all contrasts are returned.
         variables : bool
-            Optional list of strings giving the names of
-            design matrix columns to use when generating the matrix of
-            weights.
+            Optional list of strings giving the names of design matrix columns
+            to use when generating the matrix of weights.
 
         Returns
         -------
@@ -469,9 +469,8 @@ class AnalysisNode(object):
         Notes
         -----
         The 'variables' argument take precedence over the natural process
-        of column selection. I.e.,
-            if a variable shows up in a contrast, but isn't named in
-            variables, it will *not* be included in the returned
+        of column selection. I.e., if a variable shows up in a contrast, but
+        isn't named in variables, it will *not* be included in the result.
         """
 
         # Verify that there are no invalid columns in the condition_lists
@@ -527,20 +526,6 @@ class AnalysisNode(object):
         self._contrasts = [setup_contrast(c) for c in contrasts]
 
         return self._contrasts
-
-    def matches_entities(self, entities, strict=False):
-        """Determine whether current AnalysisNode matches passed entities.
-
-        Parameters
-        ----------
-        entities : dict
-            Dictionary of entities to match. Keys are entity
-            names; values are single values or lists.
-        strict : bool
-            If True, _all_ entities in the current Node must
-            match in order to return True.
-        """
-        return matches_entities(self, entities, strict)
 
 
 def apply_transformations(collection, transformations, select=None):

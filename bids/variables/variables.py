@@ -220,9 +220,6 @@ class BIDSVariable(metaclass=ABCMeta):
 
         return data.reset_index(drop=True)
 
-    def matches_entities(self, entities, strict=False):
-        """Checks whether current Variable's entities match the input. """
-        return matches_entities(self, entities, strict)
 
     def _index_entities(self):
         """Returns a dict of entities for the current Variable.
