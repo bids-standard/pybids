@@ -10,7 +10,7 @@ import inspect
 import numpy as np
 import pandas as pd
 
-from bids.utils import listify
+from bids.utils import listify, convert_JSON
 from bids.variables import SparseRunVariable
 from bids.analysis import transformations as pbt
 
@@ -432,9 +432,10 @@ class TransformerManager(object):
             List of transformations to apply.
         """
         for t in transformations:
+            t = convert_JSON(t) # make sure all keys are snake case
             kwargs = dict(t)
-            name = self._sanitize_name(kwargs.pop('Name'))
-            cols = kwargs.pop('Input', None)
+            name = self._sanitize_name(kwargs.pop('name'))
+            cols = kwargs.pop('input', None)
 
             # Check registered transformations; fall back on default module
             func = self.transformations.get(name, None)

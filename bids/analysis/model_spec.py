@@ -4,7 +4,6 @@ import pandas as pd
 import numpy as np
 
 from bids.variables import BIDSRunVariableCollection
-from bids.analysis import TransformerManager
 
 
 class ModelSpec(metaclass=ABCMeta):

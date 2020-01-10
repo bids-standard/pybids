@@ -1,13 +1,16 @@
+"""BIDS-StatsModels functionality."""
+
 import json
-from io import open
+from collections import namedtuple, OrderedDict
+from itertools import chain
+
+import numpy as np
+import pandas as pd
+
 from bids.layout import BIDSLayout
 from bids.utils import matches_entities, convert_JSON
 from bids.variables import BIDSVariableCollection, merge_collections
-from . import transformations as transform
-from collections import namedtuple, OrderedDict
-import numpy as np
-import pandas as pd
-from itertools import chain
+from bids.analysis import transformations as tm
 
 
 class Analysis(object):
@@ -232,10 +235,10 @@ class Step(object):
 
             coll = merge_collections(colls) if len(colls) > 1 else colls[0]
 
-            coll = apply_transformations(coll, self.transformations)
+            coll = tm.TransformerManager().transform(coll, self.transformations)
 
             if X:
-                transform.Select(coll, X)
+                tm.Select(coll, X)
 
             node = AnalysisNode(self.level, coll, self.contrasts, input_nodes,
                                 self.dummy_contrasts)
@@ -527,27 +530,3 @@ class AnalysisNode(object):
         self._contrasts = [setup_contrast(c) for c in contrasts]
 
         return self._contrasts
-
-
-def apply_transformations(collection, transformations):
-    """Apply all transformations to the variables in the collection.
-
-    Parameters
-    ----------
-    transformations : list
-        List of transformations to apply.
-    """
-    for t in transformations:
-        kwargs = dict(t)
-        func = kwargs.pop('name')
-        cols = kwargs.pop('input', None)
-
-        if isinstance(func, str):
-            if func in ('and', 'or'):
-                func += '_'
-            if not hasattr(transform, func):
-                raise ValueError("No transformation '%s' found!" % func)
-            func = getattr(transform, func)
-            func(collection, cols, **kwargs)
-
-    return collection

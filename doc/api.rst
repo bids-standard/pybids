@@ -36,7 +36,6 @@ API Reference
    bids.analysis.auto_model
    bids.analysis.analysis.Step
    bids.analysis.analysis.AnalysisNode
-   bids.analysis.analysis.apply_transformations
 
 .. currentmodule:: bids
 
