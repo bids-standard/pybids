@@ -245,55 +245,24 @@ class Step(object):
 
             self.output_nodes.append(node)
 
-    def get_design_matrix(self, names=None, format='long', mode='both',
-                          force=False, sampling_rate='TR', **kwargs):
-        """Get design matrix and associated information.
+    def get_nodes(self, **filters):
+        """Returns a list of AnalysisNodes.
 
         Parameters
         ----------
-        names : list
-            Optional list of names of variables to include in the returned
-            design matrix. If None, all variables are included.
-        format : str
-            Whether to return the design matrix in 'long' or 'wide' format.
-            Note that dense design matrices are always returned in 'wide' format.
-        mode : str
-            Specifies whether to return variables in a sparse representation
-            ('sparse'), dense representation ('dense'), or both ('both').
-        force : bool
-            Indicates how to handle columns not of the type indicated by the
-            mode argument. When False, variables of the non-selected type will
-            be silently ignored. When True, variables will be forced to the
-            desired representation. For example, if mode='dense' and
-            force=True, sparse variables will be converted to dense variables
-            and included in the returned design matrix in the .dense attribute.
-            The force argument is ignored entirely if mode='both'.
-        sampling_rate : {'TR', 'highest'} or float
-            Sampling rate at which to generate the dense design matrix. When
-            'TR', the repetition time is used, if available, to select the
-            sampling rate (1/TR). When 'highest', all variables are resampled
-            to the highest sampling rate of any variable. The sampling rate may
-            also be specified explicitly in Hz. Has no effect on sparse design
-            matrices.
-        kwargs : dict
-            Optional keyword arguments. Includes (1) selectors used to
-            constrain which of the available nodes get returned (e.g., passing
-            subject=['01', '02'] will return design information only for
-            subjects '01' and '02'), and (2) arguments passed on to each
-            Variable's to_df() call (e.g., sampling_rate, entities, timing,
-            etc.).
+        filters : dict
+            Optional keyword filters used to constrain which of the available
+            nodes get returned (e.g., passing subject=['01', '02'] will return
+            AnalysisNodes for only subjects '01' and '02').
 
         Returns
         -------
-        list of DesignMatrixInfo namedtuples
-            one tuple per unit of the current analysis level (e.g., if
-            level='run', each element in the list represents the design matrix
+        list of AnalysisNode instances
+            One instance per unit of the current analysis level (e.g., if
+            level='run', each element in the list represents the AnalysisNode
             for a single run).
         """
-        nodes, kwargs = self._filter_objects(self.output_nodes, kwargs)
-        return [n.get_design_matrix(names, format, mode=mode, force=force,
-                                    sampling_rate=sampling_rate, **kwargs)
-                for n in nodes]
+        return self._filter_objects(self.output_nodes, filters)
 
     def get_contrasts(self, names=None, variables=None, **kwargs):
         """Return contrast information for the current step.
