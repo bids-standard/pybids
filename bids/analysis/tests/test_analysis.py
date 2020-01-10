@@ -163,3 +163,9 @@ def test_dummy_contrasts(analysis):
         group_names.append(cl.name)
 
     assert set(names) < set(group_names)
+
+
+def test_get_model_spec(analysis):
+    node = analysis['run'].get_nodes(subject='01', run=1)[0]
+    model_spec = node.get_model_spec()
+    assert model_spec.__class__.__name__ == 'GLMMSpec'

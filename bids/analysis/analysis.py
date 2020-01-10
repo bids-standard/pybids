@@ -11,6 +11,7 @@ from bids.layout import BIDSLayout
 from bids.utils import matches_entities, convert_JSON
 from bids.variables import BIDSVariableCollection, merge_collections
 from bids.analysis import transformations as tm
+from .model_spec import create_model_spec
 
 
 class Analysis(object):
@@ -241,7 +242,7 @@ class Step(object):
                 tm.Select(coll, X)
 
             node = AnalysisNode(self.level, coll, self.contrasts, input_nodes,
-                                self.dummy_contrasts)
+                                self.dummy_contrasts, self.model)
 
             self.output_nodes.append(node)
 
@@ -492,3 +493,30 @@ class AnalysisNode(object):
         self._contrasts = [setup_contrast(c) for c in contrasts]
 
         return self._contrasts
+
+    def get_model_spec(self, model=None):
+        """Return a ModelSpec instance for the current AnalysisNode.
+
+        Parameters
+        ----------
+        model : dict
+            Optional dict containing BIDS-StatsModels model information. If
+            None provided, defaults to the model stored in the instance.
+
+        Returns
+        -------
+        A bids.analysis.model_spec.ModelSpec instance.
+
+        Notes
+        -----
+        If the current BIDSVariableCollection contains any sparse variables,
+        they will be automatically converted to dense before the ModelSpec
+        is constructed.
+        """
+        if model is None:
+            model = self.model
+        if self.model is None:
+            raise ValueError("Cannot generate a ModelSpec instance; no "
+                             "BIDS-StatsModels model specification found!")
+
+        return create_model_spec(self.collection, model)

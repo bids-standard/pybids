@@ -6,6 +6,14 @@ import numpy as np
 from bids.variables import BIDSRunVariableCollection
 
 
+def create_model_spec(collection, model):
+    kind = model.get('type', 'glm').lower()
+    SpecCls = {
+        'glm': GLMMSpec
+    }[kind]
+    return SpecCls.from_collection(collection, model)
+
+
 class ModelSpec(metaclass=ABCMeta):
     """Base class for all ModelSpec classes."""
     @abstractmethod
