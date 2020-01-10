@@ -398,12 +398,11 @@ class AnalysisNode(object):
             design matrix in the .dense attribute. The force argument is
             ignored entirely if mode='both'.
         sampling_rate : {'TR', 'highest'} or float
-            Sampling rate at which to
-            generate the dense design matrix. When 'TR', the repetition
-            time is used, if available, to select the sampling rate (1/TR).
-            When 'highest', all variables are resampled to the highest
-            sampling rate of any variable. The sampling rate may also be
-            specified explicitly in Hz. Has no effect on sparse design
+            Sampling rate at which to generate the dense design matrix. When
+            'TR', the repetition time is used, if available, to select the
+            sampling rate (1/TR). When 'highest', all variables are resampled
+            to the highest sampling rate of any variable. The sampling rate may
+            also be specified explicitly in Hz. Has no effect on sparse design
             matrices.
         kwargs : dict
             Optional keyword arguments to pass onto each Variable's

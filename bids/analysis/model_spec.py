@@ -9,7 +9,7 @@ from bids.variables import BIDSRunVariableCollection
 class ModelSpec(metaclass=ABCMeta):
     """Base class for all ModelSpec classes."""
     @abstractmethod
-    def from_collection(self):
+    def from_collection(self, collection, model):
         """Initialize from a BIDSVariableCollection instance."""
         pass
 
@@ -186,7 +186,6 @@ s
                 raise ValueError("Input BIDSRunVariableCollection contains at "
                                  "least one sparse variable. All variables must"
                                  " be dense!")
-        glmms = GLMMSpec()
 
         kwargs = {}
 
