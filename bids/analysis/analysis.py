@@ -169,9 +169,10 @@ class Step(object):
         return list(groups.values())
 
     def _concatenate_input_nodes(self, nodes):
-        # Creates a new BIDSVariableCollection that has each node as a row
-        # and each contrast as a column. Values are always 1, as this is just
-        # a pass-through for data from the previous level.
+        # Creates a new BIDSVariableCollection that contains each contrast
+        # found in one or more of the input nodes as a SimpleVariable. Values
+        # are always 1 when present and 0 when absent, as this is just a pass
+        # through for data passed in from the previous level of analysis.
         data, entities = [], []
         for n in nodes:
             contrasts = [c.name for c in n.contrasts]
