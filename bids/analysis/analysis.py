@@ -381,7 +381,7 @@ class AnalysisNode(object):
         if self.level != 'run' and mode != 'sparse':
             mode = 'sparse'
 
-        kwargs['sparse'] == mode == 'sparse'
+        kwargs['sparse'] = (mode == 'sparse')
 
         if mode == 'sparse':
             return coll.to_df(format=format, include_dense=force, **kwargs)
