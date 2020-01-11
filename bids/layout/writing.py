@@ -137,7 +137,8 @@ def build_path(entities, path_patterns, strict=False):
             for v in values.split('|'):
                 valid_values += _expand_options(v)
 
-            if entities[name] not in valid_values:
+            ent_set = entities.get(name)
+            if ent_set is not None and ent_set not in valid_values:
                 continue
 
             # Expanding options here preempts picking them again later
