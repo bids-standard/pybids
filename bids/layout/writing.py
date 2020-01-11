@@ -6,10 +6,13 @@ import warnings
 import os
 import re
 import sys
+from itertools import product
 from ..utils import splitext, listify
 from os.path import join, dirname, exists, islink, isabs, isdir
 
 __all__ = ['replace_entities', 'build_path', 'write_contents_to_file']
+
+_PATTERN_FIND = re.compile(r'{([\w\d]*?)(?:<([^>]+)>)?(?:\|((?:\.?[\w])+))?\}')
 
 
 def replace_entities(entities, pattern):
@@ -33,6 +36,28 @@ def replace_entities(entities, pattern):
     -------
     A new string with the entity values inserted where entity names
     were denoted in the provided pattern.
+    Returns ``None`` if the replacement did not succeed (for instance,
+    when an entity value is not acceptable by the pattern given the
+    options for that given entity, see example below).
+
+    Examples
+    --------
+    >>> replace_entities({'subject': '01', 'name': 'varname', 'id': '0000'},
+    ...                  'sub-{subject}/var-{name}/{id}.csv')
+    'sub-01/var-varname/0000.csv'
+
+    >>> replace_entities({'subject': '01', 'name': 'varname', 'id': '0000'},
+    ...                  'sub-{subject}/[var-{name}/]{id}.csv')
+    'sub-01/var-varname/0000.csv'
+
+    >>> w.replace_entities({'subject': '01', 'task': '0000'},
+    ...                    'sub-{subject<01|02>}/{task}.csv')
+    'sub-01/0000.csv'
+
+    >>> w.replace_entities({'subject': '03', 'task': '0000'},
+    ...                    'sub-{subject<01|02>}/{task}.csv') is None
+    True
+
     """
     entities = entities.copy()  # make a local copy, since dicts are mutable
     ents = re.findall(r'{(.*?)\}', pattern)
@@ -52,6 +77,7 @@ def replace_entities(entities, pattern):
                 entities[name] = default
 
         ent_val = entities.get(name, default)
+        print(name, default, ent_val)
         if ent_val is None:
             return None
         new_path = new_path.replace('{%s}' % ent, str(ent_val))
@@ -93,19 +119,37 @@ def build_path(entities, path_patterns, strict=False):
 
     # Loop over available patherns, return first one that matches all
     for pattern in path_patterns:
+        entities_matched = _PATTERN_FIND.findall(pattern)
+        defined, values_enum, default_value = list(zip(*entities_matched))
+
         # If strict, all entities must be contained in the pattern
         if strict:
-            defined = re.findall(r'{(.*?)(?:<[^>]+>)?\}', pattern)
             if set(entities.keys()) - set(defined):
                 continue
+
         # Iterate through the provided path patterns
         new_path = pattern
+
+        # Expand options within valid values and
+        # check whether entities provided have acceptable value
+        for name, values in zip(defined, values_enum):
+            valid_values = []
+            for v in values.split('|'):
+                valid_values += _expand_options(v)
+
+            if entities[name] not in valid_values:
+                continue
+
+            # Expanding options here preempts picking them again later
+            new_path.replace(values, '|'.join(valid_values))
+
         optional_patterns = re.findall(r'\[(.*?)\]', pattern)
         # First build from optional patterns if possible
         for optional_pattern in optional_patterns:
             optional_chunk = replace_entities(entities, optional_pattern) or ''
             new_path = new_path.replace('[%s]' % optional_pattern,
                                         optional_chunk)
+
         # Replace remaining entities
         new_path = replace_entities(entities, new_path)
 
@@ -191,3 +235,24 @@ def write_contents_to_file(path, contents=None, link_to=None,
             f.write(contents)
     else:
         raise ValueError('One of contents or link_to must be provided.')
+
+
+def _expand_options(value):
+    """
+    Expand optional substrings of valid entity values.
+
+    Examples
+    --------
+    >>> _expand_options('[Jj]son[12]')
+    ['Json1', 'Json2', 'json1', 'json2']
+
+    >>> _expand_options('json')
+    ['json']
+
+    """
+    expand_patterns = re.findall(r'\[(.*?)\]', value)
+    if not expand_patterns:
+        return [value]
+
+    value = re.sub(r'\[(.*?)\]', '%s', value)
+    return [value % _r for _r in product(*expand_patterns)]
