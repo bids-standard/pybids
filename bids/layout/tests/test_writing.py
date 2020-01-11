@@ -79,16 +79,20 @@ sub-{subject}[/ses-{session}]/anat/sub-{subject}[_ses-{session}][_acq-{acquisiti
 [_space-{space}]_{suffix<T1w|T2w|T1rho|T1map|T2map|T2star|FLAIR|FLASH|PDmap|PD|PDT2|inplaneT[12]|angio>}.\
 {extension<nii|nii.gz|json>|nii.gz}"""
         assert sorted(_PATTERN_FIND.findall(pattern)) == [
-            'acquisition',
-            'ceagent',
-            'extension',
-            'reconstruction',
-            'session',
-            'session',
-            'space',
-            'subject',
-            'subject',
-            'suffix',
+            ('acquisition', '', ''),
+            ('ceagent', '', ''),
+            ('extension', 'nii|nii.gz|json', 'nii.gz'),
+            ('reconstruction', '', ''),
+            ('session', '', ''),
+            ('session', '', ''),
+            ('space', '', ''),
+            ('subject', '', ''),
+            ('subject', '', ''),
+            (
+                'suffix',
+                'T1w|T2w|T1rho|T1map|T2map|T2star|FLAIR|FLASH|PDmap|PD|PDT2|inplaneT[12]|angio',
+                ''
+            )
         ]
 
     def test_build_path(self, writable_file):
