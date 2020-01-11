@@ -20,6 +20,7 @@ API Reference
    bids.layout.parse_file_entities
    bids.layout.add_config_paths
    bids.layout.index.BIDSLayoutIndexer
+   bids.layout.writing
 
 .. currentmodule:: bids
 
