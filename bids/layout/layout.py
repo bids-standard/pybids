@@ -307,20 +307,20 @@ class BIDSLayout(object):
 
         n_sessions = len(
             set(
-                [(t.value, t.file.entities.get('subject'))
+                (t.value, t.file.entities.get('subject'))
                  for t in
                  self.session.query(Tag).filter_by(entity_name='session')
                  if t.file.entities.get('subject')
-                 ])
+                 )
             )
 
         n_runs = len(
             set(
-                [(t.value, t.file.entities.get('subject'))
+                (t.value, t.file.entities.get('subject'))
                  for t in
                  self.session.query(Tag).filter_by(entity_name='run')
                  if t.file.entities.get('subject')
-                 ])
+                 )
             )
 
         root = self.root[-30:]
