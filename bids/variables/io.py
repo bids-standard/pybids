@@ -56,7 +56,7 @@ def load_variables(layout, types=None, levels=None, skip_empty=True,
 
     Examples
     --------
-    >>> load_variables(layout, ['events', 'physio'], subject='01')
+    >>> load_variables(layout, ['events', 'physio'], subject='01')  # doctest: +SKIP
     # returns all variables stored in _events.tsv and _physio.tsv.gz files
     # for runs that belong to subject with id '01'.
     """

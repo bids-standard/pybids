@@ -3,7 +3,7 @@ import os
 import shutil
 from os.path import join, exists, islink, dirname
 
-from bids.layout.writing import build_path, replace_entities, _PATTERN_FIND
+from bids.layout.writing import build_path, _PATTERN_FIND
 from bids.tests import get_test_data_path
 from bids import BIDSLayout
 from bids.layout.models import BIDSFile, Entity, Tag, Base
@@ -64,14 +64,14 @@ class TestWritableFile:
     def test_parse_pattern_re(self):
         """Unit tests on the strict entity pattern finder regex."""
         assert _PATTERN_FIND.findall('{extension<nii|nii.gz|json>|nii.gz}') == [
-            ('extension', 'nii|nii.gz|json', 'nii.gz')
+            ('{extension<nii|nii.gz|json>|nii.gz}', 'extension', 'nii|nii.gz|json', 'nii.gz')
         ]
         assert _PATTERN_FIND.findall('{extension<json|jsld>|json}') == [
-            ('extension', 'json|jsld', 'json')
+            ('{extension<json|jsld>|json}', 'extension', 'json|jsld', 'json')
         ]
         assert _PATTERN_FIND.findall('{task<func|rest>}/r-{run}.nii.gz') == [
-            ('task', 'func|rest', ''),
-            ('run', '', '')
+            ('{task<func|rest>}', 'task', 'func|rest', ''),
+            ('{run}', 'run', '', '')
         ]
 
         pattern = """\
@@ -79,16 +79,18 @@ sub-{subject}[/ses-{session}]/anat/sub-{subject}[_ses-{session}][_acq-{acquisiti
 [_space-{space}]_{suffix<T1w|T2w|T1rho|T1map|T2map|T2star|FLAIR|FLASH|PDmap|PD|PDT2|inplaneT[12]|angio>}.\
 {extension<nii|nii.gz|json>|nii.gz}"""
         assert sorted(_PATTERN_FIND.findall(pattern)) == [
-            ('acquisition', '', ''),
-            ('ceagent', '', ''),
-            ('extension', 'nii|nii.gz|json', 'nii.gz'),
-            ('reconstruction', '', ''),
-            ('session', '', ''),
-            ('session', '', ''),
-            ('space', '', ''),
-            ('subject', '', ''),
-            ('subject', '', ''),
+            ('{acquisition}', 'acquisition', '', ''),
+            ('{ceagent}', 'ceagent', '', ''),
+            ('{extension<nii|nii.gz|json>|nii.gz}', 'extension', 'nii|nii.gz|json', 'nii.gz'),
+            ('{reconstruction}', 'reconstruction', '', ''),
+            ('{session}', 'session', '', ''),
+            ('{session}', 'session', '', ''),
+            ('{space}', 'space', '', ''),
+            ('{subject}', 'subject', '', ''),
+            ('{subject}', 'subject', '', ''),
             (
+                '{suffix<T1w|T2w|T1rho|T1map|T2map|T2star|FLAIR|FLASH|PDmap|'
+                'PD|PDT2|inplaneT[12]|angio>}',
                 'suffix',
                 'T1w|T2w|T1rho|T1map|T2map|T2star|FLAIR|FLASH|PDmap|PD|PDT2|inplaneT[12]|angio',
                 ''
@@ -147,7 +149,7 @@ sub-{subject}[/ses-{session}]/anat/sub-{subject}[_ses-{session}][_acq-{acquisiti
 
         # Pattern with both valid and default values
         pats = ['ses-{session<A|B|C>|D}/r-{run}.nii.gz']
-        assert build_path({'session': 1, 'run': 3}, pats) == 'ses-D/r-3.nii.gz'
+        assert build_path({'run': 3}, pats) == 'ses-D/r-3.nii.gz'
         pats = ['ses-{session<A|B|C>|D}/r-{run}.nii.gz']
         assert build_path({'session': 'B', 'run': 3}, pats) == 'ses-B/r-3.nii.gz'
 

@@ -6,83 +6,14 @@ import warnings
 import os
 import re
 import sys
+from string import Formatter
 from itertools import product
 from ..utils import splitext, listify
 from os.path import join, dirname, exists, islink, isabs, isdir
 
-__all__ = ['replace_entities', 'build_path', 'write_contents_to_file']
+__all__ = ['build_path', 'write_contents_to_file']
 
-_PATTERN_FIND = re.compile(r'{([\w\d]*?)(?:<([^>]+)>)?(?:\|((?:\.?[\w])+))?\}')
-
-
-def replace_entities(entities, pattern):
-    """
-    Replaces all entity names in a given pattern with the corresponding
-    values provided by entities.
-
-    Parameters
-    ----------
-    entities : dict
-        A dictionary mapping entity names to entity values.
-    pattern : str
-        A path pattern that contains entity names denoted
-        by curly braces. Optional portions denoted by square braces.
-        For example: 'sub-{subject}/[var-{name}/]{id}.csv'
-        Accepted entity values, using regex matching, denoted within angle
-        brackets.
-        For example: 'sub-{subject<01|02>}/{task}.csv'
-
-    Returns
-    -------
-    A new string with the entity values inserted where entity names
-    were denoted in the provided pattern.
-    Returns ``None`` if the replacement did not succeed (for instance,
-    when an entity value is not acceptable by the pattern given the
-    options for that given entity, see example below).
-
-    Examples
-    --------
-    >>> replace_entities({'subject': '01', 'name': 'varname', 'id': '0000'},
-    ...                  'sub-{subject}/var-{name}/{id}.csv')
-    'sub-01/var-varname/0000.csv'
-
-    >>> replace_entities({'subject': '01', 'name': 'varname', 'id': '0000'},
-    ...                  'sub-{subject}/[var-{name}/]{id}.csv')
-    'sub-01/var-varname/0000.csv'
-
-    >>> w.replace_entities({'subject': '01', 'task': '0000'},
-    ...                    'sub-{subject<01|02>}/{task}.csv')
-    'sub-01/0000.csv'
-
-    >>> w.replace_entities({'subject': '03', 'task': '0000'},
-    ...                    'sub-{subject<01|02>}/{task}.csv') is None
-    True
-
-    """
-    entities = entities.copy()  # make a local copy, since dicts are mutable
-    ents = re.findall(r'{(.*?)\}', pattern)
-    new_path = pattern
-    for ent in ents:
-        match = re.search(r'([^|<]+)(<.*?>)?(\|.*)?', ent)
-        if match is None:
-            return None
-        name, valid, default = match.groups()
-        default = default[1:] if default is not None else default
-
-        if name in entities and valid is not None:
-            ent_val = str(entities[name])
-            if not re.match(valid[1:-1], ent_val):
-                if default is None:
-                    return None
-                entities[name] = default
-
-        ent_val = entities.get(name, default)
-        print(name, default, ent_val)
-        if ent_val is None:
-            return None
-        new_path = new_path.replace('{%s}' % ent, str(ent_val))
-
-    return new_path
+_PATTERN_FIND = re.compile(r'({([\w\d]*?)(?:<([^>]+)>)?(?:\|((?:\.?[\w])+))?\})')
 
 
 def build_path(entities, path_patterns, strict=False):
@@ -113,14 +44,87 @@ def build_path(entities, path_patterns, strict=False):
 
     Returns
     -------
-    A constructed path for this file based on the provided patterns.
+    A constructed path for this file based on the provided patterns, or
+    ``None`` if no path was built given the combination of entities and patterns.
+
+    Examples
+    --------
+    >>> entities = {
+    ...     'extension':'nii',
+    ...     'space':'MNI',
+    ...     'subject':'001',
+    ...     'suffix':'inplaneT2',
+    ... }
+    >>> patterns = ['sub-{subject}[/ses-{session}]/anat/sub-{subject}[_ses-{session}]'
+    ...             '[_acq-{acquisition}][_ce-{ceagent}][_rec-{reconstruction}]_'
+    ...             '{suffix<T[12]w|T1rho|T[12]map|T2star|FLAIR|FLASH|PDmap|PD|PDT2|'
+    ...             'inplaneT[12]|angio>}.{extension<nii|nii.gz|json>|nii.gz}',
+    ...             'sub-{subject}[/ses-{session}]/anat/sub-{subject}[_ses-{session}]'
+    ...             '[_acq-{acquisition}][_ce-{ceagent}][_rec-{reconstruction}]'
+    ...             '[_space-{space}][_desc-{desc}]_{suffix<T1w|T2w|T1rho|T1map|T2map|'
+    ...             'T2star|FLAIR|FLASH|PDmap|PD|PDT2|inplaneT[12]|angio>}.'
+    ...             '{extension<nii|nii.gz|json>|nii.gz}']
+    >>> build_path(entities, patterns)
+    'sub-001/anat/sub-001_inplaneT2.nii'
+
+    >>> build_path(entities, patterns, strict=True)
+    'sub-001/anat/sub-001_space-MNI_inplaneT2.nii'
+
+    >>> entities['space'] = None
+    >>> build_path(entities, patterns, strict=True)
+    'sub-001/anat/sub-001_inplaneT2.nii'
+
+    >>> # If some entity is set to None, they are dropped
+    >>> entities['extension'] = None
+    >>> build_path(entities, patterns, strict=True)
+    'sub-001/anat/sub-001_inplaneT2.nii.gz'
+
+    >>> # If some entity is set to empty-string, they are dropped
+    >>> entities['extension'] = ''
+    >>> build_path(entities, patterns, strict=True)
+    'sub-001/anat/sub-001_inplaneT2.nii.gz'
+
+    >>> # If some selector is not in the pattern, skip it...
+    >>> entities['datatype'] = 'anat'
+    >>> build_path(entities, patterns)
+    'sub-001/anat/sub-001_inplaneT2.nii.gz'
+
+    >>> # ... unless the pattern should be strictly matched
+    >>> entities['datatype'] = 'anat'
+    >>> build_path(entities, patterns, strict=True) is None
+    True
+
+    >>> # If the value of an entity is not valid, do not match the pattern
+    >>> entities['suffix'] = 'bold'
+    >>> build_path(entities, patterns) is None
+    True
+
+    >>> entities = {
+    ...     'extension':'bvec',
+    ...     'subject':'001',
+    ... }
+    >>> patterns = (
+    ...     "sub-{subject}[/ses-{session}]/{datatype|dwi}/sub-{subject}[_ses-{session}]"
+    ...     "[_acq-{acquisition}]_{suffix|dwi}.{extension<bval|bvec|json|nii.gz|nii>|nii.gz}"
+    ... )
+    >>> build_path(entities, patterns, strict=True)
+    'sub-001/dwi/sub-001_dwi.bvec'
+
     """
     path_patterns = listify(path_patterns)
+
+    # One less source of confusion
+    ext = entities.get('extension') or ''
+    if ext.startswith('.'):
+        entities['extension'] = entities['extension'][1:]
+
+    # Drop None and empty-strings
+    entities = {k: v for k, v in entities.items() if v}
 
     # Loop over available patherns, return first one that matches all
     for pattern in path_patterns:
         entities_matched = _PATTERN_FIND.findall(pattern)
-        defined, values_enum, default_value = list(zip(*entities_matched))
+        formatters, defined, valid_values, default_values = list(zip(*entities_matched))
 
         # If strict, all entities must be contained in the pattern
         if strict:
@@ -132,27 +136,44 @@ def build_path(entities, path_patterns, strict=False):
 
         # Expand options within valid values and
         # check whether entities provided have acceptable value
-        for name, values in zip(defined, values_enum):
-            valid_values = []
-            for v in values.split('|'):
-                valid_values += _expand_options(v)
+        tmp_entities = entities.copy()  # Do not modify the original query
+        for fmt, name, valid, defval in zip(
+            formatters, defined, valid_values, default_values
+        ):
+            valid_expanded = []
+            for v in valid.split('|'):
+                valid_expanded += _expand_options(v)
 
-            ent_set = entities.get(name)
-            if ent_set is not None and ent_set not in valid_values:
+            if (
+                name in entities
+                and entities[name] not in valid_expanded
+            ):
                 continue
 
-            # Expanding options here preempts picking them again later
-            new_path.replace(values, '|'.join(valid_values))
+            if defval and name not in tmp_entities:
+                tmp_entities[name] = defval
 
-        optional_patterns = re.findall(r'\[(.*?)\]', pattern)
-        # First build from optional patterns if possible
-        for optional_pattern in optional_patterns:
-            optional_chunk = replace_entities(entities, optional_pattern) or ''
-            new_path = new_path.replace('[%s]' % optional_pattern,
-                                        optional_chunk)
+            # At this point, valid & default values are checked & set - simplify pattern
+            new_path = new_path.replace(fmt, '{%s}' % name)
 
-        # Replace remaining entities
-        new_path = replace_entities(entities, new_path)
+        optional_patterns = re.findall(r'(\[.*?\])', new_path)
+        # Optional patterns with selector are cast to mandatory or removed
+        for op in optional_patterns:
+            for ent_name in {k for k, v in entities.items() if v is not None}:
+                if ('{%s}' % ent_name) in op:
+                    new_path = new_path.replace(op, op[1:-1])
+                    continue
+
+            # Surviving optional patterns are removed
+            new_path = new_path.replace(op, '')
+
+        # Replace entities
+        fields = {pat[1] for pat in Formatter().parse(new_path)
+                  if pat[1] and not pat[1].isdigit()}
+        if fields - set(tmp_entities.keys()):
+            continue
+
+        new_path = new_path.format(**tmp_entities)
 
         if new_path:
             return new_path
