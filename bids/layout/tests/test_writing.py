@@ -153,6 +153,12 @@ sub-{subject}[/ses-{session}]/anat/sub-{subject}[_ses-{session}][_acq-{acquisiti
         pats = ['ses-{session<A|B|C>|D}/r-{run}.nii.gz']
         assert build_path({'session': 'B', 'run': 3}, pats) == 'ses-B/r-3.nii.gz'
 
+        # Test extensions with dot
+        pats = ['ses-{session<A|B|C>|D}/r-{run}.{extension}']
+        assert build_path({'session': 'B', 'run': 3, 'extension': '.nii'},
+                          pats) == 'ses-B/r-3.nii'
+
+
     def test_strict_build_path(self):
 
         # Test with strict matching--should fail
