@@ -183,6 +183,9 @@ def build_path(entities, path_patterns, strict=False):
         if fields - set(tmp_entities.keys()):
             continue
 
+        tmp_entities = {k: v for k, v in tmp_entities.items()
+                        if k in fields}
+
         new_path = [
             new_path.format(**e)
             for e in _expand_entities(tmp_entities)
