@@ -178,6 +178,24 @@ sub-{subject}[/ses-{session}]/anat/sub-{subject}[_ses-{session}][_acq-{acquisiti
         assert build_path(entities, pats) == 'sub-01/dwi/sub-01_T1rho.bvec'
         assert build_path(entities, pats, strict=True) == 'sub-01/dwi/sub-01_T1rho.bvec'
 
+        # Test multiple paths
+        pats = ['ses-{session<A|B|C>|D}/r-{run}.{extension<json|nii|nii.gz>|nii.gz}']
+        assert sorted(
+            build_path({
+                'session': ['A', 'B'],
+                'run': [1, 2],
+                'extension': ['.nii.gz', 'json']
+            }, pats)) == [
+            'ses-A/r-1.json',
+            'ses-A/r-1.nii.gz',
+            'ses-A/r-2.json',
+            'ses-A/r-2.nii.gz',
+            'ses-B/r-1.json',
+            'ses-B/r-1.nii.gz',
+            'ses-B/r-2.json',
+            'ses-B/r-2.nii.gz',
+        ]
+
 
     def test_strict_build_path(self):
 
@@ -242,12 +260,12 @@ class TestWritableLayout:
     def test_write_files(self, tmp_bids, layout):
 
         tmpdir = str(tmp_bids)
-        pat = join(str(tmpdir), 'sub-{subject<02>}'
-                                '/ses-{session}'
-                                '/r-{run}'
-                                '/suffix-{suffix}'
-                                '/acq-{acquisition}'
-                                '/task-{task}.nii.gz')
+        pat = ('%s/sub-{subject<02>}'
+               '/ses-{session}'
+               '/r-{run}'
+               '/suffix-{suffix}'
+               '/acq-{acquisition}'
+               '/task-{task}.nii.gz') % tmpdir
         layout.copy_files(path_patterns=pat)
         example_file = join(str(tmpdir), 'sub-02'
                                          '/ses-2'

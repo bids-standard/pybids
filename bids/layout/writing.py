@@ -183,9 +183,12 @@ def build_path(entities, path_patterns, strict=False):
         if fields - set(tmp_entities.keys()):
             continue
 
+<<<<<<< HEAD
         tmp_entities = {k: v for k, v in tmp_entities.items()
                         if k in fields}
 
+=======
+>>>>>>> ENH: Extend ``build_path`` to generate lists of files
         new_path = [
             new_path.format(**e)
             for e in _expand_entities(tmp_entities)
@@ -305,6 +308,7 @@ def _expand_entities(entities):
     Examples
     --------
     >>> entities = {'subject': ['01', '02'], 'session': ['1', '2'], 'task': ['rest', 'finger']}
+<<<<<<< HEAD
     >>> _expand_entities(entities)  # doctest: +NORMALIZE_WHITESPACE
     [{'subject': '01', 'session': '1', 'task': 'rest'}, \
      {'subject': '01', 'session': '1', 'task': 'finger'}, \
@@ -313,6 +317,16 @@ def _expand_entities(entities):
      {'subject': '02', 'session': '1', 'task': 'rest'}, \
      {'subject': '02', 'session': '1', 'task': 'finger'}, \
      {'subject': '02', 'session': '2', 'task': 'rest'}, \
+=======
+    >>> _expand_entities(entities)
+    [{'subject': '01', 'session': '1', 'task': 'rest'},
+     {'subject': '01', 'session': '1', 'task': 'finger'},
+     {'subject': '01', 'session': '2', 'task': 'rest'},
+     {'subject': '01', 'session': '2', 'task': 'finger'},
+     {'subject': '02', 'session': '1', 'task': 'rest'},
+     {'subject': '02', 'session': '1', 'task': 'finger'},
+     {'subject': '02', 'session': '2', 'task': 'rest'},
+>>>>>>> ENH: Extend ``build_path`` to generate lists of files
      {'subject': '02', 'session': '2', 'task': 'finger'}]
 
     """

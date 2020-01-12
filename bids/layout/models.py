@@ -251,7 +251,7 @@ class BIDSFile(Base):
         ----------
         path_patterns : list
             List of patterns used to construct the new
-            filename. See :obj:`build_path` documentation for details.
+            filename. See :func:`bids.layout.writing.build_path` documentation for details.
         symbolic_link : bool
             If True, use a symbolic link to point to the
             existing file. If False, creates a new file.
@@ -266,7 +266,7 @@ class BIDSFile(Base):
                 'append': adds  a suffix to each file copy, starting with 1
         """
         new_filename = build_path(self.entities, path_patterns)
-        if not new_filename:
+        if not new_filename or isinstance(new_filename, list):
             return None
 
         if new_filename[-1] == os.sep:
