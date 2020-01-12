@@ -305,37 +305,17 @@ def _expand_entities(entities):
     Examples
     --------
     >>> entities = {'subject': ['01', '02'], 'session': ['1', '2'], 'task': ['rest', 'finger']}
-<<<<<<< HEAD
-    >>> _expand_entities(entities)  # doctest: +NORMALIZE_WHITESPACE
-    [{'subject': '01', 'session': '1', 'task': 'rest'}, \
-     {'subject': '01', 'session': '1', 'task': 'finger'}, \
-     {'subject': '01', 'session': '2', 'task': 'rest'}, \
-     {'subject': '01', 'session': '2', 'task': 'finger'}, \
-     {'subject': '02', 'session': '1', 'task': 'rest'}, \
-     {'subject': '02', 'session': '1', 'task': 'finger'}, \
-     {'subject': '02', 'session': '2', 'task': 'rest'}, \
-=======
-    >>> _expand_entities(entities)
-<<<<<<< HEAD
-    [{'subject': '01', 'session': '1', 'task': 'rest'},
-     {'subject': '01', 'session': '1', 'task': 'finger'},
-     {'subject': '01', 'session': '2', 'task': 'rest'},
-     {'subject': '01', 'session': '2', 'task': 'finger'},
-     {'subject': '02', 'session': '1', 'task': 'rest'},
-     {'subject': '02', 'session': '1', 'task': 'finger'},
-     {'subject': '02', 'session': '2', 'task': 'rest'},
->>>>>>> ENH: Extend ``build_path`` to generate lists of files
-     {'subject': '02', 'session': '2', 'task': 'finger'}]
-=======
-    [{'subject': '01', 'session': '1', 'task': 'rest'}, \
-    {'subject': '01', 'session': '1', 'task': 'finger'}, \
-    {'subject': '01', 'session': '2', 'task': 'rest'}, \
-    {'subject': '01', 'session': '2', 'task': 'finger'}, \
-    {'subject': '02', 'session': '1', 'task': 'rest'}, \
-    {'subject': '02', 'session': '1', 'task': 'finger'}, \
-    {'subject': '02', 'session': '2', 'task': 'rest'}, \
-    {'subject': '02', 'session': '2', 'task': 'finger'}]
->>>>>>> fix: doctest of new _expand_entities
+    >>> _expand_entities(entities) == [
+    ...     {'subject': '01', 'session': '1', 'task': 'rest'},
+    ...     {'subject': '01', 'session': '1', 'task': 'finger'},
+    ...     {'subject': '01', 'session': '2', 'task': 'rest'},
+    ...     {'subject': '01', 'session': '2', 'task': 'finger'},
+    ...     {'subject': '02', 'session': '1', 'task': 'rest'},
+    ...     {'subject': '02', 'session': '1', 'task': 'finger'},
+    ...     {'subject': '02', 'session': '2', 'task': 'rest'},
+    ...     {'subject': '02', 'session': '2', 'task': 'finger'}
+    ... ]
+    True
 
     """
     keys = list(entities.keys())
