@@ -299,12 +299,30 @@ class BIDSLayout(object):
 
     def __repr__(self):
         """Provide a tidy summary of key properties."""
-        # TODO: Replace each nested list comprehension with a single DB query
-        n_sessions = len([session for isub in self.get_subjects()
-                          for session in self.get_sessions(subject=isub)])
-        n_runs = len([run for isub in self.get_subjects()
-                      for run in self.get_runs(subject=isub)])
-        n_subjects = len(self.get_subjects())
+        n_subjects = len(
+            [s.value
+             for s in self.session.query(Tag).filter_by(
+                 entity_name='subject').group_by(Tag._value)]
+            )
+
+        n_sessions = len(
+            set(
+                (t.value, t.file.entities.get('subject'))
+                 for t in
+                 self.session.query(Tag).filter_by(entity_name='session')
+                 if t.file.entities.get('subject')
+                 )
+            )
+
+        n_runs = len(
+            set(
+                (t.value, t.file.entities.get('subject'))
+                 for t in
+                 self.session.query(Tag).filter_by(entity_name='run')
+                 if t.file.entities.get('subject')
+                 )
+            )
+
         root = self.root[-30:]
         s = ("BIDS Layout: ...{} | Subjects: {} | Sessions: {} | "
              "Runs: {}".format(root, n_subjects, n_sessions, n_runs))
@@ -487,7 +505,7 @@ class BIDSLayout(object):
         # We assume something is a BIDS-derivatives dataset if it either has a
         # defined pipeline name, or is applying the 'derivatives' rules.
         pl_name = self.description.get("PipelineDescription", {}).get("Name")
-        is_deriv = bool(pl_name or ('derivatives' in self.config))
+        is_deriv = bool('derivatives' in self.config)
 
         return ((not is_deriv and 'raw' in scope) or
                 (is_deriv and ('derivatives' in scope or pl_name in scope)))
