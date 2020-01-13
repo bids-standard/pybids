@@ -114,17 +114,16 @@ def build_path(entities, path_patterns, strict=False):
     path_patterns = listify(path_patterns)
 
     # One less source of confusion
-    ext = entities.get('extension') or ''
-    if ext.startswith('.'):
-        entities['extension'] = entities['extension'][1:]
+    if 'extension' in entities and entities['extension'] is not None:
+        entities['extension'] = entities['extension'].lstrip('.')
 
-    # Drop None and empty-strings
-    entities = {k: v for k, v in entities.items() if v}
+    # Drop None and empty-strings, keep zeros
+    entities = {k: v for k, v in entities.items() if v or v == 0}
 
     # Loop over available patherns, return first one that matches all
     for pattern in path_patterns:
-        entities_matched = _PATTERN_FIND.findall(pattern)
-        formatters, defined, valid_values, default_values = list(zip(*entities_matched))
+        entities_matched = list(_PATTERN_FIND.findall(pattern))
+        defined = [e[1] for e in entities_matched]
 
         # If strict, all entities must be contained in the pattern
         if strict:
@@ -137,9 +136,7 @@ def build_path(entities, path_patterns, strict=False):
         # Expand options within valid values and
         # check whether entities provided have acceptable value
         tmp_entities = entities.copy()  # Do not modify the original query
-        for fmt, name, valid, defval in zip(
-            formatters, defined, valid_values, default_values
-        ):
+        for fmt, name, valid, defval in entities_matched:
             valid_expanded = []
             for v in valid.split('|'):
                 valid_expanded += _expand_options(v)
