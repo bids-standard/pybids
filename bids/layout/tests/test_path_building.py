@@ -31,3 +31,11 @@ def test_failed_file_construction(layout):
     ents = dict(subject='01', fakekey='foobar')
     with pytest.raises(ValueError):
         layout.build_path(ents, strict=True)
+
+
+@pytest.mark.parametrize("strict", [True, False])
+@pytest.mark.parametrize("validate", [True, False])
+def test_insufficient_entities(layout, strict, validate):
+    """Check https://github.com/bids-standard/pybids/pull/574#discussion_r366447600."""
+    with pytest.raises(ValueError):
+        layout.build_path({'subject': '01'}, strict=strict, validate=validate)
