@@ -158,6 +158,24 @@ sub-{subject}[/ses-{session}]/anat/sub-{subject}[_ses-{session}][_acq-{acquisiti
         assert build_path({'session': 'B', 'run': 3, 'extension': '.nii'},
                           pats) == 'ses-B/r-3.nii'
 
+        # Test expansion of optional characters
+        pats = ['ses-{session<[ABCD]>|D}/r-{run}.{extension}']
+        assert build_path({'session': 'B', 'run': 3, 'extension': '.nii'},
+                          pats) == 'ses-B/r-3.nii'
+
+        # Test default-only patterns are correctly overriden by setting entity
+        entities = {
+            'subject': '01',
+            'extension': 'bvec',
+            'suffix': 'T1rho',
+        }
+        pats = (
+            "sub-{subject}[/ses-{session}]/{datatype|dwi}/sub-{subject}[_ses-{session}]"
+            "[_acq-{acquisition}]_{suffix|dwi}.{extension<bval|bvec|json|nii.gz|nii>|nii.gz}"
+        )
+        assert build_path(entities, pats) == 'sub-01/dwi/sub-01_T1rho.bvec'
+        assert build_path(entities, pats, strict=True) == 'sub-01/dwi/sub-01_T1rho.bvec'
+
 
     def test_strict_build_path(self):
 

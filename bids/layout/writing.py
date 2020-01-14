@@ -137,12 +137,11 @@ def build_path(entities, path_patterns, strict=False):
         # check whether entities provided have acceptable value
         tmp_entities = entities.copy()  # Do not modify the original query
         for fmt, name, valid, defval in entities_matched:
-            valid_expanded = []
-            for v in valid.split('|'):
-                valid_expanded += _expand_options(v)
-
+            valid_expanded = [v for val in valid.split('|') if val
+                              for v in _expand_options(val)]
             if (
-                name in entities
+                valid_expanded
+                and name in entities
                 and entities[name] not in valid_expanded
             ):
                 continue
