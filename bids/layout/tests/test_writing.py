@@ -148,15 +148,17 @@ sub-{subject}[/ses-{session}]/anat/sub-{subject}[_ses-{session}][_acq-{acquisiti
         assert build_path({'run': 3}, pats) == 'ses-A/r-3.nii.gz'
 
         # Pattern with both valid and default values
-        pats = ['ses-{session<A|B|C>|D}/r-{run}.nii.gz']
+        pats = ['ses-{session<A|B|C|D>|D}/r-{run}.nii.gz']
         assert build_path({'run': 3}, pats) == 'ses-D/r-3.nii.gz'
-        pats = ['ses-{session<A|B|C>|D}/r-{run}.nii.gz']
+        pats = ['ses-{session<A|B|C|D>|D}/r-{run}.nii.gz']
         assert build_path({'session': 'B', 'run': 3}, pats) == 'ses-B/r-3.nii.gz'
 
-        # Test extensions with dot
+        # Test extensions with dot and warning is issued
         pats = ['ses-{session<A|B|C>|D}/r-{run}.{extension}']
-        assert build_path({'session': 'B', 'run': 3, 'extension': '.nii'},
-                          pats) == 'ses-B/r-3.nii'
+        with pytest.warns(UserWarning) as record:
+            assert build_path({'session': 'B', 'run': 3, 'extension': '.nii'},
+                              pats) == 'ses-B/r-3.nii'
+        assert "defines an invalid default value" in record[0].message.args[0]
 
         # Test expansion of optional characters
         pats = ['ses-{session<[ABCD]>|D}/r-{run}.{extension}']

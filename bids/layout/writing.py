@@ -52,10 +52,10 @@ def build_path(entities, path_patterns, strict=False):
     Examples
     --------
     >>> entities = {
-    ...     'extension':'nii',
-    ...     'space':'MNI',
-    ...     'subject':'001',
-    ...     'suffix':'inplaneT2',
+    ...     'extension': 'nii',
+    ...     'space': 'MNI',
+    ...     'subject': '001',
+    ...     'suffix': 'inplaneT2',
     ... }
     >>> patterns = ['sub-{subject}[/ses-{session}]/anat/sub-{subject}[_ses-{session}]'
     ...             '[_acq-{acquisition}][_ce-{ceagent}][_rec-{reconstruction}]_'
@@ -102,8 +102,8 @@ def build_path(entities, path_patterns, strict=False):
     True
 
     >>> entities = {
-    ...     'extension':'bvec',
-    ...     'subject':'001',
+    ...     'extension': 'bvec',
+    ...     'subject': '001',
     ... }
     >>> patterns = (
     ...     "sub-{subject}[/ses-{session}]/{datatype|dwi}/sub-{subject}[_ses-{session}]"
@@ -141,6 +141,10 @@ def build_path(entities, path_patterns, strict=False):
         for fmt, name, valid, defval in entities_matched:
             valid_expanded = [v for val in valid.split('|') if val
                               for v in _expand_options(val)]
+            if valid_expanded and defval and defval not in valid_expanded:
+                warnings.warn(
+                    'Pattern "%s" is inconsistent as it defines an invalid default value.' % fmt
+                )
             if (
                 valid_expanded
                 and name in entities
