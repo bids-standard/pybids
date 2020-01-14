@@ -50,7 +50,7 @@ class BIDSReport(object):
         self.config = config
 
     def generate(self, **kwargs):
-        """Generate the methods section.
+        r"""Generate the methods section.
 
         Parameters
         ----------
@@ -77,7 +77,12 @@ class BIDSReport(object):
         >>> layout = BIDSLayout(join(get_test_data_path(), 'synthetic'))
         >>> report = BIDSReport(layout)
         >>> counter = report.generate(session='01')
-        >>> counter.most_common()[0][0]
+        Number of patterns detected: 1
+        Remember to double-check everything and to replace <deg> with a degree symbol.
+
+        >>> counter.most_common()[0][0]  # doctest: +ELLIPSIS
+        'For session 01:\n\tMR data were...'
+
         """
         descriptions = []
 

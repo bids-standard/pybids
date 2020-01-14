@@ -3,7 +3,7 @@ import os
 import shutil
 from os.path import join, exists, islink, dirname
 
-from bids.layout.writing import build_path
+from bids.layout.writing import build_path, _PATTERN_FIND
 from bids.tests import get_test_data_path
 from bids import BIDSLayout
 from bids.layout.models import BIDSFile, Entity, Tag, Base
@@ -61,6 +61,42 @@ def layout(tmp_bids):
 
 class TestWritableFile:
 
+    def test_parse_pattern_re(self):
+        """Unit tests on the strict entity pattern finder regex."""
+        assert _PATTERN_FIND.findall('{extension<nii|nii.gz|json>|nii.gz}') == [
+            ('{extension<nii|nii.gz|json>|nii.gz}', 'extension', 'nii|nii.gz|json', 'nii.gz')
+        ]
+        assert _PATTERN_FIND.findall('{extension<json|jsld>|json}') == [
+            ('{extension<json|jsld>|json}', 'extension', 'json|jsld', 'json')
+        ]
+        assert _PATTERN_FIND.findall('{task<func|rest>}/r-{run}.nii.gz') == [
+            ('{task<func|rest>}', 'task', 'func|rest', ''),
+            ('{run}', 'run', '', '')
+        ]
+
+        pattern = """\
+sub-{subject}[/ses-{session}]/anat/sub-{subject}[_ses-{session}][_acq-{acquisition}][_ce-{ceagent}][_rec-{reconstruction}]\
+[_space-{space}]_{suffix<T1w|T2w|T1rho|T1map|T2map|T2star|FLAIR|FLASH|PDmap|PD|PDT2|inplaneT[12]|angio>}.\
+{extension<nii|nii.gz|json>|nii.gz}"""
+        assert sorted(_PATTERN_FIND.findall(pattern)) == [
+            ('{acquisition}', 'acquisition', '', ''),
+            ('{ceagent}', 'ceagent', '', ''),
+            ('{extension<nii|nii.gz|json>|nii.gz}', 'extension', 'nii|nii.gz|json', 'nii.gz'),
+            ('{reconstruction}', 'reconstruction', '', ''),
+            ('{session}', 'session', '', ''),
+            ('{session}', 'session', '', ''),
+            ('{space}', 'space', '', ''),
+            ('{subject}', 'subject', '', ''),
+            ('{subject}', 'subject', '', ''),
+            (
+                '{suffix<T1w|T2w|T1rho|T1map|T2map|T2star|FLAIR|FLASH|PDmap|'
+                'PD|PDT2|inplaneT[12]|angio>}',
+                'suffix',
+                'T1w|T2w|T1rho|T1map|T2map|T2star|FLAIR|FLASH|PDmap|PD|PDT2|inplaneT[12]|angio',
+                ''
+            )
+        ]
+
     def test_build_path(self, writable_file):
 
         # Single simple pattern
@@ -112,10 +148,36 @@ class TestWritableFile:
         assert build_path({'run': 3}, pats) == 'ses-A/r-3.nii.gz'
 
         # Pattern with both valid and default values
-        pats = ['ses-{session<A|B|C>|D}/r-{run}.nii.gz']
-        assert build_path({'session': 1, 'run': 3}, pats) == 'ses-D/r-3.nii.gz'
-        pats = ['ses-{session<A|B|C>|D}/r-{run}.nii.gz']
+        pats = ['ses-{session<A|B|C|D>|D}/r-{run}.nii.gz']
+        assert build_path({'run': 3}, pats) == 'ses-D/r-3.nii.gz'
+        pats = ['ses-{session<A|B|C|D>|D}/r-{run}.nii.gz']
         assert build_path({'session': 'B', 'run': 3}, pats) == 'ses-B/r-3.nii.gz'
+
+        # Test extensions with dot and warning is issued
+        pats = ['ses-{session<A|B|C>|D}/r-{run}.{extension}']
+        with pytest.warns(UserWarning) as record:
+            assert build_path({'session': 'B', 'run': 3, 'extension': '.nii'},
+                              pats) == 'ses-B/r-3.nii'
+        assert "defines an invalid default value" in record[0].message.args[0]
+
+        # Test expansion of optional characters
+        pats = ['ses-{session<[ABCD]>|D}/r-{run}.{extension}']
+        assert build_path({'session': 'B', 'run': 3, 'extension': '.nii'},
+                          pats) == 'ses-B/r-3.nii'
+
+        # Test default-only patterns are correctly overriden by setting entity
+        entities = {
+            'subject': '01',
+            'extension': 'bvec',
+            'suffix': 'T1rho',
+        }
+        pats = (
+            "sub-{subject}[/ses-{session}]/{datatype|dwi}/sub-{subject}[_ses-{session}]"
+            "[_acq-{acquisition}]_{suffix|dwi}.{extension<bval|bvec|json|nii.gz|nii>|nii.gz}"
+        )
+        assert build_path(entities, pats) == 'sub-01/dwi/sub-01_T1rho.bvec'
+        assert build_path(entities, pats, strict=True) == 'sub-01/dwi/sub-01_T1rho.bvec'
+
 
     def test_strict_build_path(self):
 

@@ -22,7 +22,7 @@ def test_invalid_file_construction(layout):
     ents = dict(subject='01', run=1, task='resting-state', suffix='bold')
     with pytest.raises(ValueError):
         layout.build_path(ents)
-    
+
     target = "sub-01/func/sub-01_task-resting-state_run-1_bold.nii.gz"
     assert layout.build_path(ents, validate=False) == target
 
@@ -30,4 +30,4 @@ def test_invalid_file_construction(layout):
 def test_failed_file_construction(layout):
     ents = dict(subject='01', fakekey='foobar')
     with pytest.raises(ValueError):
-        layout.build_path(ents)
+        layout.build_path(ents, strict=True)
