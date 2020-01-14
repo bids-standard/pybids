@@ -23,9 +23,13 @@ def build_path(entities, path_patterns, strict=False):
 
     Parameters
     ----------
-    entities : dict
+    entities : :obj:`dict`
         A dictionary mapping entity names to entity values.
-    path_patterns : str or list
+        Entities with ``None`` or empty-string value will be removed.
+        Otherwise, entities will be cast to string values, therefore
+        if any format is expected (e.g., zero-padded integers), the
+        value should be formatted.
+    path_patterns : :obj:`str` or :obj:`list`
         One or more filename patterns to write
         the file to. Entities should be represented by the name
         surrounded by curly braces. Optional portions of the patterns
@@ -35,9 +39,7 @@ def build_path(entities, path_patterns, strict=False):
         the pipe operator. E.g., (e.g., {type<image>|bold} would only match
         the pattern if the entity 'type' was passed and its value is
         "image", otherwise the default value "bold" will be used).
-            Example 1: 'sub-{subject}/[var-{name}/]{id}.csv'
-            Result 2: 'sub-01/var-SES/1045.csv'
-    strict : bool
+    strict : :obj:`bool`
         If True, all passed entities must be matched inside a
         pattern in order to be a valid match. If False, extra entities will
         be ignored so long as all mandatory entities are found.
