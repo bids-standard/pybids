@@ -112,15 +112,23 @@ def build_path(entities, path_patterns, strict=False):
     >>> build_path(entities, patterns, strict=True)
     'sub-001/dwi/sub-001_dwi.bvec'
 
+    >>> # Lists of entities are expanded
+    >>> entities = {
+    ...     'extension': 'bvec',
+    ...     'subject': ['%02d' % i for i in range(1, 4)],
+    ... }
+    >>> build_path(entities, patterns, strict=True)
+    ['sub-01/dwi/sub-01_dwi.bvec', 'sub-02/dwi/sub-02_dwi.bvec', 'sub-03/dwi/sub-03_dwi.bvec']
+
     """
     path_patterns = listify(path_patterns)
 
-    # One less source of confusion
-    if 'extension' in entities and entities['extension'] is not None:
-        entities['extension'] = entities['extension'].lstrip('.')
+    # Drop None and empty-strings, keep zeros, and listify
+    entities = {k: listify(v) for k, v in entities.items() if v or v == 0}
 
-    # Drop None and empty-strings, keep zeros
-    entities = {k: v for k, v in entities.items() if v or v == 0}
+    # One less source of confusion
+    if 'extension' in entities:
+        entities['extension'] = [e.lstrip('.') for e in entities['extension']]
 
     # Loop over available patherns, return first one that matches all
     for pattern in path_patterns:
@@ -148,12 +156,12 @@ def build_path(entities, path_patterns, strict=False):
             if (
                 valid_expanded
                 and name in entities
-                and entities[name] not in valid_expanded
+                and set(entities[name]) - set(valid_expanded)
             ):
                 continue
 
             if defval and name not in tmp_entities:
-                tmp_entities[name] = defval
+                tmp_entities[name] = [defval]
 
             # At this point, valid & default values are checked & set - simplify pattern
             new_path = new_path.replace(fmt, '{%s}' % name)
@@ -175,9 +183,17 @@ def build_path(entities, path_patterns, strict=False):
         if fields - set(tmp_entities.keys()):
             continue
 
-        new_path = new_path.format(**tmp_entities)
+        tmp_entities = {k: v for k, v in tmp_entities.items()
+                        if k in fields}
+
+        new_path = [
+            new_path.format(**e)
+            for e in _expand_entities(tmp_entities)
+        ]
 
         if new_path:
+            if len(new_path) == 1:
+                new_path = new_path[0]
             return new_path
 
     return None
@@ -280,3 +296,26 @@ def _expand_options(value):
 
     value = re.sub(r'\[(.*?)\]', '%s', value)
     return [value % _r for _r in product(*expand_patterns)]
+
+
+def _expand_entities(entities):
+    """
+    Generate multiple replacement queries based on all combinations of values.
+
+    Examples
+    --------
+    >>> entities = {'subject': ['01', '02'], 'session': ['1', '2'], 'task': ['rest', 'finger']}
+    >>> _expand_entities(entities)  # doctest: +NORMALIZE_WHITESPACE
+    [{'subject': '01', 'session': '1', 'task': 'rest'}, \
+     {'subject': '01', 'session': '1', 'task': 'finger'}, \
+     {'subject': '01', 'session': '2', 'task': 'rest'}, \
+     {'subject': '01', 'session': '2', 'task': 'finger'}, \
+     {'subject': '02', 'session': '1', 'task': 'rest'}, \
+     {'subject': '02', 'session': '1', 'task': 'finger'}, \
+     {'subject': '02', 'session': '2', 'task': 'rest'}, \
+     {'subject': '02', 'session': '2', 'task': 'finger'}]
+
+    """
+    keys = list(entities.keys())
+    values = list(product(*[entities[k] for k in keys]))
+    return [{k: v for k, v in zip(keys, combs)} for combs in values]
