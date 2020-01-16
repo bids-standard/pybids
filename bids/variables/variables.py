@@ -1,14 +1,16 @@
 """ Classes for representing BIDS variables. """
 
-import numpy as np
-import pandas as pd
 import math
 import warnings
 from copy import deepcopy
 from abc import abstractmethod, ABCMeta
-from bids.utils import listify
 from itertools import chain
 from functools import reduce
+
+import numpy as np
+import pandas as pd
+
+from bids.utils import listify
 from bids.utils import matches_entities
 
 class BIDSVariable(metaclass=ABCMeta):
@@ -370,44 +372,56 @@ class SparseRunVariable(SimpleVariable):
         Parameters
         ----------
         sampling_rate : float or None
-            Sampling rate (in Hz) to use when constructing the DenseRunVariable.
+            Sampling rate (in Hz) to use when constructing the DenseRunVariable
 
         Returns
         -------
         DenseRunVariable
         """
-        if sampling_rate is None:
-            # Cast onsets and durations to milliseconds
-            onsets = np.round(self.onset * 1000).astype(int)
-            durations = np.round(self.duration * 1000).astype(int)
-            sampling_rate = 1000. / reduce(math.gcd, [*onsets, *durations])
+        # Cast onsets and durations to milliseconds
+        onsets = np.round(self.onset * 1000).astype(int)
+        durations = np.round(self.duration * 1000).astype(int)
+        gcd = np.gcd.reduce(np.r_[onsets, durations])
+        bin_sr = 1000. / gcd
 
-        duration = int(math.ceil(sampling_rate * self.get_duration()))
+        # never use a computed SR smaller than the requested one, because
+        # when events are widely-spaced and timing is very regular, this can
+        # result in a nasty loss of precision in the resampling step.
+        if sampling_rate is not None:
+            bin_sr = max(bin_sr, sampling_rate)
+
+        duration = int(math.ceil(bin_sr * self.get_duration()))
         ts = np.zeros(duration, dtype=self.values.dtype)
 
-        onsets = np.round(self.onset * sampling_rate).astype(int)
-        durations = np.round(self.duration * sampling_rate).astype(int)
+        onsets = np.round(self.onset * bin_sr).astype(int)
+        durations = np.round(self.duration * bin_sr).astype(int)
 
         run_i, start, last_ind = 0, 0, 0
         for i, val in enumerate(self.values.values):
             if onsets[i] < last_ind:
-                start += self.run_info[run_i].duration * sampling_rate
+                start += self.run_info[run_i].duration * bin_sr
                 run_i += 1
             _onset = int(start + onsets[i])
             _offset = int(_onset + durations[i])
             if _onset >= duration:
-                warnings.warn("The onset time of a variable seems to exceed the runs"
-                              "duration, hence runs are incremented by one internally.")
+                warnings.warn("The onset time of a variable seems to exceed "
+                              "the runs duration, hence runs are incremented "
+                              "by one internally.")
             ts[_onset:_offset] = val
             last_ind = onsets[i]
 
         run_info = list(self.run_info)
-        return DenseRunVariable(
+        dense_var = DenseRunVariable(
             name=self.name,
             values=ts,
             run_info=run_info,
             source=self.source,
-            sampling_rate=sampling_rate)
+            sampling_rate=bin_sr)
+
+        if sampling_rate is not None and bin_sr != sampling_rate:
+            dense_var.resample(sampling_rate, inplace=True)
+
+        return dense_var
 
     @classmethod
     def _merge(cls, variables, name, **kwargs):
