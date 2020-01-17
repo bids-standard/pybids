@@ -27,6 +27,27 @@ def test_run_variable_collection_init(run_coll):
     assert run_coll.sampling_rate == 10
 
 
+def test_run_variable_collection_sparse_variable_accessors(run_coll):
+    coll = run_coll.clone()
+    assert coll.sparse_variables
+    assert coll.all_sparse()
+    coll.variables['RT'] = coll.variables['RT'].to_dense(1)
+    assert not coll.all_sparse()
+    assert len(coll.sparse_variables) + 1 == len(coll.variables)
+
+
+def test_run_variable_collection_dense_variable_accessors(run_coll):
+    coll = run_coll.clone()
+    coll.variables['RT'] = coll.variables['RT'].to_dense(1)
+    assert not coll.all_dense()
+    assert len(coll.dense_variables) == 1
+    for k, v in coll.variables.items():
+        if k == 'RT':
+            continue
+        coll.variables[k] = v.to_dense(1)
+    assert coll.all_dense()
+
+
 def test_resample_run_variable_collection(run_coll):
     run_coll = run_coll.clone()
     resampled = run_coll.resample()
