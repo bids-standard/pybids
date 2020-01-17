@@ -296,6 +296,42 @@ class Step(object):
         nodes, kwargs = self._filter_objects(self.output_nodes, kwargs)
         return [n.get_contrasts(names, variables) for n in nodes]
 
+    def get_model_spec(self, collection, sampling_rate='TR'):
+        """Get a ModelSpec instance for the passed collection.
+
+        Parameters
+        ----------
+        collection : BIDSVariableCollection
+            The BIDSVariableCollection to construct a model for.
+        sampling_rate : {'TR', 'highest'} or float
+            For run-level models, the sampling rate at which to generate the
+            design matrix. When 'TR', the repetition time is used, if
+            available, to select the sampling rate (1/TR). When 'highest', all
+            variables are resampled to the highest sampling rate of any
+            variable in the collection. The sampling rate may also be specified
+            explicitly in Hz. Has no effect on non-run-level collections.
+
+        Returns
+        -------
+        A bids.analysis.model_spec.ModelSpec instance.
+
+        Notes
+        -----
+        If the passed BIDSVariableCollection contains any sparse variables,
+        they will be automatically converted to dense (using the specified
+        sampling rate) before the ModelSpec is constructed. For non-run-level
+        collections, timing is irrelevant, so the design matrix is constructed
+        based on the "as-is" values found in each variable.
+        """
+        if self.model is None:
+            raise ValueError("Cannot generate a ModelSpec instance; no "
+                             "BIDS-StatsModels model specification found "
+                             "for this step!")
+
+        if collection.level == 'run':
+            collection = collection.resample(sampling_rate, force_dense=True)
+        return create_model_spec(collection, self.model)
+
 
 ContrastInfo = namedtuple('ContrastInfo', ('name', 'weights', 'type',
                                            'entities'))
@@ -495,38 +531,3 @@ class AnalysisNode(object):
 
         return self._contrasts
 
-    def get_model_spec(self, model=None):
-        """Return a ModelSpec instance for the current AnalysisNode.
-
-        Parameters
-        ----------
-        model : dict
-            Optional dict containing BIDS-StatsModels model information. If
-            None provided, defaults to the model stored in the instance.
-
-        Returns
-        -------
-        A bids.analysis.model_spec.ModelSpec instance.
-
-        Notes
-        -----
-        If the current BIDSVariableCollection contains any sparse variables,
-        they will be automatically converted to dense before the ModelSpec
-        is constructed.
-        """
-        if model is None:
-            model = self.model
-        if self.model is None:
-            raise ValueError("Cannot generate a ModelSpec instance; no "
-                             "BIDS-StatsModels model specification found!")
-
-        if self.collection.all_dense():
-            collection = self.collection
-        else:
-            # TODO: move this logic to a to_dense() method in the Collection
-            collection = self.collection.clone()
-            sr = self.collection.sampling_rate
-            for name, var in collection.variables.items():
-                if isinstance(var, SparseRunVariable):
-                    collection.variables[name] = var.to_dense(sr)
-            return create_model_spec(collection, model)
