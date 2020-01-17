@@ -278,59 +278,45 @@ class BIDSRunVariableCollection(BIDSVariableCollection):
         self.sampling_rate = sampling_rate or 10
         super(BIDSRunVariableCollection, self).__init__(variables)
 
-    def none_dense(self):
-        return all([isinstance(v, SimpleVariable)
-                    for v in self.variables.values()])
+    @property
+    def dense_variables(self):
+        """Returns a list of all stored DenseRunVariables."""
+        return [v for v in self.variables.values()
+                if isinstance(v, DenseRunVariable)]
+
+    @property
+    def sparse_variables(self):
+        """Returns a list of all stored SparseRunVariables."""
+        return [v for v in self.variables.values()
+                if isinstance(v, SparseRunVariable)]
 
     def all_dense(self):
-        return all([isinstance(v, DenseRunVariable)
-                    for v in self.variables.values()])
+        return len(self.dense_variables) == len(self.variables)
 
-    def resample(self, sampling_rate=None, variables=None, force_dense=False,
-                 in_place=False, kind='linear'):
-        """Resample all dense variables (and optionally, sparse ones) to the
-        specified sampling rate.
+    def all_sparse(self):
+        return len(self.sparse_variables) == len(self.variables)
 
-        Parameters
-        ----------
-        sampling_rate : int or float
-            Target sampling rate (in Hz). If None, uses the instance value.
-        variables : list
-            Optional list of Variables to resample. If None, all variables are
-            resampled.
-        force_dense : bool
-            if True, all sparse variables will be forced to dense.
-        in_place : bool
-            When True, all variables are overwritten in-place.
-            When False, returns resampled versions of all variables.
-        kind : str
-            Argument to pass to scipy's interp1d; indicates the kind of
-            interpolation approach to use. See interp1d docs for valid values.
-        """
-
-        # Store old sampling rate-based variables
-        sampling_rate = sampling_rate or self.sampling_rate
-
-        _variables = {}
-
-        for name, var in self.variables.items():
-            if variables is not None and name not in variables:
-                continue
-            if isinstance(var, SparseRunVariable):
-                if force_dense and is_numeric_dtype(var.values):
-                    _variables[name] = var.to_dense(sampling_rate)
-            else:
-                # None if in_place; no update needed
-                _var = var.resample(sampling_rate, inplace=in_place, kind=kind)
-                if not in_place:
-                    _variables[name] = _var
-
-        if in_place:
-            for k, v in _variables.items():
-                self.variables[k] = v
-            self.sampling_rate = sampling_rate
-        else:
-            return _variables
+    def _get_sampling_rate(self, sampling_rate):
+        """Parse sampling rate argument and return appropriate value."""
+        if sampling_rate is None:
+            return self.sampling_rate
+        if sampling_rate == 'TR':
+            trs = {var.run_info[0].tr
+                    for var in self.collection.variables.values()}
+            if not trs:
+                raise ValueError("Repetition time unavailable; specify "
+                                    "sampling_rate in Hz explicitly or set to"
+                                    " 'highest'.")
+            elif len(trs) > 1:
+                raise ValueError("Non-unique Repetition times found "
+                                    "({!r}); specify sampling_rate explicitly"
+                                    .format(trs))
+            sampling_rate = 1. / trs.pop()
+        if sampling_rate.lower() == 'highest':
+            dense = [v for v in self.variables.values()
+                     if isinstance(v, DenseRunVariable)]
+            return max(*[v.sampling_rate for v in dense])
+        return sampling_rate
 
     def to_df(self, variables=None, format='wide', sparse=True,
               sampling_rate=None, include_sparse=True, include_dense=True,
