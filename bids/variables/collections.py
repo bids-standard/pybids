@@ -278,23 +278,25 @@ class BIDSRunVariableCollection(BIDSVariableCollection):
         self.sampling_rate = sampling_rate or 10
         super(BIDSRunVariableCollection, self).__init__(variables)
 
-    @property
-    def dense_variables(self):
+    def get_dense_variables(self, variables=None):
         """Returns a list of all stored DenseRunVariables."""
+        if variables is None:
+            variables = set(self.variables.keys())
         return [v for v in self.variables.values()
-                if isinstance(v, DenseRunVariable)]
+                if isinstance(v, DenseRunVariable) and v.name in variables]
 
-    @property
-    def sparse_variables(self):
+    def get_sparse_variables(self, variables=None):
         """Returns a list of all stored SparseRunVariables."""
+        if variables is None:
+            variables = set(self.variables.keys())
         return [v for v in self.variables.values()
-                if isinstance(v, SparseRunVariable)]
+                if isinstance(v, SparseRunVariable) and v.name in variables]
 
     def all_dense(self):
-        return len(self.dense_variables) == len(self.variables)
+        return len(self.get_dense_variables()) == len(self.variables)
 
     def all_sparse(self):
-        return len(self.sparse_variables) == len(self.variables)
+        return len(self.get_sparse_variables()) == len(self.variables)
 
     def _get_sampling_rate(self, sampling_rate):
         """Parse sampling rate argument and return appropriate value."""
@@ -318,7 +320,7 @@ class BIDSRunVariableCollection(BIDSVariableCollection):
             return 1. / trs.pop()
 
         if sampling_rate.lower() == 'highest':
-            dense_vars = self.dense_variables
+            dense_vars = self.get_dense_variables()
             if not dense_vars:
                 return None
             return max(*[v.sampling_rate for v in dense_vars])
@@ -326,6 +328,109 @@ class BIDSRunVariableCollection(BIDSVariableCollection):
         raise ValueError("Invalid sampling_rate value '{}' provided. Must be "
                          "a float, None, 'TR', or 'highest'."
                          .format(sampling_rate))
+
+    def _densify_and_resample(self, sampling_rate=None, variables=None,
+                              resample_dense=False, force_dense=False,
+                              in_place=False, kind='linear'):
+
+        sampling_rate = self._get_sampling_rate(sampling_rate)
+
+        _dense, _sparse = [], []
+
+        # Filter variables and sort by class
+        for name, var in self.variables.items():
+            if variables is not None and name not in variables:
+                continue
+            if isinstance(var, DenseRunVariable):
+                _dense.append(var)
+            else:
+                _sparse.append(var)
+
+        _variables = {}
+
+        if force_dense:
+            for v in _sparse:
+                if is_numeric_dtype(v.values):
+                    _variables[v.name] = v.to_dense(sampling_rate)
+
+        if resample_dense:
+            for v in _dense:
+                _variables[v.name] = v.resample(sampling_rate, kind=kind)
+
+        coll = self if in_place else self.clone()
+
+        if in_place:
+            coll.variables.update(_variables)
+        else:
+            coll.variables = _variables
+
+        coll.sampling_rate = sampling_rate
+        return coll
+
+    def to_dense(self, sampling_rate=None, variables=None, in_place=False,
+                 kind='linear'):
+        """ Convert all contained SparseRunVariables to DenseRunVariables.
+
+        Parameters
+        ----------
+        sampling_rate : None, {'TR', 'highest'}, float
+            Sampling rate to use when densifying sparse variables. If None,
+            uses the currently stored instance value. If 'TR', the repetition
+            time is used, if available, to select the sampling rate (1/TR).
+            If 'highest', all variables are resampled to the highest sampling
+            rate of any of the existing dense variables. The sampling rate may
+            also be specified explicitly in Hz as a float.
+        variables : list
+            Optional list of names of Variables to resample. If None, all
+            variables are resampled.
+        in_place : bool
+            When True, all variables are overwritten in-place.
+            When False, returns resampled versions of all variables.
+        kind : str
+            Argument to pass to scipy's interp1d; indicates the kind of
+            interpolation approach to use. See interp1d docs for valid values.
+
+        Returns
+        -------
+        A BIDSVariableCollection (if in_place is False).
+
+        Notes
+        -----
+        Categorical variables are ignored.
+        """
+        return self._densify_and_resample(sampling_rate, variables,
+                                          resample_dense=False,
+                                          in_place=in_place, kind=kind,
+                                          force_dense=True)
+
+    def resample(self, sampling_rate=None, variables=None, force_dense=False,
+                 in_place=False, kind='linear'):
+        """Resample all dense variables (and optionally, sparse ones) to the
+        specified sampling rate.
+
+        Parameters
+        ----------
+        sampling_rate : int or float
+            Target sampling rate (in Hz). If None, uses the instance value.
+        variables : list
+            Optional list of names of Variables to resample. If None, all
+            variables are resampled.
+        force_dense : bool
+            if True, all sparse variables will be forced to dense.
+        in_place : bool
+            When True, all variables are overwritten in-place.
+            When False, returns resampled versions of all variables.
+        kind : str
+            Argument to pass to scipy's interp1d; indicates the kind of
+            interpolation approach to use. See interp1d docs for valid values.
+
+        Returns
+        -------
+        A BIDSVariableCollection (if in_place is False).
+        """
+        return self._densify_and_resample(sampling_rate, variables,
+                                   force_dense=force_dense, in_place=in_place,
+                                   kind=kind, resample_dense=True)
 
     def to_df(self, variables=None, format='wide', sparse=True,
               sampling_rate=None, include_sparse=True, include_dense=True,
@@ -372,31 +477,29 @@ class BIDSRunVariableCollection(BIDSVariableCollection):
             raise ValueError("You can't exclude both dense and sparse "
                              "variables! That leaves nothing!")
 
-        if variables is None:
-            variables = list(self.variables.keys())
+        var_names = []
 
-        if not include_sparse:
-            variables = self.dense_variables
+        if include_sparse:
+            var_names += self.get_sparse_variables(variables)
 
-        if not include_dense:
-            variables = self.sparse_variables
+        if include_dense:
+            var_names += self.get_dense_variables(variables)
 
-        if not variables:
+        if not var_names:
             return None
 
-        _vars = [self.variables[v] for v in variables]
+        # If all variables are sparse/simple, we can pass them as-is. Otherwise
+        # we first force all variables to dense via .resample().
+        _vars = [self.variables[v] for v in var_names]
         if sparse and all(isinstance(v, SimpleVariable) for v in _vars):
             variables = _vars
-
         else:
             sampling_rate = sampling_rate or self.sampling_rate
+            collection = self.resample(sampling_rate, variables=var_names,
+                                       force_dense=True)
+            variables = collection.variables.values()
 
-            # Make sure all variables have the same sampling rate
-            variables = list(self.resample(sampling_rate, variables,
-                                           force_dense=True,
-                                           in_place=False).values())
-
-        return super(BIDSRunVariableCollection, self).to_df(variables, format,
+        return super(BIDSRunVariableCollection, collection).to_df(variables, format,
                                                             **kwargs)
 
 

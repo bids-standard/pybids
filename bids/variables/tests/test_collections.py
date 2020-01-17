@@ -31,18 +31,18 @@ def test_run_variable_collection_init(run_coll):
 
 def test_run_variable_collection_sparse_variable_accessors(run_coll):
     coll = run_coll.clone()
-    assert coll.sparse_variables
+    assert coll.get_sparse_variables()
     assert coll.all_sparse()
     coll.variables['RT'] = coll.variables['RT'].to_dense(1)
     assert not coll.all_sparse()
-    assert len(coll.sparse_variables) + 1 == len(coll.variables)
+    assert len(coll.get_sparse_variables()) + 1 == len(coll.variables)
 
 
 def test_run_variable_collection_dense_variable_accessors(run_coll):
     coll = run_coll.clone()
     coll.variables['RT'] = coll.variables['RT'].to_dense(1)
     assert not coll.all_dense()
-    assert len(coll.dense_variables) == 1
+    assert len(coll.get_dense_variables()) == 1
     for k, v in coll.variables.items():
         if k == 'RT':
             continue
@@ -71,9 +71,9 @@ def test_run_variable_collection_get_sampling_rate(run_coll):
 def test_resample_run_variable_collection(run_coll):
     run_coll = run_coll.clone()
     resampled = run_coll.resample()
-    assert not resampled  # Empty because all variables are sparse
+    assert not resampled.variables  # Empty because all variables are sparse
 
-    resampled = run_coll.resample(force_dense=True)
+    resampled = run_coll.resample(force_dense=True).variables
     assert len(resampled) == 7
     assert all([isinstance(v, DenseRunVariable) for v in resampled.values()])
     assert len(set([v.sampling_rate for v in resampled.values()])) == 1
@@ -81,7 +81,7 @@ def test_resample_run_variable_collection(run_coll):
     assert all([len(v.values) == targ_len for v in resampled.values()])
 
     sr = 20
-    resampled = run_coll.resample(sr, force_dense=True)
+    resampled = run_coll.resample(sr, force_dense=True).variables
     targ_len = 480 * 16 * 3 * sr
     assert all([len(v.values) == targ_len for v in resampled.values()])
 
