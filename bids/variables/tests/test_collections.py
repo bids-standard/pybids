@@ -1,10 +1,12 @@
-from bids.layout import BIDSLayout
-import pytest
 from os.path import join, dirname, abspath
+
+import pytest
+
+from bids.layout import BIDSLayout
 from bids.tests import get_test_data_path
 from bids.variables import (DenseRunVariable, SparseRunVariable,
                             merge_collections)
-
+from bids.variables.entities import RunInfo
 
 @pytest.fixture(scope="module")
 def run_coll():
@@ -46,6 +48,24 @@ def test_run_variable_collection_dense_variable_accessors(run_coll):
             continue
         coll.variables[k] = v.to_dense(1)
     assert coll.all_dense()
+
+
+def test_run_variable_collection_get_sampling_rate(run_coll):
+    coll = run_coll.clone()
+    assert coll._get_sampling_rate(None) == 10
+    assert coll._get_sampling_rate('TR') == 0.5
+    coll.variables['RT'].run_info[0] = RunInfo({}, 200, 10, None)
+    with pytest.raises(ValueError) as exc:
+        coll._get_sampling_rate('TR')
+        assert exc.value.message.startswith('Non-unique')
+    assert coll._get_sampling_rate('highest') is None
+    coll.variables['RT1'] = coll.variables['RT'].to_dense(5.)
+    coll.variables['RT2'] = coll.variables['RT'].to_dense(12.)
+    assert coll._get_sampling_rate('highest') == 12.
+    assert coll._get_sampling_rate(20) == 20
+    with pytest.raises(ValueError) as exc:
+        coll._get_sampling_rate('BLARGH')
+        assert exc.value.message.startswith('Invalid')
 
 
 def test_resample_run_variable_collection(run_coll):

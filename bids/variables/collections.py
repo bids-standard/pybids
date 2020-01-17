@@ -298,11 +298,15 @@ class BIDSRunVariableCollection(BIDSVariableCollection):
 
     def _get_sampling_rate(self, sampling_rate):
         """Parse sampling rate argument and return appropriate value."""
+
         if sampling_rate is None:
             return self.sampling_rate
+
+        if isinstance(sampling_rate, (float, int)):
+            return sampling_rate
+
         if sampling_rate == 'TR':
-            trs = {var.run_info[0].tr
-                    for var in self.collection.variables.values()}
+            trs = {var.run_info[0].tr for var in self.variables.values()}
             if not trs:
                 raise ValueError("Repetition time unavailable; specify "
                                     "sampling_rate in Hz explicitly or set to"
@@ -311,12 +315,17 @@ class BIDSRunVariableCollection(BIDSVariableCollection):
                 raise ValueError("Non-unique Repetition times found "
                                     "({!r}); specify sampling_rate explicitly"
                                     .format(trs))
-            sampling_rate = 1. / trs.pop()
+            return 1. / trs.pop()
+
         if sampling_rate.lower() == 'highest':
-            dense = [v for v in self.variables.values()
-                     if isinstance(v, DenseRunVariable)]
-            return max(*[v.sampling_rate for v in dense])
-        return sampling_rate
+            dense_vars = self.dense_variables
+            if not dense_vars:
+                return None
+            return max(*[v.sampling_rate for v in dense_vars])
+
+        raise ValueError("Invalid sampling_rate value '{}' provided. Must be "
+                         "a float, None, 'TR', or 'highest'."
+                         .format(sampling_rate))
 
     def to_df(self, variables=None, format='wide', sparse=True,
               sampling_rate=None, include_sparse=True, include_dense=True,
