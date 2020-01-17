@@ -589,8 +589,8 @@ class DenseRunVariable(BIDSVariable):
                     msg = ("Cannot merge DenseRunVariables (%s) with different"
                            " sampling rates (%s). Either specify an integer "
                            "sampling rate to use for all variables, or set "
-                           "sampling_rate='auto' to use the highest sampling "
-                           "rate found." % (name, rates))
+                           "sampling_rate='highest' to use the highest sampling"
+                           " rate found." % (name, rates))
                     raise ValueError(msg)
 
         variables = [v.resample(sampling_rate) for v in variables]
@@ -619,9 +619,10 @@ def merge_variables(variables, name=None, **kwargs):
         Optional keyword arguments to pass onto the class-specific merge() call.
         Possible args:
             - sampling_rate (int, str): The sampling rate to use if resampling
-              of DenseRunVariables is necessary for harmonization. If 'auto',
-              the highest sampling rate found will be used. This argument is
-              only used when passing DenseRunVariables in the variables list.
+              of DenseRunVariables is necessary for harmonization. If
+              'highest', the highest sampling rate found will be used. This
+              argument is only used when passing DenseRunVariables in the
+              variables list.
 
     Returns
     -------

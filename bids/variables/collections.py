@@ -376,12 +376,10 @@ class BIDSRunVariableCollection(BIDSVariableCollection):
             variables = list(self.variables.keys())
 
         if not include_sparse:
-            variables = [v for v in variables if
-                         isinstance(self.variables[v], DenseRunVariable)]
+            variables = self.dense_variables
 
         if not include_dense:
-            variables = [v for v in variables if not
-                         isinstance(self.variables[v], DenseRunVariable)]
+            variables = self.sparse_variables
 
         if not variables:
             return None
@@ -402,7 +400,7 @@ class BIDSRunVariableCollection(BIDSVariableCollection):
                                                             **kwargs)
 
 
-def merge_collections(collections, force_dense=False, sampling_rate='auto'):
+def merge_collections(collections, force_dense=False, sampling_rate='highest'):
     """Merge two or more collections at the same level of analysis.
 
     Parameters
@@ -411,7 +409,7 @@ def merge_collections(collections, force_dense=False, sampling_rate='auto'):
         List of Collections to merge.
     sampling_rate : int or str
         Sampling rate to use if it becomes necessary
-        to resample DenseRunVariables. Either an integer or 'auto' (see
+        to resample DenseRunVariables. Either an integer or 'highest' (see
         merge_variables docstring for further explanation).
 
     Returns
@@ -434,7 +432,8 @@ def merge_collections(collections, force_dense=False, sampling_rate='auto'):
     variables = cls.merge_variables(variables, sampling_rate=sampling_rate)
 
     if isinstance(collections[0], BIDSRunVariableCollection):
-        if sampling_rate == 'auto':
+        # 'auto' was renamed to 'highest' circa 0.10, but check for both
+        if sampling_rate in {'auto', 'highest'}:
             rates = [var.sampling_rate for var in variables
                      if isinstance(var, DenseRunVariable)]
 
