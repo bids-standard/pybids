@@ -97,9 +97,12 @@ class BIDSVariableCollection(object):
 
         Parameters
         ----------
-        variables : list
-            Optional list of column names to retain; if None,
-            all variables are returned.
+        variables : list of str or BIDSVariable
+            Optional list of variables or variable names to retain. If strings
+            are passed, each one gives the name of a variable in the current
+            collection. If BIDSVariables are passed, they will be used as-is.
+            If None, all variables are returned. Strings and BIDSVariables
+            cannot be mixed in the list.
         format : {'wide', 'long'}
             Whether to return a DataFrame in 'wide' or 'long'
             format. In 'wide' format, each row is defined by a unique
@@ -477,33 +480,33 @@ class BIDSRunVariableCollection(BIDSVariableCollection):
             raise ValueError("You can't exclude both dense and sparse "
                              "variables! That leaves nothing!")
 
-        var_names = []
+        _vars = []
 
         if include_sparse:
-            var_names += self.get_sparse_variables(variables)
+            _vars += self.get_sparse_variables(variables)
 
         if include_dense:
-            var_names += self.get_dense_variables(variables)
+            _vars += self.get_dense_variables(variables)
 
-        if not var_names:
+        if not _vars:
             return None
 
         # If all variables are sparse/simple, we can pass them as-is. Otherwise
         # we first force all variables to dense via .resample().
-        _vars = [self.variables[v] for v in var_names]
         if sparse and all(isinstance(v, SimpleVariable) for v in _vars):
             variables = _vars
         else:
             sampling_rate = sampling_rate or self.sampling_rate
+            var_names = [v.name for v in _vars]
             collection = self.resample(sampling_rate, variables=var_names,
                                        force_dense=True)
-            variables = collection.variables.values()
+            variables = list(collection.variables.values())
 
-        return super(BIDSRunVariableCollection, collection).to_df(variables, format,
+        return super(BIDSRunVariableCollection, self).to_df(variables, format,
                                                             **kwargs)
 
 
-def merge_collections(collections, force_dense=False, sampling_rate='highest'):
+def merge_collections(collections, sampling_rate='highest'):
     """Merge two or more collections at the same level of analysis.
 
     Parameters
