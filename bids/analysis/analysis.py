@@ -267,34 +267,84 @@ class Step(object):
         nodes, _ = self._filter_objects(self.output_nodes, filters)
         return nodes
 
-    def get_contrasts(self, names=None, variables=None, **kwargs):
-        """Return contrast information for the current step.
+    def get_contrasts(self, collection, names=None, variables=None):
+        """Return contrast information at this step for the passed collection.
 
         Parameters
         ----------
+        collection : BIDSVariableCollection
+            The collection to generate/validate contrasts for.
         names : list
             Optional list of names of contrasts to return. If None (default),
             all contrasts are returned.
         variables : bool
             Optional list of strings giving the names of design matrix columns
             to use when generating the matrix of weights.
-        kwargs : dict
-            Optional keyword arguments used to constrain which of the
-            available nodes get returned (e.g., passing subject=['01',
-            '02'] will return contrast  information only for subjects '01'
-            and '02').
 
         Returns
         -------
         list
-            A list with one element per unit of the current analysis level
-            (e.g., if level='run', each element in the list representing the
-            contrast information for a single run). Each element is a list of
-            ContrastInfo namedtuples (one per contrast).
+            A list of ContrastInfo namedtuples, one per contrast.
 
+        Notes
+        -----
+        The 'variables' argument take precedence over the natural process
+        of column selection. I.e., if a variable shows up in a contrast, but
+        isn't named in variables, it will *not* be included in the result.
         """
-        nodes, kwargs = self._filter_objects(self.output_nodes, kwargs)
-        return [n.get_contrasts(names, variables) for n in nodes]
+
+        # Verify that there are no invalid columns in the condition_lists
+        all_conds = [c['condition_list'] for c in self.contrasts]
+        all_conds = set(chain(*all_conds))
+        bad_conds = all_conds - set(collection.variables.keys())
+        if bad_conds:
+            raise ValueError("Invalid condition names passed in one or more "
+                             " contrast condition lists: %s." % bad_conds)
+
+        # Construct a list of all contrasts, including dummy contrasts
+        contrasts = list(self.contrasts)
+
+        # Check that all contrasts have unique name
+        contrast_names = [c['name'] for c in contrasts]
+        if len(set(contrast_names)) < len(contrast_names):
+            raise ValueError("One or more contrasts have the same name")
+        contrast_names = list(set(contrast_names))
+
+        if self.dummy_contrasts:
+            if 'conditions' in self.dummy_contrasts:
+                conditions = [c for c in self.dummy_contrasts['conditions']
+                              if c in collection.variables.keys()]
+            else:
+                conditions = collection.variables.keys()
+
+            for col_name in conditions:
+                if col_name not in contrast_names:
+                    contrasts.append({
+                        'name': col_name,
+                        'condition_list': [col_name],
+                        'weights': [1],
+                        'type': self.dummy_contrasts['type']
+                    })
+
+        # Filter on desired contrast names if passed
+        if names is not None:
+            contrasts = [c for c in contrasts if c['name'] in names]
+
+        def setup_contrast(c):
+            weights = np.atleast_2d(c['weights'])
+            weights = pd.DataFrame(weights, columns=c['condition_list'])
+            # If variables were explicitly passed, use them as the columns
+            if variables is not None:
+                var_df = pd.DataFrame(columns=variables)
+                weights = pd.concat([weights, var_df],
+                                    sort=True)[variables].fillna(0)
+
+            test_type = c.get('type', ('t' if len(weights) == 1 else 'F'))
+
+            return ContrastInfo(c['name'], weights, test_type,
+                                collection.entities)
+
+        return [setup_contrast(c) for c in contrasts]
 
     def get_model_spec(self, collection, sampling_rate='TR'):
         """Get a ModelSpec instance for the passed collection.
@@ -453,81 +503,5 @@ class AnalysisNode(object):
                 df = df.drop(['onset', 'duration'], axis=1)
             return df
 
-    def get_contrasts(self, names=None, variables=None):
-        """Return contrast information for the current step.
 
-        Parameters
-        ----------
-        names : list
-            Optional list of names of contrasts to return. If None (default),
-            all contrasts are returned.
-        variables : bool
-            Optional list of strings giving the names of design matrix columns
-            to use when generating the matrix of weights.
-
-        Returns
-        -------
-        list
-            A list of ContrastInfo namedtuples, one per contrast.
-
-        Notes
-        -----
-        The 'variables' argument take precedence over the natural process
-        of column selection. I.e., if a variable shows up in a contrast, but
-        isn't named in variables, it will *not* be included in the result.
-        """
-
-        # Verify that there are no invalid columns in the condition_lists
-        all_conds = [c['condition_list'] for c in self._step_contrasts]
-        all_conds = set(chain(*all_conds))
-        bad_conds = all_conds - set(self.collection.variables.keys())
-        if bad_conds:
-            raise ValueError("Invalid condition names passed in one or more "
-                             " contrast condition lists: %s." % bad_conds)
-
-        # Construct a list of all contrasts, including dummy contrasts
-        contrasts = list(self._step_contrasts)
-
-        # Check that all contrasts have unique name
-        contrast_names = [c['name'] for c in contrasts]
-        if len(set(contrast_names)) < len(contrast_names):
-            raise ValueError("One or more contrasts have the same name")
-        contrast_names = list(set(contrast_names))
-
-        if self.dummy_contrasts:
-            if 'conditions' in self.dummy_contrasts:
-                conditions = [c for c in self.dummy_contrasts['conditions']
-                              if c in self.collection.variables.keys()]
-            else:
-                conditions = self.collection.variables.keys()
-
-            for col_name in conditions:
-                if col_name not in contrast_names:
-                    contrasts.append({
-                        'name': col_name,
-                        'condition_list': [col_name],
-                        'weights': [1],
-                        'type': self.dummy_contrasts['type']
-                    })
-
-        # Filter on desired contrast names if passed
-        if names is not None:
-            contrasts = [c for c in contrasts if c['name'] in names]
-
-        def setup_contrast(c):
-            weights = np.atleast_2d(c['weights'])
-            weights = pd.DataFrame(weights, columns=c['condition_list'])
-            # If variables were explicitly passed, use them as the columns
-            if variables is not None:
-                var_df = pd.DataFrame(columns=variables)
-                weights = pd.concat([weights, var_df],
-                                    sort=True)[variables].fillna(0)
-
-            test_type = c.get('type', ('t' if len(weights) == 1 else 'F'))
-
-            return ContrastInfo(c['name'], weights, test_type, self.entities)
-
-        self._contrasts = [setup_contrast(c) for c in contrasts]
-
-        return self._contrasts
 
