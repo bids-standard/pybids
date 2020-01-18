@@ -247,25 +247,25 @@ class Step(object):
 
             self.output_nodes.append(node)
 
-    def get_nodes(self, **filters):
-        """Returns a list of AnalysisNodes.
+    def get_collections(self, **filters):
+        """Returns BIDSVariableCollections at the current Step.
 
         Parameters
         ----------
         filters : dict
             Optional keyword filters used to constrain which of the available
-            nodes get returned (e.g., passing subject=['01', '02'] will return
-            AnalysisNodes for only subjects '01' and '02').
+            collections get returned (e.g., passing subject=['01', '02'] will
+            return collections for only subjects '01' and '02').
 
         Returns
         -------
-        list of AnalysisNode instances
+        list of BIDSVariableCollection instances
             One instance per unit of the current analysis level (e.g., if
-            level='run', each element in the list represents the AnalysisNode
+            level='run', each element in the list represents the collection
             for a single run).
         """
         nodes, _ = self._filter_objects(self.output_nodes, filters)
-        return nodes
+        return [n.collection for n in nodes]
 
     def get_contrasts(self, collection, names=None, variables=None):
         """Return contrast information at this step for the passed collection.
