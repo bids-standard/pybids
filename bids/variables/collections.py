@@ -354,9 +354,7 @@ class BIDSRunVariableCollection(BIDSVariableCollection):
                               resample_dense=False, force_dense=False,
                               in_place=False, kind='linear'):
 
-        print("SR:", sampling_rate)
         sampling_rate = self._get_sampling_rate(sampling_rate)
-        print("SR:", sampling_rate)
 
         _dense, _sparse = [], []
 

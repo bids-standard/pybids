@@ -13,7 +13,7 @@ def run_coll():
     path = join(get_test_data_path(), 'ds005')
     layout = BIDSLayout(path)
     return layout.get_collections('run', types=['events'], merge=True,
-                                  scan_length=480)
+                                  scan_length=480, subject=['01', '02', '04'])
 
 
 @pytest.fixture(scope="module")
@@ -104,49 +104,104 @@ def test_run_variable_collection_to_df_all_sparse_vars(run_coll):
     condition = {'condition'}
     ampl = {'amplitude'}
 
+    # Fails because all vars are sparse
+    with pytest.raises(ValueError):
+        df = run_coll.to_df(include_sparse=False)
+
+    # Fails because no such variables exist
+    with pytest.raises(ValueError):
+        df = run_coll.to_df(variables=['rubadubdub', '999'])
+
     # Wide format
     df = run_coll.to_df()
-    assert df.shape == (4096, 15) 
+    events_per_sub = 256
+    assert df.shape == (events_per_sub * 3, 15) 
     assert set(df.columns) == timing_cols.union(entity_cols, cond_names)
 
     # Wide format, selecting variables by name
     df = run_coll.to_df(format='wide', variables=['RT', 'PTval'])
-    assert df.shape == (4096, 9)
+    assert df.shape == (events_per_sub * 3, 9)
     assert set(df.columns) == timing_cols.union(entity_cols, {'RT', 'PTval'})
 
     # Long format
     df = run_coll.to_df(format='long')
-    assert df.shape == (4096 * 8, 9)
+    assert df.shape == (events_per_sub * 3 * 8, 9)
     assert set(df.columns) == timing_cols.union(entity_cols, condition, ampl)
 
     # Long format, selecting variables by name
     df = run_coll.to_df(format='long', variables=['RT', 'PTval'])
-    assert df.shape == (4096 * 2, 9)
+    assert df.shape == (events_per_sub * 3 * 2, 9)
     assert set(df.columns) == timing_cols.union(entity_cols, condition, ampl)
 
     # Wide format without entity columnns
     df = run_coll.to_df(format='wide', entities=False)
-    assert df.shape == (4096, 10)
+    assert df.shape == (events_per_sub * 3, 10)
     assert set(df.columns) == timing_cols | cond_names
 
     # Wide format without timing columns
     df = run_coll.to_df(format='wide', timing=False)
-    assert df.shape == (4096, 13)
+    assert df.shape == (events_per_sub * 3, 13)
     assert set(df.columns) == entity_cols | cond_names
 
 
 def test_run_variable_collection_to_df_all_dense_vars(run_coll):
-    run_coll = run_coll.clone()
-    # All variables dense, wide format
-    df = run_coll.to_df(sparse=False)
-    assert df.shape == (230400, 18)
-    extra_cols = {'TaskName', 'RepetitionTime', 'extension', 'SliceTiming'}
-    assert set(df.columns) == (wide_cols | extra_cols) - {'trial_type'}
 
-    # All variables dense, wide format
-    df = run_coll.to_df(sparse=False, format='long')
-    assert df.shape == (1612800, 13)
-    assert set(df.columns) == (long_cols | extra_cols)
+    timing_cols = {'onset', 'duration'}
+    entity_cols = {'subject', 'run', 'task',  'suffix', 'datatype'}
+    cond_names = {'PTval', 'RT', 'gain', 'loss', 'parametric gain', 'respcat',
+                  'respnum', 'trial_type'}
+    md_names = {'TaskName', 'RepetitionTime', 'extension', 'SliceTiming'}
+    condition = {'condition'}
+    ampl = {'amplitude'}
+
+    # First few tests assume uniform sampling rate for all columns
+    unif_coll = run_coll.to_dense(sampling_rate=10)
+
+    # Fails because all vars are dense
+    with pytest.raises(ValueError):
+        unif_coll.to_df(include_dense=False)
+
+    # Fails because no such variables exist
+    with pytest.raises(ValueError):
+        df = unif_coll.to_df(variables=['rubadubdub', '999'])
+
+    # Wide format
+    df = unif_coll.to_df()
+    rows_per_var = 3 * 3 * 480 * 10  # subjects x runs x time x sampling rate
+    assert df.shape == (rows_per_var, 18)
+    cols = (timing_cols | entity_cols | cond_names | md_names) - {'trial_type'}
+    assert set(df.columns) == cols
+
+    # Wide format with variable selection
+    df = unif_coll.to_df(variables=['RT', 'gain'])
+    assert df.shape == (rows_per_var, 13)
+    cols = (timing_cols | entity_cols | {'RT', 'gain'} | md_names) - {'trial_type'}
+    assert set(df.columns) == cols
+
+    # Long format
+    df = unif_coll.to_df(format='long')
+    assert df.shape == (rows_per_var * 7, 13)
+    cols = timing_cols | entity_cols | condition | ampl | md_names
+    assert set(df.columns) == cols
+
+    # Long format with variable selection
+    df = unif_coll.to_df(format='long', variables=['RT', 'gain'])
+    assert df.shape == (rows_per_var * 2, 13)
+    cols = timing_cols | entity_cols | condition | ampl | md_names
+    assert set(df.columns) == cols
+
+    # Test resampling to TR
+    df = unif_coll.to_df(sampling_rate='TR')
+    n_rows = int(480 * 3 * 3 / 2)
+    assert df.shape == (n_rows, 18)
+    cols = (timing_cols | entity_cols | cond_names | md_names) - {'trial_type'}
+    assert set(df.columns) == cols
+
+    # Test resampling to highest when variable sampling rates diverge
+    unif_coll.resample(variables='RT', sampling_rate=12, in_place=True)
+    df = unif_coll.to_df(sampling_rate='highest')
+    n_rows = int(rows_per_var * 12 / 10)
+    assert df.shape == (n_rows, 18)
 
 
 def test_run_variable_collection_to_df_mixed_vars(run_coll):
