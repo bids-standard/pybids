@@ -205,7 +205,29 @@ def test_run_variable_collection_to_df_all_dense_vars(run_coll):
 
 
 def test_run_variable_collection_to_df_mixed_vars(run_coll):
-    pass
+    coll = run_coll.clone()
+    coll.to_dense(10, variables=['RT', 'loss','gain'], in_place=True)
+
+    # Only sparse variables
+    df = coll.to_df(include_dense=False)
+    rows = 3 * 256
+    assert df.shape == (rows, 12)
+    assert 'RT' not in df.columns
+    assert 'respcat' in df.columns
+
+    # Only dense variables
+    df = coll.to_df(include_sparse=False)
+    rows = 3 * 3 * 480 * 10
+    assert df.shape == (rows, 14)
+    assert 'RT' in df.columns
+    assert 'respcat' not in df.columns
+
+    # Everything
+    df = coll.to_df(sampling_rate=5)
+    rows = 3 * 3 * 480 * 5
+    assert df.shape == (rows, 18)
+    assert not {'RT', 'respcat'} - set(df.columns)
+
 
 def test_run(analysis):
     kwargs = dict(run=1, subject='01')
