@@ -206,7 +206,11 @@ class BIDSVariableCollection(object):
             self.entities = {k: v for k, v in ents.items() if pd.notnull(v)}
 
     def __getitem__(self, var):
-        return self.variables[var]
+        if var in self.variables:
+            return self.variables[var]
+        keys = list(self.variables.keys())
+        raise ValueError("No variable named '{}' found in this collection. "
+                         "Available names are {}.".format(var, keys))
 
     def __setitem__(self, var, obj):
         # Ensure name matches collection key, but raise warning if needed.
@@ -324,8 +328,9 @@ class BIDSRunVariableCollection(BIDSVariableCollection):
 
         if sampling_rate.lower() == 'highest':
             dense_vars = self.get_dense_variables()
+            # If not dense variables are available, fall back on instance SR
             if not dense_vars:
-                return None
+                return self.sampling_rate
             return max(*[v.sampling_rate for v in dense_vars])
 
         raise ValueError("Invalid sampling_rate value '{}' provided. Must be "
@@ -336,7 +341,9 @@ class BIDSRunVariableCollection(BIDSVariableCollection):
                               resample_dense=False, force_dense=False,
                               in_place=False, kind='linear'):
 
+        print("SR:", sampling_rate)
         sampling_rate = self._get_sampling_rate(sampling_rate)
+        print("SR:", sampling_rate)
 
         _dense, _sparse = [], []
 
@@ -437,7 +444,7 @@ class BIDSRunVariableCollection(BIDSVariableCollection):
 
     def to_df(self, variables=None, format='wide', sparse=True,
               sampling_rate=None, include_sparse=True, include_dense=True,
-              **kwargs):
+              condition=True, entities=True, timing=True):
         """Merge columns into a single pandas DataFrame.
 
         Parameters
@@ -462,13 +469,17 @@ class BIDSRunVariableCollection(BIDSVariableCollection):
             If a dense matrix is written out, the
             sampling rate (in Hz) to use for downsampling. Defaults to the
             value currently set in the instance.
-        kwargs : dict
-            Optional keyword arguments to pass onto each Variable's
-            to_df() call (e.g., condition, entities, and timing).
         include_sparse : bool
             Whether or not to include sparse Variables.
         include_dense : bool
             Whether or not to include dense Variables.
+        condition : bool
+            Whether or not to include the 'condition' column.
+        entities : bool
+            Whether or not to include columns for entities.
+        timing : bool
+            Whether or not to include onset and duration columns. Ignored if
+            sparse = True.
 
         Returns
         -------
@@ -502,11 +513,11 @@ class BIDSRunVariableCollection(BIDSVariableCollection):
                                        force_dense=True)
             variables = list(collection.variables.values())
 
-        return super(BIDSRunVariableCollection, self).to_df(variables, format,
-                                                            **kwargs)
+        return super().to_df(variables, format, condition=condition,
+                             entities=entities, timing=timing)
 
 
-def merge_collections(collections, sampling_rate='highest'):
+def merge_collections(collections, sampling_rate='highest', output_level=None):
     """Merge two or more collections at the same level of analysis.
 
     Parameters
@@ -517,14 +528,18 @@ def merge_collections(collections, sampling_rate='highest'):
         Sampling rate to use if it becomes necessary
         to resample DenseRunVariables. Either an integer or 'highest' (see
         merge_variables docstring for further explanation).
+    output_level : str, optional
+        Assign a new level (e.g., 'run', 'subject', etc.) to the merged
+        collection. If None, the current level is retained.
 
     Returns
     -------
     BIDSVariableCollection or BIDSRunVariableCollection
         Result type depends on the type of the input collections.
     """
-    if len(listify(collections)) == 1:
-        return collections
+    collections = listify(collections)
+    if len(collections) == 1:
+        return collections[0]
 
     levels = set([c.level for c in collections])
     if len(levels) > 1:
@@ -547,4 +562,8 @@ def merge_collections(collections, sampling_rate='highest'):
 
         return cls(variables, sampling_rate)
 
-    return cls(variables)
+    # For non-run collections, we may need to set a different output level
+    coll = cls(variables)
+    if output_level is not None:
+        coll.level = output_level
+    return coll

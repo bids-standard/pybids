@@ -62,7 +62,6 @@ class Analysis(object):
         steps = self.model['steps']
         self.steps = []
         for i, step_args in enumerate(steps):
-            step_args['level'] = step_args['level'].lower()
             step = Step(self.layout, index=i, **step_args)
             self.steps.append(step)
 
@@ -83,21 +82,23 @@ class Analysis(object):
             from event files.
         """
 
-        # In the beginning, there was nothing
-        input_nodes = None
+        # The first Step in the sequence can't have any contrast inputs
+        input_contrasts = None
 
         # Use inputs from model, and update with kwargs
         selectors = self.model.get('input', {}).copy()
         selectors.update(kwargs)
 
-        for i, b in enumerate(self.steps):
+        for i, step in enumerate(self.steps):
 
             # Skip any steps whose names or indexes don't match step list
-            if steps is not None and i not in steps and b.name not in steps:
+            if steps is not None and i not in steps and step.name not in steps:
                 continue
 
-            b.setup(input_nodes, drop_na=drop_na, **selectors)
-            input_nodes = b.output_nodes
+            step.setup(input_contrasts, drop_na=drop_na, **selectors)
+            input_contrasts = [step.get_contrasts(c)
+                               for c in step.get_collections(**selectors)]
+            input_contrasts = list(chain(*input_contrasts))
 
 
 class Step(object):
@@ -122,9 +123,9 @@ class Step(object):
     contrasts : list
         List of contrasts to apply to the parameter estimates generated when
         the model is fit.
-    input_nodes : list
-        Optional list of AnalysisNodes to use as input to this Step (typically,
-        the output from the preceding Step).
+    inputs : list
+        Optional list of BIDSVariableCollections to use as input to this Step
+        (typically, the outputs from the preceding Step).
     dummy_contrasts : dict
         Optional dictionary specifying which conditions to create indicator
         contrasts for. Dictionary must include a "type" key ('t' or 'FEMA'),
@@ -133,8 +134,7 @@ class Step(object):
     """
 
     def __init__(self, layout, level, index, name=None, transformations=None,
-                 model=None, contrasts=None, input_nodes=None,
-                 dummy_contrasts=False):
+                 model=None, contrasts=None, inputs=None, dummy_contrasts=False):
         self.layout = layout
         self.level = level.lower()
         self.index = index
@@ -142,26 +142,26 @@ class Step(object):
         self.transformations = transformations or []
         self.model = model or None
         self.contrasts = contrasts or []
-        self.input_nodes = input_nodes or []
+        self.inputs = inputs or []
         self.dummy_contrasts = dummy_contrasts
-        self.output_nodes = []
+        self._collections = []
 
-    def _filter_objects(self, objects, kwargs):
-        # Keeps only objects that match target entities, and also removes those
-        # keys from the kwargs dict.
+    def _filter_collections(self, collections, kwargs):
+        # Keeps only collections that match target entities, and also removes
+        # those keys from the kwargs dict.
         valid_ents = {'task', 'subject', 'session', 'run'}
         entities = {k: kwargs.pop(k) for k in dict(kwargs) if k in valid_ents}
-        objects = [o for o in objects if matches_entities(o, entities)]
-        return (objects, kwargs)
+        collections = [c for c in collections if matches_entities(c, entities)]
+        return (collections, kwargs)
 
-    def _group_objects(self, objects):
+    def _group_objects_by_entities(self, objects):
         # Group list of objects into bins defined by all entities at current
-        # Step level or higher. E.g., if the level is 'subject', the returned
-        # list will have one element per subject, where each element is a list
-        # containing all objects (BIDSVariableCollection or AnalysisNode) that
-        # belongs to that subject.
+        # Step level or higher. E.g., if the level is 'subject', the
+        # returned list will have one element per subject, where each element
+        # is a list containing all objects that belongs to that subject. Any
+        # object with a defined .entities attribute is groupable.
         if self.level == 'dataset':
-            return [objects]
+            return {'dataset': objects}
         groups = OrderedDict()
         valid_ents = ['subject', 'session', 'task', 'run']
         valid_ents = valid_ents[:(valid_ents.index(self.level) + 1)]
@@ -171,39 +171,78 @@ class Step(object):
             if key not in groups:
                 groups[key] = []
             groups[key].append(o)
-        return list(groups.values())
+        return groups
 
-    def _input_nodes_to_collection(self, nodes):
-        # Creates a new BIDSVariableCollection that contains each contrast
-        # found in one or more of the input nodes as a SimpleVariable. Values
-        # are always 1 when present and 0 when absent, as this is just a pass
-        # through for data passed in from the previous level of analysis.
-        data, entities = [], []
-        for n in nodes:
-            contrasts = [c.name for c in n.contrasts]
-            row = pd.Series(np.ones(len(contrasts)), index=contrasts)
-            data.append(row)
-            entities.append(pd.Series(n.entities))
-        data = pd.concat(data, axis=1, sort=True).T
-        entities = pd.concat(entities, axis=1, sort=True).T
-        return BIDSVariableCollection.from_df(data, entities, self.level)
+    def _merge_contrast_inputs(self, inputs):
+        """ Merges a list of ContrastInfo tuples and constructs a dict mapping
+        from units of the current level to BIDSVariableCollections.
 
-    def setup(self, input_nodes=None, drop_na=False, **kwargs):
+        Parameters
+        ----------
+        inputs: [[ContrastInfo]]
+            List of list of ContrastInfo tuples passed from the previous Step.
+            Each element in the outer list maps to the output of a unit at the
+            previous level; each element in the inner list is a ContrastInfo
+            tuple. E.g., if contrast information is being passed from run-level
+            to subject-level, each outer element is a run.
+
+        Returns
+        -------
+        A dictionary, where the keys are the values of the entities at the
+        current level (e.g., '01', '02'...) and the values are
+        BIDSVariableCollection containing contrast information.
+
+        Notes
+        -----
+        Each output BIDSVariableCollection contains information for a single
+        unit at the present level. The variables in the collection reflect the
+        union of all contrasts found in one or more of the inputs. A value of
+        1 indicates that the contrast is present for a given row in the input;
+        0 indicates that the contrast was missing.
+        """
+
+        groups = self._group_objects_by_entities(inputs)
+
+        ent_cols = list(list(groups.values())[0][0].entities.keys())
+
+        collections = {}
+
+        for name, contrasts in groups.items():
+            # Create a DF with contrasts in rows and contrast names in columns
+            data = [{**c.entities, **{c.name: 1}} for c in contrasts]
+            data = pd.DataFrame.from_records(data)
+            # Group by all entities and sum, collapsing over rows belonging
+            # to the current unit
+            data = data.groupby(ent_cols).sum()
+            # Split the DF up into separate data and entities DFs
+            entities = data.index.to_frame(index=False)
+            data = data.reset_index(drop=True)
+            # Construct the collection
+            coll = BIDSVariableCollection.from_df(data, entities, self.level)
+            collections[name] = coll
+
+        return collections
+
+    def setup(self, inputs=None, drop_na=False, **kwargs):
         """Set up the Step and construct the design matrix.
 
         Parameters
         ----------
-        input_nodes : list
-            Optional list of Node objects produced by the preceding Step in the
-            analysis. If None, uses inputs passed at initialization (if any).
+        inputs : list
+            Optional list of BIDSVariableCollections produced as output by the
+            preceding Step in the analysis. If None, uses inputs passed at
+            initialization (if any).
         drop_na : bool
             Boolean indicating whether or not to automatically drop events that
             have a n/a amplitude when reading in data from event files.
         kwargs : dict
             Optional keyword arguments to pass onto load_variables.
         """
-        self.output_nodes = []
-        input_nodes = input_nodes or self.input_nodes or []
+        self._collections = []
+
+        # Convert input contrasts to a list of BIDSVariableCollections
+        inputs = inputs or self.inputs or []
+        input_grps = self._merge_contrast_inputs(inputs) if inputs else {}
 
         # TODO: remove the scan_length argument entirely once we switch tests
         # to use the synthetic dataset with image headers.
@@ -211,41 +250,32 @@ class Step(object):
             kwargs = kwargs.copy()
             kwargs.pop('scan_length', None)
 
+        # Now handle variables read from the BIDS dataset: read them in, filter
+        # on passed selectors, and group by unit of current level
         collections = self.layout.get_collections(self.level, drop_na=drop_na,
                                                   **kwargs)
-        objects = collections + input_nodes
+        collections, _ = self._filter_collections(collections, kwargs)
+        groups = self._group_objects_by_entities(collections)
 
-        # Keep only objects that match the specified kwargs
-        objects, _ = self._filter_objects(objects, kwargs)
-
-        # Group objects by unit of the current level (e.g., subject 1, 2, etc.)
-        groups = self._group_objects(objects)
+        # Merge in the inputs
+        for key, input_ in input_grps.items():
+            if key not in groups:
+                groups[key] = []
+            groups[key].append(input_)
 
         # Set up and validate variable lists
         model = self.model or {}
         X = model.get('x', [])
 
-        for grp in groups:
-            # Split into separate lists of Collections and Nodes
-            input_nodes = [o for o in grp if isinstance(o, AnalysisNode)]
-            colls = list(set(grp) - set(input_nodes))
+        for grp, colls in groups.items():
+            coll = merge_collections(colls)
 
-            # If we have input nodes, consolidate them as a single collection.
-            if input_nodes:
-                node_coll = self._input_nodes_to_collection(input_nodes)
-                colls.append(node_coll)
-
-            coll = merge_collections(colls) if len(colls) > 1 else colls[0]
-
-            coll = tm.TransformerManager().transform(coll, self.transformations)
+            colls = tm.TransformerManager().transform(coll, self.transformations)
 
             if X:
                 tm.Select(coll, X)
 
-            node = AnalysisNode(self.level, coll, self.contrasts, input_nodes,
-                                self.dummy_contrasts, self.model)
-
-            self.output_nodes.append(node)
+            self._collections.append(coll)
 
     def get_collections(self, **filters):
         """Returns BIDSVariableCollections at the current Step.
@@ -264,8 +294,7 @@ class Step(object):
             level='run', each element in the list represents the collection
             for a single run).
         """
-        nodes, _ = self._filter_objects(self.output_nodes, filters)
-        return [n.collection for n in nodes]
+        return self._filter_collections(self._collections, filters)[0]
 
     def get_contrasts(self, collection, names=None, variables=None):
         """Return contrast information at this step for the passed collection.
@@ -385,123 +414,3 @@ class Step(object):
 
 ContrastInfo = namedtuple('ContrastInfo', ('name', 'weights', 'type',
                                            'entities'))
-
-
-class AnalysisNode(object):
-    """A single analysis node generated within a Step.
-
-    Parameters
-    ----------
-    level : str
-        The level of the Node. Most be one of 'run', 'session', 'subject', or
-        'dataset'.
-    collection : :obj:`bids.variables.kollekshuns.BIDSVariableCollection`
-        The BIDSVariableCollection containing variables at this Node.
-    contrasts : list
-        A list of contrasts defined in the originating Step.
-    dummy_contrasts : list
-        Optional dictionary specifying which conditions to create indicator
-        contrasts for. Dictionary must include a "type" key ('t' or 'FEMA'),
-        and optionally a subset of "conditions". This parameter is over-written
-        by the setting in setup() if the latter is passed.
-    model : dict
-        Optional BIDS-StatsModels model specification.
-    """
-
-    def __init__(self, level, collection, contrasts, input_nodes=None,
-                 dummy_contrasts=None, model=None):
-        self.level = level.lower()
-        self.collection = collection
-        self._step_contrasts = contrasts
-        self.input_nodes = input_nodes
-        self.dummy_contrasts = dummy_contrasts
-        self.model = model
-        self._contrasts = None
-
-    @property
-    def entities(self):
-        return self.collection.entities
-
-    @property
-    def contrasts(self):
-        if self._contrasts is None:
-            self.get_contrasts()
-        return self._contrasts
-
-    def get_design_matrix(self, format='long', mode='dense', force=False,
-                          sampling_rate='TR', **kwargs):
-        """Get design matrix and associated information.
-
-        Parameters
-        ----------
-        format : str
-            Whether to return the design matrix in 'long' or
-            'wide' format. Note that dense design matrices are always
-            returned in 'wide' format.
-        mode : str
-            Specifies whether to return variables in a 'sparse' or 'dense'
-            representation.
-        force : bool
-            Indicates how to handle columns not of the type
-            indicated by the mode argument. When False, variables of the
-            non-selected type will be silently ignored. When True,
-            variables will be forced to the desired representation. For
-            example, if mode='dense' and force=True, sparse variables will
-            be converted to dense variables and included in the returned
-            design matrix in the .dense attribute.
-        sampling_rate : {'TR', 'highest'} or float
-            Sampling rate at which to generate the dense design matrix. When
-            'TR', the repetition time is used, if available, to select the
-            sampling rate (1/TR). When 'highest', all variables are resampled
-            to the highest sampling rate of any variable. The sampling rate may
-            also be specified explicitly in Hz. Has no effect on sparse design
-            matrices.
-        kwargs : dict
-            Optional keyword arguments to pass onto each Variable's
-            to_df() call (e.g., sampling_rate, entities, timing, etc.).
-
-        Returns
-        -------
-        A pandas DataFrame.
-        """
-        coll = self.collection
-
-        # Outside of run level, 'dense' has no meaning
-        if self.level != 'run' and mode != 'sparse':
-            mode = 'sparse'
-
-        kwargs['sparse'] = (mode == 'sparse')
-
-        if mode == 'sparse':
-            return coll.to_df(format=format, include_dense=force, **kwargs)
-
-        elif mode == 'dense':
-            # The current implementation of pivoting to wide in
-            # BIDSVariableCollection.to_df() breaks if we don't have the
-            # temporal columns to index on, so we force their inclusion first
-            # and then drop them afterwards.
-            kwargs['timing'] = True
-
-            if sampling_rate == 'TR':
-                trs = {var.run_info[0].tr
-                       for var in self.collection.variables.values()}
-                if not trs:
-                    raise ValueError("Repetition time unavailable; specify "
-                                     "sampling_rate in Hz explicitly or set to"
-                                     " 'highest'.")
-                elif len(trs) > 1:
-                    raise ValueError("Non-unique Repetition times found "
-                                     "({!r}); specify sampling_rate explicitly"
-                                     .format(trs))
-                sampling_rate = 1. / trs.pop()
-            elif sampling_rate == 'highest':
-                sampling_rate = None
-
-            df = coll.to_df(format='wide', include_sparse=force,
-                                  sampling_rate=sampling_rate, **kwargs)
-            if df is not None:
-                df = df.drop(['onset', 'duration'], axis=1)
-            return df
-
-
-
