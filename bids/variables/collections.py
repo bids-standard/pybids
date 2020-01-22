@@ -341,7 +341,7 @@ class BIDSRunVariableCollection(BIDSVariableCollection):
 
         if sampling_rate.lower() == 'highest':
             dense_vars = self.get_dense_variables()
-            # If not dense variables are available, fall back on instance SR
+            # If no dense variables are available, fall back on instance SR
             if not dense_vars:
                 return self.sampling_rate
             return max(*[v.sampling_rate for v in dense_vars])

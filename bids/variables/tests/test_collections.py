@@ -12,6 +12,7 @@ from bids.variables.entities import RunInfo
 def run_coll():
     path = join(get_test_data_path(), 'ds005')
     layout = BIDSLayout(path)
+    # Limit to a few subjects to reduce test running time
     return layout.get_collections('run', types=['events'], merge=True,
                                   scan_length=480, subject=['01', '02', '04'])
 
@@ -21,7 +22,7 @@ def run_coll_list():
     path = join(get_test_data_path(), 'ds005')
     layout = BIDSLayout(path)
     return layout.get_collections('run', types=['events'], merge=False,
-                                  scan_length=480)
+                                  scan_length=480, subject=['01', '02', '04'])
 
 
 def test_run_variable_collection_init(run_coll):
@@ -58,7 +59,7 @@ def test_run_variable_collection_get_sampling_rate(run_coll):
     with pytest.raises(ValueError) as exc:
         coll._get_sampling_rate('TR')
         assert exc.value.message.startswith('Non-unique')
-    assert coll._get_sampling_rate('highest') is None
+    assert coll._get_sampling_rate('highest') == 10
     coll.variables['RT1'] = coll.variables['RT'].to_dense(5.)
     coll.variables['RT2'] = coll.variables['RT'].to_dense(12.)
     assert coll._get_sampling_rate('highest') == 12.
@@ -77,12 +78,12 @@ def test_resample_run_variable_collection(run_coll):
     assert len(resampled) == 7
     assert all([isinstance(v, DenseRunVariable) for v in resampled.values()])
     assert len(set([v.sampling_rate for v in resampled.values()])) == 1
-    targ_len = 480 * 16 * 3 * 10
+    targ_len = 480 * 3 * 3 * 10
     assert all([len(v.values) == targ_len for v in resampled.values()])
 
     sr = 20
     resampled = run_coll.resample(sr, force_dense=True).variables
-    targ_len = 480 * 16 * 3 * sr
+    targ_len = 480 * 3 * 3 * sr
     assert all([len(v.values) == targ_len for v in resampled.values()])
 
     run_coll.resample(sr, force_dense=True, in_place=True)
@@ -248,7 +249,6 @@ def test_run(analysis):
     result = collections[0].to_df(sparse=False, include_sparse=True,
                                   sampling_rate='highest', format='wide',
                                   timing=False)
-    print(result.columns)
     assert result.shape == (4800, 10)
 
     result = collections[0].get_design_matrix(mode='dense', force=True,
@@ -280,16 +280,16 @@ def test_merge_collections(run_coll, run_coll_list):
 def test_get_collection_entities(run_coll_list):
     coll = run_coll_list[0]
     ents = coll.entities
-    assert {'run', 'task', 'subject', 'suffix', 'datatype'} == set(ents.keys())
+    assert not ({'run', 'task', 'subject', 'suffix', 'datatype'} - set(ents.keys()))
 
     merged = merge_collections(run_coll_list[:3])
     ents = merged.entities
-    assert {'task', 'subject', 'suffix', 'datatype'} == set(ents.keys())
+    assert not ({'task', 'subject', 'suffix', 'datatype'} - set(ents.keys()))
     assert ents['subject'] == '01'
 
     merged = merge_collections(run_coll_list[3:6])
     ents = merged.entities
-    assert {'task', 'subject', 'suffix', 'datatype'} == set(ents.keys())
+    assert not ({'task', 'subject', 'suffix', 'datatype'} - set(ents.keys()))
     assert ents['subject'] == '02'
 
 
