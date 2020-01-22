@@ -92,7 +92,8 @@ class BIDSVariableCollection(object):
         return [merge_variables(vars_, **kwargs)
                 for vars_ in list(var_dict.values())]
 
-    def to_df(self, variables=None, format='wide', fillna=np.nan, **kwargs):
+    def to_df(self, variables=None, format='wide', fillna=np.nan,
+              condition=True, entities=True, timing=True):
         """Merge variables into a single pandas DataFrame.
 
         Parameters
@@ -112,9 +113,12 @@ class BIDSVariableCollection(object):
             the value.
         fillna : value
             Replace missing values with the specified value.
-        kwargs : dict
-            Optional keyword arguments to pass onto each Variable's
-            to_df() call (e.g., condition, entities, and timing).
+        condition : bool
+            Whether or not to include the name of the condition as a column.
+        entities : bool
+            Whether or not to include a column for each entity.
+        timing : bool
+            Whether or not to include onset and duration columns.
 
         Returns
         -------
@@ -130,7 +134,7 @@ class BIDSVariableCollection(object):
             variables = [v for v in self.variables.values()
                          if v.name in variables]
 
-        dfs = [v.to_df(**kwargs) for v in variables]
+        dfs = [v.to_df(condition, entities, timing=timing) for v in variables]
         # Always concatenate along row axis, even for wide format. Then we
         # reset the index if format == 'long', which will produce the desired
         # behavior when we pivot the table.
@@ -442,7 +446,7 @@ class BIDSRunVariableCollection(BIDSVariableCollection):
                                    force_dense=force_dense, in_place=in_place,
                                    kind=kind, resample_dense=True)
 
-    def to_df(self, variables=None, format='wide', sparse=True,
+    def to_df(self, variables=None, format='wide',
               sampling_rate=None, include_sparse=True, include_dense=True,
               condition=True, entities=True, timing=True):
         """Merge columns into a single pandas DataFrame.
@@ -459,32 +463,40 @@ class BIDSRunVariableCollection(BIDSVariableCollection):
             'long' format, each row is a unique combination of onset,
             duration, and variable name, and a single 'amplitude' column
             provides the value.
-        sparse : bool
-            If True, variables will be kept in a sparse
-            format provided they are all internally represented as such.
-            If False, a dense matrix (i.e., uniform sampling rate for all
-            events) will be exported. Will be ignored if at least one
-            variable is dense.
         sampling_rate : float
-            If a dense matrix is written out, the
-            sampling rate (in Hz) to use for downsampling. Defaults to the
-            value currently set in the instance.
+            Specifies the sampling rate to use for all variables in the event
+            that resampling needs to be performed (i.e., if some variables are
+            sparse, or if dense variables have different sampling rates). Must
+            be one of 'TR', 'highest', None, or a float (specifying the rate in
+            Hz). If None, uses the instance sampling rate (10 Hz by default).
         include_sparse : bool
-            Whether or not to include sparse Variables.
+            Whether or not to include sparse variables in the output.
         include_dense : bool
-            Whether or not to include dense Variables.
+            Whether or not to include dense variables in the output.
         condition : bool
-            Whether or not to include the 'condition' column.
+            Whether or not to include the name of the condition as a column.
         entities : bool
-            Whether or not to include columns for entities.
+            Whether or not to include a column for each entity.
         timing : bool
-            Whether or not to include onset and duration columns. Ignored if
-            sparse = True.
+            Whether or not to include onset and duration columns.
 
         Returns
         -------
         :obj:`pandas.DataFrame`
             A pandas DataFrame.
+
+        Notes
+        -----
+        The precise format of the resulting DataFrame depends on the variables
+        contained in the current instance. If all variables are sparse, the
+        output will also be sparse--i.e., the events in the DataFrame may have
+        non-uniform timing. If at least one dense variable is present, and the
+        user has not explicitly excluded dense variables (by setting
+        include_dense=False), all selected variables will be implicitly
+        converted to dense using the specified `sampling_rate` (if provided).
+        To avoid unexpected behavior, we recommend converting mixed collections
+        to all-dense form explicitly via the `to_dense()` or `resample()`
+        methods before calling `to_df()`.
         """
 
         if not include_sparse and not include_dense:
@@ -500,11 +512,11 @@ class BIDSRunVariableCollection(BIDSVariableCollection):
             _vars += self.get_dense_variables(variables)
 
         if not _vars:
-            return None
+            raise ValueError("No variables were selected for output.")
 
         # If all variables are sparse/simple, we can pass them as-is. Otherwise
         # we first force all variables to dense via .resample().
-        if sparse and all(isinstance(v, SimpleVariable) for v in _vars):
+        if all(isinstance(v, SimpleVariable) for v in _vars):
             variables = _vars
         else:
             sampling_rate = sampling_rate or self.sampling_rate
