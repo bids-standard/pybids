@@ -422,6 +422,15 @@ class SparseRunVariable(SimpleVariable):
 
         return dense_var
 
+    def _extract_entities(self):
+        # Get all entities common to all runs. The super method already does
+        # this for entities that show up in filenames, so we just add the
+        # ones that show up in the RunInfo tuples, as those include metadata.
+        ent_items = [run.entities.items() for run in self.run_info]
+        entities = reduce(lambda x, y: x & y, ent_items, ent_items[0])
+        base_ents = super()._extract_entities()
+        return dict(entities, **base_ents)
+
     @classmethod
     def _merge(cls, variables, name, **kwargs):
         run_info = list(chain(*[v.run_info for v in variables]))
