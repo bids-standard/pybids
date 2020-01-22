@@ -25,7 +25,7 @@ class BIDSVariable(metaclass=ABCMeta):
         self.name = name
         self.values = values
         self.source = source
-        self._index_entities()
+        self.entities = self._extract_entities()
 
     def clone(self, data=None, **kwargs):
         """Clone (deep copy) the current column, optionally replacing its
@@ -223,9 +223,8 @@ class BIDSVariable(metaclass=ABCMeta):
 
         return data.reset_index(drop=True)
 
-
-    def _index_entities(self):
-        """Returns a dict of entities for the current Variable.
+    def _extract_entities(self):
+        """Returns a dict of all non-varying entities for the current Variable.
 
         Notes
         -----
@@ -237,10 +236,10 @@ class BIDSVariable(metaclass=ABCMeta):
         """
         constant = self.index.apply(lambda x: x.nunique() == 1)
         if constant.empty:
-            self.entities = {}
+            return {}
         else:
             keep = self.index.columns[constant]
-            self.entities = {k: self.index[k].dropna().iloc[0] for k in keep}
+            return {k: self.index[k].dropna().iloc[0] for k in keep}
 
 
 class SimpleVariable(BIDSVariable):
