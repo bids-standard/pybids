@@ -230,45 +230,6 @@ def test_run_variable_collection_to_df_mixed_vars(run_coll):
     assert not {'RT', 'respcat'} - set(df.columns)
 
 
-def test_run(analysis):
-    kwargs = dict(run=1, subject='01')
-    collections = analysis['run'].get_collections(**kwargs)
-    assert len(collections) == 1
-    sparse_coll = collections[0]
-
-    # Long format, all variables sparse
-    result = sparse_coll.to_df(format='long')
-    assert result.shape == (172, 9)
-
-    # Long format, include only dense, but there are none, so it fails
-    result = collections[0].to_df(include_sparse=False, format='long')
-    assert result is None
-
-    # Check that mixed collections are handled properly
-
-    result = collections[0].to_df(sparse=False, include_sparse=True,
-                                  sampling_rate='highest', format='wide',
-                                  timing=False)
-    assert result.shape == (4800, 10)
-
-    result = collections[0].get_design_matrix(mode='dense', force=True,
-                                        sampling_rate='TR')
-    assert result.shape == (240, 10)
-
-    result = collections[0].get_design_matrix(mode='dense', force=True,
-                                        sampling_rate=0.5)
-    assert result.shape == (240, 10)
-
-    # format='long' should be ignored for dense output
-    result = collections[0].get_design_matrix(mode='dense', force=True, format='long',
-                                        entities=False)
-    assert result.shape == (240, 1)
-
-    result = collections[0].get_design_matrix(mode='sparse', format='wide',
-                                        entities=False)
-    assert result.shape == (86, 4)
-
-
 def test_merge_collections(run_coll, run_coll_list):
     df1 = run_coll.to_df().sort_values(['subject', 'run', 'onset'])
     rcl = [c.clone() for c in run_coll_list]
