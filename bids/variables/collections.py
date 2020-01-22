@@ -454,7 +454,7 @@ class BIDSRunVariableCollection(BIDSVariableCollection):
                                    kind=kind, resample_dense=True)
 
     def to_df(self, variables=None, format='wide', fillna=np.nan,
-              sampling_rate=None, include_sparse=True, include_dense=True,
+              sampling_rate='highest', include_sparse=True, include_dense=True,
               entities=True, timing=True):
         """Merge columns into a single pandas DataFrame.
 
@@ -529,7 +529,7 @@ class BIDSRunVariableCollection(BIDSVariableCollection):
             sampling_rate = sampling_rate or self.sampling_rate
             var_names = [v.name for v in _vars]
             collection = self.resample(sampling_rate, variables=var_names,
-                                       force_dense=True)
+                                       force_dense=include_sparse)
             variables = list(collection.variables.values())
 
         return super().to_df(variables, format, fillna, entities=entities,
