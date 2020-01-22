@@ -344,7 +344,10 @@ class BIDSRunVariableCollection(BIDSVariableCollection):
             # If no dense variables are available, fall back on instance SR
             if not dense_vars:
                 return self.sampling_rate
-            return max(*[v.sampling_rate for v in dense_vars])
+            var_srs = [v.sampling_rate for v in dense_vars]
+            if len(var_srs) == 1:
+                return var_srs[0]
+            return max(*var_srs)
 
         raise ValueError("Invalid sampling_rate value '{}' provided. Must be "
                          "a float, None, 'TR', or 'highest'."

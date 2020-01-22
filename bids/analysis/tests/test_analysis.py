@@ -1,10 +1,13 @@
 from os.path import join
+
+import numpy as np
+import pytest
+
 from bids.analysis import Analysis
 from bids.analysis.analysis import ContrastInfo
 from bids.layout import BIDSLayout
 from bids.tests import get_test_data_path
-import numpy as np
-import pytest
+from bids.variables import BIDSVariableCollection
 
 
 @pytest.fixture
@@ -17,42 +20,10 @@ def analysis():
     return analysis
 
 
-def test_get_design_matrix_arguments(analysis):
-    kwargs = dict(run=1, subject='01', sparse=True)
-    nodes = analysis['run'].get_nodes(**kwargs)
-    assert len(nodes) == 1
-    result = nodes[0].get_design_matrix(mode='sparse')
-    assert result.shape == (172, 9)
-
-    result = nodes[0].get_design_matrix(mode='dense', force=False)
-    assert result is None
-
-    result = nodes[0].get_design_matrix(mode='dense', force=True,
-                                        sampling_rate='highest')
-    assert result.shape == (4800, 10)
-
-    result = nodes[0].get_design_matrix(mode='dense', force=True,
-                                        sampling_rate='TR')
-    assert result.shape == (240, 10)
-
-    result = nodes[0].get_design_matrix(mode='dense', force=True,
-                                        sampling_rate=0.5)
-    assert result.shape == (240, 10)
-
-    # format='long' should be ignored for dense output
-    result = nodes[0].get_design_matrix(mode='dense', force=True, format='long',
-                                        entities=False)
-    assert result.shape == (240, 1)
-
-    result = nodes[0].get_design_matrix(mode='sparse', format='wide',
-                                        entities=False)
-    assert result.shape == (86, 4)
-
-
 def test_first_level_sparse_design_matrix(analysis):
-    nodes = analysis['run'].get_nodes(subject=['01'])
-    assert len(nodes) == 3
-    df = nodes[0].get_design_matrix(mode='sparse')
+    collections = analysis['run'].get_collections(subject=['01'])
+    assert len(collections) == 3
+    df = collections[0].to_df(format='long')
     assert df.shape == (172, 9)
     assert df['condition'].nunique() == 2
     assert set(df.columns) == {'amplitude', 'onset', 'duration',
@@ -62,27 +33,29 @@ def test_first_level_sparse_design_matrix(analysis):
 
 def test_post_first_level_sparse_design_matrix(analysis):
 
-    nodes = analysis['session'].get_nodes()
-    assert len(nodes) == 2
-    result = nodes[0].get_design_matrix(mode='sparse')
-    assert result.shape == (9, 7)
-    result = nodes[0].get_design_matrix(mode='sparse', entities=False)
+    collections = analysis['session'].get_collections()
+    assert len(collections) == 2
+    result = collections[0].to_df(format='long')
+    assert result.shape == (9, 11)
+    result = collections[0].to_df(format='long', entities=False)
     assert result.shape == (9, 2)
-    assert nodes[0].entities == {
+    entities = {
         'subject': '01',
         'task': 'mixedgamblestask',
         'datatype': 'func',
         'suffix': 'bold'}
+    assert not set(entities.keys()) - set(collections[0].entities.keys())
+    assert not set(entities.values()) - set(collections[0].entities.values())
 
     # Participant level and also check integer-based indexing
-    nodes = analysis['participant'].get_nodes()
-    assert len(nodes) == 2
+    collections = analysis['participant'].get_collections()
+    assert len(collections) == 2
     assert analysis[2].name == 'participant'
 
     # Dataset level
-    nodes = analysis['group'].get_nodes()
-    assert len(nodes) == 1
-    data = nodes[0].get_design_matrix(mode='sparse')
+    collections = analysis['group'].get_collections()
+    assert len(collections) == 1
+    data = collections[0].to_df(format='long')
     assert len(data) == 10
     assert data['subject'].nunique() == 2
 
@@ -92,11 +65,18 @@ def test_post_first_level_sparse_design_matrix(analysis):
 
     # Calling an invalid level name should raise an exception
     with pytest.raises(KeyError):
-        result = analysis['nonexistent_name'].get_design_matrix()
+        result = analysis['nonexistent_name'].to_df()
+
+
+def test_step_get_collections(analysis):
+    collections = analysis['run'].get_collections(subject='01')
+    assert len(collections) == 3
+    assert isinstance(collections[0], BIDSVariableCollection)
 
 
 def test_contrast_info(analysis):
-    contrast_lists = analysis['run'].get_contrasts(subject='01')
+    colls = analysis['run'].get_collections(subject='01')
+    contrast_lists = [analysis['run'].get_contrasts(c) for c in colls]
     assert len(contrast_lists) == 3
     for cl in contrast_lists:
         assert len(cl) == 3
@@ -113,8 +93,9 @@ def test_contrast_info(analysis):
 
 def test_contrast_info_with_specified_variables(analysis):
     varlist = ['RT', 'dummy']
-    contrast_lists = analysis['run'].get_contrasts(subject='01',
-                                                   variables=varlist)
+    colls = analysis['run'].get_collections(subject='01')
+    contrast_lists = [analysis['run'].get_contrasts(c, variables=varlist)
+                      for c in colls]
     assert len(contrast_lists) == 3
     for cl in contrast_lists:
         assert len(cl) == 3
@@ -129,8 +110,9 @@ def test_contrast_info_with_specified_variables(analysis):
 
 
 def test_contrast_info_F_contrast(analysis):
-    contrast_lists = analysis['run'].get_contrasts(subject='01',
-                                                   names=["crummy-F"])
+    colls = analysis['run'].get_collections(subject='01')
+    contrast_lists = [analysis['run'].get_contrasts(c, names=["crummy-F"])
+                      for c in colls]
     assert len(contrast_lists) == 3
     for cl in contrast_lists:
         assert len(cl) == 1
@@ -144,19 +126,25 @@ def test_contrast_info_F_contrast(analysis):
 
 
 def test_dummy_contrasts(analysis):
-    names = [c.name for c in analysis['run'].get_contrasts(subject='01')[0]]
-    session = analysis['session'].get_contrasts(subject='01')[0]
+    collection = analysis['run'].get_collections(subject='01')[0]
+    names = [c.name for c in analysis['run'].get_contrasts(collection)]
+
+    collections = analysis['session'].get_collections()
+    collection = analysis['session'].get_collections(subject='01')[0]
+    session = analysis['session'].get_contrasts(collection)
     for cl in session:
         assert cl.type == 'FEMA'
         assert cl.name in names
 
-    participant = analysis['participant'].get_contrasts(subject='01')[0]
+    collection = analysis['participant'].get_collections(subject='01')[0]
+    participant = analysis['participant'].get_contrasts(collection)
     assert len(participant) == 3
     for cl in participant:
         assert cl.type == 'FEMA'
         assert cl.name in names
 
-    group = analysis['group'].get_contrasts()[0]
+    collection = analysis['group'].get_collections()[0]
+    group = analysis['group'].get_contrasts(collection)
     group_names = []
     for cl in group:
         assert cl.type == 't'
@@ -166,10 +154,9 @@ def test_dummy_contrasts(analysis):
 
 
 def test_get_model_spec(analysis):
-    node = analysis['run'].get_nodes(subject='01', run=1)[0]
-    model_spec = analysis['run'].get_model_spec(node.collection, 'TR')
+    collection = analysis['run'].get_collections(subject='01', run=1)[0]
+    model_spec = analysis['run'].get_model_spec(collection, 'TR')
     assert model_spec.__class__.__name__ == 'GLMMSpec'
-    print(model_spec.X)
     assert model_spec.X.shape == (240, 1)
     assert model_spec.Z is None
     assert {'RT'} == set(model_spec.terms.keys())
