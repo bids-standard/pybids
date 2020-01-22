@@ -94,24 +94,49 @@ def test_resample_run_variable_collection(run_coll):
     assert all([isinstance(v, DenseRunVariable) for v in vars_])
 
 
-def test_run_variable_collection_to_df(run_coll):
+def test_run_variable_collection_to_df_all_sparse_vars(run_coll):
     run_coll = run_coll.clone()
 
-    # All variables sparse, wide format
+    timing_cols = {'onset', 'duration'}
+    entity_cols = {'subject', 'run', 'task',  'suffix', 'datatype'}
+    cond_names = {'PTval', 'RT', 'gain', 'loss', 'parametric gain', 'respcat',
+                  'respnum', 'trial_type'}
+    condition = {'condition'}
+    ampl = {'amplitude'}
+
+    # Wide format
     df = run_coll.to_df()
-    assert df.shape == (4096, 15)
-    wide_cols = {'onset', 'duration', 'subject', 'run', 'task',
-                 'PTval', 'RT', 'gain', 'loss', 'parametric gain', 'respcat',
-                 'respnum', 'trial_type', 'suffix', 'datatype'}
-    assert set(df.columns) == wide_cols
+    assert df.shape == (4096, 15) 
+    assert set(df.columns) == timing_cols.union(entity_cols, cond_names)
 
-    # All variables sparse, wide format
+    # Wide format, selecting variables by name
+    df = run_coll.to_df(format='wide', variables=['RT', 'PTval'])
+    assert df.shape == (4096, 9)
+    assert set(df.columns) == timing_cols.union(entity_cols, {'RT', 'PTval'})
+
+    # Long format
     df = run_coll.to_df(format='long')
-    assert df.shape == (32768, 9)
-    long_cols = {'amplitude', 'duration', 'onset', 'condition', 'run',
-                 'task', 'subject', 'suffix', 'datatype'}
-    assert set(df.columns) == long_cols
+    assert df.shape == (4096 * 8, 9)
+    assert set(df.columns) == timing_cols.union(entity_cols, condition, ampl)
 
+    # Long format, selecting variables by name
+    df = run_coll.to_df(format='long', variables=['RT', 'PTval'])
+    assert df.shape == (4096 * 2, 9)
+    assert set(df.columns) == timing_cols.union(entity_cols, condition, ampl)
+
+    # Wide format without entity columnns
+    df = run_coll.to_df(format='wide', entities=False)
+    assert df.shape == (4096, 10)
+    assert set(df.columns) == timing_cols | cond_names
+
+    # Wide format without timing columns
+    df = run_coll.to_df(format='wide', timing=False)
+    assert df.shape == (4096, 13)
+    assert set(df.columns) == entity_cols | cond_names
+
+
+def test_run_variable_collection_to_df_all_dense_vars(run_coll):
+    run_coll = run_coll.clone()
     # All variables dense, wide format
     df = run_coll.to_df(sparse=False)
     assert df.shape == (230400, 18)
@@ -122,6 +147,49 @@ def test_run_variable_collection_to_df(run_coll):
     df = run_coll.to_df(sparse=False, format='long')
     assert df.shape == (1612800, 13)
     assert set(df.columns) == (long_cols | extra_cols)
+
+
+def test_run_variable_collection_to_df_mixed_vars(run_coll):
+    pass
+
+def test_run(analysis):
+    kwargs = dict(run=1, subject='01')
+    collections = analysis['run'].get_collections(**kwargs)
+    assert len(collections) == 1
+    sparse_coll = collections[0]
+
+    # Long format, all variables sparse
+    result = sparse_coll.to_df(format='long')
+    assert result.shape == (172, 9)
+
+    # Long format, include only dense, but there are none, so it fails
+    result = collections[0].to_df(include_sparse=False, format='long')
+    assert result is None
+
+    # Check that mixed collections are handled properly
+
+    result = collections[0].to_df(sparse=False, include_sparse=True,
+                                  sampling_rate='highest', format='wide',
+                                  timing=False)
+    print(result.columns)
+    assert result.shape == (4800, 10)
+
+    result = collections[0].get_design_matrix(mode='dense', force=True,
+                                        sampling_rate='TR')
+    assert result.shape == (240, 10)
+
+    result = collections[0].get_design_matrix(mode='dense', force=True,
+                                        sampling_rate=0.5)
+    assert result.shape == (240, 10)
+
+    # format='long' should be ignored for dense output
+    result = collections[0].get_design_matrix(mode='dense', force=True, format='long',
+                                        entities=False)
+    assert result.shape == (240, 1)
+
+    result = collections[0].get_design_matrix(mode='sparse', format='wide',
+                                        entities=False)
+    assert result.shape == (86, 4)
 
 
 def test_merge_collections(run_coll, run_coll_list):
