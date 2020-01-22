@@ -93,7 +93,7 @@ class BIDSVariableCollection(object):
                 for vars_ in list(var_dict.values())]
 
     def to_df(self, variables=None, format='wide', fillna=np.nan,
-              condition=True, entities=True, timing=True):
+              entities=True, timing=True):
         """Merge variables into a single pandas DataFrame.
 
         Parameters
@@ -105,16 +105,13 @@ class BIDSVariableCollection(object):
             If None, all variables are returned. Strings and BIDSVariables
             cannot be mixed in the list.
         format : {'wide', 'long'}
-            Whether to return a DataFrame in 'wide' or 'long'
-            format. In 'wide' format, each row is defined by a unique
-            entity combination, and each variable is in a separate column.
-            In 'long' format, each row is a unique combination of entities
-            and variable names, and a single 'amplitude' column provides
-            the value.
+            Whether to return a DataFrame in 'wide' or 'long' format. In 'wide'
+            format, each row is defined by a unique entity combination, and
+            each variable is in a separate column. In 'long' format, each row
+            is a unique combination of entities and variable names, and a
+            single 'amplitude' column provides the value.
         fillna : value
             Replace missing values with the specified value.
-        condition : bool
-            Whether or not to include the name of the condition as a column.
         entities : bool
             Whether or not to include a column for each entity.
         timing : bool
@@ -134,22 +131,34 @@ class BIDSVariableCollection(object):
             variables = [v for v in self.variables.values()
                          if v.name in variables]
 
-        dfs = [v.to_df(condition, entities, timing=timing) for v in variables]
-        # Always concatenate along row axis, even for wide format. Then we
-        # reset the index if format == 'long', which will produce the desired
-        # behavior when we pivot the table.
+        # Convert all variables to separate DFs.
+        # Note: bad things can happen if we pass the conditions, entities, and
+        # timing flags through to the individual variables and then do
+        # concat/reshaping operations. So instead, we set them all to True
+        # temporarily, do what we need to, then drop them later if needed.
+        dfs = [v.to_df(True, True, timing=True) for v in variables]
+
+        # Always concatenate along row axis (for format='wide', we'll pivot).
         df = pd.concat(dfs, axis=0, sort=True)
 
-        if format == 'long':
-            return df.reset_index(drop=True).fillna(fillna)
-
         ind_cols = list(set(df.columns) - {'condition', 'amplitude'})
+        ent_cols = list(set(ind_cols) - {'onset', 'duration'})
 
-        df['amplitude'] = df['amplitude'].fillna('n/a')
-        df = df.pivot_table(index=ind_cols, columns='condition',
-                            values='amplitude', aggfunc='first')
-        df = df.reset_index().replace('n/a', fillna)
-        df.columns.name = None
+        if format == 'long':
+            df = df.reset_index(drop=True).fillna(fillna)
+        else:
+            df['amplitude'] = df['amplitude'].fillna('n/a')
+            df = df.pivot_table(index=ind_cols, columns='condition',
+                                values='amplitude', aggfunc='first')
+            df = df.reset_index().replace('n/a', fillna)
+            df.columns.name = None
+
+        # Drop any columns we don't want
+        if not timing:
+            df.drop(['onset', 'duration'], axis=1, inplace=True)
+        if not entities:
+            df.drop(ent_cols, axis=1, inplace=True)
+
         return df
 
     @classmethod
@@ -446,9 +455,9 @@ class BIDSRunVariableCollection(BIDSVariableCollection):
                                    force_dense=force_dense, in_place=in_place,
                                    kind=kind, resample_dense=True)
 
-    def to_df(self, variables=None, format='wide',
+    def to_df(self, variables=None, format='wide', fillna=np.nan,
               sampling_rate=None, include_sparse=True, include_dense=True,
-              condition=True, entities=True, timing=True):
+              entities=True, timing=True):
         """Merge columns into a single pandas DataFrame.
 
         Parameters
@@ -463,6 +472,8 @@ class BIDSRunVariableCollection(BIDSVariableCollection):
             'long' format, each row is a unique combination of onset,
             duration, and variable name, and a single 'amplitude' column
             provides the value.
+        fillna : value
+            Replace missing values with the specified value.
         sampling_rate : float
             Specifies the sampling rate to use for all variables in the event
             that resampling needs to be performed (i.e., if some variables are
@@ -473,8 +484,6 @@ class BIDSRunVariableCollection(BIDSVariableCollection):
             Whether or not to include sparse variables in the output.
         include_dense : bool
             Whether or not to include dense variables in the output.
-        condition : bool
-            Whether or not to include the name of the condition as a column.
         entities : bool
             Whether or not to include a column for each entity.
         timing : bool
@@ -525,8 +534,8 @@ class BIDSRunVariableCollection(BIDSVariableCollection):
                                        force_dense=True)
             variables = list(collection.variables.values())
 
-        return super().to_df(variables, format, condition=condition,
-                             entities=entities, timing=timing)
+        return super().to_df(variables, format, fillna, entities=entities,
+                             timing=timing)
 
 
 def merge_collections(collections, sampling_rate='highest', output_level=None):
