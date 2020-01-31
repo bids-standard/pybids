@@ -1476,12 +1476,15 @@ class BIDSLayout(object):
                 "Unable to construct build path with source {}".format(source))
         to_check = os.path.join(os.path.sep, built)
 
-        if not validate or BIDSValidator().is_bids(to_check):
-            return built
+        if validate and not BIDSValidator().is_bids(to_check):
+            raise ValueError("Built path {} is not a valid BIDS filename. "
+                             "Please make sure all provided entity values are "
+                             "spec-compliant.".format(built))
 
-        raise ValueError("Built path {} is not a valid BIDS filename. Please "
-                         "make sure all provided entity values are "
-                         "spec-compliant.".format(built))
+        if self.absolute_paths:
+            built = os.path.join(self.root, built)
+
+        return built
 
     def copy_files(self, files=None, path_patterns=None, symbolic_links=True,
                    root=None, conflicts='fail', **kwargs):
