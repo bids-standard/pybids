@@ -12,9 +12,15 @@ def layout():
 
 def test_bold_construction(layout):
     ents = dict(subject='01', run=1, task='rest', suffix='bold')
-    assert layout.build_path(ents) == "sub-01/func/sub-01_task-rest_run-1_bold.nii.gz"
+    assert layout.build_path(ents, absolute_paths=False) \
+        == "sub-01/func/sub-01_task-rest_run-1_bold.nii.gz", \
+        "Check relative path"
+    assert layout.build_path(ents) \
+        == layout.root + "/sub-01/func/sub-01_task-rest_run-1_bold.nii.gz", \
+        "Check absolute (default) path"
     ents['acquisition'] = 'random'
-    assert layout.build_path(ents) == "sub-01/func/sub-01_task-rest_acq-random_run-1_bold.nii.gz"
+    assert layout.build_path(ents, absolute_paths=False) \
+        == "sub-01/func/sub-01_task-rest_acq-random_run-1_bold.nii.gz"
 
 
 def test_invalid_file_construction(layout):
@@ -24,7 +30,8 @@ def test_invalid_file_construction(layout):
         layout.build_path(ents)
 
     target = "sub-01/func/sub-01_task-resting-state_run-1_bold.nii.gz"
-    assert layout.build_path(ents, validate=False) == target
+    assert layout.build_path(ents, validate=False, absolute_paths=False) \
+        == target
 
 
 def test_failed_file_construction(layout):

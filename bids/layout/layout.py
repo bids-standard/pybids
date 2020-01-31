@@ -1404,7 +1404,7 @@ class BIDSLayout(object):
         return all_trs.pop()
 
     def build_path(self, source, path_patterns=None, strict=False,
-                   scope='all', validate=True):
+                   scope='all', validate=True, absolute_paths=None):
         """Construct a target filename for a file or dictionary of entities.
 
         Parameters
@@ -1446,6 +1446,11 @@ class BIDSLayout(object):
             If True, built path must pass BIDS validator. If
             False, no validation is attempted, and an invalid path may be
             returned (e.g., if an entity value contains a hyphen).
+        absolute_paths : bool, optional
+            Optionally override the instance-wide option
+            to report either absolute or relative (to the top of the
+            dataset) paths. If None, will fall back on the value specified
+            at BIDSLayout initialization.
         """
         # 'is_file' is a crude check for Path objects
         if isinstance(source, str) or hasattr(source, 'is_file'):
@@ -1481,7 +1486,11 @@ class BIDSLayout(object):
                              "Please make sure all provided entity values are "
                              "spec-compliant.".format(built))
 
-        if self.absolute_paths:
+        # Convert to absolute paths if needed
+        if absolute_paths is None:
+            absolute_paths = self.absolute_paths
+
+        if absolute_paths:
             built = os.path.join(self.root, built)
 
         return built
