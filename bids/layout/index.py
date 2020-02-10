@@ -80,7 +80,7 @@ class BIDSLayoutIndexer(object):
         # BIDS validator expects absolute paths, but really these are relative
         # to the BIDS project root.
         to_check = os.path.relpath(f, self.root)
-        to_check = os.path.join(os.path.sep, to_check)
+        to_check = os.path.join('/', to_check)
         return self.validator.is_bids(to_check)
 
     def _index_dir(self, path, config, default_action=None):
