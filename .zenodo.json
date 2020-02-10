@@ -52,6 +52,11 @@
       "orcid": "0000-0001-9513-2660"
     },
     {
+      "affiliation": "Department of Psychology, Stanford University",
+      "name": "Esteban, Oscar",
+      "orcid": "0000-0001-8435-6191"
+    },
+    {
       "affiliation": "Institute for Problems of Information Transmission",
       "name": "Petrov, Dmitry"
     },
@@ -59,6 +64,9 @@
       "affiliation": "Concordia University",
       "name": "Hayot-Sasson, Val\u00e9rie",
       "orcid": "0000-0002-4830-4535"
+    },
+    {
+      "name": "James Kent"
     },
     {
       "affiliation": "National Institute of Mental Health",
@@ -101,9 +109,8 @@
       "orcid": "0000-0001-8002-0877"
     },
     {
-      "affiliation": "Department of Psychology, Stanford University",
-      "name": "Esteban, Oscar",
-      "orcid": "0000-0001-8435-6191"
+      "name": "Janke, Andrew",
+      "orcid": "0000-0002-6314-9027"
     },
     {
       "name": "Ivanov, Alexander"
@@ -143,6 +150,11 @@
       "orcid": "0000-0001-6755-0259"
     },
     {
+      "affiliation": "Ottawa Hospital Research Institute",
+      "name": "Boulay, Chadwick",
+      "orcid": "0000-0003-1747-3931"
+    },
+    {
       "affiliation": "Berkeley Institute for Data Science; University of California at Berkeley",
       "name": "Holdgraf, Chris",
       "orcid": "0000-0002-2391-0678"
@@ -171,11 +183,6 @@
       "affiliation": "INRIA",
       "name": "Thirion, Bertrand",
       "orcid": "0000-0001-5018-7895"
-    },
-    {
-      "affiliation": "Ottawa Hospital Research Institute",
-      "name": "Boulay, Chadwick",
-      "orcid": "0000-0003-1747-3931"
     },
     {
       "affiliation": "Rutgers University",
@@ -211,10 +218,6 @@
       "affiliation": "Stanford University",
       "name": "Blair, Ross",
       "orcid": "0000-0003-3007-1056"
-    },
-    {
-      "name": "Janke, Andrew",
-      "orcid": "0000-0002-6314-9027"
     }
   ],
   "keywords": [
