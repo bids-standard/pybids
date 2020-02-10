@@ -1,5 +1,26 @@
 # Changelog
 
+## Version 0.10.1 (February 10, 2020)
+
+Bug fix release in the 0.10.x series.
+
+This release just makes available some of the latest minor fixes and improvements.
+
+* FIX: Replace ``os.path.sep`` with ``fwdslash`` because bids validator hardcodes fwd (#582)
+* FIX: Refactor of ``build_path`` and inner machinery (#574)
+* FIX: Domain entity, and slow ``__repr__`` (#569)
+* FIX: "strict" helptext in ``BIDSLayout.write_contents_to_file`` (#566)
+* FIX: typos in helpstrings and comments (#564)
+* FIX: Correct term "caret" to "angle bracket" in helpstrings (#565)
+* ENH: Extend ``build_path`` to generate lists of files (#576)
+* ENH: Add one parametric test of ``BIDSLayout.build_path`` (#577)
+* ENH: Enable partial metadata indexing (#560)
+* ENH: Upscale to collection sampling rate prior to resampling (#568)
+* ENH: Calculate default sampling rate for ``SparseRunVariable.to_dense`` (#571)
+* MNT: Add ``.vscode`` (for Visual Studio Code) to ``.gitignore`` (#562)
+* MNT: Ignore pip-wheel-metadata (#581)
+* DOC: Remove Python 2 support statement, now that v0.10.0 has dropped it (#561)
+
 ## Version 0.10.0 (December 03, 2019)
 
 New feature release in the 0.10.x series.
