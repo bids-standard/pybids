@@ -2,6 +2,8 @@
 
 ## Version 0.10.2 (February 26, 2020)
 
+Bug fix release in the 0.10.x series.
+
 * FIX: Add Replace as exception to recursive JSON conversion (#589)
 
 ## Version 0.10.1 (February 10, 2020)
