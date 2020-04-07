@@ -14,6 +14,7 @@ from itertools import chain
 
 from .writing import build_path, write_contents_to_file
 from ..config import get_option
+from .utils import BIDSMetadata
 
 Base = declarative_base()
 
@@ -205,7 +206,9 @@ class BIDSFile(Base):
 
     def get_metadata(self):
         """Return all metadata associated with the current file. """
-        return self.get_entities(metadata=True)
+        md = BIDSMetadata(self.path)
+        md.update(self.get_entities(metadata=True))
+        return md
 
     def get_entities(self, metadata=False, values='tags'):
         """Return entity information for the current file.

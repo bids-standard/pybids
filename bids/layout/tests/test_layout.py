@@ -14,6 +14,7 @@ from bids.layout import (BIDSLayout, parse_file_entities, add_config_paths,
                          Query)
 from bids.layout.index import BIDSLayoutIndexer
 from bids.layout.models import Entity, Config
+from bids.layout.utils import BIDSMetadata
 from bids.tests import get_test_data_path
 from bids.utils import natural_sort
 
@@ -173,6 +174,22 @@ def test_get_metadata_via_bidsfile(layout_7t_trt):
     assert result['EchoTime'] == 0.020
     # include_entities is False when called through a BIDSFile
     assert 'subject' not in result
+
+
+def test_get_metadata_error(layout_7t_trt):
+    ''' Same as test_get_metadata5, but called through BIDSFile. '''
+    target = 'sub-01/ses-1/func/sub-01_ses-1_task-rest_acq-fullbrain_run-1_bold.nii.gz'
+    target = target.split('/')
+    path = join(layout_7t_trt.root, *target)
+    result = layout_7t_trt.files[path].get_metadata()
+    with pytest.raises(KeyError) as err:
+        result['Missing']
+    assert "Metadata term 'Missing' unavailable for file {}".format(path) in str(err)
+
+    result = layout_7t_trt.get_metadata(path)
+    with pytest.raises(KeyError) as err:
+        result['Missing']
+    assert "Metadata term 'Missing' unavailable for file {}".format(path) in str(err)
 
 
 def test_get_with_bad_target(layout_7t_trt):
