@@ -21,6 +21,7 @@ from ..external import inflect
 from .writing import build_path, write_contents_to_file
 from .models import (Base, Config, BIDSFile, Entity, Tag)
 from .index import BIDSLayoutIndexer
+from .utils import BIDSMetadata
 from .. import config as cf
 
 try:
@@ -1146,6 +1147,7 @@ class BIDSLayout(object):
         precedence, per the inheritance rules in the BIDS specification.
 
         """
+        md = BIDSMetadata(str(path))
         for layout in self._get_layouts_in_scope(scope):
 
             query = (layout.session.query(Tag)
@@ -1157,9 +1159,10 @@ class BIDSLayout(object):
 
             results = query.all()
             if results:
-                return {t.entity_name: t.value for t in results}
+                md.update({t.entity_name: t.value for t in results})
+                return md
 
-        return {}
+        return md
 
     def get_dataset_description(self, scope='self', all_=False):
         """Return contents of dataset_description.json.
