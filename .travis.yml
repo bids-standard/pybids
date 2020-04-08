@@ -1,13 +1,14 @@
+os: linux
 dist: xenial
-sudo: true
 language: python
-cache: false
+cache: pip
 
 # python and global.matrix are crossed to create the base build matrix
 python:
   - 3.5
   - 3.6
   - 3.7
+  - 3.8
 env:
   global:
     - INSTALL_TYPE="pip"
