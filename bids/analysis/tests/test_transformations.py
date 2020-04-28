@@ -2,7 +2,7 @@
 from bids.analysis import transformations as transform
 from bids.variables import SparseRunVariable
 from bids.variables.entities import RunInfo
-from bids.variables.kollekshuns import BIDSRunVariableCollection
+from bids.variables.collections import BIDSRunVariableCollection
 from bids.layout import BIDSLayout
 import math
 import pytest

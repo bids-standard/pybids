@@ -1091,8 +1091,8 @@ class BIDSLayout(object):
             observation is handled separately, and the result is returned
             as a list.
         sampling_rate : int or str
-            If level='run', the sampling rate to pass on to the returned
-            :obj:`bids.variables.kollekshuns.BIDSRunVariableCollection`.
+            If level='run', the sampling rate to pass onto the returned
+            :obj:`bids.variables.collections.BIDSRunVariableCollection`.
         skip_empty : bool
             Whether or not to skip empty Variables (i.e., where there are no
             rows/records in a file after applying any filtering operations
@@ -1103,10 +1103,10 @@ class BIDSLayout(object):
 
         Returns
         -------
-        list of :obj:`bids.variables.kollekshuns.BIDSVariableCollection`
-            or :obj:`bids.variables.kollekshuns.BIDSVariableCollection`
+        list of :obj:`bids.variables.collections.BIDSVariableCollection`
+            or :obj:`bids.variables.collections.BIDSVariableCollection`
             A list if merge=False;
-            a single :obj:`bids.variables.kollekshuns.BIDSVariableCollection`
+            a single :obj:`bids.variables.collections.BIDSVariableCollection`
             if merge=True.
 
         """

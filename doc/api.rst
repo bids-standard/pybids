@@ -37,7 +37,6 @@ API Reference
    bids.analysis.auto_model
    bids.analysis.analysis.Step
    bids.analysis.analysis.AnalysisNode
-   bids.analysis.analysis.apply_transformations
 
 .. currentmodule:: bids
 
@@ -74,7 +73,7 @@ API Reference
    bids.variables.merge_variables
    bids.variables.io
    bids.variables.entities
-   bids.variables.kollekshuns
+   bids.variables.collections
    bids.variables.variables
 
 .. currentmodule:: bids
