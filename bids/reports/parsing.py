@@ -43,6 +43,81 @@ def general_acquisition_info(metadata):
     return out_str
 
 
+def get_slice_string(img, metadata):
+    if 'SliceTiming' in metadata.keys():
+        slice_order = ' in {0} order'.format(get_slice_info(metadata['SliceTiming']))
+        n_slices = len(metadata['SliceTiming'])
+    else:
+        slice_order = ''
+        n_slices = img.shape[3]
+    slice_str = '{n_slices} slices{slice_order}'.format(
+        n_slices=n_slices,
+        slice_order=slice_order
+    )
+    return slice_str
+
+
+def get_tr_string(metadata):
+    tr = metadata['RepetitionTime'] * 1000
+    tr = num2str(tr)
+    tr_str = 'repetition time, TR={tr}ms'.format(tr=tr)
+    return tr_str
+
+
+def get_duration(img, metadata):
+    tr = metadata['RepetitionTime']
+    n_tps = img.shape[3]
+    run_secs = math.ceil(n_tps * tr)
+    mins, secs = divmod(run_secs, 60)
+    duration = '{0}:{1:02.0f}'.format(int(mins), int(secs))
+    return duration
+
+
+def get_mbfactor_string(metadata):
+    if metadata.get('MultibandAccelerationFactor', 1) > 1:
+        mb_str = 'MB factor={}'.format(metadata['MultibandAccelerationFactor'])
+    else:
+        mb_str = ''
+    return mb_str
+
+
+def get_echotimes_string(metadata):
+    if 'EchoTime' in metadata.keys():
+        if isinstance(metadata['EchoTime'], list):
+            te = [num_to_str(t*1000) for t in metadata['EchoTime']]
+            te = list_to_str(te)
+            me_str = 'multi-echo'
+        else:
+            te = num_to_str(metadata['EchoTime']*1000)
+            me_str = 'single-echo'
+    else:
+        te = 'UNKNOWN'
+        me_str = 'UNKNOWN-echo'
+    te_str = 'echo time, TE={te}ms'.format(te)
+    return te_str, me_str
+
+
+def get_size_strings(img):
+    vs_str, ms_str, fov_str = get_sizestr(img)
+    fov_str = 'field of view, FOV={fov}mm'.format(fov=fov_str)
+    voxelsize_str = 'voxel size={vs}mm'.format(vs=vs_str)
+    matrixsize_str = 'matrix size={ms}'.format(ms=ms_str)
+    return fov_str, voxelsize_str, matrixsize_str
+
+
+def get_inplaneaccel_string(metadata):
+    if metadata.get('ParallelReductionFactorInPlane', 1) > 1:
+        pr_str = ('in-plane acceleration factor='
+                  '{}'.format(metadata['ParallelReductionFactorInPlane']))
+    else:
+        pr_str = ''
+    return pr_str
+
+
+def get_flipangle_str(metadata):
+    return 'flip angle, FA={fa}<deg>'.format(metadata.get('FlipAngle', 'UNKNOWN'))
+
+
 def func_info(task, n_runs, metadata, img, config):
     """
     Generate a paragraph describing T2*-weighted functional scans.
@@ -66,76 +141,41 @@ def func_info(task, n_runs, metadata, img, config):
     desc : :obj:`str`
         A description of the scan's acquisition information.
     """
-    if metadata.get('MultibandAccelerationFactor', 1) > 1:
-        mb_str = '; MB factor={}'.format(metadata['MultibandAccelerationFactor'])
-    else:
-        mb_str = ''
-
-    if metadata.get('ParallelReductionFactorInPlane', 1) > 1:
-        pr_str = ('; in-plane acceleration factor='
-                  '{}'.format(metadata['ParallelReductionFactorInPlane']))
-    else:
-        pr_str = ''
-
-    if 'SliceTiming' in metadata.keys():
-        so_str = ' in {0} order'.format(get_slice_info(metadata['SliceTiming']))
-    else:
-        so_str = ''
-
-    if 'EchoTime' in metadata.keys():
-        if isinstance(metadata['EchoTime'], list):
-            te = [num_to_str(t*1000) for t in metadata['EchoTime']]
-            te_temp = ', '.join(te[:-1])
-            te_temp += ', and {}'.format(te[-1])
-            te = te_temp
-            me_str = 'multi-echo '
-        else:
-            te = num_to_str(metadata['EchoTime']*1000)
-            me_str = 'single-echo '
-    else:
-        te = 'UNKNOWN'
-        me_str = 'UNKNOWN-echo'
-
     task_name = metadata.get('TaskName', task+' task')
     seqs, variants = get_seqstr(config, metadata)
-    n_slices, vs_str, ms_str, fov_str = get_sizestr(img)
-
-    tr = metadata['RepetitionTime']
-    n_tps = img.shape[3]
-    run_secs = math.ceil(n_tps * tr)
-    mins, secs = divmod(run_secs, 60)
-    length = '{0}:{1:02.0f}'.format(int(mins), int(secs))
+    slice_str = get_slice_string(img, metadata)
+    tr_str = get_tr_string(metadata)
+    echonum_str, te_str = get_echotimes_string(metadata)
+    fov_str, voxelsize_str, matrixsize_str = get_size_strings(img)
+    fa_str = get_flipangle_str(metadata)
 
     if n_runs == 1:
         run_str = '{0} run'.format(num2words(n_runs).title())
     else:
         run_str = '{0} runs'.format(num2words(n_runs).title())
 
+    required = [slice_str, tr_str, te_str, fa_str, fov_str, matrixsize_str,
+                voxelsize_str]
+    optional = [multiband_str, inplaneaccel_str]
+    required_str = '; '.join(required)
+    optional_str = '; '.join(opt for opt in optional if len(opt))
+    if len(optional_str):
+        optional_str = '; ' + optional_str
+
     desc = '''
-           {run_str} of {task} {variants} {seqs} {me_str} fMRI data were
-           collected ({n_slices} slices{so_str}; repetition time, TR={tr}ms;
-           echo time, TE={te}ms; flip angle, FA={fa}<deg>;
-           field of view, FOV={fov}mm; matrix size={ms};
-           voxel size={vs}mm{mb_str}{pr_str}).
-           Each run was {length} minutes in length, during which
+           {run_str} of {task} {variants} {seqs} {echonum_str} fMRI data were
+           collected ({required_str}{optional_str}).
+           Each run was {duration} minutes long, during which
            {n_vols} functional volumes were acquired.
            '''.format(run_str=run_str,
                       task=task_name,
                       variants=variants,
                       seqs=seqs,
                       me_str=me_str,
-                      n_slices=n_slices,
-                      so_str=so_str,
-                      tr=num_to_str(tr*1000),
-                      te=te,
-                      fa=metadata.get('FlipAngle', 'UNKNOWN'),
-                      vs=vs_str,
-                      fov=fov_str,
-                      ms=ms_str,
-                      length=length,
+                      required_str=required_str,
+                      optional_str=optional_str,
+                      duration=get_duration(img, metadata),
                       n_vols=n_tps,
-                      mb_str=mb_str,
-                      pr_str=pr_str
                      )
     desc = desc.replace('\n', ' ').lstrip()
     while '  ' in desc:

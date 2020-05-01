@@ -49,6 +49,9 @@ class BIDSReport(object):
 
         self.config = config
 
+    def generate_from_files():
+        pass
+
     def generate(self, **kwargs):
         r"""Generate the methods section.
 

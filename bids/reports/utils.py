@@ -147,8 +147,6 @@ def get_sizestr(img):
 
     Returns
     -------
-    n_slices : :obj:`int`
-        Number of slices.
     voxel_size : :obj:`str`
         Voxel size string (e.g., '2x2x2')
     matrix_size : :obj:`str`
@@ -156,11 +154,11 @@ def get_sizestr(img):
     fov : :obj:`str`
         Field of view string (e.g., '256x256')
     """
-    n_x, n_y, n_slices = img.shape[:3]
+    n_x, n_y = img.shape[:2]
     import numpy as np
     voxel_dims = np.array(img.header.get_zooms()[:3])
     matrix_size = '{0}x{1}'.format(num_to_str(n_x), num_to_str(n_y))
     voxel_size = 'x'.join([num_to_str(s) for s in voxel_dims])
     fov = [n_x, n_y] * voxel_dims[:2]
     fov = 'x'.join([num_to_str(s) for s in fov])
-    return n_slices, voxel_size, matrix_size, fov
+    return voxel_size, matrix_size, fov
