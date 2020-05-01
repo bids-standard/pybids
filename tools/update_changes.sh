@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # Collects the pull-requests since the latest release and
-# aranges them in the CHANGES.txt file.
+# aranges them in the CHANGELOG.rst file.
 #
 # This is a script to be run before releasing a new version.
 #
@@ -13,14 +13,19 @@
 set -u         # Treat unset variables as an error when substituting.
 set -x         # Print command traces before executing command.
 
-CHANGES=CHANGELOG.md
+CHANGES=CHANGELOG.rst
 
 # Elaborate today's release header
-HEADER="## Version $1 ($(date '+%B %d, %Y'))"
-cat <<END > newchanges
-# Changelog
+HEADER="Version $1 ($(date '+%B %d, %Y'))"
+LEN=${#HEADER}
+UNDERLINE=$(printf "%0.s-" $(seq 1 $LEN))
 
-## Version $1 ($(date '+%B %d, %Y'))
+cat <<END > newchanges
+Changelog
+=========
+
+$HEADER
+$UNDERLINE
 
 END
 
@@ -32,4 +37,3 @@ tail -n+2 $CHANGES >> newchanges
 
 # Replace old CHANGES with new file
 mv newchanges $CHANGES
-
