@@ -29,9 +29,47 @@ jobs:
             make -C doc html
       - store_artifacts:
           path: /root/project/doc/_build/html
+      - persist_to_workspace:
+          root: doc/_build
+          paths: html
 
+  deploy_docs:
+    docker:
+      - image: node:8.10.0
+    steps:
+      - checkout
+      - attach_workspace:
+          at: doc/_build
+      - run:
+          name: Install and configure dependencies
+          command: |
+            npm install -g --silent gh-pages@2.2
+            git config user.email "CircleCI@bot.com"
+            git config user.name "CircleCI"
+      - add_ssh_keys:
+          fingerprints:
+            - "82:33:42:51:b6:32:9d:42:b3:c2:d4:a0:d5:3e:73:11"
+      - run:
+          name: Deploy docs to gh-pages branch
+          command: |
+            TIMESTAMP=$(date)
+            gh-pages --dotfiles --message "pybids docs built with Sphinx on $TIMESTAMP [skip ci]" --dist doc/_build/html
+
+
+# https://circleci.com/docs/2.0/workflows/#git-tag-job-execution
 workflows:
   version: 2
-  build_docs:
+  build_and_deploy:
     jobs:
-      - build_docs
+      - build_docs:
+        filters:
+          tags:
+            only: /.*/
+      - deploy_docs:
+          requires:
+              - build_docs
+          filters:
+              tags:
+                only: /^\d+\.\d+\.\d+/
+              branches:
+                ignore: /.*/
