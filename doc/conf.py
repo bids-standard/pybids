@@ -21,10 +21,9 @@ import bids
 sys.path.insert(0, os.path.abspath('../'))
 
 # -- Project information -----------------------------------------------------
-today = date.today()
 
 project = 'PyBIDS'
-copyright = '2015-{}, Developers of PyBIDS'.format(today.year)
+copyright = '2015-{}, Developers of PyBIDS'.format(date.today().year)
 author = 'Developers of PyBIDS'
 
 currentdir = os.path.abspath(os.path.dirname(__file__))
