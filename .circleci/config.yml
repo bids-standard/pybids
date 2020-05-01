@@ -62,14 +62,14 @@ workflows:
   build_and_deploy:
     jobs:
       - build_docs:
-        filters:
-          tags:
-            only: /.*/
+          filters:
+            tags:
+              only: /.*/
       - deploy_docs:
           requires:
-              - build_docs
+            - build_docs
           filters:
-              tags:
-                only: /^\d+\.\d+\.\d+/
-              branches:
-                ignore: /.*/
+            tags:
+              only: /^\d+\.\d+\.\d+/
+            branches:
+              ignore: /.*/
