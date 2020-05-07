@@ -377,15 +377,17 @@ class BIDSImageFile(BIDSFile):
         'polymorphic_identity': 'image_file'
     }
 
-    def get_image(self):
+    def get_image(self, **kwargs):
         """Return the associated image file (if it exists) as a NiBabel object
+
+        Any keyword arguments are passed to ``nibabel.load``.
         """
         try:
             import nibabel as nb
-            return nb.load(self.path)
-        except Exception:
+            return nb.load(self.path, **kwargs)
+        except Exception as e:
             raise ValueError("'{}' does not appear to be an image format "
-                             "NiBabel can read.".format(self.path))
+                             "NiBabel can read.".format(self.path)) from e
 
 
 class BIDSJSONFile(BIDSFile):
