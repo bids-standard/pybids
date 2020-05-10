@@ -27,8 +27,8 @@ def test_first_level_sparse_design_matrix(analysis):
     assert df.shape == (172, 9)
     assert df['condition'].nunique() == 2
     assert set(df.columns) == {'amplitude', 'onset', 'duration',
-                                         'condition', 'subject', 'run',
-                                         'task', 'datatype', 'suffix'}
+                               'condition', 'subject', 'run',
+                               'task', 'datatype', 'suffix'}
 
 
 def test_post_first_level_sparse_design_matrix(analysis):
@@ -40,12 +40,15 @@ def test_post_first_level_sparse_design_matrix(analysis):
     result = collections[0].to_df(format='long', entities=False)
     assert result.shape == (9, 2)
     entities = {
-        'subject': '01',
+        # 'subject': '01',  # PY35
         'task': 'mixedgamblestask',
         'datatype': 'func',
         'suffix': 'bold'}
     assert not set(entities.keys()) - set(collections[0].entities.keys())
     assert not set(entities.values()) - set(collections[0].entities.values())
+    # PY35
+    assert 'subject' in collections[0].entities
+    assert collections[0].entities['subject'] in ('01', '02')
 
     # Participant level and also check integer-based indexing
     collections = analysis['participant'].get_collections()
