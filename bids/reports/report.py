@@ -50,7 +50,7 @@ class BIDSReport(object):
         self.config = config
 
     def generate_from_files(self, files):
-        """Generate a methods section from a list of files.
+        r"""Generate a methods section from a list of files.
 
         Parameters
         ----------
