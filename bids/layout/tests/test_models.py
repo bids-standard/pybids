@@ -176,7 +176,7 @@ def test_bidsfile_get_df_from_tsv_gz(layout_synthetic):
     df1 = bf.get_df()
     df2 = bf.get_df(include_timing=True)
     assert df1.equals(df2)
-    assert df1.shape == (1599, 3)
+    assert df1.shape == (1600, 3)
     assert set(df1.columns) == {'onset', 'respiratory', 'cardiac'}
     assert df1.iloc[0, 0] == 0.
     assert df1.iloc[1, 0] - df1.iloc[0, 0] == 0.1
@@ -190,6 +190,7 @@ def test_bidsfile_get_df_from_tsv_gz(layout_synthetic):
 def test_bidsdatafile_enforces_dtype(layout_synthetic):
     bf = layout_synthetic.get(suffix='participants', extension='tsv')[0]
     df = bf.get_df(enforce_dtypes=False)
+    assert df.shape[0] == 5
     assert df.loc[:, 'subject_id'].dtype == int
     assert df.loc[:, 'subject_id'][0] == 1
     df = bf.get_df(enforce_dtypes=True)
