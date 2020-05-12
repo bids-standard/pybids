@@ -897,17 +897,7 @@ class BIDSLayout(object):
         -------
         list of :obj:`bids.layout.BIDSFile` or str
             A list of BIDSFiles (default) or strings (see return_type).
-
-        Notes
-        -----
-        * In pybids 0.9.0, the 'extensions' argument has been removed in
-          favor of the 'extension' entity.
         """
-        if 'extensions' in filters:
-            filters['extension'] = filters.pop('extensions')
-            warnings.warn("In pybids 0.9.0, the 'extensions' filter was "
-                          "deprecated in favor of 'extension'. The former will"
-                          " stop working in 0.11.0.", DeprecationWarning)
 
         layouts = self._get_layouts_in_scope(scope)
 
