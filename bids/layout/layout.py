@@ -11,6 +11,7 @@ import warnings
 import sqlite3
 import enum
 from pathlib import Path
+import difflib
 
 import sqlalchemy as sa
 from sqlalchemy.orm import joinedload
@@ -848,7 +849,7 @@ class BIDSLayout(object):
         return data.reset_index()
 
     def get(self, return_type='object', target=None, scope='all',
-            regex_search=False, absolute_paths=None, drop_invalid_filters=True,
+            regex_search=False, absolute_paths=None, invalid_filters='drop',
             **filters):
         """Retrieve files and/or metadata from the current Layout.
 
@@ -882,6 +883,14 @@ class BIDSLayout(object):
             to report either absolute or relative (to the top of the
             dataset) paths. If None, will fall back on the value specified
             at BIDSLayout initialization.
+        invalid_filters (str): Controls behavior when named filters are
+            encountered that don't exist in the database (e.g., in the case of
+            a typo like subbject='0.1'). Valid values:
+                'drop' (default): Silently drop invalid filters (equivalent
+                    to not having passed them as arguments in the first place).
+                'allow': Include the invalid filters in the query, resulting
+                    in no results being returned.
+                'error': Raise an explicit error naming the missing filter.
         filters : dict
             Any optional key/values to filter the entities on.
             Keys are entity names, values are regexes to filter on. For
@@ -919,15 +928,21 @@ class BIDSLayout(object):
             exts = listify(filters['extension'])
             filters['extension'] = [x.lstrip('.') for x in exts]
 
-        if drop_invalid_filters:
-            invalid_filters = set(filters.keys()) - set(entities.keys())
-            if invalid_filters:
-                for inv_filt in invalid_filters:
-                    filters.pop(inv_filt)
+        if invalid_filters != 'allow':
+            bad_filters = set(filters.keys()) - set(entities.keys())
+            if bad_filters:
+                if invalid_filters == 'drop':
+                    for bad_filt in bad_filters:
+                        filters.pop(bad_filt)
+                elif invalid_filters == 'error':
+                    first_bad = list(bad_filt)[0]
+                    ents = list(entities.keys())
+                    suggestions = difflib.get_close_matches(first_bad, ents)
+                    raise ValueError("'{}' is not a recognized entity; did you"
+                                     "mean {}?".format(first_bad, suggestions))
 
         # Provide some suggestions if target is specified and invalid.
         if target is not None and target not in entities:
-            import difflib
             potential = list(entities.keys())
             suggestions = difflib.get_close_matches(target, potential)
             if suggestions:
