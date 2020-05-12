@@ -347,8 +347,10 @@ class BIDSDataFile(BIDSFile):
         # TODO: memoize this for efficiency. (Note: caching is insufficient,
         # because the dtype enforcement will break if we ignore the value of
         # enforce_dtypes).
+        suffix = self.entities['suffix']
+        header = None if suffix in {'physio', 'stim'} else 'infer'
         self.data = pd.read_csv(self.path, sep='\t', na_values='n/a',
-                                dtype=dtype)
+                                dtype=dtype, header=header)
 
         data = self.data.copy()
 
