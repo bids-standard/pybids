@@ -935,11 +935,12 @@ class BIDSLayout(object):
                     for bad_filt in bad_filters:
                         filters.pop(bad_filt)
                 elif invalid_filters == 'error':
-                    first_bad = list(bad_filt)[0]
+                    first_bad = list(bad_filters)[0]
                     ents = list(entities.keys())
                     suggestions = difflib.get_close_matches(first_bad, ents)
                     raise ValueError("'{}' is not a recognized entity; did you"
-                                     "mean {}?".format(first_bad, suggestions))
+                                     " mean one of {}?"
+                                     .format(first_bad, suggestions))
 
         # Provide some suggestions if target is specified and invalid.
         if target is not None and target not in entities:

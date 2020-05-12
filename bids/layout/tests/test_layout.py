@@ -668,6 +668,25 @@ def test_get_with_regex_search_bad_dtype(layout_7t_trt):
     # Two runs (1 per session) for each of subjects '10' and '01'
     assert len(results) == 4
 
+
+def test_get_with_invalid_filters(layout_ds005):
+    l = layout_ds005
+    res_default = l.get(subject='12', suffix='bold')
+    res_drop = l.get(subject='12', suffix='bold', invalid_filters='drop')
+    assert res_default == res_drop
+    assert len(res_drop) == 3
+    # Silently drop amazing
+    res_drop = l.get(subject='12', suffix='bold', amazing=True)
+    assert res_default == res_drop
+    assert len(res_drop) == 3
+    # Retain amazing, producing empty set
+    allow_res = l.get(subject='12', amazing=True, invalid_filters='allow')
+    assert allow_res == []
+    # Raise error with suggestions
+    with pytest.raises(ValueError, match='session'):
+        l.get(subject='12', ses=True, invalid_filters='error')
+
+
 def test_load_layout(layout_synthetic_nodb, db_dir):
     db_path = str(db_dir / 'tmp_db')
     layout_synthetic_nodb.save(db_path)
