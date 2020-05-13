@@ -18,6 +18,13 @@ from bids.layout.utils import BIDSMetadata
 from bids.tests import get_test_data_path
 from bids.utils import natural_sort
 
+from bids.exceptions import (
+    BIDSValidationError,
+    ConfigError,
+    NoMatchError,
+    TargetError,
+)
+
 
 def test_layout_init(layout_7t_trt):
     assert isinstance(layout_7t_trt.files, dict)
@@ -193,11 +200,11 @@ def test_get_metadata_error(layout_7t_trt):
 
 
 def test_get_with_bad_target(layout_7t_trt):
-    with pytest.raises(ValueError) as exc:
+    with pytest.raises(TargetError) as exc:
         layout_7t_trt.get(target='unicorn')
         msg = exc.value.message
         assert 'subject' in msg and 'reconstruction' in msg and 'proc' in msg
-    with pytest.raises(ValueError) as exc:
+    with pytest.raises(TargetError) as exc:
         layout_7t_trt.get(target='sub')
         msg = exc.value.message
         assert 'subject' in msg and 'reconstruction' not in msg
@@ -439,11 +446,11 @@ def test_derivative_getters():
 
 def test_get_tr(layout_7t_trt):
     # Bad subject, should fail
-    with pytest.raises(ValueError) as exc:
+    with pytest.raises(NoMatchError) as exc:
         layout_7t_trt.get_tr(subject="zzz")
         assert exc.value.message.startswith("No functional images")
     # There are multiple tasks with different TRs, so this should fail
-    with pytest.raises(ValueError) as exc:
+    with pytest.raises(NoMatchError) as exc:
         layout_7t_trt.get_tr(subject=['01', '02'])
         assert exc.value.message.startswith("Unique TR")
     # This should work
@@ -542,10 +549,10 @@ def test_deriv_indexing():
 def test_add_config_paths():
     bids_dir = dirname(bids.__file__)
     bids_json = os.path.join(bids_dir, 'layout', 'config', 'bids.json')
-    with pytest.raises(ValueError) as exc:
+    with pytest.raises(ConfigError) as exc:
         add_config_paths(test_config1='nonexistentpath.json')
     assert str(exc.value).startswith('Configuration file')
-    with pytest.raises(ValueError) as exc:
+    with pytest.raises(ConfigError) as exc:
         add_config_paths(bids=bids_json)
     assert str(exc.value).startswith("Configuration 'bids' already")
     add_config_paths(dummy=bids_json)
@@ -624,7 +631,7 @@ def test_layout_save(tmp_path, layout_7t_trt):
 
 def test_indexing_tag_conflict():
     data_dir = join(get_test_data_path(), 'ds005_conflict')
-    with pytest.raises(ValueError) as exc:
+    with pytest.raises(BIDSValidationError) as exc:
         layout = BIDSLayout(data_dir)
         print(exc.value.message)
         assert exc.value.message.startswith("Conflicting values found")
