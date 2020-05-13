@@ -23,6 +23,14 @@ from .models import (Base, Config, BIDSFile, Entity, Tag)
 from .index import BIDSLayoutIndexer
 from .utils import BIDSMetadata
 from .. import config as cf
+from ..exceptions import (
+    BIDSDerivativesValidationError,
+    BIDSEntityError,
+    BIDSValidationError,
+    ConfigError,
+    NoMatchError,
+    TargetError,
+)
 
 try:
     from os.path import commonpath
@@ -105,10 +113,10 @@ def add_config_paths(**kwargs):
     """
     for k, path in kwargs.items():
         if not os.path.exists(path):
-            raise ValueError(
+            raise ConfigError(
                 'Configuration file "{}" does not exist'.format(k))
         if k in cf.get_option('config_paths'):
-            raise ValueError('Configuration {!r} already exists'.format(k))
+            raise ConfigError('Configuration {!r} already exists'.format(k))
 
     kwargs.update(**cf.get_option('config_paths'))
     cf.set_option('config_paths', kwargs)
@@ -290,12 +298,12 @@ class BIDSLayout(object):
                 if sing in entities:
                     ent_name = sing
                 else:
-                    raise AttributeError(
+                    raise BIDSEntityError(
                         "'get_{}' can't be called because '{}' isn't a "
                         "recognized entity name.".format(ent_name, ent_name))
             return partial(self.get, return_type='id', target=ent_name)
         # Spit out default message if we get this far
-        raise AttributeError("%s object has no attribute named %r" %
+        raise BIDSEntityError("%s object has no attribute named %r" %
                              (self.__class__.__name__, key))
 
     def __repr__(self):
@@ -463,7 +471,7 @@ class BIDSLayout(object):
         target = os.path.join(self.root, 'dataset_description.json')
         if not os.path.exists(target):
             if self.validate:
-                raise ValueError(
+                raise BIDSValidationError(
                     "'dataset_description.json' is missing from project root."
                     " Every valid BIDS dataset must have this file.")
             else:
@@ -474,7 +482,8 @@ class BIDSLayout(object):
             if self.validate:
                 for k in ['Name', 'BIDSVersion']:
                     if k not in self.description:
-                        raise ValueError("Mandatory '%s' field missing from "
+                        raise BIDSValidationError(
+                                         "Mandatory '%s' field missing from "
                                          "dataset_description.json." % k)
 
     def _validate_force_index(self):
@@ -781,11 +790,13 @@ class BIDSLayout(object):
             pipeline_name = description.get(
                 'PipelineDescription', {}).get('Name')
             if pipeline_name is None:
-                raise ValueError("Every valid BIDS-derivatives dataset must "
+                raise BIDSDerivativesValidationError(
+                                 "Every valid BIDS-derivatives dataset must "
                                  "have a PipelineDescription.Name field set "
                                  "inside dataset_description.json.")
             if pipeline_name in self.derivatives:
-                raise ValueError("Pipeline name '%s' has already been added "
+                raise BIDSDerivativesValidationError(
+                                 "Pipeline name '%s' has already been added "
                                  "to this BIDSLayout. Every added pipeline "
                                  "must have a unique name!")
             # Default config and sources values
@@ -924,7 +935,7 @@ class BIDSLayout(object):
                 message = "Did you mean one of: {}?".format(suggestions)
             else:
                 message = "Valid targets are: {}".format(potential)
-            raise ValueError(("Unknown target '{}'. " + message)
+            raise TargetError(("Unknown target '{}'. " + message)
                              .format(target))
 
         results = []
@@ -952,7 +963,7 @@ class BIDSLayout(object):
 
         elif return_type in ['id', 'dir']:
             if target is None:
-                raise ValueError('If return_type is "id" or "dir", a valid '
+                raise TargetError('If return_type is "id" or "dir", a valid '
                                  'target entity must also be specified.')
 
             results = [x for x in results if target in x.entities]
@@ -1214,7 +1225,7 @@ class BIDSLayout(object):
         if not filters.get('suffix'):
             f = self.get_file(path)
             if 'suffix' not in f.entities:
-                raise ValueError(
+                raise BIDSValidationError(
                     "File '%s' does not have a valid suffix, most "
                     "likely because it is not a valid BIDS file." % path
                 )
@@ -1384,7 +1395,7 @@ class BIDSLayout(object):
         images = self.get(extension=['nii', 'nii.gz'], scope=scope,
                           **filters)
         if not images:
-            raise ValueError("No functional images that match criteria found.")
+            raise NoMatchError("No functional images that match criteria found.")
 
         all_trs = set()
         for img in images:
@@ -1392,7 +1403,7 @@ class BIDSLayout(object):
             all_trs.add(round(float(md['RepetitionTime']), 5))
 
         if len(all_trs) > 1:
-            raise ValueError("Unique TR cannot be found given filters {!r}"
+            raise NoMatchError("Unique TR cannot be found given filters {!r}"
                              .format(filters))
         return all_trs.pop()
 
@@ -1475,7 +1486,8 @@ class BIDSLayout(object):
         to_check = os.path.join(os.path.sep, built)
 
         if validate and not BIDSValidator().is_bids(to_check):
-            raise ValueError("Built path {} is not a valid BIDS filename. "
+            raise BIDSValidationError(
+                             "Built path {} is not a valid BIDS filename. "
                              "Please make sure all provided entity values are "
                              "spec-compliant.".format(built))
 
