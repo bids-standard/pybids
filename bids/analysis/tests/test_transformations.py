@@ -142,6 +142,8 @@ def test_scale(collection, sparse_run_variable_with_missing_values):
     coll['var'].values.fillna(1)
     with pytest.raises(ValueError, match="Cannot scale.*1.0"):
         transform.Scale(coll, 'var').values
+    with pytest.raises(ValueError, match="Cannot scale.*1.0"):
+        transform.Scale(coll, 'var', replace_na='before').values
     transform.Scale(coll, 'var', replace_na='after', output='zero')
     assert coll['zero'].values.unique() == 0
 

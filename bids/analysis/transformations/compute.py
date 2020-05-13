@@ -141,12 +141,12 @@ class Scale(Transformation):
 
     Notes
     -----
-    If a constant column is passed in, and replace_na is None, an exception
-    will be raised.
+    If a constant column is passed in, and replace_na is None or 'before', an
+    exception will be raised.
     """
 
     def _transform(self, data, demean=True, rescale=True, replace_na=None):
-        if data.nunique() == 1 and replace_na is None:
+        if data.nunique() == 1 and replace_na in {None, 'before'}:
             val = data.unique()[0]
             raise ValueError("Cannot scale a column with constant value ({})! "
                              "If you want a constant column of 0's returned, "
