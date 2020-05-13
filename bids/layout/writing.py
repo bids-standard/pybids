@@ -6,12 +6,13 @@ import warnings
 import os
 import re
 import sys
+import shutil
 from string import Formatter
 from itertools import product
 from ..utils import splitext, listify
 from os.path import join, dirname, exists, islink, isabs, isdir
 
-__all__ = ['build_path', 'write_contents_to_file']
+__all__ = ['build_path', 'write_to_file']
 
 _PATTERN_FIND = re.compile(r'({([\w\d]*?)(?:<([^>]+)>)?(?:\|((?:\.?[\w])+))?\})')
 
@@ -199,11 +200,10 @@ def build_path(entities, path_patterns, strict=False):
     return None
 
 
-def write_contents_to_file(path, contents=None, link_to=None,
-                           content_mode='text', root=None, conflicts='fail'):
+def write_to_file(path, contents=None, link_to=None, copy_from=None,
+                  content_mode='text', root=None, conflicts='fail'):
     """
-    Uses provided filename patterns to write contents to a new path, given
-    a corresponding entity map.
+    Writes provided contents to a new path, or copies from an old path.
 
     Parameters
     ----------
@@ -214,8 +214,11 @@ def write_contents_to_file(path, contents=None, link_to=None,
         to the new path.
     link_to : str
         Optional path with which to create a symbolic link to.
-        Used as an alternative to and takes priority over the contents
+        Used as an alternative to, and takes priority over, the contents
         argument.
+    copy_from : str
+        Optional filename to copy to new location. Used an alternative to, and
+        takes priority over, the contents argument.
     content_mode : {'text', 'binary'}
         Either 'text' or 'binary' to indicate the writing
         mode for the new file. Only relevant if contents is provided.
@@ -267,8 +270,13 @@ def write_contents_to_file(path, contents=None, link_to=None,
     if not exists(dirname(path)):
         os.makedirs(dirname(path))
 
-    if link_to:
+    if link_to is not None:
         os.symlink(link_to, path)
+    elif copy_from is not None:
+        if not exists(copy_from):
+            raise ValueError("Source file '{}' does not exist.".format(copy_from))
+        shutil.copy(copy_from, path)
+
     elif contents:
         mode = 'wb' if content_mode == 'binary' else 'w'
         with open(path, mode) as f:
