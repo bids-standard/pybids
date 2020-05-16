@@ -897,27 +897,17 @@ class BIDSLayout(object):
         -------
         list of :obj:`bids.layout.BIDSFile` or str
             A list of BIDSFiles (default) or strings (see return_type).
-
-        Notes
-        -----
-        * In pybids 0.9.0, the 'extensions' argument has been removed in
-          favor of the 'extension' entity.
         """
-        if 'extensions' in filters:
-            filters['extension'] = filters.pop('extensions')
-            warnings.warn("In pybids 0.9.0, the 'extensions' filter was "
-                          "deprecated in favor of 'extension'. The former will"
-                          " stop working in 0.11.0.", DeprecationWarning)
 
         layouts = self._get_layouts_in_scope(scope)
 
         entities = self.get_entities()
 
-        # For consistency with past versions where "extensions" was a
-        # hard-coded argument, allow leading periods
+        # Strip leading periods if extensions were passed
         if 'extension' in filters:
             exts = listify(filters['extension'])
-            filters['extension'] = [x.lstrip('.') for x in exts]
+            filters['extension'] = [x.lstrip('.') if isinstance(x, str) else x
+                                    for x in exts]
 
         if drop_invalid_filters:
             invalid_filters = set(filters.keys()) - set(entities.keys())
@@ -941,10 +931,6 @@ class BIDSLayout(object):
         for l in layouts:
             query = l._build_file_query(filters=filters,
                                         regex_search=regex_search)
-            # Eager load associations, because mixing queries from different
-            # DB sessions causes objects to detach
-            query = query.options(joinedload(BIDSFile.tags)
-                                  .joinedload(Tag.entity))
             results.extend(query.all())
 
         # Convert to relative paths if needed

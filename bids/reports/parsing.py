@@ -496,6 +496,7 @@ def parse_niftis(layout, niftis, subj, config, **kwargs):
                     n_runs = len(layout.get_runs(subject=subj,
                                                  task=nifti_struct.entities['task'],
                                                  **kwargs))
+                    n_runs = max(n_runs, 1)
                     description_list.append(func_info(nifti_struct.entities['task'],
                                                       n_runs, metadata, img,
                                                       config))

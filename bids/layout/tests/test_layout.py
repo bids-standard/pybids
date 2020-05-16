@@ -280,7 +280,8 @@ def test_get_val_none(layout_7t_trt, acq):
 
 def test_get_val_enum_any(layout_7t_trt):
     t1w_files = layout_7t_trt.get(
-        subject='01', ses='1', suffix='T1w', acquisition=Query.ANY)
+        subject='01', ses='1', suffix='T1w', acquisition=Query.ANY,
+        extension=Query.ANY)
     assert not t1w_files
     bold_files = layout_7t_trt.get(subject='01', ses='1', run=1, suffix='bold',
                                    acquisition=Query.ANY)

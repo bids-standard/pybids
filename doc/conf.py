@@ -19,7 +19,7 @@ sys.path.insert(0, os.path.abspath('../'))
 # -- Project information -----------------------------------------------------
 
 project = 'PyBIDS'
-copyright = '2019, Developers of PyBIDS'
+copyright = '2020, Developers of PyBIDS'
 author = 'Developers of PyBIDS'
 
 currentdir = os.path.abspath(os.path.dirname(__file__))

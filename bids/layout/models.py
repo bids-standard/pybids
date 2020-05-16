@@ -309,7 +309,7 @@ class BIDSDataFile(BIDSFile):
     }
 
     def get_df(self, include_timing=True, adjust_onset=False,
-               enforce_dtypes=True):
+               enforce_dtypes=True, **pd_args):
         """Return the contents of a tsv file as a pandas DataFrame.
 
         Parameters
@@ -326,6 +326,8 @@ class BIDSDataFile(BIDSFile):
             If True, enforces the data types defined in
             the BIDS spec on core columns (e.g., subject_id and session_id
             must be represented as strings).
+        pd_args : dict
+            Optional keyword arguments to pass onto pd.read_csv().
 
         Returns
         -------
@@ -347,8 +349,10 @@ class BIDSDataFile(BIDSFile):
         # TODO: memoize this for efficiency. (Note: caching is insufficient,
         # because the dtype enforcement will break if we ignore the value of
         # enforce_dtypes).
+        suffix = self.entities['suffix']
+        header = None if suffix in {'physio', 'stim'} else 'infer'
         self.data = pd.read_csv(self.path, sep='\t', na_values='n/a',
-                                dtype=dtype)
+                                dtype=dtype, header=header, **pd_args)
 
         data = self.data.copy()
 
@@ -377,15 +381,17 @@ class BIDSImageFile(BIDSFile):
         'polymorphic_identity': 'image_file'
     }
 
-    def get_image(self):
+    def get_image(self, **kwargs):
         """Return the associated image file (if it exists) as a NiBabel object
+
+        Any keyword arguments are passed to ``nibabel.load``.
         """
         try:
             import nibabel as nb
-            return nb.load(self.path)
-        except Exception:
+            return nb.load(self.path, **kwargs)
+        except Exception as e:
             raise ValueError("'{}' does not appear to be an image format "
-                             "NiBabel can read.".format(self.path))
+                             "NiBabel can read.".format(self.path)) from e
 
 
 class BIDSJSONFile(BIDSFile):
