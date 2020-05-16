@@ -34,6 +34,16 @@ def test_report_gen(testlayout):
     assert isinstance(descriptions, Counter)
 
 
+def test_report_gen_from_files(testlayout):
+    """Report generation from file list should return a counter of unique
+    descriptions in the dataset.
+    """
+    report = BIDSReport(testlayout)
+    files = testlayout.get(extension=['nii.gz', 'nii'])
+    descriptions = report.generate_from_files(files)
+    assert isinstance(descriptions, Counter)
+
+
 def test_report_subject(testlayout):
     """Generating a report for one subject should only return one subject's
     description (i.e., one pattern with a count of one).
