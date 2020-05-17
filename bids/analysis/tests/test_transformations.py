@@ -128,7 +128,7 @@ def test_sum(collection):
                       output='sum', weights=[1, 1, 1])
 
 
-def test_scale(collection):
+def test_scale(collection, sparse_run_variable_with_missing_values):
     transform.Scale(collection, variables=['RT', 'parametric gain'],
                     output=['RT_Z', 'gain_Z'], groupby=['run', 'subject'])
     groupby = collection['RT'].get_grouper(['run', 'subject'])
@@ -136,6 +136,16 @@ def test_scale(collection):
     z2 = collection['RT'].values.groupby(
         groupby).apply(lambda x: (x - x.mean()) / x.std())
     assert np.allclose(z1, z2)
+
+    # Test constant input
+    coll = sparse_run_variable_with_missing_values
+    coll['var'].values.fillna(1)
+    with pytest.raises(ValueError, match="Cannot scale.*1.0"):
+        transform.Scale(coll, 'var').values
+    with pytest.raises(ValueError, match="Cannot scale.*1.0"):
+        transform.Scale(coll, 'var', replace_na='before').values
+    transform.Scale(coll, 'var', replace_na='after', output='zero')
+    assert coll['zero'].values.unique() == 0
 
 
 def test_demean(collection):

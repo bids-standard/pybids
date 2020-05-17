@@ -138,9 +138,19 @@ class Scale(Transformation):
         None, no replacement is performed. If 'before', missing values are
         replaced with 0's before scaling. If 'after', missing values are
         replaced with 0 after scaling.
+
+    Notes
+    -----
+    If a constant column is passed in, and replace_na is None or 'before', an
+    exception will be raised.
     """
 
     def _transform(self, data, demean=True, rescale=True, replace_na=None):
+        if data.nunique() == 1 and replace_na in {None, 'before'}:
+            val = data.unique()[0]
+            raise ValueError("Cannot scale a column with constant value ({})! "
+                             "If you want a constant column of 0's returned, "
+                             "set replace_na to 'after'.".format(val))
         if replace_na == 'before':
             data = data.fillna(0.)
         if demean:

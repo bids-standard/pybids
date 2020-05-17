@@ -49,6 +49,74 @@ class BIDSReport(object):
 
         self.config = config
 
+    def generate_from_files(self, files):
+        r"""Generate a methods section from a list of files.
+
+        Parameters
+        ----------
+        files : list of BIDSImageFile objects
+            List of files from which to generate methods description.
+
+        Returns
+        -------
+        counter : :obj:`collections.Counter`
+            A dictionary of unique descriptions across subjects in the file list,
+            along with the number of times each pattern occurred. In cases
+            where all subjects underwent the same protocol, the most common
+            pattern is most likely the most complete. In cases where the
+            file list contains multiple protocols, each pattern will need to be
+            inspected manually.
+
+        Examples
+        --------
+        >>> from os.path import join
+        >>> from bids.layout import BIDSLayout
+        >>> from bids.reports import BIDSReport
+        >>> from bids.tests import get_test_data_path
+        >>> layout = BIDSLayout(join(get_test_data_path(), 'synthetic'))
+        >>> report = BIDSReport(layout)
+        >>> files = layout.get(session='01', extension=['nii.gz', 'nii'])
+        >>> counter = report.generate_from_files(files)
+        Number of patterns detected: 1
+        Remember to double-check everything and to replace <deg> with a degree symbol.
+
+        >>> counter.most_common()[0][0]  # doctest: +ELLIPSIS
+        'For session 01:\n\tMR data were...'
+        """
+        descriptions = []
+
+        subjs = sorted(list(set([f.get_entities().get('subject') for f in files])))
+        sessions = sorted(list(set([f.get_entities().get('session') for f in files])))
+        for sid in subjs:
+            subject_files = [f for f in files if f.get_entities().get('subject') == sid]
+            description_list = []
+            for ses in sessions:
+                niftis = [f for f in subject_files if f.get_entities().get('session') == ses]
+
+                if niftis:
+                    description_list.append('For session {0}:'.format(ses))
+                    description_list += parsing.parse_niftis(self.layout, niftis,
+                                                             sid, self.config,
+                                                             session=ses)
+                    metadata = self.layout.get_metadata(niftis[0].path)
+                else:
+                    raise Exception('No niftis for subject {0}'.format(subject))
+
+            # Assume all data were converted the same way and use the last nifti
+            # file's json for conversion information.
+            if 'metadata' not in vars():
+                raise Exception('No valid jsons found. Cannot generate final '
+                                'paragraph.')
+
+            description = '\n\t'.join(description_list)
+            description = description.replace('\tFor session', '\nFor session')
+            description += '\n\n{0}'.format(parsing.final_paragraph(metadata))
+            descriptions.append(description)
+        counter = Counter(descriptions)
+        print('Number of patterns detected: {0}'.format(len(counter.keys())))
+        print(utils.reminder())
+        return counter
+
     def generate(self, **kwargs):
         r"""Generate the methods section.
 
