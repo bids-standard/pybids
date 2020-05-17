@@ -4,8 +4,6 @@ Utilities to generate the MRI data acquisition portion of a
 methods section from a BIDS dataset.
 """
 import logging
-import os
-from .. import __version__
 
 logging.basicConfig()
 LOGGER = logging.getLogger('pybids.reports.utils')
@@ -67,98 +65,52 @@ def list_to_str(lst):
     return str_
 
 
-def get_slice_info(slice_times):
+def clean_multiline(desc):
     """
-    Extract slice order from slice timing info.
+    Remove newlines and double-spaces from multiline string.
+    """
+    desc = desc.replace('\n', ' ').lstrip()
+    while '  ' in desc:
+        desc = desc.replace('  ', ' ')
+    return desc
 
-    TODO: Be more specific with slice orders.
-    Currently anything where there's some kind of skipping is interpreted as
-    interleaved of some kind.
+
+def collect_associated_files(layout, files, extra_entities=()):
+    """Collect and group BIDSFiles with multiple files per acquisition.
 
     Parameters
     ----------
-    slice_times : array-like
-        A list of slice times in seconds or milliseconds or whatever.
+    layout
+    files : list of BIDSFile
+    extra_entities
 
     Returns
     -------
-    slice_order_name : :obj:`str`
-        The name of the slice order sequence.
+    collected_files : list of list of BIDSFile
     """
-    # Slice order
-    slice_times = remove_duplicates(slice_times)
-    slice_order = sorted(range(len(slice_times)), key=lambda k: slice_times[k])
-    if slice_order == range(len(slice_order)):
-        slice_order_name = 'sequential ascending'
-    elif slice_order == reversed(range(len(slice_order))):
-        slice_order_name = 'sequential descending'
-    elif slice_order[0] < slice_order[1]:
-        # We're allowing some wiggle room on interleaved.
-        slice_order_name = 'interleaved ascending'
-    elif slice_order[0] > slice_order[1]:
-        slice_order_name = 'interleaved descending'
-    else:
-        slice_order = [str(s) for s in slice_order]
-        raise Exception('Unknown slice order: [{0}]'.format(', '.join(slice_order)))
+    MULTICONTRAST_ENTITIES = ['echo', 'part', 'ch', 'direction']
+    MULTICONTRAST_SUFFICES = [
+        ('bold', 'phase'),
+        ('phase1', 'phase2', 'phasediff', 'magnitude1', 'magnitude2'),
+    ]
+    if len(extra_entities):
+        MULTICONTRAST_ENTITIES += extra_entities
 
-    return slice_order_name
+    collected_files = []
+    for f in files:
+        if len(collected_files) and any(f in filegroup for filegroup in collected_files):
+            continue
+        ents = f.get_entities()
+        ents = {k: v for k, v in ents.items() if k not in MULTICONTRAST_ENTITIES}
 
-
-def get_seqstr(config, metadata):
-    """
-    Extract and reformat imaging sequence(s) and variant(s) into pretty
-    strings.
-
-    Parameters
-    ----------
-    config : :obj:`dict`
-        A dictionary with relevant information regarding sequences, sequence
-        variants, phase encoding directions, and task names.
-    metadata : :obj:`dict`
-        The metadata for the scan.
-
-    Returns
-    -------
-    seqs : :obj:`str`
-        Sequence names.
-    variants : :obj:`str`
-        Sequence variant names.
-    """
-    seq_abbrs = metadata.get('ScanningSequence', '').split('_')
-    seqs = [config['seq'].get(seq, seq) for seq in seq_abbrs]
-    variants = [config['seqvar'].get(var, var) for var in \
-                metadata.get('SequenceVariant', '').split('_')]
-    seqs = list_to_str(seqs)
-    if seq_abbrs[0]:
-        seqs += ' ({0})'.format(os.path.sep.join(seq_abbrs))
-    variants = list_to_str(variants)
-    return seqs, variants
-
-
-def get_sizestr(img):
-    """
-    Extract and reformat voxel size, matrix size, field of view, and number of
-    slices into pretty strings.
-
-    Parameters
-    ----------
-    img : :obj:`nibabel.Nifti1Image`
-        Image from scan from which to derive parameters.
-
-    Returns
-    -------
-    voxel_size : :obj:`str`
-        Voxel size string (e.g., '2x2x2')
-    matrix_size : :obj:`str`
-        Matrix size string (e.g., '128x128')
-    fov : :obj:`str`
-        Field of view string (e.g., '256x256')
-    """
-    n_x, n_y = img.shape[:2]
-    import numpy as np
-    voxel_dims = np.array(img.header.get_zooms()[:3])
-    matrix_size = '{0}x{1}'.format(num_to_str(n_x), num_to_str(n_y))
-    voxel_size = 'x'.join([num_to_str(s) for s in voxel_dims])
-    fov = [n_x, n_y] * voxel_dims[:2]
-    fov = 'x'.join([num_to_str(s) for s in fov])
-    return voxel_size, matrix_size, fov
+        # Group files with differing multi-contrast entity values, but same
+        # everything else.
+        all_suffices = ents['suffix']
+        for mcs in MULTICONTRAST_SUFFICES:
+            if ents['suffix'] in mcs:
+                all_suffices = mcs
+                break
+        ents.pop('suffix')
+        associated_files = layout.get(suffix=all_suffices, **ents)
+        collected_files.append(associated_files)
+    return collected_files

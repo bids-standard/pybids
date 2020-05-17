@@ -93,14 +93,14 @@ class BIDSReport(object):
 
                 if data_files:
                     ses_description = parsing.parse_files(
-                        self.layout, data_files, subject, self.config, session=ses
+                        self.layout, data_files, sub, self.config, session=ses
                     )
                     ses_description[0] = ses_description[0].lower()
                     ses_description = 'In session {0}, '.format(ses) + ses_description
                     description_list += ses_description
                     metadata = self.layout.get_metadata(data_files[0].path)
                 else:
-                    raise Exception('No imaging files for subject {0}'.format(subject))
+                    raise Exception('No imaging files for subject {0}'.format(sub))
 
             # Assume all data were converted the same way and use the last nifti
             # file's json for conversion information.
