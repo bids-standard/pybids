@@ -849,7 +849,7 @@ class BIDSLayout(object):
         return data.reset_index()
 
     def get(self, return_type='object', target=None, scope='all',
-            regex_search=False, absolute_paths=None, invalid_filters='drop',
+            regex_search=False, absolute_paths=None, invalid_filters='error',
             **filters):
         """Retrieve files and/or metadata from the current Layout.
 
@@ -886,11 +886,11 @@ class BIDSLayout(object):
         invalid_filters (str): Controls behavior when named filters are
             encountered that don't exist in the database (e.g., in the case of
             a typo like subbject='0.1'). Valid values:
-                'drop' (default): Silently drop invalid filters (equivalent
-                    to not having passed them as arguments in the first place).
+                'error' (default): Raise an explicit error.
+                'drop': Silently drop invalid filters (equivalent to not having
+                    passed them as arguments in the first place).
                 'allow': Include the invalid filters in the query, resulting
                     in no results being returned.
-                'error': Raise an explicit error naming the missing filter.
         filters : dict
             Any optional key/values to filter the entities on.
             Keys are entity names, values are regexes to filter on. For
@@ -936,11 +936,14 @@ class BIDSLayout(object):
                         filters.pop(bad_filt)
                 elif invalid_filters == 'error':
                     first_bad = list(bad_filters)[0]
+                    msg = "'{}' is not a recognized entity. ".format(first_bad)
                     ents = list(entities.keys())
                     suggestions = difflib.get_close_matches(first_bad, ents)
-                    raise ValueError("'{}' is not a recognized entity; did you"
-                                     " mean one of {}?"
-                                     .format(first_bad, suggestions))
+                    if suggestions:
+                        msg += "Did you mean one of {}? ".format(suggestions)
+                    raise ValueError(msg + "If you're sure you want to impose "
+                                     "this constraint, set "
+                                     "invalid_filters='allow'.")
 
         # Provide some suggestions if target is specified and invalid.
         if target is not None and target not in entities:
