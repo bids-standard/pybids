@@ -237,12 +237,6 @@ def fmap_info(layout, files, config):
 
     # General info
     seqs, variants = parameters.get_seqstr(metadata, config)
-    all_runs = sorted(list(set([f.get_entities().get('run', 1) for f in files])))
-    n_runs = len(all_runs)
-    if n_runs == 1:
-        run_str = '{0} run'.format(num2words(n_runs).title())
-    else:
-        run_str = '{0} runs'.format(num2words(n_runs).title())
 
     # Parameters
     dir_str = parameters.get_dir_str(metadata, config)
