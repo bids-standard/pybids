@@ -215,7 +215,7 @@ def clean_desc(desc):
     return desc
 
 
-def func_info(task, n_runs, metadata, img, config):
+def func_info(layout, files, config):
     """
     Generate a paragraph describing T2*-weighted functional scans.
 
@@ -238,6 +238,8 @@ def func_info(task, n_runs, metadata, img, config):
     desc : :obj:`str`
         A description of the scan's acquisition information.
     """
+    first_file = files[0]
+
     # General info
     task_name = metadata.get('TaskName', task+' task')
     seqs, variants = get_seqstr(config, metadata)
@@ -464,12 +466,14 @@ def final_paragraph(metadata):
     return desc
 
 
-def collect_associated_files(layout, files):
+def collect_associated_files(layout, files, extra_entities=()):
     """Collect and group BIDSFiles with multiple files per acquisition.
 
     Parameters
     ----------
+    layout
     files : list of BIDSFile
+    extra_entities
 
     Returns
     -------
@@ -480,6 +484,8 @@ def collect_associated_files(layout, files):
         ('bold', 'phase'),
         ('phase1', 'phase2', 'phasediff', 'magnitude1', 'magnitude2'),
     ]
+    if len(extra_entities):
+        MULTICONTRAST_ENTITIES += extra_entities
 
     collected_files = []
     for f in files:
@@ -520,61 +526,20 @@ def parse_files(layout, data_files, sub, config, **kwargs):
     kwargs = {k: v for k, v in kwargs.items() if v is not None}
 
     # Group files into individual runs
-    # data_files = collect_associated_files(data_files)
+    data_files = collect_associated_files(data_files, extra_entities=['run'])
 
     description_list = []
-    skip_task = {}  # Only report each task once
-    for data_file in data_files:
-        nii_file = data_file.path
-        metadata = layout.get_metadata(nii_file)
-        if not metadata:
-            LOGGER.warning('No json file found for %s', nii_file)
-        else:
-            import nibabel as nib
-            img = nib.load(nii_file)
-
-            # Assume all data were acquired the same way.
-            if not description_list:
-                description_list.append(general_acquisition_info(metadata))
-
-            if data_file.entities['datatype'] == 'func':
-                if not skip_task.get(data_file.entities['task'], False):
-                    echos = layout.get_echoes(subject=sub, extension=[".nii", ".nii.gz"],
-                                              task=data_file.entities['task'],
-                                              **kwargs)
-                    n_echos = len(echos)
-                    if n_echos > 0:
-                        metadata['EchoTime'] = []
-                        for echo in sorted(echos):
-                            echo_struct = layout.get(subject=sub, echo=echo,
-                                                     extension=[".nii", ".nii.gz"],
-                                                     task=data_file.entities['task'],
-                                                     **kwargs)[0]
-                            echo_file = echo_struct.path
-                            echo_meta = layout.get_metadata(echo_file)
-                            metadata['EchoTime'].append(echo_meta['EchoTime'])
-
-                    n_runs = len(layout.get_runs(subject=sub,
-                                                 task=data_file.entities['task'],
-                                                 **kwargs))
-                    n_runs = max(n_runs, 1)
-                    description_list.append(func_info(data_file.entities['task'],
-                                                      n_runs, metadata, img,
-                                                      config))
-                    skip_task[data_file.entities['task']] = True
-
-            elif data_file.entities['datatype'] == 'anat':
-                suffix = data_file.entities['suffix']
-                if suffix.endswith('w'):
-                    suffix = suffix[:-1] + '-weighted'
-                description_list.append(anat_info(suffix, metadata, img,
-                                                  config))
-            elif data_file.entities['datatype'] == 'dwi':
-                bval_file = nii_file.replace('.nii.gz', '.bval').replace('.nii', '.bval')
-                description_list.append(dwi_info(bval_file, metadata, img,
-                                                 config))
-            elif data_file.entities['datatype'] == 'fmap':
-                description_list.append(fmap_info(metadata, img, config,
-                                                  layout))
-
+    # Assume all data have same basic info
+    description_list.append(general_acquisition_info(data_files[0][0].get_metadata()))
+    for group in data_files:
+        if group[0].entities['datatype'] == 'func':
+            group_description = func_info(layout, group, config)
+        elif (group[0].entities['datatype'] == 'anat') and \
+             data_file.entities['suffix'].endswith('w'):
+            group_description = anat_info(layout, group, config)
+        elif group[0].entities['datatype'] == 'dwi':
+            group_description = dwi_info(layout, group, config)
+        elif group[0].entities['datatype'] == 'fmap':
+            group_description = fmap_info(layout, group, config)
+        description_list.append(group_description)
     return description_list
