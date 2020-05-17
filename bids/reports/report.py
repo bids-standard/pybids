@@ -79,7 +79,7 @@ class BIDSReport(object):
         Remember to double-check everything and to replace <deg> with a degree symbol.
 
         >>> counter.most_common()[0][0]  # doctest: +ELLIPSIS
-        'For session 01:\n\tMR data were...'
+        'In session 01, MR data were...'
         """
         descriptions = []
 
@@ -148,7 +148,7 @@ class BIDSReport(object):
         Remember to double-check everything and to replace <deg> with a degree symbol.
 
         >>> counter.most_common()[0][0]  # doctest: +ELLIPSIS
-        'For session 01:\n\tMR data were...'
+        'In session 01, MR data were...'
 
         """
         descriptions = []
