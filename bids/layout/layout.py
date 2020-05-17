@@ -940,7 +940,7 @@ class BIDSLayout(object):
                     ents = list(entities.keys())
                     suggestions = difflib.get_close_matches(first_bad, ents)
                     if suggestions:
-                        msg += "Did you mean one of {}? ".format(suggestions)
+                        msg += "Did you mean {}? ".format(suggestions)
                     raise ValueError(msg + "If you're sure you want to impose "
                                      "this constraint, set "
                                      "invalid_filters='allow'.")
