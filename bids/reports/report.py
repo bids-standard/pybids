@@ -209,12 +209,8 @@ class BIDSReport(object):
             else:
                 raise Exception('No imaging files for subject {0}'.format(subject))
 
-        # Assume all data were converted the same way and use the last nifti
+        # Assume all data were converted the same way and use the first nifti
         # file's json for conversion information.
-        if 'metadata' not in vars():
-            raise Exception('No valid jsons found. Cannot generate final '
-                            'paragraph.')
-
         description = '\n\t'.join(description_list)
         description += '\n\n{0}'.format(parsing.final_paragraph(metadata))
         return description
