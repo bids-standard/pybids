@@ -203,8 +203,8 @@ class BIDSReport(object):
                 ses_description = parsing.parse_files(
                     self.layout, data_files, subject, self.config, session=ses
                 )
-                ses_description[0] = ses_description[0].lower()
-                ses_description = 'In session {0}, '.format(ses) + ses_description
+                ses_description[0] = ses_description[0][0].lower() + ses_description[0][1:]
+                ses_description[0] = 'In session {0}, '.format(ses) + ses_description[0]
                 description_list += ses_description
                 metadata = self.layout.get_metadata(data_files[0].path)
             else:

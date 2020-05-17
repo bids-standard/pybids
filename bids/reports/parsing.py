@@ -5,7 +5,7 @@ Parsing functions for generating the MRI data acquisition portion of a
 methods section from a BIDS dataset.
 """
 import logging
-from os.path import basename
+import os.path as op
 
 import math
 from num2words import num2words
@@ -43,13 +43,13 @@ def general_acquisition_info(metadata):
     return out_str
 
 
-def get_slice_string(img, metadata):
+def get_slice_str(img, metadata):
     if 'SliceTiming' in metadata.keys():
         slice_order = ' in {0} order'.format(get_slice_info(metadata['SliceTiming']))
         n_slices = len(metadata['SliceTiming'])
     else:
         slice_order = ''
-        n_slices = img.shape[3]
+        n_slices = img.shape[2]
     slice_str = '{n_slices} slices{slice_order}'.format(
         n_slices=n_slices,
         slice_order=slice_order
@@ -57,9 +57,9 @@ def get_slice_string(img, metadata):
     return slice_str
 
 
-def get_tr_string(metadata):
+def get_tr_str(metadata):
     tr = metadata['RepetitionTime'] * 1000
-    tr = num2str(tr)
+    tr = num_to_str(tr)
     tr_str = 'repetition time, TR={tr}ms'.format(tr=tr)
     return tr_str
 
@@ -73,7 +73,7 @@ def get_duration(img, metadata):
     return duration
 
 
-def get_mbfactor_string(metadata):
+def get_mbfactor_str(metadata):
     if metadata.get('MultibandAccelerationFactor', 1) > 1:
         mb_str = 'MB factor={}'.format(metadata['MultibandAccelerationFactor'])
     else:
@@ -81,7 +81,7 @@ def get_mbfactor_string(metadata):
     return mb_str
 
 
-def get_echotimes_string(metadata):
+def get_echotimes_str(metadata):
     """Build a description of echo times from metadata field.
 
     Parameters
@@ -108,11 +108,11 @@ def get_echotimes_string(metadata):
     else:
         te = 'UNKNOWN'
         me_str = 'UNKNOWN-echo'
-    te_str = 'echo time, TE={te}ms'.format(te)
+    te_str = 'echo time, TE={}ms'.format(te)
     return te_str, me_str
 
 
-def get_size_strings(img):
+def get_size_strs(img):
     """Build descriptions from sizes of imaging data, including field of view,
     voxel size, and matrix size.
 
@@ -124,17 +124,17 @@ def get_size_strings(img):
     Returns
     -------
     fov_str
-    voxelsize_str
     matrixsize_str
+    voxelsize_str
     """
     vs_str, ms_str, fov_str = get_sizestr(img)
-    fov_str = 'field of view, FOV={fov}mm'.format(fov=fov_str)
-    voxelsize_str = 'voxel size={vs}mm'.format(vs=vs_str)
-    matrixsize_str = 'matrix size={ms}'.format(ms=ms_str)
-    return fov_str, voxelsize_str, matrixsize_str
+    fov_str = 'field of view, FOV={}mm'.format(fov_str)
+    voxelsize_str = 'voxel size={}mm'.format(vs_str)
+    matrixsize_str = 'matrix size={}'.format(ms_str)
+    return fov_str, matrixsize_str, voxelsize_str
 
 
-def get_inplaneaccel_string(metadata):
+def get_inplaneaccel_str(metadata):
     if metadata.get('ParallelReductionFactorInPlane', 1) > 1:
         pr_str = ('in-plane acceleration factor='
                   '{}'.format(metadata['ParallelReductionFactorInPlane']))
@@ -144,7 +144,75 @@ def get_inplaneaccel_string(metadata):
 
 
 def get_flipangle_str(metadata):
-    return 'flip angle, FA={fa}<deg>'.format(metadata.get('FlipAngle', 'UNKNOWN'))
+    return 'flip angle, FA={}<deg>'.format(metadata.get('FlipAngle', 'UNKNOWN'))
+
+
+def get_nvecs_str(img):
+    return '{} diffusion directions'.format(img.shape[3])
+
+
+def get_bval_str(bval_file):
+    # Parse bval file
+    with open(bval_file, 'r') as file_object:
+        d = file_object.read().splitlines()
+    bvals = [item for sublist in [l.split(' ') for l in d] for item in sublist]
+    bvals = sorted([int(v) for v in set(bvals)])
+    bvals = [num_to_str(v) for v in bvals]
+    bval_str = list_to_str(bvals)
+    bval_str = 'b-values of {} acquired'.format(bval_str)
+    return bval_str
+
+
+def get_dir_str(metadata, config):
+    dir_str = config['dir'][metadata['PhaseEncodingDirection']]
+    dir_str = 'phase encoding: {}'.format(dir_str)
+    return dir_str
+
+
+def get_for_str(metadata, layout):
+    if 'IntendedFor' in metadata.keys():
+        scans = metadata['IntendedFor']
+        run_dict = {}
+        for scan in scans:
+            fn = op.basename(scan)
+            if_file = [f for f in layout.get(extension=[".nii", ".nii.gz"]) if fn in f.path][0]
+            run_num = int(if_file.run)
+            target_type = if_file.entities['suffix'].upper()
+            if target_type == 'BOLD':
+                iff_meta = layout.get_metadata(if_file.path)
+                task = iff_meta.get('TaskName', if_file.entities['task'])
+                target_type_str = '{0} {1} scan'.format(task, target_type)
+            else:
+                target_type_str = '{0} scan'.format(target_type)
+
+            if target_type_str not in run_dict.keys():
+                run_dict[target_type_str] = []
+            run_dict[target_type_str].append(run_num)
+
+        for scan in run_dict.keys():
+            run_dict[scan] = [num2words(r, ordinal=True) for r in sorted(run_dict[scan])]
+
+        out_list = []
+        for scan in run_dict.keys():
+            if len(run_dict[scan]) > 1:
+                s = 's'
+            else:
+                s = ''
+            run_str = list_to_str(run_dict[scan])
+            string = '{rs} run{s} of the {sc}'.format(
+                rs=run_str, s=s, sc=scan)
+            out_list.append(string)
+        for_str = ' for the {0}'.format(list_to_str(out_list))
+    else:
+        for_str = ''
+    return for_str
+
+
+def clean_desc(desc):
+    desc = desc.replace('\n', ' ').lstrip()
+    while '  ' in desc:
+        desc = desc.replace('  ', ' ')
+    return desc
 
 
 def func_info(task, n_runs, metadata, img, config):
@@ -179,15 +247,17 @@ def func_info(task, n_runs, metadata, img, config):
         run_str = '{0} runs'.format(num2words(n_runs).title())
 
     # Parameters
-    slice_str = get_slice_string(img, metadata)
-    tr_str = get_tr_string(metadata)
-    te_str, me_str = get_echotimes_string(metadata)
-    fov_str, voxelsize_str, matrixsize_str = get_size_strings(img)
+    slice_str = get_slice_str(img, metadata)
+    tr_str = get_tr_str(metadata)
+    te_str, me_str = get_echotimes_str(metadata)
     fa_str = get_flipangle_str(metadata)
+    fov_str, matrixsize_str, voxelsize_str = get_size_strs(img)
+    mb_str = get_mbfactor_str(metadata)
+    inplaneaccel_str = get_inplaneaccel_str(metadata)
 
-    parameters_str = [slice_str, tr_str, te_str, fa_str, fov_str,
-                      matrixsize_str, voxelsize_str, multiband_str,
-                      inplaneaccel_str]
+    parameters_str = [slice_str, tr_str, te_str, fa_str,
+                      fov_str, matrixsize_str, voxelsize_str,
+                      mb_str, inplaneaccel_str]
     parameters_str = [d for d in parameters_str if len(d)]
     parameters_str = '; '.join(parameters_str)
 
@@ -203,12 +273,9 @@ def func_info(task, n_runs, metadata, img, config):
                       me_str=me_str,
                       parameters_str=parameters_str,
                       duration=get_duration(img, metadata),
-                      n_vols=n_tps,
+                      n_vols=img.shape[3],
                       )
-    desc = desc.replace('\n', ' ').lstrip()
-    while '  ' in desc:
-        desc = desc.replace('  ', ' ')
-
+    desc = clean_desc(desc)
     return desc
 
 
@@ -234,39 +301,32 @@ def anat_info(suffix, metadata, img, config):
     desc : :obj:`str`
         A description of the scan's acquisition information.
     """
-    n_slices, vs_str, ms_str, fov_str = get_sizestr(img)
+    # General info
     seqs, variants = get_seqstr(config, metadata)
 
-    if 'EchoTime' in metadata.keys():
-        te = num_to_str(metadata['EchoTime']*1000)
-    else:
-        te = 'UNKNOWN'
-
     # Parameters
-    tr_str = get_tr_string(metadata)
-    te_str, me_str = get_echotimes_string(metadata)
-    fov_str, voxelsize_str, matrixsize_str = get_size_strings(img)
+    slice_str = get_slice_str(img, metadata)
+    tr_str = get_tr_str(metadata)
+    te_str, me_str = get_echotimes_str(metadata)
     fa_str = get_flipangle_str(metadata)
+    fov_str, matrixsize_str, voxelsize_str = get_size_strs(img)
 
-    parameters_str = [slice_str, tr_str, te_str, fa_str, fov_str,
-                      matrixsize_str, voxelsize_str]
+    parameters_str = [slice_str, tr_str, te_str, fa_str,
+                      fov_str, matrixsize_str, voxelsize_str]
     parameters_str = [d for d in parameters_str if len(d)]
     parameters_str = '; '.join(parameters_str)
 
     desc = '''
            {n_scans} {suffix} {variants} {seqs} {me_str} structural MRI scan(s)
            were collected ({parameters_str}).
-           '''.format(n_scans=n_scans,
+           '''.format(n_scans='One',
                       suffix=suffix,
                       variants=variants,
                       seqs=seqs,
-                      n_slices=n_slices,
+                      me_str=me_str,
                       parameters_str=parameters_str
                       )
-    desc = desc.replace('\n', ' ').lstrip()
-    while '  ' in desc:
-        desc = desc.replace('  ', ' ')
-
+    desc = clean_desc(desc)
     return desc
 
 
@@ -292,64 +352,33 @@ def dwi_info(bval_file, metadata, img, config):
     desc : :obj:`str`
         A description of the DWI scan's acquisition information.
     """
-    # Parse bval file
-    with open(bval_file, 'r') as file_object:
-        d = file_object.read().splitlines()
-    bvals = [item for sublist in [l.split(' ') for l in d] for item in sublist]
-    bvals = sorted([int(v) for v in set(bvals)])
-    bvals = [str(v) for v in bvals]
-    if len(bvals) == 1:
-        bval_str = bvals[0]
-    elif len(bvals) == 2:
-        bval_str = ' and '.join(bvals)
-    else:
-        bval_str = ', '.join(bvals[:-1])
-        bval_str += ', and {0}'.format(bvals[-1])
-
-    if metadata.get('MultibandAccelerationFactor', 1) > 1:
-        mb_str = '; MB factor={0}'.format(metadata['MultibandAccelerationFactor'])
-    else:
-        mb_str = ''
-
-    if 'SliceTiming' in metadata.keys():
-        so_str = ' in {0} order'.format(get_slice_info(metadata['SliceTiming']))
-    else:
-        so_str = ''
-
-    if 'EchoTime' in metadata.keys():
-        te = num_to_str(metadata['EchoTime']*1000)
-    else:
-        te = 'UNKNOWN'
-
-    n_slices, vs_str, ms_str, fov_str = get_sizestr(img)
-    n_vecs = img.shape[3]
+    # General info
     seqs, variants = get_seqstr(config, metadata)
 
+    # Parameters
+    tr_str = get_tr_str(metadata)
+    te_str, me_str = get_echotimes_str(metadata)
+    fa_str = get_flipangle_str(metadata)
+    fov_str, voxelsize_str, matrixsize_str = get_size_strs(img)
+    bval_str = get_bval_str(bval_file)
+    nvec_str = get_nvecs_str(img)
+    mb_str = get_mbfactor_str(metadata)
+
+    parameters_str = [slice_str, tr_str, te_str, fa_str, fov_str,
+                      matrixsize_str, voxelsize_str,
+                      bval_str, nvec_str,
+                      mb_str]
+    parameters_str = [d for d in parameters_str if len(d)]
+    parameters_str = '; '.join(parameters_str)
+
     desc = '''
-           One run of {variants} {seqs} diffusion-weighted (dMRI) data were collected
-           ({n_slices} slices{so_str}; repetition time, TR={tr}ms;
-           echo time, TE={te}ms; flip angle, FA={fa}<deg>;
-           field of view, FOV={fov}mm; matrix size={ms}; voxel size={vs}mm;
-           b-values of {bval_str} acquired;
-           {n_vecs} diffusion directions{mb_str}).
+           One run of {variants} {seqs} diffusion-weighted (dMRI) data were
+           collected ({parameters_str}).
            '''.format(variants=variants,
                       seqs=seqs,
-                      n_slices=n_slices,
-                      so_str=so_str,
-                      tr=num_to_str(metadata['RepetitionTime']*1000),
-                      te=te,
-                      fa=metadata.get('FlipAngle', 'UNKNOWN'),
-                      vs=vs_str,
-                      fov=fov_str,
-                      ms=ms_str,
-                      bval_str=bval_str,
-                      n_vecs=n_vecs,
-                      mb_str=mb_str
-                     )
-    desc = desc.replace('\n', ' ').lstrip()
-    while '  ' in desc:
-        desc = desc.replace('  ', ' ')
-
+                      parameters_str=parameters_str
+                      )
+    desc = clean_desc(desc)
     return desc
 
 
@@ -373,73 +402,35 @@ def fmap_info(metadata, img, config, layout):
     desc : :obj:`str`
         A description of the field map's acquisition information.
     """
-    dir_ = config['dir'][metadata['PhaseEncodingDirection']]
-    n_slices, vs_str, ms_str, fov_str = get_sizestr(img)
+    # General info
     seqs, variants = get_seqstr(config, metadata)
 
-    if 'EchoTime' in metadata.keys():
-        te = num_to_str(metadata['EchoTime']*1000)
-    else:
-        te = 'UNKNOWN'
+    # Parameters
+    dir_str = get_dir_str(metadata, config)
+    slice_str = get_slice_str(img, metadata)
+    tr_str = get_tr_str(metadata)
+    te_str, me_str = get_echotimes_str(metadata)
+    fa_str = get_flipangle_str(metadata)
+    fov_str, matrixsize_str, voxelsize_str = get_size_strs(img)
+    mb_str = get_mbfactor_str(metadata)
 
-    if 'IntendedFor' in metadata.keys():
-        scans = metadata['IntendedFor']
-        run_dict = {}
-        for scan in scans:
-            fn = basename(scan)
-            iff_file = [f for f in layout.get(extension=[".nii", ".nii.gz"]) if fn in f.path][0]
-            run_num = int(iff_file.run)
-            ty = iff_file.entities['suffix'].upper()
-            if ty == 'BOLD':
-                iff_meta = layout.get_metadata(iff_file.path)
-                task = iff_meta.get('TaskName', iff_file.entities['task'])
-                ty_str = '{0} {1} scan'.format(task, ty)
-            else:
-                ty_str = '{0} scan'.format(ty)
+    parameters_str = [dir_str, slice_str, tr_str, te_str, fa_str,
+                      fov_str, matrixsize_str, voxelsize_str,
+                      mb_str]
+    parameters_str = [d for d in parameters_str if len(d)]
+    parameters_str = '; '.join(parameters_str)
 
-            if ty_str not in run_dict.keys():
-                run_dict[ty_str] = []
-            run_dict[ty_str].append(run_num)
-
-        for scan in run_dict.keys():
-            run_dict[scan] = [num2words(r, ordinal=True) for r in sorted(run_dict[scan])]
-
-        out_list = []
-        for scan in run_dict.keys():
-            if len(run_dict[scan]) > 1:
-                s = 's'
-            else:
-                s = ''
-            run_str = list_to_str(run_dict[scan])
-            string = '{rs} run{s} of the {sc}'.format(rs=run_str,
-                                                      s=s,
-                                                      sc=scan)
-            out_list.append(string)
-        for_str = ' for the {0}'.format(list_to_str(out_list))
-    else:
-        for_str = ''
+    for_str = get_for_str(metadata, layout)
 
     desc = '''
-           A {variants} {seqs} field map (phase encoding:
-           {dir_}; {n_slices} slices; repetition time, TR={tr}ms;
-           echo time, TE={te}ms; flip angle, FA={fa}<deg>;
-           field of view, FOV={fov}mm; matrix size={ms};
-           voxel size={vs}mm) was acquired{for_str}.
+           A {variants} {seqs} field map ({parameters_str}) was
+           acquired{for_str}.
            '''.format(variants=variants,
                       seqs=seqs,
-                      dir_=dir_,
                       for_str=for_str,
-                      n_slices=n_slices,
-                      tr=num_to_str(metadata['RepetitionTime']*1000),
-                      te=te,
-                      fa=metadata.get('FlipAngle', 'UNKNOWN'),
-                      vs=vs_str,
-                      fov=fov_str,
-                      ms=ms_str)
-    desc = desc.replace('\n', ' ').lstrip()
-    while '  ' in desc:
-        desc = desc.replace('  ', ' ')
-
+                      parameters_str=parameters_str
+                      )
+    desc = clean_desc(desc)
     return desc
 
 
@@ -469,15 +460,21 @@ def final_paragraph(metadata):
            automatically using pybids ({meth_vers}).
            '''.format(software_str=software_str,
                       meth_vers=__version__)
-    desc = desc.replace('\n', ' ').lstrip()
-    while '  ' in desc:
-        desc = desc.replace('  ', ' ')
-
+    desc = clean_desc(desc)
     return desc
 
 
-def collect_associated_files(files):
-    # runs are assumed to have same parameters except *maybe* duration
+def collect_associated_files(layout, files):
+    """Collect and group BIDSFiles with multiple files per acquisition.
+
+    Parameters
+    ----------
+    files : list of BIDSFile
+
+    Returns
+    -------
+    collected_files : list of list of BIDSFile
+    """
     MULTICONTRAST_ENTITIES = ['echo', 'part', 'ch', 'direction']
     MULTICONTRAST_SUFFICES = [
         ('bold', 'phase'),
@@ -522,7 +519,8 @@ def parse_files(layout, data_files, sub, config, **kwargs):
     """
     kwargs = {k: v for k, v in kwargs.items() if v is not None}
 
-    data_files = merge_associated_files(data_files)
+    # Group files into individual runs
+    # data_files = collect_associated_files(data_files)
 
     description_list = []
     skip_task = {}  # Only report each task once
