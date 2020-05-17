@@ -82,6 +82,21 @@ def get_mbfactor_string(metadata):
 
 
 def get_echotimes_string(metadata):
+    """Build a description of echo times from metadata field.
+
+    Parameters
+    ----------
+    metadata : dict
+        Metadata information for multiple files merged into one dictionary.
+        For multi-echo data, EchoTime should be a list.
+
+    Returns
+    -------
+    te_str : str
+        Description of echo times.
+    me_str : str
+        Whether the data are multi-echo or single-echo.
+    """
     if 'EchoTime' in metadata.keys():
         if isinstance(metadata['EchoTime'], list):
             te = [num_to_str(t*1000) for t in metadata['EchoTime']]
@@ -98,6 +113,20 @@ def get_echotimes_string(metadata):
 
 
 def get_size_strings(img):
+    """Build descriptions from sizes of imaging data, including field of view,
+    voxel size, and matrix size.
+
+    Parameters
+    ----------
+    img : nibabel.nifti1.Nifti1Image
+        Image object from which to determine sizes.
+
+    Returns
+    -------
+    fov_str
+    voxelsize_str
+    matrixsize_str
+    """
     vs_str, ms_str, fov_str = get_sizestr(img)
     fov_str = 'field of view, FOV={fov}mm'.format(fov=fov_str)
     voxelsize_str = 'voxel size={vs}mm'.format(vs=vs_str)
@@ -141,42 +170,41 @@ def func_info(task, n_runs, metadata, img, config):
     desc : :obj:`str`
         A description of the scan's acquisition information.
     """
+    # General info
     task_name = metadata.get('TaskName', task+' task')
     seqs, variants = get_seqstr(config, metadata)
-    slice_str = get_slice_string(img, metadata)
-    tr_str = get_tr_string(metadata)
-    echonum_str, te_str = get_echotimes_string(metadata)
-    fov_str, voxelsize_str, matrixsize_str = get_size_strings(img)
-    fa_str = get_flipangle_str(metadata)
-
     if n_runs == 1:
         run_str = '{0} run'.format(num2words(n_runs).title())
     else:
         run_str = '{0} runs'.format(num2words(n_runs).title())
 
-    required = [slice_str, tr_str, te_str, fa_str, fov_str, matrixsize_str,
-                voxelsize_str]
-    optional = [multiband_str, inplaneaccel_str]
-    required_str = '; '.join(required)
-    optional_str = '; '.join(opt for opt in optional if len(opt))
-    if len(optional_str):
-        optional_str = '; ' + optional_str
+    # Parameters
+    slice_str = get_slice_string(img, metadata)
+    tr_str = get_tr_string(metadata)
+    te_str, me_str = get_echotimes_string(metadata)
+    fov_str, voxelsize_str, matrixsize_str = get_size_strings(img)
+    fa_str = get_flipangle_str(metadata)
+
+    parameters_str = [slice_str, tr_str, te_str, fa_str, fov_str,
+                      matrixsize_str, voxelsize_str, multiband_str,
+                      inplaneaccel_str]
+    parameters_str = [d for d in parameters_str if len(d)]
+    parameters_str = '; '.join(parameters_str)
 
     desc = '''
-           {run_str} of {task} {variants} {seqs} {echonum_str} fMRI data were
-           collected ({required_str}{optional_str}).
-           Each run was {duration} minutes long, during which
+           {run_str} of {task} {variants} {seqs} {me_str} fMRI data were
+           collected ({parameters_str}).
+           Run duration was {duration} minutes, during which
            {n_vols} functional volumes were acquired.
            '''.format(run_str=run_str,
                       task=task_name,
                       variants=variants,
                       seqs=seqs,
                       me_str=me_str,
-                      required_str=required_str,
-                      optional_str=optional_str,
+                      parameters_str=parameters_str,
                       duration=get_duration(img, metadata),
                       n_vols=n_tps,
-                     )
+                      )
     desc = desc.replace('\n', ' ').lstrip()
     while '  ' in desc:
         desc = desc.replace('  ', ' ')
@@ -214,22 +242,27 @@ def anat_info(suffix, metadata, img, config):
     else:
         te = 'UNKNOWN'
 
+    # Parameters
+    tr_str = get_tr_string(metadata)
+    te_str, me_str = get_echotimes_string(metadata)
+    fov_str, voxelsize_str, matrixsize_str = get_size_strings(img)
+    fa_str = get_flipangle_str(metadata)
+
+    parameters_str = [slice_str, tr_str, te_str, fa_str, fov_str,
+                      matrixsize_str, voxelsize_str]
+    parameters_str = [d for d in parameters_str if len(d)]
+    parameters_str = '; '.join(parameters_str)
+
     desc = '''
-           {suffix} {variants} {seqs} structural MRI data were collected
-           ({n_slices} slices; repetition time, TR={tr}ms;
-           echo time, TE={te}ms; flip angle, FA={fa}<deg>;
-           field of view, FOV={fov}mm; matrix size={ms}; voxel size={vs}mm).
-           '''.format(suffix=suffix,
+           {n_scans} {suffix} {variants} {seqs} {me_str} structural MRI scan(s)
+           were collected ({parameters_str}).
+           '''.format(n_scans=n_scans,
+                      suffix=suffix,
                       variants=variants,
                       seqs=seqs,
                       n_slices=n_slices,
-                      tr=num_to_str(metadata['RepetitionTime']*1000),
-                      te=te,
-                      fa=metadata.get('FlipAngle', 'UNKNOWN'),
-                      vs=vs_str,
-                      fov=fov_str,
-                      ms=ms_str,
-                     )
+                      parameters_str=parameters_str
+                      )
     desc = desc.replace('\n', ' ').lstrip()
     while '  ' in desc:
         desc = desc.replace('  ', ' ')
@@ -473,26 +506,28 @@ def collect_associated_files(files):
 
 def parse_files(layout, data_files, sub, config, **kwargs):
     """
-    Loop through niftis in a BIDSLayout and generate the appropriate description
+    Loop through files in a BIDSLayout and generate the appropriate description
     type for each scan. Compile all of the descriptions into a list.
 
     Parameters
     ----------
     layout : :obj:`bids.layout.BIDSLayout`
         Layout object for a BIDS dataset.
-    niftis : :obj:`list` or :obj:`grabbit.core.File`
+    data_files : :obj:`list` of :obj:`bids.layout.models.BIDSFile`
         List of nifti files in layout corresponding to subject/session combo.
-    subj : :obj:`str`
+    sub : :obj:`str`
         Subject ID.
     config : :obj:`dict`
         Configuration info for methods generation.
     """
     kwargs = {k: v for k, v in kwargs.items() if v is not None}
 
+    data_files = merge_associated_files(data_files)
+
     description_list = []
     skip_task = {}  # Only report each task once
-    for nifti_struct in niftis:
-        nii_file = nifti_struct.path
+    for data_file in data_files:
+        nii_file = data_file.path
         metadata = layout.get_metadata(nii_file)
         if not metadata:
             LOGGER.warning('No json file found for %s', nii_file)
@@ -504,43 +539,43 @@ def parse_files(layout, data_files, sub, config, **kwargs):
             if not description_list:
                 description_list.append(general_acquisition_info(metadata))
 
-            if nifti_struct.entities['datatype'] == 'func':
-                if not skip_task.get(nifti_struct.entities['task'], False):
-                    echos = layout.get_echoes(subject=subj, extension=[".nii", ".nii.gz"],
-                                              task=nifti_struct.entities['task'],
+            if data_file.entities['datatype'] == 'func':
+                if not skip_task.get(data_file.entities['task'], False):
+                    echos = layout.get_echoes(subject=sub, extension=[".nii", ".nii.gz"],
+                                              task=data_file.entities['task'],
                                               **kwargs)
                     n_echos = len(echos)
                     if n_echos > 0:
                         metadata['EchoTime'] = []
                         for echo in sorted(echos):
-                            echo_struct = layout.get(subject=subj, echo=echo,
+                            echo_struct = layout.get(subject=sub, echo=echo,
                                                      extension=[".nii", ".nii.gz"],
-                                                     task=nifti_struct.entities['task'],
+                                                     task=data_file.entities['task'],
                                                      **kwargs)[0]
                             echo_file = echo_struct.path
                             echo_meta = layout.get_metadata(echo_file)
                             metadata['EchoTime'].append(echo_meta['EchoTime'])
 
-                    n_runs = len(layout.get_runs(subject=subj,
-                                                 task=nifti_struct.entities['task'],
+                    n_runs = len(layout.get_runs(subject=sub,
+                                                 task=data_file.entities['task'],
                                                  **kwargs))
                     n_runs = max(n_runs, 1)
-                    description_list.append(func_info(nifti_struct.entities['task'],
+                    description_list.append(func_info(data_file.entities['task'],
                                                       n_runs, metadata, img,
                                                       config))
-                    skip_task[nifti_struct.entities['task']] = True
+                    skip_task[data_file.entities['task']] = True
 
-            elif nifti_struct.entities['datatype'] == 'anat':
-                suffix = nifti_struct.entities['suffix']
+            elif data_file.entities['datatype'] == 'anat':
+                suffix = data_file.entities['suffix']
                 if suffix.endswith('w'):
                     suffix = suffix[:-1] + '-weighted'
                 description_list.append(anat_info(suffix, metadata, img,
                                                   config))
-            elif nifti_struct.entities['datatype'] == 'dwi':
+            elif data_file.entities['datatype'] == 'dwi':
                 bval_file = nii_file.replace('.nii.gz', '.bval').replace('.nii', '.bval')
                 description_list.append(dwi_info(bval_file, metadata, img,
                                                  config))
-            elif nifti_struct.entities['datatype'] == 'fmap':
+            elif data_file.entities['datatype'] == 'fmap':
                 description_list.append(fmap_info(metadata, img, config,
                                                   layout))
 

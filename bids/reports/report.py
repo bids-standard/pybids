@@ -2,9 +2,7 @@
 dataset.
 """
 import json
-from os.path import dirname
-from os.path import abspath
-from os.path import join as pathjoin
+import os.path as op
 from collections import Counter
 
 from bids.reports import utils
@@ -36,8 +34,8 @@ class BIDSReport(object):
     def __init__(self, layout, config=None):
         self.layout = layout
         if config is None:
-            config = pathjoin(dirname(abspath(__file__)), 'config',
-                              'converters.json')
+            config = op.join(op.dirname(op.abspath(__file__)), 'config',
+                             'converters.json')
 
         if isinstance(config, str):
             with open(config) as fobj:
@@ -85,22 +83,24 @@ class BIDSReport(object):
         """
         descriptions = []
 
-        subjs = sorted(list(set([f.get_entities().get('subject') for f in files])))
+        subjects = sorted(list(set([f.get_entities().get('subject') for f in files])))
         sessions = sorted(list(set([f.get_entities().get('session') for f in files])))
-        for sid in subjs:
-            subject_files = [f for f in files if f.get_entities().get('subject') == sid]
+        for sub in subjects:
+            subject_files = [f for f in files if f.get_entities().get('subject') == sub]
             description_list = []
             for ses in sessions:
-                niftis = [f for f in subject_files if f.get_entities().get('session') == ses]
+                data_files = [f for f in subject_files if f.get_entities().get('session') == ses]
 
-                if niftis:
-                    description_list.append('For session {0}:'.format(ses))
-                    description_list += parsing.parse_niftis(self.layout, niftis,
-                                                             sid, self.config,
-                                                             session=ses)
-                    metadata = self.layout.get_metadata(niftis[0].path)
+                if data_files:
+                    ses_description = parsing.parse_files(
+                        self.layout, data_files, subject, self.config, session=ses
+                    )
+                    ses_description[0] = ses_description[0].lower()
+                    ses_description = 'In session {0}, '.format(ses) + ses_description
+                    description_list += ses_description
+                    metadata = self.layout.get_metadata(data_files[0].path)
                 else:
-                    raise Exception('No niftis for subject {0}'.format(subject))
+                    raise Exception('No imaging files for subject {0}'.format(subject))
 
             # Assume all data were converted the same way and use the last nifti
             # file's json for conversion information.
@@ -109,7 +109,6 @@ class BIDSReport(object):
                                 'paragraph.')
 
             description = '\n\t'.join(description_list)
-            description = description.replace('\tFor session', '\nFor session')
             description += '\n\n{0}'.format(parsing.final_paragraph(metadata))
             descriptions.append(description)
         counter = Counter(descriptions)
@@ -122,9 +121,9 @@ class BIDSReport(object):
 
         Parameters
         ----------
-        task_converter : :obj:`dict`, optional
-            A dictionary with information for converting task names from BIDS
-            filename format to human-readable strings.
+        kwargs : dict
+            Keyword arguments passed to BIDSLayout to select subsets of the
+            dataset.
 
         Returns
         -------
@@ -154,10 +153,10 @@ class BIDSReport(object):
         """
         descriptions = []
 
-        subjs = self.layout.get_subjects(**kwargs)
+        subjects = self.layout.get_subjects(**kwargs)
         kwargs = {k: v for k, v in kwargs.items() if k != 'subject'}
-        for sid in subjs:
-            descriptions.append(self._report_subject(subject=sid, **kwargs))
+        for sub in subjects:
+            descriptions.append(self._report_subject(subject=sub, **kwargs))
         counter = Counter(descriptions)
         print('Number of patterns detected: {0}'.format(len(counter.keys())))
         print(utils.reminder())
@@ -195,18 +194,21 @@ class BIDSReport(object):
             sessions = [sessions]
 
         for ses in sessions:
-            niftis = self.layout.get(
-                subject=subject, extension=[".nii", ".nii.gz"],
+            data_files = self.layout.get(
+                subject=subject,
+                extension=[".nii", ".nii.gz"],
                 **kwargs)
 
-            if niftis:
-                description_list.append('For session {0}:'.format(ses))
-                description_list += parsing.parse_niftis(self.layout, niftis,
-                                                         subject, self.config,
-                                                         session=ses)
-                metadata = self.layout.get_metadata(niftis[0].path)
+            if data_files:
+                ses_description = parsing.parse_files(
+                    self.layout, data_files, subject, self.config, session=ses
+                )
+                ses_description[0] = ses_description[0].lower()
+                ses_description = 'In session {0}, '.format(ses) + ses_description
+                description_list += ses_description
+                metadata = self.layout.get_metadata(data_files[0].path)
             else:
-                raise Exception('No niftis for subject {0}'.format(subject))
+                raise Exception('No imaging files for subject {0}'.format(subject))
 
         # Assume all data were converted the same way and use the last nifti
         # file's json for conversion information.
@@ -215,6 +217,5 @@ class BIDSReport(object):
                             'paragraph.')
 
         description = '\n\t'.join(description_list)
-        description = description.replace('\tFor session', '\nFor session')
         description += '\n\n{0}'.format(parsing.final_paragraph(metadata))
         return description
