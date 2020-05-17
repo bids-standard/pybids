@@ -443,7 +443,35 @@ def final_paragraph(metadata):
     return desc
 
 
-def parse_niftis(layout, niftis, subj, config, **kwargs):
+def collect_associated_files(files):
+    # runs are assumed to have same parameters except *maybe* duration
+    MULTICONTRAST_ENTITIES = ['echo', 'part', 'ch', 'direction']
+    MULTICONTRAST_SUFFICES = [
+        ('bold', 'phase'),
+        ('phase1', 'phase2', 'phasediff', 'magnitude1', 'magnitude2'),
+    ]
+
+    collected_files = []
+    for f in files:
+        if len(collected_files) and any(f in filegroup for filegroup in collected_files):
+            continue
+        ents = f.get_entities()
+        ents = {k: v for k, v in ents.items() if k not in MULTICONTRAST_ENTITIES}
+
+        # Group files with differing multi-contrast entity values, but same
+        # everything else.
+        all_suffices = ents['suffix']
+        for mcs in MULTICONTRAST_SUFFICES:
+            if ents['suffix'] in mcs:
+                all_suffices = mcs
+                break
+        ents.pop('suffix')
+        associated_files = layout.get(suffix=all_suffices, **ents)
+        collected_files.append(associated_files)
+    return collected_files
+
+
+def parse_files(layout, data_files, sub, config, **kwargs):
     """
     Loop through niftis in a BIDSLayout and generate the appropriate description
     type for each scan. Compile all of the descriptions into a list.
