@@ -10,6 +10,7 @@ import nibabel as nib
 from num2words import num2words
 
 from .. import __version__
+from ..utils import collect_associated_files
 from . import parameters, utils
 
 logging.basicConfig()
@@ -341,7 +342,7 @@ def parse_files(layout, data_files, sub, config, **kwargs):
     kwargs = {k: v for k, v in kwargs.items() if v is not None}
 
     # Group files into individual runs
-    data_files = utils.collect_associated_files(layout, data_files, extra_entities=['run'])
+    data_files = collect_associated_files(layout, data_files, extra_entities=['run'])
 
     description_list = []
     # Assume all data have same basic info
