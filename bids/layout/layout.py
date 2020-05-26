@@ -496,11 +496,11 @@ class BIDSLayout(object):
             with open(target, 'r', encoding='utf-8') as desc_fd:
                 self.description = json.load(desc_fd)
             if self.validate:
-                for k in MANDATORY_BIDS_FIELDS.keys():
+                for k in MANDATORY_BIDS_FIELDS:
                     if k not in self.description:
                         raise ValueError("Mandatory %r field missing from "
                                          "'dataset_description.json'."
-                                         "\nExample: \n%s" % (k, MANDATORY_BIDS_FIELDS[k])
+                                         "\nExample: %s" % (k, MANDATORY_BIDS_FIELDS[k])
                         )
 
     def _validate_force_index(self):
@@ -812,7 +812,7 @@ class BIDSLayout(object):
                 raise ValueError("Every valid BIDS-derivatives dataset must "
                                  "have a PipelineDescription.Name field set "
                                  "inside 'dataset_description.json'. "
-                                 "\nExample: \n%s" %
+                                 "\nExample: %s" %
                                  MANDATORY_DERIVATIVES_FIELDS['PipelineDescription.Name'])
             if pipeline_name in self.derivatives:
                 raise ValueError("Pipeline name '%s' has already been added "
