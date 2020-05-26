@@ -36,57 +36,25 @@ except ImportError:
 
 __all__ = ['BIDSLayout']
 
-EXAMPLE_DERIVATIVES_DESC = """
-{
-    "Name": "FMRIPREP Outputs",
-    "BIDSVersion": "TODO (depends when this PR will be merged)",
-    "PipelineDescription": {
-        "Name": "FMRIPREP",
-        "Version": "1.2.5",
-        "Container": {
-            "Type": "docker",
-            "Tag": "poldracklab/fmriprep:1.2.5"
-            }
-        },
-    "SourceDatasets": [
-        {
-            "DOI": "10.18112/openneuro.ds000114.v1.0.1",
-            "URL": "https://openneuro.org/datasets/ds000114/versions/1.0.1",
-            "Version": "1.0.1"
-        }
-    ]
+MANDATORY_BIDS_FIELDS = {
+    "Name": {"Name": "Example dataset"},
+    "BIDSVersion": {"BIDSVersion": "1.0.2"},
 }
-"""
 
-EXAMPLE_BIDS_DESC = """
-{
-  "Name": "The mother of all experiments",
-  "BIDSVersion": "1.0.1",
-  "License": "CC0",
-  "Authors": [
-    "Paul Broca",
-    "Carl Wernicke"
-  ],
-  "Acknowledgements": "Special thanks to Korbinian Brodmann for help in formatting this dataset\
-in BIDS. We thank Alan Lloyd Hodgkin and Andrew Huxley for helpful comments and discussions about\
-the experiment and manuscript; Hermann Ludwig Helmholtz for administrative support; and Claudius\
-Galenus for providing data for the medial-to-lateral index analysis.",
-  "HowToAcknowledge": "Please cite this paper: https://www.ncbi.nlm.nih.gov/pubmed/001012092119281",
-  "Funding": [
-    "National Institute of Neuroscience Grant F378236MFH1",
-    "National Institute of Neuroscience Grant 5RMZ0023106"
-  ],
-  "EthicsApprovals": [
-    "Army Human Research Protections Office (Protocol ARL-20098-10051, ARL 12-040, and ARL 12-041)"
-  ],
-  "ReferencesAndLinks": [
-    "https://www.ncbi.nlm.nih.gov/pubmed/001012092119281",
-    "Alzheimer A., & Kraepelin, E. (2015). Neural correlates of presenile dementia in humans.\
-Journal of Neuroscientific Data, 2, 234001. http://doi.org/1920.8/jndata.2015.7"
-  ],
-  "DatasetDOI": "10.0.2.3/dfjj.10"
+MANDATORY_DERIVATIVES_FIELDS = {
+    **MANDATORY_BIDS_FIELDS,
+    "PipelineDescription.Name": {"PipelineDescription": {"Name": "Example pipeline"}},
 }
-"""
+
+EXAMPLE_BIDS_DESCRIPTION = {
+    inner_key: inner_value for outer_key in MANDATORY_BIDS_FIELDS.keys()
+    for inner_key, inner_value in MANDATORY_BIDS_FIELDS[outer_key].items()
+}
+
+EXAMPLE_DERIVATIVES_DESCRIPTION = {
+    inner_key: inner_value for outer_key in MANDATORY_DERIVATIVES_FIELDS.keys()
+    for inner_key, inner_value in MANDATORY_DERIVATIVES_FIELDS[outer_key].items()
+}
 
 
 def parse_file_entities(filename, entities=None, config=None,
@@ -519,20 +487,21 @@ class BIDSLayout(object):
                 raise ValueError(
                     "'dataset_description.json' is missing from project root."
                     " Every valid BIDS dataset must have this file."
-                    " Here is an example dataset_description.json: " +
-                    EXAMPLE_BIDS_DESC)
+                    "\nExample contents of 'dataset_description.json': \n%s" %
+                    json.dumps(EXAMPLE_BIDS_DESCRIPTION)
+                )
             else:
                 self.description = None
         else:
             with open(target, 'r', encoding='utf-8') as desc_fd:
                 self.description = json.load(desc_fd)
             if self.validate:
-                for k in ['Name', 'BIDSVersion']:
+                for k in MANDATORY_BIDS_FIELDS.keys():
                     if k not in self.description:
-                        raise ValueError("Mandatory '%s' field missing from "
-                                         "dataset_description.json."
-                                         " Here is an example dataset_description: " % k +
-                                         EXAMPLE_BIDS_DESC)
+                        raise ValueError("Mandatory %r field missing from "
+                                         "'dataset_description.json'."
+                                         "\nExample: \n%s" % (k, MANDATORY_BIDS_FIELDS[k])
+                        )
 
     def _validate_force_index(self):
         # Derivatives get special handling; they shouldn't be indexed normally
@@ -823,16 +792,16 @@ class BIDSLayout(object):
                             deriv_dirs.append(sd)
 
         if not deriv_dirs:
+
             warnings.warn("Derivative indexing was requested, but no valid "
                           "datasets were found in the specified locations "
                           "({}). Note that all BIDS-Derivatives datasets must"
                           " meet all the requirements for BIDS-Raw datasets "
                           "(a common problem is to fail to include a "
-                          "dataset_description.json file in derivatives "
-                          "datasets). "
-                          "Here is an example dataset_description.json: ".format(paths) +
-                          EXAMPLE_DERIVATIVES_DESC)
-
+                          "'dataset_description.json' file in derivatives "
+                          "datasets).\n".format(paths) +
+                          "Example contents of 'dataset_description.json':\n%s" %
+                          json.dumps(EXAMPLE_DERIVATIVES_DESCRIPTION))
         for deriv in deriv_dirs:
             dd = os.path.join(deriv, 'dataset_description.json')
             with open(dd, 'r', encoding='utf-8') as ddfd:
@@ -842,9 +811,9 @@ class BIDSLayout(object):
             if pipeline_name is None:
                 raise ValueError("Every valid BIDS-derivatives dataset must "
                                  "have a PipelineDescription.Name field set "
-                                 "inside dataset_description.json. "
-                                 "Here is an example dataset_description.json: " +
-                                 EXAMPLE_DERIVATIVES_DESC)
+                                 "inside 'dataset_description.json'. "
+                                 "\nExample: \n%s" %
+                                 MANDATORY_DERIVATIVES_FIELDS['PipelineDescription.Name'])
             if pipeline_name in self.derivatives:
                 raise ValueError("Pipeline name '%s' has already been added "
                                  "to this BIDSLayout. Every added pipeline "
