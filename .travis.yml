@@ -53,6 +53,9 @@ jobs:
       env:
         - SETUP_REQUIRES="pip==10.0.1 setuptools==30.4.0"
         - CHECK_TYPE=skiptests
+  exclude:
+    - python: 3.5
+      env: EXTRA_PIP_FLAGS="--pre --find-links=$EXTRA_WHEELS --find-links $PRE_WHEELS"
 
 before_install:
     - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
