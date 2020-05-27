@@ -47,14 +47,10 @@ MANDATORY_DERIVATIVES_FIELDS = {
 }
 
 EXAMPLE_BIDS_DESCRIPTION = {
-    inner_key: inner_value for outer_key in MANDATORY_BIDS_FIELDS.keys()
-    for inner_key, inner_value in MANDATORY_BIDS_FIELDS[outer_key].items()
-}
+    k: val[k] for val in MANDATORY_BIDS_FIELDS.values() for k in val}
 
 EXAMPLE_DERIVATIVES_DESCRIPTION = {
-    inner_key: inner_value for outer_key in MANDATORY_DERIVATIVES_FIELDS.keys()
-    for inner_key, inner_value in MANDATORY_DERIVATIVES_FIELDS[outer_key].items()
-}
+    k: val[k] for val in MANDATORY_DERIVATIVES_FIELDS.values() for k in val}
 
 
 def parse_file_entities(filename, entities=None, config=None,
