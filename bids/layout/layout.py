@@ -36,6 +36,22 @@ except ImportError:
 
 __all__ = ['BIDSLayout']
 
+MANDATORY_BIDS_FIELDS = {
+    "Name": {"Name": "Example dataset"},
+    "BIDSVersion": {"BIDSVersion": "1.0.2"},
+}
+
+MANDATORY_DERIVATIVES_FIELDS = {
+    **MANDATORY_BIDS_FIELDS,
+    "PipelineDescription.Name": {"PipelineDescription": {"Name": "Example pipeline"}},
+}
+
+EXAMPLE_BIDS_DESCRIPTION = {
+    k: val[k] for val in MANDATORY_BIDS_FIELDS.values() for k in val}
+
+EXAMPLE_DERIVATIVES_DESCRIPTION = {
+    k: val[k] for val in MANDATORY_DERIVATIVES_FIELDS.values() for k in val}
+
 
 def parse_file_entities(filename, entities=None, config=None,
                         include_unmatched=False):
@@ -466,17 +482,22 @@ class BIDSLayout(object):
             if self.validate:
                 raise ValueError(
                     "'dataset_description.json' is missing from project root."
-                    " Every valid BIDS dataset must have this file.")
+                    " Every valid BIDS dataset must have this file."
+                    "\nExample contents of 'dataset_description.json': \n%s" %
+                    json.dumps(EXAMPLE_BIDS_DESCRIPTION)
+                )
             else:
                 self.description = None
         else:
             with open(target, 'r', encoding='utf-8') as desc_fd:
                 self.description = json.load(desc_fd)
             if self.validate:
-                for k in ['Name', 'BIDSVersion']:
+                for k in MANDATORY_BIDS_FIELDS:
                     if k not in self.description:
-                        raise ValueError("Mandatory '%s' field missing from "
-                                         "dataset_description.json." % k)
+                        raise ValueError("Mandatory %r field missing from "
+                                         "'dataset_description.json'."
+                                         "\nExample: %s" % (k, MANDATORY_BIDS_FIELDS[k])
+                        )
 
     def _validate_force_index(self):
         # Derivatives get special handling; they shouldn't be indexed normally
@@ -767,14 +788,16 @@ class BIDSLayout(object):
                             deriv_dirs.append(sd)
 
         if not deriv_dirs:
+
             warnings.warn("Derivative indexing was requested, but no valid "
                           "datasets were found in the specified locations "
                           "({}). Note that all BIDS-Derivatives datasets must"
                           " meet all the requirements for BIDS-Raw datasets "
                           "(a common problem is to fail to include a "
-                          "dataset_description.json file in derivatives "
-                          "datasets).".format(paths))
-
+                          "'dataset_description.json' file in derivatives "
+                          "datasets).\n".format(paths) +
+                          "Example contents of 'dataset_description.json':\n%s" %
+                          json.dumps(EXAMPLE_DERIVATIVES_DESCRIPTION))
         for deriv in deriv_dirs:
             dd = os.path.join(deriv, 'dataset_description.json')
             with open(dd, 'r', encoding='utf-8') as ddfd:
@@ -784,7 +807,9 @@ class BIDSLayout(object):
             if pipeline_name is None:
                 raise ValueError("Every valid BIDS-derivatives dataset must "
                                  "have a PipelineDescription.Name field set "
-                                 "inside dataset_description.json.")
+                                 "inside 'dataset_description.json'. "
+                                 "\nExample: %s" %
+                                 MANDATORY_DERIVATIVES_FIELDS['PipelineDescription.Name'])
             if pipeline_name in self.derivatives:
                 raise ValueError("Pipeline name '%s' has already been added "
                                  "to this BIDSLayout. Every added pipeline "
