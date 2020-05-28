@@ -11,6 +11,7 @@ import warnings
 import sqlite3
 import enum
 from pathlib import Path
+import difflib
 
 import sqlalchemy as sa
 from sqlalchemy.orm import joinedload
@@ -42,6 +43,22 @@ except ImportError:
         return prefix
 
 __all__ = ['BIDSLayout']
+
+MANDATORY_BIDS_FIELDS = {
+    "Name": {"Name": "Example dataset"},
+    "BIDSVersion": {"BIDSVersion": "1.0.2"},
+}
+
+MANDATORY_DERIVATIVES_FIELDS = {
+    **MANDATORY_BIDS_FIELDS,
+    "PipelineDescription.Name": {"PipelineDescription": {"Name": "Example pipeline"}},
+}
+
+EXAMPLE_BIDS_DESCRIPTION = {
+    k: val[k] for val in MANDATORY_BIDS_FIELDS.values() for k in val}
+
+EXAMPLE_DERIVATIVES_DESCRIPTION = {
+    k: val[k] for val in MANDATORY_DERIVATIVES_FIELDS.values() for k in val}
 
 
 def parse_file_entities(filename, entities=None, config=None,
@@ -473,18 +490,22 @@ class BIDSLayout(object):
             if self.validate:
                 raise BIDSValidationError(
                     "'dataset_description.json' is missing from project root."
-                    " Every valid BIDS dataset must have this file.")
+                    " Every valid BIDS dataset must have this file."
+                    "\nExample contents of 'dataset_description.json': \n%s" %
+                    json.dumps(EXAMPLE_BIDS_DESCRIPTION)
+                )
             else:
                 self.description = None
         else:
             with open(target, 'r', encoding='utf-8') as desc_fd:
                 self.description = json.load(desc_fd)
             if self.validate:
-                for k in ['Name', 'BIDSVersion']:
+                for k in MANDATORY_BIDS_FIELDS:
                     if k not in self.description:
-                        raise BIDSValidationError(
-                                         "Mandatory '%s' field missing from "
-                                         "dataset_description.json." % k)
+                        raise BIDSValidationError("Mandatory %r field missing from "
+                                                  "'dataset_description.json'."
+                                                  "\nExample: %s" % (k, MANDATORY_BIDS_FIELDS[k])
+                        )
 
     def _validate_force_index(self):
         # Derivatives get special handling; they shouldn't be indexed normally
@@ -775,14 +796,16 @@ class BIDSLayout(object):
                             deriv_dirs.append(sd)
 
         if not deriv_dirs:
+
             warnings.warn("Derivative indexing was requested, but no valid "
                           "datasets were found in the specified locations "
                           "({}). Note that all BIDS-Derivatives datasets must"
                           " meet all the requirements for BIDS-Raw datasets "
                           "(a common problem is to fail to include a "
-                          "dataset_description.json file in derivatives "
-                          "datasets).".format(paths))
-
+                          "'dataset_description.json' file in derivatives "
+                          "datasets).\n".format(paths) +
+                          "Example contents of 'dataset_description.json':\n%s" %
+                          json.dumps(EXAMPLE_DERIVATIVES_DESCRIPTION))
         for deriv in deriv_dirs:
             dd = os.path.join(deriv, 'dataset_description.json')
             with open(dd, 'r', encoding='utf-8') as ddfd:
@@ -793,7 +816,9 @@ class BIDSLayout(object):
                 raise BIDSDerivativesValidationError(
                                  "Every valid BIDS-derivatives dataset must "
                                  "have a PipelineDescription.Name field set "
-                                 "inside dataset_description.json.")
+                                 "inside 'dataset_description.json'. "
+                                 "\nExample: %s" %
+                                 MANDATORY_DERIVATIVES_FIELDS['PipelineDescription.Name'])
             if pipeline_name in self.derivatives:
                 raise BIDSDerivativesValidationError(
                                  "Pipeline name '%s' has already been added "
@@ -859,7 +884,7 @@ class BIDSLayout(object):
         return data.reset_index()
 
     def get(self, return_type='object', target=None, scope='all',
-            regex_search=False, absolute_paths=None, drop_invalid_filters=True,
+            regex_search=False, absolute_paths=None, invalid_filters='error',
             **filters):
         """Retrieve files and/or metadata from the current Layout.
 
@@ -893,6 +918,14 @@ class BIDSLayout(object):
             to report either absolute or relative (to the top of the
             dataset) paths. If None, will fall back on the value specified
             at BIDSLayout initialization.
+        invalid_filters (str): Controls behavior when named filters are
+            encountered that don't exist in the database (e.g., in the case of
+            a typo like subbject='0.1'). Valid values:
+                'error' (default): Raise an explicit error.
+                'drop': Silently drop invalid filters (equivalent to not having
+                    passed them as arguments in the first place).
+                'allow': Include the invalid filters in the query, resulting
+                    in no results being returned.
         filters : dict
             Any optional key/values to filter the entities on.
             Keys are entity names, values are regexes to filter on. For
@@ -920,15 +953,25 @@ class BIDSLayout(object):
             filters['extension'] = [x.lstrip('.') if isinstance(x, str) else x
                                     for x in exts]
 
-        if drop_invalid_filters:
-            invalid_filters = set(filters.keys()) - set(entities.keys())
-            if invalid_filters:
-                for inv_filt in invalid_filters:
-                    filters.pop(inv_filt)
+        if invalid_filters != 'allow':
+            bad_filters = set(filters.keys()) - set(entities.keys())
+            if bad_filters:
+                if invalid_filters == 'drop':
+                    for bad_filt in bad_filters:
+                        filters.pop(bad_filt)
+                elif invalid_filters == 'error':
+                    first_bad = list(bad_filters)[0]
+                    msg = "'{}' is not a recognized entity. ".format(first_bad)
+                    ents = list(entities.keys())
+                    suggestions = difflib.get_close_matches(first_bad, ents)
+                    if suggestions:
+                        msg += "Did you mean {}? ".format(suggestions)
+                    raise ValueError(msg + "If you're sure you want to impose "
+                                     "this constraint, set "
+                                     "invalid_filters='allow'.")
 
         # Provide some suggestions if target is specified and invalid.
         if target is not None and target not in entities:
-            import difflib
             potential = list(entities.keys())
             suggestions = difflib.get_close_matches(target, potential)
             if suggestions:
@@ -942,10 +985,6 @@ class BIDSLayout(object):
         for l in layouts:
             query = l._build_file_query(filters=filters,
                                         regex_search=regex_search)
-            # Eager load associations, because mixing queries from different
-            # DB sessions causes objects to detach
-            query = query.options(joinedload(BIDSFile.tags)
-                                  .joinedload(Tag.entity))
             results.extend(query.all())
 
         # Convert to relative paths if needed

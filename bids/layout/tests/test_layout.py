@@ -47,7 +47,8 @@ def test_index_metadata(index_metadata, query, result):
     if not index_metadata and query is not None:
         indexer = BIDSLayoutIndexer(layout)
         indexer.index_metadata(**query)
-    sample_file = layout.get(task='rest', extension='nii.gz', acq='fullbrain')[0]
+    sample_file = layout.get(task='rest', extension='nii.gz',
+                             acquisition='fullbrain')[0]
     metadata = sample_file.get_metadata()
     assert metadata.get('RepetitionTime') == result
 
@@ -274,25 +275,25 @@ def test_get_return_type_dir(layout_7t_trt, layout_7t_trt_relpath):
 
 @pytest.mark.parametrize("acq", [None, Query.NONE])
 def test_get_val_none(layout_7t_trt, acq):
-    t1w_files = layout_7t_trt.get(subject='01', ses='1', suffix='T1w')
+    t1w_files = layout_7t_trt.get(subject='01', session='1', suffix='T1w')
     assert len(t1w_files) == 1
     assert 'acq' not in t1w_files[0].path
     t1w_files = layout_7t_trt.get(
-        subject='01', ses='1', suffix='T1w', acquisition=acq)
+        subject='01', session='1', suffix='T1w', acquisition=acq)
     assert len(t1w_files) == 1
     bold_files = layout_7t_trt.get(
-        subject='01', ses='1', suffix='bold', acquisition=acq)
+        subject='01', session='1', suffix='bold', acquisition=acq)
     assert len(bold_files) == 0
 
 
 def test_get_val_enum_any(layout_7t_trt):
     t1w_files = layout_7t_trt.get(
-        subject='01', ses='1', suffix='T1w', acquisition=Query.ANY,
+        subject='01', session='1', suffix='T1w', acquisition=Query.ANY,
         extension=Query.ANY)
     assert not t1w_files
-    bold_files = layout_7t_trt.get(subject='01', ses='1', run=1, suffix='bold',
-                                   acquisition=Query.ANY)
-    assert len(bold_files) == 3
+    bold_files = layout_7t_trt.get(subject='01', session='1', run=1,
+                                  suffix='bold', acquisition=Query.ANY)
+    assert len(bold_files) == 2
 
 
 def test_get_return_sorted(layout_7t_trt):
@@ -675,6 +676,26 @@ def test_get_with_regex_search_bad_dtype(layout_7t_trt):
                     regex_search=True)
     # Two runs (1 per session) for each of subjects '10' and '01'
     assert len(results) == 4
+
+
+def test_get_with_invalid_filters(layout_ds005):
+    l = layout_ds005
+    # Raise error with suggestions
+    with pytest.raises(ValueError, match='session'):
+        l.get(subject='12', ses=True, invalid_filters='error')
+    with pytest.raises(ValueError, match='session'):
+        l.get(subject='12', ses=True)
+    # Silently drop amazing
+    res_without = l.get(subject='12', suffix='bold')
+    res_drop = l.get(subject='12', suffix='bold', amazing='!!!',
+                     invalid_filters='drop')
+    assert res_without == res_drop
+    assert len(res_drop) == 3
+    # Retain amazing, producing empty set
+    allow_res = l.get(subject='12', amazing=True, invalid_filters='allow')
+    assert allow_res == []
+
+
 
 def test_load_layout(layout_synthetic_nodb, db_dir):
     db_path = str(db_dir / 'tmp_db')
