@@ -688,6 +688,12 @@ def test_get_with_invalid_filters(layout_ds005):
     allow_res = l.get(subject='12', amazing=True, invalid_filters='allow')
     assert allow_res == []
 
+    # assert warning when filters are passed in
+    filters = {
+        'subject': '1',
+    }
+    with pytest.raises(RuntimeError, match='You passed in filters as a dictionary'):
+        l.get(filters=filters)
 
 
 def test_load_layout(layout_synthetic_nodb, db_dir):
