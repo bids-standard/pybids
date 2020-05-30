@@ -937,6 +937,14 @@ class BIDSLayout(object):
 
         entities = self.get_entities()
 
+        # error check on users accidentally passing in filters
+        if 'filters' in filters:
+            if isinstance(filters['filters'], dict):
+                raise RuntimeError('You passed in filters as a dictionary '
+                                   'named filters; please pass the keys in '
+                                   'as named keywords to the `get()` call. '
+                                   'For example: `layout.get(**filters)`.')
+
         # Strip leading periods if extensions were passed
         if 'extension' in filters:
             exts = listify(filters['extension'])
