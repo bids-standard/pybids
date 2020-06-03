@@ -383,7 +383,11 @@ class SparseRunVariable(SimpleVariable):
             # Cast onsets and durations to milliseconds
             onsets = np.round(self.onset * 1000).astype(int)
             durations = np.round(self.duration * 1000).astype(int)
-            sampling_rate = 1000. / reduce(math.gcd, [*onsets, *durations])
+            red = reduce(math.gcd, [*onsets, *durations])
+            if red > 0:
+                sampling_rate = 1000. / reduce(math.gcd, [*onsets, *durations])
+            else:
+                sampling_rate = 1
 
         duration = int(math.ceil(sampling_rate * self.get_duration()))
         ts = np.zeros(duration, dtype=self.values.dtype)
