@@ -6,6 +6,7 @@ from collections import defaultdict
 from bids_validator import BIDSValidator
 from .models import Config, Entity, Tag, FileAssociation
 from ..utils import listify, make_bidsfile
+from ..exceptions import BIDSConflictingValuesError
 
 
 def _extract_entities(bidsfile, entities):
@@ -367,8 +368,9 @@ class BIDSLayoutIndexer(object):
                             "filename {} (value='{}') versus its JSON sidecar "
                             "(value='{}'). Please reconcile this discrepancy."
                         )
-                        raise ValueError(msg.format(md_key, bf.path, file_val,
-                                                    md_val))
+                        raise BIDSConflictingValuesError(
+                            msg.format(md_key, bf.path, file_val,
+                            md_val))
                     continue
                 if md_key not in all_entities:
                     all_entities[md_key] = Entity(md_key, is_metadata=True)
