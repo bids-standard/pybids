@@ -29,7 +29,7 @@ class BIDSValidationError(ValueError, PyBIDSError):
     """ An invalid BIDS dataset. """
 
 
-class BIDSDerivativesValidationError(BIDSValidationError, PyBIDSError):
+class BIDSDerivativesValidationError(BIDSValidationError):
     """ An invalid BIDS derivative dataset. """
 
 

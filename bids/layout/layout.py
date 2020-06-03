@@ -320,7 +320,7 @@ class BIDSLayout(object):
                         "recognized entity name.".format(ent_name, ent_name))
             return partial(self.get, return_type='id', target=ent_name)
         # Spit out default message if we get this far
-        raise BIDSEntityError("%s object has no attribute named %r" %
+        raise AttributeError("%s object has no attribute named %r" %
                              (self.__class__.__name__, key))
 
     def __repr__(self):
