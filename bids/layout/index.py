@@ -3,6 +3,7 @@
 import os
 import json
 from collections import defaultdict
+from pathlib import Path
 from bids_validator import BIDSValidator
 from .models import Config, Entity, Tag, FileAssociation
 from ..utils import listify, make_bidsfile
@@ -82,6 +83,7 @@ class BIDSLayoutIndexer(object):
         # to the BIDS project root.
         to_check = os.path.relpath(f, self.root)
         to_check = os.path.join(os.path.sep, to_check)
+        to_check = Path(to_check).as_posix()  # bids-validator works with posix paths only
         return self.validator.is_bids(to_check)
 
     def _index_dir(self, path, config, default_action=None):
