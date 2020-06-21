@@ -223,7 +223,7 @@ class Threshold(Transformation):
         return data
 
 
-class And(Transformation):
+class And_(Transformation):
     """Logical AND on two or more variables.
 
     Parameters
@@ -257,7 +257,7 @@ class Not(Transformation):
         return ~var.astype(bool)
 
 
-class Or(Transformation):
+class Or_(Transformation):
     """Logical OR (inclusive) on two or more variables.
 
     Parameters
