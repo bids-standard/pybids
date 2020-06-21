@@ -1,22 +1,17 @@
-
 Changelog
 =========
 
 Version 0.10.2 (February 26, 2020)
 ----------------------------------
-
 Bug fix release in the 0.10.x series.
-
 
 * FIX: Add Replace as exception to recursive JSON conversion (#589)
 
 Version 0.10.1 (February 10, 2020)
 ----------------------------------
-
 Bug fix release in the 0.10.x series.
 
 This release just makes available some of the latest minor fixes and improvements.
-
 
 * FIX: Replace ``os.path.sep`` with ``fwdslash`` because bids validator hardcodes fwd (#582)
 * FIX: Refactor of ``build_path`` and inner machinery (#574)
@@ -35,11 +30,9 @@ This release just makes available some of the latest minor fixes and improvement
 
 Version 0.10.0 (December 03, 2019)
 ----------------------------------
-
 New feature release in the 0.10.x series.
 
 This release removes Python 2 support.
-
 
 * ENH: Helpful error for db argument mismatch, and add classmethod load_from_db (#547)
 * ENH: Add Resample transformation (#373)
@@ -54,11 +47,9 @@ This release removes Python 2 support.
 
 Version 0.9.5 (November 6, 2019)
 --------------------------------
-
 Bug fix release in the 0.9.x series.
 
 Final planned release with Python 2 support.
-
 
 * FIX: Filter before downsampling (#529)
 * FIX: Copy input dict in ``replace_entities``\ ; Typos in ``default_path_patterns`` (#517)
@@ -74,9 +65,7 @@ Final planned release with Python 2 support.
 
 Version 0.9.4 (September 20, 2019)
 ----------------------------------
-
 Bug fix release in the 0.9.x series.
-
 
 * FIX: Ignore ``default_ignore`` paths by default (#495)
 * FIX: Filter and sort on scalar metadata in ``get_nodes()`` (#488)
@@ -98,11 +87,9 @@ Bug fix release in the 0.9.x series.
 
 Version 0.9.3 (August 7, 2019)
 ------------------------------
-
 This version includes a number of minor fixes and improvements, one of which
 breaks the existing API (by renaming two entities; see #464). Changes
 include:
-
 
 * FIX: Avoid DB collisions for redundant entities (#468)
 * FIX: Minor changes to entity names in core spec (#464)
@@ -112,13 +99,11 @@ include:
 
 Version 0.9.2 (July 12, 2019)
 -----------------------------
-
 This version includes a number of minor fixes and improvements.
 EEG files are better handled, and ``BIDSLayout`` and ``BIDSFile`` play more
 nicely with ``Path``\ -like objects.
 
 With thanks to new contributor Cecile Madjar.
-
 
 * FIX: Instantiate ``ignore``\ /\ ``force_index`` after root validation (#457)
 * FIX: Restore ``<entity>=None`` query returning files lacking the entity (#458)
@@ -133,9 +118,7 @@ With thanks to new contributor Cecile Madjar.
 
 Version 0.9.1 (May 24, 2019)
 ----------------------------
-
 Hotfix release:
-
 
 * Fixed package deployment issues (#446)
 * Updated author list (#447)
@@ -144,14 +127,12 @@ Thanks to new contributors Erin Dickie, Chadwick Boulay and Johannes Wennberg.
 
 Version 0.9.0 (May 21, 2019)
 ----------------------------
-
 Version 0.9 replaces the native Python backend with a SQLite database managed
 via SQLAlchemy. The layout module has been refactored (again), but API changes
 are minimal. This release also adds many new features and closes a number of
 open issues.
 
 API CHANGES/DEPRECATIONS:
-
 
 * The ``extensions`` argument has now been banished forever; instead, use
   ``extension``\ , which is now defined as a first-class entity. The former will
@@ -171,7 +152,6 @@ API CHANGES/DEPRECATIONS:
   ``get_df``\ , etc.) whenever possible.
 
 NEW FUNCTIONALITY:
-
 
 * All file and metadata indexing and querying is now supported by a
   relational (SQLite) database (see #422). While this has few API implications,
@@ -202,7 +182,6 @@ NEW FUNCTIONALITY:
 
 BUG FIXES AND OTHER MINOR CHANGES:
 
-
 * Metadata key/value pairs and file entities are now treated identically,
   eliminating a source of ambiguity in search (see #398).
 * Metadata no longer bleeds between raw and derivatives directories unless
@@ -214,7 +193,6 @@ BUG FIXES AND OTHER MINOR CHANGES:
 
 Version 0.8.0 (February 15, 2019)
 ---------------------------------
-
 Version 0.8 refactors much of the layout module. It drops the grabbit
 dependency, overhauls the file indexing process, and features a number of other
 improvements. However, changes to the public API are very minimal, and in the
@@ -222,14 +200,11 @@ vast majority of cases, 0.8 should be a drop-in replacement for 0.7.*.
 
 API-BREAKING CHANGES:
 
-
 * Changes to (rarely-used) BIDSLayout initialization arguments:
-
   * ``include`` and ``exclude`` have been replaced with ``ignore`` and
     ``force_index``. Paths passed to ``ignore`` will be ignored from indexing;
     paths passed to ``force_index`` will be forcibly indexed even if they are
     otherwise BIDS-non-compliant. ``force_index`` takes precedence over ``ignore``.
-
 * Most querying/selection methods add a new ``scope`` argument that controls
   scope of querying (e.g., ``'raw'``\ , ``'derivatives'``\ , ``'all'``\ , etc.). In some
   cases this replaces the more limited ``derivatives`` argument.
@@ -239,7 +214,6 @@ API-BREAKING CHANGES:
   able to use the ``scope`` argument more effectively.
 
 OTHER CHANGES:
-
 
 * FIX: Path indexing issues in ``get_file()`` (#379)
 * FIX: Duplicate file returns under certain conditions (#350)
@@ -263,10 +237,8 @@ OTHER CHANGES:
 
 Version 0.7.1 (February 01, 2019)
 ---------------------------------
-
 This is a bug fix release in the 0.7 series. The primary API change is improved
 handling of ``Path`` objects.
-
 
 * FIX: Path validation (#342)
 * FIX: Ensure consistent entities at all levels (#326)
@@ -287,19 +259,15 @@ handling of ``Path`` objects.
 
 Version 0.7.0 (January 10, 2019)
 --------------------------------
-
 This is a major, API-breaking release. It introduces a large number of new features, bug fixes, and improvements.
 
 API-BREAKING CHANGES:
 
-
 * A number of entities (or keywords) have been renamed to align more closely with the BIDS specification documents:
-
   * 'type' becomes 'suffix'
   * 'modality' becomes 'datatype'
   * 'acq' is removed (use 'acquisition')
   * 'mod' becomes 'modality'
-
 * The following directories are no longer indexed by default: derivatives/, code/, stimuli/, models/, sourcedata/. They must be explicitly included using the 'include' initialization argument.
 * The grabbids module has been renamed to layout and BIDSLayout.py and BIDSvalidator.py are now layout.py and validation.py, respectively.
 * The BIDS validator is now enabled by default at layout initialization (i.e., ``validate=True``\ )
@@ -310,7 +278,6 @@ API-BREAKING CHANGES:
 
 NEW FEATURES:
 
-
 * File metadata (i.e., in JSON sidecars) is now searchable by default, and behaves just like native BIDS entities (e.g., metadata keys can be passed as arguments to ``.get()`` calls)
 * A new BIDSFile wrapper provides easy access to ``.metadata`` and ``.image``
 * HRF convolution is now supported via bundling of nistats' hemodynamic_models module; convolution is handled via the ``convolve_HRF`` transformation.
@@ -318,7 +285,6 @@ NEW FEATURES:
 * Preliminary support for BIDS-Derivatives RC1 (mainly core keywords)
 
 MINOR IMPROVEMENTS AND BUG FIXES:
-
 
 * Specifying 'derivatives' in a path specification now automatically includes 'bids' (#246)
 * Zenodo DOIs are now minted with new releases (#308)
@@ -344,7 +310,6 @@ MINOR IMPROVEMENTS AND BUG FIXES:
 Version 0.6.5 (August 21, 2018)
 -------------------------------
 
-
 * FIX: Do not drop rows of NaNs (#217) @adelavega
 * FIX: Declare run as having integer type (#236) @effigies
 * ENH: MEG support (#229) @jasmainak
@@ -357,26 +322,20 @@ Version 0.6.5 (August 21, 2018)
 
 Version 0.5.1 (March 9, 2018)
 -----------------------------
-
 Hotfix release:
-
 
 * Includes data files omitted from 0.5.0 release.
 * Improves testing of installation.
 
 Version 0.5.0 (March 6, 2018)
 -----------------------------
-
 This is a major release that introduces the following features:
 
-
 * A new ``bids.variables`` module that adds the following submodules:
-
   * ``bids.variables.entities.py``\ : Classes for representing BIDS hierarchies as a graph-like structure.
   * ``bids.variables.variables.py``\ : Classes and functions for representing and manipulating non-imaging data read from BIDS projects (e.g., fMRI events, densely-sampled physiological measures, etc.).
   * ``bids.variables.io.py``\ : Tools for loading variable data from BIDS projects.
   * ``bids.variables.collections``\ : Containers that facilitate aggregation and manipulation of ``Variable`` classes.
-
 * Extensions to the ``BIDSLayout`` class that make it easy to retrieve data/variables from the project (i.e., ``Layout.get_collections``\ )
 * A new ``auto_model`` utility that generates simple BIDS-Model specifications from BIDS projects (thanks to @Shotgunosine)
 * A new ``reports`` module that generates methods sections from metadata in BIDS projects (thanks to @tsalo)
@@ -388,25 +347,20 @@ This is a major release that introduces the following features:
 
 Version 0.4.2 (November 16, 2017)
 ---------------------------------
-
 We did some minor stuff, but we were drunk again and couldn't read our handwriting on the napkin the next morning.
 
 Version 0.4.1 (November 3, 2017)
 --------------------------------
-
 We did some minor stuff, and we didn't think it was important enough to document.
 
 Version 0.4.0 (November 1, 2017)
 --------------------------------
-
 We did some stuff, but other stuff was happening in the news, and we were too distracted to write things down.
 
 Version 0.3.0 (August 11, 2017)
 -------------------------------
-
 We did some stuff, but we were drunk and forgot to write it down.
 
 Version 0.2.1 (June 8, 2017)
 ----------------------------
-
 History as we know it begins here.
