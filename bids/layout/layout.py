@@ -956,9 +956,16 @@ class BIDSLayout(object):
 
         # Strip leading periods if extensions were passed
         if 'extension' in filters:
+            # XXX 0.14: Disable drop_dot option
+            drop_dot = (self.config['bids'].entities['extension'].pattern ==
+                        '[._]*[a-zA-Z0-9]*?\\.([^/\\\\]+)$')
             exts = listify(filters['extension'])
-            filters['extension'] = [x.lstrip('.') if isinstance(x, str) else x
-                                    for x in exts]
+            if drop_dot:
+                filters['extension'] = [x.lstrip('.') if isinstance(x, str) else x
+                                        for x in exts]
+            else:
+                filters['extension'] = ['.' + x.lstrip('.') if isinstance(x, str) else x
+                                        for x in exts]
 
         if invalid_filters != 'allow':
             bad_filters = set(filters.keys()) - set(entities.keys())
