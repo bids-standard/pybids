@@ -19,7 +19,7 @@ from bids_validator import BIDSValidator
 
 from ..utils import listify, natural_sort, make_bidsfile
 from ..external import inflect
-from .writing import build_path, write_contents_to_file
+from .writing import build_path, write_to_file
 from .models import (Base, Config, BIDSFile, Entity, Tag)
 from .index import BIDSLayoutIndexer
 from .utils import BIDSMetadata
@@ -1584,12 +1584,11 @@ class BIDSLayout(object):
             f.copy(path_patterns, symbolic_link=symbolic_links,
                    root=self.root, conflicts=conflicts)
 
-    def write_contents_to_file(self, entities, path_patterns=None,
-                               contents=None, link_to=None,
-                               content_mode='text', conflicts='fail',
-                               strict=False, validate=True):
-        """Write arbitrary data to a file defined by the passed entities and
-        path patterns.
+    def write_to_file(self, entities, path_patterns=None,
+                      contents=None, link_to=None, copy_from=None,
+                      content_mode='text', conflicts='fail',
+                      strict=False, validate=True):
+        """Write data to a file defined by the passed entities and patterns.
 
         Parameters
         ----------
@@ -1632,9 +1631,9 @@ class BIDSLayout(object):
                              "the passed entities given available path "
                              "patterns.")
 
-        write_contents_to_file(path, contents=contents, link_to=link_to,
-                               content_mode=content_mode, conflicts=conflicts,
-                               root=self.root)
+        write_to_file(path, contents=contents, link_to=link_to,
+                      copy_from=copy_from, content_mode=content_mode,
+                      conflicts=conflicts, root=self.root)
 
 
 class Query(enum.Enum):

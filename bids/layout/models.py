@@ -12,7 +12,7 @@ import json
 from copy import deepcopy
 from itertools import chain
 
-from .writing import build_path, write_contents_to_file
+from .writing import build_path, write_to_file
 from ..config import get_option
 from .utils import BIDSMetadata
 
@@ -284,17 +284,13 @@ class BIDSFile(Base):
             raise ValueError("Target filename to copy/symlink (%s) doesn't "
                              "exist." % path)
 
+        kwargs = dict(path=new_filename, root=root, conflicts=conflicts)
         if symbolic_link:
-            contents = None
-            link_to = path
+            kwargs['link_to'] = path
         else:
-            with open(path, 'r') as f:
-                contents = f.read()
-            link_to = None
+            kwargs['copy_from'] = path
 
-        write_contents_to_file(new_filename, contents=contents,
-                               link_to=link_to, content_mode='text', root=root,
-                               conflicts=conflicts)
+        write_to_file(**kwargs)
 
 
 class BIDSDataFile(BIDSFile):
