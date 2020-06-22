@@ -282,7 +282,7 @@ def write_to_file(path, contents=None, link_to=None, copy_from=None,
         with open(path, mode) as f:
             f.write(contents)
     else:
-        raise ValueError('One of contents or link_to must be provided.')
+        raise ValueError('One of contents, copy_from or link_to must be provided.')
 
 
 def _expand_options(value):
