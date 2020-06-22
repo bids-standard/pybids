@@ -4,7 +4,11 @@ from .munge import (Split, Rename, Assign, Copy, Factor, Filter, Select,
                     Delete, DropNA, Replace, ToDense, Group, Resample)
 from .base import TransformerManager
 
+And = And_
+Or = Or_
+
 __all__ = [
+    'And',
     'And_',
     'Assign',
     'Convolve',
@@ -16,6 +20,7 @@ __all__ = [
     'Filter',
     'Group',
     'Not',
+    'Or',
     'Or_',
     'Orthogonalize',
     'Product',
