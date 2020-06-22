@@ -1585,9 +1585,9 @@ class BIDSLayout(object):
                    root=self.root, conflicts=conflicts)
 
     def write_to_file(self, entities, path_patterns=None,
-                               contents=None, link_to=None, copy_from=None,
-                               content_mode='text', conflicts='fail',
-                               strict=False, validate=True):
+                      contents=None, link_to=None, copy_from=None,
+                      content_mode='text', conflicts='fail',
+                      strict=False, validate=True):
         """Write data to a file defined by the passed entities and patterns.
 
         Parameters
@@ -1632,8 +1632,8 @@ class BIDSLayout(object):
                              "patterns.")
 
         write_to_file(path, contents=contents, link_to=link_to,
-                               copy_from=copy_from, content_mode=content_mode,
-                               conflicts=conflicts, root=self.root)
+                      copy_from=copy_from, content_mode=content_mode,
+                      conflicts=conflicts, root=self.root)
 
 
 class Query(enum.Enum):
