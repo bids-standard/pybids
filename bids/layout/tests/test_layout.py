@@ -30,6 +30,7 @@ def test_layout_init(layout_7t_trt):
     assert isinstance(layout_7t_trt.files, dict)
 
 
+@pytest.mark.parametrize("extension_initial_dot", (True, False))
 @pytest.mark.parametrize(
     'index_metadata,query,result',
     [
@@ -41,7 +42,7 @@ def test_layout_init(layout_7t_trt):
         (False, {'task': 'rest', 'extension': '.nii.gz'}, 3.0),
         (False, {'task': 'rest', 'extension': ['.nii.gz', '.json'], 'return_type': 'file'}, 3.0),
     ])
-def test_index_metadata(index_metadata, query, result):
+def test_index_metadata(index_metadata, query, result, mock_config):
     data_dir = join(get_test_data_path(), '7t_trt')
     layout = BIDSLayout(data_dir, index_metadata=index_metadata)
     if not index_metadata and query is not None:
@@ -477,19 +478,22 @@ def test_to_df(layout_ds117):
                 set(df.columns))
 
 
-def test_parse_file_entities():
+@pytest.mark.parametrize("extension_initial_dot", (True, False))
+def test_parse_file_entities(mock_config, extension_initial_dot):
     filename = '/sub-03_ses-07_run-4_desc-bleargh_sekret.nii.gz'
+
+    dot = '.' if extension_initial_dot else ''
 
     # Test with entities taken from bids config
     target = {'subject': '03', 'session': '07', 'run': 4, 'suffix': 'sekret',
-              'extension': 'nii.gz'}
+              'extension': dot + 'nii.gz'}
     assert target == parse_file_entities(filename, config='bids')
     config = Config.load('bids')
     assert target == parse_file_entities(filename, config=[config])
 
     # Test with entities taken from bids and derivatives config
     target = {'subject': '03', 'session': '07', 'run': 4, 'suffix': 'sekret',
-              'desc': 'bleargh', 'extension': 'nii.gz'}
+              'desc': 'bleargh', 'extension': dot + 'nii.gz'}
     assert target == parse_file_entities(filename)
     assert target == parse_file_entities(
         filename, config=['bids', 'derivatives'])
@@ -506,6 +510,7 @@ def test_parse_file_entities():
     assert target == parse_file_entities(filename, entities=entities)
 
 
+# XXX 0.14: Add dot to extension (difficult to parametrize with module-scoped fixture)
 def test_parse_file_entities_from_layout(layout_synthetic):
     layout = layout_synthetic
     filename = '/sub-03_ses-07_run-4_desc-bleargh_sekret.nii.gz'
