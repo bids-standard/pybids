@@ -127,10 +127,6 @@ def build_path(entities, path_patterns, strict=False):
     # Drop None and empty-strings, keep zeros, and listify
     entities = {k: listify(v) for k, v in entities.items() if v or v == 0}
 
-    # One less source of confusion
-    if 'extension' in entities:
-        entities['extension'] = [e.lstrip('.') for e in entities['extension']]
-
     # Loop over available patherns, return first one that matches all
     for pattern in path_patterns:
         entities_matched = list(_PATTERN_FIND.findall(pattern))
@@ -147,6 +143,16 @@ def build_path(entities, path_patterns, strict=False):
         # Expand options within valid values and
         # check whether entities provided have acceptable value
         tmp_entities = entities.copy()  # Do not modify the original query
+
+        # Accept extensions with and without leading dot
+        if 'extension' in tmp_entities:
+            exts = [e.lstrip('.') for e in tmp_entities['extension']]
+            # Does this pattern place a dot before the extension, or expect it inside?
+            if re.search(r'\.\{extension', pattern):
+                tmp_entities['extension'] = exts
+            else:
+                tmp_entities['extension'] = ['.' + e for e in exts]
+
         for fmt, name, valid, defval in entities_matched:
             valid_expanded = [v for val in valid.split('|') if val
                               for v in _expand_options(val)]
@@ -154,10 +160,11 @@ def build_path(entities, path_patterns, strict=False):
                 warnings.warn(
                     'Pattern "%s" is inconsistent as it defines an invalid default value.' % fmt
                 )
+
             if (
                 valid_expanded
-                and name in entities
-                and set(entities[name]) - set(valid_expanded)
+                and name in tmp_entities
+                and set(tmp_entities[name]) - set(valid_expanded)
             ):
                 continue
 
