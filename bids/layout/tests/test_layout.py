@@ -37,9 +37,9 @@ def test_layout_init(layout_7t_trt):
         (False, None, None),
         (False, {}, 3.0),
         (False, {'task': 'rest'}, 3.0),
-        (False, {'task': 'rest', 'extension': ['nii.gz']}, 3.0),
-        (False, {'task': 'rest', 'extension': 'nii.gz'}, 3.0),
-        (False, {'task': 'rest', 'extension': ['nii.gz', 'json'], 'return_type': 'file'}, 3.0),
+        (False, {'task': 'rest', 'extension': ['.nii.gz']}, 3.0),
+        (False, {'task': 'rest', 'extension': '.nii.gz'}, 3.0),
+        (False, {'task': 'rest', 'extension': ['.nii.gz', '.json'], 'return_type': 'file'}, 3.0),
     ])
 def test_index_metadata(index_metadata, query, result):
     data_dir = join(get_test_data_path(), '7t_trt')
@@ -47,7 +47,7 @@ def test_index_metadata(index_metadata, query, result):
     if not index_metadata and query is not None:
         indexer = BIDSLayoutIndexer(layout)
         indexer.index_metadata(**query)
-    sample_file = layout.get(task='rest', extension='nii.gz',
+    sample_file = layout.get(task='rest', extension='.nii.gz',
                              acquisition='fullbrain')[0]
     metadata = sample_file.get_metadata()
     assert metadata.get('RepetitionTime') == result
@@ -407,17 +407,17 @@ def test_layout_with_multi_derivs(layout_ds005_multi_derivs):
 
 def test_query_derivatives(layout_ds005_derivs):
     result = layout_ds005_derivs.get(suffix='events', return_type='object',
-                                     extension='tsv')
+                                     extension='.tsv')
     result = [f.filename for f in result]
     assert len(result) == 49
     assert 'sub-01_task-mixedgamblestask_run-01_desc-extra_events.tsv' in result
     result = layout_ds005_derivs.get(suffix='events', return_type='object',
-                                     scope='raw', extension='tsv')
+                                     scope='raw', extension='.tsv')
     assert len(result) == 48
     result = [f.filename for f in result]
     assert 'sub-01_task-mixedgamblestask_run-01_desc-extra_events.tsv' not in result
     result = layout_ds005_derivs.get(suffix='events', return_type='object',
-                                     desc='extra', extension='tsv')
+                                     desc='extra', extension='.tsv')
     assert len(result) == 1
     result = [f.filename for f in result]
     assert 'sub-01_task-mixedgamblestask_run-01_desc-extra_events.tsv' in result
@@ -600,7 +600,7 @@ def test_get_dataset_description(layout_ds005_multi_derivs):
 
 def test_indexed_file_associations(layout_7t_trt):
     img = layout_7t_trt.get(subject='01', run=1, suffix='bold', session='1',
-                            acquisition='fullbrain', extension='nii.gz')[0]
+                            acquisition='fullbrain', extension='.nii.gz')[0]
     assocs = img.get_associations()
     assert len(assocs) == 3
     targets = [
@@ -654,13 +654,13 @@ def test_get_with_regex_search(layout_7t_trt):
 
     # subject matches both '10' and '01'
     results = l.get(subject='1', session='1', task='rest', suffix='bold',
-                    acquisition='fron.al', extension='nii.gz',
+                    acquisition='fron.al', extension='.nii.gz',
                     regex_search=True)
     assert len(results) == 2
 
     # subject matches '10'
     results = l.get(subject='^1', session='1', task='rest', suffix='bold',
-                    acquisition='fron.al', extension='nii.gz',
+                    acquisition='fron.al', extension='.nii.gz',
                     regex_search=True, return_type='filename')
     assert len(results) == 1
     assert results[0].endswith('sub-10_ses-1_task-rest_acq-prefrontal_bold.nii.gz')
@@ -672,7 +672,7 @@ def test_get_with_regex_search_bad_dtype(layout_7t_trt):
     appropriately). """
     l = layout_7t_trt
     results = l.get(subject='1', run=1, task='rest', suffix='bold',
-                    acquisition='fullbrain', extension='nii.gz',
+                    acquisition='fullbrain', extension='.nii.gz',
                     regex_search=True)
     # Two runs (1 per session) for each of subjects '10' and '01'
     assert len(results) == 4

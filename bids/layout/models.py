@@ -370,7 +370,8 @@ class BIDSDataFile(BIDSFile):
 
         data = self.data.copy()
 
-        if self.entities['extension'] == 'tsv.gz':
+        # XXX 0.14: ".tsv.gz" only
+        if self.entities['extension'] in ('tsv.gz', '.tsv.gz'):
             md = self.get_metadata()
             # We could potentially include some validation here, but that seems
             # like a job for the BIDS Validator.

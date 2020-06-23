@@ -5,6 +5,7 @@ import json
 from collections import defaultdict
 from pathlib import Path
 from bids_validator import BIDSValidator
+import bids.config
 from .models import Config, Entity, Tag, FileAssociation
 from ..utils import listify, make_bidsfile
 from ..exceptions import BIDSConflictingValuesError
@@ -179,6 +180,8 @@ class BIDSLayoutIndexer(object):
             These keyword arguments define what files get selected
             for metadata indexing.
         """
+
+        dot = '.' if bids.config.get_option('extension_initial_dot') else ''
         
         if filters:
             # ensure we are returning objects
@@ -188,8 +191,10 @@ class BIDSLayoutIndexer(object):
             if filters.get(ext_key):
                 filters[ext_key] = listify(filters[ext_key])
                 # ensure json files are being indexed
-                if 'json' not in filters[ext_key]:
-                    filters[ext_key].append('json')
+                # XXX 0.14: dot always == '.'
+                json_ext = dot + 'json'
+                if json_ext not in filters[ext_key]:
+                    filters[ext_key].append(json_ext)
 
         # Process JSON files first if we're indexing metadata
         all_files = self.layout.get(absolute_paths=True, **filters)
@@ -223,7 +228,7 @@ class BIDSLayoutIndexer(object):
                 if key not in file_data:
                     file_data[key] = defaultdict(list)
 
-                if ext == 'json':
+                if ext == dot + 'json':
                     with open(bf.path, 'r') as handle:
                         try:
                             payload = json.load(handle)
@@ -272,7 +277,7 @@ class BIDSLayoutIndexer(object):
             # add the payload to the stack. Finally, we invert the
             # stack and merge the payloads in order.
             ext_key = "{}/{}".format(ext, suffix)
-            json_key = "json/{}".format(suffix)
+            json_key = dot + "json/{}".format(suffix)
             dirname = bf.dirname
 
             payloads = []
@@ -343,7 +348,7 @@ class BIDSLayoutIndexer(object):
             # Link files to BOLD runs
             if suffix in ['physio', 'stim', 'events', 'sbref']:
                 images = self.layout.get(
-                    extension=['nii', 'nii.gz'], suffix='bold',
+                    extension=['.nii', '.nii.gz'], suffix='bold',
                     return_type='filename', **file_ents)
                 for img in images:
                     create_association_pair(bf.path, img, 'IntendedFor',
@@ -352,7 +357,7 @@ class BIDSLayoutIndexer(object):
             # Link files to DWI runs
             if suffix == 'sbref' or ext in ['bvec', 'bval']:
                 images = self.layout.get(
-                    extension=['nii', 'nii.gz'], suffix='dwi',
+                    extension=['.nii', '.nii.gz'], suffix='dwi',
                     return_type='filename', **file_ents)
                 for img in images:
                     create_association_pair(bf.path, img, 'IntendedFor',

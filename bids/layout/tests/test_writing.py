@@ -66,6 +66,9 @@ class TestWritableFile:
         assert _PATTERN_FIND.findall('{extension<nii|nii.gz|json>|nii.gz}') == [
             ('{extension<nii|nii.gz|json>|nii.gz}', 'extension', 'nii|nii.gz|json', 'nii.gz')
         ]
+        assert _PATTERN_FIND.findall('{extension<.nii|.nii.gz|.json>|.nii.gz}') == [
+            ('{extension<.nii|.nii.gz|.json>|.nii.gz}', 'extension', '.nii|.nii.gz|.json', '.nii.gz')
+        ]
         assert _PATTERN_FIND.findall('{extension<json|jsld>|json}') == [
             ('{extension<json|jsld>|json}', 'extension', 'json|jsld', 'json')
         ]

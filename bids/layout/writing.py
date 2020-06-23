@@ -53,7 +53,7 @@ def build_path(entities, path_patterns, strict=False):
     Examples
     --------
     >>> entities = {
-    ...     'extension': 'nii',
+    ...     'extension': '.nii',
     ...     'space': 'MNI',
     ...     'subject': '001',
     ...     'suffix': 'inplaneT2',
@@ -61,12 +61,12 @@ def build_path(entities, path_patterns, strict=False):
     >>> patterns = ['sub-{subject}[/ses-{session}]/anat/sub-{subject}[_ses-{session}]'
     ...             '[_acq-{acquisition}][_ce-{ceagent}][_rec-{reconstruction}]_'
     ...             '{suffix<T[12]w|T1rho|T[12]map|T2star|FLAIR|FLASH|PDmap|PD|PDT2|'
-    ...             'inplaneT[12]|angio>}.{extension<nii|nii.gz|json>|nii.gz}',
+    ...             'inplaneT[12]|angio>}{extension<.nii|.nii.gz|.json>|.nii.gz}',
     ...             'sub-{subject}[/ses-{session}]/anat/sub-{subject}[_ses-{session}]'
     ...             '[_acq-{acquisition}][_ce-{ceagent}][_rec-{reconstruction}]'
     ...             '[_space-{space}][_desc-{desc}]_{suffix<T1w|T2w|T1rho|T1map|T2map|'
-    ...             'T2star|FLAIR|FLASH|PDmap|PD|PDT2|inplaneT[12]|angio>}.'
-    ...             '{extension<nii|nii.gz|json>|nii.gz}']
+    ...             'T2star|FLAIR|FLASH|PDmap|PD|PDT2|inplaneT[12]|angio>}'
+    ...             '{extension<.nii|.nii.gz|.json>|.nii.gz}']
     >>> build_path(entities, patterns)
     'sub-001/anat/sub-001_inplaneT2.nii'
 
@@ -103,19 +103,19 @@ def build_path(entities, path_patterns, strict=False):
     True
 
     >>> entities = {
-    ...     'extension': 'bvec',
+    ...     'extension': '.bvec',
     ...     'subject': '001',
     ... }
     >>> patterns = (
     ...     "sub-{subject}[/ses-{session}]/{datatype|dwi}/sub-{subject}[_ses-{session}]"
-    ...     "[_acq-{acquisition}]_{suffix|dwi}.{extension<bval|bvec|json|nii.gz|nii>|nii.gz}"
+    ...     "[_acq-{acquisition}]_{suffix|dwi}{extension<.bval|.bvec|.json|.nii.gz|.nii>|.nii.gz}"
     ... )
     >>> build_path(entities, patterns, strict=True)
     'sub-001/dwi/sub-001_dwi.bvec'
 
     >>> # Lists of entities are expanded
     >>> entities = {
-    ...     'extension': 'bvec',
+    ...     'extension': '.bvec',
     ...     'subject': ['%02d' % i for i in range(1, 4)],
     ... }
     >>> build_path(entities, patterns, strict=True)

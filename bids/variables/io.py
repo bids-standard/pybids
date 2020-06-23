@@ -158,7 +158,7 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
 
     selectors['datatype'] = 'func'
     selectors['suffix'] = 'bold'
-    images = layout.get(return_type='object', extension='nii.gz',
+    images = layout.get(return_type='object', extension=['.nii', '.nii.gz'],
                         scope=scope, **selectors)
 
     if not images:
@@ -233,7 +233,7 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
         # Process event files
         if events:
             dfs = layout.get_nearest(
-                img_f, extension='tsv', suffix='events', all_=True,
+                img_f, extension='.tsv', suffix='events', all_=True,
                 full_search=True, ignore_strict_entities=['suffix', 'extension'])
             for _data in dfs:
                 _data = pd.read_csv(_data, sep='\t')
@@ -304,7 +304,7 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
 
         if rec_types:
             rec_files = layout.get_nearest(
-                img_f, extension='tsv.gz', all_=True, suffix=rec_types,
+                img_f, extension='.tsv.gz', all_=True, suffix=rec_types,
                 ignore_strict_entities=['suffix', 'extension'], full_search=True)
             for rf in rec_files:
                 metadata = layout.get_metadata(rf)
@@ -395,7 +395,7 @@ def _load_tsv_variables(layout, suffix, dataset=None, columns=None,
     if dataset is None:
         dataset = NodeIndex()
 
-    files = layout.get(extension='tsv', suffix=suffix, scope=scope,
+    files = layout.get(extension='.tsv', suffix=suffix, scope=scope,
                        **layout_kwargs)
 
     for f in files:
