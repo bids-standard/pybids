@@ -116,7 +116,7 @@ class Config(Base):
             result = session.query(Config).filter_by(name=config['name']).first()
             if result:
                 # XXX 0.14: Remove check
-                if config in ("bids", "bids-nodot"):
+                if config["name"] == "bids":
                     old_pattern = result.entities["extension"].pattern
                     new_pattern = next(ent['pattern'] for ent in config['entities']
                                        if ent['name'] == 'extension')
