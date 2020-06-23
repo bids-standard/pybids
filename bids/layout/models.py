@@ -94,11 +94,12 @@ class Config(Base):
         # XXX 0.14: Disable extension_initial_dot branching
         extension_initial_dot = get_option('extension_initial_dot')
         if config == "bids" and not extension_initial_dot:
-            warnings.warn("The 'extension' entity currently excludes the leading dot ('.'). "
-                          "As of version 0.14.0, it will include the leading dot. To suppress "
-                          "this warning and include the leading dot, use "
-                          "`bids.config.set_option('extension_initial_dot', True)`.",
-                          FutureWarning)
+            if extension_initial_dot is None:
+                warnings.warn("The 'extension' entity currently excludes the leading dot ('.'). "
+                              "As of version 0.14.0, it will include the leading dot. To suppress "
+                              "this warning and include the leading dot, use "
+                              "`bids.config.set_option('extension_initial_dot', True)`.",
+                              FutureWarning)
             config = "bids-nodot"
 
         if isinstance(config, str):
