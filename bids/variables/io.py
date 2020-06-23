@@ -212,23 +212,24 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
                 raise ValueError("More than one existing Node matches the "
                                  "specified entities! You may need to pass "
                                  "additional selectors to narrow the search.")
-            return result[0]
+            run_info = result[0].get_info()
 
-        # Otherwise create a new node and use that.
-        # We first convert any entity values that are currently collections to
-        # JSON strings to prevent nasty hashing problems downstream. Note that
-        # isinstance() isn't as foolproof as actually trying to hash the
-        # value, but the latter is likely to be slower, and since values are
-        # coming from JSON or filenames, there's no real chance of encountering
-        # anything but a list or dict.
-        entities = {
-            k: (json.dumps(v) if isinstance(v, (list, dict)) else v)
-            for (k, v) in entities.items()
-        }
+        else:
+            # Otherwise create a new node and use that.
+            # We first convert any entity values that are currently collections to
+            # JSON strings to prevent nasty hashing problems downstream. Note that
+            # isinstance() isn't as foolproof as actually trying to hash the
+            # value, but the latter is likely to be slower, and since values are
+            # coming from JSON or filenames, there's no real chance of encountering
+            # anything but a list or dict.
+            entities = {
+                k: (json.dumps(v) if isinstance(v, (list, dict)) else v)
+                for (k, v) in entities.items()
+            }
 
-        run = dataset.create_node('run', entities, image_file=img_f,
-                                  duration=duration, repetition_time=tr)
-        run_info = run.get_info()
+            run = dataset.create_node('run', entities, image_file=img_f,
+                                      duration=duration, repetition_time=tr)
+            run_info = run.get_info()
 
         # Process event files
         if events:
