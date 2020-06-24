@@ -992,6 +992,10 @@ class BIDSLayout(object):
         for l in layouts:
             query = l._build_file_query(filters=filters,
                                         regex_search=regex_search)
+            # Eager load associations, because mixing queries from different
+            # DB sessions causes objects to detach
+            query = query.options(joinedload(BIDSFile.tags)
+                                  .joinedload(Tag.entity))
             results.extend(query.all())
 
         # Convert to relative paths if needed
