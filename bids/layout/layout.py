@@ -956,9 +956,16 @@ class BIDSLayout(object):
 
         # Strip leading periods if extensions were passed
         if 'extension' in filters:
+            # XXX 0.14: Disable drop_dot option
+            drop_dot = (self.config['bids'].entities['extension'].pattern ==
+                        '[._]*[a-zA-Z0-9]*?\\.([^/\\\\]+)$')
             exts = listify(filters['extension'])
-            filters['extension'] = [x.lstrip('.') if isinstance(x, str) else x
-                                    for x in exts]
+            if drop_dot:
+                filters['extension'] = [x.lstrip('.') if isinstance(x, str) else x
+                                        for x in exts]
+            else:
+                filters['extension'] = ['.' + x.lstrip('.') if isinstance(x, str) else x
+                                        for x in exts]
 
         if invalid_filters != 'allow':
             bad_filters = set(filters.keys()) - set(entities.keys())
@@ -1347,13 +1354,13 @@ class BIDSLayout(object):
 
     def get_bvec(self, path, **kwargs):
         """Get bvec file for passed path."""
-        result = self.get_nearest(path, extension='bvec', suffix='dwi',
+        result = self.get_nearest(path, extension='.bvec', suffix='dwi',
                                   all_=True, **kwargs)
         return listify(result)[0]
 
     def get_bval(self, path, **kwargs):
         """Get bval file for passed path."""
-        result = self.get_nearest(path, suffix='dwi', extension='bval',
+        result = self.get_nearest(path, suffix='dwi', extension='.bval',
                                   all_=True, **kwargs)
         return listify(result)[0]
 
@@ -1381,7 +1388,7 @@ class BIDSLayout(object):
         fieldmap_set = []
         suffix = '(phase1|phasediff|epi|fieldmap)'
         files = self.get(subject=sub, suffix=suffix, regex_search=True,
-                         extension=['nii.gz', 'nii'])
+                         extension=['.nii.gz', '.nii'])
         for file in files:
             metadata = self.get_metadata(file.path)
             if metadata and "IntendedFor" in metadata.keys():
@@ -1442,7 +1449,7 @@ class BIDSLayout(object):
         # Constrain search to functional images
         filters.update(suffix='bold', datatype='func')
         scope = 'all' if derivatives else 'raw'
-        images = self.get(extension=['nii', 'nii.gz'], scope=scope,
+        images = self.get(extension=['.nii', '.nii.gz'], scope=scope,
                           **filters)
         if not images:
             raise NoMatchError("No functional images that match criteria found.")

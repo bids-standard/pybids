@@ -75,7 +75,7 @@ class BIDSReport(object):
         >>> from bids.tests import get_test_data_path
         >>> layout = BIDSLayout(join(get_test_data_path(), 'synthetic'))
         >>> report = BIDSReport(layout)
-        >>> files = layout.get(session='01', extension=['nii.gz', 'nii'])
+        >>> files = layout.get(session='01', extension=['.nii.gz', '.nii'])
         >>> counter = report.generate_from_files(files)
         Number of patterns detected: 1
         Remember to double-check everything and to replace <deg> with a degree symbol.
