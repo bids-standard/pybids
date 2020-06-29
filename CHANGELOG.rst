@@ -1,6 +1,40 @@
 Changelog
 =========
 
+Version 0.11.0 (June 29, 2020)
+------------------------------
+New feature release in the 0.11.x series.
+
+One significant change in this PR is to add the configuration option ``extension_initial_dot``.
+Setting to ``True`` will adopt the future default behavior of returning ``extension`` entities with
+an initial dot (``.``).
+
+Other notable changes include a significant refactoring of the Analysis module, and a number of
+small improvements to error reporting that should add up to simpler debugging for users and
+developers.
+
+* FIX: Post-fix And and Or transformations with underscore (#628)
+* FIX: made _validate_file work on Windows (#627)
+* FIX: Scale transformation fails if passed constant input. (#614)
+* FIX: Certain queries involving multiple layouts are very slow (#616)
+* FIX: Bug in get() when passing enums as extensions (#612)
+* FIX: Bug in BIDSDataFile.get_df() (#611)
+* FIX: Make entity assertions Python 3.5-safe (#606)
+* FIX: BIDSLayout.build_path to respect absolute_paths. (#580)
+* ENH: Adds OS-level file copying instead of reading/writing via Python (#613)
+* ENH: Add explicit warning message when users pass in filters as a dictionary keyword (#623)
+* ENH: Introduce PyBIDS exceptions (#615)
+* ENH: Add example bids and derivatives dataset_description.json strings to error messages (#620)
+* ENH: Improved handling of invalid filters (#610)
+* ENH: Add method to generate report from list of files (#607)
+* ENH: Pass kwargs from BIDSImageFile.get_image() to nibabel.load (#601)
+* ENH: Model spec module and associated utilities (#548)
+* ENH: Add BIDSMetadata dictionary to report file with missing metadata (#593)
+* RF: Add ``extension_initial_dot`` config option to transition to extension entity with initial dot (#629)
+* MNT: Automatically deploy docs (#598)
+* CI: Drop --pre check for Python 3.5 (#621)
+* CI: Test on Python 3.8 (#594)
+
 Version 0.10.2 (February 26, 2020)
 ----------------------------------
 Bug fix release in the 0.10.x series.
