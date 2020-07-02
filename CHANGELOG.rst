@@ -1,6 +1,14 @@
 Changelog
 =========
 
+Version 0.11.1 (July 02, 2020)
+------------------------------
+Bug-fix release in the 0.11.x series
+
+With thanks to Mathias Goncalves for finding and fixing the issue.
+
+* FIX: Preserve ``get`` logic when using custom config (#636)
+
 Version 0.11.0 (June 29, 2020)
 ------------------------------
 New feature release in the 0.11.x series.
