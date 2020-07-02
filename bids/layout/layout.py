@@ -955,7 +955,7 @@ class BIDSLayout(object):
                                '`layout.get(**filters)`.')
 
         # Strip leading periods if extensions were passed
-        if 'extension' in filters:
+        if 'extension' in filters and 'bids' in self.config:
             # XXX 0.14: Disable drop_dot option
             drop_dot = (self.config['bids'].entities['extension'].pattern ==
                         '[._]*[a-zA-Z0-9]*?\\.([^/\\\\]+)$')
