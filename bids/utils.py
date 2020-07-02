@@ -95,16 +95,16 @@ def make_bidsfile(filename):
     """Create a BIDSFile instance of the appropriate class. """
     from .layout import models
 
-    patt = re.compile("[._]*[a-zA-Z0-9]*?\\.([^/\\\\]+)$")
+    patt = re.compile("[._]*[a-zA-Z0-9]*?(\\.[^/\\\\]+)$")
     m = re.search(patt, filename)
 
     ext = None if not m else m.group(1)
 
-    if ext in ['nii', 'nii.gz']:
+    if ext is not None and ext.endswith(('.nii', '.nii.gz', '.gii')):
         cls = 'BIDSImageFile'
-    elif ext in ['tsv', 'tsv.gz']:
+    elif ext in ['.tsv', '.tsv.gz']:
         cls = 'BIDSDataFile'
-    elif ext == 'json':
+    elif ext == '.json':
         cls = 'BIDSJSONFile'
     else:
         cls = 'BIDSFile'
