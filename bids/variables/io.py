@@ -179,8 +179,8 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
 
     selectors['datatype'] = 'func'
     selectors['suffix'] = 'bold'
-    selectors.setdefault('extension', ['.nii', '.nii.gz', '.func.gii', '.dtseries.nii'])
-    images = layout.get(return_type='object', scope=scope, **selectors)
+    exts = selectors.pop('extension', ['.nii', '.nii.gz', '.func.gii', '.dtseries.nii'])
+    images = layout.get(return_type='object', scope=scope, extension=exts, **selectors)
 
     if not images:
         raise ValueError("No functional images that match criteria found.")
