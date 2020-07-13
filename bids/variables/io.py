@@ -100,6 +100,27 @@ def load_variables(layout, types=None, levels=None, skip_empty=True,
     return dataset
 
 
+def _get_nvols(img_obj):
+    import nibabel as nb
+    img = nb.load(img_obj)
+    nvols = 0
+    if isinstance(img, nb.Nifti1Pair):
+        nvols = img.shape[3]
+    elif isinstance(img, nb.Cifti2Image):
+        for ax in map(img.header.get_axis, range(len(img.header.matrix))):
+            if isinstance(ax, nb.cifti2.SeriesAxis):
+                nvols = ax.size
+                break
+        else:
+            raise ValueError("No series axis found in %s" % img_obj.path)
+    elif isinstance(img, nb.GiftiImage):
+        nvols = len(img.get_arrays_from_intent('time series'))
+    else:
+        raise ValueError("Unknown image type %s: %s" % img.__class__, img_obj.path)
+
+    return nvols
+
+
 def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
                          drop_na=True, events=True, physio=True, stim=True,
                          regressors=True, skip_empty=True, scope='all',
@@ -158,8 +179,8 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
 
     selectors['datatype'] = 'func'
     selectors['suffix'] = 'bold'
-    images = layout.get(return_type='object', extension=['.nii', '.nii.gz'],
-                        scope=scope, **selectors)
+    exts = selectors.pop('extension', ['.nii', '.nii.gz', '.func.gii', '.dtseries.nii'])
+    images = layout.get(return_type='object', scope=scope, extension=exts, **selectors)
 
     if not images:
         raise ValueError("No functional images that match criteria found.")
@@ -174,15 +195,13 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
         if 'run' in entities:
             entities['run'] = int(entities['run'])
 
-        tr = layout.get_metadata(img_f, scope=scope)['RepetitionTime']
+        tr = img_obj.get_metadata()["RepetitionTime"]
 
         # Get duration of run: first try to get it directly from the image
-        # header; if that fails, try to get NumberOfVolumes from the
-        # run metadata; if that fails, look for a scan_length argument.
+        # header; if that fails, look for a scan_length argument.
         try:
-            import nibabel as nb
-            img = nb.load(img_f)
-            duration = img.shape[3] * tr
+            nvols = _get_nvols(img_obj)
+            duration = nvols * tr
         except Exception as e:
             if scan_length is not None:
                 duration = scan_length
@@ -191,7 +210,7 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
                        "BOLD runs, and no scan_length argument was provided "
                        "as a fallback. Please check that the image files are "
                        "available, or manually specify the scan duration.")
-                raise ValueError(msg)
+                raise ValueError(msg) from e
 
         # We don't want to pass all the image file's entities onto get_node(),
         # as there can be unhashable nested slice timing values, and this also
