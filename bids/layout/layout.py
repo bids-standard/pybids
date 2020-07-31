@@ -400,7 +400,7 @@ class BIDSLayout(object):
         def do_begin(conn):
             conn.connection.create_function('regexp', 2, regexp)
 
-        self.session = sa.orm.sessionmaker(bind=engine)()
+        self.session = sa.orm.sessionmaker(bind=engine, expire_on_commit=False)()
 
     @staticmethod
     def _make_db_paths(database_path):
@@ -999,10 +999,14 @@ class BIDSLayout(object):
         for l in layouts:
             query = l._build_file_query(filters=filters,
                                         regex_search=regex_search)
-            # Eager load associations, because mixing queries from different
-            # DB sessions causes objects to detach
-            query = query.options(joinedload(BIDSFile.tags)
-                                  .joinedload(Tag.entity))
+            # NOTE: The following line, when uncommented, eager loads
+            # associations. This was introduced in order to prevent sessions
+            # from randomly detaching. It should be fixed by setting
+            # expire_on_commit at session creation, but let's leave this here
+            # for another release or two to make sure we don't have any further
+            # problems.
+            # query = query.options(joinedload(BIDSFile.tags)
+            #                       .joinedload(Tag.entity))
             results.extend(query.all())
 
         # Convert to relative paths if needed
