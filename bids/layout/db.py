@@ -139,7 +139,7 @@ class ConnectionManager:
         # Add config records
         config = listify('bids' if config is None else config)
         config = [Config.load(c, session=self.session) for c in listify(config)]
-        self.session.add(*config)
+        self.session.add_all(config)
         self.session.commit()
 
     def load_database(self):
