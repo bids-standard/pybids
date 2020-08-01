@@ -3,7 +3,6 @@ functionality should go in the grabbit package. """
 
 import os
 import re
-import tempfile
 from os.path import join, abspath, basename, dirname
 
 import numpy as np
@@ -14,7 +13,6 @@ from bids.layout import (BIDSLayout, parse_file_entities, add_config_paths,
                          Query)
 from bids.layout.index import BIDSLayoutIndexer
 from bids.layout.models import Entity, Config
-from bids.layout.utils import BIDSMetadata
 from bids.tests import get_test_data_path
 from bids.utils import natural_sort
 
@@ -47,7 +45,7 @@ def test_index_metadata(index_metadata, query, result, mock_config):
     layout = BIDSLayout(data_dir, index_metadata=index_metadata)
     if not index_metadata and query is not None:
         indexer = BIDSLayoutIndexer(layout)
-        indexer.index_metadata(**query)
+        indexer.add_metadata(**query)
     sample_file = layout.get(task='rest', extension='.nii.gz',
                              acquisition='fullbrain')[0]
     metadata = sample_file.get_metadata()

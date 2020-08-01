@@ -28,7 +28,7 @@ from ..exceptions import (
 from .writing import build_path, write_to_file
 from .models import (Base, Config, BIDSFile, Entity, Tag)
 from .index import BIDSLayoutIndexer
-from .db import ConnectionManager
+from .db import ConnectionManager, get_database_sidecar
 from .utils import (BIDSMetadata, parse_file_entities, add_config_paths,
                     _sanitize_init_args)
 
@@ -391,12 +391,12 @@ class BIDSLayout(object):
 
         Parameters
         ----------
-        database_path : str
+        database_path : str, Path
             The path to the desired database folder. By default,
             uses .db_cache. If a relative path is passed, it is assumed to
             be relative to the BIDSLayout root directory.
         """
-        database_file, database_sidecar = cls._make_db_paths(database_path)
+        database_sidecar = get_database_sidecar(database_path)
         init_args = json.loads(database_sidecar.read_text())
 
         return cls(database_path=database_path, **init_args)

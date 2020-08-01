@@ -24,6 +24,16 @@ def _make_db_path(path):
         database_file = None
     return database_file
 
+def get_database_sidecar(path):
+    """Given a path to a database file, return the associated sidecar.
+
+    Args:
+        path (str, Path): A path to a database file
+    """
+    if isinstance(path, str):
+        path = Path(path)
+    return path.parent() / 'layout_args.json'
+
 
 class ConnectionManager:
 
@@ -127,11 +137,15 @@ class ConnectionManager:
     @lru_cache(maxsize=None)
     def database_sidecar(self):
         if self.database_file is not None:
-            return self.database_file.parent() / 'layout_args.json'
+            return get_database_sidecar(self.database_file)
         return None
 
     @property
     def session(self):
         if self._session is None:
-            self._session = self.sessionmaker()
+            self.reset_session()
         return self._session
+
+    def reset_session(self):
+        """Force a new session."""
+        self._session = self.sessionmaker()
