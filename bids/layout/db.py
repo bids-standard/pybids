@@ -65,21 +65,24 @@ class ConnectionManager:
 
         self.init_args = _sanitize_init_args(**(init_args or {}))
         self.database_file = get_database_file(database_path)
+
+        # Determine if file exists before we create it in _get_engine()
+        reset_database = (
+            reset_database or                # manual reset
+            self.database_file is None or    # in-memory DB
+            not self.database_file.exists()  # file hasn't been created yet
+        )
+
         self.engine = self._get_engine(self.database_file)
         self.sessionmaker = sa.orm.sessionmaker(bind=self.engine)
         self._session = None
-
-        # Determine whether to reset DB or load from file
-        reset_database = (
-            reset_database or  # Manual Request
-            not self.database_file or  # In memory transient db
-            not self.database_file.exists()  # New file-based db created
-        )
 
         if reset_database:
             self.reset_database(config)
         else:
             self.load_database()
+
+        self._database_reset = reset_database
 
     def _get_engine(self, database_file):
         if database_file is not None:

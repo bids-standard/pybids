@@ -190,7 +190,7 @@ class BIDSLayout(object):
 
         # Index project if needed
         self.indexer = BIDSLayoutIndexer(self)
-        if reset_database or self.connection_manager.database_file is None:
+        if self.connection_manager._database_reset:
             self.indexer.add_files()
             if index_metadata:
                 self.indexer.add_metadata()
