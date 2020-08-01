@@ -1377,7 +1377,7 @@ class BIDSLayout(object):
             Whether to copy each file as a symbolic link or a deep copy.
         root : str
             Optional root directory that all patterns are relative
-            to. Defaults to current working directory.
+            to. Defaults to dataset root.
         conflicts : str
             Defines the desired action when the output path already exists.
             Must be one of:
@@ -1388,13 +1388,15 @@ class BIDSLayout(object):
         kwargs : dict
             Optional key word arguments to pass into a get() query.
         """
+        root = self.root if root is None else root
+
         _files = self.get(**kwargs)
         if files:
             _files = list(set(files).intersection(_files))
 
         for f in _files:
             f.copy(path_patterns, symbolic_link=symbolic_links,
-                   root=self.root, conflicts=conflicts)
+                   root=root, conflicts=conflicts)
 
     def write_to_file(self, entities, path_patterns=None,
                       contents=None, link_to=None, copy_from=None,
