@@ -77,7 +77,7 @@ class BIDSLayoutIndexer(object):
 
         # Derivatives are currently not validated.
         # TODO: raise warning the first time in a session this is encountered
-        if not self.validate or 'derivatives' in self.config:
+        if not self.validate or 'derivatives' in self.layout.config:
             return True
 
         # BIDS validator expects absolute paths, but really these are relative
