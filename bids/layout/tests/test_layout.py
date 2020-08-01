@@ -723,4 +723,6 @@ def test_load_layout(layout_synthetic_nodb, db_dir):
     reloaded = BIDSLayout.load(db_path)
     assert sorted(layout_synthetic_nodb.get(return_type='file')) == \
         sorted(reloaded.get(return_type='file'))
-    assert layout_synthetic_nodb._init_args == reloaded._init_args
+    cm1 = layout_synthetic_nodb.connection_manager
+    cm2 = reloaded.connection_manager
+    assert cm1.init_args == cm2.init_args

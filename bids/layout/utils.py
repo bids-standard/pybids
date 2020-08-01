@@ -98,23 +98,3 @@ def add_config_paths(**kwargs):
 
     kwargs.update(**cf.get_option('config_paths'))
     cf.set_option('config_paths', kwargs)
-
-
-def _sanitize_init_args(**kwargs):
-    """ Prepare initalization arguments for serialization """
-    # Make ignore and force_index serializable
-    for k in ['ignore', 'force_index']:
-        kwargs[k] = [
-            str(a) for a in kwargs[k] if a is not None] \
-            if kwargs[k] is not None else None
-
-    kwargs['root'] = str(Path(kwargs['root']).absolute())
-
-    # Get abspaths
-    if isinstance(kwargs['derivatives'], list):
-        kwargs['derivatives'] = [
-            str(Path(der).absolute())
-            for der in listify(kwargs['derivatives'])
-            ]
-
-    return kwargs

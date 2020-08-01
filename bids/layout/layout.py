@@ -8,7 +8,6 @@ from functools import partial
 from itertools import chain
 import copy
 import warnings
-import sqlite3
 import enum
 import difflib
 
@@ -28,9 +27,8 @@ from ..exceptions import (
 from .writing import build_path, write_to_file
 from .models import (Base, Config, BIDSFile, Entity, Tag)
 from .index import BIDSLayoutIndexer
-from .db import ConnectionManager, get_database_sidecar
-from .utils import (BIDSMetadata, parse_file_entities, add_config_paths,
-                    _sanitize_init_args)
+from .db import ConnectionManager, get_database_sidecar, get_database_file
+from .utils import (BIDSMetadata, parse_file_entities)
 
 try:
     from os.path import commonpath
@@ -179,14 +177,14 @@ class BIDSLayout(object):
         # Initialize the BIDS validator and examine ignore/force_index args
         self._validate_force_index()
 
-        self._init_args = _sanitize_init_args(
+        init_args = dict(
             root=root, validate=validate, absolute_paths=absolute_paths,
             derivatives=derivatives, ignore=ignore, force_index=force_index,
             index_metadata=index_metadata, config=config)
 
         # Set up the DB
         self.connection_manager = ConnectionManager(
-            database_path, reset_database, config, self._init_args)
+            database_path, reset_database, config, init_args)
 
         self.config = {c.name: c for c in self.session.query(Config).all()}
 
@@ -392,13 +390,13 @@ class BIDSLayout(object):
         Parameters
         ----------
         database_path : str, Path
-            The path to the desired database folder. By default,
-            uses .db_cache. If a relative path is passed, it is assumed to
-            be relative to the BIDSLayout root directory.
+            The path to the desired database folder. If a relative path is
+            passed, it is assumed to be relative to the BIDSLayout root
+            directory.
         """
-        database_sidecar = get_database_sidecar(database_path)
+        database_file = get_database_file(database_path)
+        database_sidecar = get_database_sidecar(database_file)
         init_args = json.loads(database_sidecar.read_text())
-
         return cls(database_path=database_path, **init_args)
 
     def save(self, database_path, replace_connection=True):
@@ -424,26 +422,14 @@ class BIDSLayout(object):
             be reflected in the new file unless save() is explicitly called
             again.
         """
-        database_file, database_sidecar = self._make_db_paths(database_path)
-        new_db = sqlite3.connect(str(database_file))
-        old_db = self.session.get_bind().connect().connection
-
-        with new_db:
-            for line in old_db.iterdump():
-                if line not in ('BEGIN;', 'COMMIT;'):
-                    new_db.execute(line)
-            new_db.commit()
-
-        if replace_connection:
-            self._set_session(str(database_file))
-
-        # Dump instance arguments to JSON
-        database_sidecar.write_text(json.dumps(self._init_args))
+        self.connection_manager = self.connection_manager.save_database(
+            database_path, replace_connection)
 
         # Recursively save children
         for pipeline_name, der in self.derivatives.items():
             der.save(os.path.join(
                 database_path, pipeline_name))
+
 
     def get_entities(self, scope='all', metadata=None):
         """Get entities for all layouts in the specified scope.

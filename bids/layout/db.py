@@ -6,6 +6,7 @@ from pathlib import Path
 import json
 import re
 import warnings
+import sqlite3
 from functools import lru_cache
 
 import sqlalchemy as sa
@@ -15,7 +16,7 @@ from bids.utils import listify
 from .models import Base, Config
 
 
-def _make_db_path(path):
+def get_database_file(path):
     if path is not None:
         path = Path(path)
         database_file = path / 'layout_index.sqlite'
@@ -23,6 +24,7 @@ def _make_db_path(path):
     else:
         database_file = None
     return database_file
+
 
 def get_database_sidecar(path):
     """Given a path to a database file, return the associated sidecar.
@@ -32,7 +34,28 @@ def get_database_sidecar(path):
     """
     if isinstance(path, str):
         path = Path(path)
-    return path.parent() / 'layout_args.json'
+    return path.parent / 'layout_args.json'
+
+
+def _sanitize_init_args(**kwargs):
+    """ Prepare initalization arguments for serialization """
+    # Make ignore and force_index serializable
+    for k in ['ignore', 'force_index']:
+        kwargs[k] = [
+            str(a) for a in kwargs.get(k) if a is not None] \
+            if kwargs.get(k) is not None else None
+
+    if 'root' in kwargs:
+        kwargs['root'] = str(Path(kwargs['root']).absolute())
+
+    # Get abspaths
+    if 'derivatives' in kwargs and isinstance(kwargs['derivatives'], list):
+        kwargs['derivatives'] = [
+            str(Path(der).absolute())
+            for der in listify(kwargs['derivatives'])
+            ]
+
+    return kwargs
 
 
 class ConnectionManager:
@@ -40,7 +63,8 @@ class ConnectionManager:
     def __init__(self, database_path=None, reset_database=False, config=None,
                  init_args=None):
 
-        self.database_file = _make_db_path(database_path)
+        self.init_args = _sanitize_init_args(**(init_args or {}))
+        self.database_file = get_database_file(database_path)
         self.engine = self._get_engine(self.database_file)
         self.sessionmaker = sa.orm.sessionmaker(bind=self.engine)
         self._session = None
@@ -53,9 +77,9 @@ class ConnectionManager:
         )
 
         if reset_database:
-            self.reset_database(init_args, config)
+            self.reset_database(config)
         else:
-            self.load_database(init_args)
+            self.load_database()
 
     def _get_engine(self, database_file):
         if database_file is not None:
@@ -104,33 +128,69 @@ class ConnectionManager:
 
         return engine
 
-    def reset_database(self, init_args=None, config=None):
-        init_args = init_args or {}
+    def reset_database(self, config=None):
         Base.metadata.drop_all(self.engine)
         Base.metadata.create_all(self.engine)
         if self.database_sidecar is not None:
-            self.database_sidecar.write_text(json.dumps(init_args))
+            self.database_sidecar.write_text(json.dumps(self.init_args))
         # Add config records
         config = listify('bids' if config is None else config)
         config = [Config.load(c, session=self.session) for c in listify(config)]
         self.session.add(*config)
         self.session.commit()
 
-    def load_database(self, init_args=None):
+    def load_database(self):
         if self.database_file is None:
             raise ValueError("load_database() can only be called on databases "
                              "stored in a file, not on in-memory databases.")
-        init_args = init_args or {}
         saved_args = json.loads(self.database_sidecar.read_text())
         for k, v in saved_args.items():
-            if init_args[k] != v:
+            curr_val = self.init_args.get(k)
+            if curr_val != v:
                 raise ValueError(
                     "Initialization argument ('{}') does not match "
                     "for database_path: {}.\n"
                     "Saved value: {}.\n"
                     "Current value: {}.".format(
-                        k, self.database_file, v, init_args[k])
-                    )  
+                        k, self.database_file, v, curr_val)
+                    )
+
+    def save_database(self, database_path, replace_connection=True):
+        """Save the current index as a SQLite3 DB at the specified location.
+
+        Note: This is only necessary if a database_path was not specified
+        at initialization, and the user now wants to save the index.
+        If a database_path was specified originally, there is no need to
+        re-save using this method.
+
+        Parameters
+        ----------
+        database_path : str
+            The path to the desired database folder. By default,
+            uses .db_cache. If a relative path is passed, it is assumed to
+            be relative to the BIDSLayout root directory.
+        replace_connection : bool, optional
+            If True, returns a new ConnectionManager that points to the newly
+            created database. If False, returns the current instance.
+        """
+        database_file = get_database_file(database_path)
+        database_sidecar = get_database_sidecar(database_file)
+        new_db = sqlite3.connect(str(database_file))
+        old_db = self.engine.connect().connection
+
+        with new_db:
+            for line in old_db.iterdump():
+                if line not in ('BEGIN;', 'COMMIT;'):
+                    new_db.execute(line)
+            new_db.commit()
+
+        # Dump instance arguments to JSON
+        database_sidecar.write_text(json.dumps(self.init_args))
+
+        if replace_connection:
+            return ConnectionManager(database_path, init_args=self.init_args)
+        else:
+            return self
 
     @property
     # Replace with @cached_property (3.8+) at some point in future
