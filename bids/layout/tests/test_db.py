@@ -19,6 +19,7 @@ def test_sanitize_init_args():
 
 
 def test_get_database_file(tmp_path):
+    tmp_path = Path(str(tmp_path))  # PY35: pytest uses pathlib2.Path; __fspath__ in Python 3.6 fixes this
     assert get_database_file(None) is None
     new_path = tmp_path / "a_new_subdir"
     assert not new_path.exists()
