@@ -41,9 +41,8 @@ def _sanitize_init_args(**kwargs):
     """ Prepare initalization arguments for serialization """
     # Make ignore and force_index serializable
     for k in ['ignore', 'force_index']:
-        kwargs[k] = [
-            str(a) for a in kwargs.get(k) if a is not None] \
-            if kwargs.get(k) is not None else None
+        if kwargs.get(k) is not None:
+            kwargs[k] = [str(a) for a in kwargs.get(k) if a is not None]
 
     if 'root' in kwargs:
         kwargs['root'] = str(Path(kwargs['root']).absolute())
