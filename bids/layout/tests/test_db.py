@@ -16,3 +16,21 @@ def test_sanitize_init_args():
     assert isinstance(result['ignore'], list)
     assert all([isinstance(el, str) for el in result['ignore']])
     assert isinstance(result['root'], str)
+
+
+def test_get_database_file(tmp_path):
+    assert get_database_file(None) is None
+    new_path = tmp_path / "a_new_subdir"
+    assert not new_path.exists()
+    db_file = get_database_file(new_path)
+    assert db_file == new_path / 'layout_index.sqlite'
+    assert new_path.exists()
+
+
+def test_get_database_sidecar():
+    db_file = '/abs/path/to/db/file.sqlite'
+    f1 = get_database_sidecar(db_file)
+    assert isinstance(f1, Path)
+    assert str(f1) == '/abs/path/to/db/layout_args.json'
+    f2 = get_database_sidecar(Path(db_file))
+    assert f1 == f2
