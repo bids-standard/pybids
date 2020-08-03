@@ -1,3 +1,5 @@
+"""Test miscellaneous utilities."""
+
 import pytest
 from ..utils import BIDSMetadata
 

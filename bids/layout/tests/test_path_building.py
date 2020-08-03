@@ -1,3 +1,5 @@
+"""Tests of path-building functionality."""
+
 import pytest
 from bids.layout import BIDSLayout
 from os.path import join, abspath, sep

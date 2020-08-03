@@ -1,5 +1,4 @@
-""" Tests of BIDS-specific functionality. Generic tests of core grabbit
-functionality should go in the grabbit package. """
+"""Tests of BIDSValidator functionality."""
 
 import pytest
 from bids_validator import BIDSValidator
