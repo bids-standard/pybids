@@ -1,9 +1,10 @@
 """Tests of path-building functionality."""
 
+from os.path import join
+from pathlib import Path
+
 import pytest
 from bids.layout import BIDSLayout
-from os.path import join, abspath, sep
-from pathlib import Path
 from bids.tests import get_test_data_path
 
 

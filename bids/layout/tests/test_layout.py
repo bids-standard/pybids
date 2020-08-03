@@ -3,7 +3,7 @@ BIDSLayout class."""
 
 import os
 import re
-from os.path import join, abspath, basename
+from os.path import (join, abspath, basename)
 
 import numpy as np
 import pytest
