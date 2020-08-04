@@ -33,7 +33,7 @@ END
 git log --grep="Merge pull request" `git describe --tags --abbrev=0`..HEAD --pretty='format:* %b %s' | sed  's+Merge pull request \(\#[^\d]*\)\ from\ .*+(\1)+' >> newchanges
 
 # Append old changes
-tail -n+2 $CHANGES >> newchanges
+tail -n+3 $CHANGES >> newchanges
 
 # Replace old CHANGES with new file
 mv newchanges $CHANGES
