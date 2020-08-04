@@ -1,7 +1,8 @@
+"""Tests of functionality in the models module."""
+
 import sys
 import os
 import pytest
-import bids
 import copy
 import json
 from pathlib import Path
@@ -12,7 +13,6 @@ import numpy as np
 
 from bids.layout.models import (BIDSFile, Entity, Tag, Base, Config,
                                 FileAssociation, BIDSImageFile)
-from bids.layout import BIDSLayout
 from bids.tests import get_test_data_path
 
 

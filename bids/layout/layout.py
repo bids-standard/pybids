@@ -8,30 +8,27 @@ from functools import partial
 from itertools import chain
 import copy
 import warnings
-import sqlite3
 import enum
-from pathlib import Path
 import difflib
 
 import sqlalchemy as sa
-from sqlalchemy.orm import joinedload
 from bids_validator import BIDSValidator
 
-from ..utils import listify, natural_sort, make_bidsfile
+from ..utils import listify, natural_sort
 from ..external import inflect
-from .writing import build_path, write_to_file
-from .models import (Base, Config, BIDSFile, Entity, Tag)
-from .index import BIDSLayoutIndexer
-from .utils import BIDSMetadata
-from .. import config as cf
 from ..exceptions import (
     BIDSDerivativesValidationError,
     BIDSEntityError,
     BIDSValidationError,
-    ConfigError,
     NoMatchError,
     TargetError,
 )
+
+from .writing import build_path, write_to_file
+from .models import (Base, Config, BIDSFile, Entity, Tag)
+from .index import BIDSLayoutIndexer
+from .db import ConnectionManager, get_database_sidecar, get_database_file
+from .utils import (BIDSMetadata, parse_file_entities)
 
 try:
     from os.path import commonpath
@@ -59,84 +56,6 @@ EXAMPLE_BIDS_DESCRIPTION = {
 
 EXAMPLE_DERIVATIVES_DESCRIPTION = {
     k: val[k] for val in MANDATORY_DERIVATIVES_FIELDS.values() for k in val}
-
-
-def parse_file_entities(filename, entities=None, config=None,
-                        include_unmatched=False):
-    """Parse the passed filename for entity/value pairs.
-
-    Parameters
-    ----------
-    filename : str
-        The filename to parse for entity values
-    entities : list or None, optional
-        An optional list of Entity instances to use in extraction.
-        If passed, the config argument is ignored. Default is None.
-    config : str or :obj:`bids.layout.models.Config` or list or None, optional
-        One or more :obj:`bids.layout.models.Config` objects or names of
-        configurations to use in matching. Each element must be a
-        :obj:`bids.layout.models.Config` object, or a valid
-        :obj:`bids.layout.models.Config` name (e.g., 'bids' or 'derivatives').
-        If None, all available configs are used. Default is None.
-    include_unmatched : bool, optional
-        If True, unmatched entities are included in the returned dict,
-        with values set to None.
-        If False (default), unmatched entities are ignored.
-
-    Returns
-    -------
-    dict
-        Keys are Entity names and values are the values from the filename.
-    """
-    # Load Configs if needed
-    if entities is None:
-
-        if config is None:
-            config = ['bids', 'derivatives']
-
-        config = [Config.load(c) if not isinstance(c, Config) else c
-                  for c in listify(config)]
-
-        # Consolidate entities from all Configs into a single dict
-        entities = {}
-        for c in config:
-            entities.update(c.entities)
-        entities = entities.values()
-
-    # Extract matches
-    bf = make_bidsfile(filename)
-    ent_vals = {}
-    for ent in entities:
-        match = ent.match_file(bf)
-        if match is not None or include_unmatched:
-            ent_vals[ent.name] = match
-
-    return ent_vals
-
-
-def add_config_paths(**kwargs):
-    """Add to the pool of available configuration files for BIDSLayout.
-
-    Parameters
-    ----------
-    kwargs : dict
-        Dictionary specifying where to find additional config files.
-        Keys are names, values are paths to the corresponding .json file.
-
-    Examples
-    --------
-    > add_config_paths(my_config='/path/to/config')
-    > layout = BIDSLayout('/path/to/bids', config=['bids', 'my_config'])
-    """
-    for k, path in kwargs.items():
-        if not os.path.exists(path):
-            raise ConfigError(
-                'Configuration file "{}" does not exist'.format(k))
-        if k in cf.get_option('config_paths'):
-            raise ConfigError('Configuration {!r} already exists'.format(k))
-
-    kwargs.update(**cf.get_option('config_paths'))
-    cf.set_option('config_paths', kwargs)
 
 
 class BIDSLayout(object):
@@ -224,7 +143,7 @@ class BIDSLayout(object):
                  force_index=None, config_filename='layout_config.json',
                  regex_search=False, database_path=None, database_file=None,
                  reset_database=False, index_metadata=True):
-        """Initialize BIDSLayout."""
+
         self.root = root
         self.validate = validate
         self.absolute_paths = absolute_paths
@@ -232,31 +151,20 @@ class BIDSLayout(object):
         self.sources = sources
         self.regex_search = regex_search
         self.config_filename = config_filename
-        # Store original init arguments as dictionary
-        self._init_args = self._sanitize_init_args(
-            root=root, validate=validate, absolute_paths=absolute_paths,
-            derivatives=derivatives, ignore=ignore, force_index=force_index,
-            index_metadata=index_metadata, config=config)
+
+        if ignore is None:
+            ignore = self._default_ignore
 
         if database_path is None and database_file is not None:
             database_path = database_file
             warnings.warn(
                 'In pybids 0.10 database_file argument was deprecated in favor'
                 ' of database_path, and will be removed in 0.12. '
-                'For now, treating database_file as a directory.',
+                'For now, interpreting database_file as a directory.',
                 DeprecationWarning)
-        if database_path:
-            database_path = str(Path(database_path).absolute())
-
-        self.session = None
-
-        index_dataset = self._init_db(database_path, reset_database)
 
         # Do basic BIDS validation on root directory
         self._validate_root()
-
-        if ignore is None:
-            ignore = self._default_ignore
 
         # Instantiate after root validation to ensure os.path.join works
         self.ignore = [os.path.abspath(os.path.join(self.root, patt))
@@ -269,26 +177,23 @@ class BIDSLayout(object):
         # Initialize the BIDS validator and examine ignore/force_index args
         self._validate_force_index()
 
-        if index_dataset:
-            # Create Config objects
-            if config is None:
-                config = 'bids'
-            config = [Config.load(c, session=self.session)
-                      for c in listify(config)]
-            self.config = {c.name: c for c in config}
-            # Missing persistence of configs to the database
-            for config_obj in self.config.values():
-                self.session.add(config_obj)
-                self.session.commit()
+        init_args = dict(
+            root=root, validate=validate, absolute_paths=absolute_paths,
+            derivatives=derivatives, ignore=ignore, force_index=force_index,
+            index_metadata=index_metadata, config=config)
 
-            # Index files and (optionally) metadata
-            indexer = BIDSLayoutIndexer(self)
-            indexer.index_files()
+        # Set up the DB
+        self.connection_manager = ConnectionManager(
+            database_path, reset_database, config, init_args)
+
+        self.config = {c.name: c for c in self.session.query(Config).all()}
+
+        # Index project if needed
+        self.indexer = BIDSLayoutIndexer(self)
+        if self.connection_manager._database_reset:
+            self.indexer.add_files()
             if index_metadata:
-                indexer.index_metadata()
-        else:
-            # Load Configs from DB
-            self.config = {c.name: c for c in self.session.query(Config).all()}
+                self.indexer.add_metadata()
 
         # Add derivatives if any are found
         if derivatives:
@@ -300,7 +205,8 @@ class BIDSLayout(object):
                 derivatives=None, sources=self, ignore=ignore,  config=None,
                 force_index=force_index, config_filename=config_filename,
                 regex_search=regex_search, index_metadata=index_metadata,
-                reset_database=index_dataset or reset_database
+                # reset_database=index_dataset or reset_database
+                reset_database=reset_database
                 )
 
     def __getattr__(self, key):
@@ -353,121 +259,6 @@ class BIDSLayout(object):
         s = ("BIDS Layout: ...{} | Subjects: {} | Sessions: {} | "
              "Runs: {}".format(root, n_subjects, n_sessions, n_runs))
         return s
-
-    def _set_session(self, database_file):
-        if database_file is not None:
-            # https://docs.sqlalchemy.org/en/13/dialects/sqlite.html
-            # When a file-based database is specified, the dialect will use
-            # NullPool as the source of connections. This pool closes and
-            # discards connections which are returned to the pool immediately.
-            # SQLite file-based connections have extremely low overhead, so
-            # pooling is not necessary. The scheme also prevents a connection
-            # from being used again in a different thread and works best
-            # with SQLite's coarse-grained file locking.
-            from sqlalchemy.pool import NullPool
-            engine = sa.create_engine(
-                'sqlite:///{dbfilepath}'.format(dbfilepath=database_file),
-                connect_args={'check_same_thread': False},
-                poolclass=NullPool)
-        else:
-            # https://docs.sqlalchemy.org/en/13/dialects/sqlite.html
-            # Using a Memory Database in Multiple Threads
-            # To use a :memory: database in a multithreaded scenario, the same
-            # connection object must be shared among
-            # threads, since the database exists only within the scope of that
-            # connection. The StaticPool implementation will maintain a single
-            # connection globally, and the check_same_thread flag can be passed
-            # to Pysqlite as False:
-            from sqlalchemy.pool import StaticPool
-            engine = sa.create_engine(
-                'sqlite://',  # In memory database
-                connect_args={'check_same_thread': False},
-                poolclass=StaticPool)
-            # Note that using a :memory: database in multiple threads requires
-            # a recent version of SQLite.
-
-        def regexp(expr, item):
-            """Regex function for SQLite's REGEXP."""
-            reg = re.compile(expr, re.I)
-            return reg.search(item) is not None
-
-        conn = engine.connect()
-
-        # Do not remove this decorator!!! An in-line create_function call will
-        # work when using an in-memory SQLite DB, but fails when using a file.
-        # For more details, see https://stackoverflow.com/questions/12461814/
-        @sa.event.listens_for(engine, "begin")
-        def do_begin(conn):
-            conn.connection.create_function('regexp', 2, regexp)
-
-        self.session = sa.orm.sessionmaker(bind=engine)()
-
-    @staticmethod
-    def _make_db_paths(database_path):
-        if database_path is not None:
-            database_path = Path(database_path)
-            database_file = database_path / 'layout_index.sqlite'
-            database_sidecar = database_path / 'layout_args.json'
-            database_path.mkdir(exist_ok=True, parents=True)
-        else:
-            database_file = None
-            database_sidecar = None
-        return database_file, database_sidecar
-
-    @staticmethod
-    def _sanitize_init_args(**kwargs):
-        """ Prepare initalization arguments for serialization """
-        # Make ignore and force_index serializable
-        for k in ['ignore', 'force_index']:
-            kwargs[k] = [
-                str(a) for a in kwargs[k] if a is not None] \
-              if kwargs[k] is not None else None
-
-        kwargs['root'] = str(Path(kwargs['root']).absolute())
-
-        # Get abspaths
-        if isinstance(kwargs['derivatives'], list):
-            kwargs['derivatives'] = [
-                str(Path(der).absolute())
-                for der in listify(kwargs['derivatives'])
-                ]
-
-        return kwargs
-
-    def _init_db(self, database_path=None, reset_database=False):
-        database_file, database_sidecar = self._make_db_paths(database_path)
-        # Reset database if needed and return whether or not it was reset.
-        # Determining if the database needs resetting must be done prior
-        # to setting the session (which creates the empty database file)
-        reset_database = (
-            reset_database or  # Manual Request
-            not database_file or  # In memory transient db
-            not database_file.exists()  # New file based db created
-        )
-
-        self._set_session(database_file)
-
-        if not reset_database:
-            saved_args = json.loads(database_sidecar.read_text())
-            for k, v in saved_args.items():
-                if self._init_args[k] != v:
-                    raise ValueError(
-                        "Initialization argument ('{}') does not match "
-                        "for database_path: {}.\n"
-                        "Saved value: {}.\n"
-                        "Current value: {}.".format(
-                            k, database_path, v, self._init_args[k])
-                        )
-        else:
-            engine = self.session.get_bind()
-            Base.metadata.drop_all(engine)
-            Base.metadata.create_all(engine)
-            if database_sidecar:
-                database_sidecar.write_text(json.dumps(self._init_args))
-
-            return True
-
-        return False
 
     def _validate_root(self):
         # Validate root argument and make sure it contains mandatory info
@@ -578,6 +369,10 @@ class BIDSLayout(object):
         return entities
 
     @property
+    def session(self):
+        return self.connection_manager.session
+
+    @property
     def entities(self):
         """Get the entities."""
         return self.get_entities()
@@ -594,14 +389,14 @@ class BIDSLayout(object):
 
         Parameters
         ----------
-        database_path : str
-            The path to the desired database folder. By default,
-            uses .db_cache. If a relative path is passed, it is assumed to
-            be relative to the BIDSLayout root directory.
+        database_path : str, Path
+            The path to the desired database folder. If a relative path is
+            passed, it is assumed to be relative to the BIDSLayout root
+            directory.
         """
-        database_file, database_sidecar = cls._make_db_paths(database_path)
+        database_file = get_database_file(database_path)
+        database_sidecar = get_database_sidecar(database_file)
         init_args = json.loads(database_sidecar.read_text())
-
         return cls(database_path=database_path, **init_args)
 
     def save(self, database_path, replace_connection=True):
@@ -627,26 +422,14 @@ class BIDSLayout(object):
             be reflected in the new file unless save() is explicitly called
             again.
         """
-        database_file, database_sidecar = self._make_db_paths(database_path)
-        new_db = sqlite3.connect(str(database_file))
-        old_db = self.session.get_bind().connect().connection
-
-        with new_db:
-            for line in old_db.iterdump():
-                if line not in ('BEGIN;', 'COMMIT;'):
-                    new_db.execute(line)
-            new_db.commit()
-
-        if replace_connection:
-            self._set_session(str(database_file))
-
-        # Dump instance arguments to JSON
-        database_sidecar.write_text(json.dumps(self._init_args))
+        self.connection_manager = self.connection_manager.save_database(
+            database_path, replace_connection)
 
         # Recursively save children
         for pipeline_name, der in self.derivatives.items():
             der.save(os.path.join(
                 database_path, pipeline_name))
+
 
     def get_entities(self, scope='all', metadata=None):
         """Get entities for all layouts in the specified scope.
@@ -999,10 +782,14 @@ class BIDSLayout(object):
         for l in layouts:
             query = l._build_file_query(filters=filters,
                                         regex_search=regex_search)
-            # Eager load associations, because mixing queries from different
-            # DB sessions causes objects to detach
-            query = query.options(joinedload(BIDSFile.tags)
-                                  .joinedload(Tag.entity))
+            # NOTE: The following line, when uncommented, eager loads
+            # associations. This was introduced in order to prevent sessions
+            # from randomly detaching. It should be fixed by setting
+            # expire_on_commit at session creation, but let's leave this here
+            # for another release or two to make sure we don't have any further
+            # problems.
+            # query = query.options(joinedload(BIDSFile.tags)
+            #                       .joinedload(Tag.entity))
             results.extend(query.all())
 
         # Convert to relative paths if needed
@@ -1576,7 +1363,7 @@ class BIDSLayout(object):
             Whether to copy each file as a symbolic link or a deep copy.
         root : str
             Optional root directory that all patterns are relative
-            to. Defaults to current working directory.
+            to. Defaults to dataset root.
         conflicts : str
             Defines the desired action when the output path already exists.
             Must be one of:
@@ -1587,13 +1374,15 @@ class BIDSLayout(object):
         kwargs : dict
             Optional key word arguments to pass into a get() query.
         """
+        root = self.root if root is None else root
+
         _files = self.get(**kwargs)
         if files:
             _files = list(set(files).intersection(_files))
 
         for f in _files:
             f.copy(path_patterns, symbolic_link=symbolic_links,
-                   root=self.root, conflicts=conflicts)
+                   root=root, conflicts=conflicts)
 
     def write_to_file(self, entities, path_patterns=None,
                       contents=None, link_to=None, copy_from=None,

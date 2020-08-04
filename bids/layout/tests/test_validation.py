@@ -1,10 +1,11 @@
-""" Tests of BIDS-specific functionality. Generic tests of core grabbit
-functionality should go in the grabbit package. """
+"""Tests of BIDSValidator functionality."""
+
+from os.path import join, dirname, abspath
 
 import pytest
+
 from bids_validator import BIDSValidator
 from bids.layout import BIDSLayout
-from os.path import join, dirname, abspath
 from bids.tests import get_test_data_path
 
 

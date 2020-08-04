@@ -1,15 +1,17 @@
-import pytest
-import os
+"""Tests related to file-writing functionality."""
+
 import shutil
+import os
 from os.path import join, exists, islink, dirname
+
+import pytest
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
 
 from bids.layout.writing import build_path, _PATTERN_FIND
 from bids.tests import get_test_data_path
 from bids import BIDSLayout
 from bids.layout.models import BIDSFile, Entity, Tag, Base
-
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
 
 
 @pytest.fixture

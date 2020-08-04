@@ -46,13 +46,13 @@ class BIDSLayoutIndexer(object):
     def __init__(self, layout):
 
         self.layout = layout
+        self.config = list(layout.config.values())
         self.session = layout.session
         self.validate = layout.validate
         self.root = layout.root
         self.config_filename = layout.config_filename
         self.validator = BIDSValidator(index_associated=True)
         # Create copies of list attributes we'll modify during indexing
-        self.config = list(layout.config.values())
         self.include_patterns = list(layout.force_index)
         self.exclude_patterns = list(layout.ignore)
 
@@ -164,11 +164,11 @@ class BIDSLayoutIndexer(object):
 
         return bf
 
-    def index_files(self):
+    def add_files(self):
         """Index all files in the BIDS dataset. """
         self._index_dir(self.root, self.config)
 
-    def index_metadata(self, **filters):
+    def add_metadata(self, **filters):
         """Index metadata for all files in the BIDS dataset.
 
         Parameters

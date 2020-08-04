@@ -1,26 +1,21 @@
-""" Tests of BIDS-specific functionality. Generic tests of core grabbit
-functionality should go in the grabbit package. """
+""" Tests of functionality in the layout module--mostly related to the
+BIDSLayout class."""
 
 import os
 import re
-import tempfile
-from os.path import join, abspath, basename, dirname
+from os.path import (join, abspath, basename)
 
 import numpy as np
 import pytest
 
-import bids
-from bids.layout import (BIDSLayout, parse_file_entities, add_config_paths,
-                         Query)
+from bids.layout import BIDSLayout, Query
 from bids.layout.index import BIDSLayoutIndexer
-from bids.layout.models import Entity, Config
-from bids.layout.utils import BIDSMetadata
+from bids.layout.models import Config
 from bids.tests import get_test_data_path
 from bids.utils import natural_sort
 
 from bids.exceptions import (
     BIDSValidationError,
-    ConfigError,
     NoMatchError,
     TargetError,
 )
@@ -47,7 +42,7 @@ def test_index_metadata(index_metadata, query, result, mock_config):
     layout = BIDSLayout(data_dir, index_metadata=index_metadata)
     if not index_metadata and query is not None:
         indexer = BIDSLayoutIndexer(layout)
-        indexer.index_metadata(**query)
+        indexer.add_metadata(**query)
     sample_file = layout.get(task='rest', extension='.nii.gz',
                              acquisition='fullbrain')[0]
     metadata = sample_file.get_metadata()
@@ -274,6 +269,17 @@ def test_get_return_type_dir(layout_7t_trt, layout_7t_trt_relpath):
     assert target == res2
 
 
+def test_ensure_non_detaching_sessions(layout_7t_trt, layout_7t_trt_relpath):
+    """ Ensure that sessions don't detach unexpectly during queries."""
+    query = dict(target='subject', return_type='dir')
+    res_relpath = layout_7t_trt_relpath.get(**query)
+    target_relpath = ["sub-{:02d}".format(i) for i in range(1, 11)]
+    assert target_relpath == res_relpath
+    res_abspath = layout_7t_trt.get(**query)
+    # Second query would break without expire_on_commit=True
+    res_relpath = layout_7t_trt_relpath.get(**query)
+
+
 @pytest.mark.parametrize("acq", [None, Query.NONE])
 def test_get_val_none(layout_7t_trt, acq):
     t1w_files = layout_7t_trt.get(subject='01', session='1', suffix='T1w')
@@ -478,38 +484,6 @@ def test_to_df(layout_ds117):
                 set(df.columns))
 
 
-@pytest.mark.parametrize("extension_initial_dot", (True, False))
-def test_parse_file_entities(mock_config, extension_initial_dot):
-    filename = '/sub-03_ses-07_run-4_desc-bleargh_sekret.nii.gz'
-
-    dot = '.' if extension_initial_dot else ''
-
-    # Test with entities taken from bids config
-    target = {'subject': '03', 'session': '07', 'run': 4, 'suffix': 'sekret',
-              'extension': dot + 'nii.gz'}
-    assert target == parse_file_entities(filename, config='bids')
-    config = Config.load('bids')
-    assert target == parse_file_entities(filename, config=[config])
-
-    # Test with entities taken from bids and derivatives config
-    target = {'subject': '03', 'session': '07', 'run': 4, 'suffix': 'sekret',
-              'desc': 'bleargh', 'extension': dot + 'nii.gz'}
-    assert target == parse_file_entities(filename)
-    assert target == parse_file_entities(
-        filename, config=['bids', 'derivatives'])
-
-    # Test with list of Entities
-    entities = [
-        Entity('subject', "[/\\\\]sub-([a-zA-Z0-9]+)"),
-        Entity('run', "[_/\\\\]run-0*(\\d+)", dtype=int),
-        Entity('suffix', "[._]*([a-zA-Z0-9]*?)\\.[^/\\\\]+$"),
-        Entity('desc', "desc-([a-zA-Z0-9]+)"),
-    ]
-    # Leave out session to distinguish from previous test target
-    target = {'subject': '03', 'run': 4, 'suffix': 'sekret', 'desc': 'bleargh'}
-    assert target == parse_file_entities(filename, entities=entities)
-
-
 # XXX 0.14: Add dot to extension (difficult to parametrize with module-scoped fixture)
 def test_parse_file_entities_from_layout(layout_synthetic):
     layout = layout_synthetic
@@ -550,20 +524,6 @@ def test_deriv_indexing():
     assert layout.get(scope='derivatives')
     assert layout.get(scope='events')
     assert not layout.get(scope='nonexistent')
-
-
-def test_add_config_paths():
-    bids_dir = dirname(bids.__file__)
-    bids_json = os.path.join(bids_dir, 'layout', 'config', 'bids.json')
-    with pytest.raises(ConfigError) as exc:
-        add_config_paths(test_config1='nonexistentpath.json')
-    assert str(exc.value).startswith('Configuration file')
-    with pytest.raises(ConfigError) as exc:
-        add_config_paths(bids=bids_json)
-    assert str(exc.value).startswith("Configuration 'bids' already")
-    add_config_paths(dummy=bids_json)
-    config = Config.load('dummy')
-    assert 'subject' in config.entities
 
 
 def test_layout_in_scope(layout_ds005, layout_ds005_derivs):
@@ -629,7 +589,7 @@ def test_layout_save(tmp_path, layout_7t_trt):
     layout_7t_trt.save(str(tmp_path / "f.sqlite"),
                        replace_connection=False)
     data_dir = join(get_test_data_path(), '7t_trt')
-    layout = BIDSLayout(data_dir, database_path=str(tmp_path))
+    layout = BIDSLayout(data_dir, database_path=str(tmp_path / "f.sqlite"))
     oldfies = set(layout_7t_trt.get(suffix='events', return_type='file'))
     newfies = set(layout.get(suffix='events', return_type='file'))
     assert oldfies == newfies
@@ -639,7 +599,6 @@ def test_indexing_tag_conflict():
     data_dir = join(get_test_data_path(), 'ds005_conflict')
     with pytest.raises(BIDSValidationError) as exc:
         layout = BIDSLayout(data_dir)
-        print(exc.value.message)
         assert exc.value.message.startswith("Conflicting values found")
         assert 'run' in exc.value.message
 
@@ -714,4 +673,6 @@ def test_load_layout(layout_synthetic_nodb, db_dir):
     reloaded = BIDSLayout.load(db_path)
     assert sorted(layout_synthetic_nodb.get(return_type='file')) == \
         sorted(reloaded.get(return_type='file'))
-    assert layout_synthetic_nodb._init_args == reloaded._init_args
+    cm1 = layout_synthetic_nodb.connection_manager
+    cm2 = reloaded.connection_manager
+    assert cm1.init_args == cm2.init_args
