@@ -1,6 +1,17 @@
 Changelog
 =========
 
+Version 0.12.0 (August 04, 2020)
+--------------------------------
+New feature release for the 0.12.x series.
+
+This release includes significant speedups for ``BIDSLayout`` creation and improves
+handling of GIFTI and CIFTI-2 derivative files.
+
+* FIX: Remove need to eager load associations (#642)
+* ENH: Fetch number of time points from NIfTI, GIFTI or CIFTI-2 (#637)
+* ENH: Catch any NIfTI/GIFTI (incl. CIFTI-2) files as BIDSImageFiles (#638)
+
 Version 0.11.1 (July 02, 2020)
 ------------------------------
 Bug-fix release in the 0.11.x series
