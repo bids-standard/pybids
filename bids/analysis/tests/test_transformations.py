@@ -93,6 +93,22 @@ def test_convolve(collection):
             oversampling=2.0)
 
 
+def test_convolve_impulse():
+    # Smoke test impulse convolution
+    data = pd.DataFrame({
+        'onset': [10, 20],
+        'duration': [0, 0],
+        'amplitude': [1, 1]
+    })
+    run_info = [RunInfo({'subject': '01'}, 20, 2, 'dummy.nii.gz')]
+    var = SparseRunVariable(
+        name='var', data=data, run_info=run_info, source='events')
+    coll = BIDSRunVariableCollection([var])
+    transform.ToDense(coll, 'var', output='var_dense')
+    transform.Convolve(coll, 'var', output='var_hrf')
+    transform.Convolve(coll, 'var_dense', output='var_dense_hrf')
+
+
 def test_rename(collection):
     dense_rt = collection.variables['RT'].to_dense(collection.sampling_rate)
     assert len(dense_rt.values) == math.ceil(len(SUBJECTS) * NRUNS * SCAN_LENGTH * collection.sampling_rate)
