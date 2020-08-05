@@ -141,8 +141,8 @@ class BIDSLayout(object):
     def __init__(self, root, validate=True, absolute_paths=True,
                  derivatives=False, config=None, sources=None, ignore=None,
                  force_index=None, config_filename='layout_config.json',
-                 regex_search=False, database_path=None, database_file=None,
-                 reset_database=False, index_metadata=True):
+                 regex_search=False, database_path=None, reset_database=False,
+                 index_metadata=True):
 
         self.root = root
         self.validate = validate
@@ -154,14 +154,6 @@ class BIDSLayout(object):
 
         if ignore is None:
             ignore = self._default_ignore
-
-        if database_path is None and database_file is not None:
-            database_path = database_file
-            warnings.warn(
-                'In pybids 0.10 database_file argument was deprecated in favor'
-                ' of database_path, and will be removed in 0.12. '
-                'For now, interpreting database_file as a directory.',
-                DeprecationWarning)
 
         # Do basic BIDS validation on root directory
         self._validate_root()
