@@ -10,6 +10,12 @@ from bids.analysis import hrf
 from bids.variables import SparseRunVariable,  DenseRunVariable
 
 
+def _fractional_gcd(vals, res=0.001):
+    from functools import reduce
+    from math import gcd
+    return reduce(gcd, (int(np.round(val / res)) for val in vals)) * res
+
+
 class Convolve(Transformation):
     """Convolve the input variable with an HRF.
 
@@ -63,15 +69,19 @@ class Convolve(Transformation):
         elif model != 'fir':
             raise ValueError("Model must be one of 'spm', 'glover', or 'fir'.")
 
-        # Minimum interval between event onsets/duration
-        # Used to compute oversampling factor to prevent information loss
-        unique_onsets = np.unique(np.sort(df.onset))
-        if len(unique_onsets) > 1:
-            min_interval = min(np.ediff1d(unique_onsets).min(),
-                               df.duration.min())
-            oversampling = np.ceil(2*(1 / (min_interval * sampling_rate)))
-        else:
-            oversampling = 2
+        # Given the sampling rate, determine an oversampling factor to ensure that
+        # events can be modeled with reasonable precision (maximum of millisecond).
+        unique_onsets = np.unique(df.onset)
+        unique_durations = np.unique(df.duration)
+        initial_resolution = 1 / sampling_rate
+        # Align existing data ticks with, event onsets and offsets, up to ms resolution
+        # Note that GCD ignores zeros, so 0 onsets and impulse responses (0 durations) do
+        # not harm this.
+        required_resolution = _fractional_gcd(
+            np.concatenate(([initial_resolution], unique_onsets, unique_durations)))
+        # Oversample by at least two to avoid aliasing, max out at 1kHz
+        effective_sr = min(2 / required_resolution, 1000)
+        oversampling = np.ceil(effective_sr / sampling_rate)
         convolved = hrf.compute_regressor(
             vals, model, resample_frames, fir_delays=fir_delays, min_onset=0,
             oversampling=oversampling
