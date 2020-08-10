@@ -4,11 +4,15 @@ import os
 import json
 from collections import defaultdict
 from pathlib import Path
+
 from bids_validator import BIDSValidator
+
 import bids.config
-from .models import Config, Entity, Tag, FileAssociation
 from ..utils import listify, make_bidsfile
 from ..exceptions import BIDSConflictingValuesError
+
+from .models import Config, Entity, Tag, FileAssociation
+from .validation import validate_indexing_args
 
 
 def _extract_entities(bidsfile, entities):
@@ -43,7 +47,7 @@ class BIDSLayoutIndexer(object):
         layout (BIDSLayout): The BIDSLayout to index.
     """
 
-    def __init__(self, layout):
+    def __init__(self, layout, ignore=None, force_index=None):
 
         self.layout = layout
         self.config = list(layout.config.values())
@@ -52,9 +56,10 @@ class BIDSLayoutIndexer(object):
         self.root = layout.root
         self.config_filename = layout.config_filename
         self.validator = BIDSValidator(index_associated=True)
-        # Create copies of list attributes we'll modify during indexing
-        self.include_patterns = list(layout.force_index)
-        self.exclude_patterns = list(layout.ignore)
+
+        ignore, force = validate_indexing_args(ignore, force_index, self.root)
+        self.include_patterns = force
+        self.exclude_patterns = ignore
 
     def _validate_dir(self, d, default=None):
         if _check_path_matches_patterns(d, self.include_patterns):

@@ -24,6 +24,7 @@ from ..exceptions import (
     TargetError,
 )
 
+from .validation import validate_root, validate_derivative_paths
 from .writing import build_path, write_to_file
 from .models import (Base, Config, BIDSFile, Entity, Tag)
 from .index import BIDSLayoutIndexer
@@ -40,22 +41,6 @@ except ImportError:
         return prefix
 
 __all__ = ['BIDSLayout']
-
-MANDATORY_BIDS_FIELDS = {
-    "Name": {"Name": "Example dataset"},
-    "BIDSVersion": {"BIDSVersion": "1.0.2"},
-}
-
-MANDATORY_DERIVATIVES_FIELDS = {
-    **MANDATORY_BIDS_FIELDS,
-    "PipelineDescription.Name": {"PipelineDescription": {"Name": "Example pipeline"}},
-}
-
-EXAMPLE_BIDS_DESCRIPTION = {
-    k: val[k] for val in MANDATORY_BIDS_FIELDS.values() for k in val}
-
-EXAMPLE_DERIVATIVES_DESCRIPTION = {
-    k: val[k] for val in MANDATORY_DERIVATIVES_FIELDS.values() for k in val}
 
 
 class BIDSLayout(object):
@@ -135,39 +120,23 @@ class BIDSLayout(object):
         indexing will be faster).
     """
 
-    _default_ignore = ("code", "stimuli", "sourcedata", "models",
-                       re.compile(r'^\.'))
-
     def __init__(self, root, validate=True, absolute_paths=True,
                  derivatives=False, config=None, sources=None, ignore=None,
                  force_index=None, config_filename='layout_config.json',
                  regex_search=False, database_path=None, reset_database=False,
                  index_metadata=True):
 
+        # Validate that a valid BIDS project exists at root
+        root, description = validate_root(root, validate)
+
         self.root = root
+        self.description = description
         self.validate = validate
         self.absolute_paths = absolute_paths
         self.derivatives = {}
         self.sources = sources
         self.regex_search = regex_search
         self.config_filename = config_filename
-
-        if ignore is None:
-            ignore = self._default_ignore
-
-        # Do basic BIDS validation on root directory
-        self._validate_root()
-
-        # Instantiate after root validation to ensure os.path.join works
-        self.ignore = [os.path.abspath(os.path.join(self.root, patt))
-                       if isinstance(patt, str) else patt
-                       for patt in listify(ignore or [])]
-        self.force_index = [os.path.abspath(os.path.join(self.root, patt))
-                            if isinstance(patt, str) else patt
-                            for patt in listify(force_index or [])]
-
-        # Initialize the BIDS validator and examine ignore/force_index args
-        self._validate_force_index()
 
         init_args = dict(
             root=root, validate=validate, absolute_paths=absolute_paths,
@@ -181,7 +150,7 @@ class BIDSLayout(object):
         self.config = {c.name: c for c in self.session.query(Config).all()}
 
         # Index project if needed
-        self.indexer = BIDSLayoutIndexer(self)
+        self.indexer = BIDSLayoutIndexer(self, ignore, force_index)
         if self.connection_manager._database_reset:
             self.indexer.add_files()
             if index_metadata:
@@ -251,56 +220,6 @@ class BIDSLayout(object):
         s = ("BIDS Layout: ...{} | Subjects: {} | Sessions: {} | "
              "Runs: {}".format(root, n_subjects, n_sessions, n_runs))
         return s
-
-    def _validate_root(self):
-        # Validate root argument and make sure it contains mandatory info
-
-        try:
-            self.root = str(self.root)
-        except:
-            raise TypeError("root argument must be a string (or a type that "
-                            "supports casting to string, such as "
-                            "pathlib.Path) specifying the directory "
-                            "containing the BIDS dataset.")
-
-        self.root = os.path.abspath(self.root)
-
-        if not os.path.exists(self.root):
-            raise ValueError("BIDS root does not exist: %s" % self.root)
-
-        target = os.path.join(self.root, 'dataset_description.json')
-        if not os.path.exists(target):
-            if self.validate:
-                raise BIDSValidationError(
-                    "'dataset_description.json' is missing from project root."
-                    " Every valid BIDS dataset must have this file."
-                    "\nExample contents of 'dataset_description.json': \n%s" %
-                    json.dumps(EXAMPLE_BIDS_DESCRIPTION)
-                )
-            else:
-                self.description = None
-        else:
-            with open(target, 'r', encoding='utf-8') as desc_fd:
-                self.description = json.load(desc_fd)
-            if self.validate:
-                for k in MANDATORY_BIDS_FIELDS:
-                    if k not in self.description:
-                        raise BIDSValidationError("Mandatory %r field missing from "
-                                                  "'dataset_description.json'."
-                                                  "\nExample: %s" % (k, MANDATORY_BIDS_FIELDS[k])
-                        )
-
-    def _validate_force_index(self):
-        # Derivatives get special handling; they shouldn't be indexed normally
-        if self.force_index is not None:
-            for entry in self.force_index:
-                condi = (isinstance(entry, str) and
-                         os.path.normpath(entry).startswith('derivatives'))
-                if condi:
-                    msg = ("Do not pass 'derivatives' in the force_index "
-                           "list. To index derivatives, either set "
-                           "derivatives=True, or use add_derivatives().")
-                    raise ValueError(msg)
 
     def _in_scope(self, scope):
         """Determine whether current BIDSLayout is in the passed scope.
@@ -550,64 +469,17 @@ class BIDSLayout(object):
         specification for details.
         """
         paths = listify(path)
-        deriv_dirs = []
+        deriv_paths = validate_derivative_paths(paths, self, **kwargs)
 
-        # Collect all paths that contain a dataset_description.json
-        def check_for_description(bids_dir):
-            dd = os.path.join(bids_dir, 'dataset_description.json')
-            return os.path.exists(dd)
+        # Default config and sources values
+        kwargs['config'] = kwargs.get('config') or ['bids', 'derivatives']
+        kwargs['sources'] = kwargs.get('sources') or self
 
-        for p in paths:
-            p = os.path.abspath(p)
-            if os.path.exists(p):
-                if check_for_description(p):
-                    deriv_dirs.append(p)
-                else:
-                    subdirs = [d for d in os.listdir(p)
-                               if os.path.isdir(os.path.join(p, d))]
-                    for sd in subdirs:
-                        sd = os.path.join(p, sd)
-                        if check_for_description(sd):
-                            deriv_dirs.append(sd)
-
-        if not deriv_dirs:
-
-            warnings.warn("Derivative indexing was requested, but no valid "
-                          "datasets were found in the specified locations "
-                          "({}). Note that all BIDS-Derivatives datasets must"
-                          " meet all the requirements for BIDS-Raw datasets "
-                          "(a common problem is to fail to include a "
-                          "'dataset_description.json' file in derivatives "
-                          "datasets).\n".format(paths) +
-                          "Example contents of 'dataset_description.json':\n%s" %
-                          json.dumps(EXAMPLE_DERIVATIVES_DESCRIPTION))
-        for deriv in deriv_dirs:
-            dd = os.path.join(deriv, 'dataset_description.json')
-            with open(dd, 'r', encoding='utf-8') as ddfd:
-                description = json.load(ddfd)
-            pipeline_name = description.get(
-                'PipelineDescription', {}).get('Name')
-            if pipeline_name is None:
-                raise BIDSDerivativesValidationError(
-                                 "Every valid BIDS-derivatives dataset must "
-                                 "have a PipelineDescription.Name field set "
-                                 "inside 'dataset_description.json'. "
-                                 "\nExample: %s" %
-                                 MANDATORY_DERIVATIVES_FIELDS['PipelineDescription.Name'])
-            if pipeline_name in self.derivatives:
-                raise BIDSDerivativesValidationError(
-                                 "Pipeline name '%s' has already been added "
-                                 "to this BIDSLayout. Every added pipeline "
-                                 "must have a unique name!")
-            # Default config and sources values
-            kwargs['config'] = kwargs.get('config') or ['bids', 'derivatives']
-            kwargs['sources'] = kwargs.get('sources') or self
+        for name, deriv in deriv_paths.items():
             if parent_database_path:
-                child_database_path = os.path.join(
-                    parent_database_path, pipeline_name)
+                child_database_path = os.path.join(parent_database_path, name)
                 kwargs['database_path'] = child_database_path
-
-            self.derivatives[pipeline_name] = BIDSLayout(deriv, **kwargs)
+            self.derivatives[name] = BIDSLayout(deriv, **kwargs)
 
     def to_df(self, metadata=False, **filters):
         """Return information for BIDSFiles tracked in Layout as pd.DataFrame.
