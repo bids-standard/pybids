@@ -73,6 +73,8 @@ def test_convolve(collection):
         rt.get_duration() * collection.sampling_rate
 
     # Test adapative oversampling computation
+    # Events are 3s duration events every 4s, so resolution demanded by the data is 1Hz
+    # To resolve 1Hz frequencies, we must sample at >=2Hz
     args = (mock.ANY, 'spm', mock.ANY)
     kwargs = dict(fir_delays=None, min_onset=0)
     with mock.patch('bids.analysis.transformations.compute.hrf') as mocked:
@@ -86,10 +88,10 @@ def test_convolve(collection):
         mocked.compute_regressor.assert_called_with(*args, oversampling=1.0, **kwargs)
 
     with mock.patch('bids.analysis.transformations.compute.hrf') as mocked:
-        # Slow sampling rate, oversample (2x) to 1Hz
+        # Slow sampling rate, oversample (4x) to 2Hz
         collection.sampling_rate = 0.5
         transform.Convolve(collection, 'RT', output='rt_mock')
-        mocked.compute_regressor.assert_called_with(*args, oversampling=2.0, **kwargs)
+        mocked.compute_regressor.assert_called_with(*args, oversampling=4.0, **kwargs)
 
     with mock.patch('bids.analysis.transformations.compute.hrf') as mocked:
         # Dense variable is already sampled at 10Hz, no oversampling needed
@@ -98,9 +100,9 @@ def test_convolve(collection):
         mocked.compute_regressor.assert_called_with(*args, oversampling=1.0, **kwargs)
 
     with mock.patch('bids.analysis.transformations.compute.hrf') as mocked:
-        # Onset requires 20Hz resolution, oversample (2x) to 20Hz
+        # Onset requires 10Hz resolution, oversample (2x) to 20Hz
         collection.sampling_rate = 10
-        collection['RT'].onset[0] += 0.05
+        collection['RT'].onset[0] += 0.1
         transform.Convolve(collection, 'RT', output='rt_mock')
         mocked.compute_regressor.assert_called_with(*args, oversampling=2.0, **kwargs)
 

@@ -54,10 +54,11 @@ class Convolve(Transformation):
             dur = var.get_duration()
             resample_frames = np.linspace(
                 0, dur, int(math.ceil(dur * sampling_rate)), endpoint=False)
-
+            safety = 2  # Double frequency to resolve events
         else:
             resample_frames = df['onset'].values
             sampling_rate = var.sampling_rate
+            safety = 1  # Maximum signal resolution is already 0.5 * SR
 
         vals = df[['onset', 'duration', 'amplitude']].values.T
 
@@ -78,15 +79,14 @@ class Convolve(Transformation):
         # events can be modeled with reasonable precision
         unique_onsets = np.unique(df.onset)
         unique_durations = np.unique(df.duration)
-        initial_resolution = 1 / sampling_rate
         # Align existing data ticks with, event onsets and offsets, up to ms resolution
         # Note that GCD ignores zeros, so 0 onsets and impulse responses (0 durations) do
         # not harm this.
         required_resolution = _fractional_gcd(
-            np.concatenate(([initial_resolution], unique_onsets, unique_durations)),
+            np.concatenate((unique_onsets, unique_durations)),
             res=min_interval)
         # Bound the effective sampling rate between min_freq and max_freq
-        effective_sr = max(min_freq, min(1 / required_resolution, max_freq))
+        effective_sr = max(min_freq, min(safety / required_resolution, max_freq))
         convolved = hrf.compute_regressor(
             vals, model, resample_frames, fir_delays=fir_delays, min_onset=0,
             oversampling=np.ceil(effective_sr / sampling_rate)
