@@ -77,20 +77,20 @@ def test_convolve(collection):
         transform.Convolve(collection, 'RT', output='rt_mock')
         mocked.compute_regressor.assert_called_with(
             mock.ANY, 'spm', mock.ANY, fir_delays=None, min_onset=0,
-            oversampling=1.0)
+            oversampling=2.0)
 
     with mock.patch('bids.analysis.transformations.compute.hrf') as mocked:
         transform.Convolve(collection, 'rt_dense', output='rt_mock')
         mocked.compute_regressor.assert_called_with(
             mock.ANY, 'spm', mock.ANY, fir_delays=None, min_onset=0,
-            oversampling=3.0)
+            oversampling=2.0)
 
     with mock.patch('bids.analysis.transformations.compute.hrf') as mocked:
         collection.sampling_rate = 0.5
         transform.Convolve(collection, 'RT', output='rt_mock')
         mocked.compute_regressor.assert_called_with(
             mock.ANY, 'spm', mock.ANY, fir_delays=None, min_onset=0,
-            oversampling=2.0)
+            oversampling=4.0)
 
 
 def test_convolve_impulse():
