@@ -69,8 +69,13 @@ class Convolve(Transformation):
         elif model != 'fir':
             raise ValueError("Model must be one of 'spm', 'glover', or 'fir'.")
 
+        # Sampling at >100Hz will never be useful, but can be wildly expensive
+        max_freq, min_interval = 100, 0.01
+        # Sampling at <1Hz can degrade signals
+        min_freq, max_interval = 1, 1
+
         # Given the sampling rate, determine an oversampling factor to ensure that
-        # events can be modeled with reasonable precision (maximum of millisecond).
+        # events can be modeled with reasonable precision
         unique_onsets = np.unique(df.onset)
         unique_durations = np.unique(df.duration)
         initial_resolution = 1 / sampling_rate
@@ -78,13 +83,13 @@ class Convolve(Transformation):
         # Note that GCD ignores zeros, so 0 onsets and impulse responses (0 durations) do
         # not harm this.
         required_resolution = _fractional_gcd(
-            np.concatenate(([initial_resolution], unique_onsets, unique_durations)))
-        # Oversample by at least two to avoid aliasing, max out at 1kHz
-        effective_sr = min(2 / required_resolution, 1000)
-        oversampling = np.ceil(effective_sr / sampling_rate)
+            np.concatenate(([initial_resolution], unique_onsets, unique_durations)),
+            res=min_interval)
+        # Bound the effective sampling rate between min_freq and max_freq
+        effective_sr = max(min_freq, min(1 / required_resolution, max_freq))
         convolved = hrf.compute_regressor(
             vals, model, resample_frames, fir_delays=fir_delays, min_onset=0,
-            oversampling=oversampling
+            oversampling=np.ceil(effective_sr / sampling_rate)
             )
 
         return DenseRunVariable(
