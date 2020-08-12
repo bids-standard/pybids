@@ -118,13 +118,15 @@ class BIDSLayout(object):
         If True, all metadata files are indexed at
         initialization. If False, metadata will not be available (but
         indexing will be faster).
+    indexer: BIDSLayoutIndexer
+        An optional BIDSLayoutIndexer to use for indexing.
     """
 
     def __init__(self, root, validate=True, absolute_paths=True,
                  derivatives=False, config=None, sources=None, ignore=None,
                  force_index=None, config_filename='layout_config.json',
                  regex_search=False, database_path=None, reset_database=False,
-                 index_metadata=True):
+                 index_metadata=True, indexer=None):
 
         # Validate that a valid BIDS project exists at root
         root, description = validate_root(root, validate)
@@ -146,15 +148,13 @@ class BIDSLayout(object):
         # Set up the DB
         self.connection_manager = ConnectionManager(
             database_path, reset_database, config, init_args)
-
         self.config = {c.name: c for c in self.session.query(Config).all()}
 
-        # Index project if needed
-        self.indexer = BIDSLayoutIndexer(self, ignore, force_index)
+        if indexer is None:
+            indexer = BIDSLayoutIndexer(ignore, force_index, index_metadata)
+        self.indexer = indexer
         if self.connection_manager._database_reset:
-            self.indexer.add_files()
-            if index_metadata:
-                self.indexer.add_metadata()
+            self.indexer.index(self)
 
         # Add derivatives if any are found
         if derivatives:

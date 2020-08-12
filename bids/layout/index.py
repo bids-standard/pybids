@@ -43,36 +43,54 @@ def _check_path_matches_patterns(path, patterns):
 class BIDSLayoutIndexer(object):
     """ Indexer class for BIDSLayout.
 
-    Args:
-        layout (BIDSLayout): The BIDSLayout to index.
+    Parameters
+    ----------
+    ignore : str or SRE_Pattern or list
+        Path(s) to exclude from indexing. Each path is either a string or a
+        SRE_Pattern object (i.e., compiled regular expression). If a string is
+        passed, it must be either an absolute path, or be relative to the BIDS
+        project root. If an SRE_Pattern is passed, the contained regular
+        expression will be matched against the full (absolute) path of all
+        files and directories. By default, indexing ignores all files in
+        'code/', 'stimuli/', 'sourcedata/', 'models/', and any hidden
+        files/dirs beginning with '.' at root level.
+    force_index : str or SRE_Pattern or list
+        Path(s) to forcibly index in the BIDSLayout, even if they would
+        otherwise fail validation. See the documentation for the ignore
+        argument for input format details. Note that paths in force_index takes
+        precedence over those in ignore (i.e., if a file matches both ignore
+        and force_index, it *will* be indexed).
+        Note: NEVER include 'derivatives' here; use the derivatives argument
+        (or :obj:`bids.layout.BIDSLayout.add_derivatives`) for that.
+    index_metadata : bool
+        If True, all metadata files are indexed at initialization. If False,
+        metadata will not be available (but indexing will be faster).
     """
 
-    def __init__(self, layout, ignore=None, force_index=None):
-
-        self.layout = layout
-        self.config = list(layout.config.values())
-        self.session = layout.session
-        self.validate = layout.validate
-        self.root = layout.root
-        self.config_filename = layout.config_filename
+    def __init__(self, ignore=None, force_index=None, index_metadata=True):
         self.validator = BIDSValidator(index_associated=True)
+        self.index_metadata = index_metadata
+        self.ignore = ignore
+        self.force_index = force_index
 
-        ignore, force = validate_indexing_args(ignore, force_index, self.root)
-        self.include_patterns = force
-        self.exclude_patterns = ignore
+        # Layout-dependent attributes to be set in index()
+        self._layout = None
+        self._config = None
+        self._include_patterns = None
+        self._exclude_patterns = None
 
     def _validate_dir(self, d, default=None):
-        if _check_path_matches_patterns(d, self.include_patterns):
+        if _check_path_matches_patterns(d, self._include_patterns):
             return True
-        if _check_path_matches_patterns(d, self.exclude_patterns):
+        if _check_path_matches_patterns(d, self._exclude_patterns):
             return False
         return default
 
     def _validate_file(self, f, default=None):
         # Inclusion takes priority over exclusion
-        if _check_path_matches_patterns(f, self.include_patterns):
+        if _check_path_matches_patterns(f, self._include_patterns):
             return True
-        if _check_path_matches_patterns(f, self.exclude_patterns):
+        if _check_path_matches_patterns(f, self._exclude_patterns):
             return False
 
         # If inclusion/exclusion is inherited from a parent directory, that
@@ -82,29 +100,29 @@ class BIDSLayoutIndexer(object):
 
         # Derivatives are currently not validated.
         # TODO: raise warning the first time in a session this is encountered
-        if not self.validate or 'derivatives' in self.layout.config:
+        if not self._layout.validate or 'derivatives' in self._layout.config:
             return True
 
         # BIDS validator expects absolute paths, but really these are relative
         # to the BIDS project root.
-        to_check = os.path.relpath(f, self.root)
+        to_check = os.path.relpath(f, self._layout.root)
         to_check = os.path.join(os.path.sep, to_check)
         to_check = Path(to_check).as_posix()  # bids-validator works with posix paths only
         return self.validator.is_bids(to_check)
 
     def _index_dir(self, path, config, default_action=None):
 
-        abs_path = os.path.join(self.root, path)
+        abs_path = os.path.join(self._layout.root, path)
 
         # Derivative directories must always be added separately
         # and passed as their own root, so terminate if passed.
-        if abs_path.startswith(os.path.join(self.root, 'derivatives')):
+        if abs_path.startswith(os.path.join(self._layout.root, 'derivatives')):
             return
 
         config = list(config)  # Shallow copy
 
         # Check for additional config file in directory
-        layout_file = self.config_filename
+        layout_file = self._layout.config_filename
         config_file = os.path.join(abs_path, layout_file)
         if os.path.exists(config_file):
             cfg = Config.load(config_file, session=self.session)
@@ -121,8 +139,8 @@ class BIDSLayoutIndexer(object):
             default = self._validate_dir(dirpath, default=default_action)
 
             # If layout configuration file exists, delete it
-            if self.config_filename in filenames:
-                filenames.remove(self.config_filename)
+            if self._layout.config_filename in filenames:
+                filenames.remove(self._layout.config_filename)
 
             for f in filenames:
 
@@ -169,9 +187,27 @@ class BIDSLayoutIndexer(object):
 
         return bf
 
+    @property
+    def session(self):
+        return self._layout.session
+
+    def index(self, layout):
+
+        self._layout = layout
+        self._config = list(layout.config.values())
+
+        ignore, force = validate_indexing_args(self.ignore, self.force_index,
+                                               self._layout.root)
+        self._include_patterns = force
+        self._exclude_patterns = ignore
+
+        self.add_files()
+        if self.index_metadata:
+            self.add_metadata()
+
     def add_files(self):
         """Index all files in the BIDS dataset. """
-        self._index_dir(self.root, self.config)
+        self._index_dir(self._layout.root, self._config)
 
     def add_metadata(self, **filters):
         """Index metadata for all files in the BIDS dataset.
@@ -202,11 +238,11 @@ class BIDSLayoutIndexer(object):
                     filters[ext_key].append(json_ext)
 
         # Process JSON files first if we're indexing metadata
-        all_files = self.layout.get(absolute_paths=True, **filters)
+        all_files = self._layout.get(absolute_paths=True, **filters)
 
         # Track ALL entities we've seen in file names or metadatas
         all_entities = {}
-        for c in self.config:
+        for c in self._config:
             all_entities.update(c.entities)
 
         # If key/value pairs in JSON files duplicate ones extracted from files,
@@ -346,13 +382,14 @@ class BIDSLayoutIndexer(object):
             for target in intended:
                 # Per spec, IntendedFor paths are relative to sub dir.
                 target = os.path.join(
-                    self.root, 'sub-{}'.format(bf.entities['subject']), target)
+                    self._layout.root, 'sub-{}'.format(bf.entities['subject']),
+                    target)
                 create_association_pair(bf.path, target, 'IntendedFor',
                                         'InformedBy')
 
             # Link files to BOLD runs
             if suffix in ['physio', 'stim', 'events', 'sbref']:
-                images = self.layout.get(
+                images = self._layout.get(
                     extension=['.nii', '.nii.gz'], suffix='bold',
                     return_type='filename', **file_ents)
                 for img in images:
@@ -361,7 +398,7 @@ class BIDSLayoutIndexer(object):
 
             # Link files to DWI runs
             if suffix == 'sbref' or ext in ['bvec', 'bval']:
-                images = self.layout.get(
+                images = self._layout.get(
                     extension=['.nii', '.nii.gz'], suffix='dwi',
                     return_type='filename', **file_ents)
                 for img in images:
