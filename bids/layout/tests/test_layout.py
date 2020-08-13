@@ -41,8 +41,8 @@ def test_index_metadata(index_metadata, query, result, mock_config):
     data_dir = join(get_test_data_path(), '7t_trt')
     layout = BIDSLayout(data_dir, index_metadata=index_metadata)
     if not index_metadata and query is not None:
-        indexer = BIDSLayoutIndexer(layout)
-        indexer.add_metadata(**query)
+        indexer = BIDSLayoutIndexer(index_metadata=False)
+        indexer.index(layout, **query)
     sample_file = layout.get(task='rest', extension='.nii.gz',
                              acquisition='fullbrain')[0]
     metadata = sample_file.get_metadata()

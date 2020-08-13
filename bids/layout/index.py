@@ -40,7 +40,7 @@ def _check_path_matches_patterns(path, patterns):
     return False
 
 
-class BIDSLayoutIndexer(object):
+class BIDSLayoutIndexer:
     """ Indexer class for BIDSLayout.
 
     Parameters
@@ -65,13 +65,18 @@ class BIDSLayoutIndexer(object):
     index_metadata : bool
         If True, all metadata files are indexed at initialization. If False,
         metadata will not be available (but indexing will be faster).
+    config_filename : str
+        Optional name of filename within directories
+        that contains configuration information.
     """
 
-    def __init__(self, ignore=None, force_index=None, index_metadata=True):
+    def __init__(self, ignore=None, force_index=None, index_metadata=True,
+                 config_filename='layout_config.json'):
         self.validator = BIDSValidator(index_associated=True)
         self.index_metadata = index_metadata
         self.ignore = ignore
         self.force_index = force_index
+        self.config_filename = config_filename
 
         # Layout-dependent attributes to be set in index()
         self._layout = None
@@ -122,7 +127,7 @@ class BIDSLayoutIndexer(object):
         config = list(config)  # Shallow copy
 
         # Check for additional config file in directory
-        layout_file = self._layout.config_filename
+        layout_file = self.config_filename
         config_file = os.path.join(abs_path, layout_file)
         if os.path.exists(config_file):
             cfg = Config.load(config_file, session=self.session)
@@ -139,8 +144,8 @@ class BIDSLayoutIndexer(object):
             default = self._validate_dir(dirpath, default=default_action)
 
             # If layout configuration file exists, delete it
-            if self._layout.config_filename in filenames:
-                filenames.remove(self._layout.config_filename)
+            if self.config_filename in filenames:
+                filenames.remove(self.config_filename)
 
             for f in filenames:
 
@@ -191,7 +196,7 @@ class BIDSLayoutIndexer(object):
     def session(self):
         return self._layout.session
 
-    def index(self, layout):
+    def index(self, layout, **filters):
 
         self._layout = layout
         self._config = list(layout.config.values())
@@ -201,15 +206,15 @@ class BIDSLayoutIndexer(object):
         self._include_patterns = force
         self._exclude_patterns = ignore
 
-        self.add_files()
+        self._add_files()
         if self.index_metadata:
-            self.add_metadata()
+            self._add_metadata(**filters)
 
-    def add_files(self):
+    def _add_files(self):
         """Index all files in the BIDS dataset. """
         self._index_dir(self._layout.root, self._config)
 
-    def add_metadata(self, **filters):
+    def _add_metadata(self, **filters):
         """Index metadata for all files in the BIDS dataset.
 
         Parameters

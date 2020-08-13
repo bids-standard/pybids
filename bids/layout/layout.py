@@ -138,7 +138,6 @@ class BIDSLayout(object):
         self.derivatives = {}
         self.sources = sources
         self.regex_search = regex_search
-        self.config_filename = config_filename
 
         init_args = dict(
             root=root, validate=validate, absolute_paths=absolute_paths,
@@ -151,7 +150,8 @@ class BIDSLayout(object):
         self.config = {c.name: c for c in self.session.query(Config).all()}
 
         if indexer is None:
-            indexer = BIDSLayoutIndexer(ignore, force_index, index_metadata)
+            indexer = BIDSLayoutIndexer(ignore, force_index, index_metadata,
+                                        config_filename)
         self.indexer = indexer
         if self.connection_manager._database_reset:
             self.indexer.index(self)
