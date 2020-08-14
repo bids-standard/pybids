@@ -62,18 +62,14 @@ class BIDSLayoutIndexer:
         and force_index, it *will* be indexed).
         Note: NEVER include 'derivatives' here; use the derivatives argument
         (or :obj:`bids.layout.BIDSLayout.add_derivatives`) for that.
-    index_metadata : bool
-        If True, all metadata files are indexed at initialization. If False,
-        metadata will not be available (but indexing will be faster).
     config_filename : str
         Optional name of filename within directories
         that contains configuration information.
     """
 
-    def __init__(self, ignore=None, force_index=None, index_metadata=True,
+    def __init__(self, ignore=None, force_index=None,
                  config_filename='layout_config.json'):
         self.validator = BIDSValidator(index_associated=True)
-        self.index_metadata = index_metadata
         self.ignore = ignore
         self.force_index = force_index
         self.config_filename = config_filename
@@ -194,10 +190,9 @@ class BIDSLayoutIndexer:
 
     @property
     def session(self):
-        return self._layout.session
+        return self._layout.connection_manager.session
 
-    def index(self, layout, **filters):
-
+    def _set_layout(self, layout):
         self._layout = layout
         self._config = list(layout.config.values())
 
@@ -206,15 +201,12 @@ class BIDSLayoutIndexer:
         self._include_patterns = force
         self._exclude_patterns = ignore
 
-        self._add_files()
-        if self.index_metadata:
-            self._add_metadata(**filters)
-
-    def _add_files(self):
+    def index_files(self, layout):
         """Index all files in the BIDS dataset. """
+        self._set_layout(layout)
         self._index_dir(self._layout.root, self._config)
 
-    def _add_metadata(self, **filters):
+    def index_metadata(self, layout, **filters):
         """Index metadata for all files in the BIDS dataset.
 
         Parameters
@@ -226,7 +218,7 @@ class BIDSLayoutIndexer:
             These keyword arguments define what files get selected
             for metadata indexing.
         """
-
+        self._set_layout(layout)
         dot = '.' if bids.config.get_option('extension_initial_dot') else ''
         
         if filters:

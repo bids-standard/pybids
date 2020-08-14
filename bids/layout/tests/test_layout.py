@@ -9,7 +9,6 @@ import numpy as np
 import pytest
 
 from bids.layout import BIDSLayout, Query
-from bids.layout.index import BIDSLayoutIndexer
 from bids.layout.models import Config
 from bids.tests import get_test_data_path
 from bids.utils import natural_sort
@@ -41,8 +40,7 @@ def test_index_metadata(index_metadata, query, result, mock_config):
     data_dir = join(get_test_data_path(), '7t_trt')
     layout = BIDSLayout(data_dir, index_metadata=index_metadata)
     if not index_metadata and query is not None:
-        indexer = BIDSLayoutIndexer(index_metadata=False)
-        indexer.index(layout, **query)
+        layout.indexer.index_metadata(layout, **query)
     sample_file = layout.get(task='rest', extension='.nii.gz',
                              acquisition='fullbrain')[0]
     metadata = sample_file.get_metadata()

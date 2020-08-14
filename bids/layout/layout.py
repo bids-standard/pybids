@@ -150,11 +150,12 @@ class BIDSLayout(object):
         self.config = {c.name: c for c in self.session.query(Config).all()}
 
         if indexer is None:
-            indexer = BIDSLayoutIndexer(ignore, force_index, index_metadata,
-                                        config_filename)
+            indexer = BIDSLayoutIndexer(ignore, force_index, config_filename)
         self.indexer = indexer
         if self.connection_manager._database_reset:
-            self.indexer.index(self)
+            self.indexer.index_files(self)
+            if index_metadata:
+                self.indexer.index_metadata(self)
 
         # Add derivatives if any are found
         if derivatives:
