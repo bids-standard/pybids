@@ -24,7 +24,8 @@ from ..exceptions import (
     TargetError,
 )
 
-from .validation import validate_root, validate_derivative_paths
+from .validation import (validate_root, validate_derivative_paths,
+                         absolute_path_deprecation_warning)
 from .writing import build_path, write_to_file
 from .models import (Base, Config, BIDSFile, Entity, Tag)
 from .index import BIDSLayoutIndexer
@@ -127,6 +128,9 @@ class BIDSLayout(object):
                  force_index=None, config_filename='layout_config.json',
                  regex_search=False, database_path=None, reset_database=False,
                  index_metadata=True, indexer=None):
+
+        if absolute_paths == False:
+            absolute_path_deprecation_warning()
 
         # Validate that a valid BIDS project exists at root
         root, description = validate_root(root, validate)
@@ -590,6 +594,9 @@ class BIDSLayout(object):
         list of :obj:`bids.layout.BIDSFile` or str
             A list of BIDSFiles (default) or strings (see return_type).
         """
+
+        if absolute_paths == False:
+            absolute_path_deprecation_warning()
 
         layouts = self._get_layouts_in_scope(scope)
 

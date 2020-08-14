@@ -33,6 +33,14 @@ EXAMPLE_DERIVATIVES_DESCRIPTION = {
 DEFAULT_LOCATIONS_TO_IGNORE = ("code", "stimuli", "sourcedata", "models",
                                re.compile(r'^\.'))
 
+def absolute_path_deprecation_warning():
+    warnings.warn("The absolute_paths argument will be removed from PyBIDS "
+                  "in 0.14. You can easily access the relative path of "
+                  "BIDSFile objects via the .relpath attribute (instead of "
+                  ".path). Switching to this pattern is strongly encouraged, "
+                  "as the current implementation of relative path handling "
+                  "is known to produce query failures in certain edge cases.")
+
 
 def validate_root(root, validate):
     # Validate root argument and make sure it contains mandatory info
