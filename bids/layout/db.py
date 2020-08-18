@@ -37,26 +37,6 @@ def get_database_sidecar(path):
     return path.parent / 'layout_args.json'
 
 
-def _sanitize_init_args(**kwargs):
-    """ Prepare initalization arguments for serialization """
-    # Make ignore and force_index serializable
-    for k in ['ignore', 'force_index']:
-        if kwargs.get(k) is not None:
-            kwargs[k] = [str(a) for a in kwargs.get(k) if a is not None]
-
-    if 'root' in kwargs:
-        kwargs['root'] = str(Path(kwargs['root']).absolute())
-
-    # Get abspaths
-    if 'derivatives' in kwargs and isinstance(kwargs['derivatives'], list):
-        kwargs['derivatives'] = [
-            str(Path(der).absolute())
-            for der in listify(kwargs['derivatives'])
-            ]
-
-    return kwargs
-
-
 class ConnectionManager:
 
     def __init__(self, database_path=None, reset_database=False, config=None,

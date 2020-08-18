@@ -1,22 +1,81 @@
 """ Model classes used in BIDSLayouts. """
 
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.ext.associationproxy import association_proxy
-from sqlalchemy.orm.collections import attribute_mapped_collection
-from sqlalchemy import (Column, String, Boolean, ForeignKey, Table)
-from sqlalchemy.orm import reconstructor, relationship, backref, object_session
 import re
 import os
+from pathlib import Path
 import warnings
 import json
 from copy import deepcopy
 from itertools import chain
 
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.ext.associationproxy import association_proxy
+from sqlalchemy.orm.collections import attribute_mapped_collection
+from sqlalchemy import (Column, String, Boolean, ForeignKey, Table)
+from sqlalchemy.orm import reconstructor, relationship, backref, object_session
+
+from ..utils import listify
 from .writing import build_path, write_to_file
 from ..config import get_option
 from .utils import BIDSMetadata
 
 Base = declarative_base()
+
+
+class LayoutInfo(Base):
+    """ Contains information about a BIDSLayout's initialization parameters."""
+
+    __tablename__ = 'layout_info'
+
+    root = Column(String, primary_key=True)
+    validate = Column(Boolean)
+    absolute_paths = Column(Boolean)
+    index_metadata = Column(Boolean)
+
+    _derivatives = Column(String)
+    _ignore = Column(String)
+    _force_index = Column(String)
+    _config = Column(String)
+
+    def __init__(self, **kwargs):
+        init_args = self._sanitize_init_args(kwargs)
+        raw_cols = ['root', 'validate', 'absolute_paths', 'index_metadata']
+        json_cols = ['derivatives', 'ignore', 'force_index', 'config']
+        all_cols = raw_cols + json_cols
+        missing_cols = set(all_cols) - set(init_args.keys())
+        if missing_cols:
+            raise ValueError("Missing mandatory initialization args: {}"
+                             .format(missing_cols))
+        for col in all_cols:
+            setattr(self, col, init_args[col])
+            if col in json_cols:
+                json_data = json.dumps(init_args[col])
+                setattr(self, '_' + col, json_data)
+
+    @reconstructor
+    def _init_on_load(self):
+        for col in ['derivatives', 'ignore', 'force_index', 'config']:
+            db_val = getattr(self, '_' + col)
+            setattr(self, col, json.loads(db_val))
+
+    def _sanitize_init_args(self, kwargs):
+        """ Prepare initalization arguments for serialization """
+        # Make ignore and force_index serializable
+        for k in ['ignore', 'force_index']:
+            if kwargs.get(k) is not None:
+                kwargs[k] = [str(a) for a in kwargs.get(k) if a is not None]
+
+        if 'root' in kwargs:
+            kwargs['root'] = str(Path(kwargs['root']).absolute())
+
+        # Get abspaths
+        if 'derivatives' in kwargs and isinstance(kwargs['derivatives'], list):
+            kwargs['derivatives'] = [
+                str(Path(der).absolute())
+                for der in listify(kwargs['derivatives'])
+                ]
+
+        return kwargs
 
 
 class Config(Base):

@@ -12,7 +12,7 @@ from sqlalchemy.orm import sessionmaker
 import numpy as np
 
 from bids.layout.models import (BIDSFile, Entity, Tag, Base, Config,
-                                FileAssociation, BIDSImageFile)
+                                FileAssociation, BIDSImageFile, LayoutInfo)
 from bids.tests import get_test_data_path
 
 
@@ -36,6 +36,20 @@ def sample_bidsfile(tmpdir):
 def subject_entity():
     return Entity('subject', r"[/\\\\]sub-([a-zA-Z0-9]+)", mandatory=False,
                directory="{subject}", dtype='str')
+
+
+def test_layoutinfo_init():
+    args = dict(root='/made/up/path', validate=True,
+                      absolute_paths=True, index_metadata=False,
+                      derivatives=True, ignore=['code/', 'blergh/'],
+                      force_index=None)
+    with pytest.raises(ValueError) as exc:
+        LayoutInfo(**args)
+        assert exc.value.message.startswith("Missing mandatory")
+    args['config'] = ['bids', 'derivatives']
+    info = LayoutInfo(**args)
+    assert info.derivatives == True
+    assert info._derivatives == 'true'
 
 
 def test_entity_initialization():
