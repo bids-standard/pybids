@@ -72,8 +72,7 @@ def test_entity_init_all_args(subject_entity):
 def test_entity_init_with_bad_dtype():
     with pytest.raises(ValueError) as exc:
         ent = Entity('test', dtype='superfloat')
-        msg = exc.value.message
-        assert msg.startswith("Invalid dtype")
+    assert str(exc.value).startswith("Invalid dtype")
 
 
 def test_entity_matches(tmpdir):

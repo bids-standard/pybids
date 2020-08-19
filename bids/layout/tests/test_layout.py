@@ -196,12 +196,12 @@ def test_get_metadata_error(layout_7t_trt):
 def test_get_with_bad_target(layout_7t_trt):
     with pytest.raises(TargetError) as exc:
         layout_7t_trt.get(target='unicorn')
-        msg = exc.value.message
-        assert 'subject' in msg and 'reconstruction' in msg and 'proc' in msg
+    msg = str(exc.value)
+    assert 'subject' in msg and 'reconstruction' in msg and 'proc' in msg
     with pytest.raises(TargetError) as exc:
         layout_7t_trt.get(target='sub')
-        msg = exc.value.message
-        assert 'subject' in msg and 'reconstruction' not in msg
+    msg = str(exc.value)
+    assert 'subject' in msg and 'reconstruction' not in msg
 
 
 def test_get_bvals_bvecs(layout_ds005):
@@ -455,11 +455,11 @@ def test_get_tr(layout_7t_trt):
     # Bad subject, should fail
     with pytest.raises(NoMatchError) as exc:
         layout_7t_trt.get_tr(subject="zzz")
-        assert exc.value.message.startswith("No functional images")
+    assert str(exc.value).startswith("No functional images")
     # There are multiple tasks with different TRs, so this should fail
     with pytest.raises(NoMatchError) as exc:
         layout_7t_trt.get_tr(subject=['01', '02'])
-        assert exc.value.message.startswith("Unique TR")
+    assert str(exc.value).startswith("Unique TR")
     # This should work
     tr = layout_7t_trt.get_tr(subject=['01', '02'], acquisition="fullbrain")
     assert tr == 3.0
@@ -598,8 +598,8 @@ def test_indexing_tag_conflict():
     data_dir = join(get_test_data_path(), 'ds005_conflict')
     with pytest.raises(BIDSValidationError) as exc:
         layout = BIDSLayout(data_dir)
-        assert exc.value.message.startswith("Conflicting values found")
-        assert 'run' in exc.value.message
+    assert str(exc.value).startswith("Conflicting values found")
+    assert 'run' in str(exc.value)
 
 
 def test_get_with_wrong_dtypes(layout_7t_trt):

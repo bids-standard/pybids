@@ -58,7 +58,7 @@ def test_run_variable_collection_get_sampling_rate(run_coll):
     coll.variables['RT'].run_info[0] = RunInfo({}, 200, 10, None)
     with pytest.raises(ValueError) as exc:
         coll._get_sampling_rate('TR')
-        assert exc.value.message.startswith('Non-unique')
+    assert str(exc.value).startswith('Non-unique')
     assert coll._get_sampling_rate('highest') == 10
     coll.variables['RT1'] = coll.variables['RT'].to_dense(5.)
     coll.variables['RT2'] = coll.variables['RT'].to_dense(12.)
@@ -66,7 +66,7 @@ def test_run_variable_collection_get_sampling_rate(run_coll):
     assert coll._get_sampling_rate(20) == 20
     with pytest.raises(ValueError) as exc:
         coll._get_sampling_rate('BLARGH')
-        assert exc.value.message.startswith('Invalid')
+    assert str(exc.value).startswith('Invalid')
 
 
 def test_resample_run_variable_collection(run_coll):
