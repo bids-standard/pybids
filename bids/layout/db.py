@@ -46,8 +46,6 @@ class ConnectionManager:
 
         if reset_database:
             self.reset_database(init_args, config)
-        else:
-            self.load_database()
 
         self._database_reset = reset_database
 
@@ -114,11 +112,6 @@ class ConnectionManager:
         config = [Config.load(c, session=self.session) for c in listify(config)]
         self.session.add_all(config)
         self.session.commit()
-
-    def load_database(self):
-        if self.database_file is None:
-            raise ValueError("load_database() can only be called on databases "
-                             "stored in a file, not on in-memory databases.")
 
     def save_database(self, database_path, replace_connection=True):
         """Save the current index as a SQLite3 DB at the specified location.
