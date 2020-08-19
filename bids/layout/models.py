@@ -1,22 +1,72 @@
 """ Model classes used in BIDSLayouts. """
 
+import re
+import os
+from pathlib import Path
+import warnings
+import json
+from copy import deepcopy
+from itertools import chain
+from functools import lru_cache
+
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.orm.collections import attribute_mapped_collection
 from sqlalchemy import (Column, String, Boolean, ForeignKey, Table)
 from sqlalchemy.orm import reconstructor, relationship, backref, object_session
-import re
-import os
-import warnings
-import json
-from copy import deepcopy
-from itertools import chain
 
+from ..utils import listify
 from .writing import build_path, write_to_file
 from ..config import get_option
 from .utils import BIDSMetadata
 
 Base = declarative_base()
+
+
+class LayoutInfo(Base):
+    """ Contains information about a BIDSLayout's initialization parameters."""
+
+    __tablename__ = 'layout_info'
+
+    root = Column(String, primary_key=True)
+    absolute_paths = Column(Boolean)
+    _derivatives = Column(String)
+    _config = Column(String)
+
+    def __init__(self, **kwargs):
+        init_args = self._sanitize_init_args(kwargs)
+        raw_cols = ['root', 'absolute_paths']
+        json_cols = ['derivatives', 'config']
+        all_cols = raw_cols + json_cols
+        missing_cols = set(all_cols) - set(init_args.keys())
+        if missing_cols:
+            raise ValueError("Missing mandatory initialization args: {}"
+                             .format(missing_cols))
+        for col in all_cols:
+            setattr(self, col, init_args[col])
+            if col in json_cols:
+                json_data = json.dumps(init_args[col])
+                setattr(self, '_' + col, json_data)
+
+    @reconstructor
+    def _init_on_load(self):
+        for col in ['derivatives', 'config']:
+            db_val = getattr(self, '_' + col)
+            setattr(self, col, json.loads(db_val))
+
+    def _sanitize_init_args(self, kwargs):
+        """ Prepare initalization arguments for serialization """
+        if 'root' in kwargs:
+            kwargs['root'] = str(Path(kwargs['root']).absolute())
+
+        # Get abspaths
+        if 'derivatives' in kwargs and isinstance(kwargs['derivatives'], list):
+            kwargs['derivatives'] = [
+                str(Path(der).absolute())
+                for der in listify(kwargs['derivatives'])
+                ]
+
+        return kwargs
 
 
 class Config(Base):
@@ -182,6 +232,13 @@ class BIDSFile(Base):
 
     def __fspath__(self):
         return self.path
+
+    @property
+    @lru_cache()
+    def relpath(self):
+        """Return path relative to layout root"""
+        root = object_session(self).query(LayoutInfo).first().root
+        return str(Path(self.path).relative_to(root))
 
     def get_associations(self, kind=None, include_parents=False):
         """Get associated files, optionally limiting by association kind.

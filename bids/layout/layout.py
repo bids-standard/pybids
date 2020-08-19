@@ -4,7 +4,7 @@ import json
 import re
 from collections import defaultdict
 from io import open
-from functools import partial
+from functools import partial, lru_cache
 from itertools import chain
 import copy
 import warnings
@@ -24,10 +24,13 @@ from ..exceptions import (
     TargetError,
 )
 
+from .validation import (validate_root, validate_derivative_paths,
+                         absolute_path_deprecation_warning,
+                         indexer_arg_deprecation_warning)
 from .writing import build_path, write_to_file
 from .models import (Base, Config, BIDSFile, Entity, Tag)
 from .index import BIDSLayoutIndexer
-from .db import ConnectionManager, get_database_sidecar, get_database_file
+from .db import ConnectionManager
 from .utils import (BIDSMetadata, parse_file_entities)
 
 try:
@@ -41,22 +44,6 @@ except ImportError:
 
 __all__ = ['BIDSLayout']
 
-MANDATORY_BIDS_FIELDS = {
-    "Name": {"Name": "Example dataset"},
-    "BIDSVersion": {"BIDSVersion": "1.0.2"},
-}
-
-MANDATORY_DERIVATIVES_FIELDS = {
-    **MANDATORY_BIDS_FIELDS,
-    "PipelineDescription.Name": {"PipelineDescription": {"Name": "Example pipeline"}},
-}
-
-EXAMPLE_BIDS_DESCRIPTION = {
-    k: val[k] for val in MANDATORY_BIDS_FIELDS.values() for k in val}
-
-EXAMPLE_DERIVATIVES_DESCRIPTION = {
-    k: val[k] for val in MANDATORY_DERIVATIVES_FIELDS.values() for k in val}
-
 
 class BIDSLayout(object):
     """Layout class representing an entire BIDS dataset.
@@ -66,12 +53,11 @@ class BIDSLayout(object):
     root : str
         The root directory of the BIDS dataset.
     validate : bool, optional
-        If True, all files are checked for BIDS compliance
-        when first indexed, and non-compliant files are ignored. This
-        provides a convenient way to restrict file indexing to only those
-        files defined in the "core" BIDS spec, as setting validate=True
-        will lead files in supplementary folders like derivatives/, code/,
-        etc. to be ignored.
+        If True, all files are checked for BIDS compliance when first indexed,
+        and non-compliant files are ignored. This provides a convenient way to
+        restrict file indexing to only those files defined in the "core" BIDS
+        spec, as setting validate=True will lead files in supplementary folders
+        like derivatives/, code/, etc. to be ignored.
     absolute_paths : bool, optional
         If True, queries always return absolute paths.
         If False, queries return relative paths (for files and
@@ -90,25 +76,6 @@ class BIDSLayout(object):
         By default (None), uses 'bids'.
     sources : :obj:`bids.layout.BIDSLayout` or list or None, optional
         Optional BIDSLayout(s) from which the current BIDSLayout is derived.
-    ignore : str or SRE_Pattern or list
-        Path(s) to exclude from indexing. Each
-        path is either a string or a SRE_Pattern object (i.e., compiled
-        regular expression). If a string is passed, it must be either an
-        absolute path, or be relative to the BIDS project root. If an
-        SRE_Pattern is passed, the contained regular expression will be
-        matched against the full (absolute) path of all files and
-        directories. By default, indexing ignores all files in 'code/',
-        'stimuli/', 'sourcedata/', 'models/', and any hidden files/dirs
-        beginning with '.' at root level.
-    force_index : str or SRE_Pattern or list
-        Path(s) to forcibly index in the
-        BIDSLayout, even if they would otherwise fail validation. See the
-        documentation for the ignore argument for input format details.
-        Note that paths in force_index takes precedence over those in
-        ignore (i.e., if a file matches both ignore and force_index, it
-        *will* be indexed).
-        Note: NEVER include 'derivatives' here; use the derivatives argument
-        (or :obj:`bids.layout.BIDSLayout.add_derivatives`) for that.
     config_filename : str
         Optional name of filename within directories
         that contains configuration information.
@@ -129,63 +96,63 @@ class BIDSLayout(object):
         in the root argument is reindexed. If False, indexing will be
         skipped and the existing database file will be used. Ignored if
         database_path is not provided.
-    index_metadata : bool
-        If True, all metadata files are indexed at
-        initialization. If False, metadata will not be available (but
-        indexing will be faster).
+    indexer: BIDSLayoutIndexer or callable
+        An optional BIDSLayoutIndexer instance to use for indexing, or any
+        callable that takes a BIDSLayout instance as its only argument. If
+        None, a new indexer with default parameters will be implicitly created.
+    indexer_kwargs: dict
+        Optional keyword arguments to pass onto the newly created
+        BIDSLayoutIndexer. Valid keywords are 'ignore', 'force_index',
+        'index_metadata', and 'config_filename'. Ignored if indexer is not
+        None.
     """
 
-    _default_ignore = ("code", "stimuli", "sourcedata", "models",
-                       re.compile(r'^\.'))
-
-    def __init__(self, root, validate=True, absolute_paths=True,
-                 derivatives=False, config=None, sources=None, ignore=None,
-                 force_index=None, config_filename='layout_config.json',
+    def __init__(self, root=None, validate=True, absolute_paths=True,
+                 derivatives=False, config=None, sources=None,
                  regex_search=False, database_path=None, reset_database=False,
-                 index_metadata=True):
+                 indexer=None, **indexer_kwargs):
+
+        if not absolute_paths:
+            absolute_path_deprecation_warning()
+
+        ind_args = {'force_index', 'ignore', 'index_metadata', 'config_filename'}
+        if ind_args & set(indexer_kwargs.keys()):
+            indexer_arg_deprecation_warning()
+
+        # Load from existing database file
+        load_db = (database_path is not None and reset_database is False and
+                   ConnectionManager.exists(database_path))
+
+        if load_db:
+            self.connection_manager = ConnectionManager(database_path)
+            info = self.connection_manager.layout_info
+            # Overwrite init args with values in DB
+            root = info.root
+            absolute_paths = info.absolute_paths
+            derivatives = info.derivatives
+            config = info.config
+
+        # Validate that a valid BIDS project exists at root
+        root, description = validate_root(root, validate)
 
         self.root = root
-        self.validate = validate
+        self.description = description
         self.absolute_paths = absolute_paths
         self.derivatives = {}
         self.sources = sources
         self.regex_search = regex_search
-        self.config_filename = config_filename
 
-        if ignore is None:
-            ignore = self._default_ignore
+        # Initialize a completely new layout and index the dataset
+        if not load_db:
+            init_args = dict(root=root, absolute_paths=absolute_paths,
+                             derivatives=derivatives, config=config)
 
-        # Do basic BIDS validation on root directory
-        self._validate_root()
+            self.connection_manager = ConnectionManager(
+                database_path, reset_database, config, init_args)
 
-        # Instantiate after root validation to ensure os.path.join works
-        self.ignore = [os.path.abspath(os.path.join(self.root, patt))
-                       if isinstance(patt, str) else patt
-                       for patt in listify(ignore or [])]
-        self.force_index = [os.path.abspath(os.path.join(self.root, patt))
-                            if isinstance(patt, str) else patt
-                            for patt in listify(force_index or [])]
-
-        # Initialize the BIDS validator and examine ignore/force_index args
-        self._validate_force_index()
-
-        init_args = dict(
-            root=root, validate=validate, absolute_paths=absolute_paths,
-            derivatives=derivatives, ignore=ignore, force_index=force_index,
-            index_metadata=index_metadata, config=config)
-
-        # Set up the DB
-        self.connection_manager = ConnectionManager(
-            database_path, reset_database, config, init_args)
-
-        self.config = {c.name: c for c in self.session.query(Config).all()}
-
-        # Index project if needed
-        self.indexer = BIDSLayoutIndexer(self)
-        if self.connection_manager._database_reset:
-            self.indexer.add_files()
-            if index_metadata:
-                self.indexer.add_metadata()
+            if indexer is None:
+                indexer = BIDSLayoutIndexer(validate=validate, **indexer_kwargs)
+            indexer(self)
 
         # Add derivatives if any are found
         if derivatives:
@@ -194,12 +161,9 @@ class BIDSLayout(object):
             self.add_derivatives(
                 derivatives, parent_database_path=database_path,
                 validate=validate, absolute_paths=absolute_paths,
-                derivatives=None, sources=self, ignore=ignore,  config=None,
-                force_index=force_index, config_filename=config_filename,
-                regex_search=regex_search, index_metadata=index_metadata,
-                # reset_database=index_dataset or reset_database
-                reset_database=reset_database
-                )
+                derivatives=None, sources=self, config=None,
+                regex_search=regex_search, reset_database=reset_database,
+                indexer=indexer, **indexer_kwargs)
 
     def __getattr__(self, key):
         """Dynamically inspect missing methods for get_<entity>() calls
@@ -251,56 +215,6 @@ class BIDSLayout(object):
         s = ("BIDS Layout: ...{} | Subjects: {} | Sessions: {} | "
              "Runs: {}".format(root, n_subjects, n_sessions, n_runs))
         return s
-
-    def _validate_root(self):
-        # Validate root argument and make sure it contains mandatory info
-
-        try:
-            self.root = str(self.root)
-        except:
-            raise TypeError("root argument must be a string (or a type that "
-                            "supports casting to string, such as "
-                            "pathlib.Path) specifying the directory "
-                            "containing the BIDS dataset.")
-
-        self.root = os.path.abspath(self.root)
-
-        if not os.path.exists(self.root):
-            raise ValueError("BIDS root does not exist: %s" % self.root)
-
-        target = os.path.join(self.root, 'dataset_description.json')
-        if not os.path.exists(target):
-            if self.validate:
-                raise BIDSValidationError(
-                    "'dataset_description.json' is missing from project root."
-                    " Every valid BIDS dataset must have this file."
-                    "\nExample contents of 'dataset_description.json': \n%s" %
-                    json.dumps(EXAMPLE_BIDS_DESCRIPTION)
-                )
-            else:
-                self.description = None
-        else:
-            with open(target, 'r', encoding='utf-8') as desc_fd:
-                self.description = json.load(desc_fd)
-            if self.validate:
-                for k in MANDATORY_BIDS_FIELDS:
-                    if k not in self.description:
-                        raise BIDSValidationError("Mandatory %r field missing from "
-                                                  "'dataset_description.json'."
-                                                  "\nExample: %s" % (k, MANDATORY_BIDS_FIELDS[k])
-                        )
-
-    def _validate_force_index(self):
-        # Derivatives get special handling; they shouldn't be indexed normally
-        if self.force_index is not None:
-            for entry in self.force_index:
-                condi = (isinstance(entry, str) and
-                         os.path.normpath(entry).startswith('derivatives'))
-                if condi:
-                    msg = ("Do not pass 'derivatives' in the force_index "
-                           "list. To index derivatives, either set "
-                           "derivatives=True, or use add_derivatives().")
-                    raise ValueError(msg)
 
     def _in_scope(self, scope):
         """Determine whether current BIDSLayout is in the passed scope.
@@ -365,6 +279,11 @@ class BIDSLayout(object):
         return self.connection_manager.session
 
     @property
+    @lru_cache()
+    def config(self):
+        return {c.name: c for c in self.session.query(Config).all()}
+
+    @property
     def entities(self):
         """Get the entities."""
         return self.get_entities()
@@ -386,10 +305,7 @@ class BIDSLayout(object):
             passed, it is assumed to be relative to the BIDSLayout root
             directory.
         """
-        database_file = get_database_file(database_path)
-        database_sidecar = get_database_sidecar(database_file)
-        init_args = json.loads(database_sidecar.read_text())
-        return cls(database_path=database_path, **init_args)
+        return cls(database_path=database_path)
 
     def save(self, database_path, replace_connection=True):
         """Save the current index as a SQLite3 DB at the specified location.
@@ -550,64 +466,17 @@ class BIDSLayout(object):
         specification for details.
         """
         paths = listify(path)
-        deriv_dirs = []
+        deriv_paths = validate_derivative_paths(paths, self, **kwargs)
 
-        # Collect all paths that contain a dataset_description.json
-        def check_for_description(bids_dir):
-            dd = os.path.join(bids_dir, 'dataset_description.json')
-            return os.path.exists(dd)
+        # Default config and sources values
+        kwargs['config'] = kwargs.get('config') or ['bids', 'derivatives']
+        kwargs['sources'] = kwargs.get('sources') or self
 
-        for p in paths:
-            p = os.path.abspath(p)
-            if os.path.exists(p):
-                if check_for_description(p):
-                    deriv_dirs.append(p)
-                else:
-                    subdirs = [d for d in os.listdir(p)
-                               if os.path.isdir(os.path.join(p, d))]
-                    for sd in subdirs:
-                        sd = os.path.join(p, sd)
-                        if check_for_description(sd):
-                            deriv_dirs.append(sd)
-
-        if not deriv_dirs:
-
-            warnings.warn("Derivative indexing was requested, but no valid "
-                          "datasets were found in the specified locations "
-                          "({}). Note that all BIDS-Derivatives datasets must"
-                          " meet all the requirements for BIDS-Raw datasets "
-                          "(a common problem is to fail to include a "
-                          "'dataset_description.json' file in derivatives "
-                          "datasets).\n".format(paths) +
-                          "Example contents of 'dataset_description.json':\n%s" %
-                          json.dumps(EXAMPLE_DERIVATIVES_DESCRIPTION))
-        for deriv in deriv_dirs:
-            dd = os.path.join(deriv, 'dataset_description.json')
-            with open(dd, 'r', encoding='utf-8') as ddfd:
-                description = json.load(ddfd)
-            pipeline_name = description.get(
-                'PipelineDescription', {}).get('Name')
-            if pipeline_name is None:
-                raise BIDSDerivativesValidationError(
-                                 "Every valid BIDS-derivatives dataset must "
-                                 "have a PipelineDescription.Name field set "
-                                 "inside 'dataset_description.json'. "
-                                 "\nExample: %s" %
-                                 MANDATORY_DERIVATIVES_FIELDS['PipelineDescription.Name'])
-            if pipeline_name in self.derivatives:
-                raise BIDSDerivativesValidationError(
-                                 "Pipeline name '%s' has already been added "
-                                 "to this BIDSLayout. Every added pipeline "
-                                 "must have a unique name!")
-            # Default config and sources values
-            kwargs['config'] = kwargs.get('config') or ['bids', 'derivatives']
-            kwargs['sources'] = kwargs.get('sources') or self
+        for name, deriv in deriv_paths.items():
             if parent_database_path:
-                child_database_path = os.path.join(
-                    parent_database_path, pipeline_name)
+                child_database_path = os.path.join(parent_database_path, name)
                 kwargs['database_path'] = child_database_path
-
-            self.derivatives[pipeline_name] = BIDSLayout(deriv, **kwargs)
+            self.derivatives[name] = BIDSLayout(deriv, **kwargs)
 
     def to_df(self, metadata=False, **filters):
         """Return information for BIDSFiles tracked in Layout as pd.DataFrame.
@@ -717,6 +586,9 @@ class BIDSLayout(object):
         list of :obj:`bids.layout.BIDSFile` or str
             A list of BIDSFiles (default) or strings (see return_type).
         """
+
+        if absolute_paths is False:
+            absolute_path_deprecation_warning()
 
         layouts = self._get_layouts_in_scope(scope)
 

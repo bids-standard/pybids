@@ -13,7 +13,7 @@ import sqlalchemy as sa
 from sqlalchemy.orm import joinedload
 
 from bids.utils import listify
-from .models import Base, Config
+from .models import Base, Config, LayoutInfo
 
 
 def get_database_file(path):
@@ -26,43 +26,11 @@ def get_database_file(path):
     return database_file
 
 
-def get_database_sidecar(path):
-    """Given a path to a database file, return the associated sidecar.
-
-    Args:
-        path (str, Path): A path to a database file
-    """
-    if isinstance(path, str):
-        path = Path(path)
-    return path.parent / 'layout_args.json'
-
-
-def _sanitize_init_args(**kwargs):
-    """ Prepare initalization arguments for serialization """
-    # Make ignore and force_index serializable
-    for k in ['ignore', 'force_index']:
-        if kwargs.get(k) is not None:
-            kwargs[k] = [str(a) for a in kwargs.get(k) if a is not None]
-
-    if 'root' in kwargs:
-        kwargs['root'] = str(Path(kwargs['root']).absolute())
-
-    # Get abspaths
-    if 'derivatives' in kwargs and isinstance(kwargs['derivatives'], list):
-        kwargs['derivatives'] = [
-            str(Path(der).absolute())
-            for der in listify(kwargs['derivatives'])
-            ]
-
-    return kwargs
-
-
 class ConnectionManager:
 
     def __init__(self, database_path=None, reset_database=False, config=None,
                  init_args=None):
 
-        self.init_args = _sanitize_init_args(**(init_args or {}))
         self.database_file = get_database_file(database_path)
 
         # Determine if file exists before we create it in _get_engine()
@@ -77,9 +45,7 @@ class ConnectionManager:
         self._session = None
 
         if reset_database:
-            self.reset_database(config)
-        else:
-            self.load_database()
+            self.reset_database(init_args, config)
 
         self._database_reset = reset_database
 
@@ -130,32 +96,22 @@ class ConnectionManager:
 
         return engine
 
-    def reset_database(self, config=None):
+    @classmethod
+    def exists(cls, database_path):
+        return get_database_file(database_path).exists()
+
+    def reset_database(self, init_args, config=None):
         Base.metadata.drop_all(self.engine)
         Base.metadata.create_all(self.engine)
-        if self.database_sidecar is not None:
-            self.database_sidecar.write_text(json.dumps(self.init_args))
+        # Add LayoutInfo record
+        if not isinstance(init_args, LayoutInfo):
+            layout_info = LayoutInfo(**init_args)
+        self.session.add(layout_info)
         # Add config records
         config = listify('bids' if config is None else config)
         config = [Config.load(c, session=self.session) for c in listify(config)]
         self.session.add_all(config)
         self.session.commit()
-
-    def load_database(self):
-        if self.database_file is None:
-            raise ValueError("load_database() can only be called on databases "
-                             "stored in a file, not on in-memory databases.")
-        saved_args = json.loads(self.database_sidecar.read_text())
-        for k, v in saved_args.items():
-            curr_val = self.init_args.get(k)
-            if curr_val != v:
-                raise ValueError(
-                    "Initialization argument ('{}') does not match "
-                    "for database_path: {}.\n"
-                    "Saved value: {}.\n"
-                    "Current value: {}.".format(
-                        k, self.database_file, v, curr_val)
-                    )
 
     def save_database(self, database_path, replace_connection=True):
         """Save the current index as a SQLite3 DB at the specified location.
@@ -176,7 +132,6 @@ class ConnectionManager:
             created database. If False, returns the current instance.
         """
         database_file = get_database_file(database_path)
-        database_sidecar = get_database_sidecar(database_file)
         new_db = sqlite3.connect(str(database_file))
         old_db = self.engine.connect().connection
 
@@ -186,27 +141,22 @@ class ConnectionManager:
                     new_db.execute(line)
             new_db.commit()
 
-        # Dump instance arguments to JSON
-        database_sidecar.write_text(json.dumps(self.init_args))
-
         if replace_connection:
-            return ConnectionManager(database_path, init_args=self.init_args)
+            return ConnectionManager(database_path, init_args=self.layout_info)
         else:
             return self
-
-    @property
-    # Replace with @cached_property (3.8+) at some point in future
-    @lru_cache(maxsize=None)
-    def database_sidecar(self):
-        if self.database_file is not None:
-            return get_database_sidecar(self.database_file)
-        return None
 
     @property
     def session(self):
         if self._session is None:
             self.reset_session()
         return self._session
+
+    @property
+    @lru_cache()
+    def layout_info(self):
+        return self.session.query(LayoutInfo).first()
+
 
     def reset_session(self):
         """Force a new session."""

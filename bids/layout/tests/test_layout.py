@@ -9,8 +9,8 @@ import numpy as np
 import pytest
 
 from bids.layout import BIDSLayout, Query
-from bids.layout.index import BIDSLayoutIndexer
 from bids.layout.models import Config
+from bids.layout.index import BIDSLayoutIndexer
 from bids.tests import get_test_data_path
 from bids.utils import natural_sort
 
@@ -29,20 +29,17 @@ def test_layout_init(layout_7t_trt):
 @pytest.mark.parametrize(
     'index_metadata,query,result',
     [
-        (True, None, 3.0),
-        (False, None, None),
-        (False, {}, 3.0),
-        (False, {'task': 'rest'}, 3.0),
-        (False, {'task': 'rest', 'extension': ['.nii.gz']}, 3.0),
-        (False, {'task': 'rest', 'extension': '.nii.gz'}, 3.0),
-        (False, {'task': 'rest', 'extension': ['.nii.gz', '.json'], 'return_type': 'file'}, 3.0),
+        (True, {}, 3.0),
+        (False, {}, None),
+        (True, {}, 3.0),
+        (True, {'task': 'rest'}, 3.0),
+        (True, {'task': 'rest', 'extension': ['.nii.gz']}, 3.0),
+        (True, {'task': 'rest', 'extension': '.nii.gz'}, 3.0),
+        (True, {'task': 'rest', 'extension': ['.nii.gz', '.json'], 'return_type': 'file'}, 3.0),
     ])
 def test_index_metadata(index_metadata, query, result, mock_config):
     data_dir = join(get_test_data_path(), '7t_trt')
-    layout = BIDSLayout(data_dir, index_metadata=index_metadata)
-    if not index_metadata and query is not None:
-        indexer = BIDSLayoutIndexer(layout)
-        indexer.add_metadata(**query)
+    layout = BIDSLayout(data_dir, index_metadata=index_metadata, **query)
     sample_file = layout.get(task='rest', extension='.nii.gz',
                              acquisition='fullbrain')[0]
     metadata = sample_file.get_metadata()
@@ -199,12 +196,12 @@ def test_get_metadata_error(layout_7t_trt):
 def test_get_with_bad_target(layout_7t_trt):
     with pytest.raises(TargetError) as exc:
         layout_7t_trt.get(target='unicorn')
-        msg = exc.value.message
-        assert 'subject' in msg and 'reconstruction' in msg and 'proc' in msg
+    msg = str(exc.value)
+    assert 'subject' in msg and 'reconstruction' in msg and 'proc' in msg
     with pytest.raises(TargetError) as exc:
         layout_7t_trt.get(target='sub')
-        msg = exc.value.message
-        assert 'subject' in msg and 'reconstruction' not in msg
+    msg = str(exc.value)
+    assert 'subject' in msg and 'reconstruction' not in msg
 
 
 def test_get_bvals_bvecs(layout_ds005):
@@ -324,7 +321,8 @@ def test_ignore_files(layout_ds005):
     # overrides the default - but 'model/extras/' should still be ignored
     # because of the regex.
     ignore = [re.compile('xtra'), 'dummy']
-    layout2 = BIDSLayout(data_dir, validate=False, ignore=ignore)
+    indexer = BIDSLayoutIndexer(validate=False, ignore=ignore)
+    layout2 = BIDSLayout(data_dir, indexer=indexer)
     assert target1 in layout2.files
     assert target2 not in layout2.files
 
@@ -332,7 +330,8 @@ def test_ignore_files(layout_ds005):
 def test_force_index(layout_ds005):
     data_dir = join(get_test_data_path(), 'ds005')
     target = join(data_dir, 'models', 'ds-005_type-test_model.json')
-    model_layout = BIDSLayout(data_dir, validate=True, force_index=['models'])
+    indexer = BIDSLayoutIndexer(force_index=['models'])
+    model_layout = BIDSLayout(data_dir, validate=True, indexer=indexer)
     assert target not in layout_ds005.files
     assert target in model_layout.files
     assert 'all' not in model_layout.get_subjects()
@@ -456,11 +455,11 @@ def test_get_tr(layout_7t_trt):
     # Bad subject, should fail
     with pytest.raises(NoMatchError) as exc:
         layout_7t_trt.get_tr(subject="zzz")
-        assert exc.value.message.startswith("No functional images")
+    assert str(exc.value).startswith("No functional images")
     # There are multiple tasks with different TRs, so this should fail
     with pytest.raises(NoMatchError) as exc:
         layout_7t_trt.get_tr(subject=['01', '02'])
-        assert exc.value.message.startswith("Unique TR")
+    assert str(exc.value).startswith("Unique TR")
     # This should work
     tr = layout_7t_trt.get_tr(subject=['01', '02'], acquisition="fullbrain")
     assert tr == 3.0
@@ -599,8 +598,8 @@ def test_indexing_tag_conflict():
     data_dir = join(get_test_data_path(), 'ds005_conflict')
     with pytest.raises(BIDSValidationError) as exc:
         layout = BIDSLayout(data_dir)
-        assert exc.value.message.startswith("Conflicting values found")
-        assert 'run' in exc.value.message
+    assert str(exc.value).startswith("Conflicting values found")
+    assert 'run' in str(exc.value)
 
 
 def test_get_with_wrong_dtypes(layout_7t_trt):
@@ -675,4 +674,5 @@ def test_load_layout(layout_synthetic_nodb, db_dir):
         sorted(reloaded.get(return_type='file'))
     cm1 = layout_synthetic_nodb.connection_manager
     cm2 = reloaded.connection_manager
-    assert cm1.init_args == cm2.init_args
+    for attr in ['root', 'absolute_paths', 'config', 'derivatives']:
+        assert getattr(cm1.layout_info, attr) == getattr(cm2.layout_info, attr)
