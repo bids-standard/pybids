@@ -40,12 +40,12 @@ def subject_entity():
 
 def test_layoutinfo_init():
     args = dict(root='/made/up/path', validate=True,
-                      absolute_paths=True, index_metadata=False,
-                      derivatives=True, ignore=['code/', 'blergh/'],
-                      force_index=None)
+                absolute_paths=True, index_metadata=False,
+                derivatives=True, ignore=['code/', 'blergh/'],
+                force_index=None)
     with pytest.raises(ValueError) as exc:
         LayoutInfo(**args)
-        assert exc.value.message.startswith("Missing mandatory")
+    assert exc.value.message.startswith("Missing mandatory")
     args['config'] = ['bids', 'derivatives']
     info = LayoutInfo(**args)
     assert info.derivatives == True

@@ -112,7 +112,7 @@ class BIDSLayout(object):
                  regex_search=False, database_path=None, reset_database=False,
                  indexer=None, **indexer_kwargs):
 
-        if absolute_paths == False:
+        if not absolute_paths:
             absolute_path_deprecation_warning()
 
         ind_args = {'force_index', 'ignore', 'index_metadata', 'config_filename'}
@@ -587,7 +587,7 @@ class BIDSLayout(object):
             A list of BIDSFiles (default) or strings (see return_type).
         """
 
-        if absolute_paths == False:
+        if absolute_paths is False:
             absolute_path_deprecation_warning()
 
         layouts = self._get_layouts_in_scope(scope)
