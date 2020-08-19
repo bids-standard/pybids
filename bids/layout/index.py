@@ -45,6 +45,12 @@ class BIDSLayoutIndexer:
 
     Parameters
     ----------
+    validate : bool, optional
+        If True, all files are checked for BIDS compliance when first indexed,
+        and non-compliant files are ignored. This provides a convenient way to
+        restrict file indexing to only those files defined in the "core" BIDS
+        spec, as setting validate=True will lead files in supplementary folders
+        like derivatives/, code/, etc. to be ignored.
     ignore : str or SRE_Pattern or list
         Path(s) to exclude from indexing. Each path is either a string or a
         SRE_Pattern object (i.e., compiled regular expression). If a string is
@@ -62,23 +68,51 @@ class BIDSLayoutIndexer:
         and force_index, it *will* be indexed).
         Note: NEVER include 'derivatives' here; use the derivatives argument
         (or :obj:`bids.layout.BIDSLayout.add_derivatives`) for that.
+    index_metadata : bool
+        If True, all metadata files are indexed. If False, metadata will not be
+        available (but indexing will be faster).
     config_filename : str
         Optional name of filename within directories
         that contains configuration information.
+    **filters
+        keyword arguments passed to the .get() method of a
+        :obj:`bids.layout.BIDSLayout` object. These keyword arguments define
+        what files get selected for metadata indexing.
     """
 
-    def __init__(self, ignore=None, force_index=None,
-                 config_filename='layout_config.json'):
-        self.validator = BIDSValidator(index_associated=True)
+    def __init__(self, validate=True, ignore=None, force_index=None,
+                 index_metadata=True, config_filename='layout_config.json',
+                 **filters):
+        self.validate = validate
         self.ignore = ignore
         self.force_index = force_index
+        self.index_metadata = index_metadata
         self.config_filename = config_filename
+        self.filters = filters
+        self.validator = BIDSValidator(index_associated=True)
 
-        # Layout-dependent attributes to be set in index()
+        # Layout-dependent attributes to be set in __call__()
         self._layout = None
         self._config = None
         self._include_patterns = None
         self._exclude_patterns = None
+
+    def __call__(self, layout):
+        self._layout = layout
+        self._config = list(layout.config.values())
+
+        ignore, force = validate_indexing_args(self.ignore, self.force_index,
+                                               self._layout.root)
+        self._include_patterns = force
+        self._exclude_patterns = ignore
+
+        self._index_dir(self._layout.root, self._config)
+        if self.index_metadata:
+            self._index_metadata()
+
+    @property
+    def session(self):
+        return self._layout.connection_manager.session
 
     def _validate_dir(self, d, default=None):
         if _check_path_matches_patterns(d, self._include_patterns):
@@ -101,7 +135,7 @@ class BIDSLayoutIndexer:
 
         # Derivatives are currently not validated.
         # TODO: raise warning the first time in a session this is encountered
-        if not self._layout.validate or 'derivatives' in self._layout.config:
+        if not self.validate or 'derivatives' in self._layout.config:
             return True
 
         # BIDS validator expects absolute paths, but really these are relative
@@ -188,39 +222,13 @@ class BIDSLayoutIndexer:
 
         return bf
 
-    @property
-    def session(self):
-        return self._layout.connection_manager.session
-
-    def _set_layout(self, layout):
-        self._layout = layout
-        self._config = list(layout.config.values())
-
-        ignore, force = validate_indexing_args(self.ignore, self.force_index,
-                                               self._layout.root)
-        self._include_patterns = force
-        self._exclude_patterns = ignore
-
-    def index_files(self, layout):
-        """Index all files in the BIDS dataset. """
-        self._set_layout(layout)
-        self._index_dir(self._layout.root, self._config)
-
-    def index_metadata(self, layout, **filters):
+    def _index_metadata(self):
         """Index metadata for all files in the BIDS dataset.
-
-        Parameters
-        ----------
-
-        **filters
-            keyword arguments passed to the .get() method of a
-            :obj:`bids.layout.BIDSLayout` object.
-            These keyword arguments define what files get selected
-            for metadata indexing.
         """
-        self._set_layout(layout)
         dot = '.' if bids.config.get_option('extension_initial_dot') else ''
-        
+
+        filters = self.filters
+
         if filters:
             # ensure we are returning objects
             filters['return_type'] = 'object'

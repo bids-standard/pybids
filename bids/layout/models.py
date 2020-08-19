@@ -28,19 +28,14 @@ class LayoutInfo(Base):
     __tablename__ = 'layout_info'
 
     root = Column(String, primary_key=True)
-    validate = Column(Boolean)
     absolute_paths = Column(Boolean)
-    index_metadata = Column(Boolean)
-
     _derivatives = Column(String)
-    _ignore = Column(String)
-    _force_index = Column(String)
     _config = Column(String)
 
     def __init__(self, **kwargs):
         init_args = self._sanitize_init_args(kwargs)
-        raw_cols = ['root', 'validate', 'absolute_paths', 'index_metadata']
-        json_cols = ['derivatives', 'ignore', 'force_index', 'config']
+        raw_cols = ['root', 'absolute_paths']
+        json_cols = ['derivatives', 'config']
         all_cols = raw_cols + json_cols
         missing_cols = set(all_cols) - set(init_args.keys())
         if missing_cols:
@@ -54,17 +49,12 @@ class LayoutInfo(Base):
 
     @reconstructor
     def _init_on_load(self):
-        for col in ['derivatives', 'ignore', 'force_index', 'config']:
+        for col in ['derivatives', 'config']:
             db_val = getattr(self, '_' + col)
             setattr(self, col, json.loads(db_val))
 
     def _sanitize_init_args(self, kwargs):
         """ Prepare initalization arguments for serialization """
-        # Make ignore and force_index serializable
-        for k in ['ignore', 'force_index']:
-            if kwargs.get(k) is not None:
-                kwargs[k] = [str(a) for a in kwargs.get(k) if a is not None]
-
         if 'root' in kwargs:
             kwargs['root'] = str(Path(kwargs['root']).absolute())
 

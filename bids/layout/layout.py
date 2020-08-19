@@ -4,7 +4,7 @@ import json
 import re
 from collections import defaultdict
 from io import open
-from functools import partial
+from functools import partial, lru_cache
 from itertools import chain
 import copy
 import warnings
@@ -29,7 +29,7 @@ from .validation import (validate_root, validate_derivative_paths,
 from .writing import build_path, write_to_file
 from .models import (Base, Config, BIDSFile, Entity, Tag)
 from .index import BIDSLayoutIndexer
-from .db import ConnectionManager, get_database_sidecar, get_database_file
+from .db import ConnectionManager
 from .utils import (BIDSMetadata, parse_file_entities)
 
 try:
@@ -52,12 +52,11 @@ class BIDSLayout(object):
     root : str
         The root directory of the BIDS dataset.
     validate : bool, optional
-        If True, all files are checked for BIDS compliance
-        when first indexed, and non-compliant files are ignored. This
-        provides a convenient way to restrict file indexing to only those
-        files defined in the "core" BIDS spec, as setting validate=True
-        will lead files in supplementary folders like derivatives/, code/,
-        etc. to be ignored.
+        If True, all files are checked for BIDS compliance when first indexed,
+        and non-compliant files are ignored. This provides a convenient way to
+        restrict file indexing to only those files defined in the "core" BIDS
+        spec, as setting validate=True will lead files in supplementary folders
+        like derivatives/, code/, etc. to be ignored.
     absolute_paths : bool, optional
         If True, queries always return absolute paths.
         If False, queries return relative paths (for files and
@@ -76,25 +75,6 @@ class BIDSLayout(object):
         By default (None), uses 'bids'.
     sources : :obj:`bids.layout.BIDSLayout` or list or None, optional
         Optional BIDSLayout(s) from which the current BIDSLayout is derived.
-    ignore : str or SRE_Pattern or list
-        Path(s) to exclude from indexing. Each
-        path is either a string or a SRE_Pattern object (i.e., compiled
-        regular expression). If a string is passed, it must be either an
-        absolute path, or be relative to the BIDS project root. If an
-        SRE_Pattern is passed, the contained regular expression will be
-        matched against the full (absolute) path of all files and
-        directories. By default, indexing ignores all files in 'code/',
-        'stimuli/', 'sourcedata/', 'models/', and any hidden files/dirs
-        beginning with '.' at root level.
-    force_index : str or SRE_Pattern or list
-        Path(s) to forcibly index in the
-        BIDSLayout, even if they would otherwise fail validation. See the
-        documentation for the ignore argument for input format details.
-        Note that paths in force_index takes precedence over those in
-        ignore (i.e., if a file matches both ignore and force_index, it
-        *will* be indexed).
-        Note: NEVER include 'derivatives' here; use the derivatives argument
-        (or :obj:`bids.layout.BIDSLayout.add_derivatives`) for that.
     config_filename : str
         Optional name of filename within directories
         that contains configuration information.
@@ -115,51 +95,58 @@ class BIDSLayout(object):
         in the root argument is reindexed. If False, indexing will be
         skipped and the existing database file will be used. Ignored if
         database_path is not provided.
-    index_metadata : bool
-        If True, all metadata files are indexed at
-        initialization. If False, metadata will not be available (but
-        indexing will be faster).
     indexer: BIDSLayoutIndexer
-        An optional BIDSLayoutIndexer to use for indexing.
+        An optional BIDSLayoutIndexer to use for indexing. If None, a new
+        indexer with default parameters will be created.
+    indexer_kwargs: dict
+        Optional keyword arguments to pass onto the newly created
+        BIDSLayoutIndexer. Valid keywords are 'validate', 'ignore',
+        'force_index', 'index_metadata', and 'config_filename'. Ignored if
+        indexer is not None.
     """
 
-    def __init__(self, root, validate=True, absolute_paths=True,
-                 derivatives=False, config=None, sources=None, ignore=None,
-                 force_index=None, config_filename='layout_config.json',
+    def __init__(self, root=None, validate=True, absolute_paths=True,
+                 derivatives=False, config=None, sources=None,
                  regex_search=False, database_path=None, reset_database=False,
-                 index_metadata=True, indexer=None):
+                 indexer=None, **indexer_kwargs):
 
         if absolute_paths == False:
             absolute_path_deprecation_warning()
+
+        # Load from existing database file
+        load_db = (database_path is not None and reset_database is False and
+                   ConnectionManager.exists(database_path))
+
+        if load_db:
+            self.connection_manager = ConnectionManager(database_path)
+            info = self.connection_manager.layout_info
+            # Overwrite init args with values in DB
+            root = info.root
+            absolute_paths = info.absolute_paths
+            derivatives = info.derivatives
+            config = info.config
 
         # Validate that a valid BIDS project exists at root
         root, description = validate_root(root, validate)
 
         self.root = root
         self.description = description
-        self.validate = validate
         self.absolute_paths = absolute_paths
         self.derivatives = {}
         self.sources = sources
         self.regex_search = regex_search
 
-        init_args = dict(
-            root=root, validate=validate, absolute_paths=absolute_paths,
-            derivatives=derivatives, ignore=ignore, force_index=force_index,
-            index_metadata=index_metadata, config=config)
+        # Initialize a completely new layout and index the dataset
+        if not load_db:
+            init_args = dict(root=root, absolute_paths=absolute_paths,
+                             derivatives=derivatives, config=config)
 
-        # Set up the DB
-        self.connection_manager = ConnectionManager(
-            database_path, reset_database, config, init_args)
-        self.config = {c.name: c for c in self.session.query(Config).all()}
+            self.connection_manager = ConnectionManager(
+                database_path, reset_database, config, init_args)
 
-        if indexer is None:
-            indexer = BIDSLayoutIndexer(ignore, force_index, config_filename)
-        self.indexer = indexer
-        if self.connection_manager._database_reset:
-            self.indexer.index_files(self)
-            if index_metadata:
-                self.indexer.index_metadata(self)
+            if indexer is None:
+                indexer = BIDSLayoutIndexer(**indexer_kwargs)
+            indexer(self)
 
         # Add derivatives if any are found
         if derivatives:
@@ -168,12 +155,9 @@ class BIDSLayout(object):
             self.add_derivatives(
                 derivatives, parent_database_path=database_path,
                 validate=validate, absolute_paths=absolute_paths,
-                derivatives=None, sources=self, ignore=ignore,  config=None,
-                force_index=force_index, config_filename=config_filename,
-                regex_search=regex_search, index_metadata=index_metadata,
-                # reset_database=index_dataset or reset_database
-                reset_database=reset_database
-                )
+                derivatives=None, sources=self, config=None,
+                regex_search=regex_search, reset_database=reset_database,
+                indexer=indexer, **indexer_kwargs)
 
     def __getattr__(self, key):
         """Dynamically inspect missing methods for get_<entity>() calls
@@ -289,6 +273,11 @@ class BIDSLayout(object):
         return self.connection_manager.session
 
     @property
+    @lru_cache()
+    def config(self):
+        return {c.name: c for c in self.session.query(Config).all()}
+
+    @property
     def entities(self):
         """Get the entities."""
         return self.get_entities()
@@ -310,10 +299,7 @@ class BIDSLayout(object):
             passed, it is assumed to be relative to the BIDSLayout root
             directory.
         """
-        database_file = get_database_file(database_path)
-        database_sidecar = get_database_sidecar(database_file)
-        init_args = json.loads(database_sidecar.read_text())
-        return cls(database_path=database_path, **init_args)
+        return cls(database_path=database_path)
 
     def save(self, database_path, replace_connection=True):
         """Save the current index as a SQLite3 DB at the specified location.
