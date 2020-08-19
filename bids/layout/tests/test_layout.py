@@ -10,6 +10,7 @@ import pytest
 
 from bids.layout import BIDSLayout, Query
 from bids.layout.models import Config
+from bids.layout.index import BIDSLayoutIndexer
 from bids.tests import get_test_data_path
 from bids.utils import natural_sort
 
@@ -28,19 +29,17 @@ def test_layout_init(layout_7t_trt):
 @pytest.mark.parametrize(
     'index_metadata,query,result',
     [
-        (True, None, 3.0),
-        (False, None, None),
-        (False, {}, 3.0),
-        (False, {'task': 'rest'}, 3.0),
-        (False, {'task': 'rest', 'extension': ['.nii.gz']}, 3.0),
-        (False, {'task': 'rest', 'extension': '.nii.gz'}, 3.0),
-        (False, {'task': 'rest', 'extension': ['.nii.gz', '.json'], 'return_type': 'file'}, 3.0),
+        (True, {}, 3.0),
+        (False, {}, None),
+        (True, {}, 3.0),
+        (True, {'task': 'rest'}, 3.0),
+        (True, {'task': 'rest', 'extension': ['.nii.gz']}, 3.0),
+        (True, {'task': 'rest', 'extension': '.nii.gz'}, 3.0),
+        (True, {'task': 'rest', 'extension': ['.nii.gz', '.json'], 'return_type': 'file'}, 3.0),
     ])
 def test_index_metadata(index_metadata, query, result, mock_config):
     data_dir = join(get_test_data_path(), '7t_trt')
-    layout = BIDSLayout(data_dir, index_metadata=index_metadata)
-    if not index_metadata and query is not None:
-        layout.indexer.index_metadata(layout, **query)
+    layout = BIDSLayout(data_dir, index_metadata=index_metadata, **query)
     sample_file = layout.get(task='rest', extension='.nii.gz',
                              acquisition='fullbrain')[0]
     metadata = sample_file.get_metadata()
@@ -673,4 +672,5 @@ def test_load_layout(layout_synthetic_nodb, db_dir):
         sorted(reloaded.get(return_type='file'))
     cm1 = layout_synthetic_nodb.connection_manager
     cm2 = reloaded.connection_manager
-    assert cm1.init_args == cm2.init_args
+    for attr in ['root', 'absolute_paths', 'config', 'derivatives']:
+        assert getattr(cm1.layout_info, attr) == getattr(cm2.layout_info, attr)
