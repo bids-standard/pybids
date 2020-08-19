@@ -7,6 +7,7 @@ import warnings
 import json
 from copy import deepcopy
 from itertools import chain
+from functools import lru_cache
 
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.associationproxy import association_proxy
@@ -231,6 +232,13 @@ class BIDSFile(Base):
 
     def __fspath__(self):
         return self.path
+
+    @property
+    @lru_cache()
+    def relpath(self):
+        """Return path relative to layout root"""
+        root = object_session(self).query(LayoutInfo).first().root
+        return str(Path(self.path).relative_to(root))
 
     def get_associations(self, kind=None, include_parents=False):
         """Get associated files, optionally limiting by association kind.

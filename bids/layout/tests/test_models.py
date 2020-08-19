@@ -269,6 +269,14 @@ def test_bidsfile_get_entities(layout_synthetic):
     assert set(md.keys()) == md_ents | file_ents
 
 
+def test_bidsfile_relpath(layout_synthetic):
+    bf = layout_synthetic.get(suffix='physio', extension='tsv.gz')[10]
+    assert bf.path != bf.relpath
+    assert layout_synthetic.root in bf.path
+    assert bf.relpath.startswith('sub')
+    assert bf.relpath == str(Path(bf.path).relative_to(layout_synthetic.root))
+
+
 @pytest.mark.xfail(sys.version_info < (3, 6), reason="os.PathLike introduced in Python 3.6")
 def test_bidsfile_fspath(sample_bidsfile):
     bf = sample_bidsfile
