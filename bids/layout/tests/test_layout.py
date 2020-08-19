@@ -321,7 +321,8 @@ def test_ignore_files(layout_ds005):
     # overrides the default - but 'model/extras/' should still be ignored
     # because of the regex.
     ignore = [re.compile('xtra'), 'dummy']
-    layout2 = BIDSLayout(data_dir, validate=False, ignore=ignore)
+    indexer = BIDSLayoutIndexer(validate=False, ignore=ignore)
+    layout2 = BIDSLayout(data_dir, indexer=indexer)
     assert target1 in layout2.files
     assert target2 not in layout2.files
 
@@ -329,7 +330,8 @@ def test_ignore_files(layout_ds005):
 def test_force_index(layout_ds005):
     data_dir = join(get_test_data_path(), 'ds005')
     target = join(data_dir, 'models', 'ds-005_type-test_model.json')
-    model_layout = BIDSLayout(data_dir, validate=True, force_index=['models'])
+    indexer = BIDSLayoutIndexer(force_index=['models'])
+    model_layout = BIDSLayout(data_dir, validate=True, indexer=indexer)
     assert target not in layout_ds005.files
     assert target in model_layout.files
     assert 'all' not in model_layout.get_subjects()
