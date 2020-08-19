@@ -250,6 +250,8 @@ class And_(Transformation):
     _loopable = False
     _groupable = False
     _output_required = True
+    _align = True
+
 
     def _transform(self, dfs):
         df = pd.concat(dfs, axis=1, sort=True)
@@ -267,6 +269,7 @@ class Not(Transformation):
 
     _loopable = True
     _groupable = False
+    _align = True
 
     def _transform(self, var):
         return ~var.astype(bool)
@@ -284,6 +287,7 @@ class Or_(Transformation):
     _loopable = False
     _groupable = False
     _output_required = True
+    _align = True
 
     def _transform(self, dfs):
         df = pd.concat(dfs, axis=1, sort=True)
