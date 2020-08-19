@@ -95,9 +95,10 @@ class BIDSLayout(object):
         in the root argument is reindexed. If False, indexing will be
         skipped and the existing database file will be used. Ignored if
         database_path is not provided.
-    indexer: BIDSLayoutIndexer
-        An optional BIDSLayoutIndexer to use for indexing. If None, a new
-        indexer with default parameters will be created.
+    indexer: BIDSLayoutIndexer or callable
+        An optional BIDSLayoutIndexer instance to use for indexing, or any
+        callable that takes a BIDSLayout instance as its only argument. If
+        None, a new indexer with default parameters will be implicitly created.
     indexer_kwargs: dict
         Optional keyword arguments to pass onto the newly created
         BIDSLayoutIndexer. Valid keywords are 'validate', 'ignore',
