@@ -25,7 +25,8 @@ from ..exceptions import (
 )
 
 from .validation import (validate_root, validate_derivative_paths,
-                         absolute_path_deprecation_warning)
+                         absolute_path_deprecation_warning,
+                         indexer_arg_deprecation_warning)
 from .writing import build_path, write_to_file
 from .models import (Base, Config, BIDSFile, Entity, Tag)
 from .index import BIDSLayoutIndexer
@@ -101,9 +102,9 @@ class BIDSLayout(object):
         None, a new indexer with default parameters will be implicitly created.
     indexer_kwargs: dict
         Optional keyword arguments to pass onto the newly created
-        BIDSLayoutIndexer. Valid keywords are 'validate', 'ignore',
-        'force_index', 'index_metadata', and 'config_filename'. Ignored if
-        indexer is not None.
+        BIDSLayoutIndexer. Valid keywords are 'ignore', 'force_index',
+        'index_metadata', and 'config_filename'. Ignored if indexer is not
+        None.
     """
 
     def __init__(self, root=None, validate=True, absolute_paths=True,
@@ -113,6 +114,10 @@ class BIDSLayout(object):
 
         if absolute_paths == False:
             absolute_path_deprecation_warning()
+
+        ind_args = {'force_index', 'ignore', 'index_metadata', 'config_filename'}
+        if ind_args & set(indexer_kwargs.keys()):
+            indexer_arg_deprecation_warning()
 
         # Load from existing database file
         load_db = (database_path is not None and reset_database is False and

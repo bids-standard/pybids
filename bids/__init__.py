@@ -1,5 +1,5 @@
 from .due import due, Doi
-from .layout import BIDSLayout
+from .layout import BIDSLayout, BIDSLayoutIndexer
 
 # For backwards compatibility
 from bids_validator import BIDSValidator
@@ -7,13 +7,13 @@ from bids_validator import BIDSValidator
 __all__ = [
     "analysis",
     "BIDSLayout",
+    "BIDSLayoutIndexer",
     "BIDSValidator",
     "config",
     "layout",
     "reports",
     "utils",
     "variables"
-
 ]
 
 due.cite(Doi("10.1038/sdata.2016.44"),

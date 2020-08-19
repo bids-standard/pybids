@@ -42,6 +42,16 @@ def absolute_path_deprecation_warning():
                   "is known to produce query failures in certain edge cases.")
 
 
+def indexer_arg_deprecation_warning():
+    warnings.warn("The ability to pass arguments to BIDSLayout that control "
+                  "indexing is likely to be removed in future; possibly as "
+                  "early as PyBIDS 0.14. This includes the `config_filename`, "
+                  "`ignore`, `force_index`, and `index_metadata` arguments. "
+                  "The recommended usage pattern is to initialize a new "
+                  "BIDSLayoutIndexer with these arguments, and pass it to "
+                  "the BIDSLayout via the `indexer` argument.")
+
+
 def validate_root(root, validate):
     # Validate root argument and make sure it contains mandatory info
     try:
