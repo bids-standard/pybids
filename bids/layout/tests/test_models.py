@@ -45,7 +45,7 @@ def test_layoutinfo_init():
                 force_index=None)
     with pytest.raises(ValueError) as exc:
         LayoutInfo(**args)
-    assert exc.value.message.startswith("Missing mandatory")
+    assert str(exc.value).startswith("Missing mandatory")
     args['config'] = ['bids', 'derivatives']
     info = LayoutInfo(**args)
     assert info.derivatives == True
