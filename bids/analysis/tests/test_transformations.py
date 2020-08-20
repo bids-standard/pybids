@@ -470,8 +470,12 @@ def test_and(collection):
     #     coll.variables['respnum.0'].values)
 
     coll.variables['respnum.0'].onset += 1
-    transform.And(coll, names, output='misaligned')
 
+    # Should fail because I misaligned variable
+    with pytest.raises(ValueError):
+        transform.And(coll, names, output='misaligned')
+
+    # Should pass because dense is set to True and will align
     transform.And(coll, names, output='misaligned', dense=True)
 
 

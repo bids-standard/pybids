@@ -350,7 +350,7 @@ class Transformation(metaclass=ABCMeta):
                         "Misaligned sparse variables found."
                         "To force variables into alignment by densifying,"
                         "set dense=True in the Transformation arguments"
-                    warn
+                        )
 
         align_variables = [listify(self.kwargs[v])
                            for v in listify(self._align) if v in self.kwargs]
