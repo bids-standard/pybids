@@ -268,7 +268,6 @@ class Not(Transformation):
 
     _loopable = True
     _groupable = False
-    _align = True
 
     def _transform(self, var):
         return ~var.astype(bool)
