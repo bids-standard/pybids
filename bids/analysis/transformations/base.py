@@ -47,6 +47,10 @@ class Transformation(metaclass=ABCMeta):
     # If True, will require all variables to be aligned. Defaults to None.
     _align = None
 
+    # A boolean indicating if auto-alignment by densification should occur
+    # if alignment is required, but inputs are not aligned.
+    _force_dense_align = False
+
     # Boolean indicating whether the Transformation should be applied to each
     # variable in the input list in turn. When True (default), Transformation
     # is applied once per element in the variable list, with all arguments
@@ -329,7 +333,6 @@ class Transformation(metaclass=ABCMeta):
                       if isinstance(c, SparseRunVariable)]
             if len(sparse) < len(variables):
                 if sparse:
-                    sparse_names = [s.name for s in sparse]
                     msg = ("Found a mix of dense and sparse variables. May "
                            "cause problems for some transformations.")
                     warnings.warn(msg)
@@ -346,11 +349,18 @@ class Transformation(metaclass=ABCMeta):
                 fc = get_col_data(variables[0])
                 if not all([compare_variables(fc, get_col_data(c))
                             for c in variables[1:]]):
-                    raise ValueError(
-                        "Misaligned sparse variables found."
-                        "To force variables into alignment by densifying,"
-                        "set dense=True in the Transformation arguments"
-                        )
+                    if self._force_dense_align:
+                        msg += (" Forcing all sparse variables to dense in "
+                                "order to ensure proper alignment.")
+                        sr = self.collection.sampling_rate
+                        variables = [c.to_dense(sr) for c in variables]
+                        warnings.warn(msg)
+                    else:
+                        raise ValueError(
+                            "Misaligned sparse variables found."
+                            "To force variables into alignment by densifying,"
+                            "set dense=True in the Transformation arguments"
+                            )
 
         align_variables = [listify(self.kwargs[v])
                            for v in listify(self._align) if v in self.kwargs]

@@ -108,6 +108,7 @@ class Orthogonalize(Transformation):
     _variables_used = ('variables', 'other')
     _densify = ('variables', 'other')
     _align = ('other')
+    _force_dense_align = True
 
     def _transform(self, var, other):
 
