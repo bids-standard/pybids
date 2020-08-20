@@ -312,7 +312,7 @@ class Transformation(metaclass=ABCMeta):
     def _postprocess(self, col):
         return col
 
-    def _align_variables(self, variables, force=True):
+    def _align_variables(self, variables):
         """Checks whether the specified variables have aligned indexes. This
         implies either that all variables are dense, or that all variables are
         sparse and have exactly the same onsets and durations. If variables are
@@ -332,12 +332,6 @@ class Transformation(metaclass=ABCMeta):
                     sparse_names = [s.name for s in sparse]
                     msg = ("Found a mix of dense and sparse variables. May "
                            "cause problems for some transformations.")
-                    if force:
-                        msg += (" Sparse variables %s were converted to dense "
-                                "form to ensure proper alignment." %
-                                sparse_names)
-                        sr = self.collection.sampling_rate
-                        sparse = [s.to_dense(sr) for s in sparse]
                     warnings.warn(msg)
             # If all are sparse, durations, onsets, and index must match
             # perfectly for all
@@ -352,13 +346,11 @@ class Transformation(metaclass=ABCMeta):
                 fc = get_col_data(variables[0])
                 if not all([compare_variables(fc, get_col_data(c))
                             for c in variables[1:]]):
-                    msg = "Misaligned sparse variables found."
-                    if force:
-                        msg += (" Forcing all sparse variables to dense in "
-                                "order to ensure proper alignment.")
-                        sr = self.collection.sampling_rate
-                        variables = [c.to_dense(sr) for c in variables]
-                    warnings.warn(msg)
+                    raise ValueError(
+                        "Misaligned sparse variables found."
+                        "To force variables into alignment by densifying,"
+                        "set dense=True in the Transformation arguments"
+                    warn
 
         align_variables = [listify(self.kwargs[v])
                            for v in listify(self._align) if v in self.kwargs]
