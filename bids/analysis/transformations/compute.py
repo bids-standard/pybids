@@ -197,7 +197,6 @@ class Sum(Transformation):
         return (data * weights).sum(axis=1)
 
 
-
 class Threshold(Transformation):
     """Threshold and/or binarize a variable.
 

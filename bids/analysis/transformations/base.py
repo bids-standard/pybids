@@ -43,7 +43,8 @@ class Transformation(metaclass=ABCMeta):
 
     # A tuple indicating which arguments give the names of variables that must
     # all be aligned with one another (i.e., onsets and durations match
-    # perfectly) before processing. Defaults to None.
+    # perfectly) before processing.
+    # If True, will require all variables to be aligned. Defaults to None.
     _align = None
 
     # Boolean indicating whether the Transformation should be applied to each
