@@ -45,7 +45,7 @@ class BIDSVariable(metaclass=ABCMeta):
         """
         result = deepcopy(self)
         if data is not None:
-            if data.shape != self.values.shape:
+            if data.squeeze().shape != self.values.squeeze().shape:
                 raise ValueError("Replacement data has shape %s; must have "
                                  "same shape as existing data %s." %
                                  (data.shape, self.values.shape))
