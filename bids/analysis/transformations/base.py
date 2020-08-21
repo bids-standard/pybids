@@ -350,7 +350,7 @@ class Transformation(metaclass=ABCMeta):
                 if not all([compare_variables(fc, get_col_data(c))
                             for c in variables[1:]]):
                     if self._force_dense_align:
-                        msg += (" Forcing all sparse variables to dense in "
+                        msg = ("Forcing all sparse variables to dense in "
                                 "order to ensure proper alignment.")
                         sr = self.collection.sampling_rate
                         variables = [c.to_dense(sr) for c in variables]
