@@ -266,17 +266,6 @@ def test_get_return_type_dir(layout_7t_trt, layout_7t_trt_relpath):
     assert target == res2
 
 
-def test_ensure_non_detaching_sessions(layout_7t_trt, layout_7t_trt_relpath):
-    """ Ensure that sessions don't detach unexpectly during queries."""
-    query = dict(target='subject', return_type='dir')
-    res_relpath = layout_7t_trt_relpath.get(**query)
-    target_relpath = ["sub-{:02d}".format(i) for i in range(1, 11)]
-    assert target_relpath == res_relpath
-    res_abspath = layout_7t_trt.get(**query)
-    # Second query would break without expire_on_commit=True
-    res_relpath = layout_7t_trt_relpath.get(**query)
-
-
 @pytest.mark.parametrize("acq", [None, Query.NONE])
 def test_get_val_none(layout_7t_trt, acq):
     t1w_files = layout_7t_trt.get(subject='01', session='1', suffix='T1w')
