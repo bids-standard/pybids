@@ -2,6 +2,9 @@ from pathlib import Path
 import click
 
 from . import __version__
+from .layout import BIDSLayoutIndexer, BIDSLayout
+from .utils import validate_multiple as _validate_multiple
+
 
 # alias -h to trigger help message
 CONTEXT_SETTINGS = {'help_option_names': ['-h', '--help']}
@@ -9,13 +12,13 @@ CONTEXT_SETTINGS = {'help_option_names': ['-h', '--help']}
 
 class PathOrRegex(click.ParamType):
     "A helper Type to parse BIDSLayoutIndexer ignore/force entries"
-    name = "path or /regex/"
+    name = "path or m/regex/"
 
     def convert(self, value, param, ctx):
-        if value.startswith('/') and value.endswith('/'):
+        if value.startswith('m/') and value.endswith('/'):
             # regex pattern
             import re
-            value = re.compile(value[1:-1])
+            value = re.compile(value[2:-1])
         # otherwise, return as is
         return value
 
@@ -30,10 +33,9 @@ def cli():
 
 @cli.command(context_settings=CONTEXT_SETTINGS)
 @click.argument('root', type=click.Path(file_okay=False, exists=True))
-@click.option('--db-path', type=click.Path(file_okay=False, resolve_path=True),
-              help="Path to save database index.")
-@click.option('--derivatives', multiple=True, default=False, show_default=True,
-              help="Specifies whether and/or which derivatives to to index.")
+@click.argument('db-path', type=click.Path(file_okay=False, resolve_path=True, exists=True))
+@click.option('--derivatives', multiple=True, default=False, show_default=True, flag_value=True,
+              help="Specifies whether and/or which derivatives to index.")
 @click.option('--reset-db', default=False, show_default=True, is_flag=True,
               help="Remove existing database index if present.")
 @click.option('--validate/--no-validate', default=True, show_default=True,
@@ -44,10 +46,10 @@ def cli():
               help="Include metadata when indexing files.")
 @click.option('--ignore', multiple=True, type=PathOrRegex(),
               help="Path (from root) or regex to exclude from indexing. "
-                   "Regex entries need to fitted with leading and trailing '/'.")
+                   "Regex entries need to fitted with leading 'm/' and trailing '/'.")
 @click.option('--force-index', multiple=True, type=PathOrRegex(),
               help="Path (from root) or regex to include when indexing. "
-                   "Regex entries need to fitted with leading and trailing '/'.")
+                   "Regex entries need to fitted with leading 'm/' and trailing '/'.")
 @click.option('--config-filename', type=click.Path(),
               default="layout_config.json", show_default=True,
               help="Name of filename within directories that contains configuration information.")
@@ -64,60 +66,37 @@ def layout(
     config_filename,
 ):
     """
-    Initialize a BIDSLayout.
-
-    If ``--db-path`` is provided, an SQLite database index for this BIDS dataset will be created.
+    Initialize a BIDSLayout, and create an SQLite database index.
 
     """
+
     # ensure empty multiples are set to None
     derivatives = _validate_multiple(derivatives, retval=False)
     config = _validate_multiple(config)
     ignore = _validate_multiple(ignore)
     force_index = _validate_multiple(force_index)
 
-    if db_path and not (Path(db_path) / 'layout_index.sqlite').exists():
+    if not (Path(db_path) / 'layout_index.sqlite').exists():
         reset_db = True
 
-    indexer = _init_indexer(
-        validate=validate,
-        index_metadata=index_metadata,
-        ignore=ignore,
-        force_index=force_index,
-        config_filename=config_filename,
-    )
-    _init_layout(
+    layout = BIDSLayout(
         root,
+        database_path=db_path,
+        reset_database=reset_db,
         validate=validate,
         config=config,
-        indexer=indexer,
+        indexer=BIDSLayoutIndexer(
+            validate=validate,
+            index_metadata=index_metadata,
+            ignore=ignore,
+            force_index=force_index,
+            config_filename=config_filename,
+        ),
     )
-    if db_path and reset_db:
+    if reset_db:
         click.echo("Successfully generated database index at {}".format(db_path))
-
-
-def _init_indexer(**kwargs):
-    from .layout import BIDSLayoutIndexer
-
-    return BIDSLayoutIndexer(**kwargs)
-
-
-def _init_layout(root, **kwargs):
-    from .layout import BIDSLayout
-
-    return BIDSLayout(root, **kwargs)
-
-
-def _validate_multiple(val, retval=None):
-    """
-    Any click.Option with the multiple flag will return an empty tuple if not set.
-
-    This helper method converts empty tuples to a desired return value (default: None).
-    This helper method selects the first item in single-item tuples.
-    """
-    assert isinstance(val, tuple)
-
-    if val == tuple():
-        return retval
-    if len(val) == 1:
-        return val[0]
-    return val
+    else:
+        click.echo(
+            "Previously generated database index found at {}. "
+            "To generate a new index, rerun with ``--reset-db``".format(db_path)
+        )

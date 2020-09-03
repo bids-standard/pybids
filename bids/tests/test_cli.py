@@ -3,7 +3,8 @@ import os
 from click.testing import CliRunner
 import pytest
 
-from bids.cli import cli, _validate_multiple
+from bids.cli import cli
+from bids.utils import validate_multiple
 from bids.tests import get_test_data_path
 
 
@@ -21,12 +22,12 @@ def test_cli_entrypoint(runner):
 
 
 def test_validate_multiple():
-    assert _validate_multiple(()) is None
-    assert _validate_multiple((), retval=False) is False
-    assert _validate_multiple(('bids',)) == 'bids'
-    assert _validate_multiple((1, 2)) == (1, 2)
+    assert validate_multiple(()) is None
+    assert validate_multiple((), retval=False) is False
+    assert validate_multiple(('bids',)) == 'bids'
+    assert validate_multiple((1, 2)) == (1, 2)
     with pytest.raises(AssertionError):
-        _validate_multiple('not a tuple')
+        validate_multiple('not a tuple')
 
 
 def test_layout(runner, tmp_path):
@@ -39,14 +40,14 @@ def test_layout(runner, tmp_path):
     bids_dir = os.path.join(get_test_data_path(), 'ds005')
     db0 = tmp_path / "db0"
     db0.mkdir()
-    res = runner.invoke(cli, ['layout', bids_dir, '--db-path', str(db0)], catch_exceptions=False)
+    res = runner.invoke(cli, ['layout', bids_dir, str(db0)], catch_exceptions=False)
     assert is_success(res)
     # rerunning targeting the save directory should not generate a new index
-    res = runner.invoke(cli, ['layout', bids_dir, '--output', str(db0)], catch_exceptions=False)
+    res = runner.invoke(cli, ['layout', bids_dir, str(db0)], catch_exceptions=False)
     assert not is_success(res)
     # but forcing it should
     res = runner.invoke(
-        cli, ['layout', bids_dir, '--db-path', str(db0), '--reset-db'], catch_exceptions=False
+        cli, ['layout', bids_dir, str(db0), '--reset-db'], catch_exceptions=False
     )
     assert is_success(res)
 
@@ -56,9 +57,9 @@ def test_layout(runner, tmp_path):
     res = runner.invoke(
         cli,
         [
-            'layout', bids_dir, '--db-path', str(db1),
+            'layout', bids_dir, str(db1),
             '--validate', '--no-index-metadata',
-            '--ignore', 'derivatives', '--ignore', 'sourcedata', '--ignore', r'/^\./',
+            '--ignore', 'derivatives', '--ignore', 'sourcedata', '--ignore', r'm/^\./',
             '--force-index', 'test',
             '--config', 'bids',
         ],
