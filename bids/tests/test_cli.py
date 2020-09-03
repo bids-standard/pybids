@@ -18,30 +18,39 @@ def test_cli_entrypoint(runner):
     assert runner.invoke(cli, ['--version'], catch_exceptions=False).stdout.startswith('pybids')
 
 
-def test_save_db(runner, tmp_path):
-    res = runner.invoke(cli, ['save-db', '--help'])
-    assert "Initialize and save an SQLite database index for this BIDS dataset" in res.stdout
+def test_layout(runner, tmp_path):
+    def is_success(res):
+        return res.stdout.startswith("Successfully generated database index")
+
+    res = runner.invoke(cli, ['layout', '--help'])
+    assert "Initialize a BIDSLayout" in res.stdout
 
     bids_dir = os.path.join(get_test_data_path(), 'ds005')
     db0 = tmp_path / "db0"
     db0.mkdir()
-    res = runner.invoke(cli, ['save-db', bids_dir, '--output', str(db0)], catch_exceptions=False)
-    assert res.stdout.startswith("Successfully generated database index")
-    # rerunning targeting the save directory should fail
-    with pytest.raises(RuntimeError):
-        runner.invoke(cli, ['save-db', bids_dir, '--output', str(db0)], catch_exceptions=False)
+    res = runner.invoke(cli, ['layout', bids_dir, '--db-path', str(db0)], catch_exceptions=False)
+    assert is_success(res)
+    # rerunning targeting the save directory should not generate a new index
+    res = runner.invoke(cli, ['layout', bids_dir, '--output', str(db0)], catch_exceptions=False)
+    assert not is_success(res)
+    # but forcing it should
+    res = runner.invoke(
+        cli, ['layout', bids_dir, '--db-path', str(db0), '--reset-db'], catch_exceptions=False
+    )
+    assert is_success(res)
 
     db1 = tmp_path / "db1"
     db1.mkdir()
-    # throw all valid options at it
+    # throw the kitchen sink at it
     res = runner.invoke(
         cli,
         [
-            'save-db', bids_dir, '--output', str(db1),
-            '--skip-validation', '--skip-metadata',
-            '--ignore-path', 'derivatives', '--ignore-path', 'sourcedata',
-            '--ignore-regex', r'^\.',
+            'layout', bids_dir, '--db-path', str(db1),
+            '--validate', '--no-index-metadata',
+            '--ignore', 'derivatives', '--ignore', 'sourcedata', '--ignore', r'/^\./',
+            '--force-index', 'test',
+            '--config', 'bids',
         ],
         catch_exceptions=False,
     )
-    assert res.stdout.startswith("Successfully generated database index")
+    assert is_success(res)

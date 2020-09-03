@@ -7,14 +7,17 @@ from . import __version__
 CONTEXT_SETTINGS = {'help_option_names': ['-h', '--help']}
 
 
-class BIDSIndexIgnoreRe(click.ParamType):
-    "A helper Type to parse BIDSLayoutIndexer ignore entries"
-    name = "ignore"
+class PathOrRegex(click.ParamType):
+    "A helper Type to parse BIDSLayoutIndexer ignore/force entries"
+    name = "path or /regex/"
 
     def convert(self, value, param, ctx):
-        import re
-        # will this ever fail?
-        return re.compile(value)
+        if value.startswith('/') and value.endswith('/'):
+            # regex pattern
+            import re
+            value = re.compile(value[1:-1])
+        # otherwise, return as is
+        return value
 
 
 # create group of commands as entrypoint
@@ -27,42 +30,63 @@ def cli():
 
 @cli.command(context_settings=CONTEXT_SETTINGS)
 @click.argument('root', type=click.Path(file_okay=False, exists=True))
-@click.option('--output', type=click.Path(file_okay=False, resolve_path=True),
-              default=Path('.').resolve(), help="Path to save database index")
-@click.option('--skip-validation', default=False, is_flag=True,
-              help="Skip check for BIDS compliance when indexing files.")
-@click.option('--skip-metadata', default=False, is_flag=True,
-              help="Skip metadata when indexing files.")
-@click.option('--ignore-path', multiple=True, default=None,
-              help="Path (from root) to exclude from indexing.")
-@click.option('--ignore-regex', multiple=True, default=None, type=BIDSIndexIgnoreRe(),
-              help="Regex to exclude from indexing.")
-def save_db(root, output, skip_validation, skip_metadata, ignore_path, ignore_regex):
-    """Initialize and save an SQLite database index for this BIDS dataset.
-
-    If ``output`` contains a previously generated index, this method will raise a
-    ``RuntimeError``.
+@click.option('--db-path', type=click.Path(file_okay=False, resolve_path=True),
+              help="Path to save database index.")
+@click.option('--derivatives', multiple=True,
+              help="Specifies whether and/or which derivatives to to index.")
+@click.option('--reset-db', default=False, show_default=True, is_flag=True,
+              help="Remove existing database index if present.")
+@click.option('--validate/--no-validate', default=True, show_default=True,
+              help="Check for BIDS compliance when indexing files.")
+@click.option('--config', multiple=True,
+              help="Optional name(s) of configuration file(s) to use.")
+@click.option('--index-metadata/--no-index-metadata', default=False, show_default=True,
+              help="Include metadata when indexing files.")
+@click.option('--ignore', multiple=True, type=PathOrRegex(),
+              help="Path (from root) or regex to exclude from indexing. "
+                   "Regex entries need to fitted with leading and trailing '/'.")
+@click.option('--force-index', multiple=True, type=PathOrRegex(),
+              help="Path (from root) or regex to include when indexing. "
+                   "Regex entries need to fitted with leading and trailing '/'.")
+@click.option('--config-filename', type=click.Path(),
+              default="layout_config.json", show_default=True,
+              help="Name of filename within directories that contains configuration information.")
+def layout(
+    root,
+    db_path,
+    derivatives,
+    reset_db,
+    validate,
+    config,
+    index_metadata,
+    ignore,
+    force_index,
+    config_filename,
+):
     """
-    if (Path(output) / 'layout_index.sqlite').exists():
-        raise RuntimeError("Previous index exists at {}".format(output))
+    Initialize a BIDSLayout.
 
-    ignore = None
-    if ignore_path or ignore_regex:
-        ignore = ignore_path + ignore_regex
+    If ``--db-path`` is provided, an SQLite database index for this BIDS dataset will be created.
+
+    """
+    if db_path and not (Path(db_path) / 'layout_index.sqlite').exists():
+        reset_db = True
 
     indexer = _init_indexer(
-        validate=not skip_validation,
-        index_metadata=not skip_metadata,
+        validate=validate,
+        index_metadata=index_metadata,
         ignore=ignore,
+        force_index=force_index,
+        config_filename=config_filename,
     )
-
-    layout = _init_layout(
+    _init_layout(
         root,
-        validate=not skip_validation,
+        validate=validate,
+        config=config,
         indexer=indexer,
     )
-    layout.save(output)
-    click.echo("Successfully generated database index at {}".format(output))
+    if db_path and reset_db:
+        click.echo("Successfully generated database index at {}".format(db_path))
 
 
 def _init_indexer(**kwargs):
