@@ -63,7 +63,6 @@ def layout(
 ):
     """
     Initialize a BIDSLayout, and create an SQLite database index.
-
     """
 
     # ensure empty multiples are set to None
