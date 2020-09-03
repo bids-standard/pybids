@@ -5,7 +5,6 @@ from . import __version__
 from .layout import BIDSLayoutIndexer, BIDSLayout
 from .utils import validate_multiple as _validate_multiple
 
-
 # alias -h to trigger help message
 CONTEXT_SETTINGS = {'help_option_names': ['-h', '--help']}
 
@@ -15,15 +14,12 @@ class PathOrRegex(click.ParamType):
     name = "path or m/regex/"
 
     def convert(self, value, param, ctx):
-        if value.startswith('m/') and value.endswith('/'):
-            # regex pattern
-            import re
+        import re
+        if re.match(r"^m/.*/$", value):  # has form "m/<regex>/"
             value = re.compile(value[2:-1])
-        # otherwise, return as is
         return value
 
 
-# create group of commands as entrypoint
 @click.group(context_settings=CONTEXT_SETTINGS)
 @click.version_option(__version__, prog_name='pybids')
 def cli():
