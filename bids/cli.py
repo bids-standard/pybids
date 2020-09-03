@@ -32,7 +32,7 @@ def cli():
 @click.argument('root', type=click.Path(file_okay=False, exists=True))
 @click.option('--db-path', type=click.Path(file_okay=False, resolve_path=True),
               help="Path to save database index.")
-@click.option('--derivatives', multiple=True,
+@click.option('--derivatives', multiple=True, default=False, show_default=True,
               help="Specifies whether and/or which derivatives to to index.")
 @click.option('--reset-db', default=False, show_default=True, is_flag=True,
               help="Remove existing database index if present.")
@@ -69,6 +69,12 @@ def layout(
     If ``--db-path`` is provided, an SQLite database index for this BIDS dataset will be created.
 
     """
+    # ensure empty multiples are set to None
+    derivatives = _validate_multiple(derivatives, retval=False)
+    config = _validate_multiple(config)
+    ignore = _validate_multiple(ignore)
+    force_index = _validate_multiple(force_index)
+
     if db_path and not (Path(db_path) / 'layout_index.sqlite').exists():
         reset_db = True
 
@@ -99,3 +105,19 @@ def _init_layout(root, **kwargs):
     from .layout import BIDSLayout
 
     return BIDSLayout(root, **kwargs)
+
+
+def _validate_multiple(val, retval=None):
+    """
+    Any click.Option with the multiple flag will return an empty tuple if not set.
+
+    This helper method converts empty tuples to a desired return value (default: None).
+    This helper method selects the first item in single-item tuples.
+    """
+    assert isinstance(val, tuple)
+
+    if val == tuple():
+        return retval
+    if len(val) == 1:
+        return val[0]
+    return val

@@ -3,12 +3,14 @@ import os
 from click.testing import CliRunner
 import pytest
 
-from bids.cli import cli
+from bids.cli import cli, _validate_multiple
 from bids.tests import get_test_data_path
+
 
 @pytest.fixture
 def runner():
     return CliRunner()
+
 
 def test_cli_entrypoint(runner):
     res = runner.invoke(cli, catch_exceptions=False)
@@ -16,6 +18,15 @@ def test_cli_entrypoint(runner):
     assert runner.invoke(cli, ['-h'], catch_exceptions=False).stdout == res.stdout
     # verify versioning
     assert runner.invoke(cli, ['--version'], catch_exceptions=False).stdout.startswith('pybids')
+
+
+def test_validate_multiple():
+    assert _validate_multiple(()) is None
+    assert _validate_multiple((), retval=False) is False
+    assert _validate_multiple(('bids',)) == 'bids'
+    assert _validate_multiple((1, 2)) == (1, 2)
+    with pytest.raises(AssertionError):
+        _validate_multiple('not a tuple')
 
 
 def test_layout(runner, tmp_path):
