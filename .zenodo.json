@@ -96,6 +96,11 @@
       "orcid": "0000-0001-8498-4059"
     },
     {
+      "affiliation": "Department of Psychology, Stanford University",
+      "name": "Goncalves, Mathias",
+      "orcid": "0000-0002-7252-7771"
+    },
+    {
       "affiliation": "MIT, HMS",
       "name": "Ghosh, Satrajit",
       "orcid": "0000-0002-5312-6729"
@@ -210,11 +215,6 @@
       "orcid": "0000-0001-5884-4247"
     },
     {
-      "affiliation": "Department of Psychology, Stanford University",
-      "name": "Goncalves, Mathias",
-      "orcid": "0000-0002-7252-7771"
-    },
-    {
       "affiliation": "UC Berkeley",
       "name": "Visconti di Oleggio Castello, Matteo",
       "orcid": "0000-0001-7931-5272"
@@ -233,6 +233,9 @@
       "affiliation": "Stanford University",
       "name": "Blair, Ross",
       "orcid": "0000-0003-3007-1056"
+    },
+    {
+      "name": "Sundaravadivelu, Suganya"
     }
   ],
   "keywords": [
