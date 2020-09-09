@@ -1,6 +1,16 @@
 Changelog
 =========
 
+Version 0.12.1 (September 09, 2020)
+-----------------------------------
+
+* FIX: drop obsolete test (#652)
+* FIX: Convolve zero-duration (impulse) events when variable contains multiple events (#645)
+* ENH: Add CLI to PyBIDS (#650)
+* ENH: Add relpath attribute to BIDSFile and associated refactoring (#647)
+* DOC: Add example for using parse_file_entities from bids.layout (#639)
+* MNT: Remove deprecated database_file argument to BIDSLayout (#644)
+
 Version 0.12.0 (August 04, 2020)
 --------------------------------
 New feature release for the 0.12.x series.
