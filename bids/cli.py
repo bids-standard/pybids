@@ -1,3 +1,6 @@
+import os
+import json
+from copy import deepcopy
 from pathlib import Path
 import click
 
@@ -95,3 +98,58 @@ def layout(
             "Previously generated database index found at {}. "
             "To generate a new index, rerun with ``--reset-db``".format(db_path)
         )
+
+
+@click.command(context_settings=CONTEXT_SETTINGS)
+@click.argument('root', type=click.Path(file_okay=False, exists=True))
+def upgrade(root):
+    """
+    Upgrade common experimental BIDS features to finalized versions.
+    """
+    description_path = Path(root) / "dataset_description.json"
+    description = json.loads(description_path.read_text())
+    orig = deepcopy(description)
+
+    # Always update DatasetType if missing
+    if "DatasetType" not in description:
+        val = click.prompt("Is this dataset [R]aw or [D]erivative?", default="R",
+                           type=click.Choice("RD"))
+        description["DatasetType"] = "raw" if val == "R" else "derivative"
+    dstype = description["DatasetType"]
+
+    if dstype == "raw":
+        """ No other upgrades for raw datasets at present... """
+    elif dstype == "derivative":
+        if "PipelineDescription" in description:
+            val = click.prompt("Convert PipelineDescription to GeneratedBy?", default="Y",
+                               type=click.Choice("YN"))
+            if val == "Y":
+                description["GeneratedBy"] = [description.pop("PipelineDescription")]
+
+    if description != orig:
+        description_path.write_text(json.dumps(description))
+
+    val = click.prompt("Load dataset and update filenames?", default="Y",
+                       type=click.Choice("YN"))
+    if val == "N":
+        return
+
+    layout = BIDSLayout(root, validate=False, config="bids" if dstype == "raw" else "derivatives")
+
+    # Rename regressors.tsv to timeseries.tsv
+    regressors = layout.get(suffix="regressors")
+    policy = None
+    for bidsfile in regressors:
+        action = policy
+        new_path = bidsfile.path.replace("regressors.", "timeseries.")
+        if action is None:
+            action = click.prompt(
+                f"Rename {bidsfile.path} to {new_path}? ([y]es/[n]o/[A]ll/[N]one)", default="y"
+                type=click.Choice("ynAN"), show_choices=False)
+            if action in "AN":
+                policy = action
+        if action in "yA":
+            print(f"Renaming {bidsfile.path} -> {new_path}")
+            os.rename(bidsfile.path, new_path)
+        else:
+            print(f"Not renaming {bidsfile.path}")
