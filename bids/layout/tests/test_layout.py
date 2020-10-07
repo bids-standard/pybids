@@ -186,12 +186,12 @@ def test_get_metadata_error(layout_7t_trt):
     result = layout_7t_trt.files[path].get_metadata()
     with pytest.raises(KeyError) as err:
         result['Missing']
-    assert "Metadata term 'Missing' unavailable for file {}".format(path) in str(err)
+    assert "Metadata term 'Missing' unavailable for file {}".format(path) in str(err.value)
 
     result = layout_7t_trt.get_metadata(path)
     with pytest.raises(KeyError) as err:
         result['Missing']
-    assert "Metadata term 'Missing' unavailable for file {}".format(path) in str(err)
+    assert "Metadata term 'Missing' unavailable for file {}".format(path) in str(err.value)
 
 
 def test_get_with_bad_target(layout_7t_trt):
