@@ -103,7 +103,7 @@ def validate_derivative_paths(paths, layout=None, **kwargs):
         return os.path.exists(dd)
 
     for p in paths:
-        p = os.path.abspath(p)
+        p = os.path.abspath(str(p))
         if os.path.exists(p):
             if check_for_description(p):
                 deriv_dirs.append(p)

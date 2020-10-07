@@ -60,7 +60,7 @@ class LayoutInfo(Base):
             kwargs['root'] = str(Path(kwargs['root']).absolute())
 
         # Get abspaths
-        if 'derivatives' in kwargs and isinstance(kwargs['derivatives'], list):
+        if kwargs.get('derivatives') not in (None, True, False):
             kwargs['derivatives'] = [
                 str(Path(der).absolute())
                 for der in listify(kwargs['derivatives'])
