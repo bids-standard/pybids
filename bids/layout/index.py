@@ -275,7 +275,7 @@ class BIDSLayoutIndexer:
                     file_data[key] = defaultdict(list)
 
                 if ext == dot + 'json':
-                    with open(bf.path, 'r') as handle:
+                    with open(bf.path, 'r', encoding='utf-8') as handle:
                         try:
                             payload = json.load(handle)
                         except json.JSONDecodeError as e:
