@@ -3,7 +3,8 @@ BIDSLayout class."""
 
 import os
 import re
-from os.path import (join, abspath, basename)
+from os.path import join, abspath, basename
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -509,6 +510,21 @@ def test_deriv_indexing():
     # Should work fine
     deriv_dir = join(data_dir, 'derivatives', 'events')
     layout = BIDSLayout(data_dir, derivatives=deriv_dir)
+    assert layout.get(scope='derivatives')
+    assert layout.get(scope='events')
+    assert not layout.get(scope='nonexistent')
+
+
+def test_path_arguments():
+    data_dir = join(get_test_data_path(), 'ds005')
+    deriv_dir = join(data_dir, 'derivatives', 'events')
+
+    layout = BIDSLayout(Path(data_dir), derivatives=Path(deriv_dir))
+    assert layout.get(scope='derivatives')
+    assert layout.get(scope='events')
+    assert not layout.get(scope='nonexistent')
+
+    layout = BIDSLayout(Path(data_dir), derivatives=[Path(deriv_dir)])
     assert layout.get(scope='derivatives')
     assert layout.get(scope='events')
     assert not layout.get(scope='nonexistent')
