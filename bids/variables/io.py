@@ -100,9 +100,9 @@ def load_variables(layout, types=None, levels=None, skip_empty=True,
     return dataset
 
 
-def _get_nvols(img_obj):
+def _get_nvols(img_f):
     import nibabel as nb
-    img = nb.load(img_obj)
+    img = nb.load(img_f)
     nvols = 0
     if isinstance(img, nb.Nifti1Pair):
         nvols = img.shape[3]
@@ -112,11 +112,11 @@ def _get_nvols(img_obj):
                 nvols = ax.size
                 break
         else:
-            raise ValueError("No series axis found in %s" % img_obj.path)
+            raise ValueError("No series axis found in %s" % img_f)
     elif isinstance(img, nb.GiftiImage):
         nvols = len(img.get_arrays_from_intent('time series'))
     else:
-        raise ValueError("Unknown image type %s: %s" % img.__class__, img_obj.path)
+        raise ValueError("Unknown image type %s: %s" % img.__class__, img_f)
 
     return nvols
 
