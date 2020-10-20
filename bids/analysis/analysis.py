@@ -162,11 +162,10 @@ class Step(object):
         # Collections loaded but not yet processed/transformed
         self._raw_collections = []
 
-    def _filter_collections(self, kwargs):
+    def _filter_collections(self, collections, kwargs):
         # Keeps only collections that match target entities, and also removes
         # those keys from the kwargs dict.
         kwargs = kwargs.copy()
-        collections = self._raw_collections
         valid_ents = {'task', 'subject', 'session', 'run'}
         entities = {k: kwargs.pop(k) for k in dict(kwargs) if k in valid_ents}
         collections = [c for c in collections if matches_entities(c, entities)]
@@ -263,7 +262,7 @@ class Step(object):
         input_grps = self._merge_contrast_inputs(inputs) if inputs else {}
 
         # filter on passed selectors and group by unit of current level
-        collections, _ = self._filter_collections(kwargs)
+        collections, _ = self._filter_collections(self._raw_collections, kwargs)
 
         groups = self._group_objects_by_entities(collections)
 
@@ -277,7 +276,7 @@ class Step(object):
         model = self.model or {}
         X = model.get('x', [])
 
-        for _, colls in groups.items():
+        for grp, colls in groups.items():
             coll = merge_collections(colls)
 
             colls = tm.TransformerManager().transform(coll, self.transformations)
@@ -332,7 +331,7 @@ class Step(object):
             level='run', each element in the list represents the collection
             for a single run).
         """
-        return self._filter_collections(filters)[0]
+        return self._filter_collections(self._collections, filters)[0]
 
     def get_contrasts(self, collection, names=None, variables=None):
         """Return contrast information at this step for the passed collection.
