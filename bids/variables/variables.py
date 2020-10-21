@@ -48,7 +48,7 @@ class BIDSVariable(metaclass=ABCMeta):
             if data.shape != self.values.shape:
                 # If data can be re-shaped safely, do so
                 if data.squeeze().shape == self.values.squeeze().shape:
-                    data = data.reshape(self.values.shape)
+                    data = data.values.reshape(self.values.shape)
                 else:
                     raise ValueError("Replacement data has shape %s; must have"
                                      " same shape as existing data %s." %
