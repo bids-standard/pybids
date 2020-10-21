@@ -1,6 +1,26 @@
 Changelog
 =========
 
+Version 0.12.2 (October 09, 2020)
+---------------------------------
+
+Bug-fix release in 0.12.x series.
+
+* FIX: Support nibabel < 3 when calculating time series length (#669)
+* FIX: Sanitize single derivative Path passed to BIDSLayout (#665)
+* FIX: Force UTF-8 encoding in _index_metadata (#663)
+* FIX: Explicitly convert to HTML when testing tutorial (nbconvert 6.0 breakage) (#664)
+
+Version 0.12.1 (September 09, 2020)
+-----------------------------------
+
+* FIX: drop obsolete test (#652)
+* FIX: Convolve zero-duration (impulse) events when variable contains multiple events (#645)
+* ENH: Add CLI to PyBIDS (#650)
+* ENH: Add relpath attribute to BIDSFile and associated refactoring (#647)
+* DOC: Add example for using parse_file_entities from bids.layout (#639)
+* MNT: Remove deprecated database_file argument to BIDSLayout (#644)
+
 Version 0.12.0 (August 04, 2020)
 --------------------------------
 New feature release for the 0.12.x series.

@@ -3,7 +3,8 @@ BIDSLayout class."""
 
 import os
 import re
-from os.path import (join, abspath, basename)
+from os.path import join, abspath, basename
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -185,12 +186,12 @@ def test_get_metadata_error(layout_7t_trt):
     result = layout_7t_trt.files[path].get_metadata()
     with pytest.raises(KeyError) as err:
         result['Missing']
-    assert "Metadata term 'Missing' unavailable for file {}".format(path) in str(err)
+    assert "Metadata term 'Missing' unavailable for file {}".format(path) in str(err.value)
 
     result = layout_7t_trt.get_metadata(path)
     with pytest.raises(KeyError) as err:
         result['Missing']
-    assert "Metadata term 'Missing' unavailable for file {}".format(path) in str(err)
+    assert "Metadata term 'Missing' unavailable for file {}".format(path) in str(err.value)
 
 
 def test_get_with_bad_target(layout_7t_trt):
@@ -264,17 +265,6 @@ def test_get_return_type_dir(layout_7t_trt, layout_7t_trt_relpath):
     assert target_relpath == res_relpath2
     res2 = layout_7t_trt_relpath.get(absolute_paths=True, **query)
     assert target == res2
-
-
-def test_ensure_non_detaching_sessions(layout_7t_trt, layout_7t_trt_relpath):
-    """ Ensure that sessions don't detach unexpectly during queries."""
-    query = dict(target='subject', return_type='dir')
-    res_relpath = layout_7t_trt_relpath.get(**query)
-    target_relpath = ["sub-{:02d}".format(i) for i in range(1, 11)]
-    assert target_relpath == res_relpath
-    res_abspath = layout_7t_trt.get(**query)
-    # Second query would break without expire_on_commit=True
-    res_relpath = layout_7t_trt_relpath.get(**query)
 
 
 @pytest.mark.parametrize("acq", [None, Query.NONE])
@@ -520,6 +510,21 @@ def test_deriv_indexing():
     # Should work fine
     deriv_dir = join(data_dir, 'derivatives', 'events')
     layout = BIDSLayout(data_dir, derivatives=deriv_dir)
+    assert layout.get(scope='derivatives')
+    assert layout.get(scope='events')
+    assert not layout.get(scope='nonexistent')
+
+
+def test_path_arguments():
+    data_dir = join(get_test_data_path(), 'ds005')
+    deriv_dir = join(data_dir, 'derivatives', 'events')
+
+    layout = BIDSLayout(Path(data_dir), derivatives=Path(deriv_dir))
+    assert layout.get(scope='derivatives')
+    assert layout.get(scope='events')
+    assert not layout.get(scope='nonexistent')
+
+    layout = BIDSLayout(Path(data_dir), derivatives=[Path(deriv_dir)])
     assert layout.get(scope='derivatives')
     assert layout.get(scope='events')
     assert not layout.get(scope='nonexistent')

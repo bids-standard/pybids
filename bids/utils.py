@@ -111,3 +111,18 @@ def make_bidsfile(filename):
 
     Cls = getattr(models, cls)
     return Cls(filename)
+
+
+def validate_multiple(val, retval=None):
+    """Any click.Option with the multiple flag will return an empty tuple if not set.
+
+    This helper method converts empty tuples to a desired return value (default: None).
+    This helper method selects the first item in single-item tuples.
+    """
+    assert isinstance(val, tuple)
+
+    if val == tuple():
+        return retval
+    if len(val) == 1:
+        return val[0]
+    return val

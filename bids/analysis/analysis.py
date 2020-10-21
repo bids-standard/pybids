@@ -65,7 +65,7 @@ class Analysis(object):
             step = Step(self.layout, index=i, **step_args)
             self.steps.append(step)
 
-    def setup(self, steps=None, drop_na=False, **kwargs):
+    def setup(self, steps=None, drop_na=False, finalize=True, **kwargs):
         """Set up the sequence of steps for analysis.
 
         Parameters
@@ -80,11 +80,13 @@ class Analysis(object):
             Boolean indicating whether or not to automatically
             drop events that have a n/a amplitude when reading in data
             from event files.
+        finalize : bool
+            Indicates whether or not to finalize setup. If False, variables
+            are loaded in each Step, but transformations aren't yet applied,
+            and outputs from each Step aren't fed forward. If True, the latter
+            procedures are executed, and all Step instances are finalized for
+            design matrix generation.
         """
-
-        # The first Step in the sequence can't have any contrast inputs
-        input_contrasts = None
-
         # Use inputs from model, and update with kwargs
         selectors = self.model.get('input', {}).copy()
         selectors.update(kwargs)
@@ -95,9 +97,21 @@ class Analysis(object):
             if steps is not None and i not in steps and step.name not in steps:
                 continue
 
-            step.setup(input_contrasts, drop_na=drop_na, **selectors)
+            step.add_collections(drop_na=drop_na, **selectors)
+
+        if finalize:
+            selectors.pop('scan_length')  # see TODO below
+            self.finalize(**selectors)
+
+    def finalize(self, **kwargs):
+
+        # The first Step in the sequence can't have any contrast inputs
+        input_contrasts = None
+
+        for step in self.steps:
+            step.setup(input_contrasts, **kwargs)
             input_contrasts = [step.get_contrasts(c)
-                               for c in step.get_collections(**selectors)]
+                                for c in step.get_collections(**kwargs)]
             input_contrasts = list(chain(*input_contrasts))
 
 
@@ -145,10 +159,13 @@ class Step(object):
         self.inputs = inputs or []
         self.dummy_contrasts = dummy_contrasts
         self._collections = []
+        # Collections loaded but not yet processed/transformed
+        self._raw_collections = []
 
     def _filter_collections(self, collections, kwargs):
         # Keeps only collections that match target entities, and also removes
         # those keys from the kwargs dict.
+        kwargs = kwargs.copy()
         valid_ents = {'task', 'subject', 'session', 'run'}
         entities = {k: kwargs.pop(k) for k in dict(kwargs) if k in valid_ents}
         collections = [c for c in collections if matches_entities(c, entities)]
@@ -223,8 +240,12 @@ class Step(object):
 
         return collections
 
-    def setup(self, inputs=None, drop_na=False, **kwargs):
-        """Set up the Step and construct the design matrix.
+    def setup(self, inputs=None, **kwargs):
+        """Set up the Step.
+
+        Processes inputs from previous step, combines it with currently loaded
+        data, and applies transformations to produce a design matrix-ready set
+        of variable collections.
 
         Parameters
         ----------
@@ -232,29 +253,17 @@ class Step(object):
             Optional list of BIDSVariableCollections produced as output by the
             preceding Step in the analysis. If None, uses inputs passed at
             initialization (if any).
-        drop_na : bool
-            Boolean indicating whether or not to automatically drop events that
-            have a n/a amplitude when reading in data from event files.
         kwargs : dict
-            Optional keyword arguments to pass onto load_variables.
+            Optional keyword arguments constraining the collections to include.
         """
-        self._collections = []
 
-        # Convert input contrasts to a list of BIDSVariableCollections
         inputs = inputs or self.inputs or []
+
         input_grps = self._merge_contrast_inputs(inputs) if inputs else {}
 
-        # TODO: remove the scan_length argument entirely once we switch tests
-        # to use the synthetic dataset with image headers.
-        if self.level != 'run':
-            kwargs = kwargs.copy()
-            kwargs.pop('scan_length', None)
+        # filter on passed selectors and group by unit of current level
+        collections, _ = self._filter_collections(self._raw_collections, kwargs)
 
-        # Now handle variables read from the BIDS dataset: read them in, filter
-        # on passed selectors, and group by unit of current level
-        collections = self.layout.get_collections(self.level, drop_na=drop_na,
-                                                  **kwargs)
-        collections, _ = self._filter_collections(collections, kwargs)
         groups = self._group_objects_by_entities(collections)
 
         # Merge in the inputs
@@ -276,6 +285,34 @@ class Step(object):
                 tm.Select(coll, X)
 
             self._collections.append(coll)
+
+    def add_collections(self, drop_na=False, **kwargs):
+        """Add BIDSVariableCollections (i.e., predictors) to the current Step.
+
+        Parameters
+        ----------
+        drop_na : bool
+            Boolean indicating whether or not to automatically drop events that
+            have a n/a amplitude when reading in data from event files.
+        kwargs : dict
+            Optional keyword arguments to pass onto load_variables.
+
+        Notes
+        -----
+        No checking for redundancy is performed, so if load_collections() is
+        invoked multiple times with overlapping selectors, redundant predictors
+        are likely to be stored internally.
+        """
+
+        # TODO: remove the scan_length argument entirely once we switch tests
+        # to use the synthetic dataset with image headers.
+        if self.level != 'run':
+            kwargs = kwargs.copy()
+            kwargs.pop('scan_length', None)
+
+        collections = self.layout.get_collections(self.level, drop_na=drop_na,
+                                                  **kwargs)
+        self._raw_collections.extend(collections)
 
     def get_collections(self, **filters):
         """Returns BIDSVariableCollections at the current Step.
