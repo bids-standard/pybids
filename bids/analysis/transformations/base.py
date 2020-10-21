@@ -351,7 +351,7 @@ class Transformation(metaclass=ABCMeta):
                             for c in variables[1:]]):
                     if self._force_dense_align:
                         msg = ("Forcing all sparse variables to dense in "
-                                "order to ensure proper alignment.")
+                               "order to ensure proper alignment.")
                         sr = self.collection.sampling_rate
                         variables = [c.to_dense(sr) for c in variables]
                         warnings.warn(msg)
