@@ -31,6 +31,17 @@ def test_first_level_sparse_design_matrix(analysis):
                                'task', 'datatype', 'suffix'}
 
 
+def test_incremental_data_loading():
+    layout_path = join(get_test_data_path(), 'ds005')
+    layout = BIDSLayout(layout_path)
+    json_file = join(layout_path, 'models', 'ds-005_type-test_model.json')
+    analysis = Analysis(layout, json_file)
+    analysis.setup(scan_length=480, subject=['01'], run=[1], finalize=False)
+    analysis.setup(scan_length=480, subject=['02'], run=[2], finalize=False)
+    analysis.finalize()
+    assert len(analysis['run'].get_collections()) == 2
+
+
 def test_post_first_level_sparse_design_matrix(analysis):
 
     collections = analysis['session'].get_collections()
