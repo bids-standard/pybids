@@ -41,15 +41,18 @@ class Transformation(metaclass=ABCMeta):
     # no further changes will be committed.
     _return_type = 'pandas'
 
-    # A tuple indicating which arguments give the names of variables that must
-    # all be aligned with one another (i.e., onsets and durations match
-    # perfectly) before processing.
-    # If True, will require all variables to be aligned. Defaults to None.
-    _align = None
+    # Indicates if variables must be aligned with one another
+    # (i.e., onsets and durations match perfectly) before processing.
+    # If True, will require all variables to be aligned (throw exception).
+    # If 'force', will auto-align variables by densification.
+    # Defaults to None.
+    _aligned_required = None
 
-    # A boolean indicating if auto-alignment by densification should occur
-    # if alignment is required, but inputs are not aligned.
-    _force_dense_align = False
+    # (Optional) If alignment is required,sets which variables must be aligned.
+    # If None, all variables must be aligned. It can also be a a string
+    # indicating which column contains the names of columns to be aligned,
+    # or a tuple which explicitly names the columns to be aligned.
+    _aligned_variables = None
 
     # Boolean indicating whether the Transformation should be applied to each
     # variable in the input list in turn. When True (default), Transformation
@@ -324,7 +327,7 @@ class Transformation(metaclass=ABCMeta):
         format in order to ensure alignment.
         """
 
-        if self._align is None or self._align == 'none':
+        if self._aligned_required is None or self._aligned_required == 'none':
             return
 
         def _align(variables):
@@ -349,7 +352,7 @@ class Transformation(metaclass=ABCMeta):
                 fc = get_col_data(variables[0])
                 if not all([compare_variables(fc, get_col_data(c))
                             for c in variables[1:]]):
-                    if self._force_dense_align:
+                    if self._aligned_required == 'force_dense':
                         msg = ("Forcing all sparse variables to dense in "
                                "order to ensure proper alignment.")
                         sr = self.collection.sampling_rate
@@ -362,20 +365,24 @@ class Transformation(metaclass=ABCMeta):
                             "set dense=True in the Transformation arguments"
                             )
 
-        align_variables = [listify(self.kwargs[v])
-                           for v in listify(self._align) if v in self.kwargs]
-        align_variables = list(itertools.chain(*align_variables))
-        align_variables = [self.collection[c] for c in align_variables if c]
+        _aligned_variables = True if not self._align_variables \
+            else self._align_variables
+        _aligned_variables = [listify(self.kwargs[v])
+                              for v in listify(_aligned_variables)
+                              if v in self.kwargs]
+        _aligned_variables = list(itertools.chain(*_aligned_variables))
+        _aligned_variables = [
+            self.collection[c] for c in _aligned_variables if c]
 
-        if align_variables and self._loopable:
+        if _aligned_variables and self._loopable:
             for c in variables:
                 # TODO: should clone all variables in align_variables before
                 # alignment to prevent conversion to dense in any given
                 # iteration having side effects. This could be an issue if,
                 # e.g., some vars in 'variables' are dense and some are sparse.
-                _align([c] + align_variables)
+                _align([c] + _aligned_variables)
         else:
-            _align(listify(variables) + align_variables)
+            _align(listify(variables) + _aligned_variables)
 
 
 class TransformerManager(object):
