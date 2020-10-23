@@ -365,8 +365,8 @@ class Transformation(metaclass=ABCMeta):
                             "set dense=True in the Transformation arguments"
                             )
 
-        _aligned_variables = True if not self._align_variables \
-            else self._align_variables
+        _aligned_variables = True if not self._aligned_variables \
+            else self._aligned_variables
         _aligned_variables = [listify(self.kwargs[v])
                               for v in listify(_aligned_variables)
                               if v in self.kwargs]
