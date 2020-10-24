@@ -175,7 +175,8 @@ class Filter(Transformation):
     _groupable = False
     _input_type = 'variable'
     _return_type = 'variable'
-    _align = ('by')
+    _aligned_required = 'force_dense'
+    _aligned_variables = ('by')
     _allow_categorical = ('variables', 'by')
 
     def _transform(self, var, query, by=None):

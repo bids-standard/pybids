@@ -107,7 +107,8 @@ class Orthogonalize(Transformation):
 
     _variables_used = ('variables', 'other')
     _densify = ('variables', 'other')
-    _align = ('other')
+    _aligned_required = 'force_dense'
+    _aligned_variables = ('other')
 
     def _transform(self, var, other):
 
@@ -129,7 +130,7 @@ class Product(Transformation):
 
     _loopable = False
     _groupable = False
-    _align = True
+    _aligned_required = True
     _output_required = True
 
     def _transform(self, data):
@@ -181,7 +182,7 @@ class Sum(Transformation):
 
     _loopable = False
     _groupable = False
-    _align = True
+    _aligned_required = True
     _output_required = True
 
     def _transform(self, data, weights=None):
@@ -195,7 +196,6 @@ class Sum(Transformation):
                                  "of elements must equal number of variables"
                                  " being summed.")
         return (data * weights).sum(axis=1)
-
 
 
 class Threshold(Transformation):
@@ -250,6 +250,7 @@ class And_(Transformation):
     _loopable = False
     _groupable = False
     _output_required = True
+    _aligned_required = True
 
     def _transform(self, dfs):
         df = pd.concat(dfs, axis=1, sort=True)
@@ -284,6 +285,7 @@ class Or_(Transformation):
     _loopable = False
     _groupable = False
     _output_required = True
+    _aligned_required = True
 
     def _transform(self, dfs):
         df = pd.concat(dfs, axis=1, sort=True)

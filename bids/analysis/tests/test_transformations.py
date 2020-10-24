@@ -461,13 +461,15 @@ def test_and(collection):
     coll = collection.clone()
     transform.Factor(coll, 'respnum')
     names = ['respnum.%d' % d for d in range(0, 5)]
-    transform.And(coll, names, output='conjunction')
-    assert not coll.variables['conjunction'].values.sum()
 
-    coll['copy'] = coll.variables['respnum.0'].clone()
-    transform.And(coll, ['respnum.0', 'copy'], output='conj')
-    assert coll.variables['conj'].values.astype(float).equals(
-        coll.variables['respnum.0'].values)
+    coll.variables['respnum.0'].onset += 1
+
+    # Should fail because I misaligned variable
+    with pytest.raises(ValueError):
+        transform.And(coll, names, output='misaligned')
+
+    # Should pass because dense is set to True and will align
+    transform.And(coll, names, output='misaligned', dense=True)
 
 
 def test_or(collection):
