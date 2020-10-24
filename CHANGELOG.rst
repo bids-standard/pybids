@@ -1,6 +1,12 @@
 Changelog
 =========
 
+Version 0.12.3 (October 23, 2020)
+---------------------------------
+
+* FIX: Require aligned input for logical operations (#649)
+* ENH: Incremental variable loading in Step setup (#672)
+
 Version 0.12.2 (October 09, 2020)
 ---------------------------------
 
