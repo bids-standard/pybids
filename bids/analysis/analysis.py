@@ -100,7 +100,7 @@ class Analysis(object):
             step.add_collections(drop_na=drop_na, **selectors)
 
         if finalize:
-            selectors.pop('scan_length')  # see TODO below
+            selectors.pop('scan_length', None)  # see TODO below
             self.finalize(**selectors)
 
     def finalize(self, **kwargs):
