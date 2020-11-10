@@ -1,6 +1,13 @@
 Changelog
 =========
 
+Version 0.12.4 (November 10, 2020)
+----------------------------------
+
+Bug-fix release in the 0.12.x series.
+
+* FIX: Do not error when popping missing ``scan_length`` (#679)
+
 Version 0.12.3 (October 23, 2020)
 ---------------------------------
 
