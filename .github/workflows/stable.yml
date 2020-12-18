@@ -24,9 +24,21 @@ jobs:
         check: ['ci_tests']
         pip-flags: ['']
         include:
+          # Build docs
+          - os: ubuntu-latest
+            python-version: 3.8
+            install: pip
+            check: doc
+            pip-flags: ''
+          # Run tutorial
+          - os: ubuntu-latest
+            python-version: 3.8
+            install: pip
+            check: tutorial
+            pip-flags: ''
           # Clean install imports only with package-declared dependencies
           - os: ubuntu-latest
-            python-version: 3.6
+            python-version: 3.8
             install: pip
             check: skiptests
             pip-flags: ''
