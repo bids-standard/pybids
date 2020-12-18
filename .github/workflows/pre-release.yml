@@ -1,10 +1,6 @@
-name: Stable tests
+name: Pre-release checks
 
-# This file tests the claimed support range of NiBabel including
-#
-# * Operating systems: Linux, Windows (x64 & x86), OSX
-# * Dependencies: minimum requirements, optional requirements
-# * Installation methods: setup.py, sdist, wheel, archive
+# This file tests against pre-release wheels for dependencies
 
 on: [push, pull_request]
 
@@ -13,34 +9,17 @@ defaults:
     shell: bash
 
 jobs:
-  stable:
-    # Check each OS, all supported Python, minimum versions and latest releases
+  pre-release:
+    # Check pre-releases of dependencies on stable Python
     runs-on: ${{ matrix.os }}
+    continue-on-error: true
     strategy:
       matrix:
         os: ['ubuntu-latest', 'macos-latest']
-        python-version: [3.6, 3.7, 3.8, 3.9]
+        python-version: [3.8, 3.9]
         install: ['pip']
         check: ['ci_tests']
-        pip-flags: ['']
-        include:
-          # Clean install imports only with package-declared dependencies
-          - os: ubuntu-latest
-            python-version: 3.6
-            install: pip
-            check: skiptests
-            pip-flags: ''
-          # Check all installation methods
-          - os: ubuntu-latest
-            python-version: 3.8
-            install: wheel
-            check: ci_tests
-            pip-flags: ''
-          - os: ubuntu-latest
-            python-version: 3.8
-            install: sdist
-            check: ci_tests
-            pip-flags: ''
+        pip-flags: ['PRE_PIP_FLAGS']
     env:
       INSTALL_TYPE: ${{ matrix.install }}
       CHECK_TYPE: ${{ matrix.check }}
