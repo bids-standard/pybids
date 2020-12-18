@@ -73,3 +73,7 @@ jobs:
           source tools/ci/activate.sh
           make $CHECK_TYPE
         if: ${{ matrix.check != 'skiptests' }}
+      - uses: codecov/codecov-action@v1
+        with:
+          file: coverage.xml
+        if: ${{ always() }}
