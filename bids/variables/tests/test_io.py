@@ -2,6 +2,7 @@ from bids.layout import BIDSLayout
 from bids.variables import (SparseRunVariable, SimpleVariable,
                             DenseRunVariable, load_variables)
 from bids.variables.entities import Node, RunNode, NodeIndex
+from unittest.mock import patch
 import pytest
 from os.path import join
 from bids.tests import get_test_data_path
@@ -17,15 +18,19 @@ def layout1():
 
 @pytest.fixture(scope="module", params=["events", "preproc"])
 def synthetic(request):
-    root = join(get_test_data_path(), 'synthetic')
-    if request.param == 'preproc':
-        layout = BIDSLayout(root, derivatives=True)
-        dataset = load_variables(layout, skip_empty=True, desc='preproc',
-                                 space='T1w')
-    else:
-        layout = BIDSLayout(root)
-        dataset = load_variables(layout, skip_empty=True)
-    yield request.param, dataset
+    import bids.config
+    # Not testing with/without here
+    with patch.dict('bids.config._settings'):
+        bids.config.set_option('extension_initial_dot', True)
+        root = join(get_test_data_path(), 'synthetic')
+        if request.param == 'preproc':
+            layout = BIDSLayout(root, derivatives=True)
+            dataset = load_variables(layout, skip_empty=True, desc='preproc',
+                                     space='T1w')
+        else:
+            layout = BIDSLayout(root)
+            dataset = load_variables(layout, skip_empty=True)
+        yield request.param, dataset
 
 
 def test_load_events(layout1):

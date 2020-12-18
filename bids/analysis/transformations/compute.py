@@ -10,6 +10,12 @@ from bids.analysis import hrf
 from bids.variables import SparseRunVariable,  DenseRunVariable
 
 
+def _fractional_gcd(vals, res=0.001):
+    from functools import reduce
+    from math import gcd
+    return reduce(gcd, (int(np.round(val / res)) for val in vals)) * res
+
+
 class Convolve(Transformation):
     """Convolve the input variable with an HRF.
 
@@ -48,10 +54,11 @@ class Convolve(Transformation):
             dur = var.get_duration()
             resample_frames = np.linspace(
                 0, dur, int(math.ceil(dur * sampling_rate)), endpoint=False)
-
+            safety = 2  # Double frequency to resolve events
         else:
             resample_frames = df['onset'].values
             sampling_rate = var.sampling_rate
+            safety = 1  # Maximum signal resolution is already 0.5 * SR
 
         vals = df[['onset', 'duration', 'amplitude']].values.T
 
@@ -63,18 +70,26 @@ class Convolve(Transformation):
         elif model != 'fir':
             raise ValueError("Model must be one of 'spm', 'glover', or 'fir'.")
 
-        # Minimum interval between event onsets/duration
-        # Used to compute oversampling factor to prevent information loss
-        unique_onsets = np.unique(np.sort(df.onset))
-        if len(unique_onsets) > 1:
-            min_interval = min(np.ediff1d(unique_onsets).min(),
-                               df.duration.min())
-            oversampling = np.ceil(2*(1 / (min_interval * sampling_rate)))
-        else:
-            oversampling = 2
+        # Sampling at >100Hz will never be useful, but can be wildly expensive
+        max_freq, min_interval = 100, 0.01
+        # Sampling at <1Hz can degrade signals
+        min_freq, max_interval = 1, 1
+
+        # Given the sampling rate, determine an oversampling factor to ensure that
+        # events can be modeled with reasonable precision
+        unique_onsets = np.unique(df.onset)
+        unique_durations = np.unique(df.duration)
+        # Align existing data ticks with, event onsets and offsets, up to ms resolution
+        # Note that GCD ignores zeros, so 0 onsets and impulse responses (0 durations) do
+        # not harm this.
+        required_resolution = _fractional_gcd(
+            np.concatenate((unique_onsets, unique_durations)),
+            res=min_interval)
+        # Bound the effective sampling rate between min_freq and max_freq
+        effective_sr = max(min_freq, min(safety / required_resolution, max_freq))
         convolved = hrf.compute_regressor(
             vals, model, resample_frames, fir_delays=fir_delays, min_onset=0,
-            oversampling=oversampling
+            oversampling=np.ceil(effective_sr / sampling_rate)
             )
 
         return DenseRunVariable(
@@ -92,7 +107,8 @@ class Orthogonalize(Transformation):
 
     _variables_used = ('variables', 'other')
     _densify = ('variables', 'other')
-    _align = ('other')
+    _aligned_required = 'force_dense'
+    _aligned_variables = ('other')
 
     def _transform(self, var, other):
 
@@ -114,7 +130,7 @@ class Product(Transformation):
 
     _loopable = False
     _groupable = False
-    _align = True
+    _aligned_required = True
     _output_required = True
 
     def _transform(self, data):
@@ -166,7 +182,7 @@ class Sum(Transformation):
 
     _loopable = False
     _groupable = False
-    _align = True
+    _aligned_required = True
     _output_required = True
 
     def _transform(self, data, weights=None):
@@ -180,7 +196,6 @@ class Sum(Transformation):
                                  "of elements must equal number of variables"
                                  " being summed.")
         return (data * weights).sum(axis=1)
-
 
 
 class Threshold(Transformation):
@@ -223,7 +238,7 @@ class Threshold(Transformation):
         return data
 
 
-class And(Transformation):
+class And_(Transformation):
     """Logical AND on two or more variables.
 
     Parameters
@@ -235,6 +250,7 @@ class And(Transformation):
     _loopable = False
     _groupable = False
     _output_required = True
+    _aligned_required = True
 
     def _transform(self, dfs):
         df = pd.concat(dfs, axis=1, sort=True)
@@ -257,7 +273,7 @@ class Not(Transformation):
         return ~var.astype(bool)
 
 
-class Or(Transformation):
+class Or_(Transformation):
     """Logical OR (inclusive) on two or more variables.
 
     Parameters
@@ -269,6 +285,7 @@ class Or(Transformation):
     _loopable = False
     _groupable = False
     _output_required = True
+    _aligned_required = True
 
     def _transform(self, dfs):
         df = pd.concat(dfs, axis=1, sort=True)

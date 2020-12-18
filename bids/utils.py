@@ -95,16 +95,16 @@ def make_bidsfile(filename):
     """Create a BIDSFile instance of the appropriate class. """
     from .layout import models
 
-    patt = re.compile("[._]*[a-zA-Z0-9]*?\\.([^/\\\\]+)$")
+    patt = re.compile("[._]*[a-zA-Z0-9]*?(\\.[^/\\\\]+)$")
     m = re.search(patt, filename)
 
-    ext = None if not m else m.group(1)
+    ext = '' if not m else m.group(1)
 
-    if ext in ['nii', 'nii.gz']:
+    if ext.endswith(('.nii', '.nii.gz', '.gii')):
         cls = 'BIDSImageFile'
-    elif ext in ['tsv', 'tsv.gz']:
+    elif ext in ['.tsv', '.tsv.gz']:
         cls = 'BIDSDataFile'
-    elif ext == 'json':
+    elif ext == '.json':
         cls = 'BIDSJSONFile'
     else:
         cls = 'BIDSFile'
@@ -127,7 +127,7 @@ def collect_associated_files(layout, files, extra_entities=()):
     collected_files : list of list of BIDSFile
     """
     MULTICONTRAST_ENTITIES = ['echo', 'part', 'ch', 'direction']
-    MULTICONTRAST_SUFFICES = [
+    MULTICONTRAST_SUFFIXES = [
         ('bold', 'phase'),
         ('phase1', 'phase2', 'phasediff', 'magnitude1', 'magnitude2'),
     ]
@@ -143,12 +143,27 @@ def collect_associated_files(layout, files, extra_entities=()):
 
         # Group files with differing multi-contrast entity values, but same
         # everything else.
-        all_suffices = ents['suffix']
-        for mcs in MULTICONTRAST_SUFFICES:
+        all_suffixes = ents['suffix']
+        for mcs in MULTICONTRAST_SUFFIXES:
             if ents['suffix'] in mcs:
-                all_suffices = mcs
+                all_suffixes = mcs
                 break
         ents.pop('suffix')
-        associated_files = layout.get(suffix=all_suffices, **ents)
+        associated_files = layout.get(suffix=all_suffixes, **ents)
         collected_files.append(associated_files)
     return collected_files
+
+
+def validate_multiple(val, retval=None):
+    """Any click.Option with the multiple flag will return an empty tuple if not set.
+
+    This helper method converts empty tuples to a desired return value (default: None).
+    This helper method selects the first item in single-item tuples.
+    """
+    assert isinstance(val, tuple)
+
+    if val == tuple():
+        return retval
+    if len(val) == 1:
+        return val[0]
+    return val

@@ -23,14 +23,14 @@
       "orcid": "0000-0003-3321-7583"
     },
     {
-      "affiliation": "Dartmouth College",
-      "name": "Halchenko, Yaroslav O.",
-      "orcid": "0000-0003-3456-2493"
-    },
-    {
       "affiliation": "Florida International University",
       "name": "Salo, Taylor",
       "orcid": "0000-0001-9813-3167"
+    },
+    {
+      "affiliation": "Dartmouth College",
+      "name": "Halchenko, Yaroslav O.",
+      "orcid": "0000-0003-3456-2493"
     },
     {
       "affiliation": "University of Texas at Austin",
@@ -61,14 +61,19 @@
       "name": "Petrov, Dmitry"
     },
     {
-      "affiliation": "Concordia University",
-      "name": "Hayot-Sasson, Val\u00e9rie",
-      "orcid": "0000-0002-4830-4535"
-    },
-    {
       "affiliation": "Neuroscience Program, University of Iowa",
       "name": "Kent, James D.",
       "orcid": "0000-0002-4892-2659"
+    },
+    {
+      "affiliation": "Center for Adaptive Rationality, Max Planck Institute for Human Development, Berlin, Germany",
+      "name": "Appelhoff, Stefan",
+      "orcid": "0000-0001-8002-0877"
+    },
+    {
+      "affiliation": "Concordia University",
+      "name": "Hayot-Sasson, Val\u00e9rie",
+      "orcid": "0000-0002-4830-4535"
     },
     {
       "affiliation": "National Institute of Mental Health",
@@ -91,6 +96,11 @@
       "orcid": "0000-0001-8498-4059"
     },
     {
+      "affiliation": "Department of Psychology, Stanford University",
+      "name": "Goncalves, Mathias",
+      "orcid": "0000-0002-7252-7771"
+    },
+    {
       "affiliation": "MIT, HMS",
       "name": "Ghosh, Satrajit",
       "orcid": "0000-0002-5312-6729"
@@ -106,16 +116,16 @@
       "orcid": "0000-0003-1358-196X"
     },
     {
-      "affiliation": "Center for Adaptive Rationality, Max Planck Institute for Human Development, Berlin, Germany",
-      "name": "Appelhoff, Stefan",
-      "orcid": "0000-0001-8002-0877"
-    },
-    {
       "name": "Janke, Andrew",
       "orcid": "0000-0002-6314-9027"
     },
     {
       "name": "Ivanov, Alexander"
+    },
+    {
+      "affiliation": "Australian eHealth Research Centre, Commonwealth Scientific and Industrial Research Organisation; University of Queensland",
+      "name": "Gillman, Ashley",
+      "orcid": "0000-0001-9130-1092"
     },
     {
       "affiliation": "KTH Royal Institute of Technology",
@@ -130,6 +140,11 @@
       "affiliation": "Holland Bloorview Kids Rehabilitation Hospital",
       "name": "Tilley II, Steven",
       "orcid": "0000-0003-4853-5082"
+    },
+    {
+      "name": "Li, Adam",
+      "affiliation": "Institute for Computational Medicine, Johns Hopkins University, Baltimore, MD, USA",
+      "orcid": "0000-0001-8421-365X"
     },
     {
       "affiliation": "Universit\u00e9 de Sherbrooke",
@@ -162,6 +177,9 @@
       "orcid": "0000-0002-2391-0678"
     },
     {
+      "name": "Kalenkovich, Evgenii"
+    },
+    {
       "affiliation": "Queen Mary University London",
       "name": "Staden, Isla",
       "orcid": "0000-0002-0795-1154"
@@ -175,11 +193,6 @@
       "affiliation": "The University of Washington eScience Institute",
       "name": "Rokem, Ariel",
       "orcid": "0000-0003-0679-1985"
-    },
-    {
-      "affiliation": "Australian eHealth Research Centre, Commonwealth Scientific and Industrial Research Organisation; University of Queensland",
-      "name": "Gillman, Ashley",
-      "orcid": "0000-0001-9130-1092"
     },
     {
       "affiliation": "INRIA",
@@ -202,6 +215,9 @@
       "orcid": "0000-0001-5884-4247"
     },
     {
+      "name": "Kruper, John"
+    },
+    {
       "affiliation": "UC Berkeley",
       "name": "Visconti di Oleggio Castello, Matteo",
       "orcid": "0000-0001-7931-5272"
@@ -220,6 +236,9 @@
       "affiliation": "Stanford University",
       "name": "Blair, Ross",
       "orcid": "0000-0003-3007-1056"
+    },
+    {
+      "name": "Sundaravadivelu, Suganya"
     }
   ],
   "keywords": [

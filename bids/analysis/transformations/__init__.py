@@ -1,11 +1,15 @@
-from .compute import (Sum, Product, Scale, Orthogonalize, Threshold, And, Or,
+from .compute import (Sum, Product, Scale, Orthogonalize, Threshold, And_, Or_,
                       Not, Demean, Convolve)
 from .munge import (Split, Rename, Assign, Copy, Factor, Filter, Select,
                     Delete, DropNA, Replace, ToDense, Group, Resample)
 from .base import TransformerManager
 
+And = And_
+Or = Or_
+
 __all__ = [
     'And',
+    'And_',
     'Assign',
     'Convolve',
     'Copy',
@@ -17,6 +21,7 @@ __all__ = [
     'Group',
     'Not',
     'Or',
+    'Or_',
     'Orthogonalize',
     'Product',
     'Rename',

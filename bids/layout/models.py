@@ -1,22 +1,72 @@
 """ Model classes used in BIDSLayouts. """
 
+import re
+import os
+from pathlib import Path
+import warnings
+import json
+from copy import deepcopy
+from itertools import chain
+from functools import lru_cache
+
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.orm.collections import attribute_mapped_collection
 from sqlalchemy import (Column, String, Boolean, ForeignKey, Table)
 from sqlalchemy.orm import reconstructor, relationship, backref, object_session
-import re
-import os
-import warnings
-import json
-from copy import deepcopy
-from itertools import chain
 
-from .writing import build_path, write_contents_to_file
+from ..utils import listify
+from .writing import build_path, write_to_file
 from ..config import get_option
 from .utils import BIDSMetadata
 
 Base = declarative_base()
+
+
+class LayoutInfo(Base):
+    """ Contains information about a BIDSLayout's initialization parameters."""
+
+    __tablename__ = 'layout_info'
+
+    root = Column(String, primary_key=True)
+    absolute_paths = Column(Boolean)
+    _derivatives = Column(String)
+    _config = Column(String)
+
+    def __init__(self, **kwargs):
+        init_args = self._sanitize_init_args(kwargs)
+        raw_cols = ['root', 'absolute_paths']
+        json_cols = ['derivatives', 'config']
+        all_cols = raw_cols + json_cols
+        missing_cols = set(all_cols) - set(init_args.keys())
+        if missing_cols:
+            raise ValueError("Missing mandatory initialization args: {}"
+                             .format(missing_cols))
+        for col in all_cols:
+            setattr(self, col, init_args[col])
+            if col in json_cols:
+                json_data = json.dumps(init_args[col])
+                setattr(self, '_' + col, json_data)
+
+    @reconstructor
+    def _init_on_load(self):
+        for col in ['derivatives', 'config']:
+            db_val = getattr(self, '_' + col)
+            setattr(self, col, json.loads(db_val))
+
+    def _sanitize_init_args(self, kwargs):
+        """ Prepare initalization arguments for serialization """
+        if 'root' in kwargs:
+            kwargs['root'] = str(Path(kwargs['root']).absolute())
+
+        # Get abspaths
+        if kwargs.get('derivatives') not in (None, True, False):
+            kwargs['derivatives'] = [
+                str(Path(der).absolute())
+                for der in listify(kwargs['derivatives'])
+                ]
+
+        return kwargs
 
 
 class Config(Base):
@@ -91,6 +141,17 @@ class Config(Base):
         A Config instance.
         """
 
+        # XXX 0.14: Disable extension_initial_dot branching
+        extension_initial_dot = get_option('extension_initial_dot')
+        if config == "bids" and not extension_initial_dot:
+            if extension_initial_dot is None:
+                warnings.warn("The 'extension' entity currently excludes the leading dot ('.'). "
+                              "As of version 0.14.0, it will include the leading dot. To suppress "
+                              "this warning and include the leading dot, use "
+                              "`bids.config.set_option('extension_initial_dot', True)`.",
+                              FutureWarning)
+            config = "bids-nodot"
+
         if isinstance(config, str):
             config_paths = get_option('config_paths')
             if config in config_paths:
@@ -103,9 +164,17 @@ class Config(Base):
 
         # Return existing Config record if one exists
         if session is not None:
-            result = (session.query(Config)
-                      .filter_by(name=config['name']).first())
+            result = session.query(Config).filter_by(name=config['name']).first()
             if result:
+                # XXX 0.14: Remove check
+                if config["name"] == "bids":
+                    old_pattern = result.entities["extension"].pattern
+                    new_pattern = next(ent['pattern'] for ent in config['entities']
+                                       if ent['name'] == 'extension')
+                    if new_pattern != old_pattern:
+                        warnings.warn(
+                            "Cannot modify extension_initial_dot option after initialization. "
+                            "Set option immediately after ``import bids``.")
                 return result
 
         return Config(session=session, **config)
@@ -163,6 +232,13 @@ class BIDSFile(Base):
 
     def __fspath__(self):
         return self.path
+
+    @property
+    @lru_cache()
+    def relpath(self):
+        """Return path relative to layout root"""
+        root = object_session(self).query(LayoutInfo).first().root
+        return str(Path(self.path).relative_to(root))
 
     def get_associations(self, kind=None, include_parents=False):
         """Get associated files, optionally limiting by association kind.
@@ -284,17 +360,13 @@ class BIDSFile(Base):
             raise ValueError("Target filename to copy/symlink (%s) doesn't "
                              "exist." % path)
 
+        kwargs = dict(path=new_filename, root=root, conflicts=conflicts)
         if symbolic_link:
-            contents = None
-            link_to = path
+            kwargs['link_to'] = path
         else:
-            with open(path, 'r') as f:
-                contents = f.read()
-            link_to = None
+            kwargs['copy_from'] = path
 
-        write_contents_to_file(new_filename, contents=contents,
-                               link_to=link_to, content_mode='text', root=root,
-                               conflicts=conflicts)
+        write_to_file(**kwargs)
 
 
 class BIDSDataFile(BIDSFile):
@@ -356,7 +428,8 @@ class BIDSDataFile(BIDSFile):
 
         data = self.data.copy()
 
-        if self.entities['extension'] == 'tsv.gz':
+        # XXX 0.14: ".tsv.gz" only
+        if self.entities['extension'] in ('tsv.gz', '.tsv.gz'):
             md = self.get_metadata()
             # We could potentially include some validation here, but that seems
             # like a job for the BIDS Validator.

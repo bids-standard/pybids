@@ -1,15 +1,17 @@
-import pytest
-import os
+"""Tests related to file-writing functionality."""
+
 import shutil
+import os
 from os.path import join, exists, islink, dirname
+
+import pytest
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
 
 from bids.layout.writing import build_path, _PATTERN_FIND
 from bids.tests import get_test_data_path
 from bids import BIDSLayout
 from bids.layout.models import BIDSFile, Entity, Tag, Base
-
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
 
 
 @pytest.fixture
@@ -65,6 +67,9 @@ class TestWritableFile:
         """Unit tests on the strict entity pattern finder regex."""
         assert _PATTERN_FIND.findall('{extension<nii|nii.gz|json>|nii.gz}') == [
             ('{extension<nii|nii.gz|json>|nii.gz}', 'extension', 'nii|nii.gz|json', 'nii.gz')
+        ]
+        assert _PATTERN_FIND.findall('{extension<.nii|.nii.gz|.json>|.nii.gz}') == [
+            ('{extension<.nii|.nii.gz|.json>|.nii.gz}', 'extension', '.nii|.nii.gz|.json', '.nii.gz')
         ]
         assert _PATTERN_FIND.findall('{extension<json|jsld>|json}') == [
             ('{extension<json|jsld>|json}', 'extension', 'json|jsld', 'json')
@@ -304,11 +309,11 @@ class TestWritableLayout:
         layout.copy_files(path_patterns=pat, conflicts='overwrite')
         assert exists(example_file)
 
-    def test_write_contents_to_file(self, tmp_bids, layout):
+    def test_write_to_file(self, tmp_bids, layout):
         contents = 'test'
         entities = {'subject': 'Bob', 'session': '01'}
         pat = join('sub-{subject}/ses-{session}/desc.txt')
-        layout.write_contents_to_file(entities, path_patterns=pat,
+        layout.write_to_file(entities, path_patterns=pat,
                                       contents=contents, validate=False)
         target = join(str(tmp_bids), 'bids', 'sub-Bob/ses-01/desc.txt')
         assert exists(target)
@@ -317,12 +322,12 @@ class TestWritableLayout:
         assert written == contents
         assert target not in layout.files
 
-    def test_write_contents_to_file_defaults(self, tmp_bids, layout):
+    def test_write_to_file_defaults(self, tmp_bids, layout):
         contents = 'test'
         entities = {'subject': 'Bob', 'session': '01', 'run': '1',
                     'suffix': 'bold', 'task': 'test', 'acquisition': 'test',
                     'bval': 0}
-        layout.write_contents_to_file(entities, contents=contents)
+        layout.write_to_file(entities, contents=contents)
         target = join(str(tmp_bids), 'bids', 'sub-Bob', 'ses-01',
                       'func', 'sub-Bob_ses-01_task-test_acq-test_run-1_bold.nii.gz')
         assert exists(target)

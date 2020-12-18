@@ -73,24 +73,54 @@ def test_convolve(collection):
         rt.get_duration() * collection.sampling_rate
 
     # Test adapative oversampling computation
+    # Events are 3s duration events every 4s, so resolution demanded by the data is 1Hz
+    # To resolve 1Hz frequencies, we must sample at >=2Hz
+    args = (mock.ANY, 'spm', mock.ANY)
+    kwargs = dict(fir_delays=None, min_onset=0)
     with mock.patch('bids.analysis.transformations.compute.hrf') as mocked:
+        # Sampling rate is 10Hz, no oversampling needed
         transform.Convolve(collection, 'RT', output='rt_mock')
-        mocked.compute_regressor.assert_called_with(
-            mock.ANY, 'spm', mock.ANY, fir_delays=None, min_onset=0,
-            oversampling=1.0)
+        mocked.compute_regressor.assert_called_with(*args, oversampling=1.0, **kwargs)
 
     with mock.patch('bids.analysis.transformations.compute.hrf') as mocked:
+        # Sampling rate is 10Hz, no oversampling needed
         transform.Convolve(collection, 'rt_dense', output='rt_mock')
-        mocked.compute_regressor.assert_called_with(
-            mock.ANY, 'spm', mock.ANY, fir_delays=None, min_onset=0,
-            oversampling=3.0)
+        mocked.compute_regressor.assert_called_with(*args, oversampling=1.0, **kwargs)
 
     with mock.patch('bids.analysis.transformations.compute.hrf') as mocked:
+        # Slow sampling rate, oversample (4x) to 2Hz
         collection.sampling_rate = 0.5
         transform.Convolve(collection, 'RT', output='rt_mock')
-        mocked.compute_regressor.assert_called_with(
-            mock.ANY, 'spm', mock.ANY, fir_delays=None, min_onset=0,
-            oversampling=2.0)
+        mocked.compute_regressor.assert_called_with(*args, oversampling=4.0, **kwargs)
+
+    with mock.patch('bids.analysis.transformations.compute.hrf') as mocked:
+        # Dense variable is already sampled at 10Hz, no oversampling needed
+        collection.sampling_rate = 0.5
+        transform.Convolve(collection, 'rt_dense', output='rt_mock')
+        mocked.compute_regressor.assert_called_with(*args, oversampling=1.0, **kwargs)
+
+    with mock.patch('bids.analysis.transformations.compute.hrf') as mocked:
+        # Onset requires 10Hz resolution, oversample (2x) to 20Hz
+        collection.sampling_rate = 10
+        collection['RT'].onset[0] += 0.1
+        transform.Convolve(collection, 'RT', output='rt_mock')
+        mocked.compute_regressor.assert_called_with(*args, oversampling=2.0, **kwargs)
+
+
+def test_convolve_impulse():
+    # Smoke test impulse convolution
+    data = pd.DataFrame({
+        'onset': [10, 20],
+        'duration': [0, 0],
+        'amplitude': [1, 1]
+    })
+    run_info = [RunInfo({'subject': '01'}, 20, 2, 'dummy.nii.gz')]
+    var = SparseRunVariable(
+        name='var', data=data, run_info=run_info, source='events')
+    coll = BIDSRunVariableCollection([var])
+    transform.ToDense(coll, 'var', output='var_dense')
+    transform.Convolve(coll, 'var', output='var_hrf')
+    transform.Convolve(coll, 'var_dense', output='var_dense_hrf')
 
 
 def test_rename(collection):
@@ -431,13 +461,15 @@ def test_and(collection):
     coll = collection.clone()
     transform.Factor(coll, 'respnum')
     names = ['respnum.%d' % d for d in range(0, 5)]
-    transform.And(coll, names, output='conjunction')
-    assert not coll.variables['conjunction'].values.sum()
 
-    coll['copy'] = coll.variables['respnum.0'].clone()
-    transform.And(coll, ['respnum.0', 'copy'], output='conj')
-    assert coll.variables['conj'].values.astype(float).equals(
-        coll.variables['respnum.0'].values)
+    coll.variables['respnum.0'].onset += 1
+
+    # Should fail because I misaligned variable
+    with pytest.raises(ValueError):
+        transform.And(coll, names, output='misaligned')
+
+    # Should pass because dense is set to True and will align
+    transform.And(coll, names, output='misaligned', dense=True)
 
 
 def test_or(collection):

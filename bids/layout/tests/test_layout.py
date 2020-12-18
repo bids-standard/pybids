@@ -1,46 +1,48 @@
-""" Tests of BIDS-specific functionality. Generic tests of core grabbit
-functionality should go in the grabbit package. """
+""" Tests of functionality in the layout module--mostly related to the
+BIDSLayout class."""
 
 import os
 import re
-import tempfile
-from os.path import join, abspath, basename, dirname
+from os.path import join, abspath, basename
+from pathlib import Path
 
 import numpy as np
 import pytest
 
-import bids
-from bids.layout import (BIDSLayout, parse_file_entities, add_config_paths,
-                         Query)
+from bids.layout import BIDSLayout, Query
+from bids.layout.models import Config
 from bids.layout.index import BIDSLayoutIndexer
-from bids.layout.models import Entity, Config
-from bids.layout.utils import BIDSMetadata
 from bids.tests import get_test_data_path
 from bids.utils import natural_sort
+
+from bids.exceptions import (
+    BIDSValidationError,
+    NoMatchError,
+    TargetError,
+)
 
 
 def test_layout_init(layout_7t_trt):
     assert isinstance(layout_7t_trt.files, dict)
 
 
+@pytest.mark.parametrize("extension_initial_dot", (True, False))
 @pytest.mark.parametrize(
     'index_metadata,query,result',
     [
-        (True, None, 3.0),
-        (False, None, None),
-        (False, {}, 3.0),
-        (False, {'task': 'rest'}, 3.0),
-        (False, {'task': 'rest', 'extension': ['nii.gz']}, 3.0),
-        (False, {'task': 'rest', 'extension': 'nii.gz'}, 3.0),
-        (False, {'task': 'rest', 'extension': ['nii.gz', 'json'], 'return_type': 'file'}, 3.0),
+        (True, {}, 3.0),
+        (False, {}, None),
+        (True, {}, 3.0),
+        (True, {'task': 'rest'}, 3.0),
+        (True, {'task': 'rest', 'extension': ['.nii.gz']}, 3.0),
+        (True, {'task': 'rest', 'extension': '.nii.gz'}, 3.0),
+        (True, {'task': 'rest', 'extension': ['.nii.gz', '.json'], 'return_type': 'file'}, 3.0),
     ])
-def test_index_metadata(index_metadata, query, result):
+def test_index_metadata(index_metadata, query, result, mock_config):
     data_dir = join(get_test_data_path(), '7t_trt')
-    layout = BIDSLayout(data_dir, index_metadata=index_metadata)
-    if not index_metadata and query is not None:
-        indexer = BIDSLayoutIndexer(layout)
-        indexer.index_metadata(**query)
-    sample_file = layout.get(task='rest', extension='nii.gz', acq='fullbrain')[0]
+    layout = BIDSLayout(data_dir, index_metadata=index_metadata, **query)
+    sample_file = layout.get(task='rest', extension='.nii.gz',
+                             acquisition='fullbrain')[0]
     metadata = sample_file.get_metadata()
     assert metadata.get('RepetitionTime') == result
 
@@ -184,23 +186,23 @@ def test_get_metadata_error(layout_7t_trt):
     result = layout_7t_trt.files[path].get_metadata()
     with pytest.raises(KeyError) as err:
         result['Missing']
-    assert "Metadata term 'Missing' unavailable for file {}".format(path) in str(err)
+    assert "Metadata term 'Missing' unavailable for file {}".format(path) in str(err.value)
 
     result = layout_7t_trt.get_metadata(path)
     with pytest.raises(KeyError) as err:
         result['Missing']
-    assert "Metadata term 'Missing' unavailable for file {}".format(path) in str(err)
+    assert "Metadata term 'Missing' unavailable for file {}".format(path) in str(err.value)
 
 
 def test_get_with_bad_target(layout_7t_trt):
-    with pytest.raises(ValueError) as exc:
+    with pytest.raises(TargetError) as exc:
         layout_7t_trt.get(target='unicorn')
-        msg = exc.value.message
-        assert 'subject' in msg and 'reconstruction' in msg and 'proc' in msg
-    with pytest.raises(ValueError) as exc:
+    msg = str(exc.value)
+    assert 'subject' in msg and 'reconstruction' in msg and 'proc' in msg
+    with pytest.raises(TargetError) as exc:
         layout_7t_trt.get(target='sub')
-        msg = exc.value.message
-        assert 'subject' in msg and 'reconstruction' not in msg
+    msg = str(exc.value)
+    assert 'subject' in msg and 'reconstruction' not in msg
 
 
 def test_get_bvals_bvecs(layout_ds005):
@@ -267,25 +269,25 @@ def test_get_return_type_dir(layout_7t_trt, layout_7t_trt_relpath):
 
 @pytest.mark.parametrize("acq", [None, Query.NONE])
 def test_get_val_none(layout_7t_trt, acq):
-    t1w_files = layout_7t_trt.get(subject='01', ses='1', suffix='T1w')
+    t1w_files = layout_7t_trt.get(subject='01', session='1', suffix='T1w')
     assert len(t1w_files) == 1
     assert 'acq' not in t1w_files[0].path
     t1w_files = layout_7t_trt.get(
-        subject='01', ses='1', suffix='T1w', acquisition=acq)
+        subject='01', session='1', suffix='T1w', acquisition=acq)
     assert len(t1w_files) == 1
     bold_files = layout_7t_trt.get(
-        subject='01', ses='1', suffix='bold', acquisition=acq)
+        subject='01', session='1', suffix='bold', acquisition=acq)
     assert len(bold_files) == 0
 
 
 def test_get_val_enum_any(layout_7t_trt):
     t1w_files = layout_7t_trt.get(
-        subject='01', ses='1', suffix='T1w', acquisition=Query.ANY,
+        subject='01', session='1', suffix='T1w', acquisition=Query.ANY,
         extension=Query.ANY)
     assert not t1w_files
-    bold_files = layout_7t_trt.get(subject='01', ses='1', run=1, suffix='bold',
-                                   acquisition=Query.ANY)
-    assert len(bold_files) == 3
+    bold_files = layout_7t_trt.get(subject='01', session='1', run=1,
+                                  suffix='bold', acquisition=Query.ANY)
+    assert len(bold_files) == 2
 
 
 def test_get_return_sorted(layout_7t_trt):
@@ -309,7 +311,8 @@ def test_ignore_files(layout_ds005):
     # overrides the default - but 'model/extras/' should still be ignored
     # because of the regex.
     ignore = [re.compile('xtra'), 'dummy']
-    layout2 = BIDSLayout(data_dir, validate=False, ignore=ignore)
+    indexer = BIDSLayoutIndexer(validate=False, ignore=ignore)
+    layout2 = BIDSLayout(data_dir, indexer=indexer)
     assert target1 in layout2.files
     assert target2 not in layout2.files
 
@@ -317,7 +320,8 @@ def test_ignore_files(layout_ds005):
 def test_force_index(layout_ds005):
     data_dir = join(get_test_data_path(), 'ds005')
     target = join(data_dir, 'models', 'ds-005_type-test_model.json')
-    model_layout = BIDSLayout(data_dir, validate=True, force_index=['models'])
+    indexer = BIDSLayoutIndexer(force_index=['models'])
+    model_layout = BIDSLayout(data_dir, validate=True, indexer=indexer)
     assert target not in layout_ds005.files
     assert target in model_layout.files
     assert 'all' not in model_layout.get_subjects()
@@ -399,17 +403,17 @@ def test_layout_with_multi_derivs(layout_ds005_multi_derivs):
 
 def test_query_derivatives(layout_ds005_derivs):
     result = layout_ds005_derivs.get(suffix='events', return_type='object',
-                                     extension='tsv')
+                                     extension='.tsv')
     result = [f.filename for f in result]
     assert len(result) == 49
     assert 'sub-01_task-mixedgamblestask_run-01_desc-extra_events.tsv' in result
     result = layout_ds005_derivs.get(suffix='events', return_type='object',
-                                     scope='raw', extension='tsv')
+                                     scope='raw', extension='.tsv')
     assert len(result) == 48
     result = [f.filename for f in result]
     assert 'sub-01_task-mixedgamblestask_run-01_desc-extra_events.tsv' not in result
     result = layout_ds005_derivs.get(suffix='events', return_type='object',
-                                     desc='extra', extension='tsv')
+                                     desc='extra', extension='.tsv')
     assert len(result) == 1
     result = [f.filename for f in result]
     assert 'sub-01_task-mixedgamblestask_run-01_desc-extra_events.tsv' in result
@@ -439,13 +443,13 @@ def test_derivative_getters():
 
 def test_get_tr(layout_7t_trt):
     # Bad subject, should fail
-    with pytest.raises(ValueError) as exc:
+    with pytest.raises(NoMatchError) as exc:
         layout_7t_trt.get_tr(subject="zzz")
-        assert exc.value.message.startswith("No functional images")
+    assert str(exc.value).startswith("No functional images")
     # There are multiple tasks with different TRs, so this should fail
-    with pytest.raises(ValueError) as exc:
+    with pytest.raises(NoMatchError) as exc:
         layout_7t_trt.get_tr(subject=['01', '02'])
-        assert exc.value.message.startswith("Unique TR")
+    assert str(exc.value).startswith("Unique TR")
     # This should work
     tr = layout_7t_trt.get_tr(subject=['01', '02'], acquisition="fullbrain")
     assert tr == 3.0
@@ -469,35 +473,7 @@ def test_to_df(layout_ds117):
                 set(df.columns))
 
 
-def test_parse_file_entities():
-    filename = '/sub-03_ses-07_run-4_desc-bleargh_sekret.nii.gz'
-
-    # Test with entities taken from bids config
-    target = {'subject': '03', 'session': '07', 'run': 4, 'suffix': 'sekret',
-              'extension': 'nii.gz'}
-    assert target == parse_file_entities(filename, config='bids')
-    config = Config.load('bids')
-    assert target == parse_file_entities(filename, config=[config])
-
-    # Test with entities taken from bids and derivatives config
-    target = {'subject': '03', 'session': '07', 'run': 4, 'suffix': 'sekret',
-              'desc': 'bleargh', 'extension': 'nii.gz'}
-    assert target == parse_file_entities(filename)
-    assert target == parse_file_entities(
-        filename, config=['bids', 'derivatives'])
-
-    # Test with list of Entities
-    entities = [
-        Entity('subject', "[/\\\\]sub-([a-zA-Z0-9]+)"),
-        Entity('run', "[_/\\\\]run-0*(\\d+)", dtype=int),
-        Entity('suffix', "[._]*([a-zA-Z0-9]*?)\\.[^/\\\\]+$"),
-        Entity('desc', "desc-([a-zA-Z0-9]+)"),
-    ]
-    # Leave out session to distinguish from previous test target
-    target = {'subject': '03', 'run': 4, 'suffix': 'sekret', 'desc': 'bleargh'}
-    assert target == parse_file_entities(filename, entities=entities)
-
-
+# XXX 0.14: Add dot to extension (difficult to parametrize with module-scoped fixture)
 def test_parse_file_entities_from_layout(layout_synthetic):
     layout = layout_synthetic
     filename = '/sub-03_ses-07_run-4_desc-bleargh_sekret.nii.gz'
@@ -539,18 +515,19 @@ def test_deriv_indexing():
     assert not layout.get(scope='nonexistent')
 
 
-def test_add_config_paths():
-    bids_dir = dirname(bids.__file__)
-    bids_json = os.path.join(bids_dir, 'layout', 'config', 'bids.json')
-    with pytest.raises(ValueError) as exc:
-        add_config_paths(test_config1='nonexistentpath.json')
-    assert str(exc.value).startswith('Configuration file')
-    with pytest.raises(ValueError) as exc:
-        add_config_paths(bids=bids_json)
-    assert str(exc.value).startswith("Configuration 'bids' already")
-    add_config_paths(dummy=bids_json)
-    config = Config.load('dummy')
-    assert 'subject' in config.entities
+def test_path_arguments():
+    data_dir = join(get_test_data_path(), 'ds005')
+    deriv_dir = join(data_dir, 'derivatives', 'events')
+
+    layout = BIDSLayout(Path(data_dir), derivatives=Path(deriv_dir))
+    assert layout.get(scope='derivatives')
+    assert layout.get(scope='events')
+    assert not layout.get(scope='nonexistent')
+
+    layout = BIDSLayout(Path(data_dir), derivatives=[Path(deriv_dir)])
+    assert layout.get(scope='derivatives')
+    assert layout.get(scope='events')
+    assert not layout.get(scope='nonexistent')
 
 
 def test_layout_in_scope(layout_ds005, layout_ds005_derivs):
@@ -592,7 +569,7 @@ def test_get_dataset_description(layout_ds005_multi_derivs):
 
 def test_indexed_file_associations(layout_7t_trt):
     img = layout_7t_trt.get(subject='01', run=1, suffix='bold', session='1',
-                            acquisition='fullbrain', extension='nii.gz')[0]
+                            acquisition='fullbrain', extension='.nii.gz')[0]
     assocs = img.get_associations()
     assert len(assocs) == 3
     targets = [
@@ -616,7 +593,7 @@ def test_layout_save(tmp_path, layout_7t_trt):
     layout_7t_trt.save(str(tmp_path / "f.sqlite"),
                        replace_connection=False)
     data_dir = join(get_test_data_path(), '7t_trt')
-    layout = BIDSLayout(data_dir, database_path=str(tmp_path))
+    layout = BIDSLayout(data_dir, database_path=str(tmp_path / "f.sqlite"))
     oldfies = set(layout_7t_trt.get(suffix='events', return_type='file'))
     newfies = set(layout.get(suffix='events', return_type='file'))
     assert oldfies == newfies
@@ -624,11 +601,10 @@ def test_layout_save(tmp_path, layout_7t_trt):
 
 def test_indexing_tag_conflict():
     data_dir = join(get_test_data_path(), 'ds005_conflict')
-    with pytest.raises(ValueError) as exc:
+    with pytest.raises(BIDSValidationError) as exc:
         layout = BIDSLayout(data_dir)
-        print(exc.value.message)
-        assert exc.value.message.startswith("Conflicting values found")
-        assert 'run' in exc.value.message
+    assert str(exc.value).startswith("Conflicting values found")
+    assert 'run' in str(exc.value)
 
 
 def test_get_with_wrong_dtypes(layout_7t_trt):
@@ -646,13 +622,13 @@ def test_get_with_regex_search(layout_7t_trt):
 
     # subject matches both '10' and '01'
     results = l.get(subject='1', session='1', task='rest', suffix='bold',
-                    acquisition='fron.al', extension='nii.gz',
+                    acquisition='fron.al', extension='.nii.gz',
                     regex_search=True)
     assert len(results) == 2
 
     # subject matches '10'
     results = l.get(subject='^1', session='1', task='rest', suffix='bold',
-                    acquisition='fron.al', extension='nii.gz',
+                    acquisition='fron.al', extension='.nii.gz',
                     regex_search=True, return_type='filename')
     assert len(results) == 1
     assert results[0].endswith('sub-10_ses-1_task-rest_acq-prefrontal_bold.nii.gz')
@@ -664,10 +640,36 @@ def test_get_with_regex_search_bad_dtype(layout_7t_trt):
     appropriately). """
     l = layout_7t_trt
     results = l.get(subject='1', run=1, task='rest', suffix='bold',
-                    acquisition='fullbrain', extension='nii.gz',
+                    acquisition='fullbrain', extension='.nii.gz',
                     regex_search=True)
     # Two runs (1 per session) for each of subjects '10' and '01'
     assert len(results) == 4
+
+
+def test_get_with_invalid_filters(layout_ds005):
+    l = layout_ds005
+    # Raise error with suggestions
+    with pytest.raises(ValueError, match='session'):
+        l.get(subject='12', ses=True, invalid_filters='error')
+    with pytest.raises(ValueError, match='session'):
+        l.get(subject='12', ses=True)
+    # Silently drop amazing
+    res_without = l.get(subject='12', suffix='bold')
+    res_drop = l.get(subject='12', suffix='bold', amazing='!!!',
+                     invalid_filters='drop')
+    assert res_without == res_drop
+    assert len(res_drop) == 3
+    # Retain amazing, producing empty set
+    allow_res = l.get(subject='12', amazing=True, invalid_filters='allow')
+    assert allow_res == []
+
+    # assert warning when filters are passed in
+    filters = {'subject': '1'}
+    with pytest.raises(RuntimeError, match='You passed in filters as a dictionary'):
+        l.get(filters=filters)
+    # Correct call:
+    l.get(**filters)
+
 
 def test_load_layout(layout_synthetic_nodb, db_dir):
     db_path = str(db_dir / 'tmp_db')
@@ -675,4 +677,7 @@ def test_load_layout(layout_synthetic_nodb, db_dir):
     reloaded = BIDSLayout.load(db_path)
     assert sorted(layout_synthetic_nodb.get(return_type='file')) == \
         sorted(reloaded.get(return_type='file'))
-    assert layout_synthetic_nodb._init_args == reloaded._init_args
+    cm1 = layout_synthetic_nodb.connection_manager
+    cm2 = reloaded.connection_manager
+    for attr in ['root', 'absolute_paths', 'config', 'derivatives']:
+        assert getattr(cm1.layout_info, attr) == getattr(cm2.layout_info, attr)

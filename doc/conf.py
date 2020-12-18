@@ -12,20 +12,21 @@
 #
 import os
 import sys
+from datetime import date
+
 import sphinx_rtd_theme
+
+import bids
 
 sys.path.insert(0, os.path.abspath('../'))
 
 # -- Project information -----------------------------------------------------
 
 project = 'PyBIDS'
-copyright = '2020, Developers of PyBIDS'
+copyright = '2015-{}, Developers of PyBIDS'.format(date.today().year)
 author = 'Developers of PyBIDS'
 
 currentdir = os.path.abspath(os.path.dirname(__file__))
-from bids._version import get_versions
-__version__ = get_versions()['version']
-source_version = __version__
 currentdir = os.path.abspath(os.path.dirname(__file__))
 
 # -- General configuration ---------------------------------------------------
@@ -44,19 +45,20 @@ extensions = [
     'sphinx.ext.githubpages',
     'sphinx.ext.napoleon',
     'numpydoc',
-    'm2r'
 ]
 
 intersphinx_mapping = {
-    'http://docs.python.org/3.5': None,
-    'http://docs.scipy.org/doc/numpy': None,
-    'http://docs.scipy.org/doc/scipy/reference': None,
-    'http://matplotlib.org/': None,
-    'http://scikit-learn.org/0.17': None,
-    'http://nipy.org/nibabel/': None,
-    'http://pandas.pydata.org/pandas-docs/stable/': None,
-    'http://neurosynth.readthedocs.io/en/latest/': None,
+    'https://docs.python.org/3.5': None,
+    'https://docs.scipy.org/doc/numpy': None,
+    'https://docs.scipy.org/doc/scipy/reference': None,
+    'https://matplotlib.org/': None,
+    'https://scikit-learn.org/0.17': None,
+    'https://nipy.org/nibabel/': None,
+    'https://pandas.pydata.org/pandas-docs/stable/': None,
+    'https://neurosynth.readthedocs.io/en/latest/': None,
 }
+
+intersphinx_timeout = 5
 
 # If your documentation needs a minimal Sphinx version, state it here.
 needs_sphinx = '2.2.0'
@@ -81,10 +83,9 @@ master_doc = 'index'
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
 # The short X.Y version.
-version = ''
+version = bids.__version__
 # The full version, including alpha/beta/rc tags.
-import bids
-release = bids.__version__
+release = version
 
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = 'sphinx'

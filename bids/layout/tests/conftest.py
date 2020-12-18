@@ -1,7 +1,7 @@
 from os.path import join
 
 import pytest
-import tempfile
+
 from bids.layout import BIDSLayout
 from bids.tests import get_test_data_path
 

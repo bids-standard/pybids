@@ -100,6 +100,27 @@ def load_variables(layout, types=None, levels=None, skip_empty=True,
     return dataset
 
 
+def _get_nvols(img_f):
+    import nibabel as nb
+    img = nb.load(img_f)
+    nvols = 0
+    if isinstance(img, nb.Nifti1Pair):
+        nvols = img.shape[3]
+    elif isinstance(img, nb.Cifti2Image):
+        for ax in map(img.header.get_axis, range(len(img.header.matrix))):
+            if isinstance(ax, nb.cifti2.SeriesAxis):
+                nvols = ax.size
+                break
+        else:
+            raise ValueError("No series axis found in %s" % img_f)
+    elif isinstance(img, nb.GiftiImage):
+        nvols = len(img.get_arrays_from_intent('time series'))
+    else:
+        raise ValueError("Unknown image type %s: %s" % img.__class__, img_f)
+
+    return nvols
+
+
 def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
                          drop_na=True, events=True, physio=True, stim=True,
                          regressors=True, skip_empty=True, scope='all',
@@ -158,8 +179,8 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
 
     selectors['datatype'] = 'func'
     selectors['suffix'] = 'bold'
-    images = layout.get(return_type='object', extension='nii.gz',
-                        scope=scope, **selectors)
+    exts = selectors.pop('extension', ['.nii', '.nii.gz', '.func.gii', '.dtseries.nii'])
+    images = layout.get(return_type='object', scope=scope, extension=exts, **selectors)
 
     if not images:
         raise ValueError("No functional images that match criteria found.")
@@ -174,15 +195,13 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
         if 'run' in entities:
             entities['run'] = int(entities['run'])
 
-        tr = layout.get_metadata(img_f, scope=scope)['RepetitionTime']
+        tr = img_obj.get_metadata()["RepetitionTime"]
 
         # Get duration of run: first try to get it directly from the image
-        # header; if that fails, try to get NumberOfVolumes from the
-        # run metadata; if that fails, look for a scan_length argument.
+        # header; if that fails, look for a scan_length argument.
         try:
-            import nibabel as nb
-            img = nb.load(img_f)
-            duration = img.shape[3] * tr
+            nvols = _get_nvols(img_f)
+            duration = nvols * tr
         except Exception as e:
             if scan_length is not None:
                 duration = scan_length
@@ -191,7 +210,7 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
                        "BOLD runs, and no scan_length argument was provided "
                        "as a fallback. Please check that the image files are "
                        "available, or manually specify the scan duration.")
-                raise ValueError(msg)
+                raise ValueError(msg) from e
 
         # We don't want to pass all the image file's entities onto get_node(),
         # as there can be unhashable nested slice timing values, and this also
@@ -212,28 +231,29 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
                 raise ValueError("More than one existing Node matches the "
                                  "specified entities! You may need to pass "
                                  "additional selectors to narrow the search.")
-            return result[0]
+            run_info = result[0].get_info()
 
-        # Otherwise create a new node and use that.
-        # We first convert any entity values that are currently collections to
-        # JSON strings to prevent nasty hashing problems downstream. Note that
-        # isinstance() isn't as foolproof as actually trying to hash the
-        # value, but the latter is likely to be slower, and since values are
-        # coming from JSON or filenames, there's no real chance of encountering
-        # anything but a list or dict.
-        entities = {
-            k: (json.dumps(v) if isinstance(v, (list, dict)) else v)
-            for (k, v) in entities.items()
-        }
+        else:
+            # Otherwise create a new node and use that.
+            # We first convert any entity values that are currently collections to
+            # JSON strings to prevent nasty hashing problems downstream. Note that
+            # isinstance() isn't as foolproof as actually trying to hash the
+            # value, but the latter is likely to be slower, and since values are
+            # coming from JSON or filenames, there's no real chance of encountering
+            # anything but a list or dict.
+            entities = {
+                k: (json.dumps(v) if isinstance(v, (list, dict)) else v)
+                for (k, v) in entities.items()
+            }
 
-        run = dataset.create_node('run', entities, image_file=img_f,
-                                  duration=duration, repetition_time=tr)
-        run_info = run.get_info()
+            run = dataset.create_node('run', entities, image_file=img_f,
+                                      duration=duration, repetition_time=tr)
+            run_info = run.get_info()
 
         # Process event files
         if events:
             dfs = layout.get_nearest(
-                img_f, extension='tsv', suffix='events', all_=True,
+                img_f, extension='.tsv', suffix='events', all_=True,
                 full_search=True, ignore_strict_entities=['suffix', 'extension'])
             for _data in dfs:
                 _data = pd.read_csv(_data, sep='\t')
@@ -304,7 +324,7 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
 
         if rec_types:
             rec_files = layout.get_nearest(
-                img_f, extension='tsv.gz', all_=True, suffix=rec_types,
+                img_f, extension='.tsv.gz', all_=True, suffix=rec_types,
                 ignore_strict_entities=['suffix', 'extension'], full_search=True)
             for rf in rec_files:
                 metadata = layout.get_metadata(rf)
@@ -395,7 +415,7 @@ def _load_tsv_variables(layout, suffix, dataset=None, columns=None,
     if dataset is None:
         dataset = NodeIndex()
 
-    files = layout.get(extension='tsv', suffix=suffix, scope=scope,
+    files = layout.get(extension='.tsv', suffix=suffix, scope=scope,
                        **layout_kwargs)
 
     for f in files:

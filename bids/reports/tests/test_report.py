@@ -39,7 +39,7 @@ def test_report_gen_from_files(testlayout):
     descriptions in the dataset.
     """
     report = BIDSReport(testlayout)
-    files = testlayout.get(extension=['nii.gz', 'nii'])
+    files = testlayout.get(extension=['.nii.gz', '.nii'])
     descriptions = report.generate_from_files(files)
     assert isinstance(descriptions, Counter)
 

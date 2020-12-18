@@ -1,7 +1,8 @@
+"""Tests of functionality in the models module."""
+
 import sys
 import os
 import pytest
-import bids
 import copy
 import json
 from pathlib import Path
@@ -11,8 +12,7 @@ from sqlalchemy.orm import sessionmaker
 import numpy as np
 
 from bids.layout.models import (BIDSFile, Entity, Tag, Base, Config,
-                                FileAssociation, BIDSImageFile)
-from bids.layout import BIDSLayout
+                                FileAssociation, BIDSImageFile, LayoutInfo)
 from bids.tests import get_test_data_path
 
 
@@ -38,6 +38,20 @@ def subject_entity():
                directory="{subject}", dtype='str')
 
 
+def test_layoutinfo_init():
+    args = dict(root='/made/up/path', validate=True,
+                absolute_paths=True, index_metadata=False,
+                derivatives=True, ignore=['code/', 'blergh/'],
+                force_index=None)
+    with pytest.raises(ValueError) as exc:
+        LayoutInfo(**args)
+    assert str(exc.value).startswith("Missing mandatory")
+    args['config'] = ['bids', 'derivatives']
+    info = LayoutInfo(**args)
+    assert info.derivatives == True
+    assert info._derivatives == 'true'
+
+
 def test_entity_initialization():
     e = Entity('avaricious', r'aardvark-(\d+)')
     assert e.name == 'avaricious'
@@ -58,8 +72,7 @@ def test_entity_init_all_args(subject_entity):
 def test_entity_init_with_bad_dtype():
     with pytest.raises(ValueError) as exc:
         ent = Entity('test', dtype='superfloat')
-        msg = exc.value.message
-        assert msg.startswith("Invalid dtype")
+    assert str(exc.value).startswith("Invalid dtype")
 
 
 def test_entity_matches(tmpdir):
@@ -253,6 +266,14 @@ def test_bidsfile_get_entities(layout_synthetic):
     md2 = bf.get_entities(metadata=None)
     assert md == md2
     assert set(md.keys()) == md_ents | file_ents
+
+
+def test_bidsfile_relpath(layout_synthetic):
+    bf = layout_synthetic.get(suffix='physio', extension='tsv.gz')[10]
+    assert bf.path != bf.relpath
+    assert layout_synthetic.root in bf.path
+    assert bf.relpath.startswith('sub')
+    assert bf.relpath == str(Path(bf.path).relative_to(layout_synthetic.root))
 
 
 @pytest.mark.xfail(sys.version_info < (3, 6), reason="os.PathLike introduced in Python 3.6")
