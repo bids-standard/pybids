@@ -25,4 +25,9 @@ elif [ "$INSTALL_TYPE" == "pip" ]; then
     export ARCHIVE="."
 fi
 
+if [ "${ARCHIVE:0:5}" = "dist/" ]; then
+    python -m pip install twine
+    python -m twine check $ARCHIVE
+fi
+
 set +eux
