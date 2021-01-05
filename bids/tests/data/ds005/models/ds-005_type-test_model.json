@@ -6,7 +6,10 @@
       "Name": "run",
       "Level": "Run",
       "Model": {
-        "X": ["RT", "trial_type"]
+        "X": [
+          "RT",
+          "trial_type"
+        ]
       },
       "Transformations": [
         {
@@ -15,9 +18,11 @@
         }
       ],
       "DummyContrasts": {
-        "Conditions": ["RT"],
+        "Conditions": [
+          "RT"
+        ],
         "Type": "t"
-        },
+      },
       "Contrasts": [
         {
           "Name": "RT-trial_type",
@@ -25,7 +30,10 @@
             "RT",
             "trial_type"
           ],
-          "Weights": [1, -1]
+          "Weights": [
+            1,
+            -1
+          ]
         },
         {
           "Name": "crummy-F",
@@ -34,8 +42,14 @@
             "trial_type"
           ],
           "Weights": [
-            [1, 0],
-            [0, 1]
+            [
+              1,
+              0
+            ],
+            [
+              0,
+              1
+            ]
           ]
         }
       ]
@@ -57,7 +71,9 @@
             "RT"
           ],
           "Type": "FEMA",
-          "Weights": [1]
+          "Weights": [
+            1
+          ]
         },
         {
           "Name": "RT-trial_type",
@@ -65,7 +81,9 @@
             "RT-trial_type"
           ],
           "Type": "FEMA",
-          "Weights": [1]
+          "Weights": [
+            1
+          ]
         },
         {
           "Name": "crummy-F",
@@ -74,7 +92,9 @@
           ],
           "Type": "FEMA",
           "Weights": [
-            [1]
+            [
+              1
+            ]
           ]
         }
       ]
@@ -82,6 +102,11 @@
     {
       "Name": "group",
       "Level": "Dataset",
+      "Model": {
+        "X": [
+          "age"
+        ]
+      },
       "DummyContrasts": {
         "Type": "t"
       }
