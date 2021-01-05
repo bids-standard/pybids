@@ -50,6 +50,22 @@
             "pattern": "[_/\\\\]+echo-([0-9]+)"
         },
         {
+            "name": "flip",
+            "pattern": "[_/\\\\]+flip-([0-9]+)"
+        },
+        {
+            "name": "inv",
+            "pattern": "[_/\\\\]+inv-([0-9]+)"
+        },
+        {
+            "name": "mt",
+            "pattern": "[_/\\\\]+mt-(on|off)"
+        },
+        {
+            "name": "part",
+            "pattern": "[_/\\\\]+part-(imag|mag|phase|real)"
+        },
+        {
             "name": "recording",
             "pattern": "[_/\\\\]+recording-([a-zA-Z0-9]+)"
         },
