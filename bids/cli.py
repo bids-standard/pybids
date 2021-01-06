@@ -30,7 +30,7 @@ def cli():
 @cli.command(context_settings=CONTEXT_SETTINGS)
 @click.argument('root', type=click.Path(file_okay=False, exists=True))
 @click.argument('db-path', type=click.Path(file_okay=False, resolve_path=True, exists=True))
-@click.option('--derivatives', multiple=True, default=False, show_default=True, flag_value=True,
+@click.option('--derivatives', multiple=True, default=[False], show_default=True, flag_value=True,
               help="Specifies whether and/or which derivatives to index.")
 @click.option('--reset-db', default=False, show_default=True, is_flag=True,
               help="Remove existing database index if present.")
