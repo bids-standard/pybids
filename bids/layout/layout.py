@@ -207,7 +207,7 @@ class BIDSLayout(object):
                 (t.value, t.file.entities.get('subject'))
                  for t in
                  self.session.query(Tag).filter_by(entity_name='run')
-                 if t.file.entities.get('subject')
+                 if isinstance(t.value, int) and t.file.entities.get('subject')
                  )
             )
 
