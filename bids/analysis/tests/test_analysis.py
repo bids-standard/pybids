@@ -78,13 +78,13 @@ def test_post_first_level_sparse_design_matrix(analysis):
     # Dataset level
     collections = analysis["group"].get_collections()
     assert len(collections) == 1
-    data = collections[0].to_df(format="long")
-    assert len(data) == 10
+    data = collections[0].to_df(format="wide")
+    assert len(data) == 2
     assert data["subject"].nunique() == 2
 
     # # Make sure columns from different levels exist
-    varset = {"sex", "age", "RT-trial_type"}
-    assert not (varset - set(data["condition"].unique()))
+    varset = {"age", "RT-trial_type", "RT", "crummy-F"}
+    assert not varset - set(data.columns.tolist())
 
     # Calling an invalid level name should raise an exception
     with pytest.raises(KeyError):
@@ -191,6 +191,6 @@ def test_get_dataset_level_model_spec(analysis):
     collection = analysis["group"].get_collections()[0]
     model_spec = analysis["group"].get_model_spec(collection)
     assert model_spec.__class__.__name__ == "GLMMSpec"
-    assert model_spec.X.shape == (2, 1)
+    assert model_spec.X.shape == (2, 4)
     assert model_spec.Z is None
-    assert {"age"} == set(model_spec.terms.keys())
+    assert {"age", "RT-trial_type", "RT", "crummy-F"} == set(model_spec.terms.keys())
