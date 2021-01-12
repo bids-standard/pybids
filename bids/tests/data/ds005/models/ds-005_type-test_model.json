@@ -104,7 +104,10 @@
       "Level": "Dataset",
       "Model": {
         "X": [
-          "age"
+          "age",
+          "RT",
+          "RT-trial_type",
+          "crummy-F"
         ]
       },
       "DummyContrasts": {
