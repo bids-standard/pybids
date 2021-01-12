@@ -10,8 +10,13 @@ import numpy as np
 import pandas as pd
 from pandas.api.types import is_numeric_dtype
 
-from .variables import (SparseRunVariable, SimpleVariable, DenseRunVariable,
-                        merge_variables, BIDSVariable)
+from .variables import (
+    SparseRunVariable,
+    SimpleVariable,
+    DenseRunVariable,
+    merge_variables,
+    BIDSVariable,
+)
 from bids.utils import listify, matches_entities
 
 
@@ -36,27 +41,32 @@ class BIDSVariableCollection(object):
         if not variables:
             raise ValueError("No variables were provided")
         SOURCE_TO_LEVEL = {
-            'events': 'run',
-            'physio': 'run',
-            'stim': 'run',
-            'regressors': 'run',
-            'scans': 'session',
-            'sessions': 'subject',
-            'participants': 'dataset'
+            "events": "run",
+            "physio": "run",
+            "stim": "run",
+            "regressors": "run",
+            "scans": "session",
+            "sessions": "subject",
+            "participants": "dataset",
         }
-        var_levels = set([SOURCE_TO_LEVEL[v.source] if v.source in
-                          SOURCE_TO_LEVEL else v.source for v in variables])
+        var_levels = set(
+            [
+                SOURCE_TO_LEVEL[v.source] if v.source in SOURCE_TO_LEVEL else v.source
+                for v in variables
+            ]
+        )
 
         # TODO: relax this requirement & allow implicit merging between levels
         if len(var_levels) > 1:
-            raise ValueError("A Collection cannot be initialized from "
-                             "variables at more than one level of analysis. "
-                             "Levels found in input variables: %s" %
-                             var_levels)
+            raise ValueError(
+                "A Collection cannot be initialized from "
+                "variables at more than one level of analysis. "
+                "Levels found in input variables: %s" % var_levels
+            )
         elif not var_levels:
             raise ValueError(
                 "None of the provided variables matched any of the known levels, which are: %s"
-                % (', '.join(sorted(SOURCE_TO_LEVEL.values())))
+                % (", ".join(sorted(SOURCE_TO_LEVEL.values())))
             )
 
         self.level = list(var_levels)[0]
@@ -89,11 +99,11 @@ class BIDSVariableCollection(object):
             if v.name not in var_dict:
                 var_dict[v.name] = []
             var_dict[v.name].append(v)
-        return [merge_variables(vars_, **kwargs)
-                for vars_ in list(var_dict.values())]
+        return [merge_variables(vars_, **kwargs) for vars_ in list(var_dict.values())]
 
-    def to_df(self, variables=None, format='wide', fillna=np.nan,
-              entities=True, timing=True):
+    def to_df(
+        self, variables=None, format="wide", fillna=np.nan, entities=True, timing=True
+    ):
         """Merge variables into a single pandas DataFrame.
 
         Parameters
@@ -128,8 +138,7 @@ class BIDSVariableCollection(object):
 
         # Can receive already-selected Variables from sub-classes
         if not isinstance(variables[0], BIDSVariable):
-            variables = [v for v in self.variables.values()
-                         if v.name in variables]
+            variables = [v for v in self.variables.values() if v.name in variables]
 
         # Convert all variables to separate DFs.
         # Note: bad things can happen if we pass the conditions, entities, and
@@ -141,28 +150,43 @@ class BIDSVariableCollection(object):
         # Always concatenate along row axis (for format='wide', we'll pivot).
         df = pd.concat(dfs, axis=0, sort=True)
 
-        ind_cols = list(set(df.columns) - {'condition', 'amplitude'})
-        ent_cols = list(set(ind_cols) - {'onset', 'duration'})
+        all_cols = set(df.columns)
+        ent_cols = list(all_cols - {"condition", "amplitude", "onset", "duration"})
 
-        if format == 'long':
+        if format == "long":
             df = df.reset_index(drop=True).fillna(fillna)
         else:
-            df['amplitude'] = df['amplitude'].fillna('n/a')
-            df = df.pivot_table(index=ind_cols, columns='condition',
-                                values='amplitude', aggfunc='first')
-            df = df.reset_index().replace('n/a', fillna)
+            # Rows in wide format can only be defined by combinations of level entities
+            # plus (for run-level variables) onset and duration.
+            valid_vars = {"run", "session", "subject", "dataset", "onset", "duration"}
+            idx_cols = list(valid_vars & all_cols)
+
+            df["amplitude"] = df["amplitude"].fillna("n/a")
+            wide_df = df.pivot_table(
+                index=idx_cols, columns="condition", values="amplitude", aggfunc="first"
+            )
+
+            select_cols = list(set(ent_cols) - set(idx_cols))
+
+            if entities and select_cols:
+                ent_df = df.groupby(idx_cols)[select_cols].first()
+                df = pd.concat([wide_df, ent_df], axis=1)
+            else:
+                df = wide_df
+
+            df = df.reset_index().replace("n/a", fillna)
             df.columns.name = None
 
         # Drop any columns we don't want
         if not timing:
-            df.drop(['onset', 'duration'], axis=1, inplace=True)
+            df.drop(["onset", "duration"], axis=1, inplace=True)
         if not entities:
-            df.drop(ent_cols, axis=1, inplace=True)
+            df.drop(ent_cols, axis=1, inplace=True, errors="ignore")
 
         return df
 
     @classmethod
-    def from_df(cls, data, entities=None, source='contrast'):
+    def from_df(cls, data, entities=None, source="contrast"):
         """Create a Collection from a pandas DataFrame.
 
         Parameters
@@ -182,7 +206,7 @@ class BIDSVariableCollection(object):
         """
         variables = []
         for col in data.columns:
-            _data = pd.DataFrame(data[col].values, columns=['amplitude'])
+            _data = pd.DataFrame(data[col].values, columns=["amplitude"])
             if entities is not None:
                 _data = pd.concat([_data, entities], axis=1, sort=True)
             variables.append(SimpleVariable(name=col, data=_data, source=source))
@@ -196,7 +220,6 @@ class BIDSVariableCollection(object):
         clone.variables = {k: v.clone() for (k, v) in self.variables.items()}
         return clone
 
-
     def _index_entities(self):
         """Sets current instance's entities based on the existing index.
 
@@ -209,7 +232,8 @@ class BIDSVariableCollection(object):
         across the Collection contents.
         """
         all_ents = pd.DataFrame.from_records(
-            [v.entities for v in self.variables.values()])
+            [v.entities for v in self.variables.values()]
+        )
         constant = all_ents.apply(lambda x: x.nunique() == 1)
         if constant.empty:
             self.entities = {}
@@ -222,20 +246,24 @@ class BIDSVariableCollection(object):
         if var in self.variables:
             return self.variables[var]
         keys = list(self.variables.keys())
-        raise ValueError("No variable named '{}' found in this collection. "
-                         "Available names are {}.".format(var, keys))
+        raise ValueError(
+            "No variable named '{}' found in this collection. "
+            "Available names are {}.".format(var, keys)
+        )
 
     def __setitem__(self, var, obj):
         # Ensure name matches collection key, but raise warning if needed.
         if obj.name != var:
-            warnings.warn("The provided key to use in the collection ('%s') "
-                          "does not match the passed Column object's existing "
-                          "name ('%s'). The Column name will be set to match "
-                          "the provided key." % (var, obj.name))
+            warnings.warn(
+                "The provided key to use in the collection ('%s') "
+                "does not match the passed Column object's existing "
+                "name ('%s'). The Column name will be set to match "
+                "the provided key." % (var, obj.name)
+            )
             obj.name = var
         self.variables[var] = obj
 
-    def match_variables(self, pattern, return_type='name', match_type='unix'):
+    def match_variables(self, pattern, return_type="name", match_type="unix"):
         """Return columns whose names match the provided pattern.
 
         Parameters
@@ -259,12 +287,12 @@ class BIDSVariableCollection(object):
         pattern = listify(pattern)
         results = []
         for patt in pattern:
-            if match_type.lower().startswith('re'):
+            if match_type.lower().startswith("re"):
                 patt = re.compile(patt)
                 vars_ = [v for v in self.variables.keys() if patt.search(v)]
             else:
                 vars_ = fnmatch.filter(list(self.variables.keys()), patt)
-            if return_type.startswith('var'):
+            if return_type.startswith("var"):
                 vars_ = [self.variables[v] for v in vars_]
             results.extend(vars_)
         return results
@@ -302,15 +330,21 @@ class BIDSRunVariableCollection(BIDSVariableCollection):
         """Returns a list of all stored DenseRunVariables."""
         if variables is None:
             variables = set(self.variables.keys())
-        return [v for v in self.variables.values()
-                if isinstance(v, DenseRunVariable) and v.name in variables]
+        return [
+            v
+            for v in self.variables.values()
+            if isinstance(v, DenseRunVariable) and v.name in variables
+        ]
 
     def get_sparse_variables(self, variables=None):
         """Returns a list of all stored SparseRunVariables."""
         if variables is None:
             variables = set(self.variables.keys())
-        return [v for v in self.variables.values()
-                if isinstance(v, SparseRunVariable) and v.name in variables]
+        return [
+            v
+            for v in self.variables.values()
+            if isinstance(v, SparseRunVariable) and v.name in variables
+        ]
 
     def all_dense(self):
         return len(self.get_dense_variables()) == len(self.variables)
@@ -327,19 +361,22 @@ class BIDSRunVariableCollection(BIDSVariableCollection):
         if isinstance(sampling_rate, (float, int)):
             return sampling_rate
 
-        if sampling_rate == 'TR':
+        if sampling_rate == "TR":
             trs = {var.run_info[0].tr for var in self.variables.values()}
             if not trs:
-                raise ValueError("Repetition time unavailable; specify "
-                                    "sampling_rate in Hz explicitly or set to"
-                                    " 'highest'.")
+                raise ValueError(
+                    "Repetition time unavailable; specify "
+                    "sampling_rate in Hz explicitly or set to"
+                    " 'highest'."
+                )
             elif len(trs) > 1:
-                raise ValueError("Non-unique Repetition times found "
-                                    "({!r}); specify sampling_rate explicitly"
-                                    .format(trs))
-            return 1. / trs.pop()
+                raise ValueError(
+                    "Non-unique Repetition times found "
+                    "({!r}); specify sampling_rate explicitly".format(trs)
+                )
+            return 1.0 / trs.pop()
 
-        if sampling_rate.lower() == 'highest':
+        if sampling_rate.lower() == "highest":
             dense_vars = self.get_dense_variables()
             # If no dense variables are available, fall back on instance SR
             if not dense_vars:
@@ -349,13 +386,20 @@ class BIDSRunVariableCollection(BIDSVariableCollection):
                 return var_srs[0]
             return max(*var_srs)
 
-        raise ValueError("Invalid sampling_rate value '{}' provided. Must be "
-                         "a float, None, 'TR', or 'highest'."
-                         .format(sampling_rate))
+        raise ValueError(
+            "Invalid sampling_rate value '{}' provided. Must be "
+            "a float, None, 'TR', or 'highest'.".format(sampling_rate)
+        )
 
-    def _densify_and_resample(self, sampling_rate=None, variables=None,
-                              resample_dense=False, force_dense=False,
-                              in_place=False, kind='linear'):
+    def _densify_and_resample(
+        self,
+        sampling_rate=None,
+        variables=None,
+        resample_dense=False,
+        force_dense=False,
+        in_place=False,
+        kind="linear",
+    ):
 
         sampling_rate = self._get_sampling_rate(sampling_rate)
 
@@ -391,9 +435,10 @@ class BIDSRunVariableCollection(BIDSVariableCollection):
         coll.sampling_rate = sampling_rate
         return coll
 
-    def to_dense(self, sampling_rate=None, variables=None, in_place=False,
-                 kind='linear'):
-        """ Convert all contained SparseRunVariables to DenseRunVariables.
+    def to_dense(
+        self, sampling_rate=None, variables=None, in_place=False, kind="linear"
+    ):
+        """Convert all contained SparseRunVariables to DenseRunVariables.
 
         Parameters
         ----------
@@ -422,13 +467,23 @@ class BIDSRunVariableCollection(BIDSVariableCollection):
         -----
         Categorical variables are ignored.
         """
-        return self._densify_and_resample(sampling_rate, variables,
-                                          resample_dense=False,
-                                          in_place=in_place, kind=kind,
-                                          force_dense=True)
+        return self._densify_and_resample(
+            sampling_rate,
+            variables,
+            resample_dense=False,
+            in_place=in_place,
+            kind=kind,
+            force_dense=True,
+        )
 
-    def resample(self, sampling_rate=None, variables=None, force_dense=False,
-                 in_place=False, kind='linear'):
+    def resample(
+        self,
+        sampling_rate=None,
+        variables=None,
+        force_dense=False,
+        in_place=False,
+        kind="linear",
+    ):
         """Resample all dense variables (and optionally, sparse ones) to the
         specified sampling rate.
 
@@ -452,13 +507,26 @@ class BIDSRunVariableCollection(BIDSVariableCollection):
         -------
         A BIDSVariableCollection (if in_place is False).
         """
-        return self._densify_and_resample(sampling_rate, variables,
-                                   force_dense=force_dense, in_place=in_place,
-                                   kind=kind, resample_dense=True)
+        return self._densify_and_resample(
+            sampling_rate,
+            variables,
+            force_dense=force_dense,
+            in_place=in_place,
+            kind=kind,
+            resample_dense=True,
+        )
 
-    def to_df(self, variables=None, format='wide', fillna=np.nan,
-              sampling_rate='highest', include_sparse=True, include_dense=True,
-              entities=True, timing=True):
+    def to_df(
+        self,
+        variables=None,
+        format="wide",
+        fillna=np.nan,
+        sampling_rate="highest",
+        include_sparse=True,
+        include_dense=True,
+        entities=True,
+        timing=True,
+    ):
         """Merge columns into a single pandas DataFrame.
 
         Parameters
@@ -510,8 +578,10 @@ class BIDSRunVariableCollection(BIDSVariableCollection):
         """
 
         if not include_sparse and not include_dense:
-            raise ValueError("You can't exclude both dense and sparse "
-                             "variables! That leaves nothing!")
+            raise ValueError(
+                "You can't exclude both dense and sparse "
+                "variables! That leaves nothing!"
+            )
 
         _vars = []
 
@@ -531,15 +601,17 @@ class BIDSRunVariableCollection(BIDSVariableCollection):
         else:
             sampling_rate = sampling_rate or self.sampling_rate
             var_names = [v.name for v in _vars]
-            collection = self.resample(sampling_rate, variables=var_names,
-                                       force_dense=include_sparse)
+            collection = self.resample(
+                sampling_rate, variables=var_names, force_dense=include_sparse
+            )
             variables = list(collection.variables.values())
 
-        return super().to_df(variables, format, fillna, entities=entities,
-                             timing=timing)
+        return super().to_df(
+            variables, format, fillna, entities=entities, timing=timing
+        )
 
 
-def merge_collections(collections, sampling_rate='highest', output_level=None):
+def merge_collections(collections, sampling_rate="highest", output_level=None):
     """Merge two or more collections at the same level of analysis.
 
     Parameters
@@ -565,9 +637,11 @@ def merge_collections(collections, sampling_rate='highest', output_level=None):
 
     levels = set([c.level for c in collections])
     if len(levels) > 1:
-        raise ValueError("At the moment, it's only possible to merge "
-                         "Collections at the same level of analysis. You "
-                         "passed collections at levels: %s." % levels)
+        raise ValueError(
+            "At the moment, it's only possible to merge "
+            "Collections at the same level of analysis. You "
+            "passed collections at levels: %s." % levels
+        )
 
     variables = list(chain(*[c.variables.values() for c in collections]))
     cls = collections[0].__class__
@@ -576,9 +650,12 @@ def merge_collections(collections, sampling_rate='highest', output_level=None):
 
     if isinstance(collections[0], BIDSRunVariableCollection):
         # 'auto' was renamed to 'highest' circa 0.10, but check for both
-        if sampling_rate in {'auto', 'highest'}:
-            rates = [var.sampling_rate for var in variables
-                     if isinstance(var, DenseRunVariable)]
+        if sampling_rate in {"auto", "highest"}:
+            rates = [
+                var.sampling_rate
+                for var in variables
+                if isinstance(var, DenseRunVariable)
+            ]
 
             sampling_rate = rates[0] if rates else None
 
