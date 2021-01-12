@@ -1,0 +1,126 @@
+name: Stable tests
+
+# This file tests the claimed support range of NiBabel including
+#
+# * Operating systems: Linux, Windows (x64 & x86), OSX
+# * Dependencies: minimum requirements, optional requirements
+# * Installation methods: setup.py, sdist, wheel, archive
+
+on: [push, pull_request]
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  stable:
+    # Check each OS, all supported Python, minimum versions and latest releases
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: ['ubuntu-latest', 'macos-latest']
+        python-version: [3.6, 3.7, 3.8, 3.9]
+        install: ['pip']
+        check: ['ci_tests']
+        pip-flags: ['']
+        include:
+          # Build docs
+          - os: ubuntu-latest
+            python-version: 3.8
+            install: pip
+            check: doc
+            pip-flags: ''
+          # Run tutorial
+          - os: ubuntu-latest
+            python-version: 3.8
+            install: pip
+            check: tutorial
+            pip-flags: ''
+          # Clean install imports only with package-declared dependencies
+          - os: ubuntu-latest
+            python-version: 3.8
+            install: pip
+            check: skiptests
+            pip-flags: ''
+          # Check all installation methods
+          - os: ubuntu-latest
+            python-version: 3.8
+            install: wheel
+            check: ci_tests
+            pip-flags: ''
+          - os: ubuntu-latest
+            python-version: 3.8
+            install: sdist
+            check: ci_tests
+            pip-flags: ''
+    env:
+      INSTALL_TYPE: ${{ matrix.install }}
+      CHECK_TYPE: ${{ matrix.check }}
+      EXTRA_PIP_FLAGS: ${{ matrix.pip-flags }}
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: recursive
+          fetch-depth: 0
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Display Python version
+        run: python -c "import sys; print(sys.version)"
+      - name: Create virtual environment
+        run: tools/ci/create_venv.sh
+      - name: Build archive
+        run: |
+          source tools/ci/build_archive.sh
+          echo "ARCHIVE=$ARCHIVE" >> $GITHUB_ENV
+      - name: Install pybids
+        run: tools/ci/install.sh
+      - name: Install extras
+        run: tools/ci/install_extras.sh
+      - name: Run tests
+        run: |
+          source tools/ci/activate.sh
+          make $CHECK_TYPE
+        if: ${{ matrix.check != 'skiptests' }}
+      - uses: codecov/codecov-action@v1
+        with:
+          file: coverage.xml
+        if: ${{ always() }}
+
+  package:
+    # Build packages and upload
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            python-version: 3.8
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: recursive
+          fetch-depth: 0
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Display Python version
+        run: python -c "import sys; print(sys.version)"
+      - name: Create virtual environment
+        run: tools/ci/create_venv.sh
+      - name: Build sdist
+        run: tools/ci/build_archive.sh
+        env:
+          INSTALL_TYPE: sdist
+      - name: Build wheel
+        run: tools/ci/build_archive.sh
+        env:
+          INSTALL_TYPE: wheel
+      - name: Test PyPI upload
+        uses: pypa/gh-action-pypi-publish@master
+        with:
+          user: __token__
+          password: ${{ secrets.TEST_PYPI_API_TOKEN }}
+          repository_url: https://test.pypi.org/legacy/
