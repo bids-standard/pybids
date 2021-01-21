@@ -140,17 +140,18 @@ def upgrade(root):
     # Rename regressors.tsv to timeseries.tsv
     regressors = layout.get(suffix="regressors")
     policy = None
-    for bidsfile in regressors:
-        action = policy
-        new_path = bidsfile.path.replace("regressors.", "timeseries.")
-        if action is None:
-            action = click.prompt(
-                f"Rename {bidsfile.path} to {new_path}? ([y]es/[n]o/[A]ll/[N]one)", default="y"
-                type=click.Choice("ynAN"), show_choices=False)
-            if action in "AN":
-                policy = action
-        if action in "yA":
-            click.echo(f"Renaming {bidsfile.path} -> {new_path}")
-            os.rename(bidsfile.path, new_path)
-        else:
-            print(f"Not renaming {bidsfile.path}")
+    with click.progressbar(regressors) as bar:
+        for bidsfile in bar:
+            action = policy
+            new_path = bidsfile.path.replace("regressors.", "timeseries.")
+            if action is None:
+                action = click.prompt(
+                    f"Rename {bidsfile.path} to {new_path}? ([y]es/[n]o/[A]ll/[N]one)", default="y"
+                    type=click.Choice("ynAN"), show_choices=False)
+                if action in "AN":
+                    policy = action
+            if action in "yA":
+                click.echo(f"Renaming {bidsfile.path} -> {new_path}")
+                os.rename(bidsfile.path, new_path)
+            else:
+                click.echo(f"Not renaming {bidsfile.path}")
