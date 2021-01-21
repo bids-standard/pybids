@@ -5,6 +5,8 @@ import os
 import re
 from os.path import join, abspath, basename
 from pathlib import Path
+import shutil
+import json
 
 import numpy as np
 import pytest
@@ -50,6 +52,14 @@ def test_index_metadata(index_metadata, query, result, mock_config):
 def test_layout_repr(layout_7t_trt):
     assert "Subjects: 10 | Sessions: 20 | Runs: 20" in str(layout_7t_trt)
 
+
+def test_layout_repr_overshadow_run(tmp_path):
+    """A test creating a layout to replicate #681."""
+    shutil.copytree(join(get_test_data_path(), '7t_trt'), tmp_path / "7t_trt")
+    (tmp_path / "7t_trt" / "sub-01" / "ses-1" / "sub-01_ses-1_scans.json").write_text(
+        json.dumps({"run": {"Description": "metadata to cause #681"}})
+    )
+    assert "Subjects: 10 | Sessions: 20 | Runs: 20" in str(BIDSLayout(tmp_path / "7t_trt"))
 
 # def test_layout_copy(layout_7t_trt):
 #     # Largely a smoke test to guarantee that copy() does not blow
