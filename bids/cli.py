@@ -100,7 +100,7 @@ def layout(
         )
 
 
-@click.command(context_settings=CONTEXT_SETTINGS)
+@cli.command(context_settings=CONTEXT_SETTINGS)
 @click.argument('root', type=click.Path(file_okay=False, exists=True))
 def upgrade(root):
     """
@@ -112,13 +112,14 @@ def upgrade(root):
 
     # Always update DatasetType if missing
     if "DatasetType" not in description:
-        val = click.prompt("Is this dataset [R]aw or [D]erivative?", default="R",
-                           type=click.Choice("RD"))
+        val = click.prompt("Is this dataset [r]aw or [d]erivative?", default="r",
+                           type=click.Choice(("r", "d"), case_sensitive=False))
         description["DatasetType"] = "raw" if val == "R" else "derivative"
     dstype = description["DatasetType"]
 
     if dstype == "raw":
-        """ No other upgrades for raw datasets at present... """
+        click.echo("No other upgrades for raw datasets at present.")
+        return
     elif dstype == "derivative":
         if "PipelineDescription" in description:
             val = click.prompt("Convert PipelineDescription to GeneratedBy?", default="Y",
@@ -149,7 +150,7 @@ def upgrade(root):
             if action in "AN":
                 policy = action
         if action in "yA":
-            print(f"Renaming {bidsfile.path} -> {new_path}")
+            click.echo(f"Renaming {bidsfile.path} -> {new_path}")
             os.rename(bidsfile.path, new_path)
         else:
             print(f"Not renaming {bidsfile.path}")
