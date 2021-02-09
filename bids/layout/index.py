@@ -360,7 +360,7 @@ class BIDSLayoutIndexer:
                 continue
 
             # Create DB records for metadata associations
-            js_file = payloads[-1][1]
+            js_file = payloads[0][1]
             create_association_pair(js_file, bf.path, 'Metadata')
 
             # Consolidate metadata by looping over inherited JSON files
