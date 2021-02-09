@@ -582,20 +582,30 @@ def test_indexed_file_associations(layout_7t_trt):
                             acquisition='fullbrain', extension='.nii.gz')[0]
     assocs = img.get_associations()
     assert len(assocs) == 3
-    targets = [
+    targets = {
         os.path.join(layout_7t_trt.root,
                      'sub-01/ses-1/fmap/sub-01_ses-1_run-1_phasediff.nii.gz'),
         os.path.join(
             img.dirname,
             'sub-01_ses-1_task-rest_acq-fullbrain_run-1_physio.tsv.gz'),
-        os.path.join(layout_7t_trt.root, 'task-rest_acq-fullbrain_bold.json')
-    ]
+        os.path.join(
+            img.dirname,
+            'sub-01_ses-1_task-rest_acq-fullbrain_run-1_bold.json'
+        )
+    }
     assert set([a.path for a in assocs]) == set(targets)
 
-    js = [a for a in assocs if a.path.endswith('json')][0]
-    assert len(js.get_associations()) == 41
+    # Test with parents included
+    targets.add(os.path.join(layout_7t_trt.root, 'task-rest_acq-fullbrain_bold.json'))
+    assocs = img.get_associations(include_parents=True)
+    assert len(assocs) == 4
+    assert set([a.path for a in assocs]) == set(targets)
+
+    # Get the root-level JSON and check that its associations are correct
+    js = [a for a in assocs if a.path.endswith('json')][1]
+    assert len(js.get_associations()) == 40
     assert len(js.get_associations('Parent')) == 1
-    assert len(js.get_associations('Metadata')) == 40
+    assert len(js.get_associations('Metadata')) == 39
     assert not js.get_associations('InformedBy')
 
 
