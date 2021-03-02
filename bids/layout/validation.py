@@ -79,9 +79,21 @@ def validate_root(root, validate):
         else:
             description = None
     else:
-        with open(target, 'r', encoding='utf-8') as desc_fd:
-            description = json.load(desc_fd)
+        try:
+            with open(target, 'r', encoding='utf-8') as desc_fd:
+                description = json.load(desc_fd)
+        except json.JSONDecodeError:
+            description = None
         if validate:
+
+            if description is None:
+                raise BIDSValidationError(
+                    "'dataset_description.json' is not a valid json file."
+                    " There is likely a typo in your 'dataset_description.json'."
+                    "\nExample contents of 'dataset_description.json': \n%s" %
+                    json.dumps(EXAMPLE_BIDS_DESCRIPTION)
+                )
+            
             for k in MANDATORY_BIDS_FIELDS:
                 if k not in description:
                     raise BIDSValidationError(
