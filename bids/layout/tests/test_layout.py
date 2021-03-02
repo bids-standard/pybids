@@ -11,7 +11,7 @@ import json
 import numpy as np
 import pytest
 
-from bids.layout import BIDSLayout, Query, validation
+from bids.layout import BIDSLayout, Query
 from bids.layout.models import Config
 from bids.layout.index import BIDSLayoutIndexer
 from bids.tests import get_test_data_path
