@@ -261,12 +261,17 @@ class BIDSFile(Base):
         list
             A list of BIDSFile instances.
         """
-        if kind is None:
+        if kind is None and not include_parents:
             return self._associations
+
         session = object_session(self)
         q = (session.query(BIDSFile)
              .join(FileAssociation, BIDSFile.path == FileAssociation.dst)
-             .filter_by(kind=kind, src=self.path))
+             .filter_by(src=self.path))
+
+        if kind is not None:
+            q = q.filter_by(kind=kind)
+
         associations = q.all()
 
         if not include_parents:
@@ -278,7 +283,7 @@ class BIDSFile(Base):
                 results = collect_associations(results, p)
             return results
 
-        return chain(*[collect_associations([], bf) for bf in associations])
+        return list(chain(*[collect_associations([], bf) for bf in associations]))
 
     def get_metadata(self):
         """Return all metadata associated with the current file. """
