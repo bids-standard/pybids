@@ -53,6 +53,17 @@ def test_layout_repr(layout_7t_trt):
     assert "Subjects: 10 | Sessions: 20 | Runs: 20" in str(layout_7t_trt)
 
 
+def test_invalid_dataset_description(tmp_path):
+    shutil.copytree(join(get_test_data_path(), '7t_trt'), tmp_path / "7t_dset")
+    (tmp_path / "7t_dset" / "dataset_description.json").write_text(
+        "I am not a valid json file"
+    )
+    with pytest.raises(BIDSValidationError) as exc:
+        BIDSLayout(tmp_path / "7t_dset")
+
+    assert "is not a valid json file" in str(exc.value)
+
+
 def test_layout_repr_overshadow_run(tmp_path):
     """A test creating a layout to replicate #681."""
     shutil.copytree(join(get_test_data_path(), '7t_trt'), tmp_path / "7t_trt")
