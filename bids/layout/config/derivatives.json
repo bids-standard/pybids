@@ -34,12 +34,12 @@
             "pattern": "hemi-(L|R)"
         },
         {
-            "name": "den",
-            "pattern": "den-([a-zA-Z0-9]+)"
+            "name": "res",
+            "pattern": "res-([a-zA-Z0-9]+)"
         },
         {
-            "name": "space",
-            "pattern": "space-([a-zA-Z0-9]+)"
+            "name": "den",
+            "pattern": "den-([a-zA-Z0-9]+)"
         },
         {
             "name": "model",
