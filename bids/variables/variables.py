@@ -297,7 +297,7 @@ class SimpleVariable(BIDSVariable):
 
         subsets = []
         for i, col_name in enumerate(grouper.columns):
-            col_data = data.loc[grouper[col_name], :]
+            col_data = data.loc[grouper[col_name].astype(bool), :]
             name = '{}.{}'.format(self.name, col_name)
             col = self.__class__(name=name, data=col_data, source=self.source,
                                  run_info=getattr(self, 'run_info', None))
