@@ -4,6 +4,7 @@ import os
 import json
 from collections import defaultdict
 from pathlib import Path
+from functools import partial, lru_cache
 
 from bids_validator import BIDSValidator
 
@@ -264,6 +265,18 @@ class BIDSLayoutIndexer:
         # The payload is left empty for non-JSON files.
         file_data = {}
 
+        # Memoizing JSON loader
+        # Use as a function to allow lazy loading so only read JSON files
+        # if they correspond to data files that are indexed
+        @lru_cache(maxsize=None)
+        def load_json(path):
+            with open(path, 'r', encoding='utf-8') as handle:
+                try:
+                    return json.load(handle)
+                except json.JSONDecodeError as e:
+                    msg = f"Error occurred while trying to decode JSON from file {path}"
+                    raise IOError(msg) from e
+
         for bf in all_files:
             file_ents = bf.entities.copy()
             suffix = file_ents.pop('suffix', None)
@@ -274,16 +287,9 @@ class BIDSLayoutIndexer:
                 if key not in file_data:
                     file_data[key] = defaultdict(list)
 
+                payload = None
                 if ext == dot + 'json':
-                    with open(bf.path, 'r', encoding='utf-8') as handle:
-                        try:
-                            payload = json.load(handle)
-                        except json.JSONDecodeError as e:
-                            msg = ("Error occurred while trying to decode JSON"
-                                   " from file '{}'.".format(bf.path))
-                            raise IOError(msg) from e
-                else:
-                    payload = None
+                    payload = partial(load_json, bf.path)
 
                 to_store = (file_ents, payload, bf.path)
                 file_data[key][bf.dirname].append(to_store)
@@ -303,7 +309,8 @@ class BIDSLayoutIndexer:
                 seen_assocs.add(pk2)
 
         # TODO: Efficiency of everything in this loop could be improved
-        filenames = [bf for bf in all_files if not bf.path.endswith('.json')]
+        filenames = [bf for bf in all_files
+                     if not bf.path.endswith('.json') and os.path.exists(bf.path)]
 
         for bf in filenames:
             file_ents = bf.entities.copy()
@@ -366,7 +373,7 @@ class BIDSLayoutIndexer:
             # Consolidate metadata by looping over inherited JSON files
             file_md = {}
             for pl, js_file in payloads[::-1]:
-                file_md.update(pl)
+                file_md.update(pl())
 
             # Create FileAssociation records for JSON inheritance
             n_pl = len(payloads)
