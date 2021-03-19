@@ -309,8 +309,7 @@ class BIDSLayoutIndexer:
                 seen_assocs.add(pk2)
 
         # TODO: Efficiency of everything in this loop could be improved
-        filenames = [bf for bf in all_files
-                     if not bf.path.endswith('.json') and os.path.exists(bf.path)]
+        filenames = [bf for bf in all_files if not bf.path.endswith('.json')]
 
         for bf in filenames:
             file_ents = bf.entities.copy()
@@ -366,6 +365,10 @@ class BIDSLayoutIndexer:
             if not payloads:
                 continue
 
+            # Missing data files can tolerate absent metadata files,
+            # but we will try to load it anyway
+            virtual_datafile = not os.path.exists(bf.path)
+
             # Create DB records for metadata associations
             js_file = payloads[0][1]
             create_association_pair(js_file, bf.path, 'Metadata')
@@ -373,7 +376,15 @@ class BIDSLayoutIndexer:
             # Consolidate metadata by looping over inherited JSON files
             file_md = {}
             for pl, js_file in payloads[::-1]:
-                file_md.update(pl())
+                try:
+                    file_md.update(pl())
+                except FileNotFoundError:
+                    if not virtual_datafile:
+                        raise
+                    # Drop metadata if any files are missing
+                    # Otherwise missing overrides could give misleading metadata
+                    file_md = {}
+                    break
 
             # Create FileAssociation records for JSON inheritance
             n_pl = len(payloads)
