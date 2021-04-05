@@ -504,7 +504,7 @@ class DenseRunVariable(BIDSVariable):
         interval = int(round(1000. / sampling_rate))
         _timestamps = []
         for run in run_info:
-            reps = int(math.ceil(run.duration * sampling_rate))
+            reps = int(np.round(run.duration * sampling_rate))            
             ent_vals = list(run.entities.values())
             df = pd.DataFrame([ent_vals] * reps, columns=list(run.entities.keys()))
             ts = pd.date_range(0, periods=len(df), freq='%sms' % interval)
