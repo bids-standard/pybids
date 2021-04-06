@@ -497,18 +497,7 @@ class DenseRunVariable(BIDSVariable):
                                  sampling_rate=self.sampling_rate)
                 for i, name in enumerate(df.columns)]
         
-        
-                    trs = {var.run_info[0].tr for var in self.variables.values()}
-            if not trs:
-                raise ValueError("Repetition time unavailable; specify "
-                                    "sampling_rate in Hz explicitly or set to"
-                                    " 'highest'.")
-            elif len(trs) > 1:
-                raise ValueError("Non-unique Repetition times found "
-                                    "({!r}); specify sampling_rate explicitly"
-                                    .format(trs))
-            return 1. / trs.pop()
-        
+
     def _get_sampling_rate(sampling_rate)
         if sampling_rate == 'TR':
             trs = {var.run_info[0].tr for var in self.variables.values()}
