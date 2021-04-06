@@ -324,20 +324,8 @@ class BIDSRunVariableCollection(BIDSVariableCollection):
         if sampling_rate is None:
             return self.sampling_rate
 
-        if isinstance(sampling_rate, (float, int)):
+        if isinstance(sampling_rate, (float, int)) or sampling_rate == 'TR':
             return sampling_rate
-
-        if sampling_rate == 'TR':
-            trs = {var.run_info[0].tr for var in self.variables.values()}
-            if not trs:
-                raise ValueError("Repetition time unavailable; specify "
-                                    "sampling_rate in Hz explicitly or set to"
-                                    " 'highest'.")
-            elif len(trs) > 1:
-                raise ValueError("Non-unique Repetition times found "
-                                    "({!r}); specify sampling_rate explicitly"
-                                    .format(trs))
-            return 1. / trs.pop()
 
         if sampling_rate.lower() == 'highest':
             dense_vars = self.get_dense_variables()

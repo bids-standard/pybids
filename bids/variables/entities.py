@@ -55,10 +55,11 @@ class RunNode(Node):
         The task name for this run.
     """
 
-    def __init__(self, entities, image_file, duration, repetition_time):
+    def __init__(self, entities, image_file, duration, repetition_time, n_vols):
         self.image_file = image_file
         self.duration = duration
         self.repetition_time = repetition_time
+        self.n_vols = n_vols
         super(RunNode, self).__init__('run', entities)
 
     def get_info(self):
@@ -68,18 +69,18 @@ class RunNode(Node):
         # a RunInfo or any containing object.
         entities = dict(self.entities)
         return RunInfo(entities, self.duration,
-                       self.repetition_time, self.image_file)
+                       self.repetition_time, self.image_file, self.n_vols)
 
 
 # Stores key information for each Run.
-RunInfo_ = namedtuple('RunInfo', ['entities', 'duration', 'tr', 'image'])
+RunInfo_ = namedtuple('RunInfo', ['entities', 'duration', 'tr', 'image', 'n_vols'])
 
 
 # Wrap with class to provide docstring
 class RunInfo(RunInfo_):
     """ A namedtuple storing run-related information.
 
-    Properties include 'entities', 'duration', 'tr', and 'image'.
+    Properties include 'entities', 'duration', 'tr', and 'image', 'n_vols'.
     """
     pass
 

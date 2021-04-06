@@ -55,7 +55,7 @@ def test_run_variable_collection_get_sampling_rate(run_coll):
     coll = run_coll.clone()
     assert coll._get_sampling_rate(None) == 10
     assert coll._get_sampling_rate('TR') == 0.5
-    coll.variables['RT'].run_info[0] = RunInfo({}, 200, 10, None)
+    coll.variables['RT'].run_info[0] = RunInfo({}, 200, 10, None, 20)
     with pytest.raises(ValueError) as exc:
         coll._get_sampling_rate('TR')
     assert str(exc.value).startswith('Non-unique')

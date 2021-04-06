@@ -211,6 +211,7 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
                        "as a fallback. Please check that the image files are "
                        "available, or manually specify the scan duration.")
                 raise ValueError(msg) from e
+            nvols = None
 
         # We don't want to pass all the image file's entities onto get_node(),
         # as there can be unhashable nested slice timing values, and this also
@@ -247,7 +248,8 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
             }
 
             run = dataset.create_node('run', entities, image_file=img_f,
-                                      duration=duration, repetition_time=tr)
+                                      duration=duration, repetition_time=trm
+                                      n_vols=nvols)
             run_info = run.get_info()
 
         # Process event files

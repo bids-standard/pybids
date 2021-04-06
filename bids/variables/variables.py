@@ -496,15 +496,50 @@ class DenseRunVariable(BIDSVariable):
                                  source=self.source,
                                  sampling_rate=self.sampling_rate)
                 for i, name in enumerate(df.columns)]
+        
+        
+                    trs = {var.run_info[0].tr for var in self.variables.values()}
+            if not trs:
+                raise ValueError("Repetition time unavailable; specify "
+                                    "sampling_rate in Hz explicitly or set to"
+                                    " 'highest'.")
+            elif len(trs) > 1:
+                raise ValueError("Non-unique Repetition times found "
+                                    "({!r}); specify sampling_rate explicitly"
+                                    .format(trs))
+            return 1. / trs.pop()
+        
+    def _get_sampling_rate(sampling_rate)
+        if sampling_rate == 'TR':
+            trs = {var.run_info[0].tr for var in self.variables.values()}
+            if not trs:
+                raise ValueError("Repetition time unavailable; specify "
+                                    "sampling_rate in Hz explicitly or set to"
+                                    " 'highest'.")
+            elif len(trs) > 1:
+                raise ValueError("Non-unique Repetition times found "
+                                    "({!r}); specify sampling_rate explicitly"
+                                    .format(trs))
+            return 1. / trs.pop()
 
+        else:
+            return sampling_rate
+
+        
     def _build_entity_index(self, run_info, sampling_rate):
         """Build the entity index from run information. """
 
         index = []
-        interval = int(round(1000. / sampling_rate))
         _timestamps = []
         for run in run_info:
-            reps = int(np.round(run.duration * sampling_rate))            
+            if sampling_rate == 'TR':
+                reps = run.n_vols
+                sr = run.tr
+            else:
+                sr = sampling_rate
+                reps = int(np.round(run.duration * sr))
+
+            interval = int(round(1000. / sr))            
             ent_vals = list(run.entities.values())
             df = pd.DataFrame([ent_vals] * reps, columns=list(run.entities.keys()))
             ts = pd.date_range(0, periods=len(df), freq='%sms' % interval)
@@ -532,8 +567,10 @@ class DenseRunVariable(BIDSVariable):
             var = self.clone()
             var.resample(sampling_rate, True, kind)
             return var
+        
+        sr = self._get_sampling_rate(sampling_rate)
 
-        if sampling_rate == self.sampling_rate:
+        if sr == self.sampling_rate:
             return
 
         n = len(self.index)
@@ -543,7 +580,7 @@ class DenseRunVariable(BIDSVariable):
         x = np.arange(n)
         num = len(self.index)
 
-        if sampling_rate < self.sampling_rate:
+        if sr < self.sampling_rate:
             # Downsampling, so filter the signal
             from scipy.signal import butter, filtfilt
             # cutoff = new Nyqist / old Nyquist
