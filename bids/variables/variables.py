@@ -537,7 +537,7 @@ class DenseRunVariable(BIDSVariable):
                 sr = run.tr
             else:
                 sr = sampling_rate
-                reps = int(np.round(run.duration * sr))
+                reps = int(math.ceil(run.duration * sr))
 
             interval = int(round(1000. / sr))            
             ent_vals = list(run.entities.values())
