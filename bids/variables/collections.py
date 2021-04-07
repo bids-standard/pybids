@@ -324,7 +324,7 @@ class BIDSRunVariableCollection(BIDSVariableCollection):
         if sampling_rate is None:
             return self.sampling_rate
 
-        if isinstance(sampling_rate, (float, int)) or sampling_rate == 'TR':
+        if isinstance(sampling_rate, (float, int)):
             return sampling_rate
 
         if sampling_rate == 'TR':

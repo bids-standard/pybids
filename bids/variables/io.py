@@ -205,13 +205,13 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
         except Exception as e:
             if scan_length is not None:
                 duration = scan_length
+                nvols = int(scan_length / tr)
             else:
                 msg = ("Unable to extract scan duration from one or more "
                        "BOLD runs, and no scan_length argument was provided "
                        "as a fallback. Please check that the image files are "
                        "available, or manually specify the scan duration.")
                 raise ValueError(msg) from e
-            nvols = None
 
         # We don't want to pass all the image file's entities onto get_node(),
         # as there can be unhashable nested slice timing values, and this also
