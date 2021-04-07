@@ -48,7 +48,7 @@ def test_get_or_create_node(layout1):
                                    n_vols=480/2)
     assert run.__class__ == RunNode
     assert run.duration == 480
-    assert run.n_vols = 480 / 2
+    assert run.n_vols == 480 / 2
 
 
 def test_get_nodes(layout1):
