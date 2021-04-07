@@ -539,7 +539,7 @@ class DenseRunVariable(BIDSVariable):
             return var
         
         match_vol = False
-        if sampling_rate == 'TR'
+        if sampling_rate == 'TR':
             match_vol = True
             sampling_rate = 1. / self.run_info[0].tr
         
