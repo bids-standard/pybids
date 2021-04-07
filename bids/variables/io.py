@@ -248,7 +248,7 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
             }
 
             run = dataset.create_node('run', entities, image_file=img_f,
-                                      duration=duration, repetition_time=trm,
+                                      duration=duration, repetition_time=tr,
                                       n_vols=nvols)
             run_info = run.get_info()
 
