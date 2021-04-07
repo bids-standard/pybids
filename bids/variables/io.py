@@ -205,7 +205,7 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
         except Exception as e:
             if scan_length is not None:
                 duration = scan_length
-                nvols = int(scan_length / tr)
+                nvols = int(np.rint(scan_length / tr))
             else:
                 msg = ("Unable to extract scan duration from one or more "
                        "BOLD runs, and no scan_length argument was provided "
