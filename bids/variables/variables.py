@@ -498,7 +498,7 @@ class DenseRunVariable(BIDSVariable):
                 for i, name in enumerate(df.columns)]
         
 
-    def _get_sampling_rate(sampling_rate):
+    def _get_sampling_rate(self, sampling_rate):
         if sampling_rate == 'TR':
             trs = {var.run_info[0].tr for var in self.variables.values()}
             if not trs:
