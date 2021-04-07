@@ -327,6 +327,18 @@ class BIDSRunVariableCollection(BIDSVariableCollection):
         if isinstance(sampling_rate, (float, int)) or sampling_rate == 'TR':
             return sampling_rate
 
+        if sampling_rate == 'TR':
+            trs = {var.run_info[0].tr for var in self.variables.values()}
+            if not trs:
+                raise ValueError("Repetition time unavailable; specify "
+                                    "sampling_rate in Hz explicitly or set to"
+                                    " 'highest'.")
+            elif len(trs) > 1:
+                raise ValueError("Non-unique Repetition times found "
+                                    "({!r}); specify sampling_rate explicitly"
+                                    .format(trs))
+            return 1. / trs.pop()
+
         if sampling_rate.lower() == 'highest':
             dense_vars = self.get_dense_variables()
             # If no dense variables are available, fall back on instance SR
@@ -345,7 +357,7 @@ class BIDSRunVariableCollection(BIDSVariableCollection):
                               resample_dense=False, force_dense=False,
                               in_place=False, kind='linear'):
 
-        sampling_rate = self._get_sampling_rate(sampling_rate)
+        sr = self._get_sampling_rate(sampling_rate)
 
         _dense, _sparse = [], []
 
@@ -363,11 +375,13 @@ class BIDSRunVariableCollection(BIDSVariableCollection):
         if force_dense:
             for v in _sparse:
                 if is_numeric_dtype(v.values):
-                    _variables[v.name] = v.to_dense(sampling_rate)
+                    _variables[v.name] = v.to_dense(sr)
 
         if resample_dense:
+            # Propagate 'TR' if exact match to TR is required
+            sr_arg = sampling_rate if sampling_rate == 'TR' else sr
             for v in _dense:
-                _variables[v.name] = v.resample(sampling_rate, kind=kind)
+                _variables[v.name] = v.resample(sr_arg, kind=kind)
 
         coll = self if in_place else self.clone()
 
@@ -376,7 +390,7 @@ class BIDSRunVariableCollection(BIDSVariableCollection):
         else:
             coll.variables = _variables
 
-        coll.sampling_rate = sampling_rate
+        coll.sampling_rate = sr
         return coll
 
     def to_dense(self, sampling_rate=None, variables=None, in_place=False,
