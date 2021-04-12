@@ -357,7 +357,7 @@ class BIDSRunVariableCollection(BIDSVariableCollection):
                               resample_dense=False, force_dense=False,
                               in_place=False, kind='linear'):
 
-        sampling_rate = self._get_sampling_rate(sampling_rate)
+        sr = self._get_sampling_rate(sampling_rate)
 
         _dense, _sparse = [], []
 
@@ -375,11 +375,13 @@ class BIDSRunVariableCollection(BIDSVariableCollection):
         if force_dense:
             for v in _sparse:
                 if is_numeric_dtype(v.values):
-                    _variables[v.name] = v.to_dense(sampling_rate)
+                    _variables[v.name] = v.to_dense(sr)
 
         if resample_dense:
+            # Propagate 'TR' if exact match to TR is required
+            sr_arg = sampling_rate if sampling_rate == 'TR' else sr
             for v in _dense:
-                _variables[v.name] = v.resample(sampling_rate, kind=kind)
+                _variables[v.name] = v.resample(sr_arg, kind=kind)
 
         coll = self if in_place else self.clone()
 
@@ -388,7 +390,7 @@ class BIDSRunVariableCollection(BIDSVariableCollection):
         else:
             coll.variables = _variables
 
-        coll.sampling_rate = sampling_rate
+        coll.sampling_rate = sr
         return coll
 
     def to_dense(self, sampling_rate=None, variables=None, in_place=False,

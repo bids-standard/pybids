@@ -496,15 +496,20 @@ class DenseRunVariable(BIDSVariable):
                                  source=self.source,
                                  sampling_rate=self.sampling_rate)
                 for i, name in enumerate(df.columns)]
-
-    def _build_entity_index(self, run_info, sampling_rate):
+        
+    def _build_entity_index(self, run_info, sampling_rate, match_vol=False):
         """Build the entity index from run information. """
 
         index = []
-        interval = int(round(1000. / sampling_rate))
         _timestamps = []
         for run in run_info:
-            reps = int(math.ceil(run.duration * sampling_rate))
+            if match_vol:
+                # If TR, fix reps to n_vols to ensure match
+                reps = run.n_vols
+            else:
+                reps = int(math.ceil(run.duration * sampling_rate))
+
+            interval = int(round(1000. / sampling_rate))            
             ent_vals = list(run.entities.values())
             df = pd.DataFrame([ent_vals] * reps, columns=list(run.entities.keys()))
             ts = pd.date_range(0, periods=len(df), freq='%sms' % interval)
@@ -532,14 +537,19 @@ class DenseRunVariable(BIDSVariable):
             var = self.clone()
             var.resample(sampling_rate, True, kind)
             return var
-
+        
+        match_vol = False
+        if sampling_rate == 'TR':
+            match_vol = True
+            sampling_rate = 1. / self.run_info[0].tr
+        
         if sampling_rate == self.sampling_rate:
             return
-
+        
         n = len(self.index)
 
-        self.index = self._build_entity_index(self.run_info, sampling_rate)
-
+        self.index = self._build_entity_index(self.run_info, sampling_rate, match_vol)
+        
         x = np.arange(n)
         num = len(self.index)
 

@@ -205,6 +205,7 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
         except Exception as e:
             if scan_length is not None:
                 duration = scan_length
+                nvols = int(np.rint(scan_length / tr))
             else:
                 msg = ("Unable to extract scan duration from one or more "
                        "BOLD runs, and no scan_length argument was provided "
@@ -247,7 +248,8 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
             }
 
             run = dataset.create_node('run', entities, image_file=img_f,
-                                      duration=duration, repetition_time=tr)
+                                      duration=duration, repetition_time=tr,
+                                      n_vols=nvols)
             run_info = run.get_info()
 
         # Process event files

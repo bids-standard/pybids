@@ -1,6 +1,7 @@
 from os.path import join, dirname, abspath
 
 import pytest
+import numpy as np
 
 from bids.layout import BIDSLayout
 from bids.tests import get_test_data_path
@@ -15,6 +16,14 @@ def run_coll():
     # Limit to a few subjects to reduce test running time
     return layout.get_collections('run', types=['events'], merge=True,
                                   scan_length=480, subject=['01', '02', '04'])
+
+@pytest.fixture(scope="module")
+def run_coll_bad_length():
+    path = join(get_test_data_path(), 'ds005')
+    layout = BIDSLayout(path)
+    # Limit to a few subjects to reduce test running time
+    return layout.get_collections('run', types=['events'], merge=True,
+                                  scan_length=480.1, subject=['01', '02', '04'])
 
 
 @pytest.fixture(scope="module")
@@ -54,8 +63,7 @@ def test_run_variable_collection_dense_variable_accessors(run_coll):
 def test_run_variable_collection_get_sampling_rate(run_coll):
     coll = run_coll.clone()
     assert coll._get_sampling_rate(None) == 10
-    assert coll._get_sampling_rate('TR') == 0.5
-    coll.variables['RT'].run_info[0] = RunInfo({}, 200, 10, None)
+    coll.variables['RT'].run_info[0] = RunInfo({}, 200, 10, None, 20)
     with pytest.raises(ValueError) as exc:
         coll._get_sampling_rate('TR')
     assert str(exc.value).startswith('Non-unique')
@@ -203,6 +211,34 @@ def test_run_variable_collection_to_df_all_dense_vars(run_coll):
     df = unif_coll.to_df(sampling_rate='highest')
     n_rows = int(rows_per_var * 12 / 10)
     assert df.shape == (n_rows, 18)
+
+def test_run_variable_collection_bad_length_to_df_all_dense_vars(run_coll_bad_length):
+
+    timing_cols = {'onset', 'duration'}
+    entity_cols = {'subject', 'run', 'task',  'suffix', 'datatype'}
+    cond_names = {'PTval', 'RT', 'gain', 'loss', 'parametric gain', 'respcat',
+                  'respnum', 'trial_type'}
+    md_names = {'TaskName', 'RepetitionTime', 'extension', 'SliceTiming'}
+    condition = {'condition'}
+    ampl = {'amplitude'}
+
+    unif_coll = run_coll_bad_length.to_dense(sampling_rate=10)
+
+    df = unif_coll.to_df()
+    rows_per_var = np.round(3 * 3 * 480.1 * 10)  # subjects x runs x time x sampling rate
+
+    # Test resampling without setting sample rate (default sr == 10)
+    df = unif_coll.to_df(format='long')
+    assert df.shape == (rows_per_var * 7, 13)
+    cols = timing_cols | entity_cols | condition | ampl | md_names
+    assert set(df.columns) == cols
+
+    # Test resampling to TR 
+    df = unif_coll.to_df(sampling_rate='TR')
+    n_rows = int(480 * 3 * 3 / 2) # (Note number of volumes is 480, not 480.1)
+    assert df.shape == (n_rows, 18)
+    cols = (timing_cols | entity_cols | cond_names | md_names) - {'trial_type'}
+    assert set(df.columns) == cols
 
 
 def test_run_variable_collection_to_df_mixed_vars(run_coll):
