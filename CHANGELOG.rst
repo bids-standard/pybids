@@ -1,6 +1,21 @@
 Changelog
 =========
 
+Version 0.13 (April 14, 2021)
+-----------------------------
+
+* FIX: Resample to n_vols for sampling_rate == 'TR' (#713)
+* FIX: Lazily load metadata, skip when missing data files are missing sidecars (#711)
+* FIX: Ensure indicator matrix is boolean when indexing in Split transformation (#710)
+* FIX: Correctly pair metadata file when creating association records (#699)
+* FIX: Resolve side-effects of new testfile in #682 (#695)
+* FIX: BIDSLayout -- TypeError: unhashable type: 'dict' (#682)
+* ENH: Add res/den entities to derivatives.json (#709)
+* ENH: Update datatypes (#708)
+* ENH: add more informative validation error message for dataset_description.json (#705)
+* CI: Run packaging tests on main repository only (#696)
+* CI: Migrate to GH actions (#691)
+
 Version 0.12.4 (November 10, 2020)
 ----------------------------------
 
