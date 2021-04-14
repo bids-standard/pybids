@@ -184,6 +184,11 @@
       "name": "Staden, Isla",
       "orcid": "0000-0002-0795-1154"
     },
+    { 
+      "affiliation": "University of Texas at Austin",
+      "orcid": "0000-0002-4892-2659",
+      "name": "James Kent"
+    },
     {
       "affiliation": "Universit\u00e9 catholique de Louvain",
       "name": "Gau, Remi",
@@ -193,6 +198,9 @@
       "affiliation": "The University of Washington eScience Institute",
       "name": "Rokem, Ariel",
       "orcid": "0000-0003-0679-1985"
+    },
+    {
+      "name": "Azeez Adebimpe"
     },
     {
       "affiliation": "INRIA",
@@ -236,6 +244,9 @@
       "affiliation": "Stanford University",
       "name": "Blair, Ross",
       "orcid": "0000-0003-3007-1056"
+    },
+    {
+      "name": "Shashank Bansal"
     },
     {
       "name": "Sundaravadivelu, Suganya"
