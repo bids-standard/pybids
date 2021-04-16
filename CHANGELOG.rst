@@ -13,6 +13,7 @@ Version 0.13 (April 14, 2021)
 * ENH: Add res/den entities to derivatives.json (#709)
 * ENH: Update datatypes (#708)
 * ENH: add more informative validation error message for dataset_description.json (#705)
+* ENH: Add flip, inv, mt, and part entities (#688)
 * CI: Run packaging tests on main repository only (#696)
 * CI: Migrate to GH actions (#691)
 
