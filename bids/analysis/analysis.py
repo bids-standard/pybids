@@ -1,7 +1,7 @@
 """BIDS-StatsModels functionality."""
 
 import json
-from collections import namedtuple, OrderedDict
+from collections import namedtuple, OrderedDict, Counter
 from itertools import chain
 
 import numpy as np
@@ -52,6 +52,7 @@ class Analysis(object):
 
 
     def _load_model(self, model):
+        # Load model info from JSON and do some validation
         if isinstance(model, str):
             with open(model, 'r', encoding='utf-8') as fobj:
                 model = json.load(fobj)
@@ -59,7 +60,17 @@ class Analysis(object):
         # Convert JSON from CamelCase to snake_case keys
         self.model = convert_JSON(model)
 
+        # Load and validate steps/nodes
         steps = self.model['steps']
+
+        # Identify non-unique names
+        names = Counter([s.name for s in steps])
+        duplicates = [n for n, count in names.items() if count > 1]
+        if duplicates:
+            raise ValueError("Non-unique step names found: '{}'. Please ensure"
+                                " all steps in the model have unique names."
+                                .format(duplicates))
+
         self.steps = []
         for i, step_args in enumerate(steps):
             step = Step(self.layout, index=i, **step_args)
