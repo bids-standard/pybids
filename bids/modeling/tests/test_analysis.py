@@ -3,8 +3,8 @@ from os.path import join
 import numpy as np
 import pytest
 
-from bids.analysis import Analysis
-from bids.analysis.analysis import ContrastInfo
+from bids.modeling import BIDSStatsModelsGraph
+from bids.modeling.statsmodels import ContrastInfo
 from bids.layout import BIDSLayout
 from bids.tests import get_test_data_path
 from bids.variables import BIDSVariableCollection
@@ -15,7 +15,7 @@ def analysis():
     layout_path = join(get_test_data_path(), "ds005")
     layout = BIDSLayout(layout_path)
     json_file = join(layout_path, "models", "ds-005_type-test_model.json")
-    analysis = Analysis(layout, json_file)
+    analysis = BIDSStatsModelsGraph(layout, json_file)
     analysis.setup(scan_length=480, subject=["01", "02"])
     return analysis
 
@@ -43,7 +43,7 @@ def test_incremental_data_loading():
     layout_path = join(get_test_data_path(), "ds005")
     layout = BIDSLayout(layout_path)
     json_file = join(layout_path, "models", "ds-005_type-test_model.json")
-    analysis = Analysis(layout, json_file)
+    analysis = BIDSStatsModelsGraph(layout, json_file)
     analysis.setup(scan_length=480, subject=["01"], run=[1], finalize=False)
     analysis.setup(scan_length=480, subject=["02"], run=[2], finalize=False)
     analysis.finalize()

@@ -1,6 +1,6 @@
 from os.path import join
-from bids.analysis.auto_model import auto_model
-from bids.analysis import Analysis
+from bids.modeling.auto_model import auto_model
+from bids.modeling import BIDSStatsModelsGraph
 from bids.layout import BIDSLayout
 from bids.tests import get_test_data_path
 import pytest
@@ -22,7 +22,7 @@ def test_auto_model_analysis(model):
     layout = BIDSLayout(layout_path)
 
     # Test to make sure an analaysis can be setup from the generated model
-    analysis = Analysis(layout, model)
+    analysis = BIDSStatsModelsGraph(layout, model)
     analysis.setup(scan_length=480)
 
     assert model['Name'] == 'ds005_mixedgamblestask'
