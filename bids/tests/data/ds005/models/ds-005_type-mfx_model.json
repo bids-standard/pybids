@@ -22,18 +22,12 @@
     {
       "Name": "group",
       "Level": "Dataset",
-      "Transformations": [
-        {
-          "Name": "Factor",
-          "Input": "subject"
-        }
-      ],
       "Model": {
         "X": ["age"],
         "VarianceComponents": [
           {
             "Name": "SubjectSlopes",
-            "Levels": "subject*"
+            "LevelsFrom": "subject"
           }
         ]
       }

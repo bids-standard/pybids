@@ -20,19 +20,17 @@ def collection():
         'run': np.tile(np.arange(4), 10),
         'age': np.repeat(np.random.normal(40, 10, 10).astype(int), 4)
     })
-    entities = df[['subject', 'run']]
-    return BIDSVariableCollection.from_df(df, entities=entities)
+    return BIDSVariableCollection.from_df(df[['age']], entities=df[['subject', 'run']])
 
 
 def test_df_to_model_spec(collection):
     layout_path = join(get_test_data_path(), 'ds005')
     json_file = join(layout_path, 'models', 'ds-005_type-mfx_model.json')
     spec = json.load(open(json_file, 'r'))
-    tm = TransformerManager()
-    collection = tm.transform(collection, spec['Nodes'][1]['Transformations'])
-    print(collection.variables)
     df = collection.to_df()
-    md = GLMMSpec.from_collection(df, spec['Nodes'][1]['Model'])
+    data = df[['age']]
+    metadata = df[['subject', 'run']]
+    md = GLMMSpec.from_df(data, spec['Nodes'][1]['Model'], metadata)
 
     assert len(md.terms) == 2
     assert md.terms['age'].values.shape == (40, )
