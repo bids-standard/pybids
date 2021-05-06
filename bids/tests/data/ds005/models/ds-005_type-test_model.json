@@ -8,10 +8,20 @@
       "Model": {
         "X": [
           "RT",
-          "trial_type"
-        ]
+          "gain"
+        ],
+        "Formula": "RT*gain"
       },
       "Transformations": [
+        {
+          "Name": "Factor",
+          "Input": "trial_type"
+        },
+        {
+          "Name": "Rename",
+          "Input": "trial_type.parametric gain",
+          "Output": "gain"
+        },
         {
           "Name": "Scale",
           "Input": "RT"
@@ -25,10 +35,10 @@
       },
       "Contrasts": [
         {
-          "Name": "RT-trial_type",
+          "Name": "RT-gain",
           "ConditionList": [
             "RT",
-            "trial_type"
+            "gain"
           ],
           "Weights": [
             1,
@@ -39,7 +49,7 @@
           "Name": "crummy-F",
           "ConditionList": [
             "RT",
-            "trial_type"
+            "gain"
           ],
           "Weights": [
             [
@@ -64,6 +74,11 @@
     {
       "Name": "participant",
       "Level": "Subject",
+      "Model": {
+        "X": [
+          "intercept"
+        ]
+      },
       "Contrasts": [
         {
           "Name": "RT",
@@ -76,9 +91,9 @@
           ]
         },
         {
-          "Name": "RT-trial_type",
+          "Name": "RT-gain",
           "ConditionList": [
-            "RT-trial_type"
+            "RT-gain"
           ],
           "Type": "FEMA",
           "Weights": [
@@ -106,7 +121,7 @@
         "X": [
           "age",
           "RT",
-          "RT-trial_type",
+          "RT-gain",
           "crummy-F"
         ]
       },

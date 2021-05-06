@@ -1,7 +1,7 @@
 {
   "Name": "mfx_model",
   "Description": "simple test MFX model",
-  "Steps": [
+  "Nodes": [
     {
       "Name": "run",
       "Level": "Run",
