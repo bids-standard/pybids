@@ -62,7 +62,7 @@ def _group_objects_by_entities(objects, entities):
 def validate_model(model):
     """Validate a BIDS-StatsModel structure."""
     # Identify non-unique names
-    names = Counter([n['name'] for n in model['steps']])
+    names = Counter([n['name'] for n in model['nodes']])
     duplicates = [n for n, count in names.items() if count > 1]
     if duplicates:
         raise ValueError("Non-unique node names found: '{}'. Please ensure"
@@ -127,7 +127,7 @@ class BIDSStatsModelsGraph:
     @staticmethod
     def _load_nodes(model):
         nodes = OrderedDict()
-        for node_args in model['steps']:
+        for node_args in model['nodes']:
             node = BIDSStatsModelNode(**node_args)
             nodes[node.name] = node
         return nodes
