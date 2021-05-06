@@ -3,7 +3,7 @@
 from bids.variables.entities import Node
 import json
 from collections import namedtuple, OrderedDict, Counter, defaultdict
-from itertools import chain
+import itertools
 from functools import reduce
 
 import numpy as np
@@ -15,48 +15,6 @@ from bids.variables import (BIDSVariableCollection, SparseRunVariable,
                             merge_collections)
 from bids.modeling import transformations as tm
 from .model_spec import create_model_spec
-
-
-def _group_objects_by_entities(objects, entities):
-    """Group list of objects into bins defined by specified entities.
-
-    Parameters
-    ----------
-    objects : list
-        List of arbitrary objects containing an .entities attribute.
-    entities : list of str
-        List of strings indicating which entities to group on.
-
-    Returns
-    -------
-    A dictionary, where the keys are tuples of tuples and the values are lists
-    containing subsets of the original object list. Each outer tuple of the keys
-    represents a particular entity/value combination; each inner tuple has two
-    elements, where the first is the name of the entity and the second is the value.
-
-    Notes
-    -----
-    * The passed objects can be of any type, but alll elements in the list must
-    have an implemented .entities dictionary.
-    * Objects that do not have defined values for all of the requested
-    `entities` will be silently ignored.
-
-    Examples
-    --------
-    >>> obj_list = [bidsfile1, bidsfile2]
-    >>> group_objects_by_entities(obj_list, ['subject'])
-    {(('subject', '01'),): bidsfile1, (('subject': '02'),): bidsfile2}
-    """    
-    groups = defaultdict(list)
-    targets = set(entities)
-    for o in objects:
-        # Skip objects that don't have defined values for all target entities
-        if targets - set(o.entities.keys()):
-            continue
-        key = {k: v for k, v in o.entities.items() if k in entities}
-        key = tuple(sorted(key.items(), key=str))
-        groups[key].append(o)
-    return groups
 
 
 def validate_model(model):
@@ -73,11 +31,11 @@ def validate_model(model):
             if edge['src'] not in names:
                 raise ValueError("Missing source node: '{}'".format(edge['src']))
             if edge['dst'] not in names:
-                raise ValueError("Missing destination node: '{}'".format(edge['src']))
+                raise ValueError("Missing destination node: '{}'".format(edge['dst']))
     return True
 
 
-BIDSStatsModelEdge = namedtuple('BIDSStatsModelEdge', ('src', 'dst', 'groupby'))
+BIDSStatsModelsEdge = namedtuple('BIDSStatsModelsEdge', ('src', 'dst', 'groupby'))
 
 
 ContrastInfo = namedtuple('ContrastInfo', ('name', 'conditions', 'weights',
@@ -108,6 +66,10 @@ class BIDSStatsModelsGraph:
         self.edges = self._load_edges(self.model, self.nodes)
         self._root_node = self.model.get('root', list(self.nodes.values())[0])
 
+    def __getitem__(self, key):
+        '''Alias for get_node(key).'''
+        return self.get_node(key)
+
     @property
     def root_node(self):
         return self._root_node
@@ -128,7 +90,7 @@ class BIDSStatsModelsGraph:
     def _load_nodes(model):
         nodes = OrderedDict()
         for node_args in model['nodes']:
-            node = BIDSStatsModelNode(**node_args)
+            node = BIDSStatsModelsNode(**node_args)
             nodes[node.name] = node
         return nodes
 
@@ -153,7 +115,7 @@ class BIDSStatsModelsGraph:
 
         for edge in edges:
             src_node, dst_node = nodes[edge['src']], nodes[edge['dst']]
-            edge = BIDSStatsModelEdge(src_node, dst_node, edge['groupby'])
+            edge = BIDSStatsModelsEdge(src_node, dst_node, edge['groupby'])
             src_node.add_child(edge)
             dst_node.add_parent(edge)
 
@@ -199,7 +161,7 @@ class BIDSStatsModelsGraph:
             node.add_collections(collections)
 
 
-class BIDSStatsModelNode:
+class BIDSStatsModelsNode:
     """Represents a single node in a BIDS-StatsModel graph.
 
     Parameters
@@ -223,17 +185,86 @@ class BIDSStatsModelNode:
     """
 
     def __init__(self, level, name, transformations=None, model=None,
-                 contrasts=None, dummy_contrasts=False):
+                 contrasts=None, dummy_contrasts=False, groupby=None):
         self.level = level.lower()
         self.name = name
         self.model = model or {}
         self.transformations = transformations or []
         self.contrasts = contrasts or []
         self.dummy_contrasts = dummy_contrasts
+        self.groupby = groupby or []
         self._collections = []
         self._group_data = []
         self.children = []
         self.parents = []
+
+    def _build_groups(self, objects, groupby):
+        """Group list of objects into bins defined by specified entities.
+
+        Parameters
+        ----------
+        collections : list
+            List of static BIDSVariableCollections.
+        inputs : list
+            List of ContrastInfo inputs.
+        groupby : list of str
+            List of strings indicating which entities to group on.
+
+        Returns
+        -------
+        A dictionary, where the keys are tuples of tuples and the values are lists
+        containing subsets of the original object list. Each outer tuple of the keys
+        represents a particular entity/value combination; each inner tuple has two
+        elements, where the first is the name of the entity and the second is the value.
+
+        Notes
+        -----
+        * The passed objects can be of any type, but alll elements in the list must
+        have an implemented .entities dictionary.
+        * Objects that do not have defined values for all of the requested
+        `entities` will be silently ignored.
+
+        Examples
+        --------
+        >>> obj_list = [bidsfile1, bidsfile2]
+        >>> group_objects_by_entities(obj_list, ['subject'])
+        {(('subject', '01'),): bidsfile1, (('subject': '02'),): bidsfile2}
+        """
+        if not groupby:
+            return {(): objects}
+
+        groups = defaultdict(list)
+
+        # Get unique values in each grouping variable
+        entities = [obj.entities for obj in objects]
+        df = pd.DataFrame.from_records(entities)[groupby]
+        unique_vals = {col: df[col].unique() for col in groupby}
+
+        # Note: we can't just naively bucket objects based on the values of the
+        # grouping entities, because an object may have undefined values for
+        # one or more grouping variables. So we "fill in" the missing values by
+        # Looping over objects. For each one, identify all grouping variables
+        # with missing values. Loop over the cartesian product of the unique
+        # values of the missing entities, combining the permutation values with
+        # the base (present) grouping entities. Sort on this to produce the
+        # group key.
+        for i in range(len(df)):
+            base_ents = [(k, v) for k, v in objects[i].entities.items()]
+            missing = df.columns[df.iloc[i].isnull()].tolist()
+            records = []
+            if missing:
+                product = itertools.product([unique_vals[col] for col in missing])
+                for perm in product:
+                    fill_ents = [(k, v) for (k, v) in dict(zip(missing, perm))]
+                    records.append(base_ents + fill_ents)
+            else:
+                records.append(base_ents)
+
+            for rec in records:
+                grp_key = tuple(sorted(rec, key=lambda x: x[0]))
+                groups[grp_key].append(objects[i])
+
+        return groups
 
     def run(self, inputs=None, groupby=None, force_dense=True,
               sampling_rate='TR', invalid_contrasts='drop', **filters):
@@ -253,7 +284,8 @@ class BIDSStatsModelNode:
             executed separately for each unique combination of levels specified
             in groupby. For example, if groupby=['contrast', 'subject'], and
             there are 2 contrasts and 3 subjects, then there will be 6 separate
-            iterations, and the returned list will have 6 elements.
+            iterations, and the returned list will have 6 elements. If None is
+            passed, the value set at node initialization (if any) will be used.
         force_dense: bool
             If True, the returned design matrices contained in ModelSpec
             instances will represent time in a dense (i.e., uniform temporal
@@ -272,11 +304,12 @@ class BIDSStatsModelNode:
 
         Returns
         -------
-        A list of BIDSStatsModelNodeOutput instances.
+        A list of BIDSStatsModelsNodeOutput instances.
         """
 
         inputs = inputs or []
         collections = self._collections
+        groupby = groupby or self.groupby
         groupby = listify(groupby)
 
         # Filter inputs and collections if needed
@@ -286,10 +319,7 @@ class BIDSStatsModelNode:
 
         # group all collections and inputs
         all_objects = inputs + collections
-        if groupby is not None:
-            groups = _group_objects_by_entities(all_objects, groupby)
-        else:
-            groups = {(): all_objects}
+        groups = self._build_groups(all_objects, groupby)
 
         results = []
 
@@ -303,7 +333,7 @@ class BIDSStatsModelNode:
                 else:
                     grp_inputs.append(obj)
 
-            node_output = BIDSStatsModelNodeOutput(
+            node_output = BIDSStatsModelsNodeOutput(
                 node=self, entities=dict(grp_ents), collections=grp_colls,
                 inputs=grp_inputs, force_dense=force_dense,
                 sampling_rate=sampling_rate, invalid_contrasts=invalid_contrasts)
@@ -335,8 +365,27 @@ class BIDSStatsModelNode:
         """
         self._collections.extend(collections)
 
+    def get_collections(self, **filters):
+        """Returns BIDSVariableCollections at the current node.
+        Parameters
+        ----------
+        filters : dict
+            Optional keyword filters used to constrain which of the available
+            collections get returned (e.g., passing subject=['01', '02'] will
+            return collections for only subjects '01' and '02').
+        Returns
+        -------
+        list of BIDSVariableCollection instances
+            One instance per unit of the current analysis level (e.g., if
+            level='run', each element in the list represents the collection
+            for a single run).
+        """
+        # Keeps only collections that match target entities, and also removes
+        # those keys from the kwargs dict.
+        return [c for c in self._collections if matches_entities(c, filters)]
 
-class BIDSStatsModelNodeOutput:
+
+class BIDSStatsModelsNodeOutput:
 
     def __init__(self, node, entities={}, collections=None, inputs=None,
                  force_dense=True, sampling_rate='TR', invalid_contrasts='drop'):
@@ -359,8 +408,11 @@ class BIDSStatsModelNodeOutput:
         df = reduce(lambda a, b: a.merge(b), dfs)
 
         var_names = self.node.model['x']
-        if 'intercept' in var_names and 'intercept' not in df.columns:
-            df.insert(0, 'intercept', 1)
+        # need to settle on some spec-level decision about which case to use
+        # here, whether names are insensitive, etc.
+        if ('intercept' in var_names and 'intercept' not in df.columns) or \
+           ('Intercept' in var_names and 'Intercept' not in df.columns):
+            df.insert(0, 'Intercept', 1)
 
         # separate the design columns from the entity columns
         self.data = df.loc[:, var_names]
