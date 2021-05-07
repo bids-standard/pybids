@@ -17,6 +17,10 @@ from bids.modeling import transformations as tm
 from .model_spec import create_model_spec
 
 
+# Only entities in this list can be used in grouping
+VALID_GROUPING_ENTITIES = {'run', 'session', 'subject', 'task', 'contrast'}
+
+
 def validate_model(model):
     """Validate a BIDS-StatsModel structure."""
     # Identify non-unique names
@@ -203,10 +207,8 @@ class BIDSStatsModelsNode:
 
         Parameters
         ----------
-        collections : list
-            List of static BIDSVariableCollections.
-        inputs : list
-            List of ContrastInfo inputs.
+        objects : list
+            List of objects containing an .entities dictionary as an attribute.
         groupby : list of str
             List of strings indicating which entities to group on.
 
@@ -235,10 +237,13 @@ class BIDSStatsModelsNode:
 
         groups = defaultdict(list)
 
+        # sanitize grouping entities, otherwise weird things can happen
+        groupby = list(set(groupby) & VALID_GROUPING_ENTITIES)
+
         # Get unique values in each grouping variable
         entities = [obj.entities for obj in objects]
-        df = pd.DataFrame.from_records(entities)[groupby]
-        unique_vals = {col: df[col].unique() for col in groupby}
+        df = pd.DataFrame.from_records(entities).loc[:, groupby]
+        unique_vals = {col: df[col].dropna().unique().tolist() for col in groupby}
 
         # Note: we can't just naively bucket objects based on the values of the
         # grouping entities, because an object may have undefined values for
@@ -248,14 +253,18 @@ class BIDSStatsModelsNode:
         # values of the missing entities, combining the permutation values with
         # the base (present) grouping entities. Sort on this to produce the
         # group key.
-        for i in range(len(df)):
-            base_ents = [(k, v) for k, v in objects[i].entities.items()]
+        for i, row in df.iterrows():
+
+            defined = df.columns[df.iloc[i].notnull()].tolist()
+            base_ents = [(k, row[k]) for k in defined]
             missing = df.columns[df.iloc[i].isnull()].tolist()
+
             records = []
+
             if missing:
-                product = itertools.product([unique_vals[col] for col in missing])
+                product = itertools.product(*[unique_vals[col] for col in missing])
                 for perm in product:
-                    fill_ents = [(k, v) for (k, v) in dict(zip(missing, perm))]
+                    fill_ents = [(k, v) for (k, v) in dict(zip(missing, perm)).items()]
                     records.append(base_ents + fill_ents)
             else:
                 records.append(base_ents)
@@ -405,7 +414,10 @@ class BIDSStatsModelsNodeOutput:
             dfs.append(self._inputs_to_df(inputs))
 
         # merge all the DataFrames into one DF to rule them all
-        df = reduce(lambda a, b: a.merge(b), dfs)
+        def merge_dfs(a, b):
+            on = list(set(a.columns) & set(b.columns) & VALID_GROUPING_ENTITIES)
+            return a.merge(b, on=on)
+        df = reduce(merge_dfs, dfs)
 
         var_names = self.node.model['x']
         # need to settle on some spec-level decision about which case to use
@@ -422,6 +434,10 @@ class BIDSStatsModelsNodeOutput:
         self.contrasts = self._build_contrasts()
 
     def _collections_to_dfs(self, collections):
+
+        if not collections:
+            return []
+
         # group all collections by level
         coll_levels = defaultdict(list)
         [coll_levels[coll.level].append(coll) for coll in collections]
@@ -431,6 +447,10 @@ class BIDSStatsModelsNodeOutput:
         grp_dfs = []
         # merge all collections at each level and export to a DataFrame 
         for level, colls in coll_levels.items():
+            # skip if there are no eligible variables in the collections
+            all_vars = itertools.chain(*[c.variables.keys() for c in colls])
+            if not (set(all_vars) & set(var_names)):
+                continue
             # for efficiency, keep only the variables we know we'll use
             coll = merge_collections(colls, variables=var_names)
             # run collections need to be handled separately because to_df()
@@ -454,12 +474,12 @@ class BIDSStatsModelsNodeOutput:
             input_df = pd.DataFrame.from_records(rows)
             for i, con in enumerate(inputs):
                 if con.name not in input_df.columns:
-                    input_df[con.name] = 0
-                input_df.iloc[i][con.name] = 1
+                    input_df.loc[:, con.name] = 0
+                input_df.loc[input_df.index[i], con.name] = 1
         return input_df
 
     def _build_contrasts(self):
-        contrasts = []
+        contrasts = {}
         col_names = set(self.X.columns)
         for con in self.node.contrasts:
             missing_vars = set(con['condition_list']) - col_names
@@ -474,9 +494,11 @@ class BIDSStatsModelsNodeOutput:
             weights = np.atleast_2d(con['weights'])
             matrix = pd.DataFrame(weights, columns=con['condition_list'])
             test_type = con.get('type', ('t' if len(weights) == 1 else 'F'))
+            # Add contrast name to entities; can be used in grouping downstream
+            entities = {**self.entities, 'contrast': con['name']}
             ci = ContrastInfo(con['name'], con['condition_list'],
-                              con['weights'], test_type, self.entities)
-            contrasts.append(ci)
+                              con['weights'], test_type, entities)
+            contrasts[con['name']] = ci
         
         dummies = self.node.dummy_contrasts
         if dummies:
@@ -486,11 +508,14 @@ class BIDSStatsModelsNodeOutput:
             conditions -= set([c.name for c in contrasts])
 
             for col_name in conditions:
+                if col_name in contrasts:
+                    continue
+                entities = {**self.entities, 'contrast': col_name}
                 ci = ContrastInfo(col_name, [col_name], [1], dummies['type'],
-                                  self.entities)
-                contrasts.append(ci)
+                                  entities)
+                contrasts[col_name] = ci
 
-        return contrasts
+        return list(contrasts.values())
 
     @property
     def X(self):
