@@ -195,7 +195,7 @@ s
             of the design matrix. All variables referenced in the formula must
             be present as columns in `df`. Output names will follow the
             conventions specified in the `formulaic` documentation. Note that
-            only the right-hand part of the formula should be passed (i.e., 
+            only the right-hand part of the formula should be passed (i.e.,
             pass "X1 * X2", not "y ~ X1 * X2").
 
         Returns
