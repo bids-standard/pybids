@@ -21,7 +21,17 @@ VALID_GROUPING_ENTITIES = {'run', 'session', 'subject', 'task', 'contrast'}
 
 
 def validate_model(model):
-    """Validate a BIDS-StatsModel structure."""
+    """Validate a BIDS-StatsModel structure.
+
+    Parameters
+    ----------
+    model : dict
+        A full BIDS-StatsModels specification document loaded from JSON.
+
+    Returns
+    -------
+    True if the model passes validation. Raises an exception otherwise.
+    """
     # Identify non-unique names
     names = Counter([n['name'] for n in model['nodes']])
     duplicates = [n for n, count in names.items() if count > 1]
@@ -75,6 +85,7 @@ class BIDSStatsModelsGraph:
 
     @property
     def root_node(self):
+        """Returns the graph's root node."""
         return self._root_node
 
     @staticmethod
@@ -125,6 +136,18 @@ class BIDSStatsModelsGraph:
         return edges
 
     def get_node(self, name):
+        """Return the named node.
+
+        Parameters
+        ----------
+        name : str
+            The name of the node to retrieve (as defined in the BIDS-StatsModel
+            document).
+
+        Returns
+        -------
+        A BIDSStatsModelsNode instance.
+        """
         if not name in self.nodes:
             raise KeyError('There is no node with the name "{}".'.format(name))
         return self.nodes[name]
@@ -185,6 +208,14 @@ class BIDSStatsModelsNode:
         Optional dictionary specifying which conditions to create indicator
         contrasts for. Dictionary must include a "type" key ('t' or 'FEMA'),
         and optionally a subset of "conditions".
+    groupby: [str]
+        Optional list of strings giving the names of entities that define the
+        grouping structure for all variables. The current node will be executed
+        separately for each unique combination of levels specified in groupby.
+        For example, if groupby=['contrast', 'subject'], and there are 2
+        contrasts and 3 subjects, then there will be 6 separate iterations, and
+        the returned list will have 6 elements. Any value passed here will be
+        overridden if one is passed when run() is called on a node.
     """
 
     def __init__(self, level, name, transformations=None, model=None,
@@ -305,6 +336,13 @@ class BIDSStatsModelsNode:
             with run-level variables and returning dense output. Ignored if
             there are no run-level variables, or if force_dense is False and
             all available variables are sparse.
+        invalid_contrasts: str
+            Indicates how to handle invalid contrasts--i.e., ones where the
+            specification contains variables that aren't found at run-time.
+            Valid values:
+                * 'drop' (default): Drop invalid contrasts, retain the rest.
+                * 'ignore': Keep invalid contrasts despite the missing variables.
+                * 'error': Raise an error.
         filters: dict
             Optional keyword arguments used to constrain the subset of the data
             that's processed. E.g., passing subject='01' will process and
@@ -350,11 +388,23 @@ class BIDSStatsModelsNode:
         return results
 
     def add_child(self, edge):
-        """Add an edge to a child node."""
+        """Add an edge to a child node.
+
+        Parameters
+        ----------
+        edge : BIDSStatsModelsEdge
+            An edge to add to the list of children.
+        """
         self.children.append(edge)
 
     def add_parent(self, edge):
-        """Add an edge to a parent node."""
+        """Add an edge to a parent node.
+
+        Parameters
+        ----------
+        edge : BIDSStatsModelsEdge
+            An edge to add to the list of children.
+        """
         self.parents.append(edge)   
 
     def add_collections(self, collections):
@@ -394,7 +444,37 @@ class BIDSStatsModelsNode:
 
 
 class BIDSStatsModelsNodeOutput:
+    """Represents a single node in a BIDSStatsModelsGraph.
 
+    Parameters
+    ----------
+    node : BIDSStatsModelsNode
+        The node that generated the current instance.
+    entities : dict
+        Dictionary of entities/metadata applicable to the current node output.
+    collections : [BIDSVariableCollection]
+        List of BIDSVariableCollection instances needed too generate outputs.
+    inputs : [ContrastInfo]
+        List of ContrastInfo instances used to generate outputs.
+    force_dense: bool
+        If True, the returned design matrices contained in ModelSpec instances
+        will represent time in a dense (i.e., uniform temporal sampling) format.
+        If False, the returned format will be sparse if all available variables
+        are sparse, and dense otherwise. Ignored if none of the variables at
+        this node are run-level.
+    sampling_rate: str, float
+        The sampling rate to use for timeseries resampling when working with
+        run-level variables and returning dense output. Ignored if there are no
+        run-level variables, or if force_dense is False and all available
+        variables are sparse.
+    invalid_contrasts: str
+        Indicates how to handle invalid contrasts--i.e., ones where the
+        specification contains variables that aren't found at run-time.
+        Valid values:
+            * 'drop' (default): Drop invalid contrasts, retain the rest.
+            * 'ignore': Keep invalid contrasts despite the missing variables.
+            * 'error': Raise an error.
+    """
     def __init__(self, node, entities={}, collections=None, inputs=None,
                  force_dense=True, sampling_rate='TR', invalid_contrasts='drop'):
 
@@ -433,7 +513,7 @@ class BIDSStatsModelsNodeOutput:
         self.contrasts = self._build_contrasts()
 
     def _collections_to_dfs(self, collections):
-
+        """Merges collections and converts them to a pandas DataFrame."""
         if not collections:
             return []
 
@@ -495,6 +575,7 @@ class BIDSStatsModelsNodeOutput:
         return input_df
 
     def _build_contrasts(self):
+        """Contrast list of ContrastInfo objects based on current state."""
         contrasts = {}
         col_names = set(self.X.columns)
         for con in self.node.contrasts:
@@ -535,4 +616,5 @@ class BIDSStatsModelsNodeOutput:
 
     @property
     def X(self):
+        """Return design matrix via the current ModelSpec."""
         return self.model_spec.X

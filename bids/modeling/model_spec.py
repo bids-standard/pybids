@@ -8,6 +8,18 @@ from bids.utils import convert_JSON
 
 
 def create_model_spec(df, model, *args, **kwargs):
+    """Create and return a instance of the appropriate ModelSpec subclass.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        A pandas DataFrame containing predictor data
+    model : dict
+        Dictionary containing the BIDS-StatsModels model information
+    args, kwargs:
+        Optional positional and keyword arguments to pass onto to subclass
+        initializer.
+    """
     kind = model.get('type', 'glm').lower()
     SpecCls = {
         'glm': GLMMSpec
@@ -108,9 +120,14 @@ s
                 where k is the number of distinct variance components. If None,
                 a single group over all columns of Z is assumed.
             sigma (2DArray): A k x k 2D covariance matrix specifying the
-                covariances between variance components.
+                covariances between variance components. Currently unused.
             names (list): Optional list specifying the names of the groups. 
         """
+
+        if sigma is not None:
+            raise NotImplementedError("Covariance specification is currently"
+                                      " not supported.")
+
         if groups is None:
             groups = np.ones((Z.shape[1], 1))
         n_grps = groups.shape[1]
@@ -196,7 +213,8 @@ s
             be present as columns in `df`. Output names will follow the
             conventions specified in the `formulaic` documentation. Note that
             only the right-hand part of the formula should be passed (i.e.,
-            pass "X1 * X2", not "y ~ X1 * X2").
+            pass "X1 * X2", not "y ~ X1 * X2"). If provided, willl take
+            precedence over any formula found in the `model`.
 
         Returns
         -------
