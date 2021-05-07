@@ -258,8 +258,8 @@ def test_split(collection):
 
     # Grouping SparseEventVariable by multiple columns
     transform.Split(collection, variables=['RT_2'], by=['respcat', 'loss'])
-    assert 'RT_2.respcat[-1].loss[13]' in collection.variables.keys() and \
-           'RT_2.respcat[1].loss[13]' in collection.variables.keys()
+    assert 'RT_2.loss[13].respcat[-1]' in collection.variables.keys() and \
+           'RT_2.loss[13].respcat[1]' in collection.variables.keys()
 
     # Grouping by DenseEventVariable
     transform.Split(collection, variables='RT_3', by='respcat')
