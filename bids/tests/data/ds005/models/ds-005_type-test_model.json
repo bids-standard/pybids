@@ -5,12 +5,13 @@
     {
       "Name": "run",
       "Level": "Run",
+      "Groupby": ["run", "subject"],
       "Model": {
         "X": [
           "RT",
           "gain"
         ],
-        "Formula": "RT*gain"
+        "Formula": "0 + RT * gain"
       },
       "Transformations": [
         {
@@ -28,47 +29,7 @@
         }
       ],
       "DummyContrasts": {
-        "Conditions": [
-          "RT"
-        ],
         "Type": "t"
-      },
-      "Contrasts": [
-        {
-          "Name": "RT-gain",
-          "ConditionList": [
-            "RT",
-            "gain"
-          ],
-          "Weights": [
-            1,
-            -1
-          ]
-        },
-        {
-          "Name": "crummy-F",
-          "ConditionList": [
-            "RT",
-            "gain"
-          ],
-          "Weights": [
-            [
-              1,
-              0
-            ],
-            [
-              0,
-              1
-            ]
-          ]
-        }
-      ]
-    },
-    {
-      "Name": "session",
-      "Level": "Session",
-      "DummyContrasts": {
-        "Type": "FEMA"
       }
     },
     {
@@ -76,58 +37,54 @@
       "Level": "Subject",
       "Model": {
         "X": [
-          "intercept"
-        ]
-      },
-      "Contrasts": [
-        {
-          "Name": "RT",
-          "ConditionList": [
-            "RT"
-          ],
-          "Type": "FEMA",
-          "Weights": [
-            1
-          ]
-        },
-        {
-          "Name": "RT-gain",
-          "ConditionList": [
-            "RT-gain"
-          ],
-          "Type": "FEMA",
-          "Weights": [
-            1
-          ]
-        },
-        {
-          "Name": "crummy-F",
-          "ConditionList": [
-            "crummy-F"
-          ],
-          "Type": "FEMA",
-          "Weights": [
-            [
-              1
-            ]
-          ]
-        }
-      ]
-    },
-    {
-      "Name": "group",
-      "Level": "Dataset",
-      "Model": {
-        "X": [
-          "age",
-          "RT",
-          "RT-gain",
-          "crummy-F"
+          "Intercept"
         ]
       },
       "DummyContrasts": {
         "Type": "t"
       }
+    },
+    {
+      "Name": "by-group",
+      "Level": "Dataset",
+      "Model": {
+        "X": [
+          "Intercept"
+        ]
+      },
+      "DummyContrasts": {
+        "Type": "t"
+      }
+    },
+    {
+      "Name": "group-diff",
+      "Level": "Dataset",
+      "Model": {
+        "X": [
+          "Intercept",
+          "sex"
+        ]
+      },
+      "DummyContrasts": {
+        "Type": "t"
+      }
+    }
+  ],
+  "Edges": [
+    {
+      "Src": "run",
+      "Dst": "participant",
+      "Groupby": ["subject", "contrast"]
+    },
+    {
+      "Src": "participant",
+      "Dst": "by-group",
+      "Groupby": ["sex"]
+    },
+    {
+      "Src": "participant",
+      "Dst": "group-diff",
+      "Groupby": []
     }
   ]
 }
