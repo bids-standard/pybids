@@ -1,6 +1,5 @@
 """BIDS-StatsModels functionality."""
 
-from bids.variables.entities import Node
 import json
 from collections import namedtuple, OrderedDict, Counter, defaultdict
 import itertools
@@ -442,17 +441,34 @@ class BIDSStatsModelsNodeOutput:
         coll_levels = defaultdict(list)
         [coll_levels[coll.level].append(coll) for coll in collections]
 
-        var_names = self.node.model['x']
+        # ugly hack: we need to remove intercepts from the variable list (which
+        # is used to filter the collection later), as they can be specified in
+        # 'X' but don't exist yet. this business with intercepts really needs
+        # a spec-level resolution, at which point we can be more principled.
+        var_names = list(set(self.node.model['x']) - {'Intercept', 'intercept'})
 
         grp_dfs = []
         # merge all collections at each level and export to a DataFrame 
         for level, colls in coll_levels.items():
-            # skip if there are no eligible variables in the collections
-            all_vars = itertools.chain(*[c.variables.keys() for c in colls])
-            if not (set(all_vars) & set(var_names)):
+
+            # Note: we currently merge _before_ selecting variables. Selecting
+            # variables first could be done by passing `variables=all_vars` as
+            # an argument on the next line), but we can't do this right now
+            # because we can't guarantee that all the variables named in `X`
+            # in the model section already exist; some might be created by the
+            # transformations.
+            coll = merge_collections(colls)
+
+            # apply transformations
+            transformations = self.node.transformations
+            if transformations:
+                tm.TransformerManager().transform(coll, transformations)
+
+            # retain only variables listed in 'X', and skip level if none are left.
+            tm.Select(coll, var_names)
+            if not coll.variables:
                 continue
-            # for efficiency, keep only the variables we know we'll use
-            coll = merge_collections(colls, variables=var_names)
+
             # run collections need to be handled separately because to_df()
             # takes extra arguments related to handling of time
             if level == 'run':

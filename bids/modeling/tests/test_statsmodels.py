@@ -66,7 +66,7 @@ def test_contrast_info(graph):
         assert set([c.name for c in cl]) == {"RT", "RT:gain", "gain"}
         assert set([c.type for c in cl]) == {"t"}
         assert len(cl[1].conditions) == 1
-        assert cl[1].conditions[0] in {'RT', 'gain'}
+        assert cl[1].conditions[0] in {'RT', 'gain', 'RT:gain'}
         assert cl[1].weights == [1]
         assert isinstance(cl[0], ContrastInfo)
         assert cl[0]._fields == ("name", "conditions", "weights", "type", "entities")
