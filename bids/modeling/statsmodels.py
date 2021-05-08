@@ -232,7 +232,8 @@ class BIDSStatsModelsNode:
         self.children = []
         self.parents = []
 
-    def _build_groups(self, objects, groupby):
+    @staticmethod
+    def _build_groups(objects, groupby):
         """Group list of objects into bins defined by specified entities.
 
         Parameters
@@ -258,9 +259,15 @@ class BIDSStatsModelsNode:
 
         Examples
         --------
-        >>> obj_list = [bidsfile1, bidsfile2]
-        >>> group_objects_by_entities(obj_list, ['subject'])
-        {(('subject', '01'),): bidsfile1, (('subject': '02'),): bidsfile2}
+        >>> bidsfile = namedtuple('bidsfile', ('entities',))
+        >>> bidsfile1 = bidsfile(entities={'subject': '01'})
+        >>> bidsfile2 = bidsfile(entities={'subject': '02'})
+        >>> groups = {(('subject', '01'),): [bidsfile1],
+        ...           (('subject', '02'),): [bidsfile2]}
+        >>> BIDSStatsModelsNode._build_groups(
+        ...     [bidsfile1, bidsfile2],
+        ...     ['subject']) == groups
+        True
         """
         if not groupby:
             return {(): objects}
