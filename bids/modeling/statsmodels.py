@@ -309,7 +309,7 @@ class BIDSStatsModelsNode:
                 records.append(base_ents)
 
             for rec in records:
-                grp_key = tuple(sorted(rec, key=lambda x: x[0]))
+                grp_key = tuple(rec)
                 groups[grp_key].append(objects[i])
 
         return groups
