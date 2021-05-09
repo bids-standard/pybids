@@ -92,12 +92,12 @@ def test_entire_graph_smoketest(graph):
     # At dataset level, do one-sample t-tests separately for each gender,
     # but also two-sample t-tests comparing males and females.
     # Note that there are only 2 subjects in the graph.
-    outputs = graph["run"].run(groupby=['subject', 'run'])
+    outputs = graph["run"].run(group_by=['subject', 'run'])
     # 2 subjects x 3 runs
     assert len(outputs) == 6
     cis = list(chain(*[op.contrasts for op in outputs]))
     assert len(cis) == 18
-    outputs = graph["participant"].run(cis, groupby=['subject', 'contrast'])
+    outputs = graph["participant"].run(cis, group_by=['subject', 'contrast'])
     # 2 subjects x 3 contrasts
     assert len(outputs) == 6
     cis = list(chain(*[op.contrasts for op in outputs]))
@@ -114,7 +114,7 @@ def test_entire_graph_smoketest(graph):
         inputs.append(ContrastInfo(**fields))
 
     # GROUP DIFFERENCE NODE
-    outputs = graph["group-diff"].run(inputs, groupby=['contrast'])
+    outputs = graph["group-diff"].run(inputs, group_by=['contrast'])
     # 3 contrasts
     assert len(outputs) == 3
     cis = list(chain(*[op.contrasts for op in outputs]))
@@ -127,7 +127,7 @@ def test_entire_graph_smoketest(graph):
     assert {"Intercept", "sex"} == set(model_spec.terms.keys())
 
     # BY-GROUP NODE
-    outputs = graph["by-group"].run(inputs, groupby=['contrast'])
+    outputs = graph["by-group"].run(inputs, group_by=['contrast'])
     # 3 contrasts
     assert len(outputs) == 3
     cis = list(chain(*[op.contrasts for op in outputs]))

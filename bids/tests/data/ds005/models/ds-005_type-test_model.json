@@ -5,7 +5,7 @@
         {
             "Name": "run",
             "Level": "Run",
-            "Groupby": [
+            "GroupBy": [
                 "run",
                 "subject"
             ],
@@ -87,33 +87,33 @@
     ],
     "Edges": [
         {
-            "Src": "run",
-            "Dst": "session",
-            "Groupby": [
+            "Source": "run",
+            "Destination": "session",
+            "GroupBy": [
                 "subject",
                 "session",
                 "contrast"
             ]
         },
         {
-            "Src": "session",
-            "Dst": "participant",
-            "Groupby": [
+            "Source": "session",
+            "Destination": "participant",
+            "GroupBy": [
                 "subject",
                 "contrast"
             ]
         },
         {
-            "Src": "participant",
-            "Dst": "by-group",
-            "Groupby": [
+            "Source": "participant",
+            "Destination": "by-group",
+            "GroupBy": [
                 "sex"
             ]
         },
         {
-            "Src": "participant",
-            "Dst": "group-diff",
-            "Groupby": []
+            "Source": "participant",
+            "Destination": "group-diff",
+            "GroupBy": []
         }
     ]
 }

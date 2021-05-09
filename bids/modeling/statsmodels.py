@@ -41,14 +41,16 @@ def validate_model(model):
                             .format(duplicates))
     if 'edges' in model:
         for edge in model['edges']:
-            if edge['src'] not in names:
-                raise ValueError("Missing source node: '{}'".format(edge['src']))
-            if edge['dst'] not in names:
-                raise ValueError("Missing destination node: '{}'".format(edge['dst']))
+            if edge['source'] not in names:
+                raise ValueError("Missing source node: '{}'".format(edge['source']))
+            if edge['destination'] not in names:
+                raise ValueError("Missing destination node: '{}'".format(
+                    edge['destination']))
     return True
 
 
-BIDSStatsModelsEdge = namedtuple('BIDSStatsModelsEdge', ('src', 'dst', 'groupby'))
+BIDSStatsModelsEdge = namedtuple('BIDSStatsModelsEdge',
+                                 ('source', 'destination', 'group_by'))
 
 
 ContrastInfo = namedtuple('ContrastInfo', ('name', 'conditions', 'weights',
@@ -118,18 +120,18 @@ class BIDSStatsModelsGraph:
             for i in range(1, len(node_vals)):
                 # by default, we loop over contrast and the level of the
                 # receiving node.
-                groupby = ['contrast']
+                group_by = ['contrast']
                 if node_vals[i].level != 'dataset':
-                    groupby.append(node_vals[i].level)
+                    group_by.append(node_vals[i].level)
                 edges.append({
-                    'src': node_vals[i-1].name,
-                    'dst': node_vals[i].name,
-                    'groupby': groupby
+                    'source': node_vals[i-1].name,
+                    'destination': node_vals[i].name,
+                    'group_by': group_by
                 })
 
         for edge in edges:
-            src_node, dst_node = nodes[edge['src']], nodes[edge['dst']]
-            edge = BIDSStatsModelsEdge(src_node, dst_node, edge['groupby'])
+            src_node, dst_node = nodes[edge['source']], nodes[edge['destination']]
+            edge = BIDSStatsModelsEdge(src_node, dst_node, edge['group_by'])
             src_node.add_child(edge)
             dst_node.add_parent(edge)
 
@@ -208,39 +210,39 @@ class BIDSStatsModelsNode:
         Optional dictionary specifying which conditions to create indicator
         contrasts for. Dictionary must include a "type" key ('t' or 'FEMA'),
         and optionally a subset of "conditions".
-    groupby: [str]
+    group_by: [str]
         Optional list of strings giving the names of entities that define the
         grouping structure for all variables. The current node will be executed
-        separately for each unique combination of levels specified in groupby.
-        For example, if groupby=['contrast', 'subject'], and there are 2
+        separately for each unique combination of levels specified in group_by.
+        For example, if group_by=['contrast', 'subject'], and there are 2
         contrasts and 3 subjects, then there will be 6 separate iterations, and
         the returned list will have 6 elements. Any value passed here will be
         overridden if one is passed when run() is called on a node.
     """
 
     def __init__(self, level, name, transformations=None, model=None,
-                 contrasts=None, dummy_contrasts=False, groupby=None):
+                 contrasts=None, dummy_contrasts=False, group_by=None):
         self.level = level.lower()
         self.name = name
         self.model = model or {}
         self.transformations = transformations or []
         self.contrasts = contrasts or []
         self.dummy_contrasts = dummy_contrasts
-        self.groupby = groupby or []
+        self.group_by = group_by or []
         self._collections = []
         self._group_data = []
         self.children = []
         self.parents = []
 
     @staticmethod
-    def _build_groups(objects, groupby):
+    def _build_groups(objects, group_by):
         """Group list of objects into bins defined by specified entities.
 
         Parameters
         ----------
         objects : list
             List of objects containing an .entities dictionary as an attribute.
-        groupby : list of str
+        group_by : list of str
             List of strings indicating which entities to group on.
 
         Returns
@@ -269,18 +271,18 @@ class BIDSStatsModelsNode:
         ...     ['subject']) == groups
         True
         """
-        if not groupby:
+        if not group_by:
             return {(): objects}
 
         groups = defaultdict(list)
 
         # sanitize grouping entities, otherwise weird things can happen
-        groupby = list(set(groupby) & VALID_GROUPING_ENTITIES)
+        group_by = list(set(group_by) & VALID_GROUPING_ENTITIES)
 
         # Get unique values in each grouping variable
         entities = [obj.entities for obj in objects]
-        df = pd.DataFrame.from_records(entities).loc[:, groupby]
-        unique_vals = {col: df[col].dropna().unique().tolist() for col in groupby}
+        df = pd.DataFrame.from_records(entities).loc[:, group_by]
+        unique_vals = {col: df[col].dropna().unique().tolist() for col in group_by}
 
         # Note: we can't just naively bucket objects based on the values of the
         # grouping entities, because an object may have undefined values for
@@ -312,7 +314,7 @@ class BIDSStatsModelsNode:
 
         return groups
 
-    def run(self, inputs=None, groupby=None, force_dense=True,
+    def run(self, inputs=None, group_by=None, force_dense=True,
               sampling_rate='TR', invalid_contrasts='drop', **filters):
         """Execute node with provided inputs.
 
@@ -324,11 +326,11 @@ class BIDSStatsModelsNode:
             previous level; each element in the inner list is a ContrastInfo
             tuple. E.g., if contrast information is being passed from run-level
             to subject-level, each outer element is a run.
-        groupby: [str]
+        group_by: [str]
             Optional list of strings giving the names of entities that define
             the grouping structure for all variables. The current node will be
             executed separately for each unique combination of levels specified
-            in groupby. For example, if groupby=['contrast', 'subject'], and
+            in group_by. For example, if group_by=['contrast', 'subject'], and
             there are 2 contrasts and 3 subjects, then there will be 6 separate
             iterations, and the returned list will have 6 elements. If None is
             passed, the value set at node initialization (if any) will be used.
@@ -362,8 +364,8 @@ class BIDSStatsModelsNode:
 
         inputs = inputs or []
         collections = self._collections
-        groupby = groupby or self.groupby
-        groupby = listify(groupby)
+        group_by = group_by or self.group_by
+        group_by = listify(group_by)
 
         # Filter inputs and collections if needed
         if filters:
@@ -372,7 +374,7 @@ class BIDSStatsModelsNode:
 
         # group all collections and inputs
         all_objects = inputs + collections
-        groups = self._build_groups(all_objects, groupby)
+        groups = self._build_groups(all_objects, group_by)
 
         results = []
 
