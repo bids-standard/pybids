@@ -551,7 +551,7 @@ class BIDSStatsModelsNodeOutput:
             # apply transformations
             transformations = self.node.transformations
             if transformations:
-                tm.TransformerManager().transform(coll, transformations)
+                coll = tm.TransformerManager().transform(coll.clone(), transformations)
 
             # retain only variables listed in 'X', and skip level if none are left.
             tm.Select(coll, var_names)
