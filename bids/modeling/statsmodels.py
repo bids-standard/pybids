@@ -563,11 +563,7 @@ class BIDSStatsModelsNodeOutput:
         coll_levels = defaultdict(list)
         [coll_levels[coll.level].append(coll) for coll in collections]
 
-        # ugly hack: we need to remove intercepts from the variable list (which
-        # is used to filter the collection later), as they can be specified in
-        # 'X' but don't exist yet. this business with intercepts really needs
-        # a spec-level resolution, at which point we can be more principled.
-        var_names = list(set(self.node.model['x']) - {'Intercept', 'intercept'})
+        var_names = list(set(self.node.model['x']) - {'@intercept'})
 
         grp_dfs = []
         # merge all collections at each level and export to a DataFrame 
