@@ -88,7 +88,7 @@ def test_entire_graph_smoketest(graph):
     # Smoke test of entire graph; should hit almost all major pieces.
     # We do the following:
     # At run level, construct a design matrix containing gain, RT, and gain * RT.
-    # At subject level, aggregate within runs/sessions, do nothing else.
+    # At subject level, aggregate within runs, do nothing else.
     # At dataset level, do one-sample t-tests separately for each gender,
     # but also two-sample t-tests comparing males and females.
     # Note that there are only 2 subjects in the graph.

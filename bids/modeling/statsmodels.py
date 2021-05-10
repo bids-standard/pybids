@@ -279,9 +279,19 @@ class BIDSStatsModelsNode:
         # sanitize grouping entities, otherwise weird things can happen
         group_by = list(set(group_by) & VALID_GROUPING_ENTITIES)
 
-        # Get unique values in each grouping variable
+        # Get unique values in each grouping variable and construct indexing DF
         entities = [obj.entities for obj in objects]
-        df = pd.DataFrame.from_records(entities).loc[:, group_by]
+        df = pd.DataFrame.from_records(entities)
+
+        # Verify all columns in group_by exist and raise sensible error if not
+        missing_vars = list(set(group_by) - set(df.columns))
+        if missing_vars:
+            raise ValueError("group_by contains variable(s) {} that could not "
+                             "be found in the entity index.".format(missing_vars) )
+
+        # Restrict DF to only grouping columns
+        df = df.loc[:, group_by]
+
         unique_vals = {col: df[col].dropna().unique().tolist() for col in group_by}
 
         # Note: we can't just naively bucket objects based on the values of the
@@ -507,18 +517,41 @@ class BIDSStatsModelsNodeOutput:
             return a.merge(b, on=on)
         df = reduce(merge_dfs, dfs)
 
-        var_names = self.node.model['x']
-        # need to settle on some spec-level decision about which case to use
-        # here, whether names are insensitive, etc.
-        if ('intercept' in var_names and 'intercept' not in df.columns) or \
-           ('Intercept' in var_names and 'Intercept' not in df.columns):
-            df.insert(0, 'Intercept', 1)
+        var_names = list(self.node.model['x'])
+
+        # Handle the special "@intercept" construct. If it's present, we add a
+        # column of 1's to the design matrix. But behavior varies:
+        # * If there's only a single contrast across all of the inputs,
+        #   the intercept column is given the same name as the input contrast.
+        #   It may already exist, in which case we do nothing.
+        # * Otherwise, we name the column 'intercept'.
+        if '@intercept' in var_names:
+            if ('contrast' not in df.columns or df['contrast'].nunique() > 1):
+                int_name = 'intercept'
+            else:
+                int_name = df['contrast'].unique()[0]
+
+            var_names.remove('@intercept')
+
+            if int_name not in df.columns:
+                df.insert(0, int_name, 1)
+            else:
+                var_names.append(int_name)
+
+        # Verify all X names are actually present
+        missing = list(set(var_names) - set(df.columns))
+        if missing:
+            raise ValueError("X specification includes variable(s) {}, but "
+                             "these were not found in data matrix.".format(missing))
 
         # separate the design columns from the entity columns
         self.data = df.loc[:, var_names]
         self.metadata = df.loc[:, df.columns.difference(var_names)]
-        self.model_spec = create_model_spec(self.data, node.model, self.metadata)
 
+
+
+        # Create ModelSpec and build contrasts
+        self.model_spec = create_model_spec(self.data, node.model, self.metadata)
         self.contrasts = self._build_contrasts()
 
     def _collections_to_dfs(self, collections):
