@@ -36,18 +36,6 @@
             }
         },
         {
-            "Name": "session",
-            "Level": "Session",
-            "Model": {
-                "X": [
-                    "Intercept"
-                ]
-            },
-            "DummyContrasts": {
-                "Type": "FEMA"
-            }
-        },
-        {
             "Name": "participant",
             "Level": "Subject",
             "Model": {
@@ -56,7 +44,7 @@
                 ]
             },
             "DummyContrasts": {
-                "Type": "t"
+                "Type": "FEMA"
             }
         },
         {
@@ -88,15 +76,6 @@
     "Edges": [
         {
             "Source": "run",
-            "Destination": "session",
-            "GroupBy": [
-                "subject",
-                "session",
-                "contrast"
-            ]
-        },
-        {
-            "Source": "session",
             "Destination": "participant",
             "GroupBy": [
                 "subject",
