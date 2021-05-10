@@ -40,7 +40,7 @@
             "Level": "Subject",
             "Model": {
                 "X": [
-                    "Intercept"
+                    "@intercept"
                 ]
             },
             "DummyContrasts": {
@@ -52,7 +52,7 @@
             "Level": "Dataset",
             "Model": {
                 "X": [
-                    "Intercept"
+                    "@intercept"
                 ]
             },
             "DummyContrasts": {
@@ -64,7 +64,7 @@
             "Level": "Dataset",
             "Model": {
                 "X": [
-                    "Intercept",
+                    "@intercept",
                     "sex"
                 ]
             },
