@@ -10,10 +10,11 @@ SYNTHESIZER = "statsmodels-design-synthesizer"
 from bids import statsmodels_design_synthesizer as synth_mod
 
 # from bids_statsmodels_design_synthesizer import Path(SYNTHESIZER).stem as synth_mod
+DATA_DIR = (Path(__file__).parent / "data/ds005").absolute()
 EXAMPLE_USER_ARGS = {
         "output_tsv": "aggregated_design.tsv",
-        "transforms": "data/ds005/models/ds-005_type-mfx_model.json",
-        "events_tsv": "data/ds005/sub-01/func/sub-01_task-mixedgamblestask_run-01_events.tsv",
+        "transforms": f"{DATA_DIR}/models/ds-005_type-mfx_model.json",
+        "events_tsv": f"{DATA_DIR}/sub-01/func/sub-01_task-mixedgamblestask_run-01_events.tsv",
         "tr": 2,
         "ta": 2,
         "nvol": 160,
