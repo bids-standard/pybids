@@ -10,7 +10,7 @@ import pandas as pd
 from bids.utils import listify
 from .entities import NodeIndex
 from .variables import SparseRunVariable, DenseRunVariable, SimpleVariable
-
+from .collections import BIDSRunVariableCollection
 
 BASE_ENTITIES = ['subject', 'session', 'task', 'run']
 ALL_ENTITIES = BASE_ENTITIES + ['datatype', 'suffix', 'acquisition']
@@ -120,6 +120,68 @@ def _get_nvols(img_f):
 
     return nvols
 
+def get_events_collection(_data, run, entities=None, drop_na=True, output='run', columns=None):
+    """
+    This is an attempt to minimally implement:
+    https://github.com/bids-standard/pybids/blob/statsmodels/bids/variables/io.py
+
+    in a way that will still work for bids io, but will also work without layout.
+    """
+
+    if output == 'collection':
+        colls_output = []
+    elif output != 'run':
+        raise ValueError(f"output must be one of [run, output], {output} was passed.")
+
+    run_info = run.get_info()
+    if entities is None:
+        entities = run_info.entities
+    if 'amplitude' in _data.columns:
+        if (_data['amplitude'].astype(int) == 1).all() and \
+                'trial_type' in _data.columns:
+            msg = ("Column 'amplitude' with constant value 1 "
+                   "is unnecessary in event files; ignoring it.")
+            _data = _data.drop('amplitude', axis=1)
+        else:
+            msg = ("Column name 'amplitude' is reserved; "
+                   "renaming it to 'amplitude_'.")
+            _data = _data.rename(
+                columns={'amplitude': 'amplitude_'})
+        warnings.warn(msg)
+
+    _data = _data.replace('n/a', np.nan)  # Replace BIDS' n/a
+    _data = _data.apply(pd.to_numeric, errors='ignore')
+
+    _cols = columns or list(set(_data.columns.tolist()) -
+                            {'onset', 'duration'})
+
+    # Construct a DataFrame for each extra column
+    for col in _cols:
+        df = _data[['onset', 'duration']].copy()
+        df['amplitude'] = _data[col].values
+
+        # Add in all of the run's entities as new columns for
+        # index
+        for entity, value in entities.items():
+            if entity in ALL_ENTITIES:
+                df[entity] = value
+
+        if drop_na:
+            df = df.dropna(subset=['amplitude'])
+
+        if df.empty:
+            continue
+
+        var = SparseRunVariable(
+            name=col, data=df, run_info=run_info, source='events')
+        if output == 'run':
+            run.add_variable(var)
+        else:
+            colls_output.append(var)
+    if output == 'run':
+        return run
+    else:
+        return BIDSRunVariableCollection(colls_output)
 
 def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
                          drop_na=True, events=True, physio=True, stim=True,
@@ -258,46 +320,7 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
                 img_f, extension='.tsv', suffix='events', all_=True,
                 full_search=True, ignore_strict_entities=['suffix', 'extension'])
             for _data in dfs:
-                _data = pd.read_csv(_data, sep='\t')
-                if 'amplitude' in _data.columns:
-                    if (_data['amplitude'].astype(int) == 1).all() and \
-                            'trial_type' in _data.columns:
-                        msg = ("Column 'amplitude' with constant value 1 "
-                               "is unnecessary in event files; ignoring it.")
-                        _data = _data.drop('amplitude', axis=1)
-                    else:
-                        msg = ("Column name 'amplitude' is reserved; "
-                               "renaming it to 'amplitude_'.")
-                        _data = _data.rename(
-                            columns={'amplitude': 'amplitude_'})
-                    warnings.warn(msg)
-
-                _data = _data.replace('n/a', np.nan)  # Replace BIDS' n/a
-                _data = _data.apply(pd.to_numeric, errors='ignore')
-
-                _cols = columns or list(set(_data.columns.tolist()) -
-                                        {'onset', 'duration'})
-
-                # Construct a DataFrame for each extra column
-                for col in _cols:
-                    df = _data[['onset', 'duration']].copy()
-                    df['amplitude'] = _data[col].values
-
-                    # Add in all of the run's entities as new columns for
-                    # index
-                    for entity, value in entities.items():
-                        if entity in ALL_ENTITIES:
-                            df[entity] = value
-
-                    if drop_na:
-                        df = df.dropna(subset=['amplitude'])
-
-                    if df.empty:
-                        continue
-
-                    var = SparseRunVariable(
-                        name=col, data=df, run_info=run_info, source='events')
-                    run.add_variable(var)
+                run = get_events_collection(_data, run, entities)
 
         # Process confound files
         if regressors:
