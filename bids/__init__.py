@@ -13,7 +13,8 @@ __all__ = [
     "layout",
     "reports",
     "utils",
-    "variables"
+    "variables",
+    "statsmodels_design_synthesizer",
 ]
 
 due.cite(Doi("10.1038/sdata.2016.44"),
