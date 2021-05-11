@@ -320,6 +320,7 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
                 img_f, extension='.tsv', suffix='events', all_=True,
                 full_search=True, ignore_strict_entities=['suffix', 'extension'])
             for _data in dfs:
+                _data = pd.read_csv(_data, sep='\t')
                 run = get_events_collection(_data, run, entities)
 
         # Process confound files
