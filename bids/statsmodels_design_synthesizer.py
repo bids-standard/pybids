@@ -16,11 +16,11 @@ def statsmodels_design_synthesizer(params):
     """Console script for bids statsmodels_design_synthesizer."""
 
     # Output:
-    if not params.get("OUTPUT_DIR"):
-        output_tsv = params.get("OUTPUT_TSV", "aggregated_statsmodels_design.tsv")
+    if not params.get("output_dir"):
+        output_tsv = params.get("output_tsv", "aggregated_statsmodels_design.tsv")
 
     # Sampling rate of output
-    sampling_rate_out = params.get("OUTPUT_SAMPLING_RATE")
+    sampling_rate_out = params.get("output_sampling_rate")
 
     # Process transformations file
     # TODO: add transforms functionality, for now only model.json is handled
@@ -28,16 +28,26 @@ def statsmodels_design_synthesizer(params):
     # transformations has been obtained. This will most likely be the case since
     # transformations at higher levels will no longer be required when the new
     # "flow" approach is used.
-    transforms_file = Path(params["TRANSFORMS"])
+    transforms_file = Path(params["transforms"])
     if not transforms_file.exists():
         raise ValueError(f"Cannot find {transforms_file}")
-    model = convert_JSON(json.loads(model_file.read_text()))
-    model_transforms = model["steps"][0]["transformations"]
+    model = convert_JSON(json.loads(transforms_file.read_text()))
+
+    if "nodes" in model:
+        nodes_key = "nodes"
+    elif "steps" in model:
+        nodes_key = "steps"
+    else:
+        raise ValueError("Cannot find a key for nodes in the model file")
+    model_transforms = model[nodes_key][0]["transformations"]
+
+    duration = params["nvol"] * params["tr"]
 
     # Get relevant collection
-    coll_df = pd.read_csv(params["EVENTS_TSV"], delimiter="\t")
+    coll_df = pd.read_csv(params["events_tsv"], delimiter="\t")
     RunInfo = namedtuple("RunInfo", ["entities", "duration"])
-    run_info = RunInfo(parse_file_entities(params["EVENTS_TSV"]), params["DURATION"])
+
+    run_info = RunInfo(parse_file_entities(params["events_tsv"]), duration)
     coll = get_events_collection(coll_df, [run_info])
 
     # perform transformations
@@ -106,6 +116,7 @@ def create_parser():
     p.add_argument(
         "--output-sampling-rate",
         required=False,
+        type=float,
         help="Output sampling rate in Hz when output is dense instead of sparse",
     )
 
@@ -125,10 +136,12 @@ def create_parser():
         "Specify some essential details about the time series."
     )
     ptimes.add_argument(
-        "--nvol", required=True, help="Number of volumes in func time-series"
+        "--nvol", required=True, type=int, help="Number of volumes in func time-series"
     )
-    ptimes.add_argument("--tr", required=True, help="TR for func time series")
-    ptimes.add_argument("--ta", required=True, help="TA for events")
+    ptimes.add_argument(
+        "--tr", required=True, type=float, help="TR for func time series"
+    )
+    ptimes.add_argument("--ta", required=True, type=float, help="TA for events")
 
     return p
 
@@ -137,9 +150,9 @@ def main(user_args=None):
     parser = create_parser()
     if user_args is None:
         namespace = parser.parse_args(sys.argv[1:])
+        params = vars(namespace)
     else:
-        namespace = parser.parse_args(user_args)
-    params = vars(namespace)
+        params = user_args
 
     statsmodels_design_synthesizer(params)
 
