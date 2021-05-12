@@ -183,6 +183,41 @@ def get_events_collection(_data, run, drop_na=True, columns=None, entities=None,
     else:
         return BIDSRunVariableCollection(colls_output)
 
+
+def get_regressors_collection(_data, run, columns=None, entities=None, output='run'):
+
+    if output == 'collection':
+        colls_output = []
+    elif output != 'run':
+        raise ValueError(f"output must be one of [run, output], {output} was passed.")
+
+    run_info = run.get_info()
+    if entities is None:
+        entities = run_info.entities
+ 
+    if columns is not None:
+        conf_cols = list(set(_data.columns) & set(columns))
+        _data = _data.loc[:, conf_cols]
+    for col in _data.columns:
+        # TODO: output sampling rate should likely be used
+        sr = 1. / run.repetition_time
+        var = DenseRunVariable(name=col, values=_data[[col]],
+                       run_info=run_info, source='regressors',
+                       sampling_rate=sr)
+
+        # TODO: this logic can be simplified. Can always append to a list and
+        # then add to the output object.
+        if output == 'run':
+            run.add_variable(var)
+        else:
+            colls_output.append(var)
+    if output == 'run':
+        return run
+    else:
+        return BIDSRunVariableCollection(colls_output)
+
+
+
 def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
                          drop_na=True, events=True, physio=True, stim=True,
                          regressors=True, skip_empty=True, scope='all',
@@ -331,15 +366,8 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
                                         **sub_ents)
             for cf in confound_files:
                 _data = pd.read_csv(cf.path, sep='\t', na_values='n/a')
-                if columns is not None:
-                    conf_cols = list(set(_data.columns) & set(columns))
-                    _data = _data.loc[:, conf_cols]
-                for col in _data.columns:
-                    sr = 1. / run.repetition_time
-                    var = DenseRunVariable(name=col, values=_data[[col]],
-                                           run_info=run_info, source='regressors',
-                                           sampling_rate=sr)
-                    run.add_variable(var)
+                run = get_regressors_collection(_data, run, columns=columns)
+
 
         # Process recordinging files
         rec_types = []

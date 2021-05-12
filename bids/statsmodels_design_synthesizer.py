@@ -25,6 +25,7 @@ def statsmodels_design_synthesizer(params):
     sampling_rate_out = params.get("output_sampling_rate")
 
     # Process transformations file
+    # TODO: abstact transforms file reading into a function.
     # TODO: add transforms functionality, for now only model.json is handled
     # TODO: some basic error checking to confirm the correct level of
     # transformations has been obtained. This will most likely be the case since
@@ -50,6 +51,8 @@ def statsmodels_design_synthesizer(params):
     RunInfo = namedtuple("RunInfo", ["entities", "duration"])
 
     #run_info = RunInfo(parse_file_entities(params["events_tsv"]), duration)
+    # TODO: this will need to be implemented without RunNode to break cyclic
+    # dependencies if transformations is to be extracted
     run = RunNode(parse_file_entities(params["events_tsv"]), None, duration, params["tr"], params["nvol"])
     coll = get_events_collection(coll_df, run, output='collection')
 
