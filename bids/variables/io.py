@@ -185,7 +185,6 @@ def get_events_collection(_data, run, drop_na=True, columns=None, entities=None,
 
 
 def get_regressors_collection(_data, run, columns=None, entities=None, output='run'):
-    # TODO: is drop na functionality required?
     if output == 'collection':
         colls_output = []
     elif output != 'run':
