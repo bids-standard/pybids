@@ -120,7 +120,7 @@ def _get_nvols(img_f):
 
     return nvols
 
-def get_events_collection(_data, run, entities=None, drop_na=True, output='run', columns=None):
+def get_events_collection(_data, run, drop_na=True, columns=None, entities=None, output='run'):
     """
     This is an attempt to minimally implement:
     https://github.com/bids-standard/pybids/blob/statsmodels/bids/variables/io.py
@@ -316,12 +316,12 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
 
         # Process event files
         if events:
-            dfs = layout.get_nearest(
+            efiles = layout.get_nearest(
                 img_f, extension='.tsv', suffix='events', all_=True,
                 full_search=True, ignore_strict_entities=['suffix', 'extension'])
-            for _data in dfs:
-                _data = pd.read_csv(_data, sep='\t')
-                run = get_events_collection(_data, run, entities)
+            for ef in efiles:
+                _data = pd.read_csv(ef, sep='\t')
+                run = get_events_collection(_data, run, drop_na=drop_na, columns=columns)
 
         # Process confound files
         if regressors:
