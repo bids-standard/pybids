@@ -12,6 +12,7 @@ import enum
 import difflib
 
 import sqlalchemy as sa
+from sqlalchemy.orm import aliased
 from bids_validator import BIDSValidator
 
 from ..utils import listify, natural_sort
@@ -743,36 +744,46 @@ class BIDSLayout(object):
 
         # Entity filtering
         if filters:
-            query = query.join(BIDSFile.tags)
+            # query = query.join(BIDSFile.tags)
             regex = kwargs.get('regex_search', False)
 
             filters = self._sanitize_query_dtypes(filters)
 
             for name, val in filters.items():
+                tag_alias = aliased(Tag)
+
+                query = query.outerjoin(
+                    tag_alias,
+                    sa.and_(
+                        BIDSFile.path == tag_alias.file_path,
+                        tag_alias.entity_name == name
+                    ),
+                )
+
                 if isinstance(val, (list, tuple)) and len(val) == 1:
                     val = val[0]
-                if val is None or isinstance(val, enum.Enum):
-                    name_clause = query.filter(BIDSFile.tags.any(entity_name=name))
-                    if val == Query.ANY:
-                        query = name_clause
-                    else:
-                        query = query.except_(name_clause)
-                    continue
 
-                if regex:
+                if val is None or val == Query.NONE:
+                    val_clause = tag_alias._value.is_(None)
+                elif val == Query.ANY:
+                    val_clause = tag_alias._value.isnot(None)
+                elif regex:
                     if isinstance(val, (list, tuple)):
-                        val_clause = sa.or_(*[Tag._value.op('REGEXP')(str(v))
-                                              for v in val])
+                        val_clause = sa.or_(*[
+                            tag_alias._value.op('REGEXP')(str(v))
+                            for v in val
+                        ])
                     else:
-                        val_clause = Tag._value.op('REGEXP')(str(val))
+                        val_clause = tag_alias._value.op('REGEXP')(str(val))
                 else:
                     if isinstance(val, (list, tuple)):
-                        val_clause = Tag._value.in_(val)
+                        val_clause = tag_alias._value.in_(val)
                     else:
-                        val_clause = Tag._value == val
+                        val_clause = tag_alias._value == val
 
-                subq = sa.and_(Tag.entity_name == name, val_clause)
-                query = query.filter(BIDSFile.tags.any(subq))
+                query = query.filter(val_clause)
+
+        query = query.group_by(BIDSFile.path)
 
         return query
 
