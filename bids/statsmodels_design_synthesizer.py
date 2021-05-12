@@ -17,10 +17,6 @@ from bids.variables.entities import RunNode
 def statsmodels_design_synthesizer(params):
     """Console script for bids statsmodels_design_synthesizer."""
 
-    # Output:
-    if not params.get("output_dir"):
-        output_tsv = params.get("output_tsv", "aggregated_statsmodels_design.tsv")
-
     # Sampling rate of output
     sampling_rate_out = params.get("output_sampling_rate")
 
@@ -57,11 +53,19 @@ def statsmodels_design_synthesizer(params):
     coll = get_events_collection(coll_df, run, output='collection')
 
     # perform transformations
-    colls = transformations.TransformerManager().transform(coll, model_transforms)
+    colls, colls_pre_densifification = transformations.TransformerManager(save_pre_dense=True).transform(coll, model_transforms)
 
-    # Save colls
-    df_out = colls.to_df(sampling_rate=sampling_rate_out)
-    df_out.to_csv(output_tsv, index=None, sep="\t", na_rep="n/a")
+    # Save sparse vars
+    df_sparse = colls_pre_densifification.to_df(include_dense=False)
+    df_sparse.to_csv(output_dir / "transformed_events.tsv", index=None, sep="\t", na_rep="n/a")
+    # Save dense vars
+    df_dense = colls.to_df(include_sparse=False)
+    df_out.to_csv(output_dir / "transformed_time_series.tsv", index=None, sep="\t", na_rep="n/a")
+
+    # Save full design_matrix
+    if sampling_rate_out:
+        df_full = colls.to_df(sampling_rate=sampling_rate_out)
+        df_out.to_csv(output_dir / "aggregated_design.tsv", index=None, sep="\t", na_rep="n/a")
 
 def create_parser():
     """Returns argument parser"""
@@ -74,18 +78,12 @@ def create_parser():
         "--output-sampling-rate",
         required=False,
         type=float,
-        help="Output sampling rate in Hz when output is dense instead of sparse",
+        help="Output sampling rate in Hz when a full design matrix is desired.",
     )
 
-    pout = p.add_mutually_exclusive_group()
-    pout.add_argument(
-        "--output-tsv",
-        nargs="?",
-        help="Path to TSV containing a fully constructed design matrix.",
-    )
-    pout.add_argument(
+    p.add_argument(
         "--output-dir",
-        nargs="?",
+        required=True,
         help="Path to directory to write processed event files.",
     )
 
