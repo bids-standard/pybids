@@ -20,7 +20,14 @@ EXAMPLE_USER_ARGS = {
         "ta": 2,
         "nvol": 160,
     }
-
+EXAMPLE_USER_ARGS_2 = {
+        "output_dir": tempfile.TemporaryDirectory().name,
+        "transforms": f"{DATA_DIR}/models/ds-005_type-test_model.json",
+        "events_tsv": f"{DATA_DIR}/sub-01/func/sub-01_task-mixedgamblestask_run-01_events.tsv",
+        "tr": 2,
+        "ta": 2,
+        "nvol": 160,
+    }
 
 def test_cli_help():
     output = sp.check_output([SYNTHESIZER, "-h"])
@@ -30,6 +37,7 @@ def test_cli_help():
 
 def test_design_aggregation_function():
     synth_mod.main(EXAMPLE_USER_ARGS)
+    synth_mod.main(EXAMPLE_USER_ARGS_2)
 
 
 def test_minimal_cli_functionality():
@@ -46,6 +54,10 @@ def test_minimal_cli_functionality():
     https://github.com/bids-standard/pybids/blob/b6cd0f6787230ce976a374fbd5fce650865752a3/bids/analysis/analysis.py#L282
     """
     arg_list = " " .join([f"""--{k.lower().replace("_","-")}={v}""" for k,v in EXAMPLE_USER_ARGS.items()])
+    cmd = f"{SYNTHESIZER} {arg_list}"
+    output = sp.check_output(cmd.split())
+
+    arg_list = " " .join([f"""--{k.lower().replace("_","-")}={v}""" for k,v in EXAMPLE_USER_ARGS_2.items()])
     cmd = f"{SYNTHESIZER} {arg_list}"
     output = sp.check_output(cmd.split())
 

@@ -19,6 +19,8 @@ def statsmodels_design_synthesizer(params):
 
     # Sampling rate of output
     sampling_rate_out = params.get("output_sampling_rate")
+    output_dir = Path(params.get("output_dir", 'design_synthesizer'))
+    output_dir.mkdir(exist_ok=True) 
 
     # Process transformations file
     # TODO: abstact transforms file reading into a function.
@@ -56,11 +58,17 @@ def statsmodels_design_synthesizer(params):
     colls, colls_pre_densifification = transformations.TransformerManager(save_pre_dense=True).transform(coll, model_transforms)
 
     # Save sparse vars
-    df_sparse = colls_pre_densifification.to_df(include_dense=False)
+    try:
+        df_sparse = colls_pre_densifification.to_df(include_dense=False)
+    except AttributeError:
+        df_sparse = colls.to_df(include_dense=False)
     df_sparse.to_csv(output_dir / "transformed_events.tsv", index=None, sep="\t", na_rep="n/a")
     # Save dense vars
-    df_dense = colls.to_df(include_sparse=False)
-    df_out.to_csv(output_dir / "transformed_time_series.tsv", index=None, sep="\t", na_rep="n/a")
+    try:
+        df_dense = colls.to_df(include_sparse=False)
+        df_out.to_csv(output_dir / "transformed_time_series.tsv", index=None, sep="\t", na_rep="n/a")
+    except ValueError:
+        pass
 
     # Save full design_matrix
     if sampling_rate_out:

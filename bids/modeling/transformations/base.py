@@ -11,9 +11,8 @@ import numpy as np
 import pandas as pd
 
 from bids.utils import listify, convert_JSON
-from bids.variables import SparseRunVariable
+from bids.variables import SparseRunVariable, BIDSRunVariableCollection
 from bids.modeling import transformations as pbt
-
 
 class Transformation(metaclass=ABCMeta):
 
@@ -405,13 +404,13 @@ class TransformerManager(object):
             If None, the PyBIDS transformations module is used.
     """
 
-    def __init__(self, default=None):
+    def __init__(self, default=None, save_pre_dense=False):
         self.transformations = {}
         if default is None:
             # Default to PyBIDS transformations
             default = pbt
         self.default = default
-
+        self.save_pre_dense = save_pre_dense
     def _sanitize_name(self, name):
         """ Replace any invalid/reserved transformation names with acceptable
         equivalents.
@@ -448,6 +447,7 @@ class TransformerManager(object):
         transformations : list
             List of transformations to apply.
         """
+        changed_vars = []
         for t in transformations:
             t = convert_JSON(t) # make sure all keys are snake case
             kwargs = dict(t)
@@ -456,11 +456,38 @@ class TransformerManager(object):
 
             # Check registered transformations; fall back on default module
             func = self.transformations.get(name, None)
+            pre_dense = {}
             if func is None:
                 if not hasattr(self.default, name):
                     raise ValueError("No transformation '%s' found: either "
                                      "explicitly register a handler, or pass a"
                                      " default module that supports it." % name)
                 func = getattr(self.default, name)
+                # check for sparse variables here and save them
+                matching_sparse_cols = []
+                if self.save_pre_dense:
+                    for variable in collection.match_variables(cols, return_type='variable'):
+                        if isinstance(variable, SparseRunVariable):
+                            matching_sparse_cols.append(variable.clone())
+
                 func(collection, cols, **kwargs)
+
+                # check here to see if those variables are still sparse
+                # if so, continue, if not, save the sparse variables prior to transformation
+                if len(matching_sparse_cols) > 0:
+                    for variable in matching_sparse_cols:
+                        name = variable.name
+                        matching_post_tfm = collection.match_variables(name, return_type='variable')
+                        assert len(matching_post_tfm) < 2
+                        if (len(matching_post_tfm) == 0) or not isinstance(matching_post_tfm[0], SparseRunVariable):
+                            changed_vars.append(variable)
+
+        if self.save_pre_dense:
+            if len(changed_vars) > 0:
+                changed_vars = BIDSRunVariableCollection(changed_vars)
+                assert np.all([isinstance(vv, SparseRunVariable) for vv in changed_vars.variables.values()])
+                return collection, changed_vars
+            else:
+                return collection, None
         return collection
+
