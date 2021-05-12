@@ -199,7 +199,6 @@ def get_regressors_collection(_data, run, columns=None, entities=None, output='r
         conf_cols = list(set(_data.columns) & set(columns))
         _data = _data.loc[:, conf_cols]
     for col in _data.columns:
-        # TODO: output sampling rate should likely be used
         sr = 1. / run.repetition_time
         var = DenseRunVariable(name=col, values=_data[[col]],
                        run_info=run_info, source='regressors',
