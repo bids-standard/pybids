@@ -185,7 +185,7 @@ def get_events_collection(_data, run, drop_na=True, columns=None, entities=None,
 
 
 def get_regressors_collection(_data, run, columns=None, entities=None, output='run'):
-
+    # TODO: is drop na functionality required?
     if output == 'collection':
         colls_output = []
     elif output != 'run':
@@ -194,7 +194,7 @@ def get_regressors_collection(_data, run, columns=None, entities=None, output='r
     run_info = run.get_info()
     if entities is None:
         entities = run_info.entities
- 
+
     if columns is not None:
         conf_cols = list(set(_data.columns) & set(columns))
         _data = _data.loc[:, conf_cols]
@@ -206,6 +206,73 @@ def get_regressors_collection(_data, run, columns=None, entities=None, output='r
                        sampling_rate=sr)
 
         # TODO: this logic can be simplified. Can always append to a list and
+        # then add to the output object.
+        if output == 'run':
+            run.add_variable(var)
+        else:
+            colls_output.append(var)
+    if output == 'run':
+        return run
+    else:
+        return BIDSRunVariableCollection(colls_output)
+
+
+def get_rec_collection(rec_file,run,metadata,run_info=None,columns=None,entities=None, output='run'):
+
+    if output == 'collection':
+        colls_output = []
+    elif output != 'run':
+        raise ValueError(f"output must be one of [run, output], {output} was passed.")
+
+    data = pd.read_csv(rec_file, sep='\t')
+    if output == 'collection':
+        colls_output = []
+    elif output != 'run':
+        raise ValueError(f"output must be one of [run, output], {output} was passed.")
+
+    if not run_info:
+        run_info = run.get_info()
+
+    freq = metadata['SamplingFrequency']
+    st = metadata['StartTime']
+    rf_cols = metadata['Columns']
+    data.columns = rf_cols
+
+    # Filter columns if user passed names
+    if columns is not None:
+        rf_cols = list(set(rf_cols) & set(columns))
+        data = data.loc[:, rf_cols]
+
+    n_cols = len(rf_cols)
+    if not n_cols:
+        # nothing to do
+        return run
+
+    # Keep only in-scan samples
+    if st < 0:
+        start_ind = np.floor(-st * freq)
+        values = data.values[start_ind:, :]
+    else:
+        values = data.values
+
+    if st > 0:
+        n_pad = int(freq * st)
+        pad = np.zeros((n_pad, n_cols))
+        values = np.r_[pad, values]
+
+    n_rows = int(run.duration * freq)
+    if len(values) > n_rows:
+        values = values[:n_rows, :]
+    elif len(values) < n_rows:
+        pad = np.zeros((n_rows - len(values), n_cols))
+        values = np.r_[values, pad]
+
+    df = pd.DataFrame(values, columns=rf_cols)
+    source = 'physio' if '_physio.tsv' in rec_file else 'stim'
+    for col in df.columns:
+        var = DenseRunVariable(name=col, values=df[[col]], run_info=run_info,
+                               source=source, sampling_rate=freq)
+         # TODO: this logic can be simplified. Can always append to a list and
         # then add to the output object.
         if output == 'run':
             run.add_variable(var)
@@ -384,46 +451,9 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
                 metadata = layout.get_metadata(rf)
                 if not metadata:
                     raise ValueError("No .json sidecar found for '%s'." % rf)
-                data = pd.read_csv(rf, sep='\t')
-                freq = metadata['SamplingFrequency']
-                st = metadata['StartTime']
-                rf_cols = metadata['Columns']
-                data.columns = rf_cols
+                # rec_file passed in for now because rec_type needs to be inferred
+                run = get_rec_collection(rf, run, metadata, run_info=run_info, columns=columns)
 
-                # Filter columns if user passed names
-                if columns is not None:
-                    rf_cols = list(set(rf_cols) & set(columns))
-                    data = data.loc[:, rf_cols]
-
-                n_cols = len(rf_cols)
-                if not n_cols:
-                    continue
-
-                # Keep only in-scan samples
-                if st < 0:
-                    start_ind = np.floor(-st * freq)
-                    values = data.values[start_ind:, :]
-                else:
-                    values = data.values
-
-                if st > 0:
-                    n_pad = int(freq * st)
-                    pad = np.zeros((n_pad, n_cols))
-                    values = np.r_[pad, values]
-
-                n_rows = int(run.duration * freq)
-                if len(values) > n_rows:
-                    values = values[:n_rows, :]
-                elif len(values) < n_rows:
-                    pad = np.zeros((n_rows - len(values), n_cols))
-                    values = np.r_[values, pad]
-
-                df = pd.DataFrame(values, columns=rf_cols)
-                source = 'physio' if '_physio.tsv' in rf else 'stim'
-                for col in df.columns:
-                    var = DenseRunVariable(name=col, values=df[[col]], run_info=run_info,
-                                           source=source, sampling_rate=freq)
-                    run.add_variable(var)
     return dataset
 
 
