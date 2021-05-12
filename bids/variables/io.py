@@ -216,14 +216,13 @@ def get_regressors_collection(_data, run, columns=None, entities=None, output='r
         return BIDSRunVariableCollection(colls_output)
 
 
-def get_rec_collection(rec_file,run,metadata,run_info=None,columns=None,entities=None, output='run'):
+def get_rec_collection(data,run,metadata,source,run_info=None,columns=None,entities=None, output='run'):
 
     if output == 'collection':
         colls_output = []
     elif output != 'run':
         raise ValueError(f"output must be one of [run, output], {output} was passed.")
 
-    data = pd.read_csv(rec_file, sep='\t')
     if output == 'collection':
         colls_output = []
     elif output != 'run':
@@ -267,7 +266,6 @@ def get_rec_collection(rec_file,run,metadata,run_info=None,columns=None,entities
         values = np.r_[values, pad]
 
     df = pd.DataFrame(values, columns=rf_cols)
-    source = 'physio' if '_physio.tsv' in rec_file else 'stim'
     for col in df.columns:
         var = DenseRunVariable(name=col, values=df[[col]], run_info=run_info,
                                source=source, sampling_rate=freq)
@@ -451,7 +449,15 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
                 if not metadata:
                     raise ValueError("No .json sidecar found for '%s'." % rf)
                 # rec_file passed in for now because rec_type needs to be inferred
-                run = get_rec_collection(rf, run, metadata, run_info=run_info, columns=columns)
+                source = 'physio' if '_physio.tsv' in rf else 'stim'
+                data = pd.read_csv(rf, sep='\t')
+                run = get_rec_collection(
+                                         data,
+                                         run,
+                                         metadata,
+                                         source,
+                                         run_info=run_info,
+                                         columns=columns)
 
     return dataset
 
