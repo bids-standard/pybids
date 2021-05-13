@@ -751,18 +751,13 @@ class BIDSLayout(object):
             for name, val in filters.items():
                 tag_alias = aliased(Tag)
 
-                query = query.outerjoin(
-                    tag_alias,
-                    sa.and_(
-                        BIDSFile.path == tag_alias.file_path,
-                        tag_alias.entity_name == name
-                    ),
-                )
-
                 if isinstance(val, (list, tuple)) and len(val) == 1:
                     val = val[0]
 
+                join_method = query.join
+
                 if val is None or val == Query.NONE:
+                    join_method = query.outerjoin
                     val_clause = tag_alias._value.is_(None)
                 elif val == Query.ANY:
                     val_clause = tag_alias._value.isnot(None)
@@ -779,6 +774,14 @@ class BIDSLayout(object):
                         val_clause = tag_alias._value.in_(val)
                     else:
                         val_clause = tag_alias._value == val
+
+                query = join_method(
+                    tag_alias,
+                    sa.and_(
+                        BIDSFile.path == tag_alias.file_path,
+                        tag_alias.entity_name == name
+                    ),
+                )
 
                 query = query.filter(val_clause)
 
