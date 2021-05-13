@@ -744,7 +744,6 @@ class BIDSLayout(object):
 
         # Entity filtering
         if filters:
-            # query = query.join(BIDSFile.tags)
             regex = kwargs.get('regex_search', False)
 
             filters = self._sanitize_query_dtypes(filters)
