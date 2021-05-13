@@ -464,6 +464,10 @@ class TransformerManager(object):
                 func = getattr(self.default, name)
 
             # check for sparse variables here and save them
+            # We want everything sparse (the last time it was sparse during the
+            # transformation process) and everything that is dense at the end
+            # of the transformations. This will allow downstream users to add
+            # convolutions etc. as they please.
             matching_sparse_cols = []
             if self.save_pre_dense:
                 for variable in collection.match_variables(cols, return_type='variable'):

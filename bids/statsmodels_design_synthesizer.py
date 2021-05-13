@@ -54,15 +54,34 @@ def statsmodels_design_synthesizer(params):
     run = RunNode(parse_file_entities(params["events_tsv"]), None, duration, params["tr"], params["nvol"])
     coll = get_events_collection(coll_df, run, output='collection')
 
-    # perform transformations, additionally save variables that were changed
-    # TODO: need to consider sparse to sparse
-    colls, colls_pre_densification = transformations.TransformerManager(save_pre_dense=True).transform(coll, model_transforms)
+    # perform transformations, additionally save variables that were changed.
+    # If a column is transformed but not densified it will not be in
+    # colls_pre_densification.
+    colls, colls_pre_densification = (
+        transformations.TransformerManager(save_pre_dense=True)
+        .transform(coll, model_transforms)
+        )
 
     # Save sparse vars
-    try:
-        df_sparse = colls_pre_densification.to_df(include_dense=False)
-    except AttributeError:
+    if colls_pre_densification is not None:
+        final_sparse_names = set([vv.name for vv in colls.variables])
+        pre_dense_names = set([vv.name for vv in colls_pre_densifification])
+        shared_names = final_sparse_names.intersection(pre_dense_names)
+        if len(shared_names) > 0:
+            raise ValueError(
+        f"""Somehow you've ended up with a copy of {shared_names} in both the final
+        transformed variables and in the pre-densification variables. Did you delete a
+        variable and recreate one with same name?"""
+        )
+        output = merge_collections(
+            [colls_pre_densification, BidsRunVariableCollection(colls.get_sparse_variables())]
+        )
+        assert output.all_sparse()
+
+        df_sparse = output.to_df()
+    else:
         df_sparse = colls.to_df(include_dense=False)
+
     df_sparse.to_csv(output_dir / "transformed_events.tsv", index=None, sep="\t", na_rep="n/a")
     # Save dense vars
     try:
