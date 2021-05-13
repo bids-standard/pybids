@@ -194,7 +194,7 @@ class BIDSFile(Base):
     filename = Column(String)
     dirname = Column(String)
     entities = association_proxy("tags", "value")
-    is_dir = Column(Boolean)
+    is_dir = Column(Boolean, index=True)
     class_ = Column(String(20))
 
     _associations = relationship('BIDSFile', secondary='associations',
