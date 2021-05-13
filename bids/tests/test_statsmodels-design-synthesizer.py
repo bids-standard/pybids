@@ -12,8 +12,10 @@ from bids import statsmodels_design_synthesizer as synth_mod
 
 # from bids_statsmodels_design_synthesizer import Path(SYNTHESIZER).stem as synth_mod
 DATA_DIR = (Path(__file__).parent / "data/ds005").absolute()
+
+# Define some example user arg combinations (without output_dir which is better
+# to define in the scope of the test)
 EXAMPLE_USER_ARGS = {
-        "output_dir": tempfile.TemporaryDirectory().name,
         "transforms": f"{DATA_DIR}/models/ds-005_type-mfx_model.json",
         "events_tsv": f"{DATA_DIR}/sub-01/func/sub-01_task-mixedgamblestask_run-01_events.tsv",
         "tr": 2,
@@ -21,7 +23,6 @@ EXAMPLE_USER_ARGS = {
         "nvol": 160,
     }
 EXAMPLE_USER_ARGS_2 = {
-        "output_dir": tempfile.TemporaryDirectory().name,
         "transforms": f"{DATA_DIR}/models/ds-005_type-test_model.json",
         "events_tsv": f"{DATA_DIR}/sub-01/func/sub-01_task-mixedgamblestask_run-01_events.tsv",
         "tr": 2,
@@ -43,7 +44,8 @@ def test_cli_help():
         ("Model type mfx", EXAMPLE_USER_ARGS_2),
     ]
 )
-def test_design_aggregation_function(test_case,user_args):
+def test_design_aggregation_function(tmp_path,test_case,user_args):
+    user_args['output_dir'] = str(tmp_path)
     synth_mod.main(EXAMPLE_USER_ARGS)
 
 @pytest.mark.parametrize(
@@ -53,7 +55,7 @@ def test_design_aggregation_function(test_case,user_args):
         ("Model type mfx", EXAMPLE_USER_ARGS_2),
     ]
 )
-def test_minimal_cli_functionality(test_case,user_args):
+def test_minimal_cli_functionality(tmp_path,test_case,user_args):
     """
     We roughly want to implement the equivalent of the following:
     from bids.analysis import Analysis
@@ -66,6 +68,7 @@ def test_minimal_cli_functionality(test_case,user_args):
     more specifically we want to reimplement this line
     https://github.com/bids-standard/pybids/blob/b6cd0f6787230ce976a374fbd5fce650865752a3/bids/analysis/analysis.py#L282
     """
+    user_args['output_dir'] = str(tmp_path)
     arg_list = " " .join([f"""--{k.lower().replace("_","-")}={v}""" for k,v in user_args.items()])
     cmd = f"{SYNTHESIZER} {arg_list}"
     output = sp.check_output(cmd.split())
