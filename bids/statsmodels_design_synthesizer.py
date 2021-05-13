@@ -12,14 +12,52 @@ from bids.variables import BIDSRunVariableCollection, SparseRunVariable, merge_c
 from bids.layout.utils import parse_file_entities
 from bids.variables.io import get_events_collection
 from bids.variables.entities import RunNode
+import click
+
+from . import __version__
 
 
-def statsmodels_design_synthesizer(params):
-    """Console script for bids statsmodels_design_synthesizer."""
+@click.command()
+@click.version_option(__version__, prog_name='statsmodels_design_sythesizer')
+@click.option(
+    "--events-tsv", required=True, help="Path to events TSV")
+@click.option(
+        "--transforms", required=True, help="Path to transform or model json"
+    )
+@click.option(
+        "--nvol", required=True, type=int, help="Number of volumes in func time-series"
+    )
+@click.option(
+        "--tr", required=True, type=float, help="TR for func time series"
+    )
+@click.option(
+    "--ta", required=True, type=float, help="TA for events")
+@click.option(
+        "--output-sampling-rate",
+        required=False,
+        type=float,
+        help="Output sampling rate in Hz when a full design matrix is desired.",
+    )
+@click.option(
+        "--output-dir",
+        required=False,
+        help="Path to directory to write processed event files.",
+    )
+def main(**kwargs):
+    statsmodels_design_synthesizer(**kwargs)
 
-    # Sampling rate of output
-    sampling_rate_out = params.get("output_sampling_rate")
-    output_dir = Path(params.get("output_dir", 'design_synthesizer'))
+def  statsmodels_design_synthesizer(
+    *,
+    events_tsv,
+    transforms,
+    nvol,
+    tr,
+    ta,
+    output_sampling_rate=None,
+    output_dir=None,
+ ):
+
+    output_dir = Path(output_dir  or "design_synthesizer")
     output_dir.mkdir(exist_ok=True) 
 
     # Process transformations file
@@ -29,7 +67,7 @@ def statsmodels_design_synthesizer(params):
     # transformations has been obtained. This will most likely be the case since
     # transformations at higher levels will no longer be required when the new
     # "flow" approach is used.
-    transforms_file = Path(params["transforms"])
+    transforms_file = Path(transforms)
     if not transforms_file.exists():
         raise ValueError(f"Cannot find {transforms_file}")
     model = convert_JSON(json.loads(transforms_file.read_text()))
@@ -42,16 +80,16 @@ def statsmodels_design_synthesizer(params):
         raise ValueError("Cannot find a key for nodes in the model file")
     model_transforms = model[nodes_key][0]["transformations"]
 
-    duration = params["nvol"] * params["tr"]
+    duration = nvol * tr
 
     # Get relevant collection
-    coll_df = pd.read_csv(params["events_tsv"], delimiter="\t")
+    coll_df = pd.read_csv(events_tsv, delimiter="\t")
     RunInfo = namedtuple("RunInfo", ["entities", "duration"])
 
     #run_info = RunInfo(parse_file_entities(params["events_tsv"]), duration)
     # TODO: this will need to be implemented without RunNode to break cyclic
     # dependencies if transformations is to be extracted
-    run = RunNode(parse_file_entities(params["events_tsv"]), None, duration, params["tr"], params["nvol"])
+    run = RunNode(parse_file_entities(events_tsv), None, duration, tr, nvol)
     coll = get_events_collection(coll_df, run, output='collection')
 
     # perform transformations, additionally save variables that were changed.
@@ -93,53 +131,10 @@ def statsmodels_design_synthesizer(params):
         pass
 
     # Save full design_matrix
-    if sampling_rate_out:
-        df_full = colls.to_df(sampling_rate=sampling_rate_out)
+    if output_sampling_rate:
+        df_full = colls.to_df(sampling_rate=output_sampling_rate)
         df_full.to_csv(output_dir / "aggregated_design.tsv", index=None, sep="\t", na_rep="n/a")
 
-def create_parser():
-    """Returns argument parser"""
-    p = argparse.ArgumentParser()
-    p.add_argument("--events-tsv", required=True, help="Path to events TSV")
-    p.add_argument(
-        "--transforms", required=True, help="Path to transform or model json"
-    )
-    p.add_argument(
-        "--output-sampling-rate",
-        required=False,
-        type=float,
-        help="Output sampling rate in Hz when a full design matrix is desired.",
-    )
-
-    p.add_argument(
-        "--output-dir",
-        required=True,
-        help="Path to directory to write processed event files.",
-    )
-
-    ptimes = p.add_argument_group(
-        "Specify some essential details about the time series."
-    )
-    ptimes.add_argument(
-        "--nvol", required=True, type=int, help="Number of volumes in func time-series"
-    )
-    ptimes.add_argument(
-        "--tr", required=True, type=float, help="TR for func time series"
-    )
-    ptimes.add_argument("--ta", required=True, type=float, help="TA for events")
-
-    return p
-
-
-def main(user_args=None):
-    parser = create_parser()
-    if user_args is None:
-        namespace = parser.parse_args(sys.argv[1:])
-        params = vars(namespace)
-    else:
-        params = user_args
-
-    statsmodels_design_synthesizer(params)
 
 
 if __name__ == "__main__":

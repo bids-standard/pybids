@@ -17,8 +17,8 @@ DATA_DIR = (Path(__file__).parent / "data/ds005").absolute()
 # Define some example user arg combinations (without output_dir which is better
 # to define in the scope of the test)
 EXAMPLE_USER_ARGS = {
-        "transforms": f"{DATA_DIR}/models/ds-005_type-mfx_model.json",
         "events_tsv": f"{DATA_DIR}/sub-01/func/sub-01_task-mixedgamblestask_run-01_events.tsv",
+        "transforms": f"{DATA_DIR}/models/ds-005_type-mfx_model.json",
         "tr": 2,
         "ta": 2,
         "nvol": 160,
@@ -36,7 +36,7 @@ EXAMPLE_USER_ARGS_3["transforms"] = f"{DATA_DIR}/models/ds-005_type-convolution_
 
 
 def test_cli_help():
-    output = sp.check_output([SYNTHESIZER, "-h"])
+    output = sp.check_output([SYNTHESIZER, "--help"])
     with pytest.raises(sp.CalledProcessError):
         output = sp.check_output([SYNTHESIZER, "--non-existent"])
 
@@ -50,11 +50,12 @@ def test_cli_help():
 )
 def test_design_aggregation_function(tmp_path,test_case,user_args):
     user_args['output_dir'] = str(tmp_path)
-    synth_mod.main(user_args)
+    main_func = getattr(synth_mod, SYNTHESIZER.replace("-","_"))
+    main_func(**user_args)
 
 def test_design_aggregation_function_with_convolution(tmp_path):
     EXAMPLE_USER_ARGS_3['output_dir'] = str(tmp_path)
-    synth_mod.main(EXAMPLE_USER_ARGS_3)
+    synth_mod.statsmodels_design_synthesizer(**EXAMPLE_USER_ARGS_3)
     sparse_output = pd.read_csv(tmp_path/"transformed_events.tsv", sep='\t')
     assert 'pos_respcat' in sparse_output.columns
     assert 'gain' in sparse_output.columns
