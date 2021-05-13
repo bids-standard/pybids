@@ -35,12 +35,24 @@ def test_cli_help():
         output = sp.check_output([SYNTHESIZER, "--non-existent"])
 
 
-def test_design_aggregation_function():
+@pytest.mark.parametrize(
+    "test_case,user_args",
+    [
+        ("Model type test", EXAMPLE_USER_ARGS),
+        ("Model type mfx", EXAMPLE_USER_ARGS_2),
+    ]
+)
+def test_design_aggregation_function(test_case,user_args):
     synth_mod.main(EXAMPLE_USER_ARGS)
-    synth_mod.main(EXAMPLE_USER_ARGS_2)
 
-
-def test_minimal_cli_functionality():
+@pytest.mark.parametrize(
+    "test_case,user_args",
+    [
+        ("Model type test", EXAMPLE_USER_ARGS),
+        ("Model type mfx", EXAMPLE_USER_ARGS_2),
+    ]
+)
+def test_minimal_cli_functionality(test_case,user_args):
     """
     We roughly want to implement the equivalent of the following:
     from bids.analysis import Analysis
@@ -53,11 +65,8 @@ def test_minimal_cli_functionality():
     more specifically we want to reimplement this line
     https://github.com/bids-standard/pybids/blob/b6cd0f6787230ce976a374fbd5fce650865752a3/bids/analysis/analysis.py#L282
     """
-    arg_list = " " .join([f"""--{k.lower().replace("_","-")}={v}""" for k,v in EXAMPLE_USER_ARGS.items()])
+    arg_list = " " .join([f"""--{k.lower().replace("_","-")}={v}""" for k,v in user_args.items()])
     cmd = f"{SYNTHESIZER} {arg_list}"
     output = sp.check_output(cmd.split())
 
-    arg_list = " " .join([f"""--{k.lower().replace("_","-")}={v}""" for k,v in EXAMPLE_USER_ARGS_2.items()])
-    cmd = f"{SYNTHESIZER} {arg_list}"
-    output = sp.check_output(cmd.split())
 
