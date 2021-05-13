@@ -46,7 +46,7 @@ def test_cli_help():
 )
 def test_design_aggregation_function(tmp_path,test_case,user_args):
     user_args['output_dir'] = str(tmp_path)
-    synth_mod.main(EXAMPLE_USER_ARGS)
+    synth_mod.main(user_args)
 
 @pytest.mark.parametrize(
     "test_case,user_args",
