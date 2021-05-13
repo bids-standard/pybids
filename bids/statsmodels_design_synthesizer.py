@@ -64,7 +64,8 @@ def statsmodels_design_synthesizer(params):
 
     # Save sparse vars
     if colls_pre_densification is not None:
-        final_sparse_names = set([vv for vv in colls.variables])
+        final_sparse_colls = BIDSRunVariableCollection(colls.get_sparse_variables())
+        final_sparse_names = set([vv for vv in final_sparse_colls.variables])
         pre_dense_names = set([vv for vv in colls_pre_densification.variables])
         shared_names = final_sparse_names.intersection(pre_dense_names)
         if len(shared_names) > 0:
@@ -74,7 +75,7 @@ def statsmodels_design_synthesizer(params):
         variable and recreate one with same name?"""
         )
         output = merge_collections(
-            [colls_pre_densification, BIDSRunVariableCollection(colls.get_sparse_variables())]
+            [colls_pre_densification, final_sparse_colls]
         )
         assert output.all_sparse()
 
