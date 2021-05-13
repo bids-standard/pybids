@@ -83,14 +83,14 @@ def  statsmodels_design_synthesizer(
     duration = nvol * tr
 
     # Get relevant collection
-    coll_df = pd.read_csv(events_tsv, delimiter="\t")
-    RunInfo = namedtuple("RunInfo", ["entities", "duration"])
+    coll_df = pd.read_csv(params["events_tsv"], delimiter="\t")
+    RunInfo = namedtuple('RunInfo', ['entities', 'duration', 'tr', 'image', 'n_vols'])
 
     #run_info = RunInfo(parse_file_entities(params["events_tsv"]), duration)
     # TODO: this will need to be implemented without RunNode to break cyclic
     # dependencies if transformations is to be extracted
-    run = RunNode(parse_file_entities(events_tsv), None, duration, tr, nvol)
-    coll = get_events_collection(coll_df, run, output='collection')
+    run_info = RunInfo(parse_file_entities(params["events_tsv"]), duration, params["tr"], None, params["nvol"])
+    coll = BIDSRunVariableCollection(get_events_collection(coll_df, run_info))
 
     # perform transformations, additionally save variables that were changed.
     # If a column is transformed but not densified it will not be in

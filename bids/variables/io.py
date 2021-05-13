@@ -120,7 +120,7 @@ def _get_nvols(img_f):
 
     return nvols
 
-def get_events_collection(_data, run, drop_na=True, columns=None, entities=None, output='run'):
+def get_events_collection(_data, run_info, drop_na=True, columns=None, entities=None, output='run'):
     """
     This is an attempt to minimally implement:
     https://github.com/bids-standard/pybids/blob/statsmodels/bids/variables/io.py
@@ -128,12 +128,7 @@ def get_events_collection(_data, run, drop_na=True, columns=None, entities=None,
     in a way that will still work for bids io, but will also work without layout.
     """
 
-    if output == 'collection':
-        colls_output = []
-    elif output != 'run':
-        raise ValueError(f"output must be one of [run, output], {output} was passed.")
-
-    run_info = run.get_info()
+    run_info
     if entities is None:
         entities = run_info.entities
     if 'amplitude' in _data.columns:
@@ -154,7 +149,7 @@ def get_events_collection(_data, run, drop_na=True, columns=None, entities=None,
 
     _cols = columns or list(set(_data.columns.tolist()) -
                             {'onset', 'duration'})
-
+    colls_output = []
     # Construct a DataFrame for each extra column
     for col in _cols:
         df = _data[['onset', 'duration']].copy()
@@ -174,15 +169,8 @@ def get_events_collection(_data, run, drop_na=True, columns=None, entities=None,
 
         var = SparseRunVariable(
             name=col, data=df, run_info=run_info, source='events')
-        if output == 'run':
-            run.add_variable(var)
-        else:
-            colls_output.append(var)
-    if output == 'run':
-        return run
-    else:
-        return BIDSRunVariableCollection(colls_output)
-
+        colls_output.append(var)
+    return colls_output
 
 def get_regressors_collection(_data, run, columns=None, entities=None, output='run'):
     if output == 'collection':
@@ -419,7 +407,9 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
                 full_search=True, ignore_strict_entities=['suffix', 'extension'])
             for ef in efiles:
                 _data = pd.read_csv(ef, sep='\t')
-                run = get_events_collection(_data, run, drop_na=drop_na, columns=columns)
+                event_cols = get_events_collection(_data, run.get_info(), drop_na=drop_na, columns=columns)
+                for ec in event_cols:
+                    run.add_variable(ec)
 
         # Process confound files
         if regressors:
