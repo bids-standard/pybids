@@ -55,7 +55,7 @@ class LayoutInfo(Base):
             setattr(self, col, json.loads(db_val))
 
     def _sanitize_init_args(self, kwargs):
-        """ Prepare initalization arguments for serialization """
+        """ Prepare initialization arguments for serialization """
         if 'root' in kwargs:
             kwargs['root'] = str(Path(kwargs['root']).absolute())
 
@@ -194,7 +194,7 @@ class BIDSFile(Base):
     filename = Column(String)
     dirname = Column(String)
     entities = association_proxy("tags", "value")
-    is_dir = Column(Boolean)
+    is_dir = Column(Boolean, index=True)
     class_ = Column(String(20))
 
     _associations = relationship('BIDSFile', secondary='associations',
