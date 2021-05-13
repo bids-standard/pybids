@@ -120,7 +120,7 @@ def _get_nvols(img_f):
 
     return nvols
 
-def get_events_collection(_data, run_info, drop_na=True, columns=None, entities=None, output='run'):
+def get_events_collection(_data, run_info, drop_na=True, columns=None, entities=None):
     """
     This is an attempt to minimally implement:
     https://github.com/bids-standard/pybids/blob/statsmodels/bids/variables/io.py
@@ -172,13 +172,10 @@ def get_events_collection(_data, run_info, drop_na=True, columns=None, entities=
         colls_output.append(var)
     return colls_output
 
-def get_regressors_collection(_data, run, columns=None, entities=None, output='run'):
-    if output == 'collection':
-        colls_output = []
-    elif output != 'run':
-        raise ValueError(f"output must be one of [run, output], {output} was passed.")
 
-    run_info = run.get_info()
+def get_regressors_collection(_data, run_info, columns=None, entities=None):
+    
+    colls_output = []
     if entities is None:
         entities = run_info.entities
 
@@ -186,38 +183,17 @@ def get_regressors_collection(_data, run, columns=None, entities=None, output='r
         conf_cols = list(set(_data.columns) & set(columns))
         _data = _data.loc[:, conf_cols]
     for col in _data.columns:
-        sr = 1. / run.repetition_time
+        sr = 1. / run_info.tr
         var = DenseRunVariable(name=col, values=_data[[col]],
                        run_info=run_info, source='regressors',
                        sampling_rate=sr)
-
-        # TODO: this logic can be simplified. Can always append to a list and
-        # then add to the output object.
-        if output == 'run':
-            run.add_variable(var)
-        else:
-            colls_output.append(var)
-    if output == 'run':
-        return run
-    else:
-        return BIDSRunVariableCollection(colls_output)
+        colls_output.append(var)
+    return colls_output
 
 
-def get_rec_collection(data,run,metadata,source,run_info=None,columns=None,entities=None, output='run'):
+def get_rec_collection(data,run_info,metadata,source,columns=None,entities=None):
 
-    if output == 'collection':
-        colls_output = []
-    elif output != 'run':
-        raise ValueError(f"output must be one of [run, output], {output} was passed.")
-
-    if output == 'collection':
-        colls_output = []
-    elif output != 'run':
-        raise ValueError(f"output must be one of [run, output], {output} was passed.")
-
-    if not run_info:
-        run_info = run.get_info()
-
+    colls_output = []
     freq = metadata['SamplingFrequency']
     st = metadata['StartTime']
     rf_cols = metadata['Columns']
@@ -231,7 +207,7 @@ def get_rec_collection(data,run,metadata,source,run_info=None,columns=None,entit
     n_cols = len(rf_cols)
     if not n_cols:
         # nothing to do
-        return run
+        return []
 
     # Keep only in-scan samples
     if st < 0:
@@ -245,7 +221,7 @@ def get_rec_collection(data,run,metadata,source,run_info=None,columns=None,entit
         pad = np.zeros((n_pad, n_cols))
         values = np.r_[pad, values]
 
-    n_rows = int(run.duration * freq)
+    n_rows = int(run_info.duration * freq)
     if len(values) > n_rows:
         values = values[:n_rows, :]
     elif len(values) < n_rows:
@@ -256,17 +232,8 @@ def get_rec_collection(data,run,metadata,source,run_info=None,columns=None,entit
     for col in df.columns:
         var = DenseRunVariable(name=col, values=df[[col]], run_info=run_info,
                                source=source, sampling_rate=freq)
-         # TODO: this logic can be simplified. Can always append to a list and
-        # then add to the output object.
-        if output == 'run':
-            run.add_variable(var)
-        else:
-            colls_output.append(var)
-    if output == 'run':
-        return run
-    else:
-        return BIDSRunVariableCollection(colls_output)
-
+        colls_output.append(var)
+    return colls_output
 
 
 def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
@@ -419,8 +386,9 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
                                         **sub_ents)
             for cf in confound_files:
                 _data = pd.read_csv(cf.path, sep='\t', na_values='n/a')
-                run = get_regressors_collection(_data, run, columns=columns)
-
+                reg_colls = get_regressors_collection(_data, run.get_info(), columns=columns)
+                for rc in reg_colls:
+                    run.add_variable(rc)
 
         # Process recordinging files
         rec_types = []
@@ -440,13 +408,14 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
                 # rec_file passed in for now because rec_type needs to be inferred
                 source = 'physio' if '_physio.tsv' in rf else 'stim'
                 data = pd.read_csv(rf, sep='\t')
-                run = get_rec_collection(
+                rec_colls = get_rec_collection(
                                          data,
-                                         run,
+                                         run.get_info(),
                                          metadata,
                                          source,
-                                         run_info=run_info,
                                          columns=columns)
+                for rc in rec_colls:
+                    run.add_variable(rc)
 
     return dataset
 
