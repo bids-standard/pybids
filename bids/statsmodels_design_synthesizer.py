@@ -54,14 +54,11 @@ def statsmodels_design_synthesizer(params):
     run = RunNode(parse_file_entities(params["events_tsv"]), None, duration, params["tr"], params["nvol"])
     coll = get_events_collection(coll_df, run, output='collection')
 
-    # perform transformations
+    # perform transformations, additionally save variables that were changed
+    # TODO: need to consider sparse to sparse
     colls, colls_pre_densification = transformations.TransformerManager(save_pre_dense=True).transform(coll, model_transforms)
 
     # Save sparse vars
-    # TODO: consider cases where dense/sparse changes from transformation but
-    # sparse vars need to be combined between pre_densification and post
-    # transformation
-    # i.e. list(colls.variables.keys()) != [x.name for x in colls.get_sparse_variables()]
     try:
         df_sparse = colls_pre_densification.to_df(include_dense=False)
     except AttributeError:
