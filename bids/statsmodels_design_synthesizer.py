@@ -66,14 +66,14 @@ def statsmodels_design_synthesizer(params):
     # Save dense vars
     try:
         df_dense = colls.to_df(include_sparse=False)
-        df_out.to_csv(output_dir / "transformed_time_series.tsv", index=None, sep="\t", na_rep="n/a")
+        df_dense.to_csv(output_dir / "transformed_time_series.tsv", index=None, sep="\t", na_rep="n/a")
     except ValueError:
         pass
 
     # Save full design_matrix
     if sampling_rate_out:
         df_full = colls.to_df(sampling_rate=sampling_rate_out)
-        df_out.to_csv(output_dir / "aggregated_design.tsv", index=None, sep="\t", na_rep="n/a")
+        df_full.to_csv(output_dir / "aggregated_design.tsv", index=None, sep="\t", na_rep="n/a")
 
 def create_parser():
     """Returns argument parser"""

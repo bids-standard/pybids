@@ -27,6 +27,7 @@ EXAMPLE_USER_ARGS_2 = {
         "tr": 2,
         "ta": 2,
         "nvol": 160,
+        "output_sampling_rate":10,
     }
 
 def test_cli_help():
