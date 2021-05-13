@@ -8,7 +8,7 @@ import numpy as np
 from collections import namedtuple
 from bids.modeling import transformations
 from bids.utils import convert_JSON
-from bids.variables import BIDSRunVariableCollection, SparseRunVariable
+from bids.variables import BIDSRunVariableCollection, SparseRunVariable, merge_collections
 from bids.layout.utils import parse_file_entities
 from bids.variables.io import get_events_collection
 from bids.variables.entities import RunNode
@@ -64,8 +64,8 @@ def statsmodels_design_synthesizer(params):
 
     # Save sparse vars
     if colls_pre_densification is not None:
-        final_sparse_names = set([vv.name for vv in colls.variables])
-        pre_dense_names = set([vv.name for vv in colls_pre_densifification])
+        final_sparse_names = set([vv for vv in colls.variables])
+        pre_dense_names = set([vv for vv in colls_pre_densification.variables])
         shared_names = final_sparse_names.intersection(pre_dense_names)
         if len(shared_names) > 0:
             raise ValueError(
@@ -74,7 +74,7 @@ def statsmodels_design_synthesizer(params):
         variable and recreate one with same name?"""
         )
         output = merge_collections(
-            [colls_pre_densification, BidsRunVariableCollection(colls.get_sparse_variables())]
+            [colls_pre_densification, BIDSRunVariableCollection(colls.get_sparse_variables())]
         )
         assert output.all_sparse()
 

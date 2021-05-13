@@ -30,6 +30,9 @@ EXAMPLE_USER_ARGS_2 = {
         "nvol": 160,
         "output_sampling_rate":10,
     }
+EXAMPLE_USER_ARGS_3 = EXAMPLE_USER_ARGS_2.copy()
+EXAMPLE_USER_ARGS_3["transforms"] = f"{DATA_DIR}/models/ds-005_type-convolution_model.json"
+
 
 def test_cli_help():
     output = sp.check_output([SYNTHESIZER, "-h"])
@@ -42,6 +45,7 @@ def test_cli_help():
     [
         ("Model type test", EXAMPLE_USER_ARGS),
         ("Model type mfx", EXAMPLE_USER_ARGS_2),
+        ("Model type convolution", EXAMPLE_USER_ARGS_3),
     ]
 )
 def test_design_aggregation_function(tmp_path,test_case,user_args):
