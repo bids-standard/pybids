@@ -6,6 +6,7 @@ import pytest
 import subprocess as sp
 from pathlib import Path
 import tempfile
+import pandas as pd
 
 SYNTHESIZER = "statsmodels-design-synthesizer"
 from bids import statsmodels_design_synthesizer as synth_mod
@@ -45,12 +46,22 @@ def test_cli_help():
     [
         ("Model type test", EXAMPLE_USER_ARGS),
         ("Model type mfx", EXAMPLE_USER_ARGS_2),
-        ("Model type convolution", EXAMPLE_USER_ARGS_3),
     ]
 )
 def test_design_aggregation_function(tmp_path,test_case,user_args):
     user_args['output_dir'] = str(tmp_path)
     synth_mod.main(user_args)
+
+def test_design_aggregation_function_with_convolution(tmp_path):
+    EXAMPLE_USER_ARGS_3['output_dir'] = str(tmp_path)
+    synth_mod.main(EXAMPLE_USER_ARGS_3)
+    sparse_output = pd.read_csv(tmp_path/"transformed_events.tsv", sep='\t')
+    assert 'pos_respcat' in sparse_output.columns
+    assert 'gain' in sparse_output.columns
+
+    dense_output = pd.read_csv(tmp_path/"transformed_time_series.tsv", sep='\t')
+    assert 'pos_respcat' in dense_output.columns
+    assert 'gain' in dense_output.columns
 
 @pytest.mark.parametrize(
     "test_case,user_args",

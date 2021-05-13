@@ -68,6 +68,7 @@ def statsmodels_design_synthesizer(params):
         final_sparse_names = set([vv for vv in final_sparse_colls.variables])
         pre_dense_names = set([vv for vv in colls_pre_densification.variables])
         shared_names = final_sparse_names.intersection(pre_dense_names)
+
         if len(shared_names) > 0:
             raise ValueError(
         f"""Somehow you've ended up with a copy of {shared_names} in both the final
