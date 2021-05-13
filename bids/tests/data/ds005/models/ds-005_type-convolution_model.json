@@ -1,0 +1,109 @@
+{
+    "Name": "test_model",
+    "Description": "simple test model",
+    "Nodes": [
+        {
+            "Name": "run",
+            "Level": "Run",
+            "GroupBy": [
+                "run",
+                "subject"
+            ],
+            "Model": {
+                "X": [
+                    "RT",
+                    "gain"
+                ],
+                "Formula": "0 + RT * gain"
+            },
+            "Transformations": [
+                {
+                    "Name": "Factor",
+                    "Input": "trial_type"
+                },
+                {
+                    "Name": "Rename",
+                    "Input": "trial_type.parametric gain",
+                    "Output": "gain"
+                },
+                {
+                    "Name": "Threshold",
+                    "Input": "respcat",
+                    "Output": "pos_respcat",
+                    "Binarize": true
+                },
+                {
+                    "Name": "Scale",
+                    "Input": "RT"
+                },
+                {
+                  "Name": "Convolve",
+                  "Input": ["gain", "pos_respcat"],
+                  "Model": "spm"
+                }
+                     ],
+            "DummyContrasts": {
+                "Type": "t"
+            }
+        },
+        {
+            "Name": "participant",
+            "Level": "Subject",
+            "Model": {
+                "X": [
+                    "@intercept"
+                ]
+            },
+            "DummyContrasts": {
+                "Type": "FEMA"
+            }
+        },
+        {
+            "Name": "by-group",
+            "Level": "Dataset",
+            "Model": {
+                "X": [
+                    "@intercept"
+                ]
+            },
+            "DummyContrasts": {
+                "Type": "t"
+            }
+        },
+        {
+            "Name": "group-diff",
+            "Level": "Dataset",
+            "Model": {
+                "X": [
+                    "@intercept",
+                    "sex"
+                ]
+            },
+            "DummyContrasts": {
+                "Type": "t"
+            }
+        }
+    ],
+    "Edges": [
+        {
+            "Source": "run",
+            "Destination": "participant",
+            "GroupBy": [
+                "subject",
+                "contrast"
+            ]
+        },
+        {
+            "Source": "participant",
+            "Destination": "by-group",
+            "GroupBy": [
+                "sex"
+            ]
+        },
+        {
+            "Source": "participant",
+            "Destination": "group-diff",
+            "GroupBy": []
+        }
+    ]
+}
