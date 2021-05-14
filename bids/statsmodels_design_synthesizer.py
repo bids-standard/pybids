@@ -10,7 +10,7 @@ from bids.modeling import transformations
 from bids.utils import convert_JSON
 from bids.variables import BIDSRunVariableCollection, SparseRunVariable, merge_collections
 from bids.layout.utils import parse_file_entities
-from bids.variables.io import get_events_collection
+from bids.variables.io import get_events_collection, parse_transforms
 from bids.variables.entities import RunNode
 import click
 
@@ -46,6 +46,7 @@ from . import __version__
 def main(**kwargs):
     statsmodels_design_synthesizer(**kwargs)
 
+
 def  statsmodels_design_synthesizer(
     *,
     events_tsv,
@@ -59,27 +60,7 @@ def  statsmodels_design_synthesizer(
 
     output_dir = Path(output_dir  or "design_synthesizer")
     output_dir.mkdir(exist_ok=True) 
-
-    # Process transformations file
-    # TODO: abstact transforms file reading into a function.
-    # TODO: add transforms functionality, for now only model.json is handled
-    # TODO: some basic error checking to confirm the correct level of
-    # transformations has been obtained. This will most likely be the case since
-    # transformations at higher levels will no longer be required when the new
-    # "flow" approach is used.
-    transforms_file = Path(transforms)
-    if not transforms_file.exists():
-        raise ValueError(f"Cannot find {transforms_file}")
-    model = convert_JSON(json.loads(transforms_file.read_text()))
-
-    if "nodes" in model:
-        nodes_key = "nodes"
-    elif "steps" in model:
-        nodes_key = "steps"
-    else:
-        raise ValueError("Cannot find a key for nodes in the model file")
-    model_transforms = model[nodes_key][0]["transformations"]
-
+    model_transforms = parse_transforms(transforms)
     duration = nvol * tr
 
     # Get relevant collection

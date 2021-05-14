@@ -1,13 +1,14 @@
 """ Tools for reading/writing BIDS data files. """
 
 from os.path import join
+from pathlib import Path
 import warnings
 import json
 
 import numpy as np
 import pandas as pd
 
-from bids.utils import listify
+from bids.utils import listify, convert_JSON
 from .entities import NodeIndex
 from .variables import SparseRunVariable, DenseRunVariable, SimpleVariable
 from .collections import BIDSRunVariableCollection
@@ -554,3 +555,42 @@ def _load_tsv_variables(layout, suffix, dataset=None, columns=None,
             node.add_variable(SimpleVariable(name=col_name, data=df, source=suffix))
 
     return dataset
+
+
+def parse_transforms(transforms_in, validate=True,level="run"):
+    """ Adapted from bids.modeling.statsmodels.BIDSStatsModelsGraph. Also
+    handles files/jsons that only define the transformations section of the
+    model.json """
+
+    # input is JSON as a file or dict
+    if isinstance(transforms_in, str):
+        if not Path(transforms_in).exists():
+            raise ValueError(f"Cannot find path: {transforms_in}")
+        with open(transforms_in, 'r', encoding='utf-8') as fobj:
+            transforms_raw = json.load(fobj)
+    else:
+        transforms_raw = transforms_in
+
+    # Convert JSON from CamelCase to snake_case keys
+    transforms_raw = convert_JSON(transforms_raw)
+
+    if validate:
+       # TODO
+       # validate_transforms(transforms_raw)
+       pass
+
+    # Process transformations
+    # TODO: some basic error checking to confirm the correct level of
+    # transformations has been obtained. This will most likely be the case since
+    # transformations at higher levels will no longer be required when the new
+    # "flow" approach is used.
+    if "nodes" in transforms_raw:
+        nodes_key = "nodes"
+    elif "steps" in transforms_raw:
+        nodes_key = "steps"
+    else:
+        raise ValueError("Cannot find a key for nodes in the json input representing the model")
+    transforms = transforms_raw[nodes_key][0]["transformations"]
+    return transforms
+
+
