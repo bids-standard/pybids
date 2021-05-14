@@ -584,13 +584,13 @@ def parse_transforms(transforms_in, validate=True,level="run"):
     # transformations has been obtained. This will most likely be the case since
     # transformations at higher levels will no longer be required when the new
     # "flow" approach is used.
-    if "nodes" in transforms_raw:
-        nodes_key = "nodes"
-    elif "steps" in transforms_raw:
-        nodes_key = "steps"
+    if "transformations" in transforms_raw:
+        transforms = transforms_raw["transformations"]
+    elif any(k in transforms_raw for k in ["nodes","steps"]):
+        nodes_key = "nodes" if "nodes" in transforms_raw else "steps"
+        transforms = transforms_raw[nodes_key][0]["transformations"]
     else:
         raise ValueError("Cannot find a key for nodes in the json input representing the model")
-    transforms = transforms_raw[nodes_key][0]["transformations"]
     return transforms
 
 

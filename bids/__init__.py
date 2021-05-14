@@ -14,7 +14,6 @@ __all__ = [
     "reports",
     "utils",
     "variables",
-    "statsmodels_design_synthesizer",
 ]
 
 due.cite(Doi("10.1038/sdata.2016.44"),
