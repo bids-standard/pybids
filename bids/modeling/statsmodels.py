@@ -14,6 +14,7 @@ from bids.variables import (BIDSVariableCollection, SparseRunVariable,
                             merge_collections)
 from bids.modeling import transformations as tm
 from .model_spec import create_model_spec
+import warnings
 
 
 # Only entities in this list can be used in grouping
@@ -46,6 +47,17 @@ def validate_model(model):
             if edge['destination'] not in names:
                 raise ValueError("Missing destination node: '{}'".format(
                     edge['destination']))
+
+    # XXX: May 2021: Helping old models to work. This shouldn't last more than 2 years.
+    for node in model["nodes"]:
+        if "type" in node.get("dummy_contrasts", {}):
+            warnings.warn(f"[Node {node['name']}: The contrast 'Type' is now 'Test'.")
+            node["dummy_contrasts"]["test"] = node["dummy_contrasts"].pop("type")
+        for contrast in node.get("contrasts", []):
+            if "type" in contrast:
+                warnings.warn(f"[Node {node['name']}; Contrast {contrast['name']}]:"
+                              "Contrast 'Type' is now 'Test'.")
+                contrast["test"] = contrast.pop("type")
     return True
 
 
