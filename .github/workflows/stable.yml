@@ -1,12 +1,19 @@
 name: Stable tests
 
-# This file tests the claimed support range of NiBabel including
+# This file tests the claimed support range of PyBIDS including
 #
-# * Operating systems: Linux, Windows (x64 & x86), OSX
-# * Dependencies: minimum requirements, optional requirements
-# * Installation methods: setup.py, sdist, wheel, archive
+# * Operating systems: Linux, OSX
+# * Installation methods: pip, sdist, wheel
 
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - master
+      - maint/*
+  pull_request:
+    branches:
+      - master
+      - maint/*
 
 defaults:
   run:

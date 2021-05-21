@@ -1,6 +1,13 @@
 name: Packaging
 
-on: push
+on:
+  push:
+    branches:
+      - master
+      - maint/*
+      - rel/*
+    tags:
+      - '*'
 
 defaults:
   run:
