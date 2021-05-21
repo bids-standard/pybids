@@ -44,7 +44,7 @@
                 ]
             },
             "DummyContrasts": {
-                "Type": "FEMA"
+                "Test": "FEMA"
             }
         },
         {
@@ -56,7 +56,7 @@
                 ]
             },
             "DummyContrasts": {
-                "Type": "t"
+                "Test": "t"
             }
         },
         {
@@ -69,7 +69,7 @@
                 ]
             },
             "DummyContrasts": {
-                "Type": "t"
+                "Test": "t"
             }
         }
     ],

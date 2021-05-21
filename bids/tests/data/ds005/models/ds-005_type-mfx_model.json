@@ -16,7 +16,7 @@
       ],
       "DummyContrasts": {
         "Conditions": ["trial_type", "RT"],
-        "Type": "t"
+        "Test": "t"
       }
     },
     {
