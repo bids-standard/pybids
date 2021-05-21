@@ -4,13 +4,13 @@ from collections import OrderedDict
 import numpy as np
 
 
-def _make_passthrough_contrast(level, contrast_names, type="t"):
+def _make_passthrough_contrast(level, contrast_names, test="t"):
     block = OrderedDict(Level=level, Name=level,
                         Model={'X': contrast_names})
     contrasts = []
     for cn in contrast_names:
         cdict = OrderedDict(Name=level.lower() + "_" + cn, ConditionList=[cn],
-                            Weights=[1], Type=type)
+                            Weights=[1], Test=test)
         contrasts.append(cdict)
     block["Contrasts"] = contrasts
     return block
@@ -94,7 +94,7 @@ def auto_model(layout, scan_length=None, one_vs_rest=False):
                     pass
                 cdict["Weights"] = list(weights)
 
-                cdict["Type"] = "t"
+                cdict["Test"] = "t"
                 contrasts.append(cdict)
 
             run["Contrasts"] = contrasts

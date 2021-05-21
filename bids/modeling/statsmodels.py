@@ -54,7 +54,7 @@ BIDSStatsModelsEdge = namedtuple('BIDSStatsModelsEdge',
 
 
 ContrastInfo = namedtuple('ContrastInfo', ('name', 'conditions', 'weights',
-                                           'type', 'entities'))
+                                           'test', 'entities'))
 
 
 class BIDSStatsModelsGraph:
@@ -208,7 +208,7 @@ class BIDSStatsModelsNode:
         the model is fit.
     dummy_contrasts : dict
         Optional dictionary specifying which conditions to create indicator
-        contrasts for. Dictionary must include a "type" key ('t' or 'FEMA'),
+        contrasts for. Dictionary may include a "test" key ('t'),
         and optionally a subset of "conditions".
     group_by: [str]
         Optional list of strings giving the names of entities that define the
@@ -627,11 +627,10 @@ class BIDSStatsModelsNodeOutput:
                 elif self.invalid_contrasts == 'drop':
                     continue
             weights = np.atleast_2d(con['weights'])
-            test_type = con.get('type', ('t' if len(weights) == 1 else 'F'))
             # Add contrast name to entities; can be used in grouping downstream
             entities = {**self.entities, 'contrast': con['name']}
             ci = ContrastInfo(con['name'], con['condition_list'],
-                              con['weights'], test_type, entities)
+                              con['weights'], con.get("test"), entities)
             contrasts[con['name']] = ci
 
         dummies = self.node.dummy_contrasts
@@ -645,7 +644,7 @@ class BIDSStatsModelsNodeOutput:
                 if col_name in contrasts:
                     continue
                 entities = {**self.entities, 'contrast': col_name}
-                ci = ContrastInfo(col_name, [col_name], [1], dummies['type'],
+                ci = ContrastInfo(col_name, [col_name], [1], dummies.get("test"),
                                   entities)
                 contrasts[col_name] = ci
 
