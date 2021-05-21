@@ -4,6 +4,11 @@ name: Pre-release checks
 
 on: [push, pull_request]
 
+# Avoid duplicating when a branch is also a PR
+concurrency:
+  group: ${{ github.job }}-${{ github.sha }}
+  cancel-in-progress: true
+
 defaults:
   run:
     shell: bash
