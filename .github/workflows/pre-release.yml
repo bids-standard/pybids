@@ -15,8 +15,8 @@ jobs:
     continue-on-error: true
     strategy:
       matrix:
-        os: ['ubuntu-latest', 'macos-latest']
-        python-version: [3.8, 3.9]
+        os: ['ubuntu-latest'] #, 'macos-latest']
+        python-version: [3.8] #, 3.9]
         install: ['pip']
         check: ['ci_tests']
         pip-flags: ['PRE_PIP_FLAGS']
@@ -26,32 +26,32 @@ jobs:
       EXTRA_PIP_FLAGS: ${{ matrix.pip-flags }}
 
     steps:
-      - uses: actions/checkout@v2
-        with:
-          submodules: recursive
-          fetch-depth: 0
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2
-        with:
-          python-version: ${{ matrix.python-version }}
-      - name: Display Python version
-        run: python -c "import sys; print(sys.version)"
-      - name: Create virtual environment
-        run: tools/ci/create_venv.sh
-      - name: Build archive
-        run: |
-          source tools/ci/build_archive.sh
-          echo "ARCHIVE=$ARCHIVE" >> $GITHUB_ENV
-      - name: Install pybids
-        run: tools/ci/install.sh
-      - name: Install extras
-        run: tools/ci/install_extras.sh
-      - name: Run tests
-        run: |
-          source tools/ci/activate.sh
-          make $CHECK_TYPE
-        if: ${{ matrix.check != 'skiptests' }}
-      - uses: codecov/codecov-action@v1
-        with:
-          file: coverage.xml
-        if: ${{ always() }}
+      - name: Dump GitHub context
+        env:
+          GITHUB_CONTEXT: ${{ toJSON(github) }}
+        run: echo "$GITHUB_CONTEXT"
+      # - name: Set up Python ${{ matrix.python-version }}
+      #   uses: actions/setup-python@v2
+      #   with:
+      #     python-version: ${{ matrix.python-version }}
+      # - name: Display Python version
+      #   run: python -c "import sys; print(sys.version)"
+      # - name: Create virtual environment
+      #   run: tools/ci/create_venv.sh
+      # - name: Build archive
+      #   run: |
+      #     source tools/ci/build_archive.sh
+      #     echo "ARCHIVE=$ARCHIVE" >> $GITHUB_ENV
+      # - name: Install pybids
+      #   run: tools/ci/install.sh
+      # - name: Install extras
+      #   run: tools/ci/install_extras.sh
+      # - name: Run tests
+      #   run: |
+      #     source tools/ci/activate.sh
+      #     make $CHECK_TYPE
+      #   if: ${{ matrix.check != 'skiptests' }}
+      # - uses: codecov/codecov-action@v1
+      #   with:
+      #     file: coverage.xml
+      #   if: ${{ always() }}
