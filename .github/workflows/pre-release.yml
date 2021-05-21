@@ -35,6 +35,10 @@ jobs:
         env:
           GITHUB_CONTEXT: ${{ toJSON(github) }}
         run: echo "$GITHUB_CONTEXT"
+      - name: Testing group
+        env:
+          GROUP: ${{ github.job }}-${{ github.event.after }}
+        run: echo "$GROUP"
       # - name: Set up Python ${{ matrix.python-version }}
       #   uses: actions/setup-python@v2
       #   with:
