@@ -10,7 +10,7 @@ on: [push, pull_request]
 
 # Avoid duplicating when a branch is also a PR
 concurrency:
-  group: ${{ github.job }}-${{ github.event.after }}
+  group: stable-${{ github.event.after }}
   cancel-in-progress: true
 
 defaults:
