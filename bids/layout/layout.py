@@ -524,7 +524,7 @@ class BIDSLayout(object):
         # Add in orphaned files with no Tags. Maybe make this an argument?
         orphans = list(set(file_paths) - set(data.index))
         for o in orphans:
-            data.loc[o] = pd.Series()
+            data.loc[o] = pd.Series(dtype=float)
 
         return data.reset_index()
 
