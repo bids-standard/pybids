@@ -50,7 +50,7 @@ def validate_model(model):
 
 
 BIDSStatsModelsEdge = namedtuple('BIDSStatsModelsEdge',
-                                 ('source', 'destination', 'group_by'))
+                                 ('source', 'destination', 'filter'))
 
 
 ContrastInfo = namedtuple('ContrastInfo', ('name', 'conditions', 'weights',
@@ -118,20 +118,14 @@ class BIDSStatsModelsGraph:
         if not edges or model.get('pipeline', False):
             node_vals = list(nodes.values())
             for i in range(1, len(node_vals)):
-                # by default, we loop over contrast and the level of the
-                # receiving node.
-                group_by = ['contrast']
-                if node_vals[i].level != 'dataset':
-                    group_by.append(node_vals[i].level)
                 edges.append({
                     'source': node_vals[i-1].name,
                     'destination': node_vals[i].name,
-                    'group_by': group_by
                 })
 
         for edge in edges:
             src_node, dst_node = nodes[edge['source']], nodes[edge['destination']]
-            edge = BIDSStatsModelsEdge(src_node, dst_node, edge['group_by'])
+            edge = BIDSStatsModelsEdge(src_node, dst_node, edge.get('filter', []))
             src_node.add_child(edge)
             dst_node.add_parent(edge)
 
@@ -228,11 +222,19 @@ class BIDSStatsModelsNode:
         self.transformations = transformations or []
         self.contrasts = contrasts or []
         self.dummy_contrasts = dummy_contrasts
-        self.group_by = group_by or []
         self._collections = []
         self._group_data = []
         self.children = []
         self.parents = []
+        if group_by is None:
+            group_by = []
+            # Loop over contrasts after first level
+            if self.level != "run":
+                group_by.append("contrast")
+            # Loop over node level of this node
+            if self.level != "dataset":
+                group_by.append(self.level)
+        self.group_by = group_by
 
     @staticmethod
     def _build_groups(objects, group_by):
@@ -374,8 +376,7 @@ class BIDSStatsModelsNode:
 
         inputs = inputs or []
         collections = self._collections
-        group_by = group_by or self.group_by
-        group_by = listify(group_by)
+        group_by = listify(group_by or self.group_by)
 
         # Filter inputs and collections if needed
         if filters:
