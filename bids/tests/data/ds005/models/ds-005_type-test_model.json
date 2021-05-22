@@ -38,6 +38,10 @@
         {
             "Name": "participant",
             "Level": "Subject",
+            "GroupBy": [
+                "subject",
+                "contrast"
+            ],
             "Model": {
                 "X": [
                     1
@@ -50,6 +54,9 @@
         {
             "Name": "by-group",
             "Level": "Dataset",
+            "GroupBy": [
+                "sex"
+            ],
             "Model": {
                 "X": [
                     1
@@ -62,6 +69,7 @@
         {
             "Name": "group-diff",
             "Level": "Dataset",
+	    "GroupBy": [],
             "Model": {
                 "X": [
                     1,
@@ -76,23 +84,15 @@
     "Edges": [
         {
             "Source": "run",
-            "Destination": "participant",
-            "GroupBy": [
-                "subject",
-                "contrast"
-            ]
+            "Destination": "participant"
         },
         {
             "Source": "participant",
-            "Destination": "by-group",
-            "GroupBy": [
-                "sex"
-            ]
+            "Destination": "by-group"
         },
         {
             "Source": "participant",
-            "Destination": "group-diff",
-            "GroupBy": []
+            "Destination": "group-diff"
         }
     ]
 }
