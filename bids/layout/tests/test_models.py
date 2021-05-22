@@ -276,7 +276,6 @@ def test_bidsfile_relpath(layout_synthetic):
     assert bf.relpath == str(Path(bf.path).relative_to(layout_synthetic.root))
 
 
-@pytest.mark.xfail(sys.version_info < (3, 6), reason="os.PathLike introduced in Python 3.6")
 def test_bidsfile_fspath(sample_bidsfile):
     bf = sample_bidsfile
     bf_path = Path(bf)
