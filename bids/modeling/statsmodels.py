@@ -125,7 +125,7 @@ class BIDSStatsModelsGraph:
 
         for edge in edges:
             src_node, dst_node = nodes[edge['source']], nodes[edge['destination']]
-            edge = BIDSStatsModelsEdge(src_node, dst_node, edge.get('filter', []))
+            edge = BIDSStatsModelsEdge(src_node, dst_node, edge.get('filter', {}))
             src_node.add_child(edge)
             dst_node.add_parent(edge)
 
