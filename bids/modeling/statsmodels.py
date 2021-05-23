@@ -248,6 +248,9 @@ class BIDSStatsModelsNode:
                 group_by.append(self.level)
         self.group_by = group_by
 
+    def __repr__(self):
+        return f"<{self.__class__.__name__}[{self.level}] {self.name}>"
+
     @staticmethod
     def _build_groups(objects, group_by):
         """Group list of objects into bins defined by specified entities.
