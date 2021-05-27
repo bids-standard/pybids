@@ -51,13 +51,19 @@ def validate_model(model):
     # XXX: May 2021: Helping old models to work. This shouldn't last more than 2 years.
     for node in model["nodes"]:
         if "type" in node.get("dummy_contrasts", {}):
-            warnings.warn(f"[Node {node['name']}: The contrast 'Type' is now 'Test'.")
+            warnings.warn(f"[Node {node['name']}]: Contrast 'Type' is now 'Test'.")
             node["dummy_contrasts"]["test"] = node["dummy_contrasts"].pop("type")
         for contrast in node.get("contrasts", []):
             if "type" in contrast:
                 warnings.warn(f"[Node {node['name']}; Contrast {contrast['name']}]:"
                               "Contrast 'Type' is now 'Test'.")
                 contrast["test"] = contrast.pop("type")
+        if isinstance(node.get("transformations"), list):
+            transformations = {"transformer": "pybids-transforms-v1",
+                               "instructions": node["transformations"]}
+            warnings.warn(f"[Node {node['name']}]:"
+                          f"Transformations reformatted to {transformations}")
+            node["transformations"] = transformations
     return True
 
 
@@ -205,10 +211,13 @@ class BIDSStatsModelsNode:
         ['run', 'session', 'subject', or 'dataset'].
     name : str
         Name to assign to the node.
-    transformations : list
-        List of BIDS-Model transformations to apply.
     model : dict
         The 'model' part of the BIDS-StatsModels specification.
+    transformations : dict
+        Optional dictionary specifying transformations to apply. Dictionary
+        must include "transformer" and "instructions" keys. "transformer"
+        indicates the specification to follow. "instructions" is a list of
+        instructions matching that specification.
     contrasts : list
         List of contrasts to apply to the parameter estimates generated when
         the model is fit.
@@ -231,7 +240,10 @@ class BIDSStatsModelsNode:
         self.level = level.lower()
         self.name = name
         self.model = model or {}
-        self.transformations = transformations or []
+        if transformations is None:
+            transformations = {"transformer": "pybids-transforms-v1",
+                               "instructions": []}
+        self.transformations = transformations
         self.contrasts = contrasts or []
         self.dummy_contrasts = dummy_contrasts
         self._collections = []
@@ -593,7 +605,8 @@ class BIDSStatsModelsNodeOutput:
             # apply transformations
             transformations = self.node.transformations
             if transformations:
-                coll = tm.TransformerManager().transform(coll.clone(), transformations)
+                transformer = tm.TransformerManager(transformations['transformer'])
+                coll = transformer.transform(coll.clone(), transformations['instructions'])
 
             # retain only variables listed in 'X', and skip level if none are left.
             tm.Select(coll, var_names)
