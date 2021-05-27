@@ -22,7 +22,8 @@ def create_model_spec(df, model, *args, **kwargs):
     """
     kind = model.get('type', 'glm').lower()
     SpecCls = {
-        'glm': GLMMSpec
+        'glm': GLMMSpec,
+        'meta': MetaAnalysisSpec,
     }[kind]
     return SpecCls.from_df(df, model, *args, **kwargs)
 
@@ -271,6 +272,10 @@ s
             kwargs['link'] = error.get('link')
 
         return GLMMSpec(**kwargs)
+
+
+class MetaAnalysisSpec(GLMMSpec):
+    pass
 
 
 class Term(object):
