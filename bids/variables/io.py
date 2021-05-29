@@ -562,12 +562,21 @@ def parse_transforms(transforms_in, validate=True,level="run"):
     handles files/jsons that only define the transformations section of the
     model.json """
 
-    # input is JSON as a file or dict
+    # input is JSON as string, dict, or path
     if isinstance(transforms_in, str):
-        if not Path(transforms_in).exists():
-            raise ValueError(f"Cannot find path: {transforms_in}")
-        with open(transforms_in, 'r', encoding='utf-8') as fobj:
-            transforms_raw = json.load(fobj)
+        # read as file if file
+        if Path(transforms_in).exists():
+            transforms_in = Path(transforms_in).read_text()
+        # convert json as string to dict
+        try:
+            transforms_raw = json.loads(transforms_in)
+        except json.JSONDecodeError as err:
+            raise json.JSONDecodeError(f"""
+                {transforms_in}
+                The above input could not be parsed as valid json...
+                {err}
+            """
+            )
     else:
         transforms_raw = transforms_in
 
