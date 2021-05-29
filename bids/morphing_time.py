@@ -20,7 +20,7 @@ def  morphing_time(
     transforms,
     nvol,
     tr,
-    ta,
+    ta=None,
     output_sampling_rate=None,
     output_dir=None,
  ):
@@ -29,6 +29,7 @@ def  morphing_time(
     output_dir.mkdir(exist_ok=True) 
     model_transforms = parse_transforms(transforms)
     duration = nvol * tr
+    ta = ta or tr
 
     # Get relevant collection
     coll_df = pd.read_csv(events_tsv, delimiter="\t")

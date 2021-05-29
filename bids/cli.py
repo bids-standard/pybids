@@ -42,7 +42,7 @@ def cli():
         "--tr", required=True, type=float, help="TR for func time series"
     )
 @click.option(
-    "--ta", required=True, type=float, help="TA for events")
+    "--ta", required=False, type=float, help="TA for events")
 @click.option(
         "--output-sampling-rate",
         required=False,
