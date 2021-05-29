@@ -4,6 +4,7 @@ import json
 from collections import namedtuple, OrderedDict, Counter, defaultdict
 import itertools
 from functools import reduce
+from graphviz import Digraph
 
 import numpy as np
 import pandas as pd
@@ -193,6 +194,34 @@ class BIDSStatsModelsGraph:
             collections = self.layout.get_collections(node.level, drop_na=drop_na,
                                                       **node_kwargs)
             node.add_collections(collections)
+
+    def write_graph(self, dotfilename='graph.dot', format='png'):
+        """Generates a graphviz dot file and a png file
+
+        Parameters
+        ----------
+
+        format: 'png', 'svg'
+
+        """
+
+        dot = Digraph(
+                'structs',
+                filename=dotfilename,
+                node_attr={'shape': 'record'},
+                comment=self.model['name'],
+                format=format
+            )
+
+        for node, nobj in self.nodes.items():
+            dot.node(node, f"<f0> name: {nobj.name}|<f1> level: {nobj.level}")
+
+        for edge in self.edges:
+            dot.edge(edge['source'], edge['destination'])
+
+        dot.render()
+
+        return dot
 
 
 class BIDSStatsModelsNode:
