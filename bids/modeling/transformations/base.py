@@ -139,7 +139,7 @@ class Transformation(metaclass=ABCMeta):
             result = []
             # Only try to match strings containing a relevant special character
             for v in values:
-                if isinstance(v, str) and re.search('[\*\?\[\]]', v):
+                if isinstance(v, str) and re.search(r'[\*\?\[\]]', v):
                     result.append(self.collection.match_variables(v))
                 else:
                     result.append([v])

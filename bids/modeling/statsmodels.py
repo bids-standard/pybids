@@ -14,6 +14,7 @@ from bids.variables import (BIDSVariableCollection, SparseRunVariable,
                             merge_collections)
 from bids.modeling import transformations as tm
 from .model_spec import create_model_spec
+import warnings
 
 
 # Only entities in this list can be used in grouping
@@ -46,15 +47,26 @@ def validate_model(model):
             if edge['destination'] not in names:
                 raise ValueError("Missing destination node: '{}'".format(
                     edge['destination']))
+
+    # XXX: May 2021: Helping old models to work. This shouldn't last more than 2 years.
+    for node in model["nodes"]:
+        if "type" in node.get("dummy_contrasts", {}):
+            warnings.warn(f"[Node {node['name']}: The contrast 'Type' is now 'Test'.")
+            node["dummy_contrasts"]["test"] = node["dummy_contrasts"].pop("type")
+        for contrast in node.get("contrasts", []):
+            if "type" in contrast:
+                warnings.warn(f"[Node {node['name']}; Contrast {contrast['name']}]:"
+                              "Contrast 'Type' is now 'Test'.")
+                contrast["test"] = contrast.pop("type")
     return True
 
 
 BIDSStatsModelsEdge = namedtuple('BIDSStatsModelsEdge',
-                                 ('source', 'destination', 'group_by'))
+                                 ('source', 'destination', 'filter'))
 
 
 ContrastInfo = namedtuple('ContrastInfo', ('name', 'conditions', 'weights',
-                                           'type', 'entities'))
+                                           'test', 'entities'))
 
 
 class BIDSStatsModelsGraph:
@@ -118,20 +130,14 @@ class BIDSStatsModelsGraph:
         if not edges or model.get('pipeline', False):
             node_vals = list(nodes.values())
             for i in range(1, len(node_vals)):
-                # by default, we loop over contrast and the level of the
-                # receiving node.
-                group_by = ['contrast']
-                if node_vals[i].level != 'dataset':
-                    group_by.append(node_vals[i].level)
                 edges.append({
                     'source': node_vals[i-1].name,
                     'destination': node_vals[i].name,
-                    'group_by': group_by
                 })
 
         for edge in edges:
             src_node, dst_node = nodes[edge['source']], nodes[edge['destination']]
-            edge = BIDSStatsModelsEdge(src_node, dst_node, edge['group_by'])
+            edge = BIDSStatsModelsEdge(src_node, dst_node, edge.get('filter', {}))
             src_node.add_child(edge)
             dst_node.add_parent(edge)
 
@@ -208,7 +214,7 @@ class BIDSStatsModelsNode:
         the model is fit.
     dummy_contrasts : dict
         Optional dictionary specifying which conditions to create indicator
-        contrasts for. Dictionary must include a "type" key ('t' or 'FEMA'),
+        contrasts for. Dictionary may include a "test" key ('t'),
         and optionally a subset of "conditions".
     group_by: [str]
         Optional list of strings giving the names of entities that define the
@@ -228,11 +234,22 @@ class BIDSStatsModelsNode:
         self.transformations = transformations or []
         self.contrasts = contrasts or []
         self.dummy_contrasts = dummy_contrasts
-        self.group_by = group_by or []
         self._collections = []
         self._group_data = []
         self.children = []
         self.parents = []
+        if group_by is None:
+            group_by = []
+            # Loop over contrasts after first level
+            if self.level != "run":
+                group_by.append("contrast")
+            # Loop over node level of this node
+            if self.level != "dataset":
+                group_by.append(self.level)
+        self.group_by = group_by
+
+    def __repr__(self):
+        return f"<{self.__class__.__name__}[{self.level}] {self.name}>"
 
     @staticmethod
     def _build_groups(objects, group_by):
@@ -374,8 +391,7 @@ class BIDSStatsModelsNode:
 
         inputs = inputs or []
         collections = self._collections
-        group_by = group_by or self.group_by
-        group_by = listify(group_by)
+        group_by = listify(group_by or self.group_by)
 
         # Filter inputs and collections if needed
         if filters:
@@ -519,19 +535,19 @@ class BIDSStatsModelsNodeOutput:
 
         var_names = list(self.node.model['x'])
 
-        # Handle the special "@intercept" construct. If it's present, we add a
+        # Handle the special 1 construct. If it's present, we add a
         # column of 1's to the design matrix. But behavior varies:
         # * If there's only a single contrast across all of the inputs,
         #   the intercept column is given the same name as the input contrast.
         #   It may already exist, in which case we do nothing.
         # * Otherwise, we name the column 'intercept'.
-        if '@intercept' in var_names:
+        if 1 in var_names:
             if ('contrast' not in df.columns or df['contrast'].nunique() > 1):
                 int_name = 'intercept'
             else:
                 int_name = df['contrast'].unique()[0]
 
-            var_names.remove('@intercept')
+            var_names.remove(1)
 
             if int_name not in df.columns:
                 df.insert(0, int_name, 1)
@@ -563,7 +579,7 @@ class BIDSStatsModelsNodeOutput:
         coll_levels = defaultdict(list)
         [coll_levels[coll.level].append(coll) for coll in collections]
 
-        var_names = list(set(self.node.model['x']) - {'@intercept'})
+        var_names = list(set(self.node.model['x']) - {1})
 
         grp_dfs = []
         # merge all collections at each level and export to a DataFrame 
@@ -627,14 +643,12 @@ class BIDSStatsModelsNodeOutput:
                 elif self.invalid_contrasts == 'drop':
                     continue
             weights = np.atleast_2d(con['weights'])
-            matrix = pd.DataFrame(weights, columns=con['condition_list'])
-            test_type = con.get('type', ('t' if len(weights) == 1 else 'F'))
             # Add contrast name to entities; can be used in grouping downstream
             entities = {**self.entities, 'contrast': con['name']}
             ci = ContrastInfo(con['name'], con['condition_list'],
-                              con['weights'], test_type, entities)
+                              con['weights'], con.get("test"), entities)
             contrasts[con['name']] = ci
-        
+
         dummies = self.node.dummy_contrasts
         if dummies:
             conditions = col_names
@@ -646,7 +660,7 @@ class BIDSStatsModelsNodeOutput:
                 if col_name in contrasts:
                     continue
                 entities = {**self.entities, 'contrast': col_name}
-                ci = ContrastInfo(col_name, [col_name], [1], dummies['type'],
+                ci = ContrastInfo(col_name, [col_name], [1], dummies.get("test"),
                                   entities)
                 contrasts[col_name] = ci
 

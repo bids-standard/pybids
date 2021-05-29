@@ -38,61 +38,61 @@
         {
             "Name": "participant",
             "Level": "Subject",
+            "GroupBy": [
+                "subject",
+                "contrast"
+            ],
             "Model": {
                 "X": [
-                    "@intercept"
+                    1
                 ]
             },
             "DummyContrasts": {
-                "Type": "FEMA"
+                "Test": "FEMA"
             }
         },
         {
             "Name": "by-group",
             "Level": "Dataset",
+            "GroupBy": [
+                "sex"
+            ],
             "Model": {
                 "X": [
-                    "@intercept"
+                    1
                 ]
             },
             "DummyContrasts": {
-                "Type": "t"
+                "Test": "t"
             }
         },
         {
             "Name": "group-diff",
             "Level": "Dataset",
+	    "GroupBy": [],
             "Model": {
                 "X": [
-                    "@intercept",
+                    1,
                     "sex"
                 ]
             },
             "DummyContrasts": {
-                "Type": "t"
+                "Test": "t"
             }
         }
     ],
     "Edges": [
         {
             "Source": "run",
-            "Destination": "participant",
-            "GroupBy": [
-                "subject",
-                "contrast"
-            ]
+            "Destination": "participant"
         },
         {
             "Source": "participant",
-            "Destination": "by-group",
-            "GroupBy": [
-                "sex"
-            ]
+            "Destination": "by-group"
         },
         {
             "Source": "participant",
-            "Destination": "group-diff",
-            "GroupBy": []
+            "Destination": "group-diff"
         }
     ]
 }

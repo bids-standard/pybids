@@ -1,8 +1,19 @@
 Changelog
 =========
 
+Version 0.13.1 (May 21, 2021)
+-----------------------------
+
+Bug-fix release in the 0.13 series.
+
+* ENH: Improve `get` performance (#723)
+* STY: Fix typos identified by codespell (#720)
+* TEST: dataset-level model spec retrieval (#693)
+
 Version 0.13 (April 14, 2021)
 -----------------------------
+
+New feature release in the 0.13 series.
 
 * FIX: Resample to n_vols for sampling_rate == 'TR' (#713)
 * FIX: Lazily load metadata, skip when missing data files are missing sidecars (#711)

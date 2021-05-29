@@ -62,14 +62,14 @@ def test_contrast_info(graph):
     assert len(contrast_lists) == 3
     for cl in contrast_lists:
         assert len(cl) == 3
-        cl = [c for c in cl if c.type == "t"]
+        cl = [c for c in cl if c.test == "t"]
         assert set([c.name for c in cl]) == {"RT", "RT:gain", "gain"}
-        assert set([c.type for c in cl]) == {"t"}
+        assert set([c.test for c in cl]) == {"t"}
         assert len(cl[1].conditions) == 1
         assert cl[1].conditions[0] in {'RT', 'gain', 'RT:gain'}
         assert cl[1].weights == [1]
         assert isinstance(cl[0], ContrastInfo)
-        assert cl[0]._fields == ("name", "conditions", "weights", "type", "entities")
+        assert cl[0]._fields == ("name", "conditions", "weights", "test", "entities")
 
 
 def test_get_run_level_model_spec(graph):

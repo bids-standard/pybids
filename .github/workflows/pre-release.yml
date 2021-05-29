@@ -2,7 +2,15 @@ name: Pre-release checks
 
 # This file tests against pre-release wheels for dependencies
 
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - master
+      - maint/*
+  pull_request:
+    branches:
+      - master
+      - maint/*
 
 defaults:
   run:
