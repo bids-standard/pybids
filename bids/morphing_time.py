@@ -12,42 +12,9 @@ from bids.variables import BIDSRunVariableCollection, SparseRunVariable, merge_c
 from bids.layout.utils import parse_file_entities
 from bids.variables.io import get_events_collection, parse_transforms
 from bids.variables.entities import RunNode
-import click
-
-from . import __version__
 
 
-@click.command()
-@click.version_option(__version__, prog_name='statsmodels_design_sythesizer')
-@click.option(
-    "--events-tsv", required=True, help="Path to events TSV")
-@click.option(
-        "--transforms", required=True, help="Path to transform or model json"
-    )
-@click.option(
-        "--nvol", required=True, type=int, help="Number of volumes in func time-series"
-    )
-@click.option(
-        "--tr", required=True, type=float, help="TR for func time series"
-    )
-@click.option(
-    "--ta", required=True, type=float, help="TA for events")
-@click.option(
-        "--output-sampling-rate",
-        required=False,
-        type=float,
-        help="Output sampling rate in Hz when a full design matrix is desired.",
-    )
-@click.option(
-        "--output-dir",
-        required=False,
-        help="Path to directory to write processed event files.",
-    )
-def main(**kwargs):
-    statsmodels_design_synthesizer(**kwargs)
-
-
-def  statsmodels_design_synthesizer(
+def  morphing_time(
     *,
     events_tsv,
     transforms,
@@ -116,7 +83,3 @@ def  statsmodels_design_synthesizer(
         df_full = colls.to_df(sampling_rate=output_sampling_rate)
         df_full.to_csv(output_dir / "aggregated_design.tsv", index=None, sep="\t", na_rep="n/a")
 
-
-
-if __name__ == "__main__":
-    sys.exit(main())  # pragma: no cover""Main module."""

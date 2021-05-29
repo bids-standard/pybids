@@ -1,17 +1,14 @@
 #!/usr/bin/env python
 
-"""Tests for `bids_statsmodels_design_synthesizer` package."""
-
 import pytest
 import subprocess as sp
 from pathlib import Path
 import tempfile
 import pandas as pd
 
-SYNTHESIZER = "statsmodels-design-synthesizer"
-from bids import statsmodels_design_synthesizer as synth_mod
+SYNTHESIZER = "morphing-time"
+from bids import morphing_time as synth_mod
 
-# from bids_statsmodels_design_synthesizer import Path(SYNTHESIZER).stem as synth_mod
 DATA_DIR = (Path(__file__).parent / "data/ds005").absolute()
 
 # Define some example user arg combinations (without output_dir which is better
@@ -55,7 +52,7 @@ def test_design_aggregation_function(tmp_path,test_case,user_args):
 
 def test_design_aggregation_function_with_convolution(tmp_path):
     EXAMPLE_USER_ARGS_3['output_dir'] = str(tmp_path)
-    synth_mod.statsmodels_design_synthesizer(**EXAMPLE_USER_ARGS_3)
+    synth_mod.morphing_time(**EXAMPLE_USER_ARGS_3)
     sparse_output = pd.read_csv(tmp_path/"transformed_events.tsv", sep='\t')
     assert 'pos_respcat' in sparse_output.columns
     assert 'gain' in sparse_output.columns
