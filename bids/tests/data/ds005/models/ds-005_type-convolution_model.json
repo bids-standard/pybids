@@ -14,7 +14,7 @@
                     "RT",
                     "gain"
                 ],
-                "Formula": "0 + RT * gain"
+                "Formula": "1 + RT * gain"
             },
             "Transformations": [
                 {
@@ -43,7 +43,7 @@
                 }
                      ],
             "DummyContrasts": {
-                "Type": "t"
+                "Test": "t"
             }
         },
         {
@@ -51,7 +51,7 @@
             "Level": "Subject",
             "Model": {
                 "X": [
-                    "@intercept"
+                    1
                 ]
             },
             "DummyContrasts": {
