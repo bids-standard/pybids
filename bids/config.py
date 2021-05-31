@@ -1,7 +1,7 @@
 ''' Utilities for manipulating package-level settings. '''
 
 import json
-from os.path import join, expanduser, exists
+from pathlib import Path
 import os
 from io import open
 import warnings
@@ -10,8 +10,7 @@ __all__ = ['set_option', 'set_options', 'get_option']
 
 _config_name = 'pybids_config.json'
 
-conf_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                         'layout', 'config', '{}.json')
+conf_path = str(Path(__file__).absolute().parent.joinpath('layout', 'config', '{}.json'))
 _default_settings = {
     # XXX 0.14: Remove bids-nodot option (and file)
     'config_paths': {
@@ -71,7 +70,7 @@ def from_file(filenames, error_on_missing=True):
     if isinstance(filenames, str):
         filenames = [filenames]
     for f in filenames:
-        if exists(f):
+        if Path(f).exists():
             with open(f, 'r', encoding='utf-8') as fobj:
                 settings = json.load(fobj)
             _settings.update(settings)
@@ -98,8 +97,8 @@ def _update_from_standard_locations():
     current directory--with later files taking precedence over earlier ones.
     """
     locs = [
-        join(expanduser('~'), _config_name),
-        join('.', _config_name)
+        Path.home() / _config_name,
+        Path('.') / _config_name
     ]
     if 'PYBIDS_CONFIG' in os.environ:
         locs.insert(1, os.environ['PYBIDS_CONFIG'])
