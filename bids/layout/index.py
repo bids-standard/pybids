@@ -33,8 +33,10 @@ def _check_path_matches_patterns(path, patterns):
         return False
     path = os.path.abspath(path)
     for patt in patterns:
-        if isinstance(patt, str):
-            if path == patt:
+        # TODO: check whether patt can be str after finishing switching to pathlib
+        if isinstance(patt, (str, Path)):
+            # TODO: remove `str()` once path is a Path object
+            if path == str(patt):
                 return True
         elif patt.search(path):
             return True
@@ -102,6 +104,8 @@ class BIDSLayoutIndexer:
         self._layout = layout
         self._config = list(layout.config.values())
 
+        # TODO: switch to self._layout._root once it exists and remove conversion to Path from
+        #  validate_indexing_args
         ignore, force = validate_indexing_args(self.ignore, self.force_index,
                                                self._layout.root)
         self._include_patterns = force

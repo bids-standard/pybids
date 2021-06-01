@@ -1,6 +1,6 @@
 """Functionality related to validation of BIDSLayouts and BIDS projects."""
 
-import os
+from pathlib import Path
 import json
 import re
 import warnings
@@ -55,20 +55,20 @@ def indexer_arg_deprecation_warning():
 def validate_root(root, validate):
     # Validate root argument and make sure it contains mandatory info
     try:
-        root = str(root)
-    except:
-        raise TypeError("root argument must be a string (or a type that "
-                        "supports casting to string, such as "
-                        "pathlib.Path) specifying the directory "
+        root = Path(root)
+    except TypeError:
+        raise TypeError("root argument must be a pathlib.Path (or a type that "
+                        "supports casting to pathlib.Path, such as "
+                        "string) specifying the directory "
                         "containing the BIDS dataset.")
 
-    root = os.path.abspath(root)
+    root = root.absolute()
 
-    if not os.path.exists(root):
+    if not root.exists():
         raise ValueError("BIDS root does not exist: %s" % root)
 
-    target = os.path.join(root, 'dataset_description.json')
-    if not os.path.exists(target):
+    target = root / 'dataset_description.json'
+    if not target.exists():
         if validate:
             raise BIDSValidationError(
                 "'dataset_description.json' is missing from project root."
@@ -102,7 +102,9 @@ def validate_root(root, validate):
                         "\nExample: %s" % (k, MANDATORY_BIDS_FIELDS[k])
                     )
 
-    return root, description
+    # TODO: converting to string here, because Layout.__init__ uses the returned value to set the `root` property, which
+    #  other methods expect to be of type `str`. Once we switch to pathlib in Layout, remove `str()`.
+    return str(root), description
 
 
 def validate_derivative_paths(paths, layout=None, **kwargs):
@@ -111,19 +113,18 @@ def validate_derivative_paths(paths, layout=None, **kwargs):
 
     # Collect all paths that contain a dataset_description.json
     def check_for_description(bids_dir):
-        dd = os.path.join(bids_dir, 'dataset_description.json')
-        return os.path.exists(dd)
+        dd = bids_dir / 'dataset_description.json'
+        return dd.exists()
 
     for p in paths:
-        p = os.path.abspath(str(p))
-        if os.path.exists(p):
+        p = Path(p).absolute()
+        if p.exists():
             if check_for_description(p):
                 deriv_dirs.append(p)
             else:
-                subdirs = [d for d in os.listdir(p)
-                            if os.path.isdir(os.path.join(p, d))]
+                subdirs = [d for d in p.iterdir()
+                           if d.is_dir()]
                 for sd in subdirs:
-                    sd = os.path.join(p, sd)
                     if check_for_description(sd):
                         deriv_dirs.append(sd)
 
@@ -141,8 +142,8 @@ def validate_derivative_paths(paths, layout=None, **kwargs):
     paths = {}
 
     for deriv in deriv_dirs:
-        dd = os.path.join(deriv, 'dataset_description.json')
-        with open(dd, 'r', encoding='utf-8') as ddfd:
+        dd = deriv / 'dataset_description.json'
+        with dd.open('r', encoding='utf-8') as ddfd:
             description = json.load(ddfd)
         pipeline_names = [pipeline["Name"]
                           for pipeline in description.get("GeneratedBy", [])
@@ -176,11 +177,14 @@ def validate_indexing_args(ignore, force_index, root):
     if ignore is None:
         ignore = DEFAULT_LOCATIONS_TO_IGNORE
 
+    # TODO: why could os.path.join fail? Delete or update this comment.
     # Do after root validation to ensure os.path.join works
-    ignore = [os.path.abspath(os.path.join(root, patt))
-                    if isinstance(patt, str) else patt
-                    for patt in listify(ignore or [])]
-    force_index = [os.path.abspath(os.path.join(root, patt))
+    # TODO: remove conversion once BIDSLayoutIndexer passes root argument of type Path
+    root = Path(root)
+    ignore = [(root / patt).absolute()
+              if isinstance(patt, str) else patt
+              for patt in listify(ignore or [])]
+    force_index = [(root / patt).absolute()
                    if isinstance(patt, str) else patt
                    for patt in listify(force_index or [])]
 
@@ -188,7 +192,7 @@ def validate_indexing_args(ignore, force_index, root):
     if force_index is not None:
         for entry in force_index:
             condi = (isinstance(entry, str) and
-                        os.path.normpath(entry).startswith('derivatives'))
+                     str(entry.resolve()).startswith('derivatives'))
             if condi:
                 msg = ("Do not pass 'derivatives' in the force_index "
                         "list. To index derivatives, either set "
