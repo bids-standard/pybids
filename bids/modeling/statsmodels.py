@@ -4,7 +4,6 @@ import json
 from collections import namedtuple, OrderedDict, Counter, defaultdict
 import itertools
 from functools import reduce
-from graphviz import Digraph
 
 import numpy as np
 import pandas as pd
@@ -204,6 +203,8 @@ class BIDSStatsModelsGraph:
         format: 'png', 'svg'
 
         """
+
+        from graphviz import Digraph
 
         dot = Digraph(
                 'structs',
