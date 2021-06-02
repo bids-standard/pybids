@@ -32,7 +32,7 @@
                 }
             ],
             "DummyContrasts": {
-                "Type": "t"
+                "Test": "t"
             }
         },
         {
@@ -47,9 +47,14 @@
                     1
                 ]
             },
-            "DummyContrasts": {
-                "Test": "FEMA"
-            }
+            "Contrasts": [
+                {
+                    "Name": 1,
+                    "ConditionList": [1],
+                    "Weights": [1],
+                    "Test": "FEMA"
+                }
+            ]
         },
         {
             "Name": "by-group",
@@ -63,13 +68,14 @@
                 ]
             },
             "DummyContrasts": {
+                "Conditions": [1],
                 "Test": "t"
             }
         },
         {
             "Name": "group-diff",
             "Level": "Dataset",
-	    "GroupBy": [],
+            "GroupBy": [],
             "Model": {
                 "X": [
                     1,

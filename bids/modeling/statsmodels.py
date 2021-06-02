@@ -583,6 +583,7 @@ class BIDSStatsModelsNodeOutput:
         #   the intercept column is given the same name as the input contrast.
         #   It may already exist, in which case we do nothing.
         # * Otherwise, we name the column 'intercept'.
+        int_name = None
         if 1 in var_names:
             if ('contrast' not in df.columns or df['contrast'].nunique() > 1):
                 int_name = 'intercept'
@@ -606,11 +607,9 @@ class BIDSStatsModelsNodeOutput:
         self.data = df.loc[:, var_names]
         self.metadata = df.loc[:, df.columns.difference(var_names)]
 
-
-
         # Create ModelSpec and build contrasts
         self.model_spec = create_model_spec(self.data, node.model, self.metadata)
-        self.contrasts = self._build_contrasts()
+        self.contrasts = self._build_contrasts(int_name)
 
     def _collections_to_dfs(self, collections):
         """Merges collections and converts them to a pandas DataFrame."""
@@ -671,12 +670,18 @@ class BIDSStatsModelsNodeOutput:
                 input_df.loc[input_df.index[i], con.name] = 1
         return input_df
 
-    def _build_contrasts(self):
+    def _build_contrasts(self, int_name):
         """Contrast list of ContrastInfo objects based on current state."""
         contrasts = {}
         col_names = set(self.X.columns)
         for con in self.node.contrasts:
-            missing_vars = set(con['condition_list']) - col_names
+            name = con["name"]
+            condition_list = list(con["condition_list"])
+            if 1 in condition_list and int_name is not None:
+                condition_list[condition_list.index(1)] = int_name
+            if name == 1 and int_name is not None:
+                name = int_name
+            missing_vars = set(condition_list) - col_names
             if missing_vars:
                 if self.invalid_contrasts == 'error':
                     msg = ("Variable(s) '{}' specified in condition list for "
@@ -687,17 +692,21 @@ class BIDSStatsModelsNodeOutput:
                     continue
             weights = np.atleast_2d(con['weights'])
             # Add contrast name to entities; can be used in grouping downstream
-            entities = {**self.entities, 'contrast': con['name']}
-            ci = ContrastInfo(con['name'], con['condition_list'],
+            entities = {**self.entities, 'contrast': name}
+            ci = ContrastInfo(name, condition_list,
                               con['weights'], con.get("test"), entities)
-            contrasts[con['name']] = ci
+            contrasts[name] = ci
 
         dummies = self.node.dummy_contrasts
         if dummies:
             conditions = col_names
             if 'conditions' in dummies:
-                conditions &= set(dummies['conditions'])
-            conditions -= set([c.name for c in contrasts])
+                conds = set(dummies['conditions'])
+                if 1 in conds and int_name is not None:
+                    conds.discard(1)
+                    conds.add(int_name)
+                conditions &= conds
+            conditions -= set(c.name for c in contrasts)
 
             for col_name in conditions:
                 if col_name in contrasts:
