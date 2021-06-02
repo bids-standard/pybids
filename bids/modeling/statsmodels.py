@@ -649,10 +649,10 @@ class BIDSStatsModelsNodeOutput:
                     continue
             weights = np.atleast_2d(con['weights'])
             # Add contrast name to entities; can be used in grouping downstream
-            entities = {**self.entities, 'contrast': con['name']}
-            ci = ContrastInfo(con['name'], condition_list,
+            entities = {**self.entities, 'contrast': name}
+            ci = ContrastInfo(name, condition_list,
                               con['weights'], con.get("test"), entities)
-            contrasts[con['name']] = ci
+            contrasts[name] = ci
 
         dummies = self.node.dummy_contrasts
         if dummies:
