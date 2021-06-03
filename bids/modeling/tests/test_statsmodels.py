@@ -1,6 +1,11 @@
 from os.path import join
+from os import path
 from itertools import chain
 
+from nibabel.optpkg import optional_package
+graphviz, has_graphviz, _ = optional_package("graphviz")
+
+import os
 import numpy as np
 import pytest
 
@@ -20,6 +25,14 @@ def graph():
     graph.load_collections(scan_length=480, subject=["01", "02"])
     return graph
 
+@pytest.mark.skipif(not has_graphviz, reason="Test requires graphviz")
+def test_write_graph(graph, tmp_path):
+    from graphviz import Digraph
+
+    dot = graph.write_graph(tmp_path / "graph.dot")
+    assert isinstance(dot, Digraph)
+    assert path.exists(tmp_path / "graph.dot")
+    assert path.exists(tmp_path / "graph.dot.png")
 
 def test_first_level_sparse_design_matrix(graph):
     outputs = graph["run"].run(subject=["01"], force_dense=False)

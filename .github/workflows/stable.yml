@@ -64,12 +64,15 @@ jobs:
       INSTALL_TYPE: ${{ matrix.install }}
       CHECK_TYPE: ${{ matrix.check }}
       EXTRA_PIP_FLAGS: ${{ matrix.pip-flags }}
+      OS_TYPE: ${{ matrix.os }}
 
     steps:
       - uses: actions/checkout@v2
         with:
           submodules: recursive
           fetch-depth: 0
+      - name: Install dependencies
+        run: tools/ci/install_dependencies.sh
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v2
         with:
