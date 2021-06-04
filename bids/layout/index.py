@@ -31,14 +31,14 @@ def _check_path_matches_patterns(path, patterns):
     """Check if the path matches at least one of the provided patterns. """
     if not patterns:
         return False
-    path = os.path.abspath(path)
+    # TODO: do we need the conversion?
+    path = Path(path).absolute()
     for patt in patterns:
         # TODO: check whether patt can be str after finishing switching to pathlib
         if isinstance(patt, (str, Path)):
-            # TODO: remove `str()` once path is a Path object
-            if path == str(patt):
+            if path == patt:
                 return True
-        elif patt.search(path):
+        elif patt.search(str(path)):
             return True
     return False
 
@@ -111,7 +111,8 @@ class BIDSLayoutIndexer:
         self._include_patterns = force
         self._exclude_patterns = ignore
 
-        self._index_dir(self._layout.root, self._config)
+        # TODO: remove conversion once Layout uses pathlib.Path
+        self._index_dir(Path(self._layout.root), self._config)
         if self.index_metadata:
             self._index_metadata()
 
@@ -145,26 +146,34 @@ class BIDSLayoutIndexer:
 
         # BIDS validator expects absolute paths, but really these are relative
         # to the BIDS project root.
-        to_check = os.path.relpath(f, self._layout.root)
-        to_check = os.path.join(os.path.sep, to_check)
-        to_check = Path(to_check).as_posix()  # bids-validator works with posix paths only
+        # TODO: remove conversion once Layout uses pathlib.Path
+        to_check = Path(f).relative_to(Path(self._layout.root))
+        # Pretend the path is an absolute path
+        to_check = Path('/') / to_check
+        # bids-validator works with posix paths only
+        to_check = Path(to_check).as_posix()
         return self.validator.is_bids(to_check)
 
     def _index_dir(self, path, config, default_action=None):
 
-        abs_path = os.path.join(self._layout.root, path)
+        # TODO:
+        path = Path(path)
+
+        # TODO: remove conversion once Layout uses pathlib.Path
+        abs_path = Path(self._layout.root) / path
 
         # Derivative directories must always be added separately
         # and passed as their own root, so terminate if passed.
-        if abs_path.startswith(os.path.join(self._layout.root, 'derivatives')):
+        # TODO: remove conversion once Layout uses pathlib.Path
+        if Path(self._layout.root).joinpath('derivatives') in abs_path.parents:
             return
 
         config = list(config)  # Shallow copy
 
         # Check for additional config file in directory
         layout_file = self.config_filename
-        config_file = os.path.join(abs_path, layout_file)
-        if os.path.exists(config_file):
+        config_file = abs_path / layout_file
+        if config_file.exists():
             cfg = Config.load(config_file, session=self.session)
             config.append(cfg)
 
@@ -173,35 +182,33 @@ class BIDSLayoutIndexer:
         for c in config:
             config_entities.update(c.entities)
 
-        for (dirpath, dirnames, filenames) in os.walk(path):
+        # Get a list of first-level subdirectories and files in the path directory
+        _, dirnames, filenames = next(os.walk(path))
 
-            # Set the default inclusion/exclusion directive
-            default = self._validate_dir(dirpath, default=default_action)
+        # Set the default inclusion/exclusion directive
+        default = self._validate_dir(path, default=default_action)
 
-            # If layout configuration file exists, delete it
-            if self.config_filename in filenames:
-                filenames.remove(self.config_filename)
+        # If layout configuration file exists, delete it
+        if self.config_filename in filenames:
+            filenames.remove(self.config_filename)
 
-            for f in filenames:
+        for f in filenames:
+            bf = self._index_file(f, path, config_entities,
+                                  default_action=default)
+            if bf is None:
+                continue
 
-                bf = self._index_file(f, dirpath, config_entities,
-                                      default_action=default)
-                if bf is None:
-                    continue
+        self.session.commit()
 
-            self.session.commit()
+        # Recursively index subdirectories
+        for d in dirnames:
+            d = path / d
+            self._index_dir(d, list(config), default_action=default)
 
-            # Recursively index subdirectories
-            for d in dirnames:
-                d = os.path.join(dirpath, d)
-                self._index_dir(d, list(config), default_action=default)
-
-            # Prevent subdirectory traversal
-            break
 
     def _index_file(self, f, dirpath, entities, default_action=None):
         """Create DB record for file and its tags. """
-        abs_fn = os.path.join(dirpath, f)
+        abs_fn = dirpath / f
 
         # Skip files that fail validation, unless forcibly indexing
         if not self._validate_file(abs_fn, default=default_action):
@@ -334,14 +341,16 @@ class BIDSLayoutIndexer:
             # stack and merge the payloads in order.
             ext_key = "{}/{}".format(ext, suffix)
             json_key = dot + "json/{}".format(suffix)
-            dirname = bf.dirname
+            dirname = Path(bf.dirname)
 
             payloads = []
             ancestors = []
 
             while True:
                 # Get JSON payloads
-                json_data = file_data.get(json_key, {}).get(dirname, [])
+                # TODO: remove str() once there is a Path-type dirname in BIDSFile and we use it as key in file_data, do
+                #  the same for `candidates` below
+                json_data = file_data.get(json_key, {}).get(str(dirname), [])
                 for js_ents, js_md, js_path in json_data:
                     js_keys = set(js_ents.keys())
                     if js_keys - file_ent_keys:
@@ -352,7 +361,7 @@ class BIDSLayoutIndexer:
                         payloads.append((js_md, js_path))
 
                 # Get all files this file inherits from
-                candidates = file_data.get(ext_key, {}).get(dirname, [])
+                candidates = file_data.get(ext_key, {}).get(str(dirname), [])
                 for ents, _, path in candidates:
                     keys = set(ents.keys())
                     if keys - file_ent_keys:
@@ -361,7 +370,8 @@ class BIDSLayoutIndexer:
                     if all(matches):
                         ancestors.append(path)
 
-                parent = os.path.dirname(dirname)
+                parent = dirname.parent
+
                 if parent == dirname:
                     break
                 dirname = parent
@@ -371,7 +381,7 @@ class BIDSLayoutIndexer:
 
             # Missing data files can tolerate absent metadata files,
             # but we will try to load it anyway
-            virtual_datafile = not os.path.exists(bf.path)
+            virtual_datafile = not Path(bf.path).exists()
 
             # Create DB records for metadata associations
             js_file = payloads[0][1]
@@ -408,10 +418,10 @@ class BIDSLayoutIndexer:
             intended = listify(file_md.get('IntendedFor', []))
             for target in intended:
                 # Per spec, IntendedFor paths are relative to sub dir.
-                target = os.path.join(
-                    self._layout.root, 'sub-{}'.format(bf.entities['subject']),
+                target = Path(self._layout.root).joinpath(
+                    'sub-{}'.format(bf.entities['subject']),
                     target)
-                create_association_pair(bf.path, target, 'IntendedFor',
+                create_association_pair(bf.path, str(target), 'IntendedFor',
                                         'InformedBy')
 
             # Link files to BOLD runs

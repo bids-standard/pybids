@@ -207,7 +207,7 @@ class BIDSFile(Base):
     }
 
     def __init__(self, filename):
-        self.path = filename
+        self.path = str(filename)
         self.filename = os.path.basename(self.path)
         self.dirname = os.path.dirname(self.path)
         self.is_dir = not self.filename
