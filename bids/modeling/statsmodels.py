@@ -649,9 +649,7 @@ class BIDSStatsModelsNodeOutput:
             # takes extra arguments related to handling of time
             if level == 'run':
                 if self.force_dense:
-                    sparse_names = [s.name for s in coll.get_sparse_variables()]
-                    if sparse_names:
-                        coll = coll.to_dense(variables=sparse_names, sampling_rate=self.sampling_rate)
+                    coll = coll.to_dense(sampling_rate=self.sampling_rate)
                 coll = coll.to_df(sampling_rate=self.sampling_rate)
             else:
                 coll = coll.to_df()
