@@ -104,15 +104,12 @@ class BIDSLayoutIndexer:
         self._layout = layout
         self._config = list(layout.config.values())
 
-        # TODO: switch to self._layout._root once it exists and remove conversion to Path from
-        #  validate_indexing_args
         ignore, force = validate_indexing_args(self.ignore, self.force_index,
-                                               self._layout.root)
+                                               self._layout._root)
         self._include_patterns = force
         self._exclude_patterns = ignore
 
-        # TODO: remove conversion once Layout uses pathlib.Path
-        self._index_dir(Path(self._layout.root), self._config)
+        self._index_dir(self._layout._root, self._config)
         if self.index_metadata:
             self._index_metadata()
 
@@ -146,8 +143,7 @@ class BIDSLayoutIndexer:
 
         # BIDS validator expects absolute paths, but really these are relative
         # to the BIDS project root.
-        # TODO: remove conversion once Layout uses pathlib.Path
-        to_check = Path(f).relative_to(Path(self._layout.root))
+        to_check = Path(f).relative_to(self._layout._root)
         # Pretend the path is an absolute path
         to_check = Path('/') / to_check
         # bids-validator works with posix paths only
@@ -159,13 +155,10 @@ class BIDSLayoutIndexer:
         # TODO:
         path = Path(path)
 
-        # TODO: remove conversion once Layout uses pathlib.Path
-        abs_path = Path(self._layout.root) / path
+        abs_path = self._layout._root / path
 
         # Derivative directories must always be added separately
-        # and passed as their own root, so terminate if passed.
-        # TODO: remove conversion once Layout uses pathlib.Path
-        if Path(self._layout.root).joinpath('derivatives') in abs_path.parents:
+        if self._layout._root.joinpath('derivatives') in abs_path.parents:
             return
 
         config = list(config)  # Shallow copy
@@ -418,7 +411,7 @@ class BIDSLayoutIndexer:
             intended = listify(file_md.get('IntendedFor', []))
             for target in intended:
                 # Per spec, IntendedFor paths are relative to sub dir.
-                target = Path(self._layout.root).joinpath(
+                target = self._layout._root.joinpath(
                     'sub-{}'.format(bf.entities['subject']),
                     target)
                 create_association_pair(bf.path, str(target), 'IntendedFor',

@@ -102,9 +102,7 @@ def validate_root(root, validate):
                         "\nExample: %s" % (k, MANDATORY_BIDS_FIELDS[k])
                     )
 
-    # TODO: converting to string here, because Layout.__init__ uses the returned value to set the `root` property, which
-    #  other methods expect to be of type `str`. Once we switch to pathlib in Layout, remove `str()`.
-    return str(root), description
+    return root, description
 
 
 def validate_derivative_paths(paths, layout=None, **kwargs):

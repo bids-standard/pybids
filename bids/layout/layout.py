@@ -10,6 +10,7 @@ import copy
 import warnings
 import enum
 import difflib
+from pathlib import Path
 
 import sqlalchemy as sa
 from sqlalchemy.orm import aliased
@@ -136,7 +137,7 @@ class BIDSLayout(object):
         # Validate that a valid BIDS project exists at root
         root, description = validate_root(root, validate)
 
-        self.root = root
+        self._root = root  # type: Path
         self.description = description
         self.absolute_paths = absolute_paths
         self.derivatives = {}
@@ -165,6 +166,10 @@ class BIDSLayout(object):
                 derivatives=None, sources=self, config=None,
                 regex_search=regex_search, reset_database=reset_database,
                 indexer=indexer, **indexer_kwargs)
+
+    @property
+    def root(self):
+        return str(self._root)
 
     def __getattr__(self, key):
         """Dynamically inspect missing methods for get_<entity>() calls
