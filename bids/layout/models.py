@@ -212,6 +212,14 @@ class BIDSFile(Base):
         self.dirname = os.path.dirname(self.path)
         self.is_dir = not self.filename
 
+    @property
+    def _path(self):
+        return Path(self.path)
+
+    @property
+    def _dirname(self):
+        return Path(self.dirname)
+
     def __getattr__(self, attr):
         # Ensures backwards compatibility with old File_ namedtuple, which is
         # deprecated as of 0.7.
