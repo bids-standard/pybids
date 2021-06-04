@@ -407,7 +407,7 @@ class TransformerManager(object):
 
     def __init__(self, default=None):
         self.transformations = {}
-        if default is None:
+        if default in (None, "pybids-transforms-v1"):
             # Default to PyBIDS transformations
             default = pbt
         self.default = default
