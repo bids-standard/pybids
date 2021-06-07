@@ -1,6 +1,5 @@
 """ Tools for reading/writing BIDS data files. """
 
-from os.path import join
 import warnings
 import json
 
@@ -444,8 +443,8 @@ def _load_tsv_variables(layout, suffix, dataset=None, columns=None,
 
             image = _data['filename']
             _data = _data.drop('filename', axis=1)
-            dn = f.dirname
-            paths = [join(dn, p) for p in image.values]
+            dn = f._dirname
+            paths = [str(dn / p) for p in image.values]
             ent_recs = [dict(layout.files[p].entities) for p in paths
                         if p in layout.files]
             ent_cols = pd.DataFrame.from_records(ent_recs)
