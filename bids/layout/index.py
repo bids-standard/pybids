@@ -31,11 +31,9 @@ def _check_path_matches_patterns(path, patterns):
     """Check if the path matches at least one of the provided patterns. """
     if not patterns:
         return False
-    # TODO: do we need the conversion?
-    path = Path(path).absolute()
+    path = path.absolute()
     for patt in patterns:
-        # TODO: check whether patt can be str after finishing switching to pathlib
-        if isinstance(patt, (str, Path)):
+        if isinstance(patt, Path):
             if path == patt:
                 return True
         elif patt.search(str(path)):
@@ -143,17 +141,14 @@ class BIDSLayoutIndexer:
 
         # BIDS validator expects absolute paths, but really these are relative
         # to the BIDS project root.
-        to_check = Path(f).relative_to(self._layout._root)
+        to_check = f.relative_to(self._layout._root)
         # Pretend the path is an absolute path
         to_check = Path('/') / to_check
         # bids-validator works with posix paths only
-        to_check = Path(to_check).as_posix()
+        to_check = to_check.as_posix()
         return self.validator.is_bids(to_check)
 
     def _index_dir(self, path, config, default_action=None):
-
-        # TODO:
-        path = Path(path)
 
         abs_path = self._layout._root / path
 
@@ -296,7 +291,7 @@ class BIDSLayoutIndexer:
                     payload = partial(load_json, bf.path)
 
                 to_store = (file_ents, payload, bf.path)
-                file_data[key][bf.dirname].append(to_store)
+                file_data[key][bf._dirname].append(to_store)
 
         # To avoid integrity errors, track primary keys we've seen
         seen_assocs = set()
@@ -334,16 +329,14 @@ class BIDSLayoutIndexer:
             # stack and merge the payloads in order.
             ext_key = "{}/{}".format(ext, suffix)
             json_key = dot + "json/{}".format(suffix)
-            dirname = Path(bf.dirname)
+            dirname = bf._dirname
 
             payloads = []
             ancestors = []
 
             while True:
                 # Get JSON payloads
-                # TODO: remove str() once there is a Path-type dirname in BIDSFile and we use it as key in file_data, do
-                #  the same for `candidates` below
-                json_data = file_data.get(json_key, {}).get(str(dirname), [])
+                json_data = file_data.get(json_key, {}).get(dirname, [])
                 for js_ents, js_md, js_path in json_data:
                     js_keys = set(js_ents.keys())
                     if js_keys - file_ent_keys:
@@ -354,7 +347,7 @@ class BIDSLayoutIndexer:
                         payloads.append((js_md, js_path))
 
                 # Get all files this file inherits from
-                candidates = file_data.get(ext_key, {}).get(str(dirname), [])
+                candidates = file_data.get(ext_key, {}).get(dirname, [])
                 for ents, _, path in candidates:
                     keys = set(ents.keys())
                     if keys - file_ent_keys:
@@ -374,7 +367,7 @@ class BIDSLayoutIndexer:
 
             # Missing data files can tolerate absent metadata files,
             # but we will try to load it anyway
-            virtual_datafile = not Path(bf.path).exists()
+            virtual_datafile = not bf._path.exists()
 
             # Create DB records for metadata associations
             js_file = payloads[0][1]
