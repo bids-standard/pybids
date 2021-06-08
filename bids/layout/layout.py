@@ -1234,7 +1234,9 @@ class BIDSLayout(object):
             absolute_paths = self.absolute_paths
 
         if absolute_paths:
-            built = str(self._root / built)
+            built = self._root / built  # type: pathlib.Path
+            # convert into a posix path for consistency with `writing.build_path`
+            built = built.as_posix()  # type: str
 
         return built
 
