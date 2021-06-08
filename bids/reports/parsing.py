@@ -5,7 +5,7 @@ Parsing functions for generating the MRI data acquisition portion of a
 methods section from a BIDS dataset.
 """
 import logging
-from os.path import basename
+from pathlib import Path
 
 import math
 from num2words import num2words
@@ -313,7 +313,7 @@ def fmap_info(metadata, img, config, layout):
         scans = metadata['IntendedFor']
         run_dict = {}
         for scan in scans:
-            fn = basename(scan)
+            fn = Path(scan).name
             iff_file = [f for f in layout.get(extension=[".nii", ".nii.gz"]) if fn in f.path][0]
             run_num = int(iff_file.run)
             ty = iff_file.entities['suffix'].upper()
