@@ -175,10 +175,8 @@ def validate_indexing_args(ignore, force_index, root):
     if ignore is None:
         ignore = DEFAULT_LOCATIONS_TO_IGNORE
 
-    # TODO: why could os.path.join fail? Delete or update this comment.
     # Do after root validation to ensure os.path.join works
-    # TODO: remove conversion once BIDSLayoutIndexer passes root argument of type Path
-    root = Path(root)
+    # NB: `root / patt` used to be `os.path.join(root, patt)`. The comment above is from that time.
     ignore = [(root / patt).absolute()
               if isinstance(patt, str) else patt
               for patt in listify(ignore or [])]
