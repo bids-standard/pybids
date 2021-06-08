@@ -1,4 +1,3 @@
-from os.path import split
 from bids.variables import load_variables
 from collections import OrderedDict
 import numpy as np
@@ -40,7 +39,7 @@ def auto_model(layout, scan_length=None, one_vs_rest=False):
         list of model dictionaries for each task
     """
 
-    base_name = split(layout.root)[-1]
+    base_name = layout._root.name
     tasks = layout.entities['task'].unique()
     task_models = []
 
