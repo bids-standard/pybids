@@ -156,7 +156,7 @@ class Config(Base):
             config_paths = get_option('config_paths')
             if config in config_paths:
                 config = config_paths[config]
-            if not os.path.exists(config):
+            if not Path(config).exists():
                 raise ValueError("{} is not a valid path.".format(config))
             else:
                 with open(config, 'r') as f:
@@ -208,8 +208,8 @@ class BIDSFile(Base):
 
     def __init__(self, filename):
         self.path = str(filename)
-        self.filename = os.path.basename(self.path)
-        self.dirname = os.path.dirname(self.path)
+        self.filename = self._path.name
+        self.dirname = str(self._path.parent)
         self.is_dir = not self.filename
 
     @property
@@ -365,12 +365,12 @@ class BIDSFile(Base):
         if new_filename[-1] == os.sep:
             new_filename += self.filename
 
-        if os.path.isabs(self.path) or root is None:
-            path = self.path
+        if self._path.is_absolute() or root is None:
+            path = self._path
         else:
-            path = os.path.join(root, self.path)
+            path = Path(root) / self._path
 
-        if not os.path.exists(path):
+        if not path.exists():
             raise ValueError("Target filename to copy/symlink (%s) doesn't "
                              "exist." % path)
 
