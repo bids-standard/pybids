@@ -17,7 +17,7 @@ def layout():
 def test_bold_construction(layout):
     ents = dict(subject='01', run=1, task='rest', suffix='bold')
     relative = Path("sub-01") / "func" / "sub-01_task-rest_run-1_bold.nii.gz"
-    absolute = layout._root / relative
+    absolute = Path(layout.root) / relative
     assert layout.build_path(ents, absolute_paths=False) == str(relative)
     assert layout.build_path(ents, absolute_paths=True) == str(absolute)
     # layout fixture created with `absolute_paths=True`, defaulting to absolute
