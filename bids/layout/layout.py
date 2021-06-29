@@ -678,7 +678,9 @@ class BIDSLayout(object):
             results = [x for x in results if target in x.entities]
 
             if return_type == 'id':
-                results = list(set([x.entities[target] for x in results]))
+                results = list(set(
+                    [x.entities[target] for x in results 
+                     if type(x.entities[target]) is not dict]))
                 results = natural_sort(results)
 
             elif return_type == 'dir':
