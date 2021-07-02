@@ -6,7 +6,7 @@ import os
 from io import open
 import warnings
 
-from utils import listify
+from .utils import listify
 
 __all__ = ['set_option', 'set_options', 'get_option']
 
