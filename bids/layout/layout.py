@@ -675,12 +675,14 @@ class BIDSLayout(object):
                 raise TargetError('If return_type is "id" or "dir", a valid '
                                  'target entity must also be specified.')
 
-            results = [x for x in results if target in x.entities]
+            base_entities = self.get_entities(metadata=False)
+            metadata = False if target in base_entities else True
+            results = [x for x in results if target in x.get_entities(metadata=metadata)]
 
             if return_type == 'id':
                 results = list(set(
-                    [x.entities[target] for x in results 
-                     if type(x.entities[target]) is not dict]))
+                    [x.get_entities(metadata=metadata)[target] for x in results 
+                     if type(x.get_entities(metadata=metadata)[target]) is not dict]))
                 results = natural_sort(results)
 
             elif return_type == 'dir':
