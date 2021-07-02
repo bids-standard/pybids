@@ -6,6 +6,8 @@ import os
 from io import open
 import warnings
 
+from utils import listify
+
 __all__ = ['set_option', 'set_options', 'get_option']
 
 _config_name = 'pybids_config.json'
@@ -67,8 +69,7 @@ def from_file(filenames, error_on_missing=True):
         error_on_missing (bool): If True, raises an error if a file doesn't
             exist.
     """
-    if isinstance(filenames, str):
-        filenames = [filenames]
+    filenames = listify(filenames)
     for f in filenames:
         if Path(f).exists():
             with open(f, 'r', encoding='utf-8') as fobj:
