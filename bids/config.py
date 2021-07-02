@@ -72,7 +72,7 @@ def from_file(filenames, error_on_missing=True):
     filenames = listify(filenames)
     for f in filenames:
         if Path(f).exists():
-            settings = json.load(Path(f).read_text(encoding='utf-8'))
+            settings = json.loads(Path(f).read_text(encoding='utf-8'))
             _settings.update(settings)
         elif error_on_missing:
             raise ValueError("Config file '%s' does not exist." % f)
