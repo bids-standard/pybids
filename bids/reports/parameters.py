@@ -1,20 +1,20 @@
-"""Functions for building strings for individual parameters.
-"""
+"""Functions for building strings for individual parameters."""
 import logging
+import math
 import os
 import os.path as op
 
-import math
 import nibabel as nib
 from num2words import num2words
 
-from .utils import num_to_str, list_to_str, remove_duplicates
+from .utils import list_to_str, num_to_str, remove_duplicates
 
 logging.basicConfig()
 LOGGER = logging.getLogger("pybids.reports.parsing")
 
 
-def get_slice_str(img, metadata):
+def describe_slice_timing(img, metadata):
+    """Generate description of slice timing from metadata."""
     if "SliceTiming" in metadata.keys():
         slice_order = " in {0} order".format(get_slice_info(metadata["SliceTiming"]))
         n_slices = len(metadata["SliceTiming"])
@@ -27,21 +27,24 @@ def get_slice_str(img, metadata):
     return slice_str
 
 
-def get_tr_str(metadata):
+def describe_repetition_time(metadata):
+    """Generate description of repetition time from metadata."""
     tr = metadata["RepetitionTime"] * 1000
     tr = num_to_str(tr)
     tr_str = "repetition time, TR={tr}ms".format(tr=tr)
     return tr_str
 
 
-def get_func_duration(n_vols, tr):
+def describe_func_duration(n_vols, tr):
+    """Generate description of functional run length from repetition time and number of volumes."""
     run_secs = math.ceil(n_vols * tr)
     mins, secs = divmod(run_secs, 60)
     duration = "{0}:{1:02.0f}".format(int(mins), int(secs))
     return duration
 
 
-def get_dur_str(files):
+def describe_duration(files):
+    """Generate general description of scan length from files."""
     first_file = files[0]
     metadata = first_file.get_metadata()
     tr = metadata["RepetitionTime"]
@@ -50,13 +53,13 @@ def get_dur_str(files):
     if len(set(n_vols)) > 1:
         min_vols = min(n_vols)
         max_vols = max(n_vols)
-        min_dur = get_func_duration(min_vols, tr)
-        max_dur = get_func_duration(max_vols, tr)
+        min_dur = describe_func_duration(min_vols, tr)
+        max_dur = describe_func_duration(max_vols, tr)
         dur_str = "{}-{}".format(min_dur, max_dur)
         n_vols = "{}-{}".format(min_vols, max_vols)
     else:
         n_vols = n_vols[0]
-        dur_str = get_func_duration(n_vols, tr)
+        dur_str = describe_func_duration(n_vols, tr)
 
     dur_str = (
         "Run duration was {0} minutes, during which {1} volumes were acquired."
@@ -64,8 +67,8 @@ def get_dur_str(files):
     return dur_str
 
 
-def get_mbfactor_str(metadata):
-    """Build a description of the multi-band acceleration applied, if used."""
+def describe_multiband_factor(metadata):
+    """Generate description of the multi-band acceleration applied, if used."""
     if metadata.get("MultibandAccelerationFactor", 1) > 1:
         mb_str = "MB factor={}".format(metadata["MultibandAccelerationFactor"])
     else:
@@ -73,8 +76,8 @@ def get_mbfactor_str(metadata):
     return mb_str
 
 
-def get_echotimes_str(files):
-    """Build a description of echo times from metadata field.
+def describe_echo_times(files):
+    """Generate description of echo times from metadata field.
 
     Parameters
     ----------
@@ -102,9 +105,8 @@ def get_echotimes_str(files):
     return te_str, me_str
 
 
-def get_size_strs(img):
-    """Build descriptions from sizes of imaging data, including field of view,
-    voxel size, and matrix size.
+def describe_image_size(img):
+    """Generate description imaging data sizes, including FOV, voxel size, and matrix size.
 
     Parameters
     ----------
@@ -117,14 +119,15 @@ def get_size_strs(img):
     matrixsize_str
     voxelsize_str
     """
-    vs_str, ms_str, fov_str = get_sizestr(img)
+    vs_str, ms_str, fov_str = get_size_str(img)
     fov_str = "field of view, FOV={}mm".format(fov_str)
     voxelsize_str = "voxel size={}mm".format(vs_str)
     matrixsize_str = "matrix size={}".format(ms_str)
     return fov_str, matrixsize_str, voxelsize_str
 
 
-def get_inplaneaccel_str(metadata):
+def describe_inplane_accel(metadata):
+    """Generate description of in-plane acceleration factor, if any."""
     if metadata.get("ParallelReductionFactorInPlane", 1) > 1:
         pr_str = "in-plane acceleration factor={}".format(
             metadata["ParallelReductionFactorInPlane"]
@@ -134,19 +137,25 @@ def get_inplaneaccel_str(metadata):
     return pr_str
 
 
-def get_flipangle_str(metadata):
+def describe_flip_angle(metadata):
+    """Generate description of flip angle."""
     return "flip angle, FA={}<deg>".format(metadata.get("FlipAngle", "UNKNOWN"))
 
 
-def get_nvecs_str(img):
+def describe_dmri_directions(img):
+    """Generate description of diffusion directions."""
     return "{} diffusion directions".format(img.shape[3])
 
 
-def get_bval_str(bval_file):
+def describe_bvals(bval_file):
+    """Generate description of dMRI b-values."""
     # Parse bval file
     with open(bval_file, "r") as file_object:
-        d = file_object.read().splitlines()
-    bvals = [item for sublist in [l.split(" ") for l in d] for item in sublist]
+        raw_bvals = file_object.read().splitlines()
+    # Flatten list of space-separated values
+    bvals = [
+        item for sublist in [line.split(" ") for line in raw_bvals] for item in sublist
+    ]
     bvals = sorted([int(v) for v in set(bvals)])
     bvals = [num_to_str(v) for v in bvals]
     bval_str = list_to_str(bvals)
@@ -154,13 +163,15 @@ def get_bval_str(bval_file):
     return bval_str
 
 
-def get_dir_str(metadata, config):
+def describe_pe_direction(metadata, config):
+    """Generate description of phase encoding direction."""
     dir_str = config["dir"][metadata["PhaseEncodingDirection"]]
     dir_str = "phase encoding: {}".format(dir_str)
     return dir_str
 
 
-def get_for_str(metadata, layout):
+def describe_intendedfor_targets(metadata, layout):
+    """Generate description of intended for targets."""
     if "IntendedFor" in metadata.keys():
         scans = metadata["IntendedFor"]
         run_dict = {}
@@ -203,8 +214,7 @@ def get_for_str(metadata, layout):
 
 
 def get_slice_info(slice_times):
-    """
-    Extract slice order from slice timing info.
+    """Extract slice order from slice timing info.
 
     TODO: Be more specific with slice orders.
     Currently anything where there's some kind of skipping is interpreted as
@@ -239,10 +249,8 @@ def get_slice_info(slice_times):
     return slice_order_name
 
 
-def get_seqstr(metadata, config):
-    """
-    Extract and reformat imaging sequence(s) and variant(s) into pretty
-    strings.
+def describe_sequence(metadata, config):
+    """Extract and reformat imaging sequence(s) and variant(s) into pretty strings.
 
     Parameters
     ----------
@@ -272,10 +280,8 @@ def get_seqstr(metadata, config):
     return seqs, variants
 
 
-def get_sizestr(img):
-    """
-    Extract and reformat voxel size, matrix size, field of view, and number of
-    slices into pretty strings.
+def get_size_str(img):
+    """Extract and reformat voxel size, matrix size, FOV, and number of slices into strings.
 
     Parameters
     ----------

@@ -10,8 +10,7 @@ LOGGER = logging.getLogger("pybids.reports.utils")
 
 
 def reminder():
-    """Remind users about things they need to do after generating the report.
-    """
+    """Remind users about things they need to do after generating the report."""
     return (
         "Remember to double-check everything and to replace <deg> with "
         "a degree symbol."

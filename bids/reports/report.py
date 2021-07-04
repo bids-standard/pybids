@@ -1,12 +1,9 @@
-"""Generate publication-quality data acquisition methods section from BIDS
-dataset.
-"""
+"""Generate publication-quality data acquisition methods section from BIDS dataset."""
 import json
 import os.path as op
 from collections import Counter
 
-from bids.reports import utils
-from bids.reports import parsing
+from bids.reports import parsing, utils
 
 
 class BIDSReport(object):
@@ -34,7 +31,10 @@ class BIDSReport(object):
         self.layout = layout
         if config is None:
             config = op.join(
-                op.dirname(op.abspath(__file__)), "config", "english", "converters.json"
+                op.dirname(op.abspath(__file__)),
+                "config",
+                "english",
+                "converters.json",
             )
 
         if isinstance(config, str):
@@ -97,7 +97,11 @@ class BIDSReport(object):
 
                 if data_files:
                     ses_description = parsing.parse_files(
-                        self.layout, data_files, sub, self.config, session=ses
+                        self.layout,
+                        data_files,
+                        sub,
+                        self.config,
+                        session=ses,
                     )
                     ses_description[0] = ses_description[0].lower()
                     ses_description = "In session {0}, ".format(ses) + ses_description
@@ -154,7 +158,6 @@ class BIDSReport(object):
 
         >>> counter.most_common()[0][0]  # doctest: +ELLIPSIS
         'In session 01, MR data were...'
-
         """
         descriptions = []
 
@@ -189,7 +192,7 @@ class BIDSReport(object):
             information. Each scan type is given its own paragraph.
         """
         description_list = []
-        # Remove sess from kwargs if provided, else set sess as all available
+        # Remove session from kwargs if provided, else set session as all available
         sessions = kwargs.pop(
             "session", self.layout.get_sessions(subject=subject, **kwargs)
         )
@@ -200,12 +203,18 @@ class BIDSReport(object):
 
         for ses in sessions:
             data_files = self.layout.get(
-                subject=subject, extension=[".nii", ".nii.gz"], **kwargs
+                subject=subject,
+                extension=[".nii", ".nii.gz"],
+                **kwargs,
             )
 
             if data_files:
                 ses_description = parsing.parse_files(
-                    self.layout, data_files, subject, self.config, session=ses
+                    self.layout,
+                    data_files,
+                    subject,
+                    self.config,
+                    session=ses,
                 )
                 ses_description[0] = "In session {0}, ".format(ses) + ses_description[0]
                 description_list += ses_description

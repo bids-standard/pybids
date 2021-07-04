@@ -41,23 +41,23 @@ def func_info(layout, files, config):
     # General info
     task_name = first_file.get_entities()["task"] + " task"
     task_name = metadata.get("TaskName", task_name)
-    seqs, variants = parameters.get_seqstr(metadata, config)
+    seqs, variants = parameters.describe_sequence(metadata, config)
     all_runs = sorted(list(set([f.get_entities().get("run", 1) for f in files])))
     n_runs = len(all_runs)
     if n_runs == 1:
         run_str = "{0} run".format(num2words(n_runs).title())
     else:
         run_str = "{0} runs".format(num2words(n_runs).title())
-    dur_str = parameters.get_dur_str(files)
+    dur_str = parameters.describe_duration(files)
 
     # Parameters
-    slice_str = parameters.get_slice_str(img, metadata)
-    tr_str = parameters.get_tr_str(metadata)
-    te_str, me_str = parameters.get_echotimes_str(files)
-    fa_str = parameters.get_flipangle_str(metadata)
-    fov_str, matrixsize_str, voxelsize_str = parameters.get_size_strs(img)
-    mb_str = parameters.get_mbfactor_str(metadata)
-    inplaneaccel_str = parameters.get_inplaneaccel_str(metadata)
+    slice_str = parameters.describe_slice_timing(img, metadata)
+    tr_str = parameters.describe_repetition_time(metadata)
+    te_str, me_str = parameters.describe_echo_times(files)
+    fa_str = parameters.describe_flip_angle(metadata)
+    fov_str, matrixsize_str, voxelsize_str = parameters.describe_image_size(img)
+    mb_str = parameters.describe_multiband_factor(metadata)
+    inplaneaccel_str = parameters.describe_inplane_accel(metadata)
 
     parameters_str = [
         slice_str,
@@ -115,7 +115,7 @@ def anat_info(layout, files, config):
     img = nib.load(first_file.path)
 
     # General info
-    seqs, variants = parameters.get_seqstr(metadata, config)
+    seqs, variants = parameters.describe_sequence(metadata, config)
     all_runs = sorted(list(set([f.get_entities().get("run", 1) for f in files])))
     n_runs = len(all_runs)
     if n_runs == 1:
@@ -125,11 +125,11 @@ def anat_info(layout, files, config):
     scan_type = first_file.get_entities()["suffix"].replace("w", "-weighted")
 
     # Parameters
-    slice_str = parameters.get_slice_str(img, metadata)
-    tr_str = parameters.get_tr_str(metadata)
-    te_str, me_str = parameters.get_echotimes_str(files)
-    fa_str = parameters.get_flipangle_str(metadata)
-    fov_str, matrixsize_str, voxelsize_str = parameters.get_size_strs(img)
+    slice_str = parameters.describe_slice_timing(img, metadata)
+    tr_str = parameters.describe_repetition_time(metadata)
+    te_str, me_str = parameters.describe_echo_times(files)
+    fa_str = parameters.describe_flip_angle(metadata)
+    fov_str, matrixsize_str, voxelsize_str = parameters.describe_image_size(img)
 
     parameters_str = [
         slice_str,
@@ -185,7 +185,7 @@ def dwi_info(layout, files, config):
     bval_file = first_file.replace(".nii.gz", ".bval").replace(".nii", ".bval")
 
     # General info
-    seqs, variants = parameters.get_seqstr(metadata, config)
+    seqs, variants = parameters.describe_sequence(metadata, config)
     all_runs = sorted(list(set([f.get_entities().get("run", 1) for f in files])))
     n_runs = len(all_runs)
     if n_runs == 1:
@@ -194,13 +194,13 @@ def dwi_info(layout, files, config):
         run_str = "{0} runs".format(num2words(n_runs).title())
 
     # Parameters
-    tr_str = parameters.get_tr_str(metadata)
-    te_str, me_str = parameters.get_echotimes_str(files)
-    fa_str = parameters.get_flipangle_str(metadata)
-    fov_str, voxelsize_str, matrixsize_str = parameters.get_size_strs(img)
-    bval_str = parameters.get_bval_str(bval_file)
-    nvec_str = parameters.get_nvecs_str(img)
-    mb_str = parameters.get_mbfactor_str(metadata)
+    tr_str = parameters.describe_repetition_time(metadata)
+    te_str, me_str = parameters.describe_echo_times(files)
+    fa_str = parameters.describe_flip_angle(metadata)
+    fov_str, voxelsize_str, matrixsize_str = parameters.describe_image_size(img)
+    bval_str = parameters.describe_bvals(bval_file)
+    nvec_str = parameters.describe_dmri_directions(img)
+    mb_str = parameters.describe_multiband_factor(metadata)
 
     parameters_str = [
         tr_str,
@@ -220,7 +220,10 @@ def dwi_info(layout, files, config):
            {run_str} of {variants} {seqs} diffusion-weighted (dMRI) data were
            collected ({parameters_str}).
            """.format(
-        run_str=run_str, variants=variants, seqs=seqs, parameters_str=parameters_str
+        run_str=run_str,
+        variants=variants,
+        seqs=seqs,
+        parameters_str=parameters_str,
     )
     desc = utils.clean_multiline(desc)
     return desc
@@ -250,16 +253,16 @@ def fmap_info(layout, files, config):
     img = nib.load(first_file.path)
 
     # General info
-    seqs, variants = parameters.get_seqstr(metadata, config)
+    seqs, variants = parameters.describe_sequence(metadata, config)
 
     # Parameters
-    dir_str = parameters.get_dir_str(metadata, config)
-    slice_str = parameters.get_slice_str(img, metadata)
-    tr_str = parameters.get_tr_str(metadata)
-    te_str, me_str = parameters.get_echotimes_str(files)
-    fa_str = parameters.get_flipangle_str(metadata)
-    fov_str, matrixsize_str, voxelsize_str = parameters.get_size_strs(img)
-    mb_str = parameters.get_mbfactor_str(metadata)
+    dir_str = parameters.describe_pe_direction(metadata, config)
+    slice_str = parameters.describe_slice_timing(img, metadata)
+    tr_str = parameters.describe_repetition_time(metadata)
+    te_str, me_str = parameters.describe_echo_times(files)
+    fa_str = parameters.describe_flip_angle(metadata)
+    fov_str, matrixsize_str, voxelsize_str = parameters.describe_image_size(img)
+    mb_str = parameters.describe_multiband_factor(metadata)
 
     parameters_str = [
         dir_str,
@@ -275,13 +278,16 @@ def fmap_info(layout, files, config):
     parameters_str = [d for d in parameters_str if len(d)]
     parameters_str = "; ".join(parameters_str)
 
-    for_str = parameters.get_for_str(metadata, layout)
+    for_str = parameters.describe_intendedfor_targets(metadata, layout)
 
     desc = """
            A {variants} {seqs} field map ({parameters_str}) was
            acquired{for_str}.
            """.format(
-        variants=variants, seqs=seqs, for_str=for_str, parameters_str=parameters_str
+        variants=variants,
+        seqs=seqs,
+        for_str=for_str,
+        parameters_str=parameters_str,
     )
     desc = utils.clean_multiline(desc)
     return desc
@@ -302,9 +308,7 @@ def general_acquisition_info(metadata):
     out_str : :obj:`str`
         Output string with scanner information.
     """
-    out_str = (
-        "MR data were acquired using a {tesla}-Tesla {manu} {model} MRI scanner."
-    )
+    out_str = "MR data were acquired using a {tesla}-Tesla {manu} {model} MRI scanner."
     out_str = out_str.format(
         tesla=metadata.get("MagneticFieldStrength", "UNKNOWN"),
         manu=metadata.get("Manufacturer", "MANUFACTURER"),
@@ -344,8 +348,9 @@ def final_paragraph(metadata):
 
 
 def parse_files(layout, data_files, sub, config, **kwargs):
-    """Loop through files in a BIDSLayout and generate the appropriate description
-    type for each scan. Compile all of the descriptions into a list.
+    """Loop through files in a BIDSLayout and generate appropriate descriptions.
+
+    Then, compile all of the descriptions into a list.
 
     Parameters
     ----------
