@@ -434,6 +434,10 @@ class BIDSRunVariableCollection(BIDSVariableCollection):
             for v in _dense:
                 _variables[v.name] = v.resample(sr_arg, kind=kind)
 
+        for v in _dense:
+            if v.name not in _variables:
+                _variables[v.name] = v
+
         coll = self if in_place else self.clone()
 
         if in_place:
@@ -445,7 +449,7 @@ class BIDSRunVariableCollection(BIDSVariableCollection):
         return coll
 
     def to_dense(
-        self, sampling_rate=None, variables=None, in_place=False, kind="linear"
+        self, sampling_rate=None, variables=None, in_place=False, resample_dense=False, kind="linear"
     ):
         """Convert all contained SparseRunVariables to DenseRunVariables.
 
@@ -479,7 +483,7 @@ class BIDSRunVariableCollection(BIDSVariableCollection):
         return self._densify_and_resample(
             sampling_rate,
             variables,
-            resample_dense=False,
+            resample_dense=resample_dense,
             in_place=in_place,
             kind=kind,
             force_dense=True,
