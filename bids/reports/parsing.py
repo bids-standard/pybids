@@ -6,7 +6,7 @@ from num2words import num2words
 
 from .. import __version__
 from ..utils import collect_associated_files
-from . import parameters, utils
+from . import parameters
 
 logging.basicConfig()
 LOGGER = logging.getLogger("pybids.reports.parsing")
@@ -17,14 +17,10 @@ def func_info(layout, files, config):
 
     Parameters
     ----------
-    task : :obj:`str`
-        The name of the task.
-    n_runs : :obj:`int`
-        The number of runs acquired for this task.
-    metadata : :obj:`dict`
-        The metadata for the scan from the json associated with the scan.
-    img : :obj:`nibabel.Nifti1Image`
-        Image corresponding to one of the runs.
+    layout : :obj:`bids.layout.BIDSLayout`
+        Layout object for a BIDS dataset.
+    files : :obj:`list` of :obj:`bids.layout.models.BIDSFile`
+        List of nifti files in layout corresponding to DWI scan.
     config : :obj:`dict`
         A dictionary with relevant information regarding sequences, sequence
         variants, phase encoding directions, and task names.
@@ -73,19 +69,18 @@ def func_info(layout, files, config):
     parameters_str = [d for d in parameters_str if len(d)]
     parameters_str = "; ".join(parameters_str)
 
-    desc = """
-           {run_str} of {task} {variants} {seqs} {me_str} fMRI data were
-           collected ({parameters_str}). {dur_str}
-           """.format(
-        run_str=run_str,
-        task=task_name,
-        variants=variants,
-        seqs=seqs,
-        me_str=me_str,
-        parameters_str=parameters_str,
-        dur_str=dur_str,
+    desc = (
+        "{run_str} of {task} {variants} {seqs} {me_str} fMRI data were "
+        "collected ({parameters_str}). {dur_str}".format(
+            run_str=run_str,
+            task=task_name,
+            variants=variants,
+            seqs=seqs,
+            me_str=me_str,
+            parameters_str=parameters_str,
+            dur_str=dur_str,
+        )
     )
-    desc = utils.clean_multiline(desc)
     return desc
 
 
@@ -94,13 +89,10 @@ def anat_info(layout, files, config):
 
     Parameters
     ----------
-    suffix : :obj:`str`
-        T1 or T2.
-    metadata : :obj:`dict`
-        Data from the json file associated with the scan, in dictionary
-        form.
-    img : :obj:`nibabel.Nifti1Image`
-        The nifti image of the scan.
+    layout : :obj:`bids.layout.BIDSLayout`
+        Layout object for a BIDS dataset.
+    files : :obj:`list` of :obj:`bids.layout.models.BIDSFile`
+        List of nifti files in layout corresponding to DWI scan.
     config : :obj:`dict`
         A dictionary with relevant information regarding sequences, sequence
         variants, phase encoding directions, and task names.
@@ -143,18 +135,17 @@ def anat_info(layout, files, config):
     parameters_str = [d for d in parameters_str if len(d)]
     parameters_str = "; ".join(parameters_str)
 
-    desc = """
-           {run_str} of {scan_type} {variants} {seqs} {me_str} structural MRI
-           data were collected ({parameters_str}).
-           """.format(
-        run_str=run_str,
-        scan_type=scan_type,
-        variants=variants,
-        seqs=seqs,
-        me_str=me_str,
-        parameters_str=parameters_str,
+    desc = (
+        "{run_str} of {scan_type} {variants} {seqs} {me_str} structural MRI "
+        "data were collected ({parameters_str}).".format(
+            run_str=run_str,
+            scan_type=scan_type,
+            variants=variants,
+            seqs=seqs,
+            me_str=me_str,
+            parameters_str=parameters_str,
+        )
     )
-    desc = utils.clean_multiline(desc)
     return desc
 
 
@@ -163,13 +154,10 @@ def dwi_info(layout, files, config):
 
     Parameters
     ----------
-    bval_file : :obj:`str`
-        File containing b-vals associated with DWI scan.
-    metadata : :obj:`dict`
-        Data from the json file associated with the DWI scan, in dictionary
-        form.
-    img : :obj:`nibabel.Nifti1Image`
-        The nifti image of the DWI scan.
+    layout : :obj:`bids.layout.BIDSLayout`
+        Layout object for a BIDS dataset.
+    files : :obj:`list` of :obj:`bids.layout.models.BIDSFile`
+        List of nifti files in layout corresponding to DWI scan.
     config : :obj:`dict`
         A dictionary with relevant information regarding sequences, sequence
         variants, phase encoding directions, and task names.
@@ -216,16 +204,15 @@ def dwi_info(layout, files, config):
     parameters_str = [d for d in parameters_str if len(d)]
     parameters_str = "; ".join(parameters_str)
 
-    desc = """
-           {run_str} of {variants} {seqs} diffusion-weighted (dMRI) data were
-           collected ({parameters_str}).
-           """.format(
-        run_str=run_str,
-        variants=variants,
-        seqs=seqs,
-        parameters_str=parameters_str,
+    desc = (
+        "{run_str} of {variants} {seqs} diffusion-weighted (dMRI) data were "
+        "collected ({parameters_str}).".format(
+            run_str=run_str,
+            variants=variants,
+            seqs=seqs,
+            parameters_str=parameters_str,
+        )
     )
-    desc = utils.clean_multiline(desc)
     return desc
 
 
@@ -234,11 +221,10 @@ def fmap_info(layout, files, config):
 
     Parameters
     ----------
-    metadata : :obj:`dict`
-        Data from the json file associated with the field map, in dictionary
-        form.
-    img : :obj:`nibabel.Nifti1Image`
-        The nifti image of the field map.
+    layout : :obj:`bids.layout.BIDSLayout`
+        Layout object for a BIDS dataset.
+    files : :obj:`list` of :obj:`bids.layout.models.BIDSFile`
+        List of nifti files in layout corresponding to field map scan.
     config : :obj:`dict`
         A dictionary with relevant information regarding sequences, sequence
         variants, phase encoding directions, and task names.
@@ -280,16 +266,15 @@ def fmap_info(layout, files, config):
 
     for_str = parameters.describe_intendedfor_targets(metadata, layout)
 
-    desc = """
-           A {variants} {seqs} field map ({parameters_str}) was
-           acquired{for_str}.
-           """.format(
-        variants=variants,
-        seqs=seqs,
-        for_str=for_str,
-        parameters_str=parameters_str,
+    desc = (
+        "A {variants} {seqs} field map ({parameters_str}) was "
+        "acquired{for_str}.".format(
+            variants=variants,
+            seqs=seqs,
+            for_str=for_str,
+            parameters_str=parameters_str,
+        )
     )
-    desc = utils.clean_multiline(desc)
     return desc
 
 
@@ -308,11 +293,13 @@ def general_acquisition_info(metadata):
     out_str : :obj:`str`
         Output string with scanner information.
     """
-    out_str = "MR data were acquired using a {tesla}-Tesla {manu} {model} MRI scanner."
-    out_str = out_str.format(
-        tesla=metadata.get("MagneticFieldStrength", "UNKNOWN"),
-        manu=metadata.get("Manufacturer", "MANUFACTURER"),
-        model=metadata.get("ManufacturersModelName", "MODEL"),
+    out_str = (
+        "MR data were acquired using a {tesla}-Tesla {manu} {model} MRI "
+        "scanner.".format(
+            tesla=metadata.get("MagneticFieldStrength", "UNKNOWN"),
+            manu=metadata.get("Manufacturer", "MANUFACTURER"),
+            model=metadata.get("ManufacturersModelName", "MODEL"),
+        )
     )
     return out_str
 
@@ -336,18 +323,18 @@ def final_paragraph(metadata):
         software_str = " using {soft} ({conv_vers})".format(soft=soft, conv_vers=vers)
     else:
         software_str = ""
-    desc = """
-           Dicoms were converted to NIfTI-1 format{software_str}.
-           This section was (in part) generated
-           automatically using pybids ({meth_vers}).
-           """.format(
-        software_str=software_str, meth_vers=__version__
+    desc = (
+        "Dicoms were converted to NIfTI-1 format{software_str}. "
+        "This section was (in part) generated automatically using pybids "
+        "({meth_vers}).".format(
+            software_str=software_str,
+            meth_vers=__version__,
+        )
     )
-    desc = utils.clean_multiline(desc)
     return desc
 
 
-def parse_files(layout, data_files, sub, config, **kwargs):
+def parse_files(layout, data_files, sub, config):
     """Loop through files in a BIDSLayout and generate appropriate descriptions.
 
     Then, compile all of the descriptions into a list.
@@ -363,8 +350,6 @@ def parse_files(layout, data_files, sub, config, **kwargs):
     config : :obj:`dict`
         Configuration info for methods generation.
     """
-    kwargs = {k: v for k, v in kwargs.items() if v is not None}
-
     # Group files into individual runs
     data_files = collect_associated_files(layout, data_files, extra_entities=["run"])
 

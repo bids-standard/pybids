@@ -81,9 +81,8 @@ def describe_echo_times(files):
 
     Parameters
     ----------
-    metadata : dict
-        Metadata information for multiple files merged into one dictionary.
-        For multi-echo data, EchoTime should be a list.
+    files : :obj:`list` of :obj:`bids.layout.models.BIDSFile`
+        List of nifti files in layout corresponding to file collection.
 
     Returns
     -------

@@ -33,7 +33,6 @@ class BIDSReport(object):
             config = op.join(
                 op.dirname(op.abspath(__file__)),
                 "config",
-                "english",
                 "converters.json",
             )
 
@@ -101,10 +100,8 @@ class BIDSReport(object):
                         data_files,
                         sub,
                         self.config,
-                        session=ses,
                     )
-                    ses_description[0] = ses_description[0].lower()
-                    ses_description = "In session {0}, ".format(ses) + ses_description
+                    ses_description[0] = "In session {0}, ".format(ses) + ses_description[0]
                     description_list += ses_description
                     metadata = self.layout.get_metadata(data_files[0].path)
                 else:
@@ -214,7 +211,6 @@ class BIDSReport(object):
                     data_files,
                     subject,
                     self.config,
-                    session=ses,
                 )
                 ses_description[0] = "In session {0}, ".format(ses) + ses_description[0]
                 description_list += ses_description

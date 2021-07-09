@@ -62,11 +62,3 @@ def list_to_str(lst):
     else:
         raise ValueError("List of length 0 provided.")
     return str_
-
-
-def clean_multiline(desc):
-    """Remove newlines and double-spaces from multiline string."""
-    desc = desc.replace("\n", " ").lstrip()
-    while "  " in desc:
-        desc = desc.replace("  ", " ")
-    return desc
