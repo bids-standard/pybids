@@ -5,6 +5,8 @@ The PyBIDS reports module generates publication-quality data acquisition descrip
 NOTE: The reports module is experimental and currently under active development, and as such should be used with caution.
 Please remember to verify any generated report before putting it to use.
 
+Additionally, only MRI datatypes (func, anat, fmap, and dwi) are currently supported.
+
 ### Quickstart
 
 A simple example of standard usage follows. We assume that we have a root folder containing a BIDS-compliant project in `/bidsproject`.

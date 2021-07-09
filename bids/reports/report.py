@@ -25,6 +25,15 @@ class BIDSReport(object):
                         corresponding names (e.g., echo planar)
             'seqvar':   a dictionary of sequence variant abbreviations
                         (e.g., SP) and corresponding names (e.g., spoiled)
+
+    Warning
+    -------
+    pybids' automatic report generation is experimental and currently under
+    active development, and as such should be used with caution.
+    Please remember to verify any generated report before putting it to use.
+
+    Additionally, only MRI datatypes (func, anat, fmap, and dwi) are currently
+    supported.
     """
 
     def __init__(self, layout, config=None):
