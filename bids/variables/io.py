@@ -33,7 +33,8 @@ def load_variables(layout, types=None, levels=None, skip_empty=True,
         Optional level(s) of variables to load. Valid
         values are 'run', 'session', 'subject', or 'dataset'. This is
         simply a shorthand way to specify types--e.g., 'run' will be
-        converted to types=['events', 'physio', 'stim', 'regressors'].
+        converted to types=['events', 'physio', 'stim', 'regressors',
+        'timeseries'].
     skip_empty : bool
         Whether or not to skip empty Variables (i.e.,
         where there are no rows/records in a file after applying any
@@ -62,7 +63,7 @@ def load_variables(layout, types=None, levels=None, skip_empty=True,
     """
 
     TYPES = ['events', 'physio', 'stim', 'scans', 'participants', 'sessions',
-             'regressors']
+             'regressors', 'timeseries']
 
     types = listify(types)
 
@@ -70,7 +71,7 @@ def load_variables(layout, types=None, levels=None, skip_empty=True,
         if levels is not None:
             types = []
             lev_map = {
-                'run': ['events', 'physio', 'stim', 'regressors'],
+                'run': ['events', 'physio', 'stim', 'regressors', 'timeseries'],
                 'session': ['scans'],
                 'subject': ['sessions'],
                 'dataset': ['participants']
@@ -85,7 +86,7 @@ def load_variables(layout, types=None, levels=None, skip_empty=True,
 
     dataset = dataset or NodeIndex()
 
-    run_types = list({'events', 'physio', 'stim', 'regressors'} - set(types))
+    run_types = list({'events', 'physio', 'stim', 'regressors', 'timeseries'} - set(types))
     type_flags = {t: False for t in run_types}
     if len(type_flags) < 4:
         _kwargs = kwargs.copy()
@@ -303,8 +304,8 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
         if regressors:
             sub_ents = {k: v for k, v in entities.items()
                         if k in BASE_ENTITIES}
-            confound_files = layout.get(suffix='regressors', scope=scope,
-                                        **sub_ents)
+            confound_files = layout.get(suffix=['regressors', 'timeseries'],
+                                        scope=scope, **sub_ents)
             for cf in confound_files:
                 _data = pd.read_csv(cf.path, sep='\t', na_values='n/a')
                 if columns is not None:
