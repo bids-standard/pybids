@@ -33,8 +33,7 @@ def load_variables(layout, types=None, levels=None, skip_empty=True,
         Optional level(s) of variables to load. Valid
         values are 'run', 'session', 'subject', or 'dataset'. This is
         simply a shorthand way to specify types--e.g., 'run' will be
-        converted to types=['events', 'physio', 'stim', 'regressors',
-        'timeseries'].
+        converted to types=['events', 'physio', 'stim', 'regressors'].
     skip_empty : bool
         Whether or not to skip empty Variables (i.e.,
         where there are no rows/records in a file after applying any
@@ -63,7 +62,7 @@ def load_variables(layout, types=None, levels=None, skip_empty=True,
     """
 
     TYPES = ['events', 'physio', 'stim', 'scans', 'participants', 'sessions',
-             'regressors', 'timeseries']
+             'regressors']
 
     types = listify(types)
 
@@ -71,7 +70,7 @@ def load_variables(layout, types=None, levels=None, skip_empty=True,
         if levels is not None:
             types = []
             lev_map = {
-                'run': ['events', 'physio', 'stim', 'regressors', 'timeseries'],
+                'run': ['events', 'physio', 'stim', 'regressors'],
                 'session': ['scans'],
                 'subject': ['sessions'],
                 'dataset': ['participants']
@@ -86,7 +85,7 @@ def load_variables(layout, types=None, levels=None, skip_empty=True,
 
     dataset = dataset or NodeIndex()
 
-    run_types = list({'events', 'physio', 'stim', 'regressors', 'timeseries'} - set(types))
+    run_types = list({'events', 'physio', 'stim', 'regressors'} - set(types))
     type_flags = {t: False for t in run_types}
     if len(type_flags) < 4:
         _kwargs = kwargs.copy()
