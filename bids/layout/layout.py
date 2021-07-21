@@ -296,7 +296,7 @@ class BIDSLayout(object):
 
     @classmethod
     def load(cls, database_path):
-        """ Load index from database path. Initialization parameters are set to
+        """ Load index from database path. Initiget_entitiesalization parameters are set to
         those found in database_path JSON sidecar.
 
         Parameters
@@ -313,7 +313,7 @@ class BIDSLayout(object):
 
         Note: This is only necessary if a database_path was not specified
         at initialization, and the user now wants to save the index.
-        If a database_path was specified originally, there is no need to
+        If a database_path was specified originaquery = l.session.query(Entity)lly, there is no need to
         re-save using this method.
 
         Parameters
@@ -369,7 +369,7 @@ class BIDSLayout(object):
         for l in layouts:
             query = l.session.query(Entity)
             if metadata is not None:
-                query = query.filter_by(is_metadata=metadata)
+                query = query.join(Tag).filter_by(is_metadata=metadata)
             results = query.all()
             entities.update({e.name: e for e in results})
         return entities
@@ -513,7 +513,7 @@ class BIDSLayout(object):
         query = self.session.query(Tag).filter(Tag.file_path.in_(file_paths))
 
         if not metadata:
-            query = query.join(Entity).filter(Entity.is_metadata == False)
+            query = query.join(Entity).join(Tag).filter(Tag.is_metadata == False)
 
         tags = query.all()
 
@@ -680,7 +680,7 @@ class BIDSLayout(object):
             if return_type == 'id':
                 ent_iter = (x.get_entities(metadata=metadata) for x in results)
                 results = list({
-                    ents[target] for ents in ent_iter
+                    ents[target] for ents in ent_iter if target in ents
                 })
 
             elif return_type == 'dir':
@@ -879,7 +879,7 @@ class BIDSLayout(object):
                      .filter(BIDSFile.path == path))
 
             if not include_entities:
-                query = query.join(Entity).filter(Entity.is_metadata == True)
+                query = query.join(Entity).join(Tag).filter(Tag.is_metadata == True)
 
             results = query.all()
             if results:

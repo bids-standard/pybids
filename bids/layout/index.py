@@ -445,9 +445,9 @@ class BIDSLayoutIndexer:
                             md_val))
                     continue
                 if md_key not in all_entities:
-                    all_entities[md_key] = Entity(md_key, is_metadata=True)
+                    all_entities[md_key] = Entity(md_key)
                     self.session.add(all_entities[md_key])
-                tag = Tag(bf, all_entities[md_key], md_val)
+                tag = Tag(bf, all_entities[md_key], md_val, is_metadata=True)
                 self.session.add(tag)
 
             if len(self.session.new) >= 1000:
