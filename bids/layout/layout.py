@@ -879,7 +879,7 @@ class BIDSLayout(object):
                      .filter(BIDSFile.path == path))
 
             if not include_entities:
-                query = query.join(Entity).join(Tag).filter(Tag.is_metadata == True)
+                query = query.join(Entity).filter(Tag.is_metadata == True)
 
             results = query.all()
             if results:
