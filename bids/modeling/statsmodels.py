@@ -40,6 +40,7 @@ def validate_model(model):
         raise ValueError("Non-unique node names found: '{}'. Please ensure"
                             " all nodes in the model have unique names."
                             .format(duplicates))
+
     if 'edges' in model:
         for edge in model['edges']:
             if edge['source'] not in names:
@@ -706,7 +707,7 @@ class BIDSStatsModelsNodeOutput:
                     conds.discard(1)
                     conds.add(int_name)
                 conditions &= conds
-            conditions -= set(c.name for c in contrasts)
+            conditions -= set(c.name for c in contrasts.values())
 
             for col_name in conditions:
                 if col_name in contrasts:
