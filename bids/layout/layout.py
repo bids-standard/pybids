@@ -313,7 +313,7 @@ class BIDSLayout(object):
 
         Note: This is only necessary if a database_path was not specified
         at initialization, and the user now wants to save the index.
-        If a database_path was specified originaquery = l.session.query(Entity)lly, there is no need to
+        If a database_path was specified originally, there is no need to
         re-save using this method.
 
         Parameters
