@@ -146,7 +146,7 @@ def upgrade(root):
             new_path = bidsfile.path.replace("regressors.", "timeseries.")
             if action is None:
                 action = click.prompt(
-                    f"Rename {bidsfile.path} to {new_path}? ([y]es/[n]o/[A]ll/[N]one)", default="y"
+                    f"Rename {bidsfile.path} to {new_path}? ([y]es/[n]o/[A]ll/[N]one)", default="y",
                     type=click.Choice("ynAN"), show_choices=False)
                 if action in "AN":
                     policy = action
