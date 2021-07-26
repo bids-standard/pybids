@@ -110,6 +110,12 @@ def upgrade(root):
     description = json.loads(description_path.read_text())
     orig = deepcopy(description)
 
+    click.echo(
+        "WARNING. This upgrade tool is EXPERIMENTAL and MAY damage your "
+        "dataset. Please ensure you have a backup before proceeding."
+    )
+    click.confirm("Proceed?", abort=True)
+
     # Always update DatasetType if missing
     if "DatasetType" not in description:
         val = click.prompt("Is this dataset [r]aw or [d]erivative?", default="r",
