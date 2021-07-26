@@ -369,7 +369,7 @@ class BIDSLayout(object):
         for l in layouts:
             query = l.session.query(Entity)
             if metadata is not None:
-                query = query.filter_by(is_metadata=metadata)
+                query = query.join(Tag).filter_by(is_metadata=metadata)
             results = query.all()
             entities.update({e.name: e for e in results})
         return entities
@@ -513,7 +513,7 @@ class BIDSLayout(object):
         query = self.session.query(Tag).filter(Tag.file_path.in_(file_paths))
 
         if not metadata:
-            query = query.join(Entity).filter(Entity.is_metadata == False)
+            query = query.join(Entity).filter(Tag.is_metadata == False)
 
         tags = query.all()
 
@@ -675,13 +675,13 @@ class BIDSLayout(object):
                 raise TargetError('If return_type is "id" or "dir", a valid '
                                  'target entity must also be specified.')
 
-            results = [x for x in results if target in x.entities]
+            metadata = target not in self.get_entities(metadata=False)
 
             if return_type == 'id':
-                results = list(set(
-                    [x.entities[target] for x in results 
-                     if type(x.entities[target]) is not dict]))
-                results = natural_sort(results)
+                ent_iter = (x.get_entities(metadata=metadata) for x in results)
+                results = list({
+                    ents[target] for ents in ent_iter if target in ents
+                })
 
             elif return_type == 'dir':
                 template = entities[target].directory
@@ -879,7 +879,7 @@ class BIDSLayout(object):
                      .filter(BIDSFile.path == path))
 
             if not include_entities:
-                query = query.join(Entity).filter(Entity.is_metadata == True)
+                query = query.join(Entity).filter(Tag.is_metadata == True)
 
             results = query.all()
             if results:

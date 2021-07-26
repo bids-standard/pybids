@@ -319,8 +319,9 @@ class BIDSFile(Base):
         query = (session.query(Tag)
                  .filter_by(file_path=self.path)
                  .join(Entity))
+
         if metadata not in (None, 'all'):
-            query = query.filter(Entity.is_metadata == metadata)
+            query = query.filter(Tag.is_metadata == metadata)
 
         results = query.all()
         if values.startswith('obj'):
@@ -517,10 +518,6 @@ class Entity(Base):
         one of 'int', 'float', 'bool', or 'str'. If None, no type
         enforcement will be attempted, which means the dtype of the
         value may be unpredictable.
-    is_metadata : bool
-        Indicates whether or not the Entity is derived
-        from JSON sidecars (True) or is a predefined Entity from a
-        config (False).
     """
     __tablename__ = 'entities'
 
@@ -528,17 +525,15 @@ class Entity(Base):
     mandatory = Column(Boolean, default=False)
     pattern = Column(String)
     directory = Column(String, nullable=True)
-    is_metadata = Column(Boolean, default=False)
     _dtype = Column(String, default='str')
     files = association_proxy("tags", "value")
 
     def __init__(self, name, pattern=None, mandatory=False, directory=None,
-                 dtype='str', is_metadata=False):
+                 dtype='str'):
         self.name = name
         self.pattern = pattern
         self.mandatory = mandatory
         self.directory = directory
-        self.is_metadata = is_metadata
 
         if not isinstance(dtype, str):
             dtype = dtype.__name__
@@ -640,6 +635,10 @@ class Tag(Base):
         value. If passed, must be one of str, int, float, bool, or json.
         Any other value will be treated as json (and will fail if the
         value can't be serialized to json).
+    is_metadata : bool
+        Indicates whether or not the Entity is derived
+        from JSON sidecars (True) or is a predefined Entity from a
+        config (False).
     """
     __tablename__ = 'tags'
 
@@ -647,18 +646,21 @@ class Tag(Base):
     entity_name = Column(String, ForeignKey('entities.name'), primary_key=True)
     _value = Column(String, nullable=False)
     _dtype = Column(String, default='str')
+    is_metadata = Column(Boolean, default=False)
+
 
     file = relationship('BIDSFile', backref=backref(
         "tags", collection_class=attribute_mapped_collection("entity_name")))
     entity = relationship('Entity', backref=backref(
         "tags", collection_class=attribute_mapped_collection("file_path")))
 
-    def __init__(self, file, entity, value, dtype=None):
+    def __init__(self, file, entity, value, dtype=None, is_metadata=False):
 
         if dtype is None:
             dtype = type(value)
 
         self.value = value
+        self.is_metadata = is_metadata
 
         if not isinstance(dtype, str):
             dtype = dtype.__name__
