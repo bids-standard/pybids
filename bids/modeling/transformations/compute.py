@@ -4,6 +4,7 @@ Transformations that primarily involve numerical computation on variables.
 import math
 import numpy as np
 import pandas as pd
+from scipy import ndimage as ndi
 from bids.utils import listify
 from .base import Transformation
 from bids.modeling import hrf
@@ -290,3 +291,27 @@ class Or_(Transformation):
     def _transform(self, dfs):
         df = pd.concat(dfs, axis=1, sort=True)
         return df.any(axis=1).astype(int)
+
+
+class Lag(Transformation):
+    """Lag variable by one
+
+    Parameters
+    ----------
+    dfs : list of :obj:`pandas.DataFrame`
+        variables to enter into the disjunction.
+    """
+
+    _input_type = 'numpy'
+    _return_type = 'numpy'
+
+    def _transform(self, var, shift=1, order=3, mode="nearest",
+                   constant=0.0, difference=False):
+        shifted = ndi.shift(var, shift=shift, order=order, mode=mode,
+                            cval=constant)
+        if not difference:
+            return shifted
+        elif shift >= 0:
+            return shifted - var
+        else:
+            return var - shifted

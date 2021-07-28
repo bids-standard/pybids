@@ -1,5 +1,5 @@
 from .compute import (Sum, Product, Scale, Orthogonalize, Threshold, And_, Or_,
-                      Not, Demean, Convolve)
+                      Not, Demean, Convolve, Lag)
 from .munge import (Split, Rename, Assign, Copy, Factor, Filter, Select,
                     Delete, DropNA, Replace, ToDense, Group, Resample)
 from .base import TransformerManager
@@ -19,6 +19,7 @@ __all__ = [
     'Factor',
     'Filter',
     'Group',
+    'Lag',
     'Not',
     'Or',
     'Or_',
