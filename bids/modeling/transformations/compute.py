@@ -307,11 +307,12 @@ class Lag(Transformation):
 
     def _transform(self, var, shift=1, order=3, mode="nearest",
                    constant=0.0, difference=False):
+        var = var.flatten()
         shifted = ndi.shift(var, shift=shift, order=order, mode=mode,
                             cval=constant)
         if not difference:
             return shifted
         elif shift >= 0:
-            return shifted - var
-        else:
             return var - shifted
+        else:
+            return shifted - var
