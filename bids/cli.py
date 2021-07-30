@@ -106,42 +106,71 @@ def upgrade(root):
     """
     Upgrade common experimental BIDS features to finalized versions.
     """
-    description_path = Path(root) / "dataset_description.json"
-    description = json.loads(description_path.read_text())
-    orig = deepcopy(description)
 
     click.echo(
         "WARNING. This upgrade tool is EXPERIMENTAL and MAY damage your "
         "dataset. Please ensure you have a backup before proceeding."
     )
     click.confirm("Proceed?", abort=True)
+    changes = False
+
+    description_path = Path(root) / "dataset_description.json"
+    orig_desc = json.loads(description_path.read_text())
+    desc = upgrade_dataset_description(orig_desc)
+
+    if desc != orig_desc:
+        description_path.write_text(json.dumps(desc))
+        changes = True
+
+    val = click.prompt("Load dataset and update filenames?", default="Y",
+                       type=click.Choice("YN"))
+    if val == "Y":
+        upgrade_filenames(root, desc)
+
+    if changes:
+        click.echo("Upgrade complete. Please run the bids-validator "
+                   "(https://bids-standard.github.io/bids-validator) "
+                   "to confirm the correctness of the changes.")
+    else:
+        click.echo("No changes to make!")
+
+
+def upgrade_dataset_description(description):
+    """
+    Upgrade dataset_description.json with recommended values
+    """
+    description = deepcopy(description)
+
+    # Give an opportunity to update to latest version
+    bidsver = description.get("BIDSVersion")
+    if bidsver is None or bidsver < "1.6.0":
+        val = click.prompt(f"Update BIDS Version? (current: {bidsver})",
+                           default="1.6.0", type=str)
+        if val.startswith("1."):
+            description["BIDSVersion"] = val
+        else:
+            click.echo(f"Expected version to be 1.x, e.g., 1.6.0. Skipping.")
 
     # Always update DatasetType if missing
     if "DatasetType" not in description:
         val = click.prompt("Is this dataset [r]aw or [d]erivative?", default="r",
                            type=click.Choice(("r", "d"), case_sensitive=False))
         description["DatasetType"] = "raw" if val == "R" else "derivative"
-    dstype = description["DatasetType"]
 
-    if dstype == "raw":
-        click.echo("No other upgrades for raw datasets at present.")
-        return
-    elif dstype == "derivative":
+    if description["DatasetType"] == "derivative":
         if "PipelineDescription" in description:
             val = click.prompt("Convert PipelineDescription to GeneratedBy?", default="Y",
                                type=click.Choice("YN"))
             if val == "Y":
                 description["GeneratedBy"] = [description.pop("PipelineDescription")]
 
-    if description != orig:
-        description_path.write_text(json.dumps(description))
+    return description
 
-    val = click.prompt("Load dataset and update filenames?", default="Y",
-                       type=click.Choice("YN"))
-    if val == "N":
-        return
 
-    layout = BIDSLayout(root, validate=False, config="bids" if dstype == "raw" else "derivatives")
+def upgrade_filenames(root, description):
+    dstype = description["DatasetType"]
+    layout = BIDSLayout(root, validate=False,
+                        config="bids" if dstype == "raw" else "derivatives")
 
     # Rename regressors.tsv to timeseries.tsv
     regressors = layout.get(suffix="regressors")
