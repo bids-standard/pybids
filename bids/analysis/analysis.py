@@ -226,7 +226,14 @@ class Step(object):
 
         for name, contrasts in groups.items():
             # Create a DF with contrasts in rows and contrast names in columns
-            data = [{**c.entities, **{c.name: 1}} for c in contrasts]
+            data = []
+            for c in contrasts:
+                c_data = {**c.entities, **{c.name: 1}}
+                for ent in ent_cols:
+                    if ent not in c_data:
+                        c_data[ent] = None
+                data.append(c_data)
+
             data = pd.DataFrame.from_records(data)
             # Group by all entities and sum, collapsing over rows belonging
             # to the current unit
