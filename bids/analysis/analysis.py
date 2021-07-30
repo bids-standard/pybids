@@ -231,7 +231,7 @@ class Step(object):
                 c_data = {**c.entities, **{c.name: 1}}
                 for ent in ent_cols:
                     if ent not in c_data:
-                        c_data[ent] = None
+                        c_data[ent] = 'n/a'
                 data.append(c_data)
 
             data = pd.DataFrame.from_records(data)
