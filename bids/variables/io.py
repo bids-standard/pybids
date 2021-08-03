@@ -304,7 +304,7 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
             sub_ents = {k: v for k, v in entities.items()
                         if k in BASE_ENTITIES}
             confound_files = layout.get(suffix='regressors', scope=scope,
-                                        **sub_ents)
+                                        extension='.tsv', **sub_ents)
             for cf in confound_files:
                 _data = pd.read_csv(cf.path, sep='\t', na_values='n/a')
                 if columns is not None:
