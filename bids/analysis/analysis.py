@@ -224,9 +224,10 @@ class Step(object):
 
         collections = {}
 
+        baseline = {ent: "n/a" for ent in ent_cols}
         for name, contrasts in groups.items():
             # Create a DF with contrasts in rows and contrast names in columns
-            data = [{**c.entities, **{c.name: 1}} for c in contrasts]
+            data = [{**baseline, **c.entities, **{c.name: 1}} for c in contrasts]
             data = pd.DataFrame.from_records(data)
             # Group by all entities and sum, collapsing over rows belonging
             # to the current unit
