@@ -294,12 +294,52 @@ class Or_(Transformation):
 
 
 class Lag(Transformation):
-    """Lag variable by one
+    """Lag variable
+
+    Returns a variable that is lagged by a specified number of time points.
+    Spline interpolation of the requested ``order`` is used for non-integer
+    shifts.
+    Points outside the input are filled according to the given ``mode``.
+    Negative shifts move values toward the beginning of the sequence.
+    If ``difference`` is ``True``, the backward difference is calculated for
+    positive shifts, and the forward difference is calculated for negative
+    shifts.
+
+    Additional ``mode``s may be defined if there is need for them.
+    The ``scipy.ndimage.shift`` method provides the reference implementation
+    for all current modes. "Constant" is equivalent to the shift parameter
+    "cval".
+
 
     Parameters
     ----------
-    dfs : list of :obj:`pandas.DataFrame`
-        variables to enter into the disjunction.
+    var : :obj:`numpy.ndarray`
+        variable to lag
+    shift : float, optional
+        number of places to shift the values (default: 1)
+    order : int, optional
+        order of spline interpolation, from 0-5 (default: 3)
+    mode : string
+        the `mode` parameter determines how the input array is extended
+        beyond its boundaries. Default is 'nearest'.
+        The following values are accepted:
+
+        "nearest" (a a a a | a b c d | d d d d)
+            The input is extended by replicating the boundary values
+        "reflect" (d c b a | a b c d | d c b a)
+            The input is extended by reflecting the array over the edge
+        "constant" (k k k k | a b c d | k k k k)
+            The input is extended by filling all values beyond the edge
+            with the same constant value, defined by the ``constant`` parameter
+    constant : float, optional
+        value to fill past edges of input if ``mode`` is ``"constant"``.
+        (default: 0)
+    difference : boolean, optional
+        Calculate the backward (if shift is positive) or forward (if shift is
+        negative) difference.
+        For the forward difference dx of an array x, dx[i] = x[i+1] - x[i].
+        For the backward difference dx of an array x, dx[i] = x[i] - x[i-1].
+        (default: ``False``)
     """
 
     _input_type = 'numpy'
