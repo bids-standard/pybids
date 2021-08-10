@@ -17,8 +17,8 @@ MANDATORY_BIDS_FIELDS = {
 
 MANDATORY_DERIVATIVES_FIELDS = {
     **MANDATORY_BIDS_FIELDS,
-    "PipelineDescription.Name": {
-        "PipelineDescription": {"Name": "Example pipeline"}
+    "GeneratedBy": {
+        "GeneratedBy": [{"Name": "Example pipeline"}]
     },
 }
 
@@ -144,15 +144,24 @@ def validate_derivative_paths(paths, layout=None, **kwargs):
         dd = os.path.join(deriv, 'dataset_description.json')
         with open(dd, 'r', encoding='utf-8') as ddfd:
             description = json.load(ddfd)
-        pipeline_name = description.get(
-            'PipelineDescription', {}).get('Name')
+        pipeline_names = [pipeline["Name"]
+                          for pipeline in description.get("GeneratedBy", [])
+                          if "Name" in pipeline]
+        if pipeline_names:
+            pipeline_name = pipeline_names[0]
+        elif "PipelineDescription" in description:
+            warnings.warn("The PipelineDescription field was superseded "
+                          "by GeneratedBy in BIDS 1.4.0. You can use "
+                          "``pybids upgrade`` to update your derivative "
+                          "dataset.")
+            pipeline_name = description["PipelineDescription"].get("Name")
         if pipeline_name is None:
             raise BIDSDerivativesValidationError(
                                 "Every valid BIDS-derivatives dataset must "
-                                "have a PipelineDescription.Name field set "
+                                "have a GeneratedBy.Name field set "
                                 "inside 'dataset_description.json'. "
                                 "\nExample: %s" %
-                                MANDATORY_DERIVATIVES_FIELDS['PipelineDescription.Name'])
+                                MANDATORY_DERIVATIVES_FIELDS['GeneratedBy'])
         if layout is not None and pipeline_name in layout.derivatives:
             raise BIDSDerivativesValidationError(
                                 "Pipeline name '%s' has already been added "
