@@ -1,6 +1,6 @@
 # from bids.modeling.variables import load_variables
 from bids.modeling import transformations as transform
-from bids.variables import SparseRunVariable
+from bids.variables import SparseRunVariable, DenseRunVariable
 from bids.variables.entities import RunInfo
 from bids.variables.collections import BIDSRunVariableCollection
 from bids.layout import BIDSLayout
@@ -542,3 +542,56 @@ def test_resample(collection):
     # Assert that the auc is more or less the same (not exact, rounding error)
     # Values are around 0.25
     assert np.allclose(old_auc, new_auc, rtol=0.05)
+
+
+def test_Lag():
+    var = DenseRunVariable(
+        name="rot_x",
+        values=np.arange(5., 20.),
+        run_info=RunInfo({}, 15, 1, "none", 15),
+        source='regressors',
+        sampling_rate=1
+    )
+    coll = BIDSRunVariableCollection([var], sampling_rate=1)
+
+    # Forward shift
+    transform.Lag(coll, "rot_x", output="d_rot_x")
+    d_rot_x = coll["d_rot_x"].values.values
+    assert np.isclose(d_rot_x[0, 0], 5.)
+    assert np.allclose(d_rot_x[1:, 0], np.arange(5., 19.))
+
+    # Backward shift
+    transform.Lag(coll, "rot_x", output="d_rot_x", shift=-1)
+    d_rot_x = coll["d_rot_x"].values.values
+    assert np.isclose(d_rot_x[-1, 0], 19.)
+    assert np.allclose(d_rot_x[:-1, 0], np.arange(6., 20.))
+
+    # Half shift; don't know why you'd want to do it, but you can
+    transform.Lag(coll, "rot_x", output="half_shift", shift=0.5, order=1)
+    half_shift = coll["half_shift"].values.values
+    assert np.isclose(half_shift[0, 0], 5.)
+    assert np.allclose(half_shift[1:, 0], np.arange(5.5, 19.5))
+
+    # Constant mode
+    transform.Lag(coll, "rot_x", output="d_rot_x", mode="constant")
+    d_rot_x = coll["d_rot_x"].values.values
+    assert np.isclose(d_rot_x[0, 0], 0.)
+    assert np.allclose(d_rot_x[1:, 0], np.arange(5., 19.))
+
+    # Reflect mode
+    transform.Lag(coll, "rot_x", output="d_rot_x", mode="reflect")
+    d_rot_x = coll["d_rot_x"].values.values
+    assert np.isclose(d_rot_x[0, 0], 5.)
+    assert np.allclose(d_rot_x[1:, 0], np.arange(5., 19.))
+
+    # Forward shift -> Backward difference
+    transform.Lag(coll, "rot_x", output="d_rot_x", difference=True)
+    d_rot_x = coll["d_rot_x"].values.values
+    assert np.isclose(d_rot_x[0, 0], 0.)
+    assert np.allclose(d_rot_x[1:, 0], 1.)
+
+    # Backward shift -> Forward difference
+    transform.Lag(coll, "rot_x", output="d_rot_x", shift=-1, difference=True)
+    d_rot_x = coll["d_rot_x"].values.values
+    assert np.isclose(d_rot_x[-1, 0], 0.)
+    assert np.allclose(d_rot_x[:-1, 0], 1.)
