@@ -96,5 +96,5 @@ jobs:
         if: ${{ matrix.check != 'skiptests' }}
       - uses: codecov/codecov-action@v1
         with:
-          file: coverage.xml
+          file: cov.xml
         if: ${{ always() }}
