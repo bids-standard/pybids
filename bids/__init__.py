@@ -13,7 +13,7 @@ __all__ = [
     "layout",
     "reports",
     "utils",
-    "variables"
+    "variables",
 ]
 
 due.cite(Doi("10.1038/sdata.2016.44"),

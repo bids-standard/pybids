@@ -2,12 +2,21 @@ from bids.layout import BIDSLayout
 from bids.variables import (SparseRunVariable, SimpleVariable,
                             DenseRunVariable, load_variables)
 from bids.variables.entities import Node, RunNode, NodeIndex
+from bids.variables.io import parse_transforms
 from unittest.mock import patch
 import pytest
 from os.path import join
+from pathlib import Path
+import tempfile
+import json
 from bids.tests import get_test_data_path
 from bids.config import set_option, get_option
 
+EXAMPLE_TRANSFORM = {
+    "Transformations":[{"Name":"example_trans","Inputs":["col_a","col_b"]}]
+}
+TRANSFORMS_JSON = join(tempfile.tempdir,"tranformations.json")
+Path(TRANSFORMS_JSON).write_text(json.dumps(EXAMPLE_TRANSFORM))
 
 @pytest.fixture
 def layout1():
@@ -103,3 +112,29 @@ def test_load_synthetic_dataset(synthetic):
     subs = index.get_nodes('subject')
     assert len(subs) == 5
     assert set(subs[0].variables.keys()) == {'systolic_blood_pressure'}
+
+@pytest.mark.parametrize(
+    "test_case,transform_input,expected_names",
+    [
+        ("raw transform json",
+         EXAMPLE_TRANSFORM,
+         ["example_trans"]
+        ),
+        ("transform json file",
+         TRANSFORMS_JSON,
+         ["example_trans"]
+        ),
+        ("raw model json",
+         {"Nodes": [EXAMPLE_TRANSFORM]},
+         ["example_trans"]
+        ),
+         ("model json file",
+         str(Path(get_test_data_path()) / "ds005/models/ds-005_type-mfx_model.json"),
+         ["Scale"]
+        ),
+    ]
+)
+def test_parse_transforms(test_case,transform_input,expected_names):
+    result = parse_transforms(transform_input)
+    transformation_names =  [x['name'] for x in result]
+    assert expected_names == transformation_names

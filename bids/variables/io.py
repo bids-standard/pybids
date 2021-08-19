@@ -1,16 +1,17 @@
 """ Tools for reading/writing BIDS data files. """
 
 from os.path import join
+from pathlib import Path
 import warnings
 import json
 
 import numpy as np
 import pandas as pd
 
-from bids.utils import listify
+from bids.utils import listify, convert_JSON
 from .entities import NodeIndex
 from .variables import SparseRunVariable, DenseRunVariable, SimpleVariable
-
+from .collections import BIDSRunVariableCollection
 
 BASE_ENTITIES = ['subject', 'session', 'task', 'run']
 ALL_ENTITIES = BASE_ENTITIES + ['datatype', 'suffix', 'acquisition']
@@ -119,6 +120,121 @@ def _get_nvols(img_f):
         raise ValueError("Unknown image type %s: %s" % img.__class__, img_f)
 
     return nvols
+
+def get_events_collection(_data, run_info, drop_na=True, columns=None, entities=None):
+    """
+    This is an attempt to minimally implement:
+    https://github.com/bids-standard/pybids/blob/statsmodels/bids/variables/io.py
+
+    in a way that will still work for bids io, but will also work without layout.
+    """
+
+    run_info
+    if entities is None:
+        entities = run_info.entities
+    if 'amplitude' in _data.columns:
+        if (_data['amplitude'].astype(int) == 1).all() and \
+                'trial_type' in _data.columns:
+            msg = ("Column 'amplitude' with constant value 1 "
+                   "is unnecessary in event files; ignoring it.")
+            _data = _data.drop('amplitude', axis=1)
+        else:
+            msg = ("Column name 'amplitude' is reserved; "
+                   "renaming it to 'amplitude_'.")
+            _data = _data.rename(
+                columns={'amplitude': 'amplitude_'})
+        warnings.warn(msg)
+
+    _data = _data.replace('n/a', np.nan)  # Replace BIDS' n/a
+    _data = _data.apply(pd.to_numeric, errors='ignore')
+
+    _cols = columns or list(set(_data.columns.tolist()) -
+                            {'onset', 'duration'})
+    colls_output = []
+    # Construct a DataFrame for each extra column
+    for col in _cols:
+        df = _data[['onset', 'duration']].copy()
+        df['amplitude'] = _data[col].values
+
+        # Add in all of the run's entities as new columns for
+        # index
+        for entity, value in entities.items():
+            if entity in ALL_ENTITIES:
+                df[entity] = value
+
+        if drop_na:
+            df = df.dropna(subset=['amplitude'])
+
+        if df.empty:
+            continue
+
+        var = SparseRunVariable(
+            name=col, data=df, run_info=run_info, source='events')
+        colls_output.append(var)
+    return colls_output
+
+
+def get_regressors_collection(_data, run_info, columns=None, entities=None):
+    
+    colls_output = []
+    if entities is None:
+        entities = run_info.entities
+
+    if columns is not None:
+        conf_cols = list(set(_data.columns) & set(columns))
+        _data = _data.loc[:, conf_cols]
+    for col in _data.columns:
+        sr = 1. / run_info.tr
+        var = DenseRunVariable(name=col, values=_data[[col]],
+                       run_info=run_info, source='regressors',
+                       sampling_rate=sr)
+        colls_output.append(var)
+    return colls_output
+
+
+def get_rec_collection(data,run_info,metadata,source,columns=None,entities=None):
+
+    colls_output = []
+    freq = metadata['SamplingFrequency']
+    st = metadata['StartTime']
+    rf_cols = metadata['Columns']
+    data.columns = rf_cols
+
+    # Filter columns if user passed names
+    if columns is not None:
+        rf_cols = list(set(rf_cols) & set(columns))
+        data = data.loc[:, rf_cols]
+
+    n_cols = len(rf_cols)
+    if not n_cols:
+        # nothing to do
+        return []
+
+    # Keep only in-scan samples
+    if st < 0:
+        start_ind = np.floor(-st * freq)
+        values = data.values[start_ind:, :]
+    else:
+        values = data.values
+
+    if st > 0:
+        n_pad = int(freq * st)
+        pad = np.zeros((n_pad, n_cols))
+        values = np.r_[pad, values]
+
+    n_rows = int(run_info.duration * freq)
+    if len(values) > n_rows:
+        values = values[:n_rows, :]
+    elif len(values) < n_rows:
+        pad = np.zeros((n_rows - len(values), n_cols))
+        values = np.r_[values, pad]
+
+    df = pd.DataFrame(values, columns=rf_cols)
+    for col in df.columns:
+        var = DenseRunVariable(name=col, values=df[[col]], run_info=run_info,
+                               source=source, sampling_rate=freq)
+        colls_output.append(var)
+    return colls_output
 
 
 def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
@@ -254,50 +370,14 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
 
         # Process event files
         if events:
-            dfs = layout.get_nearest(
+            efiles = layout.get_nearest(
                 img_f, extension='.tsv', suffix='events', all_=True,
                 full_search=True, ignore_strict_entities=['suffix', 'extension'])
-            for _data in dfs:
-                _data = pd.read_csv(_data, sep='\t')
-                if 'amplitude' in _data.columns:
-                    if (_data['amplitude'].astype(int) == 1).all() and \
-                            'trial_type' in _data.columns:
-                        msg = ("Column 'amplitude' with constant value 1 "
-                               "is unnecessary in event files; ignoring it.")
-                        _data = _data.drop('amplitude', axis=1)
-                    else:
-                        msg = ("Column name 'amplitude' is reserved; "
-                               "renaming it to 'amplitude_'.")
-                        _data = _data.rename(
-                            columns={'amplitude': 'amplitude_'})
-                    warnings.warn(msg)
-
-                _data = _data.replace('n/a', np.nan)  # Replace BIDS' n/a
-                _data = _data.apply(pd.to_numeric, errors='ignore')
-
-                _cols = columns or list(set(_data.columns.tolist()) -
-                                        {'onset', 'duration'})
-
-                # Construct a DataFrame for each extra column
-                for col in _cols:
-                    df = _data[['onset', 'duration']].copy()
-                    df['amplitude'] = _data[col].values
-
-                    # Add in all of the run's entities as new columns for
-                    # index
-                    for entity, value in entities.items():
-                        if entity in ALL_ENTITIES:
-                            df[entity] = value
-
-                    if drop_na:
-                        df = df.dropna(subset=['amplitude'])
-
-                    if df.empty:
-                        continue
-
-                    var = SparseRunVariable(
-                        name=col, data=df, run_info=run_info, source='events')
-                    run.add_variable(var)
+            for ef in efiles:
+                _data = pd.read_csv(ef, sep='\t')
+                event_cols = get_events_collection(_data, run.get_info(), drop_na=drop_na, columns=columns)
+                for ec in event_cols:
+                    run.add_variable(ec)
 
         # Process confound files
         if regressors:
@@ -307,15 +387,9 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
                                         extension='.tsv', **sub_ents)
             for cf in confound_files:
                 _data = pd.read_csv(cf.path, sep='\t', na_values='n/a')
-                if columns is not None:
-                    conf_cols = list(set(_data.columns) & set(columns))
-                    _data = _data.loc[:, conf_cols]
-                for col in _data.columns:
-                    sr = 1. / run.repetition_time
-                    var = DenseRunVariable(name=col, values=_data[[col]],
-                                           run_info=run_info, source='regressors',
-                                           sampling_rate=sr)
-                    run.add_variable(var)
+                reg_colls = get_regressors_collection(_data, run.get_info(), columns=columns)
+                for rc in reg_colls:
+                    run.add_variable(rc)
 
         # Process recordinging files
         rec_types = []
@@ -332,46 +406,18 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
                 metadata = layout.get_metadata(rf)
                 if not metadata:
                     raise ValueError("No .json sidecar found for '%s'." % rf)
-                data = pd.read_csv(rf, sep='\t')
-                freq = metadata['SamplingFrequency']
-                st = metadata['StartTime']
-                rf_cols = metadata['Columns']
-                data.columns = rf_cols
-
-                # Filter columns if user passed names
-                if columns is not None:
-                    rf_cols = list(set(rf_cols) & set(columns))
-                    data = data.loc[:, rf_cols]
-
-                n_cols = len(rf_cols)
-                if not n_cols:
-                    continue
-
-                # Keep only in-scan samples
-                if st < 0:
-                    start_ind = np.floor(-st * freq)
-                    values = data.values[start_ind:, :]
-                else:
-                    values = data.values
-
-                if st > 0:
-                    n_pad = int(freq * st)
-                    pad = np.zeros((n_pad, n_cols))
-                    values = np.r_[pad, values]
-
-                n_rows = int(run.duration * freq)
-                if len(values) > n_rows:
-                    values = values[:n_rows, :]
-                elif len(values) < n_rows:
-                    pad = np.zeros((n_rows - len(values), n_cols))
-                    values = np.r_[values, pad]
-
-                df = pd.DataFrame(values, columns=rf_cols)
+                # rec_file passed in for now because rec_type needs to be inferred
                 source = 'physio' if '_physio.tsv' in rf else 'stim'
-                for col in df.columns:
-                    var = DenseRunVariable(name=col, values=df[[col]], run_info=run_info,
-                                           source=source, sampling_rate=freq)
-                    run.add_variable(var)
+                data = pd.read_csv(rf, sep='\t')
+                rec_colls = get_rec_collection(
+                                         data,
+                                         run.get_info(),
+                                         metadata,
+                                         source,
+                                         columns=columns)
+                for rc in rec_colls:
+                    run.add_variable(rc)
+
     return dataset
 
 
@@ -509,3 +555,51 @@ def _load_tsv_variables(layout, suffix, dataset=None, columns=None,
             node.add_variable(SimpleVariable(name=col_name, data=df, source=suffix))
 
     return dataset
+
+
+def parse_transforms(transforms_in, validate=True,level="run"):
+    """ Adapted from bids.modeling.statsmodels.BIDSStatsModelsGraph. Also
+    handles files/jsons that only define the transformations section of the
+    model.json """
+
+    # input is JSON as string, dict, or path
+    if isinstance(transforms_in, str):
+        # read as file if file
+        if Path(transforms_in).exists():
+            transforms_in = Path(transforms_in).read_text()
+        # convert json as string to dict
+        try:
+            transforms_raw = json.loads(transforms_in)
+        except json.JSONDecodeError as err:
+            raise json.JSONDecodeError(f"""
+                {transforms_in}
+                The above input could not be parsed as valid json...
+                {err}
+            """
+            )
+    else:
+        transforms_raw = transforms_in
+
+    # Convert JSON from CamelCase to snake_case keys
+    transforms_raw = convert_JSON(transforms_raw)
+
+    if validate:
+       # TODO
+       # validate_transforms(transforms_raw)
+       pass
+
+    # Process transformations
+    # TODO: some basic error checking to confirm the correct level of
+    # transformations has been obtained. This will most likely be the case since
+    # transformations at higher levels will no longer be required when the new
+    # "flow" approach is used.
+    if "transformations" in transforms_raw:
+        transforms = transforms_raw["transformations"]
+    elif any(k in transforms_raw for k in ["nodes","steps"]):
+        nodes_key = "nodes" if "nodes" in transforms_raw else "steps"
+        transforms = transforms_raw[nodes_key][0]["transformations"]
+    else:
+        raise ValueError("Cannot find a key for nodes in the json input representing the model")
+    return transforms
+
+

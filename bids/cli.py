@@ -7,6 +7,7 @@ import click
 from . import __version__
 from .layout import BIDSLayoutIndexer, BIDSLayout
 from .utils import validate_multiple as _validate_multiple
+from . import morphing_time as mt
 
 # alias -h to trigger help message
 CONTEXT_SETTINGS = {'help_option_names': ['-h', '--help']}
@@ -28,6 +29,37 @@ class PathOrRegex(click.ParamType):
 def cli():
     """Command-line interface for PyBIDS operations"""
     pass
+
+
+@click.command()
+@click.version_option(__version__, prog_name='morphing_time')
+@click.option(
+    "--events-tsv", required=True, help="Path to events TSV")
+@click.option(
+        "--transforms", required=True, help="Path to transform or model json"
+    )
+@click.option(
+        "--nvol", required=True, type=int, help="Number of volumes in func time-series"
+    )
+@click.option(
+        "--tr", required=True, type=float, help="TR for func time series"
+    )
+@click.option(
+    "--ta", required=False, type=float, help="TA for events")
+@click.option(
+        "--output-sampling-rate",
+        required=False,
+        type=float,
+        help="Output sampling rate in Hz when a full design matrix is desired.",
+    )
+@click.option(
+        "--output-dir",
+        required=False,
+        help="Path to directory to write processed event files.",
+    )
+def morphing_time(**kwargs):
+    mt.morphing_time(**kwargs)
+
 
 
 @cli.command(context_settings=CONTEXT_SETTINGS)
