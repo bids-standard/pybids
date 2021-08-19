@@ -303,10 +303,8 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
         if regressors:
             sub_ents = {k: v for k, v in entities.items()
                         if k in BASE_ENTITIES}
-            # .tsv.gz is not strictly BIDS compatible, but our test data is gzipped,
-            # so we'll be forgiving here
             confound_files = layout.get(suffix=['regressors', 'timeseries'],
-                                        scope=scope, extension=['.tsv', '.tsv.gz'],
+                                        scope=scope, extension='.tsv',
                                         **sub_ents)
             for cf in confound_files:
                 _data = pd.read_csv(cf.path, sep='\t', na_values='n/a')
