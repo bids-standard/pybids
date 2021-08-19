@@ -1,6 +1,15 @@
 Changelog
 =========
 
+Version 0.13.2 (August 20, 2021)
+--------------------------------
+
+Bug-fix release in the 0.13 series.
+
+* FIX/TEST: gunzip regressors.tsv.gz, allow timeseries.tsv as well (#767)
+* FIX: run is required (#762)
+* MNT: Patch 0.13.x maint branch (#763)
+
 Version 0.13.1 (May 21, 2021)
 -----------------------------
 
