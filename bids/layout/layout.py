@@ -602,18 +602,10 @@ class BIDSLayout(object):
                                'keywords to the `get()` call. For example: '
                                '`layout.get(**filters)`.')
 
-        # Strip leading periods if extensions were passed
+        # Ensure leading periods if extensions were passed
         if 'extension' in filters and 'bids' in self.config:
-            # XXX 0.14: Disable drop_dot option
-            drop_dot = (self.config['bids'].entities['extension'].pattern ==
-                        '[._]*[a-zA-Z0-9]*?\\.([^/\\\\]+)$')
-            exts = listify(filters['extension'])
-            if drop_dot:
-                filters['extension'] = [x.lstrip('.') if isinstance(x, str) else x
-                                        for x in exts]
-            else:
-                filters['extension'] = ['.' + x.lstrip('.') if isinstance(x, str) else x
-                                        for x in exts]
+            filters['extension'] = ['.' + x.lstrip('.') if isinstance(x, str) else x
+                                    for x in listify(filters['extension'])]
 
         if invalid_filters != 'allow':
             bad_filters = set(filters.keys()) - set(entities.keys())
