@@ -120,11 +120,8 @@ def validate_derivative_paths(paths, layout=None, **kwargs):
             if check_for_description(p):
                 deriv_dirs.append(p)
             else:
-                subdirs = [d for d in p.iterdir()
-                           if d.is_dir()]
-                for sd in subdirs:
-                    if check_for_description(sd):
-                        deriv_dirs.append(sd)
+                deriv_dirs.extend(sd for sd in p.iterdir()
+                                  if sd.is_dir() and check_for_description(sd))
 
     if not deriv_dirs:
         warnings.warn("Derivative indexing was requested, but no valid "
