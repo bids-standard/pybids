@@ -175,8 +175,7 @@ def validate_indexing_args(ignore, force_index, root):
     if ignore is None:
         ignore = DEFAULT_LOCATIONS_TO_IGNORE
 
-    # Do after root validation to ensure os.path.join works
-    # NB: `root / patt` used to be `os.path.join(root, patt)`. The comment above is from that time.
+    # root has already been validated to be a directory
     ignore = [(root / patt).absolute()
               if isinstance(patt, str) else patt
               for patt in listify(ignore or [])]
