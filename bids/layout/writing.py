@@ -10,7 +10,7 @@ import shutil
 from string import Formatter
 from itertools import product
 from ..utils import splitext, listify
-from os.path import join, dirname, exists, islink, isabs, isdir
+from pathlib import Path
 
 __all__ = ['build_path', 'write_to_file']
 
@@ -239,14 +239,15 @@ def write_to_file(path, contents=None, link_to=None, copy_from=None,
         'overwrite' overwrites the existing file; 'append' adds a suffix
         to each file copy, starting with 1. Default is 'fail'.
     """
+    path = Path(path)
 
-    if root is None and not isabs(path):
-        root = os.getcwd()
+    if root is None and not path.is_absolute():
+        root = Path.cwd()
 
     if root:
-        path = join(root, path)
+        path = root / path
 
-    if exists(path) or islink(path):
+    if path.exists() or path.is_symlink():
         if conflicts == 'fail':
             msg = 'A file at path {} already exists.'
             raise ValueError(msg.format(path))
@@ -255,38 +256,37 @@ def write_to_file(path, contents=None, link_to=None, copy_from=None,
             warnings.warn(msg.format(path))
             return
         elif conflicts == 'overwrite':
-            if isdir(path):
+            if path.is_dir():
                 warnings.warn('New path is a directory, not going to '
                               'overwrite it, skipping instead.')
                 return
-            os.remove(path)
+            path.unlink()
         elif conflicts == 'append':
             i = 1
             while i < sys.maxsize:
-                path_splits = splitext(path)
-                path_splits[0] = path_splits[0] + '_%d' % i
-                appended_filename = os.extsep.join(path_splits)
-                if not exists(appended_filename) and \
-                        not islink(appended_filename):
+                suffixes = ''.join(path.suffixes)
+                appended_filename = path.with_name(path.name.rstrip(suffixes) + '_%d' % i + suffixes)
+                if not appended_filename.exists() and \
+                        not appended_filename.is_symlink():
                     path = appended_filename
                     break
                 i += 1
         else:
             raise ValueError('Did not provide a valid conflicts parameter')
 
-    if not exists(dirname(path)):
-        os.makedirs(dirname(path))
+    if not path.parent.exists():
+        path.parent.mkdir(parents=True)
 
     if link_to is not None:
-        os.symlink(link_to, path)
+        path.symlink_to(link_to)
     elif copy_from is not None:
-        if not exists(copy_from):
+        if not Path(copy_from).exists():
             raise ValueError("Source file '{}' does not exist.".format(copy_from))
         shutil.copy(copy_from, path)
 
     elif contents:
         mode = 'wb' if content_mode == 'binary' else 'w'
-        with open(path, mode) as f:
+        with path.open(mode) as f:
             f.write(contents)
     else:
         raise ValueError('One of contents, copy_from or link_to must be provided.')
