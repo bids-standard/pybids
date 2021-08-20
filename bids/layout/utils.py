@@ -1,5 +1,4 @@
 """Miscellaneous layout-related utilities."""
-import os
 from pathlib import Path
 
 from .. import config as cf
@@ -90,7 +89,7 @@ def add_config_paths(**kwargs):
     > layout = BIDSLayout('/path/to/bids', config=['bids', 'my_config'])
     """
     for k, path in kwargs.items():
-        if not os.path.exists(path):
+        if not Path(path).exists():
             raise ConfigError(
                 'Configuration file "{}" does not exist'.format(k))
         if k in cf.get_option('config_paths'):

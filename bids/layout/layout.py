@@ -10,6 +10,7 @@ import copy
 import warnings
 import enum
 import difflib
+from pathlib import Path
 
 import sqlalchemy as sa
 from sqlalchemy.orm import aliased
@@ -136,7 +137,7 @@ class BIDSLayout(object):
         # Validate that a valid BIDS project exists at root
         root, description = validate_root(root, validate)
 
-        self.root = root
+        self._root = root  # type: Path
         self.description = description
         self.absolute_paths = absolute_paths
         self.derivatives = {}
@@ -158,13 +159,17 @@ class BIDSLayout(object):
         # Add derivatives if any are found
         if derivatives:
             if derivatives is True:
-                derivatives = os.path.join(root, 'derivatives')
+                derivatives = root / 'derivatives'
             self.add_derivatives(
                 derivatives, parent_database_path=database_path,
                 validate=validate, absolute_paths=absolute_paths,
                 derivatives=None, sources=self, config=None,
                 regex_search=regex_search, reset_database=reset_database,
                 indexer=indexer, **indexer_kwargs)
+
+    @property
+    def root(self):
+        return str(self._root)
 
     def __getattr__(self, key):
         """Dynamically inspect missing methods for get_<entity>() calls
@@ -331,13 +336,14 @@ class BIDSLayout(object):
             be reflected in the new file unless save() is explicitly called
             again.
         """
+        database_path = Path(database_path)
+
         self.connection_manager = self.connection_manager.save_database(
             database_path, replace_connection)
 
         # Recursively save children
         for pipeline_name, der in self.derivatives.items():
-            der.save(os.path.join(
-                database_path, pipeline_name))
+            der.save(database_path / pipeline_name)
 
 
     def get_entities(self, scope='all', metadata=None):
@@ -452,7 +458,7 @@ class BIDSLayout(object):
             Each path can point to either a derivatives/ directory
             containing one more more pipeline directories, or to a single
             pipeline directory (e.g., derivatives/fmriprep).
-        parent_database_path : str
+        parent_database_path : str or Path
             If not None, use the pipeline name from the dataset_description.json
             file as the database folder name to nest within the parent database
             folder name to write out derivative index to.
@@ -467,6 +473,8 @@ class BIDSLayout(object):
         specification for details.
         """
         paths = listify(path)
+        if parent_database_path:
+            parent_database_path = Path(parent_database_path)
         deriv_paths = validate_derivative_paths(paths, self, **kwargs)
 
         # Default config and sources values
@@ -475,7 +483,7 @@ class BIDSLayout(object):
 
         for name, deriv in deriv_paths.items():
             if parent_database_path:
-                child_database_path = os.path.join(parent_database_path, name)
+                child_database_path = parent_database_path / name
                 kwargs['database_path'] = child_database_path
             self.derivatives[name] = BIDSLayout(deriv, **kwargs)
 
@@ -664,7 +672,7 @@ class BIDSLayout(object):
         if not absolute_paths:
             for i, fi in enumerate(results):
                 fi = copy.copy(fi)
-                fi.path = os.path.relpath(fi.path, self.root)
+                fi.path = str(fi._path.relative_to(self._root))
                 results[i] = fi
 
         if return_type.startswith('file'):
@@ -690,16 +698,20 @@ class BIDSLayout(object):
                                      'directory template is defined for the '
                                      'target entity (\"%s\").' % target)
                 # Construct regex search pattern from target directory template
-                template = self.root + template
+                # On Windows, the regex won't compile if, e.g., there is a folder starting with "U" on the path.
+                # Converting to a POSIX path with forward slashes solves this.
+                template = self._root.as_posix() + template
                 to_rep = re.findall(r'{(.*?)\}', template)
                 for ent in to_rep:
                     patt = entities[ent].pattern
                     template = template.replace('{%s}' % ent, patt)
-                template += r'[^\%s]*$' % os.path.sep
+                # Avoid matching subfolders. We are working with POSIX paths here, so we explicitly use "/"
+                # as path separator.
+                template += r'[^/]*$'
                 matches = [
-                    f.dirname if absolute_paths else os.path.relpath(f.dirname, self.root)  # noqa: E501
+                    f.dirname if absolute_paths else str(f._dirname.relative_to(self._root))  # noqa: E501
                     for f in results
-                    if re.search(template, f.dirname)
+                    if re.search(template, f._dirname.as_posix())
                 ]
 
                 results = natural_sort(list(set(matches)))
@@ -730,10 +742,10 @@ class BIDSLayout(object):
         :obj:`bids.layout.BIDSFile` or None
             File found, or None if no match was found.
         """
-        filename = os.path.abspath(os.path.join(self.root, filename))
+        filename = self._root.joinpath(filename).absolute()
         for layout in self._get_layouts_in_scope(scope):
             result = layout.session.query(
-                BIDSFile).filter_by(path=filename).first()  # noqa: E501
+                BIDSFile).filter_by(path=str(filename)).first()  # noqa: E501
             if result:
                 return result
         return None
@@ -876,7 +888,7 @@ class BIDSLayout(object):
 
             query = (layout.session.query(Tag)
                      .join(BIDSFile)
-                     .filter(BIDSFile.path == path))
+                     .filter(BIDSFile.path == str(path)))
 
             if not include_entities:
                 query = query.join(Entity).filter(Tag.is_metadata == True)
@@ -942,7 +954,7 @@ class BIDSLayout(object):
         filters : dict
             Optional keywords to pass on to :obj:`bids.layout.BIDSLayout.get`.
         """
-        path = os.path.abspath(path)
+        path = Path(path).absolute()
 
         # Make sure we have a valid suffix
         if not filters.get('suffix'):
@@ -957,7 +969,7 @@ class BIDSLayout(object):
         # Collect matches for all entities
         entities = {}
         for ent in self.get_entities(metadata=False).values():
-            m = ent.regex.search(path)
+            m = ent.regex.search(str(path))
             if m:
                 entities[ent.name] = ent._astype(m.group(1))
 
@@ -972,14 +984,14 @@ class BIDSLayout(object):
         # Make a dictionary of directories --> contained files
         folders = defaultdict(list)
         for f in results:
-            folders[f.dirname].append(f)
+            folders[f._dirname].append(f)
 
         # Build list of candidate directories to check
         search_paths = []
         while True:
             if path in folders and folders[path]:
                 search_paths.append(path)
-            parent = os.path.dirname(path)
+            parent = path.parent
             if parent == path:
                 break
             path = parent
@@ -1050,6 +1062,7 @@ class BIDSLayout(object):
                 return None
 
     def _get_fieldmaps(self, path):
+        path = str(path)
         sub = self.parse_file_entities(path)['subject']
         fieldmap_set = []
         suffix = '(phase1|phasediff|epi|fieldmap)'
@@ -1059,7 +1072,9 @@ class BIDSLayout(object):
             metadata = self.get_metadata(file.path)
             if metadata and "IntendedFor" in metadata.keys():
                 intended_for = listify(metadata["IntendedFor"])
-                if any([path.endswith(_suff) for _suff in intended_for]):
+                # path uses local os separators while _suff read from json likely uses author's os separators, so we
+                # convert _suff to use local separators.
+                if any([path.endswith(str(Path(_suff))) for _suff in intended_for]):
                     cur_fieldmap = {}
                     if file.entities['suffix'] == "phasediff":
                         cur_fieldmap = {"phasediff": file.path,
@@ -1068,7 +1083,7 @@ class BIDSLayout(object):
                                         "suffix": "phasediff"}
                         magnitude2 = file.path.replace(
                             "phasediff", "magnitude2")
-                        if os.path.isfile(magnitude2):
+                        if Path(magnitude2).is_file():
                             cur_fieldmap['magnitude2'] = magnitude2
                     elif file.entities['suffix'] == "phase1":
                         cur_fieldmap["phase1"] = file.path
@@ -1183,7 +1198,7 @@ class BIDSLayout(object):
         if isinstance(source, str) or hasattr(source, 'is_file'):
             source = str(source)
             if source not in self.files:
-                source = os.path.join(self.root, source)
+                source = self._root / source
 
             source = self.get_file(source)
 
@@ -1206,7 +1221,7 @@ class BIDSLayout(object):
         if built is None:
             raise ValueError(
                 "Unable to construct build path with source {}".format(source))
-        to_check = os.path.join(os.path.sep, built)
+        to_check = Path('/').joinpath(built).as_posix()
 
         if validate and not BIDSValidator().is_bids(to_check):
             raise BIDSValidationError(
@@ -1219,7 +1234,9 @@ class BIDSLayout(object):
             absolute_paths = self.absolute_paths
 
         if absolute_paths:
-            built = os.path.join(self.root, built)
+            built = self._root / built  # type: pathlib.Path
+            # convert into a posix path for consistency with `writing.build_path`
+            built = built.as_posix()  # type: str
 
         return built
 
