@@ -14,11 +14,10 @@ _config_name = 'pybids_config.json'
 
 conf_path = str(Path(__file__).absolute().parent.joinpath('layout', 'config', '{}.json'))
 _default_settings = {
-    # XXX 0.14: Remove bids-nodot option (and file)
     'config_paths': {
-        name: conf_path.format(name) for name in ['bids', 'derivatives', 'bids-nodot']},
-    # XXX 0.14: Set to True
-    'extension_initial_dot': None,
+        name: conf_path.format(name) for name in ['bids', 'derivatives']},
+    # XXX 0.16: Remove
+    'extension_initial_dot': True,
 }
 
 
@@ -31,10 +30,14 @@ def set_option(key, value):
     """
     if key not in _settings:
         raise ValueError("Invalid pybids setting: '%s'" % key)
-    # XXX 0.14: Raise error
-    if (key, value) == ("extension_initial_dot", False):
-        warnings.warn("Setting 'extension_initial_dot' to False will be disabled in "
-                      "pybids 0.14", FutureWarning)
+    # XXX 0.16: Remove
+    elif key == "extension_initial_dot":
+        if value is not True:
+            raise ValueError(f"Cannot set {key!r} to {value!r} as of pybids 0.14. "
+                             "This setting is always True, and will be removed "
+                             "entirely in 0.16.")
+        warnings.warn("Setting 'extension_initial_dot' will be removed in pybids 0.16.",
+                      FutureWarning)
     _settings[key] = value
 
 

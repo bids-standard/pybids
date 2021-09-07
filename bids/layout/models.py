@@ -141,17 +141,6 @@ class Config(Base):
         A Config instance.
         """
 
-        # XXX 0.14: Disable extension_initial_dot branching
-        extension_initial_dot = get_option('extension_initial_dot')
-        if config == "bids" and not extension_initial_dot:
-            if extension_initial_dot is None:
-                warnings.warn("The 'extension' entity currently excludes the leading dot ('.'). "
-                              "As of version 0.14.0, it will include the leading dot. To suppress "
-                              "this warning and include the leading dot, use "
-                              "`bids.config.set_option('extension_initial_dot', True)`.",
-                              FutureWarning)
-            config = "bids-nodot"
-
         if isinstance(config, str):
             config_paths = get_option('config_paths')
             if config in config_paths:
@@ -166,15 +155,6 @@ class Config(Base):
         if session is not None:
             result = session.query(Config).filter_by(name=config['name']).first()
             if result:
-                # XXX 0.14: Remove check
-                if config["name"] == "bids":
-                    old_pattern = result.entities["extension"].pattern
-                    new_pattern = next(ent['pattern'] for ent in config['entities']
-                                       if ent['name'] == 'extension')
-                    if new_pattern != old_pattern:
-                        warnings.warn(
-                            "Cannot modify extension_initial_dot option after initialization. "
-                            "Set option immediately after ``import bids``.")
                 return result
 
         return Config(session=session, **config)
@@ -442,8 +422,7 @@ class BIDSDataFile(BIDSFile):
 
         data = self.data.copy()
 
-        # XXX 0.14: ".tsv.gz" only
-        if self.entities['extension'] in ('tsv.gz', '.tsv.gz'):
+        if self.entities['extension'] == '.tsv.gz':
             md = self.get_metadata()
             # We could potentially include some validation here, but that seems
             # like a job for the BIDS Validator.

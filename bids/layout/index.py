@@ -225,8 +225,6 @@ class BIDSLayoutIndexer:
     def _index_metadata(self):
         """Index metadata for all files in the BIDS dataset.
         """
-        dot = '.' if bids.config.get_option('extension_initial_dot') else ''
-
         filters = self.filters
 
         if filters:
@@ -237,10 +235,8 @@ class BIDSLayoutIndexer:
             if filters.get(ext_key):
                 filters[ext_key] = listify(filters[ext_key])
                 # ensure json files are being indexed
-                # XXX 0.14: dot always == '.'
-                json_ext = dot + 'json'
-                if json_ext not in filters[ext_key]:
-                    filters[ext_key].append(json_ext)
+                if '.json' not in filters[ext_key]:
+                    filters[ext_key].append('.json')
 
         # Process JSON files first if we're indexing metadata
         all_files = self._layout.get(absolute_paths=True, **filters)
@@ -287,7 +283,7 @@ class BIDSLayoutIndexer:
                     file_data[key] = defaultdict(list)
 
                 payload = None
-                if ext == dot + 'json':
+                if ext == '.json':
                     payload = partial(load_json, bf.path)
 
                 to_store = (file_ents, payload, bf.path)
@@ -328,7 +324,7 @@ class BIDSLayoutIndexer:
             # add the payload to the stack. Finally, we invert the
             # stack and merge the payloads in order.
             ext_key = "{}/{}".format(ext, suffix)
-            json_key = dot + "json/{}".format(suffix)
+            json_key = ".json/{}".format(suffix)
             dirname = bf._dirname
 
             payloads = []

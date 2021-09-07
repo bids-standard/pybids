@@ -28,7 +28,6 @@ def test_layout_init(layout_7t_trt):
     assert isinstance(layout_7t_trt.files, dict)
 
 
-@pytest.mark.parametrize("extension_initial_dot", (True, False))
 @pytest.mark.parametrize(
     'index_metadata,query,result',
     [
@@ -501,7 +500,7 @@ def test_parse_file_entities_from_layout(layout_synthetic):
 
     # Test with entities taken from bids config
     target = {'subject': '03', 'session': '07', 'run': 4, 'suffix': 'sekret',
-              'extension': 'nii.gz'}
+              'extension': '.nii.gz'}
     assert target == layout.parse_file_entities(filename, config='bids')
     config = Config.load('bids')
     assert target == layout.parse_file_entities(filename, config=[config])
@@ -509,7 +508,7 @@ def test_parse_file_entities_from_layout(layout_synthetic):
 
     # Test with default scope--i.e., everything
     target = {'subject': '03', 'session': '07', 'run': 4, 'suffix': 'sekret',
-              'desc': 'bleargh', 'extension': 'nii.gz'}
+              'desc': 'bleargh', 'extension': '.nii.gz'}
     assert target == layout.parse_file_entities(filename)
     # Test with only the fmriprep pipeline (which includes both configs)
     assert target == layout.parse_file_entities(filename, scope='fmriprep')
