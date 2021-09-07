@@ -57,6 +57,9 @@
       "orcid": "0000-0001-8435-6191"
     },
     {
+      "name": "Kalenkovich, Evgenii"
+    },
+    {
       "affiliation": "Institute for Problems of Information Transmission",
       "name": "Petrov, Dmitry"
     },
@@ -69,6 +72,11 @@
       "affiliation": "Center for Adaptive Rationality, Max Planck Institute for Human Development, Berlin, Germany",
       "name": "Appelhoff, Stefan",
       "orcid": "0000-0001-8002-0877"
+    },
+    {
+      "name": "Shashank Bansal",
+      "affiliation": "Stanford University",
+      "orcid": "0000-0002-1252-8772 "
     },
     {
       "affiliation": "Concordia University",
@@ -182,9 +190,6 @@
       "orcid": "0000-0002-2391-0678"
     },
     {
-      "name": "Kalenkovich, Evgenii"
-    },
-    {
       "affiliation": "Queen Mary University London",
       "name": "Staden, Isla",
       "orcid": "0000-0002-0795-1154"
@@ -251,11 +256,6 @@
       "affiliation": "Stanford University",
       "name": "Blair, Ross",
       "orcid": "0000-0003-3007-1056"
-    },
-    {
-      "name": "Shashank Bansal",
-      "affiliation": "Stanford University",
-      "orcid": "0000-0002-1252-8772 "
     },
     {
       "name": "Sundaravadivelu, Suganya"
