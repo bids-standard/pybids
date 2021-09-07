@@ -1,8 +1,8 @@
 Changelog
 =========
 
-Version 0.14.0 (September 07, 2021)
------------------------------------
+Version 0.14.0 (To be determined)
+---------------------------------
 
 New feature release in the 0.14.x series.
 
