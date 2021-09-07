@@ -1,0 +1,48 @@
+name: Packaging
+
+on:
+  push:
+    branches:
+      - master
+      - maint/*
+      - rel/*
+    tags:
+      - '*'
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  docs:
+    # Build packages and upload
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - python-version: 3.9
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: recursive
+          fetch-depth: 0
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Display Python version
+        run: python -c "import sys; print(sys.version)"
+      - name: Create virtual environment
+        run: tools/ci/create_venv.sh
+      - name: Install pybids
+        run: tools/ci/install_extras.sh
+        env:
+          EXTRA_PIP_FLAGS: doc
+      - name: Build documentation
+        run: |
+            source tools/ci/activate.sh
+            make -C doc html
+      - name: Upload docs as artifacts
+        uses: actions/upload-artifact@v2
+        with:
+            path: doc/_build/html
