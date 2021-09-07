@@ -1,6 +1,45 @@
 Changelog
 =========
 
+Version 0.14.0 (November 09, 2021)
+----------------------------------
+
+New feature release in the 0.14.x series.
+
+This release includes a significant refactor of BIDS Statistical Models,
+replacing the ``bids.analysis`` module with ``bids.modeling``.
+
+Changes to ``bids.layout`` are minimal, and we do not anticipate API breakage.
+
+* FIX: LGTM.com warning: Implicit string concatenation in a list (#785)
+* FIX: Take the intersection of variables and Model.X,
+  ignoring missing variables (usually contrasts) (#764)
+* FIX: Associate "is_metadata" with Tag, not Entity; and only return
+  non-metadata entries for core Entities in ``get(return_type='id')`` (#749)
+* FIX: Only include regressors if they are TSV (#752)
+* FIX: ensure force_dense=True runs to_dense only on sparse variables (#745)
+* FIX: get unique, with conflicting meta-data (#748)
+* FIX: Clean up some deprecation and syntax warnings (#738)
+* ENH: Add ``pybids upgrade`` command (#654)
+* ENH: Add Lag transformation (#759)
+* ENH: Use indirect transformations structure (#737)
+* ENH: Add visualization for statsmodel graph (#742)
+* ENH: Permit explicit intercept (1) in Contrasts and DummyContrasts (#743)
+* ENH: Add meta-analysis model type (#731)
+* ENH: Contrast type is now test (#733)
+* REF: Use pathlib.Path internally when possible (#746)
+* REF: Remove group_by from edges and add filter (#734)
+* REF: Improved/refactored StatsModels module (#722)
+* MNT: Make sure codespell skips .git when run locally (#787)
+* MNT: LGTM.com recommendations (#786)
+* MNT: Better codespell configuration (#782)
+* MNT: Constrain formulaic version to 0.2.x . (#784)
+* MNT: Update versioneer: 0.18 → 0.20 (#778)
+* MNT: Add "codespell" tool to CI checks to catch typos sooner (#776)
+* MNT: Disable bids-nodot mode (#769)
+* MNT: Send codecov reports again (#766)
+* MNT: Set minimum version to Python 3.6 (#739)
+
 Version 0.13.2 (August 20, 2021)
 --------------------------------
 
