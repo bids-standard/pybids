@@ -122,7 +122,7 @@ s
                 a single group over all columns of Z is assumed.
             sigma (2DArray): A k x k 2D covariance matrix specifying the
                 covariances between variance components. Currently unused.
-            names (list): Optional list specifying the names of the groups. 
+            names (list): Optional list specifying the names of the groups.
         """
 
         if sigma is not None:
@@ -167,7 +167,7 @@ s
             return None
         names, cols = zip(*[(c.name, c.values) for c in self.fixed_terms])
         return pd.DataFrame(np.c_[cols], columns=names)
-        
+
     @property
     def Z(self):
         """Return Z design matrix (i.e., random effects/variance components).
