@@ -142,7 +142,7 @@ def test_run_variable_collection_to_df_all_sparse_vars(run_coll):
     assert df.shape == (events_per_sub * 3 * 2, 9)
     assert set(df.columns) == timing_cols.union(entity_cols, condition, ampl)
 
-    # Wide format without entity columnns
+    # Wide format without entity columns
     df = run_coll.to_df(format='wide', entities=False)
     assert df.shape == (events_per_sub * 3, 10)
     assert set(df.columns) == timing_cols | cond_names
