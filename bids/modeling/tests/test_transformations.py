@@ -533,7 +533,7 @@ def test_resample(collection):
     transform.Resample(coll, 'pg_dense', 1)
     pg = coll.variables['pg_dense']
     new_shape = pg.values.shape
-    # Spacing (dx) is 10* larger when downsampled fro 10hz to 1hz
+    # Spacing (dx) is 10* larger when downsampled from 10hz to 1hz
     new_auc = np.trapz(np.abs(pg.values.values.squeeze()), dx=1)
 
     # Shape from 10hz to 1hz

@@ -214,7 +214,7 @@ s
             be present as columns in `df`. Output names will follow the
             conventions specified in the `formulaic` documentation. Note that
             only the right-hand part of the formula should be passed (i.e.,
-            pass "X1 * X2", not "y ~ X1 * X2"). If provided, willl take
+            pass "X1 * X2", not "y ~ X1 * X2"). If provided, will take
             precedence over any formula found in the `model`.
 
         Returns
