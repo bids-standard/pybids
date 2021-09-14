@@ -124,7 +124,7 @@ def test_run_variable_collection_to_df_all_sparse_vars(run_coll):
     # Wide format
     df = run_coll.to_df()
     events_per_sub = 256
-    assert df.shape == (events_per_sub * 3, 15) 
+    assert df.shape == (events_per_sub * 3, 15)
     assert set(df.columns) == timing_cols.union(entity_cols, cond_names)
 
     # Wide format, selecting variables by name
@@ -233,7 +233,7 @@ def test_run_variable_collection_bad_length_to_df_all_dense_vars(run_coll_bad_le
     cols = timing_cols | entity_cols | condition | ampl | md_names
     assert set(df.columns) == cols
 
-    # Test resampling to TR 
+    # Test resampling to TR
     df = unif_coll.to_df(sampling_rate='TR')
     n_rows = int(480 * 3 * 3 / 2) # (Note number of volumes is 480, not 480.1)
     assert df.shape == (n_rows, 18)

@@ -93,7 +93,7 @@ def validate_root(root, validate):
                     "\nExample contents of 'dataset_description.json': \n%s" %
                     json.dumps(EXAMPLE_BIDS_DESCRIPTION)
                 )
-            
+
             for k in MANDATORY_BIDS_FIELDS:
                 if k not in description:
                     raise BIDSValidationError(

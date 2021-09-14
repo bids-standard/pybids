@@ -483,7 +483,7 @@ class BIDSStatsModelsNode:
         edge : BIDSStatsModelsEdge
             An edge to add to the list of children.
         """
-        self.parents.append(edge)   
+        self.parents.append(edge)
 
     def add_collections(self, collections):
         """Add BIDSVariableCollections (i.e., predictors) to the current node.
@@ -624,7 +624,7 @@ class BIDSStatsModelsNodeOutput:
         var_names = list(set(self.node.model['x']) - {1})
 
         grp_dfs = []
-        # merge all collections at each level and export to a DataFrame 
+        # merge all collections at each level and export to a DataFrame
         for level, colls in coll_levels.items():
 
             # Note: we currently merge _before_ selecting variables. Selecting
