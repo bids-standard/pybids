@@ -7,7 +7,7 @@ __all__ = [
     'BIDSStatsModelsGraph',
     'BIDSStatsModelsNode',
     'BIDSStatsModelsNodeOutput',
-    'BIDSStatsModelsEdge'
+    'BIDSStatsModelsEdge',
     'auto_model',
     'TransformerManager'
 ]
