@@ -276,7 +276,7 @@ class BIDSLayout(object):
                     entities[name] = [ents[name]._astype(v) for v in val]
                 else:
                     entities[name] = ents[name]._astype(val)
-            except:
+            except Exception:
                 pass
         return entities
 
