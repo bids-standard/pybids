@@ -8,7 +8,6 @@ from functools import partial, lru_cache
 
 from bids_validator import BIDSValidator
 
-import bids.config
 from ..utils import listify, make_bidsfile
 from ..exceptions import BIDSConflictingValuesError
 

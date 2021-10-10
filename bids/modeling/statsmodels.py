@@ -10,8 +10,7 @@ import pandas as pd
 
 from bids.layout import BIDSLayout
 from bids.utils import matches_entities, convert_JSON, listify
-from bids.variables import (BIDSVariableCollection, SparseRunVariable,
-                            merge_collections)
+from bids.variables import (BIDSVariableCollection, merge_collections)
 from bids.modeling import transformations as tm
 from .model_spec import create_model_spec
 import warnings

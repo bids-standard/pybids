@@ -11,7 +11,6 @@ import numpy as np
 import pandas as pd
 
 from bids.utils import listify
-from bids.utils import matches_entities
 
 class BIDSVariable(metaclass=ABCMeta):
     """Base representation of a column in a BIDS project. """

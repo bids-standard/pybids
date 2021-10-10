@@ -1,13 +1,11 @@
 """BIDSLayout class."""
 import os
-import json
 import re
 from collections import defaultdict
 from io import open
 from functools import partial, lru_cache
 from itertools import chain
 import copy
-import warnings
 import enum
 import difflib
 from pathlib import Path
@@ -19,7 +17,6 @@ from bids_validator import BIDSValidator
 from ..utils import listify, natural_sort
 from ..external import inflect
 from ..exceptions import (
-    BIDSDerivativesValidationError,
     BIDSEntityError,
     BIDSValidationError,
     NoMatchError,
@@ -30,19 +27,10 @@ from .validation import (validate_root, validate_derivative_paths,
                          absolute_path_deprecation_warning,
                          indexer_arg_deprecation_warning)
 from .writing import build_path, write_to_file
-from .models import (Base, Config, BIDSFile, Entity, Tag)
+from .models import (Config, BIDSFile, Entity, Tag)
 from .index import BIDSLayoutIndexer
 from .db import ConnectionManager
 from .utils import (BIDSMetadata, parse_file_entities)
-
-try:
-    from os.path import commonpath
-except ImportError:
-    def commonpath(paths):
-        prefix = os.path.commonprefix(paths)
-        if not os.path.isdir(prefix):
-            prefix = os.path.dirname(prefix)
-        return prefix
 
 __all__ = ['BIDSLayout']
 

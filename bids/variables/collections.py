@@ -17,7 +17,7 @@ from .variables import (
     merge_variables,
     BIDSVariable,
 )
-from bids.utils import listify, matches_entities
+from bids.utils import listify
 
 
 class BIDSVariableCollection(object):

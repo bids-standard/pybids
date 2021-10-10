@@ -3,14 +3,11 @@ Database-related functionality.
 """
 
 from pathlib import Path
-import json
 import re
-import warnings
 import sqlite3
 from functools import lru_cache
 
 import sqlalchemy as sa
-from sqlalchemy.orm import joinedload
 
 from bids.utils import listify
 from .models import Base, Config, LayoutInfo
