@@ -15,6 +15,3 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - uses: codespell-project/actions-codespell@master
-        with:
-          skip: versioneer.py,external
-          ignore_words_list: complies,te,nwe,nin
