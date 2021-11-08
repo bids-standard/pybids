@@ -245,7 +245,7 @@ def fmap_info(layout, files, config):
     dir_str = parameters.describe_pe_direction(metadata, config)
     slice_str = parameters.describe_slice_timing(img, metadata)
     tr_str = parameters.describe_repetition_time(metadata)
-    te_str, me_str = parameters.describe_echo_times(files)
+    te_str = parameters.describe_echo_times_fmap(files)
     fa_str = parameters.describe_flip_angle(metadata)
     fov_str, matrixsize_str, voxelsize_str = parameters.describe_image_size(img)
     mb_str = parameters.describe_multiband_factor(metadata)
@@ -365,7 +365,9 @@ def parse_files(layout, data_files, sub, config):
             group_description = anat_info(layout, group, config)
         elif group[0].entities["datatype"] == "dwi":
             group_description = dwi_info(layout, group, config)
-        elif group[0].entities["datatype"] == "fmap":
+        elif (group[0].entities["datatype"] == "fmap") and group[0].entities[
+            "suffix"
+        ] == "phasediff":
             group_description = fmap_info(layout, group, config)
         description_list.append(group_description)
     return description_list

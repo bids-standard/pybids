@@ -91,6 +91,7 @@ def describe_echo_times(files):
     me_str : str
         Whether the data are multi-echo or single-echo.
     """
+
     echo_times = [f.get_metadata()["EchoTime"] for f in files]
     echo_times = sorted(list(set(echo_times)))
     if len(echo_times) > 1:
@@ -102,6 +103,33 @@ def describe_echo_times(files):
         me_str = "single-echo"
     te_str = "echo time, TE={}ms".format(te)
     return te_str, me_str
+
+
+def describe_echo_times_fmap(files):
+    """Generate description of echo times from metadata field for fmaps
+
+    Parameters
+    ----------
+    files : :obj:`list` of :obj:`bids.layout.models.BIDSFile`
+        List of nifti files in layout corresponding to file collection.
+
+    Returns
+    -------
+    te_str : str
+        Description of echo times.
+    """
+    # TODO handle all types of fieldmaps
+
+    echo_times1 = [f.get_metadata()["EchoTime1"] for f in files]
+    echo_times2 = [f.get_metadata()["EchoTime2"] for f in files]
+    echo_times1 = sorted(list(set(echo_times1)))
+    echo_times2 = sorted(list(set(echo_times2)))
+    if len(echo_times1) <= 1 and len(echo_times2) <= 1:
+        # if that's not the case we should probably throw a warning
+        # because we should expect the same echo times for all values
+        te1 = num_to_str(echo_times1[0] * 1000)
+        te2 = num_to_str(echo_times2[0] * 1000)
+    return "echo time 1 / 2, TE1/2={0}{1}ms".format(te1, te2)
 
 
 def describe_image_size(img):

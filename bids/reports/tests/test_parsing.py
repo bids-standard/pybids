@@ -72,6 +72,7 @@ def test_fmap_info_smoke(testlayout, testmeta, testconfig):
         subject="01",
         session="01",
         datatype="fmap",
+        suffix="phasediff",
         extension=[".nii.gz"],
     )
 
