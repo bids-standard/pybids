@@ -170,7 +170,7 @@ def dwi_info(layout, files, config):
     first_file = files[0]
     metadata = first_file.get_metadata()
     img = nib.load(first_file.path)
-    bval_file = first_file.replace(".nii.gz", ".bval").replace(".nii", ".bval")
+    bval_file = first_file.path.replace(".nii.gz", ".bval").replace(".nii", ".bval")
 
     # General info
     seqs, variants = parameters.describe_sequence(metadata, config)
