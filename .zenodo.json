@@ -57,6 +57,10 @@
       "orcid": "0000-0001-8435-6191"
     },
     {
+      "name": "Kalenkovich, Evgenii",
+      "orcid": "0000-0002-4606-4179"
+    },
+    {
       "affiliation": "Institute for Problems of Information Transmission",
       "name": "Petrov, Dmitry"
     },
@@ -71,6 +75,11 @@
       "orcid": "0000-0001-8002-0877"
     },
     {
+      "name": "Bansal, Shashank",
+      "affiliation": "Stanford University",
+      "orcid": "0000-0002-1252-8772 "
+    },
+    {
       "affiliation": "Concordia University",
       "name": "Hayot-Sasson, Val\u00e9rie",
       "orcid": "0000-0002-4830-4535"
@@ -79,6 +88,9 @@
       "affiliation": "National Institute of Mental Health",
       "name": "Nielson, Dylan M.",
       "orcid": "0000-0003-4613-6643"
+    },
+    {
+      "name": "Papadopoulos Orfanos, Dimitri"
     },
     {
       "affiliation": "MRC Cognition and Brain Sciences Unit",
@@ -182,9 +194,6 @@
       "orcid": "0000-0002-2391-0678"
     },
     {
-      "name": "Kalenkovich, Evgenii"
-    },
-    {
       "affiliation": "Queen Mary University London",
       "name": "Staden, Isla",
       "orcid": "0000-0002-0795-1154"
@@ -251,11 +260,6 @@
       "affiliation": "Stanford University",
       "name": "Blair, Ross",
       "orcid": "0000-0003-3007-1056"
-    },
-    {
-      "name": "Shashank Bansal",
-      "affiliation": "Stanford University",
-      "orcid": "0000-0002-1252-8772 "
     },
     {
       "name": "Sundaravadivelu, Suganya"
