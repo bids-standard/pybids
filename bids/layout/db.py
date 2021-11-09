@@ -3,14 +3,11 @@ Database-related functionality.
 """
 
 from pathlib import Path
-import json
 import re
-import warnings
 import sqlite3
 from functools import lru_cache
 
 import sqlalchemy as sa
-from sqlalchemy.orm import joinedload
 
 from bids.utils import listify
 from .models import Base, Config, LayoutInfo
@@ -79,9 +76,11 @@ class ConnectionManager:
                 'sqlite://',  # In memory database
                 connect_args={'check_same_thread': False},
                 poolclass=StaticPool)
-            
+
         def regexp(expr, item):
             """Regex function for SQLite's REGEXP."""
+            if not isinstance(item, str):
+                return False
             reg = re.compile(expr, re.I)
             return reg.search(item) is not None
 

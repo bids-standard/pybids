@@ -1,0 +1,68 @@
+name: Pre-release checks
+
+# This file tests against pre-release wheels for dependencies
+
+on:
+  push:
+    branches:
+      - master
+      - maint/*
+  pull_request:
+    branches:
+      - master
+      - maint/*
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  pre-release:
+    # Check pre-releases of dependencies on stable Python
+    runs-on: ${{ matrix.os }}
+    continue-on-error: true
+    strategy:
+      matrix:
+        os: ['ubuntu-latest', 'macos-latest']
+        python-version: [3.8, 3.9]
+        install: ['pip']
+        check: ['ci_tests']
+        pip-flags: ['PRE_PIP_FLAGS']
+    env:
+      INSTALL_TYPE: ${{ matrix.install }}
+      CHECK_TYPE: ${{ matrix.check }}
+      EXTRA_PIP_FLAGS: ${{ matrix.pip-flags }}
+      OS_TYPE: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: recursive
+          fetch-depth: 0
+      - name: Install dependencies
+        run: tools/ci/install_dependencies.sh
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Display Python version
+        run: python -c "import sys; print(sys.version)"
+      - name: Create virtual environment
+        run: tools/ci/create_venv.sh
+      - name: Build archive
+        run: |
+          source tools/ci/build_archive.sh
+          echo "ARCHIVE=$ARCHIVE" >> $GITHUB_ENV
+      - name: Install pybids
+        run: tools/ci/install.sh
+      - name: Install extras
+        run: tools/ci/install_extras.sh
+      - name: Run tests
+        run: |
+          source tools/ci/activate.sh
+          make $CHECK_TYPE
+        if: ${{ matrix.check != 'skiptests' }}
+      - uses: codecov/codecov-action@v1
+        with:
+          file: cov.xml
+        if: ${{ always() }}

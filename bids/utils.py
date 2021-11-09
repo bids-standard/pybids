@@ -2,6 +2,7 @@
 
 import re
 import os
+from pathlib import Path
 
 
 def listify(obj):
@@ -95,10 +96,8 @@ def make_bidsfile(filename):
     """Create a BIDSFile instance of the appropriate class. """
     from .layout import models
 
-    patt = re.compile("[._]*[a-zA-Z0-9]*?(\\.[^/\\\\]+)$")
-    m = re.search(patt, filename)
-
-    ext = '' if not m else m.group(1)
+    # Extract all extensions from filename (a.tar.gz -> .tar.gz, not just .gz)
+    ext = ''.join(Path(filename).suffixes)
 
     if ext.endswith(('.nii', '.nii.gz', '.gii')):
         cls = 'BIDSImageFile'

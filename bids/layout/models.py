@@ -55,7 +55,7 @@ class LayoutInfo(Base):
             setattr(self, col, json.loads(db_val))
 
     def _sanitize_init_args(self, kwargs):
-        """ Prepare initalization arguments for serialization """
+        """ Prepare initialization arguments for serialization """
         if 'root' in kwargs:
             kwargs['root'] = str(Path(kwargs['root']).absolute())
 
@@ -141,22 +141,11 @@ class Config(Base):
         A Config instance.
         """
 
-        # XXX 0.14: Disable extension_initial_dot branching
-        extension_initial_dot = get_option('extension_initial_dot')
-        if config == "bids" and not extension_initial_dot:
-            if extension_initial_dot is None:
-                warnings.warn("The 'extension' entity currently excludes the leading dot ('.'). "
-                              "As of version 0.14.0, it will include the leading dot. To suppress "
-                              "this warning and include the leading dot, use "
-                              "`bids.config.set_option('extension_initial_dot', True)`.",
-                              FutureWarning)
-            config = "bids-nodot"
-
         if isinstance(config, str):
             config_paths = get_option('config_paths')
             if config in config_paths:
                 config = config_paths[config]
-            if not os.path.exists(config):
+            if not Path(config).exists():
                 raise ValueError("{} is not a valid path.".format(config))
             else:
                 with open(config, 'r') as f:
@@ -166,15 +155,6 @@ class Config(Base):
         if session is not None:
             result = session.query(Config).filter_by(name=config['name']).first()
             if result:
-                # XXX 0.14: Remove check
-                if config["name"] == "bids":
-                    old_pattern = result.entities["extension"].pattern
-                    new_pattern = next(ent['pattern'] for ent in config['entities']
-                                       if ent['name'] == 'extension')
-                    if new_pattern != old_pattern:
-                        warnings.warn(
-                            "Cannot modify extension_initial_dot option after initialization. "
-                            "Set option immediately after ``import bids``.")
                 return result
 
         return Config(session=session, **config)
@@ -194,7 +174,7 @@ class BIDSFile(Base):
     filename = Column(String)
     dirname = Column(String)
     entities = association_proxy("tags", "value")
-    is_dir = Column(Boolean)
+    is_dir = Column(Boolean, index=True)
     class_ = Column(String(20))
 
     _associations = relationship('BIDSFile', secondary='associations',
@@ -207,10 +187,18 @@ class BIDSFile(Base):
     }
 
     def __init__(self, filename):
-        self.path = filename
-        self.filename = os.path.basename(self.path)
-        self.dirname = os.path.dirname(self.path)
+        self.path = str(filename)
+        self.filename = self._path.name
+        self.dirname = str(self._path.parent)
         self.is_dir = not self.filename
+
+    @property
+    def _path(self):
+        return Path(self.path)
+
+    @property
+    def _dirname(self):
+        return Path(self.dirname)
 
     def __getattr__(self, attr):
         # Ensures backwards compatibility with old File_ namedtuple, which is
@@ -261,12 +249,17 @@ class BIDSFile(Base):
         list
             A list of BIDSFile instances.
         """
-        if kind is None:
+        if kind is None and not include_parents:
             return self._associations
+
         session = object_session(self)
         q = (session.query(BIDSFile)
              .join(FileAssociation, BIDSFile.path == FileAssociation.dst)
-             .filter_by(kind=kind, src=self.path))
+             .filter_by(src=self.path))
+
+        if kind is not None:
+            q = q.filter_by(kind=kind)
+
         associations = q.all()
 
         if not include_parents:
@@ -278,7 +271,7 @@ class BIDSFile(Base):
                 results = collect_associations(results, p)
             return results
 
-        return chain(*[collect_associations([], bf) for bf in associations])
+        return list(chain(*[collect_associations([], bf) for bf in associations]))
 
     def get_metadata(self):
         """Return all metadata associated with the current file. """
@@ -314,8 +307,9 @@ class BIDSFile(Base):
         query = (session.query(Tag)
                  .filter_by(file_path=self.path)
                  .join(Entity))
+
         if metadata not in (None, 'all'):
-            query = query.filter(Entity.is_metadata == metadata)
+            query = query.filter(Tag.is_metadata == metadata)
 
         results = query.all()
         if values.startswith('obj'):
@@ -351,12 +345,12 @@ class BIDSFile(Base):
         if new_filename[-1] == os.sep:
             new_filename += self.filename
 
-        if os.path.isabs(self.path) or root is None:
-            path = self.path
+        if self._path.is_absolute() or root is None:
+            path = self._path
         else:
-            path = os.path.join(root, self.path)
+            path = Path(root) / self._path
 
-        if not os.path.exists(path):
+        if not path.exists():
             raise ValueError("Target filename to copy/symlink (%s) doesn't "
                              "exist." % path)
 
@@ -428,8 +422,7 @@ class BIDSDataFile(BIDSFile):
 
         data = self.data.copy()
 
-        # XXX 0.14: ".tsv.gz" only
-        if self.entities['extension'] in ('tsv.gz', '.tsv.gz'):
+        if self.entities['extension'] == '.tsv.gz':
             md = self.get_metadata()
             # We could potentially include some validation here, but that seems
             # like a job for the BIDS Validator.
@@ -512,10 +505,6 @@ class Entity(Base):
         one of 'int', 'float', 'bool', or 'str'. If None, no type
         enforcement will be attempted, which means the dtype of the
         value may be unpredictable.
-    is_metadata : bool
-        Indicates whether or not the Entity is derived
-        from JSON sidecars (True) or is a predefined Entity from a
-        config (False).
     """
     __tablename__ = 'entities'
 
@@ -523,17 +512,15 @@ class Entity(Base):
     mandatory = Column(Boolean, default=False)
     pattern = Column(String)
     directory = Column(String, nullable=True)
-    is_metadata = Column(Boolean, default=False)
     _dtype = Column(String, default='str')
     files = association_proxy("tags", "value")
 
     def __init__(self, name, pattern=None, mandatory=False, directory=None,
-                 dtype='str', is_metadata=False):
+                 dtype='str'):
         self.name = name
         self.pattern = pattern
         self.mandatory = mandatory
         self.directory = directory
-        self.is_metadata = is_metadata
 
         if not isinstance(dtype, str):
             dtype = dtype.__name__
@@ -635,6 +622,10 @@ class Tag(Base):
         value. If passed, must be one of str, int, float, bool, or json.
         Any other value will be treated as json (and will fail if the
         value can't be serialized to json).
+    is_metadata : bool
+        Indicates whether or not the Entity is derived
+        from JSON sidecars (True) or is a predefined Entity from a
+        config (False).
     """
     __tablename__ = 'tags'
 
@@ -642,18 +633,21 @@ class Tag(Base):
     entity_name = Column(String, ForeignKey('entities.name'), primary_key=True)
     _value = Column(String, nullable=False)
     _dtype = Column(String, default='str')
+    is_metadata = Column(Boolean, default=False)
+
 
     file = relationship('BIDSFile', backref=backref(
         "tags", collection_class=attribute_mapped_collection("entity_name")))
     entity = relationship('Entity', backref=backref(
         "tags", collection_class=attribute_mapped_collection("file_path")))
 
-    def __init__(self, file, entity, value, dtype=None):
+    def __init__(self, file, entity, value, dtype=None, is_metadata=False):
 
         if dtype is None:
             dtype = type(value)
 
         self.value = value
+        self.is_metadata = is_metadata
 
         if not isinstance(dtype, str):
             dtype = dtype.__name__

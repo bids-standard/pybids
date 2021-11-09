@@ -1,3 +1,6 @@
+import os
+import json
+from copy import deepcopy
 from pathlib import Path
 import click
 
@@ -30,7 +33,7 @@ def cli():
 @cli.command(context_settings=CONTEXT_SETTINGS)
 @click.argument('root', type=click.Path(file_okay=False, exists=True))
 @click.argument('db-path', type=click.Path(file_okay=False, resolve_path=True, exists=True))
-@click.option('--derivatives', multiple=True, default=False, show_default=True, flag_value=True,
+@click.option('--derivatives', multiple=True, default=[False], show_default=True, flag_value=True,
               help="Specifies whether and/or which derivatives to index.")
 @click.option('--reset-db', default=False, show_default=True, is_flag=True,
               help="Remove existing database index if present.")
@@ -95,3 +98,95 @@ def layout(
             "Previously generated database index found at {}. "
             "To generate a new index, rerun with ``--reset-db``".format(db_path)
         )
+
+
+@cli.command(context_settings=CONTEXT_SETTINGS)
+@click.argument('root', type=click.Path(file_okay=False, exists=True))
+def upgrade(root):
+    """
+    Upgrade common experimental BIDS features to finalized versions.
+    """
+
+    click.echo(
+        "WARNING. This upgrade tool is EXPERIMENTAL and MAY damage your "
+        "dataset. Please ensure you have a backup before proceeding."
+    )
+    click.confirm("Proceed?", abort=True)
+    changes = False
+
+    description_path = Path(root) / "dataset_description.json"
+    orig_desc = json.loads(description_path.read_text())
+    desc = upgrade_dataset_description(orig_desc)
+
+    if desc != orig_desc:
+        description_path.write_text(json.dumps(desc))
+        changes = True
+
+    val = click.prompt("Load dataset and update filenames?", default="Y",
+                       type=click.Choice("YN"))
+    if val == "Y":
+        upgrade_filenames(root, desc)
+
+    if changes:
+        click.echo("Upgrade complete. Please run the bids-validator "
+                   "(https://bids-standard.github.io/bids-validator) "
+                   "to confirm the correctness of the changes.")
+    else:
+        click.echo("No changes to make!")
+
+
+def upgrade_dataset_description(description):
+    """
+    Upgrade dataset_description.json with recommended values
+    """
+    description = deepcopy(description)
+
+    # Give an opportunity to update to latest version
+    bidsver = description.get("BIDSVersion")
+    if bidsver is None or bidsver < "1.6.0":
+        val = click.prompt(f"Update BIDS Version? (current: {bidsver})",
+                           default="1.6.0", type=str)
+        if val.startswith("1."):
+            description["BIDSVersion"] = val
+        else:
+            click.echo(f"Expected version to be 1.x, e.g., 1.6.0. Skipping.")
+
+    # Always update DatasetType if missing
+    if "DatasetType" not in description:
+        val = click.prompt("Is this dataset [r]aw or [d]erivative?", default="r",
+                           type=click.Choice(("r", "d"), case_sensitive=False))
+        description["DatasetType"] = "raw" if val == "R" else "derivative"
+
+    if description["DatasetType"] == "derivative":
+        if "PipelineDescription" in description:
+            val = click.prompt("Convert PipelineDescription to GeneratedBy?", default="Y",
+                               type=click.Choice("YN"))
+            if val == "Y":
+                description["GeneratedBy"] = [description.pop("PipelineDescription")]
+
+    return description
+
+
+def upgrade_filenames(root, description):
+    dstype = description["DatasetType"]
+    layout = BIDSLayout(root, validate=False,
+                        config="bids" if dstype == "raw" else "derivatives")
+
+    # Rename regressors.tsv to timeseries.tsv
+    regressors = layout.get(suffix="regressors")
+    policy = None
+    with click.progressbar(regressors) as bar:
+        for bidsfile in bar:
+            action = policy
+            new_path = bidsfile.path.replace("regressors.", "timeseries.")
+            if action is None:
+                action = click.prompt(
+                    f"Rename {bidsfile.path} to {new_path}? ([y]es/[n]o/[A]ll/[N]one)", default="y",
+                    type=click.Choice("ynAN"), show_choices=False)
+                if action in "AN":
+                    policy = action
+            if action in "yA":
+                click.echo(f"Renaming {bidsfile.path} -> {new_path}")
+                os.rename(bidsfile.path, new_path)
+            else:
+                click.echo(f"Not renaming {bidsfile.path}")
