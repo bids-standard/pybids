@@ -1,5 +1,7 @@
 import pytest
 import json
+import nibabel as nib
+
 from os.path import abspath, join
 
 from bids.layout import BIDSLayout
@@ -32,8 +34,7 @@ def testmeta():
         "ParallelReductionFactorInPlane": 2,
         "FlipAngle": 90,
         "PhaseEncodingDirection": "i",
-        "ScanningSequence": "EP_GR_IR_RM_SE",  # all sequences
-        "SequenceVariant": "MP_MTC_NONE_OSP_SK_SP_SS_TRSS",  # all variants
+        "SliceTiming": [0, 1, 2, 3]
     }
 
 
@@ -83,19 +84,19 @@ def test_describe_sequence(
 @pytest.mark.parametrize(
     "pe_direction, expected",
     [
-        ("i", "phase encoding: left to right"),
-        ("i-", "phase encoding: right to left"),
-        ("j", "phase encoding: posterior to anterior"),
-        ("j-", "phase encoding: anterior to posterior"),
-        ("k", "phase encoding: inferior to superior"),
-        ("k-", "phase encoding: superior to inferior"),
+        ("i", "left to right"),
+        ("i-", "right to left"),
+        ("j", "posterior to anterior"),
+        ("j-", "anterior to posterior"),
+        ("k", "inferior to superior"),
+        ("k-", "superior to inferior"),
     ],
 )
 def test_describe_pe_direction(pe_direction, expected, testconfig):
     """test for phase encoding direction description"""
     metadata = {"PhaseEncodingDirection": pe_direction}
     dir_str = parameters.describe_pe_direction(metadata, testconfig)
-    assert dir_str == expected
+    assert dir_str == "phase encoding: " + expected
 
 
 def test_bval_smoke(testlayout):
@@ -205,9 +206,6 @@ def test_describe_flip_angle_smoke(testmeta):
     assert mb_str == expected
 
 
-# TODO ([4, 1, 2, 3], "Unknown slice order: 2")
-
-
 @pytest.mark.parametrize(
     "slice_times, expected",
     [
@@ -215,10 +213,28 @@ def test_describe_flip_angle_smoke(testmeta):
         ([4, 3, 2, 1], "sequential descending"),
         ([1, 3, 2, 4], "interleaved ascending"),
         ([4, 2, 3, 1], "interleaved descending"),
-        # ([1, 1, 1, 1], "???"),
     ],
 )
 def test_get_slice_info(slice_times, expected):
 
     slice_order_name = parameters.get_slice_info(slice_times)
     assert slice_order_name == expected
+
+
+def test_get_slice_info(testlayout, testmeta, testmeta_light):
+
+    func_files = testlayout.get(
+        subject="01",
+        session="01",
+        task="nback",
+        run="01",
+        extension=[".nii.gz"],
+    )
+    img = nib.load(func_files[0].path)
+    slice_str = parameters.describe_slice_timing(img, testmeta)
+    expected = "4 slices in sequential ascending order"
+    assert slice_str == expected
+
+    slice_str = parameters.describe_slice_timing(img, testmeta_light)
+    expected = "64 slices"
+    assert slice_str == expected
