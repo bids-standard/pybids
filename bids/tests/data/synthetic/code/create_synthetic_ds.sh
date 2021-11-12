@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# small bash script to create a synthethic BIDS data set
+# small bash script to create a synthetic BIDS data set
 
 # defines where the BIDS data set will be created
 start_dir=$(pwd)

@@ -96,11 +96,11 @@ def test_describe_sequence(
     ScanningSequence, expected_seq, SequenceVariant, expected_var, testconfig
 ):
     """test for sequence and variant type description"""
-    meatadata = {
+    metadata = {
         "SequenceVariant": SequenceVariant,
         "ScanningSequence": ScanningSequence,
     }
-    seqs, variants = parameters.describe_sequence(meatadata, testconfig)
+    seqs, variants = parameters.describe_sequence(metadata, testconfig)
 
     assert seqs == expected_seq
     assert variants == expected_var
