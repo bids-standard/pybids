@@ -15,12 +15,14 @@ LOGGER = logging.getLogger("pybids.reports.parsing")
 
 def describe_slice_timing(img, metadata: dict) -> str:
     """Generate description of slice timing from metadata."""
+
     if "SliceTiming" in metadata.keys():
         slice_order = " in {0} order".format(get_slice_info(metadata["SliceTiming"]))
         n_slices = len(metadata["SliceTiming"])
     else:
         slice_order = ""
         n_slices = img.shape[2]
+
     slice_str = "{n_slices} slices{slice_order}".format(
         n_slices=n_slices, slice_order=slice_order
     )
@@ -31,19 +33,17 @@ def describe_repetition_time(metadata: dict):
     """Generate description of repetition time from metadata."""
     tr = metadata["RepetitionTime"] * 1000
     tr = num_to_str(tr)
-    tr_str = "repetition time, TR={tr}ms".format(tr=tr)
-    return tr_str
+    return "repetition time, TR={tr}ms".format(tr=tr)
 
 
-def describe_func_duration(n_vols: int, tr):
+def describe_func_duration(n_vols: int, tr) -> str:
     """Generate description of functional run length from repetition time and number of volumes."""
     run_secs = math.ceil(n_vols * tr)
     mins, secs = divmod(run_secs, 60)
-    duration = "{0}:{1:02.0f}".format(int(mins), int(secs))
-    return duration
+    return "{0}:{1:02.0f}".format(int(mins), int(secs))
 
 
-def describe_duration(files):
+def describe_duration(files) -> str:
     """Generate general description of scan length from files."""
     first_file = files[0]
     metadata = first_file.get_metadata()
@@ -67,13 +67,13 @@ def describe_duration(files):
     return dur_str
 
 
-def describe_multiband_factor(metadata):
+def describe_multiband_factor(metadata) -> str:
     """Generate description of the multi-band acceleration applied, if used."""
-    if metadata.get("MultibandAccelerationFactor", 1) > 1:
-        mb_str = "MB factor={}".format(metadata["MultibandAccelerationFactor"])
-    else:
-        mb_str = ""
-    return mb_str
+    return (
+        "MB factor={}".format(metadata["MultibandAccelerationFactor"])
+        if metadata.get("MultibandAccelerationFactor", 1) > 1
+        else ""
+    )
 
 
 def describe_echo_times(files):
@@ -153,18 +153,18 @@ def describe_image_size(img):
     return fov_str, matrixsize_str, voxelsize_str
 
 
-def describe_inplane_accel(metadata: dict):
+def describe_inplane_accel(metadata: dict) -> str:
     """Generate description of in-plane acceleration factor, if any."""
-    if metadata.get("ParallelReductionFactorInPlane", 1) > 1:
-        pr_str = "in-plane acceleration factor={}".format(
+    return (
+        "in-plane acceleration factor={}".format(
             metadata["ParallelReductionFactorInPlane"]
         )
-    else:
-        pr_str = ""
-    return pr_str
+        if metadata.get("ParallelReductionFactorInPlane", 1) > 1
+        else ""
+    )
 
 
-def describe_flip_angle(metadata: dict):
+def describe_flip_angle(metadata: dict) -> str:
     """Generate description of flip angle."""
     return "flip angle, FA={}<deg>".format(metadata.get("FlipAngle", "UNKNOWN"))
 
@@ -174,7 +174,7 @@ def describe_dmri_directions(img):
     return "{} diffusion directions".format(img.shape[3])
 
 
-def describe_bvals(bval_file):
+def describe_bvals(bval_file) -> str:
     """Generate description of dMRI b-values."""
     # Parse bval file
     with open(bval_file, "r") as file_object:
@@ -197,7 +197,7 @@ def describe_pe_direction(metadata: dict, config: dict) -> str:
     return dir_str
 
 
-def describe_intendedfor_targets(metadata: dict, layout):
+def describe_intendedfor_targets(metadata: dict, layout) -> str:
     """Generate description of intended for targets."""
     if "IntendedFor" in metadata.keys():
         scans = metadata["IntendedFor"]
