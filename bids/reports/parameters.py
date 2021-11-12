@@ -16,17 +16,16 @@ LOGGER = logging.getLogger("pybids.reports.parsing")
 def describe_slice_timing(img, metadata: dict) -> str:
     """Generate description of slice timing from metadata."""
 
-    if "SliceTiming" in metadata.keys():
+    if "SliceTiming" in metadata:
         slice_order = " in {0} order".format(get_slice_info(metadata["SliceTiming"]))
         n_slices = len(metadata["SliceTiming"])
     else:
         slice_order = ""
         n_slices = img.shape[2]
 
-    slice_str = "{n_slices} slices{slice_order}".format(
+    return "{n_slices} slices{slice_order}".format(
         n_slices=n_slices, slice_order=slice_order
     )
-    return slice_str
 
 
 def describe_repetition_time(metadata: dict):
@@ -47,9 +46,11 @@ def describe_duration(files) -> str:
     """Generate general description of scan length from files."""
     first_file = files[0]
     metadata = first_file.get_metadata()
+
     tr = metadata["RepetitionTime"]
     imgs = [nib.load(f) for f in files]
     n_vols = [img.shape[3] for img in imgs]
+
     if len(set(n_vols)) > 1:
         min_vols = min(n_vols)
         max_vols = max(n_vols)
@@ -57,6 +58,7 @@ def describe_duration(files) -> str:
         max_dur = describe_func_duration(max_vols, tr)
         dur_str = "{}-{}".format(min_dur, max_dur)
         n_vols = "{}-{}".format(min_vols, max_vols)
+        
     else:
         n_vols = n_vols[0]
         dur_str = describe_func_duration(n_vols, tr)
@@ -147,9 +149,11 @@ def describe_image_size(img):
     voxelsize_str
     """
     vs_str, ms_str, fov_str = get_size_str(img)
+
     fov_str = "field of view, FOV={}mm".format(fov_str)
     voxelsize_str = "voxel size={}mm".format(vs_str)
     matrixsize_str = "matrix size={}".format(ms_str)
+
     return fov_str, matrixsize_str, voxelsize_str
 
 
@@ -200,8 +204,10 @@ def describe_pe_direction(metadata: dict, config: dict) -> str:
 def describe_intendedfor_targets(metadata: dict, layout) -> str:
     """Generate description of intended for targets."""
     if "IntendedFor" in metadata.keys():
+
         scans = metadata["IntendedFor"]
         run_dict = {}
+
         for scan in scans:
             fn = op.basename(scan)
             if_file = [
@@ -209,6 +215,7 @@ def describe_intendedfor_targets(metadata: dict, layout) -> str:
             ][0]
             run_num = int(if_file.run)
             target_type = if_file.entities["suffix"].upper()
+
             if target_type == "BOLD":
                 iff_meta = layout.get_metadata(if_file.path)
                 task = iff_meta.get("TaskName", if_file.entities["task"])
@@ -218,6 +225,7 @@ def describe_intendedfor_targets(metadata: dict, layout) -> str:
 
             if target_type_str not in run_dict.keys():
                 run_dict[target_type_str] = []
+
             run_dict[target_type_str].append(run_num)
 
         for scan in run_dict.keys():
@@ -226,17 +234,23 @@ def describe_intendedfor_targets(metadata: dict, layout) -> str:
             ]
 
         out_list = []
+
         for scan in run_dict.keys():
+
             if len(run_dict[scan]) > 1:
                 s = "s"
             else:
                 s = ""
+
             run_str = list_to_str(run_dict[scan])
             string = "{rs} run{s} of the {sc}".format(rs=run_str, s=s, sc=scan)
             out_list.append(string)
+
         for_str = " for the {0}".format(list_to_str(out_list))
+
     else:
         for_str = ""
+
     return for_str
 
 
@@ -263,13 +277,17 @@ def get_slice_info(slice_times) -> str:
 
     if slice_order == list(range(len(slice_order))):
         slice_order_name = "sequential ascending"
+
     elif slice_order == list(reversed(range(len(slice_order)))):
         slice_order_name = "sequential descending"
+
     elif slice_order[0] < slice_order[1]:
         # We're allowing some wiggle room on interleaved.
         slice_order_name = "interleaved ascending"
+
     elif slice_order[0] > slice_order[1]:
         slice_order_name = "interleaved descending"
+
     else:
         slice_order = [str(s) for s in slice_order]
         raise Exception("Unknown slice order: [{0}]".format(", ".join(slice_order)))
@@ -297,14 +315,16 @@ def describe_sequence(metadata: dict, config: dict):
     """
     seq_abbrs = metadata.get("ScanningSequence", "").split("_")
     seqs = [config["seq"].get(seq, seq) for seq in seq_abbrs]
+    seqs = list_to_str(seqs)
+    if seq_abbrs[0]:
+        seqs += " ({0})".format(os.path.sep.join(seq_abbrs))
+
     variants = [
         config["seqvar"].get(var, var)
         for var in metadata.get("SequenceVariant", "").split("_")
     ]
-    seqs = list_to_str(seqs)
-    if seq_abbrs[0]:
-        seqs += " ({0})".format(os.path.sep.join(seq_abbrs))
     variants = list_to_str(variants)
+
     return seqs, variants
 
 
@@ -328,9 +348,14 @@ def get_size_str(img):
     n_x, n_y = img.shape[:2]
     import numpy as np
 
-    voxel_dims = np.array(img.header.get_zooms()[:3])
     matrix_size = "{0}x{1}".format(num_to_str(n_x), num_to_str(n_y))
+
+    voxel_dims = np.array(img.header.get_zooms()[:3])
+
     voxel_size = "x".join([num_to_str(s) for s in voxel_dims])
+    
+    
     fov = [n_x, n_y] * voxel_dims[:2]
     fov = "x".join([num_to_str(s) for s in fov])
+
     return voxel_size, matrix_size, fov

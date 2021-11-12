@@ -34,7 +34,7 @@ def testmeta():
         "ParallelReductionFactorInPlane": 2,
         "FlipAngle": 90,
         "PhaseEncodingDirection": "i",
-        "SliceTiming": [0, 1, 2, 3]
+        "SliceTiming": [0, 1, 2, 3],
     }
 
 
@@ -238,3 +238,22 @@ def test_get_slice_info(testlayout, testmeta, testmeta_light):
     slice_str = parameters.describe_slice_timing(img, testmeta_light)
     expected = "64 slices"
     assert slice_str == expected
+
+
+def test_get_size_str(testlayout):
+
+    func_files = testlayout.get(
+        subject="01",
+        session="01",
+        task="nback",
+        run="01",
+        extension=[".nii.gz"],
+    )
+    img = nib.load(func_files[0].path)
+    voxel_size, matrix_size, fov = parameters.get_size_str(img)
+    expected_vox = "2x2x2"
+    expected_mat = "64x64"
+    expected_fov = "128x128"
+    assert voxel_size == expected_vox
+    assert matrix_size == expected_mat
+    assert fov == expected_fov
