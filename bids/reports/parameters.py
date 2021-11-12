@@ -260,9 +260,10 @@ def get_slice_info(slice_times):
     # Slice order
     slice_times = remove_duplicates(slice_times)
     slice_order = sorted(range(len(slice_times)), key=lambda k: slice_times[k])
-    if slice_order == range(len(slice_order)):
+
+    if slice_order == list(range(len(slice_order))):
         slice_order_name = "sequential ascending"
-    elif slice_order == reversed(range(len(slice_order))):
+    elif slice_order == list(reversed(range(len(slice_order)))):
         slice_order_name = "sequential descending"
     elif slice_order[0] < slice_order[1]:
         # We're allowing some wiggle room on interleaved.
