@@ -17,6 +17,31 @@ def testlayout():
 
 
 @pytest.fixture
+def testimg(testlayout):
+
+    func_files = testlayout.get(
+        subject="01",
+        session="01",
+        task="nback",
+        run="01",
+        extension=[".nii.gz"],
+    )
+    return nib.load(func_files[0].path)
+
+
+@pytest.fixture
+def testdiffimg(testlayout):
+
+    dwi_files = testlayout.get(
+        subject="01",
+        session="01",
+        datatype="dwi",
+        extension=[".nii.gz"],
+    )
+    return nib.load(dwi_files[0].path)
+
+
+@pytest.fixture
 def testconfig():
     config_file = abspath(
         join(get_test_data_path(), "../../reports/config/converters.json")
@@ -99,7 +124,7 @@ def test_describe_pe_direction(pe_direction, expected, testconfig):
     assert dir_str == "phase encoding: " + expected
 
 
-def test_bval_smoke(testlayout):
+def test_describe_bvals_smoke(testlayout):
     """Smoke test for parsing _dwi.bval
 
     It should return a str description when provided valid inputs.
@@ -221,39 +246,41 @@ def test_get_slice_info(slice_times, expected):
     assert slice_order_name == expected
 
 
-def test_get_slice_info(testlayout, testmeta, testmeta_light):
+def test_describe_slice_timing(testimg, testmeta, testmeta_light):
 
-    func_files = testlayout.get(
-        subject="01",
-        session="01",
-        task="nback",
-        run="01",
-        extension=[".nii.gz"],
-    )
-    img = nib.load(func_files[0].path)
-    slice_str = parameters.describe_slice_timing(img, testmeta)
+    slice_str = parameters.describe_slice_timing(testimg, testmeta)
     expected = "4 slices in sequential ascending order"
     assert slice_str == expected
 
-    slice_str = parameters.describe_slice_timing(img, testmeta_light)
+    slice_str = parameters.describe_slice_timing(testimg, testmeta_light)
     expected = "64 slices"
     assert slice_str == expected
 
 
-def test_get_size_str(testlayout):
+def test_get_size_str(testimg):
 
-    func_files = testlayout.get(
-        subject="01",
-        session="01",
-        task="nback",
-        run="01",
-        extension=[".nii.gz"],
-    )
-    img = nib.load(func_files[0].path)
-    voxel_size, matrix_size, fov = parameters.get_size_str(img)
+    voxel_size, matrix_size, fov = parameters.get_size_str(testimg)
     expected_vox = "2x2x2"
     expected_mat = "64x64"
     expected_fov = "128x128"
     assert voxel_size == expected_vox
     assert matrix_size == expected_mat
     assert fov == expected_fov
+
+
+def test_describe_image_size(testimg):
+
+    fov_str, matrixsize_str, voxelsize_str = parameters.describe_image_size(testimg)
+    expected_vox = "voxel size=2x2x2mm"
+    expected_mat = "matrix size=64x64"
+    expected_fov = "field of view, FOV=128x128mm"
+    assert voxelsize_str == expected_vox
+    assert matrixsize_str == expected_mat
+    assert fov_str == expected_fov
+
+
+def test_describe_dmri_directions(testdiffimg):
+
+    dif_dir_str = parameters.describe_dmri_directions(testdiffimg)
+    expected = "64 diffusion directions"
+    assert dif_dir_str == expected
