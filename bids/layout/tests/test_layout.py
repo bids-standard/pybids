@@ -5,6 +5,8 @@ import os
 import re
 from os.path import join, abspath, basename
 from pathlib import Path
+import shutil
+import json
 
 import numpy as np
 import pytest
@@ -26,7 +28,6 @@ def test_layout_init(layout_7t_trt):
     assert isinstance(layout_7t_trt.files, dict)
 
 
-@pytest.mark.parametrize("extension_initial_dot", (True, False))
 @pytest.mark.parametrize(
     'index_metadata,query,result',
     [
@@ -50,6 +51,25 @@ def test_index_metadata(index_metadata, query, result, mock_config):
 def test_layout_repr(layout_7t_trt):
     assert "Subjects: 10 | Sessions: 20 | Runs: 20" in str(layout_7t_trt)
 
+
+def test_invalid_dataset_description(tmp_path):
+    shutil.copytree(join(get_test_data_path(), '7t_trt'), tmp_path / "7t_dset")
+    (tmp_path / "7t_dset" / "dataset_description.json").write_text(
+        "I am not a valid json file"
+    )
+    with pytest.raises(BIDSValidationError) as exc:
+        BIDSLayout(tmp_path / "7t_dset")
+
+    assert "is not a valid json file" in str(exc.value)
+
+
+def test_layout_repr_overshadow_run(tmp_path):
+    """A test creating a layout to replicate #681."""
+    shutil.copytree(join(get_test_data_path(), '7t_trt'), tmp_path / "7t_trt")
+    (tmp_path / "7t_trt" / "sub-01" / "ses-1" / "sub-01_ses-1_scans.json").write_text(
+        json.dumps({"run": {"Description": "metadata to cause #681"}})
+    )
+    assert "Subjects: 10 | Sessions: 20 | Runs: 20" in str(BIDSLayout(tmp_path / "7t_trt"))
 
 # def test_layout_copy(layout_7t_trt):
 #     # Largely a smoke test to guarantee that copy() does not blow
@@ -480,7 +500,7 @@ def test_parse_file_entities_from_layout(layout_synthetic):
 
     # Test with entities taken from bids config
     target = {'subject': '03', 'session': '07', 'run': 4, 'suffix': 'sekret',
-              'extension': 'nii.gz'}
+              'extension': '.nii.gz'}
     assert target == layout.parse_file_entities(filename, config='bids')
     config = Config.load('bids')
     assert target == layout.parse_file_entities(filename, config=[config])
@@ -488,7 +508,7 @@ def test_parse_file_entities_from_layout(layout_synthetic):
 
     # Test with default scope--i.e., everything
     target = {'subject': '03', 'session': '07', 'run': 4, 'suffix': 'sekret',
-              'desc': 'bleargh', 'extension': 'nii.gz'}
+              'desc': 'bleargh', 'extension': '.nii.gz'}
     assert target == layout.parse_file_entities(filename)
     # Test with only the fmriprep pipeline (which includes both configs)
     assert target == layout.parse_file_entities(filename, scope='fmriprep')
@@ -572,20 +592,30 @@ def test_indexed_file_associations(layout_7t_trt):
                             acquisition='fullbrain', extension='.nii.gz')[0]
     assocs = img.get_associations()
     assert len(assocs) == 3
-    targets = [
+    targets = {
         os.path.join(layout_7t_trt.root,
                      'sub-01/ses-1/fmap/sub-01_ses-1_run-1_phasediff.nii.gz'),
         os.path.join(
             img.dirname,
             'sub-01_ses-1_task-rest_acq-fullbrain_run-1_physio.tsv.gz'),
-        os.path.join(layout_7t_trt.root, 'task-rest_acq-fullbrain_bold.json')
-    ]
+        os.path.join(
+            img.dirname,
+            'sub-01_ses-1_task-rest_acq-fullbrain_run-1_bold.json'
+        )
+    }
     assert set([a.path for a in assocs]) == set(targets)
 
-    js = [a for a in assocs if a.path.endswith('json')][0]
-    assert len(js.get_associations()) == 41
+    # Test with parents included
+    targets.add(os.path.join(layout_7t_trt.root, 'task-rest_acq-fullbrain_bold.json'))
+    assocs = img.get_associations(include_parents=True)
+    assert len(assocs) == 4
+    assert set([a.path for a in assocs]) == set(targets)
+
+    # Get the root-level JSON and check that its associations are correct
+    js = [a for a in assocs if a.path.endswith('json')][1]
+    assert len(js.get_associations()) == 40
     assert len(js.get_associations('Parent')) == 1
-    assert len(js.get_associations('Metadata')) == 40
+    assert len(js.get_associations('Metadata')) == 39
     assert not js.get_associations('InformedBy')
 
 

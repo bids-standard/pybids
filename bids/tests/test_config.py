@@ -55,23 +55,18 @@ def test_set_option():
 def test_extension_initial_dot(mock_config):
     ds117 = os.path.join(get_test_data_path(), 'ds000117')
 
-    # Warn if creating a layout without declaring a mode
-    bids.config.set_option('extension_initial_dot', None)
-    with pytest.warns(FutureWarning, match='To suppress this warning'):
-        layout = bids.BIDSLayout(ds117)
-    assert layout.get(extension='nii.gz')[0].entities['extension'] == 'nii.gz'
-
-    # Warn if setting the mode to False... this isn't sticking around
-    with pytest.warns(FutureWarning, match='will be disabled'):
+    # Setting False is disabled
+    with pytest.raises(ValueError, match='Cannot set'):
         bids.config.set_option('extension_initial_dot', False)
-    with pytest.warns(None) as record:
-        layout = bids.BIDSLayout(ds117)
-    assert len(record) == 0
-    assert layout.get(extension='nii.gz')[0].entities['extension'] == 'nii.gz'
+    with pytest.raises(ValueError, match='Cannot set'):
+        bids.config.set_option('extension_initial_dot', None)
 
-    # No warnings to move to dot mode
-    with pytest.warns(None) as record:
+    # Setting True warns
+    with pytest.warns(FutureWarning, match='will be removed'):
         bids.config.set_option('extension_initial_dot', True)
+
+    # No warnings on layout construction
+    with pytest.warns(None) as record:
         layout = bids.BIDSLayout(ds117)
     assert len(record) == 0
     assert layout.get(extension='nii.gz')[0].entities['extension'] == '.nii.gz'

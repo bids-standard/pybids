@@ -1,6 +1,5 @@
 """ Tools for reading/writing BIDS data files. """
 
-from os.path import join
 import warnings
 import json
 
@@ -93,7 +92,7 @@ def load_variables(layout, types=None, levels=None, skip_empty=True,
         dataset = _load_time_variables(layout, dataset, scope=scope, **_kwargs)
 
     for t in ({'scans', 'sessions', 'participants'} & set(types)):
-        kwargs.pop('suffix', None) # suffix is always one of values aboves
+        kwargs.pop('suffix', None) # suffix is always one of values above
         dataset = _load_tsv_variables(layout, t, dataset, scope=scope,
                                       **kwargs)
 
@@ -205,6 +204,7 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
         except Exception as e:
             if scan_length is not None:
                 duration = scan_length
+                nvols = int(np.rint(scan_length / tr))
             else:
                 msg = ("Unable to extract scan duration from one or more "
                        "BOLD runs, and no scan_length argument was provided "
@@ -247,7 +247,8 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
             }
 
             run = dataset.create_node('run', entities, image_file=img_f,
-                                      duration=duration, repetition_time=tr)
+                                      duration=duration, repetition_time=tr,
+                                      n_vols=nvols)
             run_info = run.get_info()
 
         # Process event files
@@ -301,7 +302,8 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
         if regressors:
             sub_ents = {k: v for k, v in entities.items()
                         if k in BASE_ENTITIES}
-            confound_files = layout.get(suffix='regressors', scope=scope,
+            confound_files = layout.get(suffix=['regressors', 'timeseries'],
+                                        scope=scope, extension='.tsv',
                                         **sub_ents)
             for cf in confound_files:
                 _data = pd.read_csv(cf.path, sep='\t', na_values='n/a')
@@ -442,8 +444,8 @@ def _load_tsv_variables(layout, suffix, dataset=None, columns=None,
 
             image = _data['filename']
             _data = _data.drop('filename', axis=1)
-            dn = f.dirname
-            paths = [join(dn, p) for p in image.values]
+            dn = f._dirname
+            paths = [str(dn / p) for p in image.values]
             ent_recs = [dict(layout.files[p].entities) for p in paths
                         if p in layout.files]
             ent_cols = pd.DataFrame.from_records(ent_recs)
@@ -497,7 +499,7 @@ def _load_tsv_variables(layout, suffix, dataset=None, columns=None,
 
         for col_name in amp_cols:
 
-            # Rename colummns: values must be in 'amplitude'
+            # Rename columns: values must be in 'amplitude'
             df = _data.loc[:, [col_name] + ent_cols]
             df.columns = ['amplitude'] + ent_cols
 

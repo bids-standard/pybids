@@ -437,7 +437,7 @@ def test_is_subject_false(testvalidator):
 #         "/sub-01/ses-test/func/sub-01_ses_test_task-task_rec-rec_defacemask.nii",  # wrong ses_test
 #         "/sub-01/ses-test/func/sub-01_task-task_rec-rec_run-01_bold.nii.gz", # missed session suffix and id in the filename
 #         "/sub-01/ses-test/func/ses-test_task-task_rec-rec_run-01_bold.nii", # missed subject suffix and id in the filename
-#         "/sub-01/ses-retest/func/sub-01_ses-test_task-task_rec-rec_run-01_sbref.nii.gz", # wrong session id in teh filename
+#         "/sub-01/ses-retest/func/sub-01_ses-test_task-task_rec-rec_run-01_sbref.nii.gz", # wrong session id in the filename
 #         "/sub-01/ses-test/func/sub-02_ses-test_task-task_rec-rec_run-01_sbref.json", # wrong subject id in the filename
 #         "/sub-01/ses-test/func/sub-01_ses-test_task-task_rec-rec_run-01.json",  # missed modality
 #         "/sub-01/ses-test/func/sub-01_ses-test_task-task_rec-rec_run-01_events",  # missed extension

@@ -56,7 +56,7 @@
         {
             "modality": "func",
             "session": "wave2",
-            "type": "bold", 
+            "type": "bold",
             "task": "gng",
             "runs": 2
         },
