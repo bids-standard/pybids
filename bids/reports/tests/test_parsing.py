@@ -63,7 +63,7 @@ def test_dwi_info_smoke(testlayout, testconfig):
     assert isinstance(desc, str)
 
 
-def test_fmap_info_smoke(testlayout, testmeta, testconfig):
+def test_fmap_info_smoke(testlayout, testconfig):
     """Smoke test for parsing.fmap_info.
 
     It should return a str description when provided valid inputs.
