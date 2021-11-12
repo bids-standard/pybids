@@ -5,7 +5,7 @@
     "EchoTime2": 0.007650,
     "IntendedFor": [
         "ses-01/func/sub-01_ses-01_task-nback_run-01_bold.nii.gz",
-        "ses-01/func/sub-01_ses-01_task-nback_run-01_bold.nii.gz"
+        "ses-01/func/sub-01_ses-01_task-nback_run-02_bold.nii.gz"
     ],
     "PhaseEncodingDirection": "j-"
 }

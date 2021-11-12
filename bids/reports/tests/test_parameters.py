@@ -284,3 +284,19 @@ def test_describe_dmri_directions(testdiffimg):
     dif_dir_str = parameters.describe_dmri_directions(testdiffimg)
     expected = "64 diffusion directions"
     assert dif_dir_str == expected
+
+
+def test_describe_intendedfor_targets(testmeta_light, testlayout):
+
+    for_str = parameters.describe_intendedfor_targets(testmeta_light, testlayout)
+    assert for_str == ""
+
+    fmap_files = testlayout.get(
+        subject="01",
+        session="01",
+        suffix="phasediff",
+        extension=[".nii.gz"],
+    )
+    metadata = fmap_files[0].get_metadata()
+    for_str = parameters.describe_intendedfor_targets(metadata, testlayout)
+    assert for_str == " for the first and second runs of the N-Back BOLD scan"

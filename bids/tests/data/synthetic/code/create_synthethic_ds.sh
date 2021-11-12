@@ -62,7 +62,7 @@ create_raw_fmap() {
 
 	task_name='nback'
 	IntendedFor1="$(echo ses-${ses}/func/sub-${subject}_ses-${ses}_task-${task_name}_run-01${suffix}.nii.gz)"
-	IntendedFor2="$(echo ses-${ses}/func/sub-${subject}_ses-${ses}_task-${task_name}_run-01${suffix}.nii.gz)"
+	IntendedFor2="$(echo ses-${ses}/func/sub-${subject}_ses-${ses}_task-${task_name}_run-02${suffix}.nii.gz)"
 	json_string=$(printf "$template" "$FlipAngle" "$RepetitionTime" "$EchoTime1" "$EchoTime2" "$IntendedFor1" "$IntendedFor2")
 	echo "$json_string" >${this_dir}/sub-${subject}_ses-${ses}_phasediff.json
 	echo "$json_string" >${this_dir}/sub-${subject}_ses-${ses}_phasediff.json
