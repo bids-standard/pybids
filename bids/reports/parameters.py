@@ -13,7 +13,7 @@ logging.basicConfig()
 LOGGER = logging.getLogger("pybids.reports.parsing")
 
 
-def describe_slice_timing(img, metadata):
+def describe_slice_timing(img, metadata: dict) -> str:
     """Generate description of slice timing from metadata."""
     if "SliceTiming" in metadata.keys():
         slice_order = " in {0} order".format(get_slice_info(metadata["SliceTiming"]))
@@ -27,7 +27,7 @@ def describe_slice_timing(img, metadata):
     return slice_str
 
 
-def describe_repetition_time(metadata):
+def describe_repetition_time(metadata: dict):
     """Generate description of repetition time from metadata."""
     tr = metadata["RepetitionTime"] * 1000
     tr = num_to_str(tr)
@@ -35,7 +35,7 @@ def describe_repetition_time(metadata):
     return tr_str
 
 
-def describe_func_duration(n_vols, tr):
+def describe_func_duration(n_vols: int, tr):
     """Generate description of functional run length from repetition time and number of volumes."""
     run_secs = math.ceil(n_vols * tr)
     mins, secs = divmod(run_secs, 60)
@@ -153,7 +153,7 @@ def describe_image_size(img):
     return fov_str, matrixsize_str, voxelsize_str
 
 
-def describe_inplane_accel(metadata):
+def describe_inplane_accel(metadata: dict):
     """Generate description of in-plane acceleration factor, if any."""
     if metadata.get("ParallelReductionFactorInPlane", 1) > 1:
         pr_str = "in-plane acceleration factor={}".format(
@@ -164,7 +164,7 @@ def describe_inplane_accel(metadata):
     return pr_str
 
 
-def describe_flip_angle(metadata):
+def describe_flip_angle(metadata: dict):
     """Generate description of flip angle."""
     return "flip angle, FA={}<deg>".format(metadata.get("FlipAngle", "UNKNOWN"))
 
@@ -190,14 +190,14 @@ def describe_bvals(bval_file):
     return bval_str
 
 
-def describe_pe_direction(metadata, config):
+def describe_pe_direction(metadata: dict, config: dict) -> str:
     """Generate description of phase encoding direction."""
     dir_str = config["dir"][metadata["PhaseEncodingDirection"]]
     dir_str = "phase encoding: {}".format(dir_str)
     return dir_str
 
 
-def describe_intendedfor_targets(metadata, layout):
+def describe_intendedfor_targets(metadata: dict, layout):
     """Generate description of intended for targets."""
     if "IntendedFor" in metadata.keys():
         scans = metadata["IntendedFor"]
@@ -240,7 +240,7 @@ def describe_intendedfor_targets(metadata, layout):
     return for_str
 
 
-def get_slice_info(slice_times):
+def get_slice_info(slice_times) -> str:
     """Extract slice order from slice timing info.
 
     TODO: Be more specific with slice orders.
@@ -277,7 +277,7 @@ def get_slice_info(slice_times):
     return slice_order_name
 
 
-def describe_sequence(metadata, config):
+def describe_sequence(metadata: dict, config: dict):
     """Extract and reformat imaging sequence(s) and variant(s) into pretty strings.
 
     Parameters
