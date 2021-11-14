@@ -1,5 +1,6 @@
 """Parsing functions for generating BIDSReports."""
 import logging
+import warnings
 from pathlib import Path
 
 import nibabel as nib
@@ -354,21 +355,38 @@ def parse_files(layout, data_files, sub, config):
     # Group files into individual runs
     data_files = collect_associated_files(layout, data_files, extra_entities=["run"])
 
+    # print(data_files)
+
     description_list = []
     # Assume all data have same basic info
     description_list.append(general_acquisition_info(data_files[0][0].get_metadata()))
+
     for group in data_files:
+
         if group[0].entities["datatype"] == "func":
             group_description = func_info(layout, group, config)
+
         elif (group[0].entities["datatype"] == "anat") and group[0].entities[
             "suffix"
         ].endswith("w"):
             group_description = anat_info(layout, group, config)
+
         elif group[0].entities["datatype"] == "dwi":
             group_description = dwi_info(layout, group, config)
+
         elif (group[0].entities["datatype"] == "fmap") and group[0].entities[
             "suffix"
         ] == "phasediff":
             group_description = fmap_info(layout, group, config)
+
+        elif group[0].entities["datatype"] in ["eeg", "meg", "beh", "perf"]:
+            warnings.warn(group[0].entities["datatype"] + " not yet supported.")
+            continue
+
+        else:
+            warnings.warn(group[0].filename + " not yet supported.")
+            continue
+
         description_list.append(group_description)
+
     return description_list
