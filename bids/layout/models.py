@@ -141,7 +141,7 @@ class Config(Base):
         A Config instance.
         """
 
-        if isinstance(config, str):
+        if isinstance(config, (str, Path)):
             config_paths = get_option('config_paths')
             if config in config_paths:
                 config = config_paths[config]
