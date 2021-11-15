@@ -48,6 +48,15 @@ def test_index_metadata(index_metadata, query, result, mock_config):
     assert metadata.get('RepetitionTime') == result
 
 
+@pytest.mark.parametrize(
+    'config_filename',
+    [
+        ('bids_specs.json',)
+    ])
+def test_config_filename(config_filename):
+    layout = BIDSLayout(get_test_data_path(),indexer=BIDSLayoutIndexer(config_filename=get_test_data_path()+'/../'+config_filename),validate=False)
+
+
 def test_layout_repr(layout_7t_trt):
     assert "Subjects: 10 | Sessions: 20 | Runs: 20" in str(layout_7t_trt)
 
