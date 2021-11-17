@@ -49,7 +49,7 @@ def test_index_metadata(index_metadata, query, result, mock_config):
 
 
 
-def test_config_filename(config_filename):
+def test_config_filename():
     layout = BIDSLayout(get_test_data_path(),indexer=BIDSLayoutIndexer(config_filename=get_test_data_path()+'/../'+'bids_specs_with_oligarchy.json'),validate=False)
     # make sure that the funny custom config that has every instance of 'session' renamed to 'oligarchy' is respected.
     assert 'oligarchy' in layout.get_entities()
