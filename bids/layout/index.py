@@ -267,7 +267,7 @@ class BIDSLayoutIndexer:
             with open(path, 'r', encoding='utf-8') as handle:
                 try:
                     return json.load(handle)
-                except json.JSONDecodeError as e:
+                except (UnicodeDecodeError, json.JSONDecodeError) as e:
                     msg = f"Error occurred while trying to decode JSON from file {path}"
                     raise IOError(msg) from e
 
