@@ -83,8 +83,9 @@ def validate_root(root, validate):
         try:
             with open(target, 'r', encoding='utf-8') as desc_fd:
                 description = json.load(desc_fd)
-        except (UnicodeDecodeError, json.JSONDecodeError) as err:
+        except (UnicodeDecodeError, json.JSONDecodeError) as e:
             description = None
+            err = e
         if validate:
 
             if description is None:
