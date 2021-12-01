@@ -61,3 +61,8 @@ JSON specification in ``model.json``.
     >>> dm = analysis[0].get_design_matrix(subject='01', run=1, task='taskA')
     >>> # Sample query: retrieve session-level contrast matrix
     >>> cm = analysis[1].get_contrasts(subject='01', session='retest')
+
+
+.. note::
+
+    For a more detailed set of examples, please refer to the `tutorial <https://github.com/bids-standard/pybids/blob/0.14.0/examples/statsmodels_tutorial.ipynb>`_
