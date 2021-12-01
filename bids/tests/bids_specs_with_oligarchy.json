@@ -1,0 +1,104 @@
+{
+    "name": "bids",
+    "entities": [
+        {
+            "name": "subject",
+            "pattern": "[/\\\\]+sub-([a-zA-Z0-9]+)",
+            "directory": "{subject}"
+        },
+        {
+            "name": "oligarchy",
+            "pattern": "[_/\\\\]+ses-([a-zA-Z0-9]+)",
+            "mandatory": false,
+            "directory": "{subject}{oligarchy}"
+        },
+        {
+            "name": "task",
+            "pattern": "[_/\\\\]+task-([a-zA-Z0-9]+)"
+        },
+        {
+            "name": "acquisition",
+            "pattern": "[_/\\\\]+acq-([a-zA-Z0-9]+)"
+        },
+        {
+            "name": "ceagent",
+            "pattern": "[_/\\\\]+ce-([a-zA-Z0-9]+)"
+        },
+        {
+            "name": "reconstruction",
+            "pattern": "[_/\\\\]+rec-([a-zA-Z0-9]+)"
+        },
+        {
+            "name": "direction",
+            "pattern": "[_/\\\\]+dir-([a-zA-Z0-9]+)"
+        },
+        {
+            "name": "run",
+            "pattern": "[_/\\\\]+run-0*(\\d+)",
+            "dtype": "int"
+        },
+        {
+            "name": "proc",
+            "pattern": "[_/\\\\]+proc-([a-zA-Z0-9]+)"
+        },
+        {
+            "name": "modality",
+            "pattern": "[_/\\\\]+mod-([a-zA-Z0-9]+)"
+        },
+        {
+            "name": "echo",
+            "pattern": "[_/\\\\]+echo-([0-9]+)"
+        },
+        {
+            "name": "recording",
+            "pattern": "[_/\\\\]+recording-([a-zA-Z0-9]+)"
+        },
+        {
+            "name": "space",
+            "pattern": "[_/\\\\]+space-([a-zA-Z0-9]+)"
+        },
+        {
+            "name": "suffix",
+            "pattern": "[._]*([a-zA-Z0-9]*?)\\.[^/\\\\]+$"
+        },
+        {
+            "name": "scans",
+            "pattern": "(.*\\_scans.tsv)$"
+        },
+        {
+            "name": "fmap",
+            "pattern": "(phasediff|magnitude[1-2]|phase[1-2]|fieldmap|epi)\\.nii"
+        },
+        {
+            "name": "datatype",
+            "pattern": "[/\\\\]+(func|anat|fmap|dwi|meg|eeg)[/\\\\]+"
+        },
+        {
+            "name": "extension",
+            "pattern": "[._]*[a-zA-Z0-9]*?(\\.[^/\\\\]+)$"
+        }
+    ],
+
+    "default_path_patterns": [
+        "sub-{subject}[/ses-{oligarchy}]/{datatype<anat>|anat}/sub-{subject}[_ses-{oligarchy}][_acq-{acquisition}][_ce-{ceagent}][_rec-{reconstruction}]_{suffix<T1w|T2w|T1rho|T1map|T2map|T2star|FLAIR|FLASH|PDmap|PD|PDT2|inplaneT[12]|angio|MTS>}{extension<.nii|.nii.gz|.json>|.nii.gz}",
+        "sub-{subject}[/ses-{oligarchy}]/{datatype<anat>|anat}/sub-{subject}[_ses-{oligarchy}][_acq-{acquisition}][_ce-{ceagent}][_rec-{reconstruction}][_mod-{modality}]_{suffix<defacemask>}{extension<.nii|.nii.gz|.json>|.nii.gz}",
+        "sub-{subject}[/ses-{oligarchy}]/{datatype<func>|func}/sub-{subject}[_ses-{oligarchy}]_task-{task}[_acq-{acquisition}][_ce-{ceagent}][_dir-{direction}][_rec-{reconstruction}][_run-{run}][_echo-{echo}]_{suffix<bold|cbv|phase|sbref>}{extension<.nii|.nii.gz|.json>|.nii.gz}",
+        "sub-{subject}[/ses-{oligarchy}]/{datatype<dwi>|dwi}/sub-{subject}[_ses-{oligarchy}][_acq-{acquisition}]_{suffix<dwi>}{extension<.bval|.bvec|.json|.nii.gz|.nii>|.nii.gz}",
+        "sub-{subject}[/ses-{oligarchy}]/{datatype<fmap>|fmap}/sub-{subject}[_ses-{oligarchy}][_acq-{acquisition}][_dir-{direction}][_run-{run}]_{fmap<phasediff|magnitude[12]|phase[12]|fieldmap>}{extension<.nii|.nii.gz|.json>|.nii.gz}",
+        "sub-{subject}[/ses-{oligarchy}]/{datatype<fmap>|fmap}/sub-{subject}[_ses-{oligarchy}][_acq-{acquisition}][_ce-{ceagent}]_dir-{direction}[_run-{run}]_{fmap<epi>}{extension<.nii|.nii.gz|.json>|.nii.gz}",
+        "sub-{subject}[/ses-{oligarchy}]/[{datatype<func|meg|beh>|func}/]sub-{subject}[_ses-{oligarchy}]_task-{task}[_acq-{acquisition}][_rec-{reconstruction}][_run-{run}][_echo-{echo}][_recording-{recording}]_{suffix<events>}{extension<.tsv|.json>|.tsv}",
+        "sub-{subject}[/ses-{oligarchy}]/[{datatype<func|beh>|func}/]sub-{subject}[_ses-{oligarchy}]_task-{task}[_acq-{acquisition}][_rec-{reconstruction}][_run-{run}][_echo-{echo}][_recording-{recording}]_{suffix<physio|stim>}{extension<.tsv.gz|.json>|.tsv.gz}",
+        "sub-{subject}[/ses-{oligarchy}]/{datatype<meg>|meg}/sub-{subject}[_ses-{oligarchy}]_task-{task}[_acq-{acquisition}][_run-{run}][_proc-{proc}]_{suffix<meg>}{extension}",
+        "sub-{subject}[/ses-{oligarchy}]/{datatype<meg>|meg}/sub-{subject}[_ses-{oligarchy}]_task-{task}[_acq-{acquisition}][_run-{run}][_proc-{proc}]_{suffix<channels>}{extension<.tsv|.json>|.tsv}",
+        "sub-{subject}[/ses-{oligarchy}]/{datatype<meg>|meg}/sub-{subject}[_ses-{oligarchy}]_task-{task}[_acq-{acquisition}]_{suffix<coordsystem>}{extension<.json>|.json}",
+        "sub-{subject}[/ses-{oligarchy}]/{datatype<meg>|meg}/sub-{subject}[_ses-{oligarchy}]_task-{task}[_acq-{acquisition}]_{suffix<photo>}{extension<.jpg>|.jpg}",
+        "[acq-{acquisition}_][ce-{ceagent}_][rec-{reconstruction}_]{suffix<T1w|T2w|T1rho|T1map|T2map|T2star|FLAIR|FLASH|PDmap|PD|PDT2|inplaneT[12]|angio|MTS>}{extension<.json>|.json}",
+        "[acq-{acquisition}_][ce-{ceagent}_][rec-{reconstruction}_][mod-{modality}_]{suffix<defacemask>}{extension<.json>|.json}",
+        "task-{task}[_acq-{acquisition}][_ce-{ceagent}][_dir-{direction}][_rec-{reconstruction}][_run-{run}][_echo-{echo}]_{suffix<bold|cbv|phase|sbref>}{extension<.json>|.json}",
+        "[acq-{acquisition}_]{suffix<dwi>}{extension<.json>|.json}",
+        "[acq-{acquisition}_][dir-{direction}_][run-{run}_]{fmap<phasediff|magnitude[1-2]|phase[1-2]|fieldmap>}{extension<.json>|.json}",
+        "[acq-{acquisition}_][ce-{ceagent}_]dir-{direction}[_run-{run}]_{fmap<epi>}{extension<.json>|.json}",
+        "task-{task}[_acq-{acquisition}][_rec-{reconstruction}][_run-{run}][_echo-{echo}][_recording-{recording}]_{suffix<events>}{extension<.json>|.json}",
+        "task-{task}[_acq-{acquisition}][_rec-{reconstruction}][_run-{run}][_echo-{echo}][_recording-{recording}]_{suffix<physio|stim>}{extension<.json>}"
+    ]
+}
