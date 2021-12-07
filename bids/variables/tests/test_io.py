@@ -91,7 +91,7 @@ def test_load_synthetic_dataset(synthetic):
     # Sessions
     sessions = index.get_nodes('session')
     assert len(sessions) == 5 * 2
-    target_cols = {'acq_time', 'TaskName', 'RepetitionTime'}
+    target_cols = {'acq_time', 'TaskName', 'RepetitionTime', 'EchoTime', 'FlipAngle'}
     assert set(sessions[0].variables.keys()) == target_cols
     data = sessions[0].variables['acq_time'].filter({'task': 'nback'})
     assert len(data.values) == 2
