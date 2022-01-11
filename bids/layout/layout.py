@@ -128,7 +128,7 @@ class BIDSLayout(object):
         root, description = validate_root(root, validate)
 
         self._root = root  # type: Path
-        self.description = description
+        self.description = description # type: dict
         self.absolute_paths = absolute_paths
         self.derivatives = {}
         self.sources = sources
@@ -235,7 +235,7 @@ class BIDSLayout(object):
 
         # We assume something is a BIDS-derivatives dataset if it either has a
         # defined pipeline name, or is applying the 'derivatives' rules.
-        pl_name = self.description.get("PipelineDescription", {}).get("Name")
+        pl_name = self.description.get("GeneratedBy", [{}])[0].get("Name")
         is_deriv = bool('derivatives' in self.config)
 
         return ((not is_deriv and 'raw' in scope) or

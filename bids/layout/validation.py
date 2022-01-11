@@ -79,14 +79,14 @@ def validate_root(root, validate):
                 json.dumps(EXAMPLE_BIDS_DESCRIPTION)
             )
         else:
-            description = None
+            description = {}
     else:
         err = None
         try:
             with open(target, 'r', encoding='utf-8') as desc_fd:
                 description = json.load(desc_fd)
         except (UnicodeDecodeError, json.JSONDecodeError) as e:
-            description = None
+            description = {}
             err = e
         if validate:
 
