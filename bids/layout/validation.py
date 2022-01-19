@@ -153,6 +153,8 @@ def validate_derivative_paths(paths, layout=None, **kwargs):
                           "``pybids upgrade`` to update your derivative "
                           "dataset.")
             pipeline_name = description["PipelineDescription"].get("Name")
+        else:
+            pipeline_name = None
         if pipeline_name is None:
             raise BIDSDerivativesValidationError(
                                 "Every valid BIDS-derivatives dataset must "
