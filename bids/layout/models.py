@@ -59,8 +59,12 @@ class LayoutInfo(Base):
         if 'root' in kwargs:
             kwargs['root'] = str(Path(kwargs['root']).absolute())
 
-        if isinstance(kwargs.get('config'), os.PathLike):
-            kwargs['config'] = str(Path(kwargs['config']).absolute())
+        if 'config' in kwargs and isinstance(kwargs['config'], list):
+            kwargs['config'] = [
+                str(Path(config).absolute())
+                if isinstance(config, os.PathLike) else config
+                for config in kwargs['config']
+            ]
 
         # Get abspaths
         if kwargs.get('derivatives') not in (None, True, False):

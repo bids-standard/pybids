@@ -837,6 +837,9 @@ def test_load_layout_config_not_overwritten(layout_synthetic_nodb, tmpdir):
     with dataset_description.open('r') as f:
         description = json.load(f)
     description["DatasetType"] = "derivative"
+    description["GeneratedBy"] = [
+        { "Name": "foo" }
+    ]
     with dataset_description.open('w') as f:
         json.dump(description, f)
 

@@ -112,70 +112,47 @@ def validate_root(root, validate):
     return root, description
 
 
-def validate_derivative_paths(paths, layout=None, **kwargs):
-
-    deriv_dirs = []
-
+def validate_derivative_path(path, **kwargs):
     # Collect all paths that contain a dataset_description.json
-    def check_for_description(bids_dir):
-        dd = bids_dir / 'dataset_description.json'
-        return dd.exists()
+    dd = path / 'dataset_description.json'
+    with dd.open('r', encoding='utf-8') as ddfd:
+        description = json.load(ddfd)
+    pipeline_names = [pipeline["Name"]
+                        for pipeline in description.get("GeneratedBy", [])
+                        if "Name" in pipeline]
+    if pipeline_names:
+        pipeline_name = pipeline_names[0]
+    elif "PipelineDescription" in description:
+        warnings.warn("The PipelineDescription field was superseded "
+                        "by GeneratedBy in BIDS 1.4.0. You can use "
+                        "``pybids upgrade`` to update your derivative "
+                        "dataset.")
+        pipeline_name = description["PipelineDescription"].get("Name")
+    else:
+        pipeline_name = None
+    if pipeline_name is None:
+        raise BIDSDerivativesValidationError(
+                            "Every valid BIDS-derivatives dataset must "
+                            "have a GeneratedBy.Name field set "
+                            "inside 'dataset_description.json'. "
+                            "\nExample: %s" %
+                            MANDATORY_DERIVATIVES_FIELDS['GeneratedBy'])
+    return pipeline_name
 
-    for p in paths:
-        p = Path(p).absolute()
-        if p.exists():
-            if check_for_description(p):
-                deriv_dirs.append(p)
-            else:
-                deriv_dirs.extend(sd for sd in p.iterdir()
-                                  if sd.is_dir() and check_for_description(sd))
 
-    if not deriv_dirs:
-        warnings.warn("Derivative indexing was requested, but no valid "
-                        "derivative datasets were found in the specified locations "
-                        "({}). Note that all BIDS-Derivatives datasets must"
-                        " meet all the requirements for BIDS-Raw datasets "
-                        "(a common problem is to fail to include a "
-                        "'dataset_description.json' file in derivatives "
-                        "datasets).\n".format(paths) +
-                        "Example contents of 'dataset_description.json':\n%s" %
-                        json.dumps(EXAMPLE_DERIVATIVES_DESCRIPTION))
-
-    paths = {}
-
-    for deriv in deriv_dirs:
-        dd = deriv / 'dataset_description.json'
-        with dd.open('r', encoding='utf-8') as ddfd:
-            description = json.load(ddfd)
-        pipeline_names = [pipeline["Name"]
-                          for pipeline in description.get("GeneratedBy", [])
-                          if "Name" in pipeline]
-        if pipeline_names:
-            pipeline_name = pipeline_names[0]
-        elif "PipelineDescription" in description:
-            warnings.warn("The PipelineDescription field was superseded "
-                          "by GeneratedBy in BIDS 1.4.0. You can use "
-                          "``pybids upgrade`` to update your derivative "
-                          "dataset.")
-            pipeline_name = description["PipelineDescription"].get("Name")
-        else:
-            pipeline_name = None
-        if pipeline_name is None:
-            raise BIDSDerivativesValidationError(
-                                "Every valid BIDS-derivatives dataset must "
-                                "have a GeneratedBy.Name field set "
-                                "inside 'dataset_description.json'. "
-                                "\nExample: %s" %
-                                MANDATORY_DERIVATIVES_FIELDS['GeneratedBy'])
-        if layout is not None and pipeline_name in layout.derivatives:
-            raise BIDSDerivativesValidationError(
-                                "Pipeline name '%s' has already been added "
-                                "to this BIDSLayout. Every added pipeline "
-                                "must have a unique name!" % pipeline_name)
-        paths[pipeline_name] = deriv
-
-    return paths
-
+def validate_child_derivative(child, parent):
+    if not child.is_derivative:
+        raise BIDSDerivativesValidationError(
+            f"The dataset at {child.root} is not a valid derivative dataset. "
+            "All BIDS derivatives must have the \"DatasetType\" field in their "
+            "dataset_description.json set to 'derivative', and must have a "
+            "properly formatted GeneratedBy field."
+        )
+    if child.source_pipeline in parent.derivatives:
+        raise BIDSDerivativesValidationError(
+            f"Pipeline name {child.source_pipeline} has already been added to this "
+            "BIDSLayout. Every added pipeline must have a unique name!"
+        )
 
 def _sort_patterns(patterns, root):
     """Return sorted patterns, from more specific to more general."""
