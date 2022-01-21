@@ -125,7 +125,7 @@ def validate_derivative_paths(paths, layout=None, **kwargs):
 
     if not deriv_dirs:
         warnings.warn("Derivative indexing was requested, but no valid "
-                        "datasets were found in the specified locations "
+                        "derivative datasets were found in the specified locations "
                         "({}). Note that all BIDS-Derivatives datasets must"
                         " meet all the requirements for BIDS-Raw datasets "
                         "(a common problem is to fail to include a "
