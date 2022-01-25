@@ -321,6 +321,23 @@ def test_get_val_enum_any(layout_7t_trt):
     assert len(bold_files) == 2
 
 
+def test_get_val_enum_any_optional(layout_7t_trt, layout_ds005):
+    # layout with sessions
+    query = {
+        "subject": "01",
+        "run": 1,
+        "suffix": "bold",
+    }
+    bold_files = layout_7t_trt.get(session=Query.ANY_OPTIONAL, **query)
+    assert len(bold_files) == 3
+
+    # layout without sessions
+    bold_files = layout_ds005.get(session=Query.ANY, **query)
+    assert not bold_files
+    bold_files = layout_ds005.get(session=Query.ANY_OPTIONAL, **query)
+    assert len(bold_files) == 1
+
+
 def test_get_return_sorted(layout_7t_trt):
     bids_files = layout_7t_trt.get(target='subject')
     paths = [r.path for r in bids_files]
