@@ -753,6 +753,8 @@ class BIDSLayout(object):
                 if val is None or val == Query.NONE:
                     join_method = query.outerjoin
                     val_clause = tag_alias._value.is_(None)
+                elif val == Query.OPTIONAL:
+                    continue
                 elif val == Query.ANY:
                     val_clause = tag_alias._value.isnot(None)
                 elif regex:
@@ -1315,4 +1317,5 @@ class BIDSLayout(object):
 class Query(enum.Enum):
     """Enums for use with BIDSLayout.get()."""
     NONE = 1 # Entity must not be present
-    ANY = 2  # Entity must be defined, but with an arbitrary value
+    REQUIRED = ANY = 2  # Entity must be defined, but with an arbitrary value
+    OPTIONAL = 3  # Entity may or may not be defined
