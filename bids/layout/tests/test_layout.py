@@ -328,13 +328,13 @@ def test_get_val_enum_any_optional(layout_7t_trt, layout_ds005):
         "run": 1,
         "suffix": "bold",
     }
-    bold_files = layout_7t_trt.get(session=Query.ANY_OPTIONAL, **query)
+    bold_files = layout_7t_trt.get(session=Query.OPTIONAL, **query)
     assert len(bold_files) == 3
 
     # layout without sessions
-    bold_files = layout_ds005.get(session=Query.ANY, **query)
+    bold_files = layout_ds005.get(session=Query.REQUIRED, **query)
     assert not bold_files
-    bold_files = layout_ds005.get(session=Query.ANY_OPTIONAL, **query)
+    bold_files = layout_ds005.get(session=Query.OPTIONAL, **query)
     assert len(bold_files) == 1
 
 
