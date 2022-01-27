@@ -4,6 +4,8 @@ import json
 from collections import namedtuple, OrderedDict, Counter, defaultdict
 import itertools
 from functools import reduce
+import re
+import fnmatch
 
 import numpy as np
 import pandas as pd
@@ -596,6 +598,13 @@ class BIDSStatsModelsNodeOutput:
                 df.insert(0, int_name, 1)
             else:
                 var_names.append(int_name)
+
+        # Handle wildcards in X list
+        for var in list(var_names):  # Iterate over copy; we're modifying it
+            if re.search(r'[\*\?\[\]]', var):
+                idx = var_names.index(var)
+                expanded_vars = fnmatch.filter(df.columns, var)
+                var_names[idx:idx + 1] = expanded_vars
 
         # Verify all X names are actually present
         missing = list(set(var_names) - set(df.columns))
