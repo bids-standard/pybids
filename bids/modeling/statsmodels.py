@@ -522,6 +522,15 @@ class BIDSStatsModelsNode:
         return [c for c in self._collections if matches_entities(c, filters)]
 
 
+def expand_wildcards(selectors, pool):
+    out = list(selectors)
+    for spec in selectors:
+        if re.search(r'[\*\?\[\]]', spec):
+            idx = out.index(spec)
+            out[idx:idx + 1] = fnmatch.filter(pool, spec)
+    return out
+
+
 class BIDSStatsModelsNodeOutput:
     """Represents a single node in a BIDSStatsModelsGraph.
 
@@ -599,12 +608,7 @@ class BIDSStatsModelsNodeOutput:
             else:
                 var_names.append(int_name)
 
-        # Handle wildcards in X list
-        for var in list(var_names):  # Iterate over copy; we're modifying it
-            if re.search(r'[\*\?\[\]]', var):
-                idx = var_names.index(var)
-                expanded_vars = fnmatch.filter(df.columns, var)
-                var_names[idx:idx + 1] = expanded_vars
+        var_names = expand_wildcards(var_names, df.columns)
 
         # Verify all X names are actually present
         missing = list(set(var_names) - set(df.columns))
@@ -651,7 +655,9 @@ class BIDSStatsModelsNodeOutput:
 
             # Take the intersection of variables and Model.X (var_names), ignoring missing
             # variables (usually contrasts)
-            coll.variables = {v: coll.variables[v] for v in var_names if v in coll.variables}
+            coll.variables = {v: coll.variables[v]
+                              for v in expand_wildcards(var_names, coll.variables)
+                              if v in coll.variables}
             if not coll.variables:
                 continue
 
