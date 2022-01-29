@@ -20,23 +20,23 @@ API Reference
    bids.layout.parse_file_entities
    bids.layout.add_config_paths
    bids.layout.index.BIDSLayoutIndexer
+   bids.layout.writing
 
 .. currentmodule:: bids
 
 .. _calibration_ref:
 
 
-:mod:`bids.analysis`: Model specification for BIDS datasets
+:mod:`bids.modeling`: Model specification for BIDS datasets
 ------------------------------------------------------------
 
-.. autosummary:: bids.analysis
+.. autosummary:: bids.modeling
    :toctree: generated/
 
-   bids.analysis.Analysis
-   bids.analysis.auto_model
-   bids.analysis.analysis.Step
-   bids.analysis.analysis.AnalysisNode
-   bids.analysis.analysis.apply_transformations
+   bids.modeling.statsmodels
+   bids.modeling.auto_model
+   bids.modeling.statsmodels.Step
+   bids.modeling.statsmodels.BIDSStatsModelsGraphNode
 
 .. currentmodule:: bids
 
@@ -50,6 +50,8 @@ API Reference
    :toctree: generated/
 
    bids.reports.BIDSReport
+   bids.reports.parsing
+   bids.reports.parameters
    bids.reports.utils
 
 .. currentmodule:: bids
@@ -73,7 +75,7 @@ API Reference
    bids.variables.merge_variables
    bids.variables.io
    bids.variables.entities
-   bids.variables.kollekshuns
+   bids.variables.collections
    bids.variables.variables
 
 .. currentmodule:: bids

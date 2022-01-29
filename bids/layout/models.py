@@ -1,21 +1,75 @@
 """ Model classes used in BIDSLayouts. """
 
+import re
+import os
+from pathlib import Path
+import warnings
+import json
+from copy import deepcopy
+from itertools import chain
+from functools import lru_cache
+
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.orm.collections import attribute_mapped_collection
 from sqlalchemy import (Column, String, Boolean, ForeignKey, Table)
 from sqlalchemy.orm import reconstructor, relationship, backref, object_session
-import re
-import os
-import warnings
-import json
-from copy import deepcopy
-from itertools import chain
 
-from .writing import build_path, write_contents_to_file
+from ..utils import listify
+from .writing import build_path, write_to_file
 from ..config import get_option
+from .utils import BIDSMetadata
 
 Base = declarative_base()
+
+
+class LayoutInfo(Base):
+    """ Contains information about a BIDSLayout's initialization parameters."""
+
+    __tablename__ = 'layout_info'
+
+    root = Column(String, primary_key=True)
+    absolute_paths = Column(Boolean)
+    _derivatives = Column(String)
+    _config = Column(String)
+
+    def __init__(self, **kwargs):
+        init_args = self._sanitize_init_args(kwargs)
+        raw_cols = ['root', 'absolute_paths']
+        json_cols = ['derivatives', 'config']
+        all_cols = raw_cols + json_cols
+        missing_cols = set(all_cols) - set(init_args.keys())
+        if missing_cols:
+            raise ValueError("Missing mandatory initialization args: {}"
+                             .format(missing_cols))
+        for col in all_cols:
+            setattr(self, col, init_args[col])
+            if col in json_cols:
+                json_data = json.dumps(init_args[col])
+                setattr(self, '_' + col, json_data)
+
+    @reconstructor
+    def _init_on_load(self):
+        for col in ['derivatives', 'config']:
+            db_val = getattr(self, '_' + col)
+            setattr(self, col, json.loads(db_val))
+
+    def _sanitize_init_args(self, kwargs):
+        """ Prepare initialization arguments for serialization """
+        if 'root' in kwargs:
+            kwargs['root'] = str(Path(kwargs['root']).absolute())
+
+        if isinstance(kwargs.get('config'), os.PathLike):
+            kwargs['config'] = str(Path(kwargs['config']).absolute())
+
+        # Get abspaths
+        if kwargs.get('derivatives') not in (None, True, False):
+            kwargs['derivatives'] = [
+                str(Path(der).absolute())
+                for der in listify(kwargs['derivatives'])
+                ]
+
+        return kwargs
 
 
 class Config(Base):
@@ -90,11 +144,11 @@ class Config(Base):
         A Config instance.
         """
 
-        if isinstance(config, str):
+        if isinstance(config, (str, Path)):
             config_paths = get_option('config_paths')
             if config in config_paths:
                 config = config_paths[config]
-            if not os.path.exists(config):
+            if not Path(config).exists():
                 raise ValueError("{} is not a valid path.".format(config))
             else:
                 with open(config, 'r') as f:
@@ -102,8 +156,7 @@ class Config(Base):
 
         # Return existing Config record if one exists
         if session is not None:
-            result = (session.query(Config)
-                      .filter_by(name=config['name']).first())
+            result = session.query(Config).filter_by(name=config['name']).first()
             if result:
                 return result
 
@@ -124,7 +177,7 @@ class BIDSFile(Base):
     filename = Column(String)
     dirname = Column(String)
     entities = association_proxy("tags", "value")
-    is_dir = Column(Boolean)
+    is_dir = Column(Boolean, index=True)
     class_ = Column(String(20))
 
     _associations = relationship('BIDSFile', secondary='associations',
@@ -137,10 +190,18 @@ class BIDSFile(Base):
     }
 
     def __init__(self, filename):
-        self.path = filename
-        self.filename = os.path.basename(self.path)
-        self.dirname = os.path.dirname(self.path)
+        self.path = str(filename)
+        self.filename = self._path.name
+        self.dirname = str(self._path.parent)
         self.is_dir = not self.filename
+
+    @property
+    def _path(self):
+        return Path(self.path)
+
+    @property
+    def _dirname(self):
+        return Path(self.dirname)
 
     def __getattr__(self, attr):
         # Ensures backwards compatibility with old File_ namedtuple, which is
@@ -163,6 +224,13 @@ class BIDSFile(Base):
     def __fspath__(self):
         return self.path
 
+    @property
+    @lru_cache()
+    def relpath(self):
+        """Return path relative to layout root"""
+        root = object_session(self).query(LayoutInfo).first().root
+        return str(Path(self.path).relative_to(root))
+
     def get_associations(self, kind=None, include_parents=False):
         """Get associated files, optionally limiting by association kind.
 
@@ -184,12 +252,17 @@ class BIDSFile(Base):
         list
             A list of BIDSFile instances.
         """
-        if kind is None:
+        if kind is None and not include_parents:
             return self._associations
+
         session = object_session(self)
         q = (session.query(BIDSFile)
              .join(FileAssociation, BIDSFile.path == FileAssociation.dst)
-             .filter_by(kind=kind, src=self.path))
+             .filter_by(src=self.path))
+
+        if kind is not None:
+            q = q.filter_by(kind=kind)
+
         associations = q.all()
 
         if not include_parents:
@@ -201,11 +274,13 @@ class BIDSFile(Base):
                 results = collect_associations(results, p)
             return results
 
-        return chain(*[collect_associations([], bf) for bf in associations])
+        return list(chain(*[collect_associations([], bf) for bf in associations]))
 
     def get_metadata(self):
         """Return all metadata associated with the current file. """
-        return self.get_entities(metadata=True)
+        md = BIDSMetadata(self.path)
+        md.update(self.get_entities(metadata=True))
+        return md
 
     def get_entities(self, metadata=False, values='tags'):
         """Return entity information for the current file.
@@ -235,8 +310,9 @@ class BIDSFile(Base):
         query = (session.query(Tag)
                  .filter_by(file_path=self.path)
                  .join(Entity))
+
         if metadata not in (None, 'all'):
-            query = query.filter(Entity.is_metadata == metadata)
+            query = query.filter(Tag.is_metadata == metadata)
 
         results = query.all()
         if values.startswith('obj'):
@@ -250,7 +326,7 @@ class BIDSFile(Base):
         Parameters
         ----------
         path_patterns : list
-            List of patterns use to construct the new
+            List of patterns used to construct the new
             filename. See :obj:`build_path` documentation for details.
         symbolic_link : bool
             If True, use a symbolic link to point to the
@@ -272,26 +348,22 @@ class BIDSFile(Base):
         if new_filename[-1] == os.sep:
             new_filename += self.filename
 
-        if os.path.isabs(self.path) or root is None:
-            path = self.path
+        if self._path.is_absolute() or root is None:
+            path = self._path
         else:
-            path = os.path.join(root, self.path)
+            path = Path(root) / self._path
 
-        if not os.path.exists(path):
+        if not path.exists():
             raise ValueError("Target filename to copy/symlink (%s) doesn't "
                              "exist." % path)
 
+        kwargs = dict(path=new_filename, root=root, conflicts=conflicts)
         if symbolic_link:
-            contents = None
-            link_to = path
+            kwargs['link_to'] = path
         else:
-            with open(path, 'r') as f:
-                contents = f.read()
-            link_to = None
+            kwargs['copy_from'] = path
 
-        write_contents_to_file(new_filename, contents=contents,
-                               link_to=link_to, content_mode='text', root=root,
-                               conflicts=conflicts)
+        write_to_file(**kwargs)
 
 
 class BIDSDataFile(BIDSFile):
@@ -306,7 +378,7 @@ class BIDSDataFile(BIDSFile):
     }
 
     def get_df(self, include_timing=True, adjust_onset=False,
-               enforce_dtypes=True):
+               enforce_dtypes=True, **pd_args):
         """Return the contents of a tsv file as a pandas DataFrame.
 
         Parameters
@@ -323,6 +395,8 @@ class BIDSDataFile(BIDSFile):
             If True, enforces the data types defined in
             the BIDS spec on core columns (e.g., subject_id and session_id
             must be represented as strings).
+        pd_args : dict
+            Optional keyword arguments to pass onto pd.read_csv().
 
         Returns
         -------
@@ -344,12 +418,14 @@ class BIDSDataFile(BIDSFile):
         # TODO: memoize this for efficiency. (Note: caching is insufficient,
         # because the dtype enforcement will break if we ignore the value of
         # enforce_dtypes).
+        suffix = self.entities['suffix']
+        header = None if suffix in {'physio', 'stim'} else 'infer'
         self.data = pd.read_csv(self.path, sep='\t', na_values='n/a',
-                                dtype=dtype)
+                                dtype=dtype, header=header, **pd_args)
 
         data = self.data.copy()
 
-        if self.entities['extension'] == 'tsv.gz':
+        if self.entities['extension'] == '.tsv.gz':
             md = self.get_metadata()
             # We could potentially include some validation here, but that seems
             # like a job for the BIDS Validator.
@@ -374,15 +450,17 @@ class BIDSImageFile(BIDSFile):
         'polymorphic_identity': 'image_file'
     }
 
-    def get_image(self):
+    def get_image(self, **kwargs):
         """Return the associated image file (if it exists) as a NiBabel object
+
+        Any keyword arguments are passed to ``nibabel.load``.
         """
         try:
             import nibabel as nb
-            return nb.load(self.path)
-        except Exception:
+            return nb.load(self.path, **kwargs)
+        except Exception as e:
             raise ValueError("'{}' does not appear to be an image format "
-                             "NiBabel can read.".format(self.path))
+                             "NiBabel can read.".format(self.path)) from e
 
 
 class BIDSJSONFile(BIDSFile):
@@ -430,10 +508,6 @@ class Entity(Base):
         one of 'int', 'float', 'bool', or 'str'. If None, no type
         enforcement will be attempted, which means the dtype of the
         value may be unpredictable.
-    is_metadata : bool
-        Indicates whether or not the Entity is derived
-        from JSON sidecars (True) or is a predefined Entity from a
-        config (False).
     """
     __tablename__ = 'entities'
 
@@ -441,17 +515,15 @@ class Entity(Base):
     mandatory = Column(Boolean, default=False)
     pattern = Column(String)
     directory = Column(String, nullable=True)
-    is_metadata = Column(Boolean, default=False)
     _dtype = Column(String, default='str')
     files = association_proxy("tags", "value")
 
     def __init__(self, name, pattern=None, mandatory=False, directory=None,
-                 dtype='str', is_metadata=False):
+                 dtype='str'):
         self.name = name
         self.pattern = pattern
         self.mandatory = mandatory
         self.directory = directory
-        self.is_metadata = is_metadata
 
         if not isinstance(dtype, str):
             dtype = dtype.__name__
@@ -537,7 +609,7 @@ class Entity(Base):
 
 
 class Tag(Base):
-    """Represents an association between a File and and Entity.
+    """Represents an association between a File and an Entity.
 
     Parameters
     ----------
@@ -553,6 +625,10 @@ class Tag(Base):
         value. If passed, must be one of str, int, float, bool, or json.
         Any other value will be treated as json (and will fail if the
         value can't be serialized to json).
+    is_metadata : bool
+        Indicates whether or not the Entity is derived
+        from JSON sidecars (True) or is a predefined Entity from a
+        config (False).
     """
     __tablename__ = 'tags'
 
@@ -560,18 +636,21 @@ class Tag(Base):
     entity_name = Column(String, ForeignKey('entities.name'), primary_key=True)
     _value = Column(String, nullable=False)
     _dtype = Column(String, default='str')
+    is_metadata = Column(Boolean, default=False)
+
 
     file = relationship('BIDSFile', backref=backref(
         "tags", collection_class=attribute_mapped_collection("entity_name")))
     entity = relationship('Entity', backref=backref(
         "tags", collection_class=attribute_mapped_collection("file_path")))
 
-    def __init__(self, file, entity, value, dtype=None):
+    def __init__(self, file, entity, value, dtype=None, is_metadata=False):
 
         if dtype is None:
             dtype = type(value)
 
         self.value = value
+        self.is_metadata = is_metadata
 
         if not isinstance(dtype, str):
             dtype = dtype.__name__

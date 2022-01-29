@@ -1,104 +1,129 @@
-"""
-tests for bids.reports.parsing
-"""
+"""Tests for bids.reports.parsing."""
 import json
 from os.path import abspath, join
+
 import pytest
-
-import nibabel as nib
-
-from bids.reports import parsing
 from bids.layout import BIDSLayout
+from bids.reports import parsing
 from bids.tests import get_test_data_path
 
 
 @pytest.fixture
 def testlayout():
-    data_dir = join(get_test_data_path(), 'synthetic')
+    """A BIDSLayout for testing."""
+    data_dir = join(get_test_data_path(), "synthetic")
     return BIDSLayout(data_dir)
 
 
 @pytest.fixture
 def testconfig():
-    config_file = abspath(join(get_test_data_path(),
-                               '../../reports/config/converters.json'))
-    with open(config_file, 'r') as fobj:
+    config_file = abspath(
+        join(get_test_data_path(), "../../reports/config/converters.json")
+    )
+    with open(config_file, "r") as fobj:
         config = json.load(fobj)
     return config
 
 
 @pytest.fixture
 def testmeta():
-    metadata = {'RepetitionTime': 2.}
+    metadata = {"RepetitionTime": 2.0}
     return metadata
 
 
-def test_parsing_anat(testmeta, testconfig):
+def test_anat_info_smoke(testlayout, testconfig):
+    """Smoke test for parsing.anat_info.
+
+    It should return a str description when provided valid inputs.
     """
-    parsing.anat_info returns a str description of each structural scan
-    """
-    type_ = 'T1w'
-    img = nib.load(join(get_test_data_path(), 'images/3d.nii.gz'))
-    desc = parsing.anat_info(type_, testmeta, img, testconfig)
+    anat_files = testlayout.get(
+        subject="01",
+        session="01",
+        suffix="T1w",
+        extension=[".nii.gz"],
+    )
+
+    desc = parsing.anat_info(testlayout, anat_files, testconfig)
     assert isinstance(desc, str)
 
 
-def test_parsing_dwi(testmeta, testconfig):
+def test_dwi_info_smoke(testlayout, testconfig):
+    """Smoke test for parsing.dwi_info.
+
+    It should return a str description when provided valid inputs.
     """
-    parsing.dwi_info returns a str description of each diffusion scan
-    """
-    bval_file = join(get_test_data_path(), 'images/4d.bval')
-    img = nib.load(join(get_test_data_path(), 'images/4d.nii.gz'))
-    desc = parsing.dwi_info(bval_file, testmeta, img, testconfig)
+    dwi_files = testlayout.get(
+        subject="01",
+        session="01",
+        datatype="dwi",
+        extension=[".nii.gz"],
+    )
+
+    desc = parsing.dwi_info(testlayout, dwi_files, testconfig)
     assert isinstance(desc, str)
 
 
-def test_parsing_fmap(testlayout, testmeta, testconfig):
+def test_fmap_info_smoke(testlayout, testconfig):
+    """Smoke test for parsing.fmap_info.
+
+    It should return a str description when provided valid inputs.
     """
-    parsing.fmap_info returns a str decsription of each field map
-    """
-    testmeta['PhaseEncodingDirection'] = 'j-'
-    img = nib.load(join(get_test_data_path(), 'images/3d.nii.gz'))
-    desc = parsing.fmap_info(testmeta, img, testconfig, testlayout)
+    fmap_files = testlayout.get(
+        subject="01",
+        session="01",
+        datatype="fmap",
+        suffix="phasediff",
+        extension=[".nii.gz"],
+    )
+
+    desc = parsing.fmap_info(testlayout, fmap_files, testconfig)
     assert isinstance(desc, str)
 
 
-def test_parsing_func(testmeta, testconfig):
+def test_func_info_smoke(testlayout, testconfig):
+    """Smoke test for parsing.func_info.
+
+    It should return a str description when provided valid inputs.
     """
-    parsing.func_info returns a str description of a set of functional scans
-    grouped by task
-    """
-    img = nib.load(join(get_test_data_path(), 'images/4d.nii.gz'))
-    desc = parsing.func_info('nback', 3, testmeta, img, testconfig)
+    func_files = testlayout.get(
+        subject="01",
+        session="01",
+        task="nback",
+        run="01",
+        extension=[".nii.gz"],
+    )
+
+    desc = parsing.func_info(testlayout, func_files, testconfig)
     assert isinstance(desc, str)
 
 
-def test_parsing_genacq(testmeta):
-    """
-    parsing.general_acquisition_info returns a str description of the scanner
-    from minimal metadata
+def test_general_acquisition_info_smoke(testmeta):
+    """Smoke test for parsing.general_acquisition_info.
+
+    It should return a str description when provided valid inputs.
     """
     desc = parsing.general_acquisition_info(testmeta)
     assert isinstance(desc, str)
 
 
-def test_parsing_final(testmeta):
-    """
-    parsing.final_paragraph returns a str description of the dicom-to-nifti
-    conversion process from minimal metadata
+def test_final_paragraph_smoke(testmeta):
+    """Smoke test for parsing.final_paragraph.
+
+    It should return a str description when provided valid inputs.
     """
     desc = parsing.final_paragraph(testmeta)
     assert isinstance(desc, str)
 
 
-def test_parsing_parse(testlayout, testconfig):
+def test_parse_files_smoke(testlayout, testconfig):
+    """Smoke test for parsing.parse_files.
+
+    It should return a list of string descriptions when provided valid inputs,
+    with each string containing the description for a single nifti file
+    (except functional data, which is combined within task, across runs).
     """
-    parsing.parse_niftis should return a list of strings, with each string
-    containing the description for a single nifti file (except functional data,
-    which is combined within task, across runs)
-    """
-    subj = '01'
-    niftis = testlayout.get(subject=subj, extension=[".nii", ".nii.gz"])
-    desc = parsing.parse_niftis(testlayout, niftis, subj, testconfig)
+    subject = "01"
+    niftis = testlayout.get(subject=subject, extension=[".nii", ".nii.gz"])
+    desc = parsing.parse_files(testlayout, niftis, subject, testconfig)
     assert isinstance(desc, list)
     assert isinstance(desc[0], str)

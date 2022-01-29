@@ -1,7 +1,8 @@
+"""Tests of functionality in the models module."""
+
 import sys
 import os
 import pytest
-import bids
 import copy
 import json
 from pathlib import Path
@@ -11,8 +12,7 @@ from sqlalchemy.orm import sessionmaker
 import numpy as np
 
 from bids.layout.models import (BIDSFile, Entity, Tag, Base, Config,
-                                FileAssociation, BIDSImageFile)
-from bids.layout import BIDSLayout
+                                FileAssociation, BIDSImageFile, LayoutInfo)
 from bids.tests import get_test_data_path
 
 
@@ -38,6 +38,20 @@ def subject_entity():
                directory="{subject}", dtype='str')
 
 
+def test_layoutinfo_init():
+    args = dict(root='/made/up/path', validate=True,
+                absolute_paths=True, index_metadata=False,
+                derivatives=True, ignore=['code/', 'blergh/'],
+                force_index=None)
+    with pytest.raises(ValueError) as exc:
+        LayoutInfo(**args)
+    assert str(exc.value).startswith("Missing mandatory")
+    args['config'] = ['bids', 'derivatives']
+    info = LayoutInfo(**args)
+    assert info.derivatives == True
+    assert info._derivatives == 'true'
+
+
 def test_entity_initialization():
     e = Entity('avaricious', r'aardvark-(\d+)')
     assert e.name == 'avaricious'
@@ -58,8 +72,7 @@ def test_entity_init_all_args(subject_entity):
 def test_entity_init_with_bad_dtype():
     with pytest.raises(ValueError) as exc:
         ent = Entity('test', dtype='superfloat')
-        msg = exc.value.message
-        assert msg.startswith("Invalid dtype")
+    assert str(exc.value).startswith("Invalid dtype")
 
 
 def test_entity_matches(tmpdir):
@@ -176,7 +189,7 @@ def test_bidsfile_get_df_from_tsv_gz(layout_synthetic):
     df1 = bf.get_df()
     df2 = bf.get_df(include_timing=True)
     assert df1.equals(df2)
-    assert df1.shape == (1599, 3)
+    assert df1.shape == (1600, 3)
     assert set(df1.columns) == {'onset', 'respiratory', 'cardiac'}
     assert df1.iloc[0, 0] == 0.
     assert df1.iloc[1, 0] - df1.iloc[0, 0] == 0.1
@@ -190,6 +203,7 @@ def test_bidsfile_get_df_from_tsv_gz(layout_synthetic):
 def test_bidsdatafile_enforces_dtype(layout_synthetic):
     bf = layout_synthetic.get(suffix='participants', extension='tsv')[0]
     df = bf.get_df(enforce_dtypes=False)
+    assert df.shape[0] == 5
     assert df.loc[:, 'subject_id'].dtype == int
     assert df.loc[:, 'subject_id'][0] == 1
     df = bf.get_df(enforce_dtypes=True)
@@ -254,7 +268,14 @@ def test_bidsfile_get_entities(layout_synthetic):
     assert set(md.keys()) == md_ents | file_ents
 
 
-@pytest.mark.xfail(sys.version_info < (3, 6), reason="os.PathLike introduced in Python 3.6")
+def test_bidsfile_relpath(layout_synthetic):
+    bf = layout_synthetic.get(suffix='physio', extension='tsv.gz')[10]
+    assert bf.path != bf.relpath
+    assert layout_synthetic.root in bf.path
+    assert bf.relpath.startswith('sub')
+    assert bf.relpath == str(Path(bf.path).relative_to(layout_synthetic.root))
+
+
 def test_bidsfile_fspath(sample_bidsfile):
     bf = sample_bidsfile
     bf_path = Path(bf)

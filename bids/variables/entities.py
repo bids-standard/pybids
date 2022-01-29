@@ -2,8 +2,11 @@
 
 from itertools import chain
 from collections import namedtuple
-from . import kollekshuns as clc
+
 import pandas as pd
+
+from . import collections as clc
+from bids.utils import matches_entities
 
 
 class Node(object):
@@ -52,10 +55,11 @@ class RunNode(Node):
         The task name for this run.
     """
 
-    def __init__(self, entities, image_file, duration, repetition_time):
+    def __init__(self, entities, image_file, duration, repetition_time, n_vols):
         self.image_file = image_file
         self.duration = duration
         self.repetition_time = repetition_time
+        self.n_vols = n_vols
         super(RunNode, self).__init__('run', entities)
 
     def get_info(self):
@@ -65,17 +69,18 @@ class RunNode(Node):
         # a RunInfo or any containing object.
         entities = dict(self.entities)
         return RunInfo(entities, self.duration,
-                       self.repetition_time, self.image_file)
+                       self.repetition_time, self.image_file, self.n_vols)
 
 
 # Stores key information for each Run.
-RunInfo_ = namedtuple('RunInfo', ['entities', 'duration', 'tr', 'image'])
+RunInfo_ = namedtuple('RunInfo', ['entities', 'duration', 'tr', 'image', 'n_vols'])
+
 
 # Wrap with class to provide docstring
 class RunInfo(RunInfo_):
     """ A namedtuple storing run-related information.
 
-    Properties include 'entities', 'duration', 'tr', and 'image'.
+    Properties include 'entities', 'duration', 'tr', and 'image', 'n_vols'.
     """
     pass
 
@@ -103,7 +108,7 @@ class NodeIndex(object):
         merge : bool
             If True, variables are merged across all observations
             of the current unit. E.g., if unit='subject' and return_type=
-            'collection', variablesfrom all subjects will be merged into a
+            'collection', variables from all subjects will be merged into a
             single collection. If False, each observation is handled
             separately, and the result is returned as a list.
         sampling_rate : int or str
@@ -123,7 +128,7 @@ class NodeIndex(object):
 
         for n in nodes:
             var_set = list(n.variables.values())
-            var_set = [v for v in var_set if v.matches_entities(entities)]
+            var_set = [v for v in var_set if matches_entities(v, entities)]
             if names is not None:
                 var_set = [v for v in var_set if v.name in names]
             # Additional filtering on Variables past run level, because their
@@ -217,9 +222,9 @@ class NodeIndex(object):
         level : str
             The level of analysis of the new Node.
         entities : dict
-            Dictionary of entities belonging to Node
+            Dictionary of entities belonging to Node.
         args, kwargs : dict
-            Optional positional or named arguments to pass onto
+            Optional positional or named arguments to pass on to
             class-specific initializers. These arguments are only used if
             a Node that matches the passed entities doesn't already exist,
             and a new one must be created.
@@ -252,7 +257,7 @@ class NodeIndex(object):
             Dictionary of entities to include in newly-created
             Nodes or filter existing ones.
         args, kwargs : dict
-            Optional positional or named arguments to pass onto
+            Optional positional or named arguments to pass on to
             class-specific initializers. These arguments are only used if
             a Node that matches the passed entities doesn't already exist,
             and a new one must be created.

@@ -2,6 +2,7 @@ from bids.layout import BIDSLayout
 from bids.variables import (SparseRunVariable, SimpleVariable,
                             DenseRunVariable, load_variables)
 from bids.variables.entities import Node, RunNode, NodeIndex
+from unittest.mock import patch
 import pytest
 from os.path import join
 from bids.tests import get_test_data_path
@@ -17,6 +18,7 @@ def layout1():
 
 @pytest.fixture(scope="module", params=["events", "preproc"])
 def synthetic(request):
+    import bids.config
     root = join(get_test_data_path(), 'synthetic')
     if request.param == 'preproc':
         layout = BIDSLayout(root, derivatives=True)
@@ -89,7 +91,7 @@ def test_load_synthetic_dataset(synthetic):
     # Sessions
     sessions = index.get_nodes('session')
     assert len(sessions) == 5 * 2
-    target_cols = {'acq_time', 'TaskName', 'RepetitionTime'}
+    target_cols = {'acq_time', 'TaskName', 'RepetitionTime', 'EchoTime', 'FlipAngle'}
     assert set(sessions[0].variables.keys()) == target_cols
     data = sessions[0].variables['acq_time'].filter({'task': 'nback'})
     assert len(data.values) == 2

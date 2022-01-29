@@ -24,10 +24,11 @@ def layout2():
 def test_run(layout1):
     img = layout1.get(subject='01', task='mixedgamblestask', suffix='bold',
                       run=1, return_type='obj')[0]
-    run = RunNode(None, img.filename, 480, 2)
+    run = RunNode(None, img.filename, 480, 2, 480/2)
     assert run.image_file == img.filename
     assert run.duration == 480
     assert run.repetition_time == 2
+    assert run.n_vols == 480 / 2
 
 
 def test_get_or_create_node(layout1):
@@ -44,9 +45,11 @@ def test_get_or_create_node(layout1):
 
     run = index.get_or_create_node('run', img.entities,
                                    image_file=img.filename, duration=480,
-                                   repetition_time=2)
+                                   repetition_time=2,
+                                   n_vols=480/2)
     assert run.__class__ == RunNode
     assert run.duration == 480
+    assert run.n_vols == 480 / 2
 
 
 def test_get_nodes(layout1):

@@ -1,6 +1,5 @@
 """ Tools for reading/writing BIDS data files. """
 
-from os.path import join
 import warnings
 import json
 
@@ -56,7 +55,7 @@ def load_variables(layout, types=None, levels=None, skip_empty=True,
 
     Examples
     --------
-    >>> load_variables(layout, ['events', 'physio'], subject='01')
+    >>> load_variables(layout, ['events', 'physio'], subject='01')  # doctest: +SKIP
     # returns all variables stored in _events.tsv and _physio.tsv.gz files
     # for runs that belong to subject with id '01'.
     """
@@ -93,11 +92,32 @@ def load_variables(layout, types=None, levels=None, skip_empty=True,
         dataset = _load_time_variables(layout, dataset, scope=scope, **_kwargs)
 
     for t in ({'scans', 'sessions', 'participants'} & set(types)):
-        kwargs.pop('suffix', None) # suffix is always one of values aboves
+        kwargs.pop('suffix', None) # suffix is always one of values above
         dataset = _load_tsv_variables(layout, t, dataset, scope=scope,
                                       **kwargs)
 
     return dataset
+
+
+def _get_nvols(img_f):
+    import nibabel as nb
+    img = nb.load(img_f)
+    nvols = 0
+    if isinstance(img, nb.Nifti1Pair):
+        nvols = img.shape[3]
+    elif isinstance(img, nb.Cifti2Image):
+        for ax in map(img.header.get_axis, range(len(img.header.matrix))):
+            if isinstance(ax, nb.cifti2.SeriesAxis):
+                nvols = ax.size
+                break
+        else:
+            raise ValueError("No series axis found in %s" % img_f)
+    elif isinstance(img, nb.GiftiImage):
+        nvols = len(img.get_arrays_from_intent('time series'))
+    else:
+        raise ValueError("Unknown image type %s: %s" % img.__class__, img_f)
+
+    return nvols
 
 
 def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
@@ -141,7 +161,7 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
         The scope of the space to search for variables. See
         docstring for BIDSLayout for details and valid predefined values.
     selectors : dict
-        Optional keyword arguments passed onto the
+        Optional keyword arguments passed on to the
         BIDSLayout instance's get() method; can be used to constrain
         which data are loaded.
 
@@ -158,8 +178,8 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
 
     selectors['datatype'] = 'func'
     selectors['suffix'] = 'bold'
-    images = layout.get(return_type='object', extension='nii.gz',
-                        scope=scope, **selectors)
+    exts = selectors.pop('extension', ['.nii', '.nii.gz', '.func.gii', '.dtseries.nii'])
+    images = layout.get(return_type='object', scope=scope, extension=exts, **selectors)
 
     if not images:
         raise ValueError("No functional images that match criteria found.")
@@ -174,24 +194,23 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
         if 'run' in entities:
             entities['run'] = int(entities['run'])
 
-        tr = layout.get_metadata(img_f, scope=scope)['RepetitionTime']
+        tr = img_obj.get_metadata()["RepetitionTime"]
 
         # Get duration of run: first try to get it directly from the image
-        # header; if that fails, try to get NumberOfVolumes from the
-        # run metadata; if that fails, look for a scan_length argument.
+        # header; if that fails, look for a scan_length argument.
         try:
-            import nibabel as nb
-            img = nb.load(img_f)
-            duration = img.shape[3] * tr
+            nvols = _get_nvols(img_f)
+            duration = nvols * tr
         except Exception as e:
             if scan_length is not None:
                 duration = scan_length
+                nvols = int(np.rint(scan_length / tr))
             else:
                 msg = ("Unable to extract scan duration from one or more "
                        "BOLD runs, and no scan_length argument was provided "
                        "as a fallback. Please check that the image files are "
                        "available, or manually specify the scan duration.")
-                raise ValueError(msg)
+                raise ValueError(msg) from e
 
         # We don't want to pass all the image file's entities onto get_node(),
         # as there can be unhashable nested slice timing values, and this also
@@ -212,28 +231,30 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
                 raise ValueError("More than one existing Node matches the "
                                  "specified entities! You may need to pass "
                                  "additional selectors to narrow the search.")
-            return result[0]
+            run_info = result[0].get_info()
 
-        # Otherwise create a new node and use that.
-        # We first convert any entity values that are currently collections to
-        # JSON strings to prevent nasty hashing problems downstream. Note that
-        # isinstance() isn't as foolproof as actually trying to hash the
-        # value, but the latter is likely to be slower, and since values are
-        # coming from JSON or filenames, there's no real chance of encountering
-        # anything but a list or dict.
-        entities = {
-            k: (json.dumps(v) if isinstance(v, (list, dict)) else v)
-            for (k, v) in entities.items()
-        }
+        else:
+            # Otherwise create a new node and use that.
+            # We first convert any entity values that are currently collections to
+            # JSON strings to prevent nasty hashing problems downstream. Note that
+            # isinstance() isn't as foolproof as actually trying to hash the
+            # value, but the latter is likely to be slower, and since values are
+            # coming from JSON or filenames, there's no real chance of encountering
+            # anything but a list or dict.
+            entities = {
+                k: (json.dumps(v) if isinstance(v, (list, dict)) else v)
+                for (k, v) in entities.items()
+            }
 
-        run = dataset.create_node('run', entities, image_file=img_f,
-                                  duration=duration, repetition_time=tr)
-        run_info = run.get_info()
+            run = dataset.create_node('run', entities, image_file=img_f,
+                                      duration=duration, repetition_time=tr,
+                                      n_vols=nvols)
+            run_info = run.get_info()
 
         # Process event files
         if events:
             dfs = layout.get_nearest(
-                img_f, extension='tsv', suffix='events', all_=True,
+                img_f, extension='.tsv', suffix='events', all_=True,
                 full_search=True, ignore_strict_entities=['suffix', 'extension'])
             for _data in dfs:
                 _data = pd.read_csv(_data, sep='\t')
@@ -241,11 +262,11 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
                     if (_data['amplitude'].astype(int) == 1).all() and \
                             'trial_type' in _data.columns:
                         msg = ("Column 'amplitude' with constant value 1 "
-                                "is unnecessary in event files; ignoring it.")
+                               "is unnecessary in event files; ignoring it.")
                         _data = _data.drop('amplitude', axis=1)
                     else:
                         msg = ("Column name 'amplitude' is reserved; "
-                                "renaming it to 'amplitude_'.")
+                               "renaming it to 'amplitude_'.")
                         _data = _data.rename(
                             columns={'amplitude': 'amplitude_'})
                     warnings.warn(msg)
@@ -281,7 +302,8 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
         if regressors:
             sub_ents = {k: v for k, v in entities.items()
                         if k in BASE_ENTITIES}
-            confound_files = layout.get(suffix='regressors', scope=scope,
+            confound_files = layout.get(suffix=['regressors', 'timeseries'],
+                                        scope=scope, extension='.tsv',
                                         **sub_ents)
             for cf in confound_files:
                 _data = pd.read_csv(cf.path, sep='\t', na_values='n/a')
@@ -304,7 +326,7 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
 
         if rec_types:
             rec_files = layout.get_nearest(
-                img_f, extension='tsv.gz', all_=True, suffix=rec_types,
+                img_f, extension='.tsv.gz', all_=True, suffix=rec_types,
                 ignore_strict_entities=['suffix', 'extension'], full_search=True)
             for rf in rec_files:
                 metadata = layout.get_metadata(rf)
@@ -395,7 +417,7 @@ def _load_tsv_variables(layout, suffix, dataset=None, columns=None,
     if dataset is None:
         dataset = NodeIndex()
 
-    files = layout.get(extension='tsv', suffix=suffix, scope=scope,
+    files = layout.get(extension='.tsv', suffix=suffix, scope=scope,
                        **layout_kwargs)
 
     for f in files:
@@ -422,8 +444,8 @@ def _load_tsv_variables(layout, suffix, dataset=None, columns=None,
 
             image = _data['filename']
             _data = _data.drop('filename', axis=1)
-            dn = f.dirname
-            paths = [join(dn, p) for p in image.values]
+            dn = f._dirname
+            paths = [str(dn / p) for p in image.values]
             ent_recs = [dict(layout.files[p].entities) for p in paths
                         if p in layout.files]
             ent_cols = pd.DataFrame.from_records(ent_recs)
@@ -477,7 +499,7 @@ def _load_tsv_variables(layout, suffix, dataset=None, columns=None,
 
         for col_name in amp_cols:
 
-            # Rename colummns: values must be in 'amplitude'
+            # Rename columns: values must be in 'amplitude'
             df = _data.loc[:, [col_name] + ent_cols]
             df.columns = ['amplitude'] + ent_cols
 

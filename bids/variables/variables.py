@@ -1,14 +1,16 @@
 """ Classes for representing BIDS variables. """
 
-import numpy as np
-import pandas as pd
 import math
 import warnings
 from copy import deepcopy
 from abc import abstractmethod, ABCMeta
-from bids.utils import listify
 from itertools import chain
-from bids.utils import matches_entities
+from functools import reduce
+
+import numpy as np
+import pandas as pd
+
+from bids.utils import listify
 
 class BIDSVariable(metaclass=ABCMeta):
     """Base representation of a column in a BIDS project. """
@@ -22,7 +24,7 @@ class BIDSVariable(metaclass=ABCMeta):
         self.name = name
         self.values = values
         self.source = source
-        self._index_entities()
+        self.entities = self._extract_entities()
 
     def clone(self, data=None, **kwargs):
         """Clone (deep copy) the current column, optionally replacing its
@@ -43,9 +45,13 @@ class BIDSVariable(metaclass=ABCMeta):
         result = deepcopy(self)
         if data is not None:
             if data.shape != self.values.shape:
-                raise ValueError("Replacement data has shape %s; must have "
-                                 "same shape as existing data %s." %
-                                 (data.shape, self.values.shape))
+                # If data can be re-shaped safely, do so
+                if data.squeeze().shape == self.values.squeeze().shape:
+                    data = data.values.reshape(self.values.shape)
+                else:
+                    raise ValueError("Replacement data has shape %s; must have"
+                                     " same shape as existing data %s." %
+                                     (data.shape, self.values.shape))
             result.values = pd.DataFrame(data)
 
         if kwargs:
@@ -220,12 +226,8 @@ class BIDSVariable(metaclass=ABCMeta):
 
         return data.reset_index(drop=True)
 
-    def matches_entities(self, entities, strict=False):
-        """Checks whether current Variable's entities match the input. """
-        return matches_entities(self, entities, strict)
-
-    def _index_entities(self):
-        """Returns a dict of entities for the current Variable.
+    def _extract_entities(self):
+        """Returns a dict of all non-varying entities for the current Variable.
 
         Notes
         -----
@@ -237,10 +239,10 @@ class BIDSVariable(metaclass=ABCMeta):
         """
         constant = self.index.apply(lambda x: x.nunique() == 1)
         if constant.empty:
-            self.entities = {}
+            return {}
         else:
             keep = self.index.columns[constant]
-            self.entities = {k: self.index[k].dropna().iloc[0] for k in keep}
+            return {k: self.index[k].dropna().iloc[0] for k in keep}
 
 
 class SimpleVariable(BIDSVariable):
@@ -294,7 +296,7 @@ class SimpleVariable(BIDSVariable):
 
         subsets = []
         for i, col_name in enumerate(grouper.columns):
-            col_data = data.loc[grouper[col_name], :]
+            col_data = data.loc[grouper[col_name].astype(bool), :]
             name = '{}.{}'.format(self.name, col_name)
             col = self.__class__(name=name, data=col_data, source=self.source,
                                  run_info=getattr(self, 'run_info', None))
@@ -362,45 +364,75 @@ class SparseRunVariable(SimpleVariable):
         """Return the total duration of the Variable's run(s). """
         return sum([r.duration for r in self.run_info])
 
-    def to_dense(self, sampling_rate):
+    def to_dense(self, sampling_rate=None):
         """Convert the current sparse column to a dense representation.
+
+        If sampling_rate is not provided, the largest interval able to
+        faithfully represent all onsets and durations will be determined.
+        The sampling rate is the reciprocal of that interval.
 
         Parameters
         ----------
-        sampling_rate : int or str
-            Sampling rate (in Hz) to use when
-            constructing the DenseRunVariable.
+        sampling_rate : float or None
+            Sampling rate (in Hz) to use when constructing the DenseRunVariable
 
         Returns
         -------
         DenseRunVariable
         """
-        duration = int(math.ceil(sampling_rate * self.get_duration()))
+        # Cast onsets and durations to milliseconds
+        onsets = np.round(self.onset * 1000).astype(int)
+        durations = np.round(self.duration * 1000).astype(int)
+        gcd = np.gcd.reduce(np.r_[onsets, durations])
+        bin_sr = 1000. / gcd
+
+        # never use a computed SR smaller than the requested one, because
+        # when events are widely-spaced and timing is very regular, this can
+        # result in a nasty loss of precision in the resampling step.
+        if sampling_rate is not None:
+            bin_sr = max(bin_sr, sampling_rate)
+
+        duration = int(math.ceil(bin_sr * self.get_duration()))
         ts = np.zeros(duration, dtype=self.values.dtype)
 
-        onsets = np.round(self.onset * sampling_rate).astype(int)
-        durations = np.round(self.duration * sampling_rate).astype(int)
+        onsets = np.round(self.onset * bin_sr).astype(int)
+        durations = np.round(self.duration * bin_sr).astype(int)
 
         run_i, start, last_ind = 0, 0, 0
         for i, val in enumerate(self.values.values):
             if onsets[i] < last_ind:
-                start += self.run_info[run_i].duration * sampling_rate
+                start += self.run_info[run_i].duration * bin_sr
                 run_i += 1
             _onset = int(start + onsets[i])
             _offset = int(_onset + durations[i])
             if _onset >= duration:
-                warnings.warn("The onset time of a variable seems to exceed the runs"
-                              "duration, hence runs are incremented by one internally.")
+                warnings.warn("The onset time of a variable seems to exceed "
+                              "the runs duration, hence runs are incremented "
+                              "by one internally.")
             ts[_onset:_offset] = val
             last_ind = onsets[i]
 
         run_info = list(self.run_info)
-        return DenseRunVariable(
+        dense_var = DenseRunVariable(
             name=self.name,
             values=ts,
             run_info=run_info,
             source=self.source,
-            sampling_rate=sampling_rate)
+            sampling_rate=bin_sr)
+
+        if sampling_rate is not None and bin_sr != sampling_rate:
+            dense_var.resample(sampling_rate, inplace=True)
+
+        return dense_var
+
+    def _extract_entities(self):
+        # Get all entities common to all runs. The super method already does
+        # this for entities that show up in filenames, so we just add the
+        # ones that show up in the RunInfo tuples, as those include metadata.
+        ent_items = [run.entities.items() for run in self.run_info]
+        entities = reduce(lambda x, y: x & y, ent_items, ent_items[0])
+        base_ents = super()._extract_entities()
+        return dict(entities, **base_ents)
 
     @classmethod
     def _merge(cls, variables, name, **kwargs):
@@ -464,14 +496,19 @@ class DenseRunVariable(BIDSVariable):
                                  sampling_rate=self.sampling_rate)
                 for i, name in enumerate(df.columns)]
 
-    def _build_entity_index(self, run_info, sampling_rate):
+    def _build_entity_index(self, run_info, sampling_rate, match_vol=False):
         """Build the entity index from run information. """
 
         index = []
-        interval = int(round(1000. / sampling_rate))
         _timestamps = []
         for run in run_info:
-            reps = int(math.ceil(run.duration * sampling_rate))
+            if match_vol:
+                # If TR, fix reps to n_vols to ensure match
+                reps = run.n_vols
+            else:
+                reps = int(math.ceil(run.duration * sampling_rate))
+
+            interval = int(round(1000. / sampling_rate))
             ent_vals = list(run.entities.values())
             df = pd.DataFrame([ent_vals] * reps, columns=list(run.entities.keys()))
             ts = pd.date_range(0, periods=len(df), freq='%sms' % interval)
@@ -500,13 +537,17 @@ class DenseRunVariable(BIDSVariable):
             var.resample(sampling_rate, True, kind)
             return var
 
+        match_vol = False
+        if sampling_rate == 'TR':
+            match_vol = True
+            sampling_rate = 1. / self.run_info[0].tr
+
         if sampling_rate == self.sampling_rate:
             return
 
-        old_sr = self.sampling_rate
         n = len(self.index)
 
-        self.index = self._build_entity_index(self.run_info, sampling_rate)
+        self.index = self._build_entity_index(self.run_info, sampling_rate, match_vol)
 
         x = np.arange(n)
         num = len(self.index)
@@ -569,8 +610,8 @@ class DenseRunVariable(BIDSVariable):
                     msg = ("Cannot merge DenseRunVariables (%s) with different"
                            " sampling rates (%s). Either specify an integer "
                            "sampling rate to use for all variables, or set "
-                           "sampling_rate='auto' to use the highest sampling "
-                           "rate found." % (name, rates))
+                           "sampling_rate='highest' to use the highest sampling"
+                           " rate found." % (name, rates))
                     raise ValueError(msg)
 
         variables = [v.resample(sampling_rate) for v in variables]
@@ -585,23 +626,21 @@ class DenseRunVariable(BIDSVariable):
             sampling_rate=sampling_rate)
 
 
-def merge_variables(variables, name=None, **kwargs):
+def merge_variables(variables, **kwargs):
     """Merge/concatenate a list of variables along the row axis.
 
     Parameters
     ----------
     variables : :obj:`list`
         A list of Variables to merge.
-    name : :obj:`str`
-        Optional name to assign to the output Variable. By default, uses the
-        same name as the input variables.
     kwargs
         Optional keyword arguments to pass onto the class-specific merge() call.
         Possible args:
             - sampling_rate (int, str): The sampling rate to use if resampling
-              of DenseRunVariables is necessary for harmonization. If 'auto',
-              the highest sampling rate found will be used. This argument is
-              only used when passing DenseRunVariables in the variables list.
+              of DenseRunVariables is necessary for harmonization. If
+              'highest', the highest sampling rate found will be used. This
+              argument is only used when passing DenseRunVariables in the
+              variables list.
 
     Returns
     -------
@@ -609,7 +648,7 @@ def merge_variables(variables, name=None, **kwargs):
 
     Notes
     -----
-    - Currently, this function only support homogenously-typed lists. In
+    - Currently, this function only support homogeneously-typed lists. In
       future, it may be extended to support implicit conversion.
     - Variables in the list must all share the same name (i.e., it is not
       possible to merge two different variables into a single variable.)

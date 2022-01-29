@@ -3,9 +3,16 @@
 import os
 import json
 from collections import defaultdict
+from pathlib import Path
+from functools import partial, lru_cache
+
 from bids_validator import BIDSValidator
-from .models import Config, Entity, Tag, FileAssociation
+
 from ..utils import listify, make_bidsfile
+from ..exceptions import BIDSConflictingValuesError
+
+from .models import Config, Entity, Tag, FileAssociation
+from .validation import validate_indexing_args
 
 
 def _extract_entities(bidsfile, entities):
@@ -23,48 +30,102 @@ def _check_path_matches_patterns(path, patterns):
     """Check if the path matches at least one of the provided patterns. """
     if not patterns:
         return False
-    path = os.path.abspath(path)
+    path = path.absolute()
     for patt in patterns:
-        if isinstance(patt, str):
+        if isinstance(patt, Path):
             if path == patt:
                 return True
-        elif patt.search(path):
+        elif patt.search(str(path)):
             return True
     return False
 
 
-class BIDSLayoutIndexer(object):
+class BIDSLayoutIndexer:
     """ Indexer class for BIDSLayout.
 
-    Args:
-        layout (BIDSLayout): The BIDSLayout to index.
+    Parameters
+    ----------
+    validate : bool, optional
+        If True, all files are checked for BIDS compliance when first indexed,
+        and non-compliant files are ignored. This provides a convenient way to
+        restrict file indexing to only those files defined in the "core" BIDS
+        spec, as setting validate=True will lead files in supplementary folders
+        like derivatives/, code/, etc. to be ignored.
+    ignore : str or SRE_Pattern or list
+        Path(s) to exclude from indexing. Each path is either a string or a
+        SRE_Pattern object (i.e., compiled regular expression). If a string is
+        passed, it must be either an absolute path, or be relative to the BIDS
+        project root. If an SRE_Pattern is passed, the contained regular
+        expression will be matched against the full (absolute) path of all
+        files and directories. By default, indexing ignores all files in
+        'code/', 'stimuli/', 'sourcedata/', 'models/', and any hidden
+        files/dirs beginning with '.' at root level.
+    force_index : str or SRE_Pattern or list
+        Path(s) to forcibly index in the BIDSLayout, even if they would
+        otherwise fail validation. See the documentation for the ignore
+        argument for input format details. Note that paths in force_index takes
+        precedence over those in ignore (i.e., if a file matches both ignore
+        and force_index, it *will* be indexed).
+        Note: NEVER include 'derivatives' here; use the derivatives argument
+        (or :obj:`bids.layout.BIDSLayout.add_derivatives`) for that.
+    index_metadata : bool
+        If True, all metadata files are indexed. If False, metadata will not be
+        available (but indexing will be faster).
+    config_filename : str
+        Optional name of filename within directories
+        that contains configuration information.
+    **filters
+        keyword arguments passed to the .get() method of a
+        :obj:`bids.layout.BIDSLayout` object. These keyword arguments define
+        what files get selected for metadata indexing.
     """
 
-    def __init__(self, layout):
-
-        self.layout = layout
-        self.session = layout.session
-        self.validate = layout.validate
-        self.root = layout.root
-        self.config_filename = layout.config_filename
+    def __init__(self, validate=True, ignore=None, force_index=None,
+                 index_metadata=True, config_filename='layout_config.json',
+                 **filters):
+        self.validate = validate
+        self.ignore = ignore
+        self.force_index = force_index
+        self.index_metadata = index_metadata
+        self.config_filename = config_filename
+        self.filters = filters
         self.validator = BIDSValidator(index_associated=True)
-        # Create copies of list attributes we'll modify during indexing
-        self.config = list(layout.config.values())
-        self.include_patterns = list(layout.force_index)
-        self.exclude_patterns = list(layout.ignore)
+
+        # Layout-dependent attributes to be set in __call__()
+        self._layout = None
+        self._config = None
+        self._include_patterns = None
+        self._exclude_patterns = None
+
+    def __call__(self, layout):
+        self._layout = layout
+        self._config = list(layout.config.values())
+
+        ignore, force = validate_indexing_args(self.ignore, self.force_index,
+                                               self._layout._root)
+        self._include_patterns = force
+        self._exclude_patterns = ignore
+
+        self._index_dir(self._layout._root, self._config)
+        if self.index_metadata:
+            self._index_metadata()
+
+    @property
+    def session(self):
+        return self._layout.connection_manager.session
 
     def _validate_dir(self, d, default=None):
-        if _check_path_matches_patterns(d, self.include_patterns):
+        if _check_path_matches_patterns(d, self._include_patterns):
             return True
-        if _check_path_matches_patterns(d, self.exclude_patterns):
+        if _check_path_matches_patterns(d, self._exclude_patterns):
             return False
         return default
 
     def _validate_file(self, f, default=None):
         # Inclusion takes priority over exclusion
-        if _check_path_matches_patterns(f, self.include_patterns):
+        if _check_path_matches_patterns(f, self._include_patterns):
             return True
-        if _check_path_matches_patterns(f, self.exclude_patterns):
+        if _check_path_matches_patterns(f, self._exclude_patterns):
             return False
 
         # If inclusion/exclusion is inherited from a parent directory, that
@@ -74,30 +135,32 @@ class BIDSLayoutIndexer(object):
 
         # Derivatives are currently not validated.
         # TODO: raise warning the first time in a session this is encountered
-        if not self.validate or 'derivatives' in self.layout.config:
+        if not self.validate or 'derivatives' in self._layout.config:
             return True
 
         # BIDS validator expects absolute paths, but really these are relative
         # to the BIDS project root.
-        to_check = os.path.relpath(f, self.root)
-        to_check = os.path.join(os.path.sep, to_check)
+        to_check = f.relative_to(self._layout._root)
+        # Pretend the path is an absolute path
+        to_check = Path('/') / to_check
+        # bids-validator works with posix paths only
+        to_check = to_check.as_posix()
         return self.validator.is_bids(to_check)
 
     def _index_dir(self, path, config, default_action=None):
 
-        abs_path = os.path.join(self.root, path)
+        abs_path = self._layout._root / path
 
         # Derivative directories must always be added separately
-        # and passed as their own root, so terminate if passed.
-        if abs_path.startswith(os.path.join(self.root, 'derivatives')):
+        if self._layout._root.joinpath('derivatives') in abs_path.parents:
             return
 
         config = list(config)  # Shallow copy
 
         # Check for additional config file in directory
         layout_file = self.config_filename
-        config_file = os.path.join(abs_path, layout_file)
-        if os.path.exists(config_file):
+        config_file = abs_path / layout_file
+        if config_file.exists():
             cfg = Config.load(config_file, session=self.session)
             config.append(cfg)
 
@@ -106,35 +169,33 @@ class BIDSLayoutIndexer(object):
         for c in config:
             config_entities.update(c.entities)
 
-        for (dirpath, dirnames, filenames) in os.walk(path):
+        # Get a list of first-level subdirectories and files in the path directory
+        _, dirnames, filenames = next(os.walk(path))
 
-            # Set the default inclusion/exclusion directive
-            default = self._validate_dir(dirpath, default=default_action)
+        # Set the default inclusion/exclusion directive
+        default = self._validate_dir(path, default=default_action)
 
-            # If layout configuration file exists, delete it
-            if self.config_filename in filenames:
-                filenames.remove(self.config_filename)
+        # If layout configuration file exists, delete it
+        if self.config_filename in filenames:
+            filenames.remove(self.config_filename)
 
-            for f in filenames:
+        for f in filenames:
+            bf = self._index_file(f, path, config_entities,
+                                  default_action=default)
+            if bf is None:
+                continue
 
-                bf = self._index_file(f, dirpath, config_entities,
-                                      default_action=default)
-                if bf is None:
-                    continue
+        self.session.commit()
 
-            self.session.commit()
+        # Recursively index subdirectories
+        for d in dirnames:
+            d = path / d
+            self._index_dir(d, list(config), default_action=default)
 
-            # Recursively index subdirectories
-            for d in dirnames:
-                d = os.path.join(dirpath, d)
-                self._index_dir(d, list(config), default_action=default)
-
-            # prevent subdirectory traversal
-            break
 
     def _index_file(self, f, dirpath, entities, default_action=None):
         """Create DB record for file and its tags. """
-        abs_fn = os.path.join(dirpath, f)
+        abs_fn = dirpath / f
 
         # Skip files that fail validation, unless forcibly indexing
         if not self._validate_file(abs_fn, default=default_action):
@@ -160,18 +221,28 @@ class BIDSLayoutIndexer(object):
 
         return bf
 
-    def index_files(self):
-        """Index all files in the BIDS dataset. """
-        self._index_dir(self.root, self.config)
+    def _index_metadata(self):
+        """Index metadata for all files in the BIDS dataset.
+        """
+        filters = self.filters
 
-    def index_metadata(self):
-        """Index metadata for all files in the BIDS dataset. """
+        if filters:
+            # ensure we are returning objects
+            filters['return_type'] = 'object'
+            # until 0.11.0, user can specify extension or extensions
+            ext_key = 'extensions' if 'extensions' in filters else 'extension'
+            if filters.get(ext_key):
+                filters[ext_key] = listify(filters[ext_key])
+                # ensure json files are being indexed
+                if '.json' not in filters[ext_key]:
+                    filters[ext_key].append('.json')
+
         # Process JSON files first if we're indexing metadata
-        all_files = self.layout.get(absolute_paths=True)
+        all_files = self._layout.get(absolute_paths=True, **filters)
 
         # Track ALL entities we've seen in file names or metadatas
         all_entities = {}
-        for c in self.config:
+        for c in self._config:
             all_entities.update(c.entities)
 
         # If key/value pairs in JSON files duplicate ones extracted from files,
@@ -188,6 +259,18 @@ class BIDSLayoutIndexer(object):
         # The payload is left empty for non-JSON files.
         file_data = {}
 
+        # Memoizing JSON loader
+        # Use as a function to allow lazy loading so only read JSON files
+        # if they correspond to data files that are indexed
+        @lru_cache(maxsize=None)
+        def load_json(path):
+            with open(path, 'r', encoding='utf-8') as handle:
+                try:
+                    return json.load(handle)
+                except (UnicodeDecodeError, json.JSONDecodeError) as e:
+                    msg = f"Error occurred while trying to decode JSON from file {path}"
+                    raise IOError(msg) from e
+
         for bf in all_files:
             file_ents = bf.entities.copy()
             suffix = file_ents.pop('suffix', None)
@@ -198,19 +281,12 @@ class BIDSLayoutIndexer(object):
                 if key not in file_data:
                     file_data[key] = defaultdict(list)
 
-                if ext == 'json':
-                    with open(bf.path, 'r') as handle:
-                        try:
-                            payload = json.load(handle)
-                        except json.JSONDecodeError as e:
-                            msg = ("Error occurred while trying to decode JSON"
-                                   " from file '{}'.".format(bf.path))
-                            raise IOError(msg) from e
-                else:
-                    payload = None
+                payload = None
+                if ext == '.json':
+                    payload = partial(load_json, bf.path)
 
                 to_store = (file_ents, payload, bf.path)
-                file_data[key][bf.dirname].append(to_store)
+                file_data[key][bf._dirname].append(to_store)
 
         # To avoid integrity errors, track primary keys we've seen
         seen_assocs = set()
@@ -247,8 +323,8 @@ class BIDSLayoutIndexer(object):
             # add the payload to the stack. Finally, we invert the
             # stack and merge the payloads in order.
             ext_key = "{}/{}".format(ext, suffix)
-            json_key = "json/{}".format(suffix)
-            dirname = bf.dirname
+            json_key = ".json/{}".format(suffix)
+            dirname = bf._dirname
 
             payloads = []
             ancestors = []
@@ -275,7 +351,8 @@ class BIDSLayoutIndexer(object):
                     if all(matches):
                         ancestors.append(path)
 
-                parent = os.path.dirname(dirname)
+                parent = dirname.parent
+
                 if parent == dirname:
                     break
                 dirname = parent
@@ -283,14 +360,26 @@ class BIDSLayoutIndexer(object):
             if not payloads:
                 continue
 
+            # Missing data files can tolerate absent metadata files,
+            # but we will try to load it anyway
+            virtual_datafile = not bf._path.exists()
+
             # Create DB records for metadata associations
-            js_file = payloads[-1][1]
+            js_file = payloads[0][1]
             create_association_pair(js_file, bf.path, 'Metadata')
 
             # Consolidate metadata by looping over inherited JSON files
             file_md = {}
             for pl, js_file in payloads[::-1]:
-                file_md.update(pl)
+                try:
+                    file_md.update(pl())
+                except FileNotFoundError:
+                    if not virtual_datafile:
+                        raise
+                    # Drop metadata if any files are missing
+                    # Otherwise missing overrides could give misleading metadata
+                    file_md = {}
+                    break
 
             # Create FileAssociation records for JSON inheritance
             n_pl = len(payloads)
@@ -310,15 +399,16 @@ class BIDSLayoutIndexer(object):
             intended = listify(file_md.get('IntendedFor', []))
             for target in intended:
                 # Per spec, IntendedFor paths are relative to sub dir.
-                target = os.path.join(
-                    self.root, 'sub-{}'.format(bf.entities['subject']), target)
-                create_association_pair(bf.path, target, 'IntendedFor',
+                target = self._layout._root.joinpath(
+                    'sub-{}'.format(bf.entities['subject']),
+                    target)
+                create_association_pair(bf.path, str(target), 'IntendedFor',
                                         'InformedBy')
 
             # Link files to BOLD runs
             if suffix in ['physio', 'stim', 'events', 'sbref']:
-                images = self.layout.get(
-                    extension=['nii', 'nii.gz'], suffix='bold',
+                images = self._layout.get(
+                    extension=['.nii', '.nii.gz'], suffix='bold',
                     return_type='filename', **file_ents)
                 for img in images:
                     create_association_pair(bf.path, img, 'IntendedFor',
@@ -326,8 +416,8 @@ class BIDSLayoutIndexer(object):
 
             # Link files to DWI runs
             if suffix == 'sbref' or ext in ['bvec', 'bval']:
-                images = self.layout.get(
-                    extension=['nii', 'nii.gz'], suffix='dwi',
+                images = self._layout.get(
+                    extension=['.nii', '.nii.gz'], suffix='dwi',
                     return_type='filename', **file_ents)
                 for img in images:
                     create_association_pair(bf.path, img, 'IntendedFor',
@@ -345,13 +435,14 @@ class BIDSLayoutIndexer(object):
                             "filename {} (value='{}') versus its JSON sidecar "
                             "(value='{}'). Please reconcile this discrepancy."
                         )
-                        raise ValueError(msg.format(md_key, bf.path, file_val,
-                                                    md_val))
+                        raise BIDSConflictingValuesError(
+                            msg.format(md_key, bf.path, file_val,
+                            md_val))
                     continue
                 if md_key not in all_entities:
-                    all_entities[md_key] = Entity(md_key, is_metadata=True)
+                    all_entities[md_key] = Entity(md_key)
                     self.session.add(all_entities[md_key])
-                tag = Tag(bf, all_entities[md_key], md_val)
+                tag = Tag(bf, all_entities[md_key], md_val, is_metadata=True)
                 self.session.add(tag)
 
             if len(self.session.new) >= 1000:

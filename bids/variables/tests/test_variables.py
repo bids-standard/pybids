@@ -19,7 +19,7 @@ def generate_DEV(name='test', sr=20, duration=480):
     ent_names = ['task', 'run', 'session', 'subject']
     entities = {e: uuid.uuid4().hex for e in ent_names}
     image = uuid.uuid4().hex + '.nii.gz'
-    run_info = RunInfo(entities, duration, 2, image)
+    run_info = RunInfo(entities, duration, 2, image, duration / 2),
     return DenseRunVariable(name='test', values=values, run_info=run_info,
                             source='dummy', sampling_rate=sr)
 
@@ -66,9 +66,32 @@ def test_sparse_run_variable_to_dense(layout1):
     index = load_variables(layout1, types='events', scan_length=480)
     runs = index.get_nodes('run', {'subject': ['01', '02']})
 
-    for i, run in enumerate(runs):
+    for _, run in enumerate(runs):
         var = run.variables['RT']
         dense = var.to_dense(20)
+
+        # All sparse values must occur in the dense variable
+        dense_vals = set(np.unique(dense.values.values))
+        sparse_vals = set(np.unique(var.values.values)) | {0}
+        assert not (sparse_vals - dense_vals)
+
+        assert len(dense.values) > len(var.values)
+        assert isinstance(dense, DenseRunVariable)
+        assert dense.values.shape == (9600, 1)
+        assert len(dense.run_info) == len(var.run_info)
+        assert dense.source == 'events'
+
+
+def test_sparse_run_variable_to_dense_default_sr(layout1):
+    index = load_variables(layout1, types='events', scan_length=480)
+    runs = index.get_nodes('run', {'subject': ['01', '02']})
+
+    for i, run in enumerate(runs):
+        var = run.variables['RT']
+        dense = var.to_dense()
+
+        # Check that a sensible sampling rate was found
+        assert np.allclose(dense.sampling_rate, 1)
 
         # Check that all unique values are identical
         sparse_vals = set(np.unique(var.values.values)) | {0}
@@ -77,7 +100,7 @@ def test_sparse_run_variable_to_dense(layout1):
 
         assert len(dense.values) > len(var.values)
         assert isinstance(dense, DenseRunVariable)
-        assert dense.values.shape == (9600, 1)
+        assert dense.values.shape == (480, 1)
         assert len(dense.run_info) == len(var.run_info)
         assert dense.source == 'events'
 
@@ -112,9 +135,12 @@ def test_densify_merged_variables(layout1):
     for i in range(len(runs)):
         onset = i * n_rows
         offset = onset + n_rows
-        run_vals = vars_[i].to_dense(SR).values
-        dense_vals = dense.values.iloc[onset:offset].reset_index(drop=True)
-        assert dense_vals.equals(run_vals)
+        # resampled values from split vs. merged will be trivially different
+        # at boundaries due to interpolation, so leave a buffer
+        run_vals = vars_[i].to_dense(SR).values.values.ravel()
+        dense_vals = dense.values.values.ravel()[onset:offset]
+        assert run_vals.shape == dense_vals.shape
+        assert np.array_equal(run_vals, dense_vals)
 
 
 def test_merge_simple_variables(layout2):

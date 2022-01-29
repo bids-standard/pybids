@@ -4,6 +4,7 @@ import os
 import json
 import pytest
 from bids.config import reset_options
+from bids.tests import get_test_data_path
 
 
 def test_load_from_standard_paths():
@@ -49,3 +50,23 @@ def test_set_option():
 # def test_get_option():
 #     reset_options(False)
 #     assert not bids.config.get_option('loop_preproc')
+
+
+def test_extension_initial_dot(mock_config):
+    ds117 = os.path.join(get_test_data_path(), 'ds000117')
+
+    # Setting False is disabled
+    with pytest.raises(ValueError, match='Cannot set'):
+        bids.config.set_option('extension_initial_dot', False)
+    with pytest.raises(ValueError, match='Cannot set'):
+        bids.config.set_option('extension_initial_dot', None)
+
+    # Setting True warns
+    with pytest.warns(FutureWarning, match='will be removed'):
+        bids.config.set_option('extension_initial_dot', True)
+
+    # No warnings on layout construction
+    with pytest.warns(None) as record:
+        layout = bids.BIDSLayout(ds117)
+    assert len(record) == 0
+    assert layout.get(extension='nii.gz')[0].entities['extension'] == '.nii.gz'
