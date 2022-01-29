@@ -103,18 +103,27 @@ from pathlib import Path
 from packaging.version import Version
 
 
-# As per https://bids.neuroimaging.io/bids_spec1.1.1.pdf
 desc_fields = {
     Version("1.1.1"): {
         "required": ["Name", "BIDSVersion"],
         "recommended": ["License"],
         "optional": ["Authors", "Acknowledgements", "HowToAcknowledge",
                      "Funding", "ReferencesAndLinks", "DatasetDOI"]
-    }
+    },
+    # TODO make more general
+    # assumes we only want to generate with derivatives 
+    # deal with the different requirements for raw and derivative 
+    Version("1.6.1"): {
+        "required": ["Name", "BIDSVersion", "GeneratedBy"],
+        "recommended": ["License", "DatasetType", "HEDVersion"],
+        "optional": ["Authors", "Acknowledgements", "HowToAcknowledge",
+                     "Funding", "ReferencesAndLinks", "DatasetDOI",
+                     "EthicsApprovals","SourceDatasets"]
+    }    
 }
 
 
-def get_description_fields(version, type_):
+def get_description_fields(version:str, type_:str):
     if isinstance(version, str):
         version = Version(version)
     if not isinstance(version, Version):
@@ -125,7 +134,8 @@ def get_description_fields(version, type_):
     return desc_fields[max(desc_fields.keys())][type_]
 
 
-def write_derivative_description(source_dir, name, bids_version='1.1.1', exist_ok=False,
+def write_derivative_description(source_dir, pipeline_name, pipeline_version="0.1.0",
+                                 bids_version='1.1.1', exist_ok=False,
                                  propagate=False, **desc_kwargs):
     """Write a dataset_description.json file for a new derivative folder.
 
@@ -151,14 +161,16 @@ def write_derivative_description(source_dir, name, bids_version='1.1.1', exist_o
     """
     source_dir = Path(source_dir)
 
-    deriv_dir = source_dir / "derivatives" / name
+    deriv_dir = source_dir / "derivatives" / pipeline_name
 
     desc = {
-        'Name': name,
+        'Name': pipeline_name,
         'BIDSVersion': bids_version,
-        'PipelineDescription': {
-            "Name": name
-            }
+        'GeneratedBy':  [{
+            "Name": pipeline_name,
+            "Version": pipeline_version
+            }],
+        "SourceDatasets": ""
         }
 
     fname = source_dir / 'dataset_description.json'
