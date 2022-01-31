@@ -10,7 +10,7 @@ import numpy as np
 import pytest
 
 from bids.modeling import BIDSStatsModelsGraph
-from bids.modeling.statsmodels import ContrastInfo
+from bids.modeling.statsmodels import ContrastInfo, expand_wildcards
 from bids.layout import BIDSLayout
 from bids.tests import get_test_data_path
 from bids.variables import BIDSVariableCollection
@@ -152,3 +152,20 @@ def test_entire_graph_smoketest(graph):
     assert model_spec.X.shape == (2, 1)
     assert model_spec.Z is None
     assert not set(model_spec.terms.keys()) - {"RT", "gain", "RT:gain"}
+
+
+def test_expand_wildcards():
+    # No wildcards == no modification
+    assert expand_wildcards(["a", "b"], ["a", "c"]) == ["a", "b"]
+    # No matches == removal
+    assert expand_wildcards(["a", "b*"], ["a", "c"]) == ["a"]
+    # Matches expand in-place
+    assert expand_wildcards(["a*", "b"], ["a", "c"]) == ["a", "b"]
+    assert expand_wildcards(["a*", "b"], ["a0", "c", "a1", "a2"]) == ["a0", "a1", "a2", "b"]
+    # Some examples
+    assert expand_wildcards(
+        ["trial_type.*"], ["trial_type.A", "trial_type.B"]
+    ) == ["trial_type.A", "trial_type.B"]
+    assert expand_wildcards(
+        ["non_steady_state*"], ["non_steady_state00", "non_steady_state01"]
+    ) == ["non_steady_state00", "non_steady_state01"]
