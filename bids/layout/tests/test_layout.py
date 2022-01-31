@@ -18,6 +18,7 @@ from bids.tests import get_test_data_path
 from bids.utils import natural_sort
 
 from bids.exceptions import (
+    BIDSDerivativesValidationError,
     BIDSValidationError,
     NoMatchError,
     TargetError,
@@ -140,6 +141,47 @@ def test_get_file(layout_ds005_derivs):
     assert not layout.get_file('bleargh')
     assert not layout.get_file('/absolute/bleargh')
 
+
+class TestDerivativeAsRoot:
+    def test_dataset_without_datasettype_parsed_as_raw(self):
+        dataset_path = Path("ds005_derivs", "format_errs", "no_dataset_type")
+        unvalidated = BIDSLayout(
+            Path(get_test_data_path())/dataset_path,
+            validate=False
+        )
+        assert len(unvalidated.get()) == 4
+        with pytest.raises(ValueError):
+            unvalidated.get(desc="preproc")
+
+        validated = BIDSLayout(Path(get_test_data_path())/dataset_path)
+        assert len(validated.get()) == 1
+
+    def test_dataset_missing_generatedby_fails_validation(self):
+        dataset_path = Path("ds005_derivs", "format_errs", "no_pipeline_description")
+        with pytest.raises(BIDSDerivativesValidationError):
+            BIDSLayout(Path(get_test_data_path())/dataset_path)
+
+
+    def test_correctly_formatted_derivative_loads_as_derivative(self):
+        dataset_path = Path("ds005_derivs", "dummy")
+        layout = BIDSLayout(Path(get_test_data_path())/dataset_path)
+        assert len(layout.get()) == 4
+        assert len(layout.get(desc="preproc")) == 3
+
+    @pytest.mark.parametrize(
+        "dataset_path",
+        [
+            Path("ds005_derivs", "dummy"),
+            Path("ds005_derivs", "format_errs", "no_pipeline_description")
+        ]
+    )
+    def test_derivative_datasets_load_with_no_validation(self, dataset_path):
+        layout = BIDSLayout(
+            Path(get_test_data_path())/dataset_path,
+            validate=False
+        )
+        assert len(layout.get()) == 4
+        assert len(layout.get(desc="preproc")) == 3
 
 def test_get_metadata(layout_7t_trt):
     target = 'sub-03/ses-2/func/sub-03_ses-2_task-' \
@@ -739,3 +781,30 @@ def test_load_layout(layout_synthetic_nodb, db_dir):
     cm2 = reloaded.connection_manager
     for attr in ['root', 'absolute_paths', 'config', 'derivatives']:
         assert getattr(cm1.layout_info, attr) == getattr(cm2.layout_info, attr)
+
+
+def test_load_layout_config_not_overwritten(layout_synthetic_nodb, tmpdir):
+    modified_dataset_path = tmpdir/"modified"
+    shutil.copytree(layout_synthetic_nodb.root, modified_dataset_path)
+
+    # Save index
+    db_path = str(tmpdir / 'tmp_db')
+    BIDSLayout(modified_dataset_path).save(db_path)
+
+    # Update dataset_description.json
+    dataset_description = modified_dataset_path/"dataset_description.json"
+    with dataset_description.open('r') as f:
+        description = json.load(f)
+    description["DatasetType"] = "derivative"
+    with dataset_description.open('w') as f:
+        json.dump(description, f)
+
+    # Reload
+    db_layout = BIDSLayout(modified_dataset_path, database_path=db_path)
+    fresh_layout = BIDSLayout(modified_dataset_path, validate=False)
+    cm1 = db_layout.connection_manager
+    cm2 = fresh_layout.connection_manager
+    for attr in ['root', 'absolute_paths', 'derivatives']:
+        assert getattr(cm1.layout_info, attr) == getattr(cm2.layout_info, attr)
+
+    assert cm1.layout_info.config != cm2.layout_info.config

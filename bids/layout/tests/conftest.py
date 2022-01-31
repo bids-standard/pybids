@@ -54,7 +54,7 @@ def layout_ds005_multi_derivs(request, db_dir):
 
     layout = BIDSLayout(data_dir,
                         database_path=database_path)
-    deriv_dir1 = join(get_test_data_path(), 'ds005_derivs')
+    deriv_dir1 = join(get_test_data_path(), 'ds005_derivs', 'dummy')
     deriv_dir2 = join(data_dir, 'derivatives', 'events')
     layout.add_derivatives([deriv_dir1, deriv_dir2])
     return layout
