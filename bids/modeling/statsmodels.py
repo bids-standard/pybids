@@ -4,6 +4,8 @@ import json
 from collections import namedtuple, OrderedDict, Counter, defaultdict
 import itertools
 from functools import reduce
+import re
+import fnmatch
 
 import numpy as np
 import pandas as pd
@@ -520,6 +522,15 @@ class BIDSStatsModelsNode:
         return [c for c in self._collections if matches_entities(c, filters)]
 
 
+def expand_wildcards(selectors, pool):
+    out = list(selectors)
+    for spec in selectors:
+        if re.search(r'[\*\?\[\]]', spec):
+            idx = out.index(spec)
+            out[idx:idx + 1] = fnmatch.filter(pool, spec)
+    return out
+
+
 class BIDSStatsModelsNodeOutput:
     """Represents a single node in a BIDSStatsModelsGraph.
 
@@ -597,6 +608,8 @@ class BIDSStatsModelsNodeOutput:
             else:
                 var_names.append(int_name)
 
+        var_names = expand_wildcards(var_names, df.columns)
+
         # Verify all X names are actually present
         missing = list(set(var_names) - set(df.columns))
         if missing:
@@ -642,7 +655,9 @@ class BIDSStatsModelsNodeOutput:
 
             # Take the intersection of variables and Model.X (var_names), ignoring missing
             # variables (usually contrasts)
-            coll.variables = {v: coll.variables[v] for v in var_names if v in coll.variables}
+            coll.variables = {v: coll.variables[v]
+                              for v in expand_wildcards(var_names, coll.variables)
+                              if v in coll.variables}
             if not coll.variables:
                 continue
 
