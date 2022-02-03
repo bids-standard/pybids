@@ -25,12 +25,12 @@ from ..exceptions import (
     TargetError,
 )
 
-from .validation import (validate_child_derivative, validate_root, validate_derivative_path,
+from .validation import (validate_root, validate_derivative_path,
                          absolute_path_deprecation_warning,
                          indexer_arg_deprecation_warning,
                          EXAMPLE_DERIVATIVES_DESCRIPTION)
 from .writing import build_path, write_to_file
-from .models import (Config, BIDSFile, Entity, Tag)
+from .models import (Config, BIDSFile, DerivativeDatasets, Entity, Tag)
 from .index import BIDSLayoutIndexer
 from .db import ConnectionManager
 from .utils import (BIDSMetadata, parse_file_entities)
@@ -150,7 +150,7 @@ class BIDSLayout(object):
         self._root = root  # type: Path
         self.description = description
         self.absolute_paths = absolute_paths
-        self.derivatives = {}
+        self.derivatives = DerivativeDatasets()
         self.sources = sources
         self.regex_search = regex_search
 
@@ -253,10 +253,11 @@ class BIDSLayout(object):
         # We assume something is a BIDS-derivatives dataset if it either has a
         # defined pipeline name, or is applying the 'derivatives' rules.
         pl_name = self.source_pipeline
-        is_deriv = bool('derivatives' in self.config)
 
-        return ((not is_deriv and 'raw' in scope) or
-                (is_deriv and ('derivatives' in scope or pl_name in scope)))
+        return any([
+            'raw' in scope and not self.is_derivative,
+            ('derivatives' in scope or pl_name in scope) and self.is_derivative
+        ])
 
     def _get_layouts_in_scope(self, scope):
         """Return all layouts in the passed scope."""
