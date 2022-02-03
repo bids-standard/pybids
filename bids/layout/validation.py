@@ -140,20 +140,6 @@ def validate_derivative_path(path, **kwargs):
     return pipeline_name
 
 
-def validate_child_derivative(child, parent):
-    if not child.is_derivative:
-        raise BIDSDerivativesValidationError(
-            f"The dataset at {child.root} is not a valid derivative dataset. "
-            "All BIDS derivatives must have the \"DatasetType\" field in their "
-            "dataset_description.json set to 'derivative', and must have a "
-            "properly formatted GeneratedBy field."
-        )
-    if child.source_pipeline in parent.derivatives:
-        raise BIDSDerivativesValidationError(
-            f"Pipeline name {child.source_pipeline} has already been added to this "
-            "BIDSLayout. Every added pipeline must have a unique name!"
-        )
-
 def _sort_patterns(patterns, root):
     """Return sorted patterns, from more specific to more general."""
     regexes = [patt for patt in patterns if hasattr(patt, "search")]

@@ -18,6 +18,7 @@ from bids_validator import BIDSValidator
 from ..utils import listify, natural_sort
 from ..external import inflect
 from ..exceptions import (
+    BIDSDerivativesValidationError,
     BIDSEntityError,
     BIDSValidationError,
     NoMatchError,
@@ -525,9 +526,14 @@ class BIDSLayout(object):
             if parent_database_path:
                 child_database_path = parent_database_path / deriv_path.name
                 kwargs['database_path'] = child_database_path
-            layout = BIDSLayout(deriv_path, **kwargs)
-            validate_child_derivative(layout, self)
-            self.derivatives[layout.source_pipeline] = layout
+            if deriv_path.name in self.derivatives:
+                raise BIDSDerivativesValidationError(
+                    f"Pipeline name {deriv_path.name} has already been added to this "
+                    "BIDSLayout. Every added pipeline must have a unique name!"
+                )
+            self.derivatives[deriv_path.name] = BIDSLayout(
+                deriv_path, is_derivative=True, **kwargs
+            )
 
     def to_df(self, metadata=False, **filters):
         """Return information for BIDSFiles tracked in Layout as pd.DataFrame.
