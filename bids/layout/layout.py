@@ -92,6 +92,11 @@ class BIDSLayout(object):
         An optional BIDSLayoutIndexer instance to use for indexing, or any
         callable that takes a BIDSLayout instance as its only argument. If
         None, a new indexer with default parameters will be implicitly created.
+    is_derivative: bool
+        Index dataset as a derivative dataset. This can be enabled along with
+        validate=False to index derivatives without dataset_description.json. If
+        validate=True, the dataset must have a dataset_description.json with
+        DatasetType=derivative and GeneratedBy
     indexer_kwargs: dict
         Optional keyword arguments to pass onto the newly created
         BIDSLayoutIndexer. Valid keywords are 'ignore', 'force_index',
@@ -102,7 +107,7 @@ class BIDSLayout(object):
     def __init__(self, root=None, validate=True, absolute_paths=True,
                  derivatives=False, config=None, sources=None,
                  regex_search=False, database_path=None, reset_database=False,
-                 indexer=None, **indexer_kwargs):
+                 indexer=None, is_derivative=False, **indexer_kwargs):
 
         if not absolute_paths:
             absolute_path_deprecation_warning()
@@ -126,15 +131,20 @@ class BIDSLayout(object):
 
         # Validate that a valid BIDS project exists at root
         root, description = validate_root(root, validate)
-        if description and description.get("DatasetType") == "derivative":
+        if any([
+            is_derivative,
+            description and description.get("DatasetType") == "derivative"
+        ]):
             if validate:
-                source_pipeline = validate_derivative_path(root)
+                self.source_pipeline = validate_derivative_path(root)
             else:
-                source_pipeline = None
+                self.source_pipeline = None
             default_config = ["bids", "derivatives"]
+            self.is_derivative = True
         else:
-            source_pipeline = None
+            self.source_pipeline = None
             default_config = ["bids"]
+            self.is_derivative = False
 
         self._root = root  # type: Path
         self.description = description
@@ -142,8 +152,6 @@ class BIDSLayout(object):
         self.derivatives = {}
         self.sources = sources
         self.regex_search = regex_search
-        self.source_pipeline = source_pipeline
-        self.is_derivative = bool(source_pipeline)
 
         # Initialize a completely new layout and index the dataset
         if not load_db:
