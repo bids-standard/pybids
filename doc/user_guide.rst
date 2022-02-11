@@ -15,4 +15,3 @@ User guide
    introduction.rst
    layout/index.rst
    analysis/index.rst
-   reports/index.rst

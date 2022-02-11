@@ -43,22 +43,6 @@ API Reference
 .. _calibration_ref:
 
 
-:mod:`bids.reports`: Data acquisition report generation
---------------------------------------------------------
-
-.. autosummary:: bids.reports
-   :toctree: generated/
-
-   bids.reports.BIDSReport
-   bids.reports.parsing
-   bids.reports.parameters
-   bids.reports.utils
-
-.. currentmodule:: bids
-
-.. _calibration_ref:
-
-
 :mod:`bids.variables`: Variables
 --------------------------------------------------
 
