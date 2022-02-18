@@ -20,6 +20,74 @@ class BIDSMetadata(dict):
                 "Metadata term {!r} unavailable for file {}.".format(key, self._source_file))
 
 
+class PaddedInt(int):
+    """ Integer type that preserves zero-padding
+
+    Acts like an int in almost all ways except that string formatting
+    will keep the original zero-padding. Numeric format specifiers
+
+    >>> PaddedInt(1)
+    1
+    >>> p2 = PaddedInt("02")
+    >>> p2
+    02
+    >>> str(p2)
+    '02'
+    >>> p2 == 2
+    True
+    >>> p2 in range(3)
+    True
+    >>> f"{p2}"
+    '02'
+    >>> f"{p2:s}"
+    '02'
+    >>> f"{p2!s}"
+    '02'
+    >>> f"{p2!r}"
+    '02'
+    >>> f"{p2:d}"
+    '2'
+    >>> f"{p2:03d}"
+    '002'
+    >>> f"{p2:f}"
+    '2.000000'
+    >>> {2: "val"}.get(p2)
+    'val'
+    >>> {p2: "val"}.get(2)
+    'val'
+
+    Note that arithmetic will break the padding.
+
+    >>> str(p2 + 1)
+    '3'
+    """
+    def __init__(self, val):
+        self.sval = str(val)
+
+    def __eq__(self, val):
+        return val == self.sval or super().__eq__(val)
+
+    def __str__(self):
+        return self.sval
+
+    def __repr__(self):
+        return self.sval
+
+    def __format__(self, format_spec):
+        """ Format a padded integer
+
+        If a format spec can be used on a string, apply it to the zero-padded string.
+        Otherwise format as an integer.
+        """
+        try:
+            return format(self.sval, format_spec)
+        except:
+            return super().__format__(format_spec)
+
+    def __hash__(self):
+        return super().__hash__()
+
+
 def parse_file_entities(filename, entities=None, config=None,
                         include_unmatched=False):
     """Parse the passed filename for entity/value pairs.
