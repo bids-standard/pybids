@@ -18,7 +18,7 @@ from sqlalchemy.orm import reconstructor, relationship, backref, object_session
 from ..utils import listify
 from .writing import build_path, write_to_file
 from ..config import get_option
-from .utils import BIDSMetadata
+from .utils import BIDSMetadata, PaddedInt
 
 Base = declarative_base()
 
@@ -536,7 +536,10 @@ class Entity(Base):
         if self._dtype not in ('str', 'float', 'int', 'bool'):
             raise ValueError("Invalid dtype '{}'. Must be one of 'int', "
                              "'float', 'bool', or 'str'.".format(self._dtype))
-        self.dtype = eval(self._dtype)
+        if self._dtype == "int":
+            self.dtype = PaddedInt
+        else:
+            self.dtype = eval(self._dtype)
         self.regex = re.compile(self.pattern) if self.pattern is not None else None
 
     def __iter__(self):
@@ -684,6 +687,9 @@ class Tag(Base):
         if self._dtype == 'json':
             self.value = json.loads(self._value)
             self.dtype = 'json'
+        elif self._dtype == 'int':
+            self.dtype = PaddedInt
+            self.value = self.dtype(self._value)
         else:
             self.dtype = eval(self._dtype)
             self.value = self.dtype(self._value)
