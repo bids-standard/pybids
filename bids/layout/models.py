@@ -531,6 +531,9 @@ class Entity(Base):
 
         self._init_on_load()
 
+    def __repr__(self):
+        return f"<Entity {self.name} (pattern={self.pattern}, dtype={self.dtype})>"
+
     @reconstructor
     def _init_on_load(self):
         if self._dtype not in ('str', 'float', 'int', 'bool'):
