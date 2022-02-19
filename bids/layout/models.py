@@ -71,6 +71,9 @@ class LayoutInfo(Base):
 
         return kwargs
 
+    def __repr__(self):
+        return f"<LayoutInfo {self.root}>"
+
 
 class Config(Base):
     """Container for BIDS configuration information.
@@ -161,6 +164,9 @@ class Config(Base):
                 return result
 
         return Config(session=session, **config)
+
+    def __repr__(self):
+        return f"<Config {self.name}>"
 
 
 class BIDSFile(Base):
