@@ -25,13 +25,13 @@ else
 fi
 
 # Basic import check
-python -c 'import nibabel; print(nibabel.__version__)'
+python -c 'import bids; print(bids.__version__)'
 
 if [ "$CHECK_TYPE" == "skiptests" ]; then
     exit 0
 fi
 
-pip install $EXTRA_PIP_FLAGS "nibabel[$CHECK_TYPE]"
+pip install $EXTRA_PIP_FLAGS "pybids[$CHECK_TYPE]"
 
 set +eux
 
