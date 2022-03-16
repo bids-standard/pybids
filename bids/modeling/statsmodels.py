@@ -337,21 +337,24 @@ class BIDSStatsModelsNode:
 
         groups = defaultdict(list)
 
-        # sanitize grouping entities, otherwise weird things can happen
-        group_by = list(set(group_by) & VALID_GROUPING_ENTITIES)
-
         # Get unique values in each grouping variable and construct indexing DF
         entities = [obj.entities for obj in objects]
         df = pd.DataFrame.from_records(entities)
 
+        # Single-run tasks and single-session subjects may not have entities
+        dummy_groups = {"run", "session"} - set(df.columns)
+
+        # sanitize grouping entities, otherwise weird things can happen
+        group_by = set(group_by) & VALID_GROUPING_ENTITIES - dummy_groups
+
         # Verify all columns in group_by exist and raise sensible error if not
-        missing_vars = list(set(group_by) - set(df.columns))
+        missing_vars = list(group_by - set(df.columns))
         if missing_vars:
             raise ValueError("group_by contains variable(s) {} that could not "
                              "be found in the entity index.".format(missing_vars) )
 
         # Restrict DF to only grouping columns
-        df = df.loc[:, group_by]
+        df = df.loc[:, list(group_by)]
 
         unique_vals = {col: df[col].dropna().unique().tolist() for col in group_by}
 
