@@ -12,6 +12,7 @@ from pathlib import Path
 
 import sqlalchemy as sa
 from sqlalchemy.orm import aliased
+from sqlalchemy.sql.expression import cast
 from bids_validator import BIDSValidator
 
 from ..utils import listify, natural_sort
@@ -772,10 +773,11 @@ class BIDSLayout(object):
                     else:
                         val_clause = tag_alias._value.op('REGEXP')(str(val))
                 else:
-                    if isinstance(val, (list, tuple)):
-                        val_clause = tag_alias._value.in_(val)
+                    vals = listify(val)
+                    if isinstance(vals[0], int):
+                        val_clause = cast(tag_alias._value, sa.Integer).in_(vals)
                     else:
-                        val_clause = tag_alias._value == val
+                        val_clause = tag_alias._value.in_(vals)
 
                 query = join_method(
                     tag_alias,

@@ -13,6 +13,7 @@ import numpy as np
 
 from bids.layout.models import (BIDSFile, Entity, Tag, Base, Config,
                                 FileAssociation, BIDSImageFile, LayoutInfo)
+from bids.layout.utils import PaddedInt
 from bids.tests import get_test_data_path
 
 
@@ -129,9 +130,11 @@ def test_tag_dtype(sample_bidsfile, subject_entity):
         Tag(f, e, '4', 'int'),
         Tag(f, e, '4', int),
         Tag(f, e, 4),
-        Tag(file=f, entity=e, dtype=int, value='4')
+        Tag(file=f, entity=e, dtype=int, value='4'),
+        Tag(file=f, entity=e, dtype=int, value='04'),
     ]
-    assert all([t.dtype == int for t in tags])
+    assert all(t.dtype == PaddedInt for t in tags)
+    assert all(t.value == 4 for t in tags)
 
 
 def test_entity_add_file(sample_bidsfile):

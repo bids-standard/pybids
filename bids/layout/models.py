@@ -18,7 +18,7 @@ from sqlalchemy.orm import reconstructor, relationship, backref, object_session
 from ..utils import listify
 from .writing import build_path, write_to_file
 from ..config import get_option
-from .utils import BIDSMetadata
+from .utils import BIDSMetadata, PaddedInt
 
 Base = declarative_base()
 
@@ -70,6 +70,9 @@ class LayoutInfo(Base):
                 ]
 
         return kwargs
+
+    def __repr__(self):
+        return f"<LayoutInfo {self.root}>"
 
 
 class Config(Base):
@@ -161,6 +164,9 @@ class Config(Base):
                 return result
 
         return Config(session=session, **config)
+
+    def __repr__(self):
+        return f"<Config {self.name}>"
 
 
 class BIDSFile(Base):
@@ -531,12 +537,18 @@ class Entity(Base):
 
         self._init_on_load()
 
+    def __repr__(self):
+        return f"<Entity {self.name} (pattern={self.pattern}, dtype={self.dtype})>"
+
     @reconstructor
     def _init_on_load(self):
         if self._dtype not in ('str', 'float', 'int', 'bool'):
             raise ValueError("Invalid dtype '{}'. Must be one of 'int', "
                              "'float', 'bool', or 'str'.".format(self._dtype))
-        self.dtype = eval(self._dtype)
+        if self._dtype == "int":
+            self.dtype = PaddedInt
+        else:
+            self.dtype = eval(self._dtype)
         self.regex = re.compile(self.pattern) if self.pattern is not None else None
 
     def __iter__(self):
@@ -684,6 +696,9 @@ class Tag(Base):
         if self._dtype == 'json':
             self.value = json.loads(self._value)
             self.dtype = 'json'
+        elif self._dtype == 'int':
+            self.dtype = PaddedInt
+            self.value = self.dtype(self._value)
         else:
             self.dtype = eval(self._dtype)
             self.value = self.dtype(self._value)
