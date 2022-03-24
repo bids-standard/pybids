@@ -105,7 +105,9 @@ def test_entire_graph_smoketest(graph):
     # At dataset level, do one-sample t-tests separately for each gender,
     # but also two-sample t-tests comparing males and females.
     # Note that there are only 2 subjects in the graph.
-    outputs = graph["run"].run(group_by=['subject', 'run'])
+    # Note also that there is only one session (with no session label), which
+    # should have no effect as a grouping variable
+    outputs = graph["run"].run(group_by=['subject', 'session', 'run'])
     # 2 subjects x 3 runs
     assert len(outputs) == 6
     cis = list(chain(*[op.contrasts for op in outputs]))
