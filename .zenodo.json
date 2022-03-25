@@ -65,6 +65,11 @@
       "name": "Petrov, Dmitry"
     },
     {
+      "affiliation": "Universit\u00e9 catholique de Louvain",
+      "name": "Gau, Remi",
+      "orcid": "0000-0002-1535-9767"
+    },
+    {
       "affiliation": "Neuroscience Program, University of Iowa",
       "name": "Kent, James D.",
       "orcid": "0000-0002-4892-2659"
@@ -73,6 +78,11 @@
       "affiliation": "Center for Adaptive Rationality, Max Planck Institute for Human Development, Berlin, Germany",
       "name": "Appelhoff, Stefan",
       "orcid": "0000-0001-8002-0877"
+    },
+    {
+      "affiliation": "Department of Psychology, Stanford University",
+      "name": "Goncalves, Mathias",
+      "orcid": "0000-0002-7252-7771"
     },
     {
       "name": "Bansal, Shashank",
@@ -106,11 +116,6 @@
       "affiliation": "Alan Turing Institute; Department of Psychiatry, University of Cambridge",
       "name": "Whitaker, Kirstie",
       "orcid": "0000-0001-8498-4059"
-    },
-    {
-      "affiliation": "Department of Psychology, Stanford University",
-      "name": "Goncalves, Mathias",
-      "orcid": "0000-0002-7252-7771"
     },
     {
       "affiliation": "MIT, HMS",
@@ -184,9 +189,18 @@
       "orcid": "0000-0001-6755-0259"
     },
     {
+      "affiliation": "The University of Washington eScience Institute",
+      "name": "Rokem, Ariel",
+      "orcid": "0000-0003-0679-1985"
+    },
+    {
       "affiliation": "Ottawa Hospital Research Institute",
       "name": "Boulay, Chadwick",
       "orcid": "0000-0003-1747-3931"
+    },
+    {
+      "affiliation": "Polytechnique Montr\u00e9al",
+      "name": "Guenther, Nick"
     },
     {
       "affiliation": "Berkeley Institute for Data Science; University of California at Berkeley",
@@ -202,16 +216,6 @@
       "affiliation": "University of Texas at Austin",
       "orcid": "0000-0002-4892-2659",
       "name": "James Kent"
-    },
-    {
-      "affiliation": "Universit\u00e9 catholique de Louvain",
-      "name": "Gau, Remi",
-      "orcid": "0000-0002-1535-9767"
-    },
-    {
-      "affiliation": "The University of Washington eScience Institute",
-      "name": "Rokem, Ariel",
-      "orcid": "0000-0003-0679-1985"
     },
     {
       "affiliation": "University of Pennsylvania",
@@ -232,6 +236,10 @@
       "affiliation": "Centre for Addiction and Mental Health, University of Toronto, Canada",
       "name": "Dickie, Erin W",
       "orcid": "0000-0003-3028-9864"
+    },
+    {
+      "name": "Staph, Jason A.",
+      "orcid": "0000-0002-5226-3350"
     },
     {
       "affiliation": "NIMH IRP",
