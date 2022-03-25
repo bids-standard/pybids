@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo Installing nibabel
+echo Installing pybids
 
 source tools/ci/activate.sh
 source tools/ci/env.sh
@@ -27,12 +27,6 @@ fi
 # Basic import check
 python -c 'import bids; print(bids.__version__)'
 
-if [ "$CHECK_TYPE" == "skiptests" ]; then
-    exit 0
-fi
-
-pip install $EXTRA_PIP_FLAGS "pybids[$CHECK_TYPE]"
-
 set +eux
 
-echo Done installing nibabel
+echo Done installing pybids

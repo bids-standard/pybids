@@ -1,4 +1,4 @@
-SETUP_REQUIRES="pip setuptools>=30.3.0,!=61.0.0 wheel"
+SETUP_REQUIRES="pip build"
 
 # Numpy and scipy upload nightly/weekly/intermittent wheels
 NIGHTLY_WHEELS="https://pypi.anaconda.org/scipy-wheels-nightly/simple"
