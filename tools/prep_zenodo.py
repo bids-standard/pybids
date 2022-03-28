@@ -13,7 +13,7 @@ def decommify(name):
 # XXX We should add a shortlog since the most recent tag and explicitly note
 # that a blacklisted user has contributed again recently, and verify they still
 # do not want to be cited.
-blacklist = {'Cecile Madjar'}
+blacklist = {'Cecile Madjar', 'Matthew Wardrop', 'Peter Van Dyken'}
 
 # List of repositories whose commits should be counted as contributions
 codependents = [('https://github.com/grabbles/grabbit.git', '0.2.6')]
