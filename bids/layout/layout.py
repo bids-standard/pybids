@@ -745,29 +745,45 @@ class BIDSLayout(object):
             for name, val in filters.items():
                 tag_alias = aliased(Tag)
 
-                if isinstance(val, (list, tuple)) and len(val) == 1:
-                    val = val[0]
+                val_list = list(listify(val)) if val is not None else [None]
+                if not val_list:
+                    continue
 
+                none = any_ = False
+                if None in val_list:
+                    none = True
+                    val_list.remove(None)
+                if Query.NONE in val_list:
+                    none = True
+                    val_list.remove(Query.NONE)
+                if Query.ANY in val_list:
+                    any_ = True
+                    val_list.remove(Query.ANY)
+
+                if none and any_:
+                    # Always true, apply no filter
+                    continue
+
+                # Baseline, use join, start accumulating clauses
                 join_method = query.join
+                val_clauses = []
 
-                if val is None or val == Query.NONE:
+                # NONE and ANY get special treatment
+                if none:
                     join_method = query.outerjoin
-                    val_clause = tag_alias._value.is_(None)
-                elif val == Query.ANY:
-                    val_clause = tag_alias._value.isnot(None)
-                elif regex:
-                    if isinstance(val, (list, tuple)):
-                        val_clause = sa.or_(*[
-                            tag_alias._value.op('REGEXP')(str(v))
-                            for v in val
-                        ])
-                    else:
-                        val_clause = tag_alias._value.op('REGEXP')(str(val))
-                else:
-                    if isinstance(val, (list, tuple)):
-                        val_clause = tag_alias._value.in_(val)
-                    else:
-                        val_clause = tag_alias._value == val
+                    val_clauses.append(tag_alias._value.is_(None))
+                if any_:
+                    val_clauses.append(tag_alias._value.isnot(None))
+
+                # Any remaining values
+                if regex:
+                    val_clauses.extend([tag_alias._value.op('REGEXP')(str(v))
+                                        for v in val_list])
+                elif val_list:
+                    val_clauses.append(tag_alias._value.in_(val_list))
+
+                # Looking for intersection with list of vals, so use OR
+                val_clause = sa.or_(*val_clauses) if len(val_clauses) > 1 else val_clauses[0]
 
                 query = join_method(
                     tag_alias,
