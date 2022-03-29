@@ -712,6 +712,19 @@ def test_get_with_invalid_filters(layout_ds005):
     l.get(**filters)
 
 
+def test_get_with_query_constants_in_match_list(layout_ds005):
+    l = layout_ds005
+    get1 = l.get(subject='12', run=1, suffix='bold')
+    get_none = l.get(subject='12', run=None, suffix='bold')
+    get_any = l.get(subject='12', run=Query.ANY, suffix='bold')
+    get1_and_none = l.get(subject='12', run=[None, 1], suffix='bold')
+    get1_and_any = l.get(subject='12', run=[Query.ANY, 1], suffix='bold')
+    get_none_and_any = l.get(subject='12', run=[Query.ANY, Query.NONE], suffix='bold')
+    assert set(get1_and_none) == set(get1) | set(get_none)
+    assert set(get1_and_any) == set(get1) | set(get_any)
+    assert set(get_none_and_any) == set(get_none) | set(get_any)
+
+
 def test_load_layout(layout_synthetic_nodb, db_dir):
     db_path = str(db_dir / 'tmp_db')
     layout_synthetic_nodb.save(db_path)
