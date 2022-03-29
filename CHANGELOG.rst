@@ -1,6 +1,16 @@
 Changelog
 =========
 
+Version 0.15.1 (April 04, 2022)
+-------------------------------
+
+Bug-fix release in the 0.15.x series.
+
+* RF/FIX: Decompose filter construction for special queries and lists (#826)
+* ENH: Relax group_by rules, allowing any entity to be used (#829)
+* MNT: Replace deprecated DataFrame.append call (#833)
+* DOC: Fresh rerun of entire pybids_tutorial.ipynb (#832)
+
 Version 0.15.0 (March 28, 2022)
 -------------------------------
 
