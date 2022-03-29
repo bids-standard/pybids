@@ -32,6 +32,19 @@ be separately managed and follow a different development pace.
 * MNT: Test on Python 3.10, various CI updates (#824)
 * MNT: Avoid jinja2 v3 until nbconvert handles breakages (#823)
 
+Version 0.14.1 (March 29, 2022)
+-------------------------------
+Bug-fix release in the 0.14.x series.
+
+* RF/FIX: Decompose filter construction for special queries and lists (#826)
+
+Includes the following back-ports from 0.15.0:
+
+* FIX: Clarify exception message (#806)
+* FIX: Catch UnicodeDecodeErrors along with JSONDecodeErrors for better reporting (#796)
+* FIX: Accept paths/strings for layout configuration files (#799)
+* ENH: Add __main__ to allow ``python -m bids`` to run CLI (#794)
+
 Version 0.14.0 (November 09, 2021)
 ----------------------------------
 
