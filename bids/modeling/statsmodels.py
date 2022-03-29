@@ -18,10 +18,6 @@ from .model_spec import create_model_spec
 import warnings
 
 
-# Only entities in this list can be used in grouping
-VALID_GROUPING_ENTITIES = {'run', 'session', 'subject', 'task', 'contrast'}
-
-
 def validate_model(model):
     """Validate a BIDS-StatsModel structure.
 
@@ -343,9 +339,7 @@ class BIDSStatsModelsNode:
 
         # Single-run tasks and single-session subjects may not have entities
         dummy_groups = {"run", "session"} - set(df.columns)
-
-        # sanitize grouping entities, otherwise weird things can happen
-        group_by = set(group_by) & VALID_GROUPING_ENTITIES - dummy_groups
+        group_by = set(group_by) - dummy_groups
 
         # Verify all columns in group_by exist and raise sensible error if not
         missing_vars = list(group_by - set(df.columns))
@@ -583,11 +577,7 @@ class BIDSStatsModelsNodeOutput:
         if inputs:
             dfs.append(self._inputs_to_df(inputs))
 
-        # merge all the DataFrames into one DF to rule them all
-        def merge_dfs(a, b):
-            on = list(set(a.columns) & set(b.columns) & VALID_GROUPING_ENTITIES)
-            return a.merge(b, on=on)
-        df = reduce(merge_dfs, dfs)
+        df = reduce(pd.DataFrame.merge, dfs)
 
         var_names = list(self.node.model['x'])
 
