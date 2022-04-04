@@ -1,10 +1,13 @@
 """Miscellaneous layout-related utilities."""
+import os
+import json
+
 from pathlib import Path
 
 from .. import config as cf
 from ..utils import make_bidsfile, listify
 from ..exceptions import ConfigError
-
+from packaging.version import Version
 
 class BIDSMetadata(dict):
     """ Metadata dictionary that reports the associated file on lookup failures. """
@@ -165,3 +168,116 @@ def add_config_paths(**kwargs):
 
     kwargs.update(**cf.get_option('config_paths'))
     cf.set_option('config_paths', kwargs)
+
+
+desc_fields = {
+    Version("1.1.1"): {
+        "required": ["Name", "BIDSVersion"],
+        "recommended": ["License"],
+        "optional": ["Authors", "Acknowledgements", "HowToAcknowledge",
+                     "Funding", "ReferencesAndLinks", "DatasetDOI"]
+    },
+    # TODO make more general
+    # assumes we only want to generate with derivatives 
+    # deal with the different requirements for raw and derivative 
+    Version("1.6.1"): {
+        "required": ["Name", "BIDSVersion", "GeneratedBy"],
+        "recommended": ["License", "DatasetType", "HEDVersion"],
+        "optional": ["Authors", "Acknowledgements", "HowToAcknowledge",
+                     "Funding", "ReferencesAndLinks", "DatasetDOI",
+                     "EthicsApprovals","SourceDatasets"]
+    }    
+}
+
+def get_description_fields(version:str, type_:str):
+    if isinstance(version, str):
+        version = Version(version)
+    if not isinstance(version, Version):
+        raise TypeError("Version must be a string or a packaging.version.Version object.")
+
+    if version in desc_fields:
+        return desc_fields[version][type_]
+    return desc_fields[max(desc_fields.keys())][type_]
+
+
+def write_description(output_dir="", bids_version='1.6.1', name="",
+                      is_derivative=True, 
+                      source_dir="", pipeline_version="0.1.0",
+                      exist_ok=False, propagate=False, **desc_kwargs):
+    """Write a dataset_description.json file for a new derivative folder.
+
+    Parameters
+    ----------
+    source_dir : str or Path
+        Directory of the BIDS dataset that has been derived.
+        This dataset can itself be a derivative.
+    name : str
+        Name of the derivative dataset.
+    bids_version: str
+        Version of the BIDS standard.
+    exist_ok : bool
+        Control the behavior of pathlib.Path.mkdir when a derivative folder
+        with this name already exists.
+    propagate: bool
+        If set to True (default to False), fields that are not explicitly
+        provided in desc_kwargs get propagated to the derivatives. Else,
+        these fields get no values.
+    desc_kwargs: dict
+        Dictionary of entries that should be added to the
+        dataset_description.json file.
+    """
+
+    if not is_derivative:
+
+        desc = {
+            'Name': name,
+            'BIDSVersion': bids_version,
+            }
+
+        if output_dir == "":
+            output_dir = Path.joinpath(Path().resolve(), 'raw')
+
+    else:
+
+        desc = {
+            'Name': name,
+            'BIDSVersion': bids_version,
+            'GeneratedBy':  [{
+                "Name": name,
+                "Version": pipeline_version
+                }],
+            "SourceDatasets": ""
+            }
+
+        if source_dir == "":
+            raise ("Provide a source dataset for your derivatives.")
+
+        # we let user decide where to output the derivatives
+        if output_dir == "":
+            output_dir = source_dir
+            
+        output_dir = Path.joinpath(output_dir, "derivatives", name)
+
+        fname = source_dir / 'dataset_description.json'
+        if not fname.exists():
+            raise ValueError("The argument source_dir must point to a valid BIDS directory." +
+                            "As such, it should contain a dataset_description.json file.")
+        orig_desc = json.loads(fname.read_text())
+
+        if propagate:
+            for field_type in ["recommended", "optional"]:
+                for field in get_description_fields(bids_version, field_type):
+                    if field in desc:
+                        continue
+                    if field in orig_desc:
+                        desc[field] = orig_desc[field]
+
+        desc.update(desc_kwargs)
+
+        for field in get_description_fields(bids_version, "required"):
+            if field not in desc:
+                raise ValueError("The field {} is required and is currently missing.".format(field))
+
+    Path.joinpath
+    output_dir.mkdir(parents=True, exist_ok=exist_ok)
+    Path.write_text(output_dir / 'dataset_description.json', json.dumps(desc, indent=4))
