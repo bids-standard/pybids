@@ -241,8 +241,11 @@ class NodeIndex(object):
 
         entities = dict(entities, node_index=len(self.nodes), level=level)
         self.nodes.append(node)
-        node_row = pd.Series(entities)
-        self.index = self.index.append(node_row, ignore_index=True)
+        # Because "entities" may have non-scalar values (such as `SliceTiming`)
+        # we need to first create a Series to avoid expansion
+        # From here we can concatenate
+        node_row = pd.DataFrame(pd.Series(entities)).T
+        self.index = pd.concat([self.index, node_row], ignore_index=True)
         return node
 
     def get_or_create_node(self, level, entities, *args, **kwargs):
