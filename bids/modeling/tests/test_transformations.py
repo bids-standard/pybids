@@ -316,8 +316,8 @@ def test_threshold(collection):
 
 
 def test_assign(collection):
-    transform.Assign(collection, 'parametric gain', target='RT',
-                     target_attr='onset', output='test1')
+    transform.Assign(collection, ['parametric gain'], target=['RT'],
+                     target_attr=['onset'], output=['test1'])
     t1 = collection['test1']
     pg = collection['parametric gain']
     rt = collection['RT']

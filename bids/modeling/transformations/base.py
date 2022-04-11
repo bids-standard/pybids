@@ -117,7 +117,8 @@ class Transformation(metaclass=ABCMeta):
                 # 'variables'
                 kwargs[arg_spec.args[2 + i]] = arg_val
 
-        self.kwargs = kwargs
+        # listify kwargs
+        self.kwargs = {k: listify(v) for k, v in kwargs.items()}
 
         # Expand any detected variable group names or wild cards
         self._expand_variable_groups()
@@ -256,19 +257,19 @@ class Transformation(metaclass=ABCMeta):
             variables = [variables]
 
         for i, col in enumerate(variables):
-
+            i_kwargs = {k: v[i] for k, v in kwargs.items()}
             # If we still have a list, pass all variables in one block
             if isinstance(col, (list, tuple)):
-                result = self._transform(data, **kwargs)
+                result = self._transform(data, **i_kwargs)
                 if self._return_type not in ['none', None]:
                     col = col[0].clone(data=result, name=self.output[0])
             # Otherwise loop over variables individually
             else:
                 if self._groupable and self.groupby is not None:
                     result = col.apply(self._transform, groupby=self.groupby,
-                                       **kwargs)
+                                       **i_kwargs)
                 else:
-                    result = self._transform(data[i], **kwargs)
+                    result = self._transform(data[i], **i_kwargs)
 
             if self._return_type in ['none', None]:
                 continue
