@@ -91,6 +91,11 @@ class Transformation(metaclass=ABCMeta):
     # be passed through as-is even if categorical.
     _allow_categorical = None
 
+    # Boolean indicating whether to treat each key word argument as a one-to-one
+    # mapping with each variable or to treat the key word argument as applying to
+    # every input variable.
+    _sync_kwargs = True
+
     def __new__(cls, collection, variables, *args, **kwargs):
         t = super(Transformation, cls).__new__(cls)
         t._setup(collection, variables, *args, **kwargs)
@@ -117,8 +122,11 @@ class Transformation(metaclass=ABCMeta):
                 # 'variables'
                 kwargs[arg_spec.args[2 + i]] = arg_val
 
-        # listify kwargs
-        self.kwargs = {k: listify(v) for k, v in kwargs.items()}
+        # listify kwargs if synced
+        if self._sync_kwargs:
+            self.kwargs = {k: listify(v) for k, v in kwargs.items()}
+        else:
+            self.kwargs = kwargs
 
         # Expand any detected variable group names or wild cards
         self._expand_variable_groups()
@@ -256,8 +264,10 @@ class Transformation(metaclass=ABCMeta):
         if not self._loopable:
             variables = [variables]
 
+        i_kwargs = kwargs
         for i, col in enumerate(variables):
-            i_kwargs = {k: v[i] for k, v in kwargs.items()}
+            if self._sync_kwargs:
+                i_kwargs = {k: v[i] for k, v in kwargs.items()}
             # If we still have a list, pass all variables in one block
             if isinstance(col, (list, tuple)):
                 result = self._transform(data, **i_kwargs)
