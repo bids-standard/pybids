@@ -313,8 +313,17 @@ class Transformation(metaclass=ABCMeta):
                 if self.output_suffix is not None:
                     _output += self.output_suffix
 
-                col.name = _output
-                self.collection[_output] = col
+                # If multiple variables were returned, add each one separately
+                if isinstance(result, (list, tuple)):
+                    # rename first output
+                    result[0].name = _output
+                    self.collection[_output] = result[0]
+
+                    for r in result[1:]:
+                        self.collection[r.name] = r
+                else:
+                    col.name = _output
+                    self.collection[_output] = col
 
     @abstractmethod
     def _transform(self, **kwargs):
