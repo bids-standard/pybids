@@ -13,6 +13,10 @@
             "directory": "{subject}{session}"
         },
         {
+            "name": "sample",
+            "pattern": "[_/\\\\]+sample-([a-zA-Z0-9]+)"
+        },
+        {
             "name": "task",
             "pattern": "[_/\\\\]+task-([a-zA-Z0-9]+)"
         },
@@ -23,6 +27,10 @@
         {
             "name": "ceagent",
             "pattern": "[_/\\\\]+ce-([a-zA-Z0-9]+)"
+        },
+        {
+            "name": "staining",
+            "pattern": "[_/\\\\]+stain-([a-zA-Z0-9]+)"
         },
         {
             "name": "reconstruction",
@@ -72,6 +80,10 @@
         {
             "name": "space",
             "pattern": "[_/\\\\]+space-([a-zA-Z0-9]+)"
+        },
+        {
+            "name": "chunk",
+            "pattern": "[_/\\\\]+chunk-([0-9]+)"
         },
         {
             "name": "suffix",
