@@ -3,12 +3,32 @@
 import re
 import os
 from pathlib import Path
+from frozendict import frozendict as _frozendict
+
+
+# Monkeypatch to print out frozendicts *as if* they were dictionaries.
+class frozendict(_frozendict):
+    """A hashable dictionary type."""
+
+    def __repr__(self):
+        """Override frozendict representation."""
+        return repr({k: v for k, v in self.items()})
 
 
 def listify(obj):
     ''' Wraps all non-list or tuple objects in a list; provides a simple way
     to accept flexible arguments. '''
     return obj if isinstance(obj, (list, tuple, type(None))) else [obj]
+
+
+def hashablefy(obj):
+    ''' Make dictionaries and lists hashable or raise. '''
+    if isinstance(obj, list):
+        return tuple([hashablefy(o) for o in obj])
+
+    if isinstance(obj, dict):
+        return frozendict({k: hashablefy(v) for k, v in obj.items()})
+    return obj
 
 
 def matches_entities(obj, entities, strict=False):
