@@ -33,6 +33,10 @@
             "pattern": "[_/\\\\]+stain-([a-zA-Z0-9]+)"
         },
         {
+            "name": "tracer",
+            "pattern": "[_/\\\\]+stain-([a-zA-Z0-9]+)"
+        },
+        {
             "name": "reconstruction",
             "pattern": "[_/\\\\]+rec-([a-zA-Z0-9]+)"
         },
