@@ -591,9 +591,12 @@ class BIDSLayout(object):
             A list of BIDSFiles (default) or strings (see return_type).
         """
 
-        if return_type not in ("object", "file", "filename", "id", "dir"):
-            raise ValueError("Invalid return_type specified (must be one "
-                             "of 'object', 'file', 'filename', 'id', or 'dir'.")
+        if (
+            not return_type.startswith(("obj", "file"))
+            and return_type not in ("id", "dir")
+        ):
+            raise ValueError(f"Invalid return_type <{return_type}> specified (must be one "
+                             "of 'object', 'file', 'filename', 'id', or 'dir').")
 
         if absolute_paths is False:
             absolute_path_deprecation_warning()
