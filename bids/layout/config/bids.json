@@ -122,6 +122,7 @@
         "sub-{subject}[/ses-{session}]/{datatype<meg>|meg}/sub-{subject}[_ses-{session}]_task-{task}[_acq-{acquisition}]_{suffix<coordsystem>}{extension<.json>|.json}",
         "sub-{subject}[/ses-{session}]/{datatype<meg>|meg}/sub-{subject}[_ses-{session}]_task-{task}[_acq-{acquisition}]_{suffix<photo>}{extension<.jpg>|.jpg}",
         "sub-{subject}/[ses-{session}]/{datatype<micr>}|micr/sub-{subject}[_ses-{session}]_sample-{sample}[_acq-{acquisition}][_stain-{label}][_run-{run}][_chunk-{index}]_{suffix<TEM|SEM|uCT|BF|DF|PC|DIC|FLUO|CONF|PLI|CARS|2PE|MPE|SR|NLO|OCT|SPIM>}{extension<.png|.tif|.ome.tif|.ome.btf|.json>}",
+        "sub-{subject}/[ses-{session}]/{datatype<micr>}|micr/sub-{subject}[_ses-{session}]_sample-{sample}[_acq-{acquisition}]_photo.<extension<.jpg|.png|.tif>",
         "sub-{subject}/[ses-{session}]/{datatype<anat>}|anat/sub-{subject}[_ses-{session}][_acq-{acquisition}][_ce-{ceagent}][_rec-{label}][_run-{run}]_echo-{echo}[_part-{<mag|phase|real|imag>}]_MEGRE{extension<.nii|.nii.gz|.json>|.nii.gz}",
         "sub-{subject}/[ses-{session}]/{datatype<anat>}|anat/sub-{subject}[_ses-{session}][_acq-{acquisition}][_ce-{ceagent}][_rec-{label}][_run-{run}]_echo-{echo}[_part-{<mag|phase|real|imag>}]_MESE{extension<.nii|.nii.gz|.json>|.nii.gz}",
         "sub-{subject}/[ses-{session}]/{datatype<anat>}|anat/sub-{subject}[_ses-{session}][_acq-{acquisition}][_ce-{ceagent}][_rec-{label}][_run-{run}][_echo-{echo}]_flip-{flip}[_part-{<mag|phase|real|imag>}]_VFA{extension<.nii|.nii.gz|.json>|.nii.gz}",
