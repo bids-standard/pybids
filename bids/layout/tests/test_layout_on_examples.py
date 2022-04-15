@@ -1,43 +1,37 @@
-""" Tests runs layout on bids examples and make sure all files are catched"""
+""" Tests runs layout on bids examples and make sure all files are caught"""
 
-import os
-import re
-from os.path import join, abspath, basename
-from pathlib import Path
-import shutil
-import json
+from os.path import join
 
-import numpy as np
 import pytest
 
-from bids.layout import BIDSLayout, Query
-from bids.layout.models import Config
-from bids.layout.index import BIDSLayoutIndexer
-from bids.layout.utils import PaddedInt
+from bids.layout import BIDSLayout
 from bids.tests import get_test_data_path
-from bids.utils import natural_sort
 
-
-def test_layout_init(layout_7t_trt):
-    assert isinstance(layout_7t_trt.files, dict)
-
-
+# Values for the number of file got from a:
+#
+#   find ds_name -type f | wc -l
+#
 @pytest.mark.parametrize(
-    'index_metadata,query,result',
+    "dataset, nb_files",
     [
-        (True, {}, 3.0),
-        (False, {}, None),
-        (True, {}, 3.0),
-        (True, {'task': 'rest'}, 3.0),
-        (True, {'task': 'rest', 'extension': ['.nii.gz']}, 3.0),
-        (True, {'task': 'rest', 'extension': '.nii.gz'}, 3.0),
-        (True, {'task': 'rest', 'extension': ['.nii.gz', '.json'], 'return_type': 'file'}, 3.0),
-    ])
-def test_index_metadata(index_metadata, query, result, mock_config):
-    data_dir = join(get_test_data_path(), '7t_trt')
-    layout = BIDSLayout(data_dir, index_metadata=index_metadata, **query)
-    sample_file = layout.get(task='rest', extension='.nii.gz',
-                             acquisition='fullbrain')[0]
-    metadata = sample_file.get_metadata()
-    assert metadata.get('RepetitionTime') == result
-
+        ("micr_SEM", 12),
+        ("micr_SPIM", 22),
+        ("asl001", 8),
+        ("asl002", 10),
+        ("asl003", 10),
+        ("asl004", 12),
+        ("asl005", 10),
+        ("pet001", 12),
+        ("pet002", 20),
+        ("pet003", 9),
+        ("pet004", 10),
+        ("pet005", 14),
+        ("qmri_qsm", 8),
+        ("qmri_vfa", 17),
+    ],
+)
+def test_index_metadata(dataset, nb_files):
+    ds = join(get_test_data_path(), "bids-examples", dataset)
+    layout = BIDSLayout(ds, derivatives=True)
+    files = layout.get()
+    assert len(files) == nb_files
