@@ -150,7 +150,7 @@
         "[acq-{acquisition}_][ce-{ceagent}_]dir-{direction}[_run-{run}]_{fmap<epi>}.{extension<json>|json}",
         "task-{task}[_acq-{acquisition}][_rec-{reconstruction}][_run-{run}][_echo-{echo}][_recording-{recording}]_{suffix<events>}.{extension<json>|json}",
         "task-{task}[_acq-{acquisition}][_rec-{reconstruction}][_run-{run}][_echo-{echo}][_recording-{recording}]_{suffix<physio|stim>}.{extension<json>}",
-        "[acq-{acquisition}][_stain-{label}][_run-{run}][_chunk-{index}]_{suffix<TEM|SEM|uCT|BF|DF|PC|DIC|FLUO|CONF|PLI|CARS|2PE|MPE|SR|NLO|OCT|SPIM>}.{extension<json>|json}",
+        "[sample-{sample}][_acq-{acquisition}][_stain-{label}][_run-{run}][_chunk-{index}]_{suffix<TEM|SEM|uCT|BF|DF|PC|DIC|FLUO|CONF|PLI|CARS|2PE|MPE|SR|NLO|OCT|SPIM>}.{extension<json>|json}",
         "[acq-{acquisition}][_ce-{ceagent}][_rec-{label}][_run-{run}]_echo-{echo}[_part-{<mag|phase|real|imag>}]_{suffix<MEGRE|MESE>}.{extension<json>|json}",
         "[acq-{acquisition}][_ce-{ceagent}][_rec-{label}][_run-{run}][_echo-{echo}]_flip-{flip}[_part-{<mag|phase|real|imag>}]_{suffix<VFA>}.{extension<json>|json}",
         "[acq-{acquisition}][_ce-{ceagent}][_rec-{label}][_run-{run}]_inv-{inv}[_part-{<mag|phase|real|imag>}]_{suffix<IRT1>}.{extension<json>|json}",
