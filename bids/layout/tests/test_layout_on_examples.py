@@ -11,6 +11,27 @@ from bids.tests import get_test_data_path
 #
 #   find ds_name -type f | wc -l
 #
+
+@pytest.mark.parametrize(
+    "dataset, nb_files",
+    [
+        ("qmri_irt1", 15),
+        ("qmri_mese", 73),
+        ("qmri_mp2rage", 14),
+        ("qmri_mp2rageme", 28),
+        ("qmri_mtsat", 23),
+        ("qmri_qsm", 8),
+        ("qmri_sa2rage", 9),
+        ("qmri_vfa", 17),
+    ],
+)
+def test_layout_on_examples_with_derivatives(dataset, nb_files):
+    ds = join(get_test_data_path(), "bids-examples", dataset)
+    layout = BIDSLayout(ds, derivatives=True)
+    files = layout.get()
+    assert len(files) == nb_files
+
+
 @pytest.mark.parametrize(
     "dataset, nb_files",
     [
@@ -26,11 +47,25 @@ from bids.tests import get_test_data_path
         ("pet003", 9),
         ("pet004", 10),
         ("pet005", 14),
-        ("qmri_qsm", 8),
-        ("qmri_vfa", 17),
+        ("qmri_megre", 18),
+        ("qmri_tb1tfl", 6),
     ],
 )
-def test_index_metadata(dataset, nb_files):
+def test_layout_on_examples_no_derivatives(dataset, nb_files):
+    ds = join(get_test_data_path(), "bids-examples", dataset)
+    layout = BIDSLayout(ds)
+    files = layout.get()
+    assert len(files) == nb_files
+
+
+@pytest.mark.xfail(reason="missing derivatives description: https://github.com/bids-standard/bids-examples/issues/310")
+@pytest.mark.parametrize(
+    "dataset, nb_files",
+    [
+        ("qmri_mpm", 125),
+    ],
+)
+def test_layout_on_examples_with_derivatives(dataset, nb_files):
     ds = join(get_test_data_path(), "bids-examples", dataset)
     layout = BIDSLayout(ds, derivatives=True)
     files = layout.get()
