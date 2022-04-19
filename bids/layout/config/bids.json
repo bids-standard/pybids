@@ -34,7 +34,7 @@
         },
         {
             "name": "tracer",
-            "pattern": "[_/\\\\]+stain-([a-zA-Z0-9]+)"
+            "pattern": "[_/\\\\]+trc-([a-zA-Z0-9]+)"
         },
         {
             "name": "reconstruction",
