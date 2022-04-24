@@ -5,8 +5,6 @@
 - missing files in micr?
 """
 
-from os.path import join
-
 import pytest
 
 from bids.layout import BIDSLayout
@@ -29,8 +27,7 @@ from bids.layout import BIDSLayout
     ],
 )
 def test_layout_on_examples_with_derivatives(dataset, nb_files, bids_examples):
-    ds = join(bids_examples, dataset)
-    layout = BIDSLayout(ds, derivatives=True)
+    layout = BIDSLayout(bids_examples / dataset, derivatives=True)
     files = layout.get()
     assert len(files) == nb_files
 
@@ -55,8 +52,7 @@ def test_layout_on_examples_with_derivatives(dataset, nb_files, bids_examples):
     ],
 )
 def test_layout_on_examples_no_derivatives(dataset, nb_files, bids_examples):
-    ds = join(bids_examples, dataset)
-    layout = BIDSLayout(ds)
+    layout = BIDSLayout(bids_examples / dataset)
     files = layout.get()
     assert len(files) == nb_files
 
@@ -81,7 +77,6 @@ def test_layout_on_examples_no_derivatives(dataset, nb_files, bids_examples):
     ],
 )
 def test_layout_on_examples_invalid_ds_description(dataset, nb_files, bids_examples):
-    ds = join(bids_examples, dataset)
-    layout = BIDSLayout(ds, derivatives=True)
+    layout = BIDSLayout(bids_examples / dataset, derivatives=True)
     files = layout.get()
     assert len(files) == nb_files
