@@ -10,13 +10,11 @@ from os.path import join
 import pytest
 
 from bids.layout import BIDSLayout
-from bids.tests import get_test_data_path
 
 # Values for the number of file got from a:
 #
 #   find ds_name -type f | wc -l
 #
-
 
 @pytest.mark.parametrize(
     "dataset, nb_files",
@@ -30,8 +28,8 @@ from bids.tests import get_test_data_path
         ("qmri_vfa", 17),
     ],
 )
-def test_layout_on_examples_with_derivatives(dataset, nb_files):
-    ds = join(get_test_data_path(), "bids-examples", dataset)
+def test_layout_on_examples_with_derivatives(dataset, nb_files, bids_examples):
+    ds = join(bids_examples, dataset)
     layout = BIDSLayout(ds, derivatives=True)
     files = layout.get()
     assert len(files) == nb_files
@@ -56,8 +54,8 @@ def test_layout_on_examples_with_derivatives(dataset, nb_files):
         ("qmri_tb1tfl", 6),
     ],
 )
-def test_layout_on_examples_no_derivatives(dataset, nb_files):
-    ds = join(get_test_data_path(), "bids-examples", dataset)
+def test_layout_on_examples_no_derivatives(dataset, nb_files, bids_examples):
+    ds = join(bids_examples, dataset)
     layout = BIDSLayout(ds)
     files = layout.get()
     assert len(files) == nb_files
@@ -82,8 +80,8 @@ def test_layout_on_examples_no_derivatives(dataset, nb_files):
         ),
     ],
 )
-def test_layout_on_examples_invalid_ds_description(dataset, nb_files):
-    ds = join(get_test_data_path(), "bids-examples", dataset)
+def test_layout_on_examples_invalid_ds_description(dataset, nb_files, bids_examples):
+    ds = join(bids_examples, dataset)
     layout = BIDSLayout(ds, derivatives=True)
     files = layout.get()
     assert len(files) == nb_files

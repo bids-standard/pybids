@@ -1,8 +1,5 @@
 historical/
 
-# clone of bids-example repo for testing
-bids/tests/data/bids-examples
-
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
