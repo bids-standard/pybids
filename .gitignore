@@ -1,6 +1,5 @@
 historical/
 
-#
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -85,6 +84,9 @@ celerybeat-schedule
 # virtualenv
 venv/
 ENV/
+
+# Pipenv
+Pipfile
 
 # Spyder project settings
 .spyderproject
