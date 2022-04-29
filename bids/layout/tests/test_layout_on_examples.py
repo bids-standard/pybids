@@ -17,14 +17,15 @@ from bids.layout import BIDSLayout
 @pytest.mark.parametrize(
     "dataset, nb_files",
     [
-        ("qmri_irt1", 15),
-        ("qmri_mese", 73),
-        ("qmri_mp2rage", 14),
-        ("qmri_mp2rageme", 28),
-        ("qmri_mtsat", 23),
-        ("qmri_sa2rage", 9),
-        ("qmri_vfa", 17),
-        ("qmri_mpm", 125),
+        ("qmri_irt1", 16),
+        ("qmri_mese", 74),
+        ("qmri_mp2rage", 15),
+        ("qmri_mp2rageme", 29),
+        ("qmri_mtsat", 24),
+        ("qmri_sa2rage", 10),
+        ("qmri_vfa", 18),
+        ("qmri_mpm", 126),
+        ("qmri_qsm", 9),
     ],
 )
 def test_layout_on_examples_with_derivatives(dataset, nb_files, bids_examples):
@@ -50,7 +51,6 @@ def test_layout_on_examples_with_derivatives(dataset, nb_files, bids_examples):
         ("pet005", 14),
         ("qmri_megre", 18),
         ("qmri_tb1tfl", 6),
-        ("qmri_qsm", 8),
     ],
 )
 def test_layout_on_examples_no_derivatives(dataset, nb_files, bids_examples):
