@@ -47,13 +47,50 @@ def test_insufficient_entities(layout, strict, validate):
     with pytest.raises(ValueError):
         layout.build_path({'subject': '01'}, strict=strict, validate=validate)
 
-
-def test_path_building_on_examples_with_derivatives(dataset, nb_files, bids_examples):
+@pytest.mark.parametrize("scope", ["raw"])
+@pytest.mark.parametrize(
+    "dataset",
+    [
+        ("qmri_irt1"),
+        ("qmri_mese"),
+        ("qmri_mp2rage"),
+        ("qmri_mp2rageme"),
+        ("qmri_mtsat"),
+        ("qmri_sa2rage"),
+        ("qmri_vfa"),
+    ],
+)
+def test_path_building_on_examples_with_derivatives(dataset, scope, bids_examples):
     layout = BIDSLayout(bids_examples / dataset, derivatives=True)
-    files = layout.get()
-    assert len(files) == nb_files
+    files = layout.get(subject=".*", datatype=".*", regex_search = True, scope=scope)
+    for bf in files:
+        entities = bf.get_entities()
+        path = layout.build_path(entities)
+        assert(path==bf.path)
 
-def test_path_building_on_examples_with_no_derivatives(dataset, nb_files, bids_examples):
-    layout = BIDSLayout(bids_examples / dataset, derivatives=True)
-    files = layout.get()
-    assert len(files) == nb_files
+@pytest.mark.parametrize(
+    "dataset",
+    [
+        ("micr_SEM"),
+        ("micr_SPIM"),
+        ("asl001"),
+        ("asl002"),
+        ("asl003"),
+        ("asl004"),
+        ("asl005"),
+        ("pet001"),
+        ("pet002"),
+        ("pet003"),
+        ("pet004"),
+        ("pet005"),
+        ("qmri_megre"),
+        ("qmri_tb1tfl"),
+    ],
+)
+def test_path_building_on_examples_with_no_derivatives(dataset, bids_examples):
+    layout = BIDSLayout(bids_examples / dataset, derivatives=False)
+    files = layout.get(subject=".*", datatype=".*", regex_search =  True)
+    for bf in files:
+        entities = bf.get_entities()
+        path = layout.build_path(entities)
+        assert(path==bf.path)
