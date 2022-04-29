@@ -46,3 +46,14 @@ def test_insufficient_entities(layout, strict, validate):
     """Check https://github.com/bids-standard/pybids/pull/574#discussion_r366447600."""
     with pytest.raises(ValueError):
         layout.build_path({'subject': '01'}, strict=strict, validate=validate)
+
+
+def test_path_building_on_examples_with_derivatives(dataset, nb_files, bids_examples):
+    layout = BIDSLayout(bids_examples / dataset, derivatives=True)
+    files = layout.get()
+    assert len(files) == nb_files
+
+def test_path_building_on_examples_with_no_derivatives(dataset, nb_files, bids_examples):
+    layout = BIDSLayout(bids_examples / dataset, derivatives=True)
+    files = layout.get()
+    assert len(files) == nb_files
