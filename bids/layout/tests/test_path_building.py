@@ -58,6 +58,7 @@ def test_insufficient_entities(layout, strict, validate):
         ("qmri_mtsat"),
         ("qmri_sa2rage"),
         ("qmri_vfa"),
+        ("ds000117"),
     ],
 )
 def test_path_building_on_examples_with_derivatives(dataset, scope, bids_examples):
@@ -85,11 +86,43 @@ def test_path_building_on_examples_with_derivatives(dataset, scope, bids_example
         ("pet005"),
         ("qmri_megre"),
         ("qmri_tb1tfl"),
+        ("eeg_cbm"),
+        ("ieeg_filtered_speech"),
+        ("ieeg_visual_multimodal"),
+        ("ds000248"),
+        ("ds001"),
+        ("ds114"),
     ],
 )
 def test_path_building_on_examples_with_no_derivatives(dataset, bids_examples):
     layout = BIDSLayout(bids_examples / dataset, derivatives=False)
     files = layout.get(subject=".*", datatype=".*", regex_search =  True)
+    for bf in files:
+        entities = bf.get_entities()
+        path = layout.build_path(entities)
+        assert(path==bf.path)
+
+@pytest.mark.parametrize("scope", ["raw"])
+@pytest.mark.parametrize(
+    "dataset",
+    [
+        pytest.param(
+            "ds000247",
+            marks=pytest.mark.xfail(strict=True,
+                reason="meg ds folder"
+            ),
+        ),
+        pytest.param(
+            "ds000246",
+            marks=pytest.mark.xfail(strict=True,
+                reason="meg ds folder"
+            ),
+        ),
+    ],
+)
+def test_path_building_on_examples_with_derivatives_meg_ds_folder(dataset, scope, bids_examples):
+    layout = BIDSLayout(bids_examples / dataset, derivatives=True)
+    files = layout.get(subject=".*", datatype=".*", regex_search = True, scope=scope)
     for bf in files:
         entities = bf.get_entities()
         path = layout.build_path(entities)
