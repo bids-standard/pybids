@@ -47,6 +47,14 @@ def test_insufficient_entities(layout, strict, validate):
     with pytest.raises(ValueError):
         layout.build_path({'subject': '01'}, strict=strict, validate=validate)
 
+
+"""
+The following tests that indexes some datasets from bids examples, 
+parses the files for entities and 
+reconstructs the fullpath of each file by relying on pybids config 
+and compares it what's actually in the dataset
+"""
+
 @pytest.mark.parametrize("scope", ["raw"])
 @pytest.mark.parametrize(
     "dataset",
