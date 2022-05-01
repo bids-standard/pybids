@@ -12,6 +12,24 @@ from .utils import validate_multiple as _validate_multiple
 CONTEXT_SETTINGS = {'help_option_names': ['-h', '--help']}
 
 
+class Either(click.ParamType):
+    def __init__(self, *types):
+        self.types = types
+
+    @property
+    def name(self):
+        tpstrings = tuple(tp.name for tp in self.types)
+        return "any type in {tpstrings}"
+
+    def convert(self, value, param, ctx):
+        for tp in self.types:
+            try:
+                return tp.convert(value, param, ctx)
+            except:
+                pass
+        self.fail(f"{value!r} does not match {self.name}")
+
+
 class PathOrRegex(click.ParamType):
     "A helper Type to parse BIDSLayoutIndexer ignore/force entries"
     name = "path or m/regex/"
@@ -33,7 +51,8 @@ def cli():
 @cli.command(context_settings=CONTEXT_SETTINGS)
 @click.argument('root', type=click.Path(file_okay=False, exists=True))
 @click.argument('db-path', type=click.Path(file_okay=False, resolve_path=True, exists=True))
-@click.option('--derivatives', multiple=True, default=[False], show_default=True, flag_value=True,
+@click.option('--derivatives', multiple=True, default=[False], is_flag=False, flag_value=True,
+              show_default=True, type=Either(click.BOOL, click.Path(exists=True)),
               help="Specifies whether and/or which derivatives to index.")
 @click.option('--reset-db', default=False, show_default=True, is_flag=True,
               help="Remove existing database index if present.")
