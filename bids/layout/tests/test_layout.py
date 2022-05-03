@@ -649,9 +649,9 @@ def test_get_layouts_in_scope(layout_ds005_multi_derivs):
 def test_get_dataset_description(layout_ds005_multi_derivs):
     l = layout_ds005_multi_derivs
     dd = l.get_dataset_description()
-    assert isinstance(dd, dict)
-    assert dd['Name'] == 'Mixed-gambles task'
-    dd = l.get_dataset_description('all', True)
+    assert isinstance(dd, list)
+    assert dd[0]['Name'] == 'Mixed-gambles task'
+    dd = l.get_dataset_description()
     assert isinstance(dd, list)
     assert len(dd) == 3
     names = {'Mixed-gambles task', 'Mixed-gambles task -- dummy derivative'}

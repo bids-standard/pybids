@@ -1,6 +1,15 @@
 Changelog
 =========
 
+Unreleased (May 3, 2022)
+-------------------------
+
+Integrating `ancpbids` as the backend for `pybids`. API-breaking changes:
+
+* `dataset.copy_*` functions have been removed.
+* `dataset.get_dataset_description` no longer accepts arguments, always returns a list.
+* 
+
 Version 0.15.1 (April 04, 2022)
 -------------------------------
 
