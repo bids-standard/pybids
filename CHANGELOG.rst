@@ -4,11 +4,26 @@ Changelog
 Unreleased (May 3, 2022)
 -------------------------
 
-Integrating `ancpbids` as the backend for `pybids`. API-breaking changes:
+Integrating `ancpbids` as the backend for `pybids`. API-breaking changes are as follows,
+where `bl` refers to a `BIDSLayout` object.
 
-* `dataset.copy_*` functions have been removed.
-* `dataset.get_dataset_description` no longer accepts arguments, always returns a list.
-* 
+The following functions have been removed:
+* `bl.copy_*` — we suggest moving files externally to pyBIDS
+* `bl.build_path`, `bl.write_to_file` — we suggest creating derivatives datasets when adding files via pyBIDS, rather than modifying original datasets
+
+
+The following functions have undergone backwards-compatability breaking modifications:
+* `bl.get_dataset_description` no longer accepts arguments, always returns a list.
+* `bl.files` is currently supported through a wrapper but should be replaced with `bl.dataset.files`
+
+Modifications that need to be added for improved compatability are:
+* Add support for `BIDSLayout(..., validate=True)`, such that failing files are excluded from the loaded dataset.
+
+Open questions:
+* In `ancpbids`, the current `BIDSLayout` compatability layer has a container called `bl.dataset.files`. In the original `BIDSLayout` this would contain all files in the dataset. With `ancpbids`, this contains all files that are not otherwise captured in the graph as part of the schema. These should be harmonized, meaning this attribute of `ancpbids`'s implementation should be renamed.
+* The `participants.tsv` file, for example, is not well described in the schema, and therefore is included in this list of ancillary files that was mentioned above. This means that the list contains both files that may be useful, such as this one, and those that actually violate the spec. Another example may be base directory task `tsv` files, as can be found in `ds000117`.
+
+
 
 Version 0.15.1 (April 04, 2022)
 -------------------------------
