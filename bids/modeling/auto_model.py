@@ -3,15 +3,15 @@ from collections import OrderedDict
 import numpy as np
 
 
-def _make_passthrough_contrast(level, contrast_names, model_type='meta', test="t"):
+def _make_passthrough_contrast(level, contrast_names, model_type='glm', test="t"):
     gb_dict = dict(Subject=['subject', 'contrast'],
                    Session=['session', 'contrast'],
                    Dataset=['contrast'])
-    block = OrderedDict(Level=level,
-                        Name=level,
-                        GroupBy=gb_dict[level],
-                        Model={'Type': model_type,
-                               'X': contrast_names})
+    block = dict(Level=level,
+                 Name=level,
+                 GroupBy=gb_dict[level],
+                 Model={'Type': model_type,
+                        'X': contrast_names})
     contrasts = []
     for cn in contrast_names:
         cdict = OrderedDict(Name=level.lower() + "_" + cn, ConditionList=[cn],
@@ -60,19 +60,19 @@ def auto_model(layout, scan_length=None, one_vs_rest=False):
         nodes = []
 
         # Make run level block
-        transformations = OrderedDict(
+        transformations = dict(
             Transformer='pybids-transforms-v1',
             Instructions=[
-                OrderedDict(
+                dict(
                     Name='Factor',
                     Input='trial_type'
                 )
             ]
         )
-        run = OrderedDict(Level='Run',
-                          Name='Run',
-                          GroupBy=['run', 'subject'],
-                          Transformations=transformations)
+        run = dict(Level='Run',
+                   Name='Run',
+                   GroupBy=['run', 'subject'],
+                   Transformations=transformations)
 
         # Get trial types
         run_nodes = load_variables(layout, task=task_name, levels=['run'],
@@ -84,13 +84,12 @@ def auto_model(layout, scan_length=None, one_vs_rest=False):
         trial_types = np.unique(evs)
         trial_type_factors = ["trial_type." + tt for tt in trial_types]
 
-        run_model = OrderedDict(Type='glm',
-                                X=trial_type_factors)
+        run_model = dict(Type='glm', X=trial_type_factors)
         # Add HRF
-        run_model['HRF'] = OrderedDict(
+        run_model['HRF'] = dict(
             Variables=trial_type_factors,
             Model="DoubleGamma",
-            Parameters=OrderedDict(
+            Parameters=dict(
                 PeakDelay=3,
                 PeakDispersion=6,
                 UndershootDelay=10,
@@ -133,14 +132,14 @@ def auto_model(layout, scan_length=None, one_vs_rest=False):
                 # get contrasts names from previous block
                 contrast_names = [cc["Name"] for cc in nodes[-1]["Contrasts"]]
                 nodes.append(_make_passthrough_contrast(
-                    "Session", contrast_names))
+                    "Session", contrast_names, "meta"))
 
             subjects = layout.get_subjects()
             if len(subjects) > 1:
                 # get contrasts names from previous block
                 contrast_names = [cc["Name"] for cc in nodes[-1]["Contrasts"]]
                 nodes.append(_make_passthrough_contrast(
-                    "Subject", contrast_names))
+                    "Subject", contrast_names, "meta"))
 
             # get contrasts names from previous block
             contrast_names = [cc["Name"] for cc in nodes[-1]["Contrasts"]]

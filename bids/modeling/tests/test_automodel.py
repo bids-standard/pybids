@@ -4,8 +4,6 @@ from bids.modeling.auto_model import auto_model
 from bids.modeling import BIDSStatsModelsGraph
 from bids.layout import BIDSLayout
 from bids.tests import get_test_data_path
-from bsmschema.models import BIDSStatsModel
-
 import pytest
 
 
@@ -19,6 +17,10 @@ def model():
     return models[0]
 
 def test_automodel_valid(model):
+    try:
+        from bsmschema.models import BIDSStatsModel
+    except ImportError:
+        pytest.skip("Needs bsmschema, available for Python 3.8+")
     BIDSStatsModel.parse_obj(model)
 
 def test_automodel_runs(model):
@@ -66,7 +68,7 @@ def test_auto_model_graph(model):
     block = model['Nodes'][2]
     assert block['Name'] == 'Dataset'
     assert block['Level'] == 'Dataset'
-    assert block['Model']['Type'] == 'meta'
+    assert block['Model']['Type'] == 'glm'
     assert block['Model']['X'][0] == 'subject_run_parametric gain'
     assert block['Contrasts'][0]['Name'] == 'dataset_subject_run_parametric gain'
     assert block['Contrasts'][0]['Test'] == 't'
