@@ -159,8 +159,8 @@
         "[acq-{acquisition}_][ce-{ceagent}_][rec-{reconstruction}_][mod-{modality}_]{suffix<defacemask>}{extension<.json>|.json}",
         "task-{task}[_acq-{acquisition}][_ce-{ceagent}][_dir-{direction}][_rec-{reconstruction}][_run-{run}][_echo-{echo}]_{suffix<bold|cbv|phase|sbref>}{extension<.json>|.json}",
         "[acq-{acquisition}_]{suffix<dwi>}{extension<.json>|.json}",
-        "[acq-{acquisition}_][dir-{direction}_][run-{run}_]{fmap<phasediff|magnitude[1-2]|phase[1-2]|fieldmap>}{extension<.json>|.json}",
-        "[acq-{acquisition}_][ce-{ceagent}_]dir-{direction}[_run-{run}]_{fmap<epi|m0scan>}{extension<.json>|.json}",
+        "[acq-{acquisition}_][dir-{direction}_][run-{run}_]{suffix<phasediff|magnitude[1-2]|phase[1-2]|fieldmap>}{extension<.json>|.json}",
+        "[acq-{acquisition}_][ce-{ceagent}_]dir-{direction}[_run-{run}]_{suffix<epi|m0scan>}{extension<.json>|.json}",
         "task-{task}[_acq-{acquisition}][_rec-{reconstruction}][_run-{run}][_echo-{echo}][_recording-{recording}]_{suffix<events>}{extension<.json>|.json}",
         "task-{task}[_acq-{acquisition}][_rec-{reconstruction}][_run-{run}][_echo-{echo}][_recording-{recording}]_{suffix<physio|stim>}{extension<.json>}",
         "sample-{sample}[_acq-{acquisition}][_stain-{stain}][_run-{run}][_chunk-{chunk}]_{suffix<TEM|SEM|uCT|BF|DF|PC|DIC|FLUO|CONF|PLI|CARS|2PE|MPE|SR|NLO|OCT|SPIM>}{extension<.json>|.json}",
@@ -177,6 +177,6 @@
         "[task-{task}][_trc-{tracer}][_rec-{reconstruction}][_run-{run}][_recording-{recording}]_{suffix<physio|stim>}{extension<.json>|.json}",      
         "[acq-{acquisition}_][rec-{reconstruction}_][dir-{direction}_][run-{run}_]{suffix<asl|m0scan>}{extension<.json>|.json}",
         "[acq-{acquisition}_][rec-{reconstruction}_][dir-{direction}_][run-{run}_]{suffix<aslcontext>}{extension<.json>|.json}",
-        "[acq-{acquisition}_][rec-{reconstruction}_][dir-{direction}_][run-{run}_][recording{recording}_]{suffix<physio|stim>}{extension<.json>|.json}"
+        "[acq-{acquisition}_][rec-{reconstruction}_][dir-{direction}_][run-{run}_][recording-{recording}_]{suffix<physio|stim>}{extension<.json>|.json}"
     ]
 }
