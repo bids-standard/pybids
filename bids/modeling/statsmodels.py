@@ -289,10 +289,15 @@ class BIDSStatsModelsNode:
         self.group_by = group_by
 
         # Check for intercept only run level model and throw an error
-        if (self.level == 'run') and (self.model['X'] == [1]):
-            raise NotImplementedError("Run level intercept only models are not currently supported."
-                                      "If this is a feature you need, please leave a comment at"
-                                      "https://github.com/bids-standard/pybids/issues/852.")
+        try:
+            if (self.level == 'run') and (self.model['X'] == [1]):
+                raise NotImplementedError("Run level intercept only models are not currently supported."
+                                          "If this is a feature you need, please leave a comment at"
+                                          "https://github.com/bids-standard/pybids/issues/852.")
+        except KeyError:
+            # We talked about X being required, I don't know if we want to throw an error over that requirement here
+            # though.
+            pass
 
     def __repr__(self):
         return f"<{self.__class__.__name__}[{self.level}] {self.name}>"
