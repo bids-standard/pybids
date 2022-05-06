@@ -72,9 +72,3 @@ def test_auto_model_graph(model):
     assert block['Model']['X'][0] == 'subject_run_parametric gain'
     assert block['Contrasts'][0]['Name'] == 'dataset_subject_run_parametric gain'
     assert block['Contrasts'][0]['Test'] == 't'
-
-def test_autoschema_valid(model):
-    layout_path = join(get_test_data_path(), 'ds005')
-    layout = BIDSLayout(layout_path)
-    models = auto_model(layout, scan_length=480, one_vs_rest=True)
-    BIDSStatsModel.parse_obj(models[0])
