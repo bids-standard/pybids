@@ -171,3 +171,11 @@ def test_expand_wildcards():
     assert expand_wildcards(
         ["non_steady_state*"], ["non_steady_state00", "non_steady_state01"]
     ) == ["non_steady_state00", "non_steady_state01"]
+
+
+def test_interceptonly_runlevel_error():
+    layout_path = join(get_test_data_path(), "ds005")
+    layout = BIDSLayout(layout_path)
+    json_file = join(layout_path, "models", "ds-005_type-interceptonlyrunlevel_model.json")
+    with pytest.raises(NotImplementedError):
+        graph = BIDSStatsModelsGraph(layout, json_file)
