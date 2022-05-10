@@ -290,7 +290,7 @@ class BIDSStatsModelsNode:
 
         # Check for intercept only run level model and throw an error
         try:
-            if (self.level == 'run') and (self.model['X'] == [1]):
+            if (self.level == 'run') and (self.model['x'] == [1]):
                 raise NotImplementedError("Run level intercept only models are not currently supported."
                                           "If this is a feature you need, please leave a comment at"
                                           "https://github.com/bids-standard/pybids/issues/852.")
