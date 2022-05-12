@@ -409,9 +409,6 @@ def _load_tsv_variables(layout, suffix, dataset=None, columns=None,
     """
 
     # Sanitize the selectors: only keep entities at current level or above
-    #remap = {'scans': 'run', 'sessions': 'session', 'participants': 'subject'}
-    #level = remap[suffix]
-    #valid_entities = BASE_ENTITIES[:BASE_ENTITIES.index(level)]
     valid_entities_map = {
         'scans': ['subject', 'session'],
         'sessions': ['subject'],
