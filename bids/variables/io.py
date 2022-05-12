@@ -409,9 +409,15 @@ def _load_tsv_variables(layout, suffix, dataset=None, columns=None,
     """
 
     # Sanitize the selectors: only keep entities at current level or above
-    remap = {'scans': 'run', 'sessions': 'session', 'participants': 'subject'}
-    level = remap[suffix]
-    valid_entities = BASE_ENTITIES[:BASE_ENTITIES.index(level)]
+    #remap = {'scans': 'run', 'sessions': 'session', 'participants': 'subject'}
+    #level = remap[suffix]
+    #valid_entities = BASE_ENTITIES[:BASE_ENTITIES.index(level)]
+    valid_entities_map = {
+        'scans': ['subject', 'session'],
+        'sessions': ['subject'],
+        'participants': []
+    }
+    valid_entities = valid_entities_map[suffix]
     layout_kwargs = {k: v for k, v in selectors.items() if k in valid_entities}
 
     if dataset is None:
