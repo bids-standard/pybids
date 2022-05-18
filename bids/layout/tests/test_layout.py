@@ -863,5 +863,5 @@ def test_indexer_patterns(fname):
     assert _check_path_matches_patterns(
         path,
         [re.compile(r"/\.")],
-        root=None,
+        root=root,
     ) is (".datalad" in fname)
