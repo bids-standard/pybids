@@ -38,7 +38,12 @@ def _check_path_matches_patterns(path, patterns, root=None):
     # Path now can be downcast to str
     path = str(path)
     for patt in patterns:
-        if isinstance(patt, (str, Path)):
+        if isinstance(patt, Path):
+            patt = str(
+                patt if root is None
+                else patt.relative_to(root)
+            )
+        if isinstance(patt, str):
             if str(patt) in path:
                 return True
         elif patt.search(path):
