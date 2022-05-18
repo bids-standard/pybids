@@ -26,11 +26,15 @@ def _extract_entities(bidsfile, entities):
     return match_vals
 
 
-def _check_path_matches_patterns(path, patterns):
+def _check_path_matches_patterns(path, patterns, root=None):
     """Check if the path matches at least one of the provided patterns. """
     if not patterns:
         return False
+
     path = path.absolute()
+    if root is not None:
+        path = Path("/") / path.relative_to(root)
+
     for patt in patterns:
         if isinstance(patt, Path):
             if path == patt:
@@ -115,17 +119,17 @@ class BIDSLayoutIndexer:
         return self._layout.connection_manager.session
 
     def _validate_dir(self, d, default=None):
-        if _check_path_matches_patterns(d, self._include_patterns):
+        if _check_path_matches_patterns(d, self._include_patterns, root=self._layout._root):
             return True
-        if _check_path_matches_patterns(d, self._exclude_patterns):
+        if _check_path_matches_patterns(d, self._exclude_patterns, root=self._layout._root):
             return False
         return default
 
     def _validate_file(self, f, default=None):
         # Inclusion takes priority over exclusion
-        if _check_path_matches_patterns(f, self._include_patterns):
+        if _check_path_matches_patterns(f, self._include_patterns, root=self._layout._root):
             return True
-        if _check_path_matches_patterns(f, self._exclude_patterns):
+        if _check_path_matches_patterns(f, self._exclude_patterns, root=self._layout._root):
             return False
 
         # If inclusion/exclusion is inherited from a parent directory, that
