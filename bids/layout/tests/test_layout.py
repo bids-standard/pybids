@@ -850,7 +850,7 @@ def test_indexer_patterns(fname):
 
     assert _check_path_matches_patterns(
         path,
-        ["code"],
+        "code",
         root=None,
     ) is (fname == "code")
 
