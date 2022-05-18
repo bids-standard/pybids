@@ -13,7 +13,7 @@ import pytest
 
 from bids.layout import BIDSLayout, Query
 from bids.layout.models import Config
-from bids.layout.index import BIDSLayoutIndexer
+from bids.layout.index import BIDSLayoutIndexer, _check_path_matches_patterns
 from bids.layout.utils import PaddedInt
 from bids.tests import get_test_data_path
 from bids.utils import natural_sort
@@ -835,3 +835,33 @@ def test_padded_run_roundtrip(layout_ds005):
     assert ents["run"] == 1
     newpath = layout_ds005.build_path(ents, absolute_paths=False)
     assert newpath == "sub-01/func/sub-01_task-mixedgamblestask_run-01_bold.nii.gz"
+
+@pytest.mark.parametrize(
+    "fname", [
+        "sub-01/anat/sub-01_T1w.nii.gz",
+        ".datalad",
+        "code",
+        "sub-01/.datalad",
+    ],
+)
+def test_indexer_patterns(fname):
+    root = Path("/home/user/.cache/data/")
+    path = root / fname
+
+    assert _check_path_matches_patterns(
+        path,
+        ["code"],
+        root=None,
+    ) is (fname == "code")
+
+    assert _check_path_matches_patterns(
+        path,
+        [re.compile(r"/\.")],
+        root=None,
+    ) is True
+
+    assert _check_path_matches_patterns(
+        path,
+        [re.compile(r"/\.")],
+        root=None,
+    ) is (".datalad" in fname)
