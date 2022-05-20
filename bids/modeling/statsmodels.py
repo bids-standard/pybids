@@ -4,6 +4,7 @@ import json
 from collections import namedtuple, OrderedDict, Counter, defaultdict
 import itertools
 from functools import reduce
+from multiprocessing.sharedctypes import Value
 import re
 import fnmatch
 
@@ -263,11 +264,11 @@ class BIDSStatsModelsNode:
         overridden if one is passed when run() is called on a node.
     """
 
-    def __init__(self, level, name, transformations=None, model=None,
-                 contrasts=None, dummy_contrasts=False, group_by=None):
+    def __init__(self, level, name, model, group_by, transformations=None,
+                 contrasts=None, dummy_contrasts=False):
         self.level = level.lower()
         self.name = name
-        self.model = model or {}
+        self.model = model
         if transformations is None:
             transformations = {"transformer": "pybids-transforms-v1",
                                "instructions": []}
@@ -279,13 +280,7 @@ class BIDSStatsModelsNode:
         self.children = []
         self.parents = []
         if group_by is None:
-            group_by = []
-            # Loop over contrasts after first level
-            if self.level != "run":
-                group_by.append("contrast")
-            # Loop over node level of this node
-            if self.level != "dataset":
-                group_by.append(self.level)
+            raise ValueError(f"group_by is not defined for Node: {name}")
         self.group_by = group_by
 
         # Check for intercept only run level model and throw an error
