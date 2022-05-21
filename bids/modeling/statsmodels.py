@@ -713,7 +713,7 @@ class BIDSStatsModelsNodeOutput:
         # Dummy contrasts first, they are over-ridden if a contrast with the same
         # name is specified
         contrasts = {}
-        for con in self.node.contrasts:
+        for con in in_contrasts:
             condition_list = list(con["condition_list"])
 
             # Rename special 1 construct to intercept
