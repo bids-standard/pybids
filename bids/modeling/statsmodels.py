@@ -598,7 +598,7 @@ class BIDSStatsModelsNodeOutput:
                 var_names.append('intercept')
 
         # If a single incoming contrast
-        if ('contrast' in df.columns or df['contrast'].nunique() == 1):
+        if ('contrast' in df.columns and df['contrast'].nunique() == 1):
             unique_in_contrast = df['contrast'].unique()[0]
         else:
             unique_in_contrast = None
