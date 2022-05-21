@@ -588,24 +588,26 @@ class BIDSStatsModelsNodeOutput:
         var_names = list(self.node.model['x'])
 
         # Handle the special 1 construct. If it's present, we add a
-        # column of 1's to the design matrix. But behavior varies:
+        # column of 1's to the design matrix called "intercept" 
+        # 
+        # To handle the 1 contruct in contrast name we determine:
         # * If there's only a single contrast across all of the inputs,
-        #   the intercept column is given the same name as the input contrast.
-        #   It may already exist, in which case we do nothing.
-        # * Otherwise, we name the column 'intercept'.
+        #   the intercept contrast is given the same name as the input contrast.
+        # * Otherwise, we name the contrast 'intercept'.
         int_name = None
         if 1 in var_names:
-            if ('contrast' not in df.columns or df['contrast'].nunique() > 1):
-                int_name = 'intercept'
-            else:
+            int_name = 'intercept'
+
+            # If a single incoming contrast
+            if ('contrast' not in df.columns or df['contrast'].nunique() == 1):
                 int_name = df['contrast'].unique()[0]
 
             var_names.remove(1)
 
-            if int_name not in df.columns:
-                df.insert(0, int_name, 1)
+            if 'intercept' not in df.columns:
+                df.insert(0, 'intercept', 1)
             else:
-                var_names.append(int_name)
+                var_names.append('intercept')
 
         var_names = expand_wildcards(var_names, df.columns)
 
@@ -685,17 +687,38 @@ class BIDSStatsModelsNodeOutput:
                 input_df.loc[input_df.index[i], con.name] = 1
         return input_df
 
-    def _build_contrasts(self, int_name):
-        """Contrast list of ContrastInfo objects based on current state."""
+    def _build_contrasts(self, int_name=None):
+        """Contrast list of ContrastInfo objects based on current state.
+        
+        Parameters
+        ----------
+        int_name : string
+            Contrast name intercept refers to
+        """
         contrasts = {}
         col_names = set(self.X.columns)
         for con in self.node.contrasts:
             name = con["name"]
             condition_list = list(con["condition_list"])
-            if 1 in condition_list and int_name is not None:
-                condition_list[condition_list.index(1)] = int_name
-            if name == 1 and int_name is not None:
+
+            if 1 in condition_list or name == 1 and not int_name:
+                raise ValueError(
+                    "Special intercept construct used in Contrast,"
+                    "but no intercept is defined in the model"
+                    )
+
+            # Rename special 1 construct to intercept name
+            if 1 in condition_list:
+                condition_list[condition_list.index(1)] = 'intercept'
+
+            # Rename contrast name
+            if name == 1:
                 name = int_name
+            else:
+                # If Node has single contrast input, as is grouped by contrast
+                if 'contrast' in self.node.group_by and int_name not in [None, 'intercept']
+                    name = f"{int_name}_{name}" 
+                    
             missing_vars = set(condition_list) - col_names
             if missing_vars:
                 if self.invalid_contrasts == 'error':
@@ -717,7 +740,12 @@ class BIDSStatsModelsNodeOutput:
             conditions = col_names
             if 'conditions' in dummies:
                 conds = set(dummies['conditions'])
-                if 1 in conds and int_name is not None:
+                if 1 in conds:
+                    if not int_name:
+                        raise ValueError(
+                            "Special intercept construct used in Contrast,"
+                            "but no intercept is defined in the model"
+                            )
                     conds.discard(1)
                     conds.add(int_name)
                 conditions &= conds
