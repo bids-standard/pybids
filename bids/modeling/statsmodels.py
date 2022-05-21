@@ -695,28 +695,46 @@ class BIDSStatsModelsNodeOutput:
         int_name : string
             Contrast name intercept refers to
         """
-        contrasts = {}
+        in_contrasts = self.node.contrasts.copy()
         col_names = set(self.X.columns)
+
+        # Create dummy contrasts as regular contrasts
+        dummies = self.node.dummy_contrasts
+        if dummies:
+            if 'conditionlist' in dummies:
+                conditions = set(dummies['conditionlist'])
+            else:
+                conditions = col_names
+
+            for col_name in conditions:
+                in_contrasts.insert(0, 
+                    {
+                        'name': col_name,
+                        'weights': [1],
+                        'test': dummies.get('test')
+                    }
+                )
+
+        # Process all contrasts. 
+        # Dummy contrasts first, they are over-ridden if a contrast with the same
+        # name is specified
+        contrasts = {}
         for con in self.node.contrasts:
-            name = con["name"]
             condition_list = list(con["condition_list"])
 
-            if 1 in condition_list or name == 1 and not int_name:
-                raise ValueError(
-                    "Special intercept construct used in Contrast,"
-                    "but no intercept is defined in the model"
-                    )
-
-            # Rename special 1 construct to intercept name
+            # Rename special 1 construct to intercept
             if 1 in condition_list:
                 condition_list[condition_list.index(1)] = 'intercept'
 
+            name = con["name"]
+            
             # Rename contrast name
             if name == 1:
                 name = int_name
             else:
                 # If Node has single contrast input, as is grouped by contrast
-                if 'contrast' in self.node.group_by and int_name not in [None, 'intercept']
+                # Rename contrast to append incoming contrast name
+                if 'contrast' in self.node.group_by and int_name not in [None, 'intercept']:
                     name = f"{int_name}_{name}" 
                     
             missing_vars = set(condition_list) - col_names
@@ -729,35 +747,12 @@ class BIDSStatsModelsNodeOutput:
                 elif self.invalid_contrasts == 'drop':
                     continue
             weights = np.atleast_2d(con['weights'])
+
             # Add contrast name to entities; can be used in grouping downstream
             entities = {**self.entities, 'contrast': name}
             ci = ContrastInfo(name, condition_list,
                               con['weights'], con.get("test"), entities)
             contrasts[name] = ci
-
-        dummies = self.node.dummy_contrasts
-        if dummies:
-            conditions = col_names
-            if 'conditions' in dummies:
-                conds = set(dummies['conditions'])
-                if 1 in conds:
-                    if not int_name:
-                        raise ValueError(
-                            "Special intercept construct used in Contrast,"
-                            "but no intercept is defined in the model"
-                            )
-                    conds.discard(1)
-                    conds.add(int_name)
-                conditions &= conds
-            conditions -= set(c.name for c in contrasts.values())
-
-            for col_name in conditions:
-                if col_name in contrasts:
-                    continue
-                entities = {**self.entities, 'contrast': col_name}
-                ci = ContrastInfo(col_name, [col_name], [1], dummies.get("test"),
-                                  entities)
-                contrasts[col_name] = ci
 
         return list(contrasts.values())
 
