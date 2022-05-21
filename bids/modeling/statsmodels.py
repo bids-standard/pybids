@@ -589,25 +589,19 @@ class BIDSStatsModelsNodeOutput:
 
         # Handle the special 1 construct. If it's present, we add a
         # column of 1's to the design matrix called "intercept" 
-        # 
-        # To handle the 1 contruct in contrast name we determine:
-        # * If there's only a single contrast across all of the inputs,
-        #   the intercept contrast is given the same name as the input contrast.
-        # * Otherwise, we name the contrast 'intercept'.
-        int_name = None
         if 1 in var_names:
-            int_name = 'intercept'
-
-            # If a single incoming contrast
-            if ('contrast' not in df.columns or df['contrast'].nunique() == 1):
-                int_name = df['contrast'].unique()[0]
-
             var_names.remove(1)
 
             if 'intercept' not in df.columns:
                 df.insert(0, 'intercept', 1)
             else:
                 var_names.append('intercept')
+
+        # If a single incoming contrast
+        if ('contrast' not in df.columns or df['contrast'].nunique() == 1):
+            unique_in_contrast = df['contrast'].unique()[0]
+        else:
+            unique_in_contrast = None
 
         var_names = expand_wildcards(var_names, df.columns)
 
@@ -623,7 +617,7 @@ class BIDSStatsModelsNodeOutput:
 
         # Create ModelSpec and build contrasts
         self.model_spec = create_model_spec(self.data, node.model, self.metadata)
-        self.contrasts = self._build_contrasts(int_name)
+        self.contrasts = self._build_contrasts(unique_in_contrast)
 
     def _collections_to_dfs(self, collections):
         """Merges collections and converts them to a pandas DataFrame."""
@@ -687,13 +681,13 @@ class BIDSStatsModelsNodeOutput:
                 input_df.loc[input_df.index[i], con.name] = 1
         return input_df
 
-    def _build_contrasts(self, int_name=None):
+    def _build_contrasts(self, unique_in_contrast=None):
         """Contrast list of ContrastInfo objects based on current state.
         
         Parameters
         ----------
-        int_name : string
-            Contrast name intercept refers to
+        unique_in_contrast : string
+            Name of unique incoming contrast inputs (if there is only 1)
         """
         in_contrasts = self.node.contrasts.copy()
         col_names = set(self.X.columns)
@@ -730,12 +724,12 @@ class BIDSStatsModelsNodeOutput:
             
             # Rename contrast name
             if name == 1:
-                name = int_name
+                name = unique_in_contrast or 'intercept'
             else:
                 # If Node has single contrast input, as is grouped by contrast
                 # Rename contrast to append incoming contrast name
-                if 'contrast' in self.node.group_by and int_name not in [None, 'intercept']:
-                    name = f"{int_name}_{name}" 
+                if unique_in_contrast:
+                    name = f"{unique_in_contrast}_{name}" 
                     
             missing_vars = set(condition_list) - col_names
             if missing_vars:
