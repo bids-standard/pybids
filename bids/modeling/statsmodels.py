@@ -587,11 +587,10 @@ class BIDSStatsModelsNodeOutput:
 
         var_names = list(self.node.model['x'])
 
-        # Handle the special 1 construct. If it's present, we add a
-        # column of 1's to the design matrix called "intercept" 
+        # Handle the special 1 construct.
+        # Add column of 1's to the design matrix called "intercept" 
         if 1 in var_names:
-            var_names.remove(1)
-            var_names.append('intercept')
+            var_names = ['intercept' if i == 1 else i for i in var_names]
             if 'intercept' not in df.columns:
                 df.insert(0, 'intercept', 1)
 
@@ -685,7 +684,7 @@ class BIDSStatsModelsNodeOutput:
         Parameters
         ----------
         unique_in_contrast : string
-            Name of unique incoming contrast inputs (if there is only 1)
+            Name of unique incoming contrast inputs (i.e. if there is only 1)
         """
         in_contrasts = self.node.contrasts.copy()
         col_names = set(self.X.columns)
@@ -708,16 +707,14 @@ class BIDSStatsModelsNodeOutput:
                     }
                 )
 
-        # Process all contrasts. 
-        # Dummy contrasts first, they are over-ridden if a contrast with the same
-        # name is specified
+        # Process all contrasts, starting with dummy contrasts 
+        # Dummy contrasts are replaced if a contrast is defined with same name
         contrasts = {}
         for con in in_contrasts:
             condition_list = list(con["condition_list"])
 
-            # Rename special 1 construct to intercept
-            if 1 in condition_list:
-                condition_list[condition_list.index(1)] = 'intercept'
+            # Rename special 1 construct
+            condition_list = ['intercept' if i == 1 else i for i in condition_list]
 
             name = con["name"]
             
