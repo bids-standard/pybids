@@ -704,6 +704,7 @@ class BIDSStatsModelsNodeOutput:
                 in_contrasts.insert(0, 
                     {
                         'name': col_name,
+                        'conditionlist': [col_name],
                         'weights': [1],
                         'test': dummies.get('test')
                     }
@@ -714,7 +715,7 @@ class BIDSStatsModelsNodeOutput:
         # name is specified
         contrasts = {}
         for con in in_contrasts:
-            condition_list = list(con["condition_list"])
+            condition_list = list(con["conditionlist"])
 
             # Rename special 1 construct to intercept
             if 1 in condition_list:
