@@ -113,10 +113,22 @@ def test_entire_graph_smoketest(graph):
     cis = list(chain(*[op.contrasts for op in outputs]))
     assert len(cis) == 18
     outputs = graph["participant"].run(cis, group_by=['subject', 'contrast'])
-    # 2 subjects x 3 contrasts
+    # 2 subjects x 3 contrasts)
     assert len(outputs) == 6
+    # * 2 participant level contrasts = 12
     cis = list(chain(*[op.contrasts for op in outputs]))
-    assert len(cis) == 6
+    assert len(cis) == 12
+
+    # Test output names for single subject
+    out_contrasts = [
+        c.entities['contrast'] for c in cis if c.entities['subject'] == '01'
+        ]
+
+    expected_outs = [
+        'gain', 'gain_neg', 'RT', 'RT_neg', 'RT:gain', 'RT:gain_neg'
+    ]
+
+    assert set(out_contrasts) == set(expected_outs)
 
     # Construct new ContrastInfo objects with name updated to reflect last
     # contrast. This would normally be done by the handling tool (e.g., fitlins)

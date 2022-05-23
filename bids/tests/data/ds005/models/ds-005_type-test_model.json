@@ -53,6 +53,12 @@
                     "ConditionList": [1],
                     "Weights": [1],
                     "Test": "FEMA"
+                },
+                {
+                    "Name": "neg",
+                    "ConditionList": [1],
+                    "Weights": [-1],
+                    "Test": "FEMA"
                 }
             ]
         },
@@ -60,7 +66,8 @@
             "Name": "by-group",
             "Level": "Dataset",
             "GroupBy": [
-                "sex"
+                "sex",
+                "contrast"
             ],
             "Model": {
                 "X": [
@@ -75,7 +82,7 @@
         {
             "Name": "group-diff",
             "Level": "Dataset",
-            "GroupBy": [],
+            "GroupBy": ["contrast"],
             "Model": {
                 "X": [
                     1,
