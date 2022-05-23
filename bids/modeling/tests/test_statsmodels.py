@@ -140,7 +140,7 @@ def test_entire_graph_smoketest(graph):
     assert model_spec.X.shape == (2, 2)
     assert model_spec.Z is None
     assert len(model_spec.terms) == 2
-    assert not set(model_spec.terms.keys()) - {"RT", "gain", "RT:gain", "sex"}
+    assert not set(model_spec.terms.keys()) - {"intercept", "sex"}
 
     # BY-GROUP NODE
     outputs = graph["by-group"].run(inputs, group_by=['contrast'])
@@ -153,7 +153,7 @@ def test_entire_graph_smoketest(graph):
     assert model_spec.__class__.__name__ == "GLMMSpec"
     assert model_spec.X.shape == (2, 1)
     assert model_spec.Z is None
-    assert not set(model_spec.terms.keys()) - {"RT", "gain", "RT:gain"}
+    assert not set(model_spec.terms.keys()) - {"intercept"}
 
 
 def test_expand_wildcards():

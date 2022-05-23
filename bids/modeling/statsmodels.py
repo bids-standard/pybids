@@ -591,11 +591,9 @@ class BIDSStatsModelsNodeOutput:
         # column of 1's to the design matrix called "intercept" 
         if 1 in var_names:
             var_names.remove(1)
-
+            var_names.append('intercept')
             if 'intercept' not in df.columns:
                 df.insert(0, 'intercept', 1)
-            else:
-                var_names.append('intercept')
 
         # If a single incoming contrast
         if ('contrast' in df.columns and df['contrast'].nunique() == 1):
@@ -696,7 +694,7 @@ class BIDSStatsModelsNodeOutput:
         dummies = self.node.dummy_contrasts
         if dummies:
             if 'conditionlist' in dummies:
-                conditions = set(dummies['conditionlist'])
+                conditions = set(dummies['condition_list'])
             else:
                 conditions = col_names
 
@@ -704,7 +702,7 @@ class BIDSStatsModelsNodeOutput:
                 in_contrasts.insert(0, 
                     {
                         'name': col_name,
-                        'conditionlist': [col_name],
+                        'condition_list': [col_name],
                         'weights': [1],
                         'test': dummies.get('test')
                     }
@@ -715,7 +713,7 @@ class BIDSStatsModelsNodeOutput:
         # name is specified
         contrasts = {}
         for con in in_contrasts:
-            condition_list = list(con["conditionlist"])
+            condition_list = list(con["condition_list"])
 
             # Rename special 1 construct to intercept
             if 1 in condition_list:
