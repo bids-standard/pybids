@@ -21,11 +21,12 @@ __all__ = [
     "Config",
     "Entity",
     "Tag",
-    "Query"
+    "Query",
+    "BIDSLayoutV2",
 ]
 
 try:
     from .layout_v2 import BIDSLayoutV2
-    __all__ += ["BIDSLayoutV2"]
-except:
-    warnings.warn("Could not load BIDSLayoutV2: make sure you installed the ancpBIDS package")
+except Exception as err:
+    def BIDSLayoutV2(*args, **kwargs):
+        raise RuntimeError("Cannot create BIDSLayoutV2 - please install the ancpbids package.") from err
