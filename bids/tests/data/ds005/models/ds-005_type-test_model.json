@@ -25,10 +25,6 @@
                     "Name": "Rename",
                     "Input": "trial_type.parametric gain",
                     "Output": "gain"
-                },
-                {
-                    "Name": "Scale",
-                    "Input": "RT"
                 }
             ],
             "DummyContrasts": {
