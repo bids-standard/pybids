@@ -689,6 +689,8 @@ class BIDSStatsModelsNodeOutput:
         in_contrasts = self.node.contrasts.copy()
         col_names = set(self.X.columns)
 
+        import pdb; pdb.set_trace()
+
         # Create dummy contrasts as regular contrasts
         dummies = self.node.dummy_contrasts
         if dummies:
@@ -698,6 +700,9 @@ class BIDSStatsModelsNodeOutput:
                 conditions = col_names
 
             for col_name in conditions:
+                if col_name == "intercept":
+                    col_name = 1
+
                 in_contrasts.insert(0, 
                     {
                         'name': col_name,
