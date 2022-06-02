@@ -689,8 +689,6 @@ class BIDSStatsModelsNodeOutput:
         in_contrasts = self.node.contrasts.copy()
         col_names = set(self.X.columns)
 
-        import pdb; pdb.set_trace()
-
         # Create dummy contrasts as regular contrasts
         dummies = self.node.dummy_contrasts
         if dummies:
