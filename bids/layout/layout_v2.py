@@ -86,12 +86,15 @@ class BIDSLayoutV2(BIDSLayoutMRIMixin):
                 raise BIDSValidationError(error_message)
 
     def __getattr__(self, key):
-        # replace arbitrary get functions with calls to get
-        if key.startswith("get_"):
-            return partial(self.get, "id", key[4:])
-
-        # give up if the above don't work
-        raise AttributeError(key)
+        """Dynamically inspect missing methods for get_<entity>() calls
+        and return a partial function of get() if a match is found."""
+        if key.startswith('get_'):
+            ent_name = key.replace('get_', '')
+            ent_name = self.schema.fuzzy_match_entity_key(ent_name)
+            return partial(self.get, return_type='id', target=ent_name)
+        # Spit out default message if we get this far
+        raise AttributeError("%s object has no attribute named %r" %
+                             (self.__class__.__name__, key))
 
     def get_metadata(self, path, include_entities=False, scope='all'):
         """Return metadata found in JSON sidecars for the specified file.
