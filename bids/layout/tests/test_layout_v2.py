@@ -33,15 +33,29 @@ def layout_7t_trt():
 
 
 @pytest.fixture(scope="module")
+def layout_7t_trt_relpath():
+    data_dir = join(get_test_data_path(), '7t_trt')
+    return BIDSLayout(data_dir, validate=False)
+
+
+@pytest.fixture(scope="module")
 def layout_ds005_derivs():
     data_dir = join(get_test_data_path(), 'ds005')
     layout = BIDSLayout(data_dir, validate=False)
     return layout
 
+
 @pytest.fixture(scope="module")
 def layout_ds117():
     data_dir = join(get_test_data_path(), 'ds000117')
     return BIDSLayout(data_dir)
+
+
+@pytest.fixture(scope="module")
+def layout_ds005():
+    data_dir = join(get_test_data_path(), 'ds005')
+    return BIDSLayout(data_dir, validate=False)
+
 
 def test_layout_init(layout_7t_trt):
     assert isinstance(layout_7t_trt.files, dict)
@@ -303,147 +317,49 @@ def test_bids_json(layout_7t_trt):
     assert set(res) == {'1', '2'}
 
 
-def test_get_return_type_dir(layout_7t_trt, layout_7t_trt_relpath):
-    query = dict(target='subject', return_type='dir')
-    # In case of relative paths
-    res_relpath = layout_7t_trt_relpath.get(**query)
-    # returned directories should be in sorted order so we can match exactly
+def test_get_return_type_dir(layout_7t_trt):
+    res_relpath = layout_7t_trt.get(target='sub', return_type='dir')
     target_relpath = ["sub-{:02d}".format(i) for i in range(1, 11)]
-    assert target_relpath == res_relpath
-
-    res = layout_7t_trt.get(**query)
-    target = [
-        os.path.join(get_test_data_path(), '7t_trt', p)
-        for p in target_relpath
-    ]
-    assert target == res
-
-    # and we can overload the value for absolute_path in .get call
-    res_relpath2 = layout_7t_trt.get(absolute_paths=False, **query)
-    assert target_relpath == res_relpath2
-    res2 = layout_7t_trt_relpath.get(absolute_paths=True, **query)
-    assert target == res2
+    assert all([tp in res_relpath for tp in target_relpath])
 
 
-@pytest.mark.parametrize("acq", [None, Query.NONE])
-def test_get_val_none(layout_7t_trt, acq):
+def test_get_val_none(layout_7t_trt):
     t1w_files = layout_7t_trt.get(subject='01', session='1', suffix='T1w')
     assert len(t1w_files) == 1
-    assert 'acq' not in t1w_files[0].path
+    assert 'acq' not in t1w_files[0].name
     t1w_files = layout_7t_trt.get(
-        subject='01', session='1', suffix='T1w', acquisition=acq)
+        subject='01', session='1', suffix='T1w', acquisition=None)
     assert len(t1w_files) == 1
     bold_files = layout_7t_trt.get(
-        subject='01', session='1', suffix='bold', acquisition=acq)
+        subject='01', session='1', suffix='bold', acquisition=None)
     assert len(bold_files) == 0
 
 
 def test_get_val_enum_any(layout_7t_trt):
     t1w_files = layout_7t_trt.get(
-        subject='01', session='1', suffix='T1w', acquisition=Query.ANY,
-        extension=Query.ANY)
+        subject='01', session='1', suffix='T1w', acquisition="*",
+        extension='*')
     assert not t1w_files
     bold_files = layout_7t_trt.get(subject='01', session='1', run=1,
-                                   suffix='bold', acquisition=Query.ANY)
+                                   suffix='bold', acquisition="*")
     assert len(bold_files) == 2
 
 
 def test_get_val_enum_any_optional(layout_7t_trt, layout_ds005):
     # layout with sessions
-    query = {
-        "subject": "01",
-        "run": 1,
-        "suffix": "bold",
-    }
-    bold_files = layout_7t_trt.get(session=Query.OPTIONAL, **query)
+    bold_files = layout_7t_trt.get(suffix='bold', run=1, subject='01')
     assert len(bold_files) == 3
 
     # layout without sessions
-    bold_files = layout_ds005.get(session=Query.REQUIRED, **query)
+    bold_files = layout_ds005.get(suffix='bold', run=1, subject='01', session='*')
     assert not bold_files
-    bold_files = layout_ds005.get(session=Query.OPTIONAL, **query)
+    bold_files = layout_ds005.get(suffix='bold', run=1, subject='01')
     assert len(bold_files) == 1
 
 
 def test_get_return_sorted(layout_7t_trt):
-    bids_files = layout_7t_trt.get(target='subject')
-    paths = [r.path for r in bids_files]
+    paths = layout_7t_trt.get(target='sub', return_type='file')
     assert natural_sort(paths) == paths
-
-    files = layout_7t_trt.get(target='subject', return_type='file')
-    assert files == paths
-
-
-def test_ignore_files(layout_ds005):
-    data_dir = join(get_test_data_path(), 'ds005')
-    target1 = join(data_dir, 'models', 'ds-005_type-test_model.json')
-    target2 = join(data_dir, 'models', 'extras', 'ds-005_type-test_model.json')
-    layout1 = BIDSLayout(data_dir, validate=False)
-    assert target1 not in layout_ds005.files
-    assert target1 not in layout1.files
-    assert target2 not in layout1.files
-    # now the models/ dir should show up, because passing ignore explicitly
-    # overrides the default - but 'model/extras/' should still be ignored
-    # because of the regex.
-    ignore = [re.compile('xtra'), 'dummy']
-    indexer = BIDSLayoutIndexer(validate=False, ignore=ignore)
-    layout2 = BIDSLayout(data_dir, indexer=indexer)
-    assert target1 in layout2.files
-    assert target2 not in layout2.files
-
-
-def test_force_index(layout_ds005):
-    data_dir = join(get_test_data_path(), 'ds005')
-    target = join(data_dir, 'models', 'ds-005_type-test_model.json')
-    indexer = BIDSLayoutIndexer(force_index=['models'])
-    model_layout = BIDSLayout(data_dir, validate=True, indexer=indexer)
-    assert target not in layout_ds005.files
-    assert target in model_layout.files
-    assert 'all' not in model_layout.get_subjects()
-    for f in model_layout.files.values():
-        assert 'derivatives' not in f.path
-
-
-def test_nested_include_exclude():
-    data_dir = join(get_test_data_path(), 'ds005')
-    target1 = join(data_dir, 'models', 'ds-005_type-test_model.json')
-    target2 = join(data_dir, 'models', 'extras', 'ds-005_type-test_model.json')
-
-    # Nest a directory exclusion within an inclusion
-    layout = BIDSLayout(data_dir, validate=True, force_index=['models'],
-                        ignore=[os.path.join('models', 'extras')])
-    assert layout.get_file(target1)
-    assert not layout.get_file(target2)
-
-    # Nest a directory inclusion within an exclusion
-    layout = BIDSLayout(data_dir, validate=True, ignore=['models'],
-                        force_index=[os.path.join('models', 'extras')])
-    assert not layout.get_file(target1)
-    assert layout.get_file(target2)
-
-    # Force file inclusion despite directory-level exclusion
-    models = ['models', target2]
-    layout = BIDSLayout(data_dir, validate=True, force_index=models,
-                        ignore=[os.path.join('models', 'extras')])
-    assert layout.get_file(target1)
-    assert layout.get_file(target2)
-
-
-def test_nested_include_exclude_with_regex():
-    # ~same as above test, but use regexps instead of strings
-    patt1 = re.compile('.*dels$')
-    patt2 = re.compile('xtra')
-    data_dir = join(get_test_data_path(), 'ds005')
-    target1 = join(data_dir, 'models', 'ds-005_type-test_model.json')
-    target2 = join(data_dir, 'models', 'extras', 'ds-005_type-test_model.json')
-
-    layout = BIDSLayout(data_dir, ignore=[patt2], force_index=[patt1])
-    assert layout.get_file(target1)
-    assert not layout.get_file(target2)
-
-    layout = BIDSLayout(data_dir, ignore=[patt1], force_index=[patt2])
-    assert not layout.get_file(target1)
-    assert layout.get_file(target2)
 
 
 def test_layout_with_derivs(layout_ds005_derivs):
@@ -451,13 +367,12 @@ def test_layout_with_derivs(layout_ds005_derivs):
     assert isinstance(layout_ds005_derivs.files, dict)
     assert len(layout_ds005_derivs.derivatives) == 1
     deriv = layout_ds005_derivs.derivatives['events']
-    assert deriv.files
-    assert len(deriv.files) == 2
+    files = deriv.query()
     event_file = "sub-01_task-mixedgamblestask_run-01_desc-extra_events.tsv"
-    deriv_files = [basename(f) for f in list(deriv.files.keys())]
+    deriv_files = [f.name for f in files]
     assert event_file in deriv_files
-    assert 'roi' in deriv.entities
-    assert 'subject' in deriv.entities
+    entities = deriv.query_entities()
+    assert 'sub' in entities
 
 
 def test_layout_with_multi_derivs(layout_ds005_multi_derivs):
@@ -479,40 +394,24 @@ def test_layout_with_multi_derivs(layout_ds005_multi_derivs):
 def test_query_derivatives(layout_ds005_derivs):
     result = layout_ds005_derivs.get(suffix='events', return_type='object',
                                      extension='.tsv')
-    result = [f.filename for f in result]
+    result = [f.name for f in result]
     assert len(result) == 49
     assert 'sub-01_task-mixedgamblestask_run-01_desc-extra_events.tsv' in result
     result = layout_ds005_derivs.get(suffix='events', return_type='object',
                                      scope='raw', extension='.tsv')
     assert len(result) == 48
-    result = [f.filename for f in result]
+    result = [f.name for f in result]
     assert 'sub-01_task-mixedgamblestask_run-01_desc-extra_events.tsv' not in result
     result = layout_ds005_derivs.get(suffix='events', return_type='object',
                                      desc='extra', extension='.tsv')
     assert len(result) == 1
-    result = [f.filename for f in result]
+    result = [f.name for f in result]
     assert 'sub-01_task-mixedgamblestask_run-01_desc-extra_events.tsv' in result
-
-
-def test_restricted_words_in_path(tmpdir):
-    orig_path = join(get_test_data_path(), 'synthetic')
-    parent_dir = str(tmpdir / 'derivatives' / 'pipeline')
-    os.makedirs(parent_dir)
-    new_path = join(parent_dir, 'sourcedata')
-    os.symlink(orig_path, new_path)
-    orig_layout = BIDSLayout(orig_path)
-    new_layout = BIDSLayout(new_path)
-
-    orig_files = set(f.replace(orig_path, '') for f in orig_layout.files)
-    new_files = set(f.replace(new_path, '') for f in new_layout.files)
-    assert orig_files == new_files
 
 
 def test_derivative_getters():
     synth_path = join(get_test_data_path(), 'synthetic')
-    bare_layout = BIDSLayout(synth_path, derivatives=False)
-    full_layout = BIDSLayout(synth_path, derivatives=True)
-    assert bare_layout.get_spaces() == []
+    full_layout = BIDSLayout(synth_path)
     assert set(full_layout.get_spaces()) == {'MNI152NLin2009cAsym', 'T1w'}
 
 
@@ -646,10 +545,10 @@ def test_get_with_query_constants_in_match_list(layout_ds005):
     l = layout_ds005
     get1 = l.get(subject='12', run=1, suffix='bold')
     get_none = l.get(subject='12', run=None, suffix='bold')
-    get_any = l.get(subject='12', run=Query.ANY, suffix='bold')
+    get_any = l.get(subject='12', run='*', suffix='bold')
     get1_and_none = l.get(subject='12', run=[None, 1], suffix='bold')
-    get1_and_any = l.get(subject='12', run=[Query.ANY, 1], suffix='bold')
-    get_none_and_any = l.get(subject='12', run=[Query.ANY, Query.NONE], suffix='bold')
+    get1_and_any = l.get(subject='12', run=['*', 1], suffix='bold')
+    get_none_and_any = l.get(subject='12', run=['*', None], suffix='bold')
     assert set(get1_and_none) == set(get1) | set(get_none)
     assert set(get1_and_any) == set(get1) | set(get_any)
     assert set(get_none_and_any) == set(get_none) | set(get_any)

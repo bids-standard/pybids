@@ -20,6 +20,9 @@ from ancpbids.utils import deepupdate, resolve_segments, convert_to_relative
 
 __all__ = ['BIDSLayoutV2']
 
+from ..utils import natural_sort
+
+
 class BIDSLayoutMRIMixin:
     def get_tr(self, derivatives=False, **entities):
 
@@ -58,6 +61,7 @@ class BIDSLayoutMRIMixin:
             raise NoMatchError("Unique TR cannot be found given filters {!r}"
                                .format(entities))
         return all_trs.pop()
+
 
 class BIDSLayoutV2(BIDSLayoutMRIMixin):
     """A convenience class to provide access to an in-memory representation of a BIDS dataset.
@@ -141,47 +145,61 @@ class BIDSLayoutV2(BIDSLayoutMRIMixin):
             extension: Union[str, List[str]] = None, suffix: Union[str, List[str]] = None,
             regex_search=False,
             **entities) -> Union[List[str], List[object]]:
-        """Depending on the return_type value returns either paths to files that matched the filtering criteria
-        or :class:`Artifact <ancpbids.model_v1_7_0.Artifact>` objects for further processing by the caller.
-
-        Note that all provided filter criteria are AND combined, i.e. subj='02',task='lang' will match files containing
-        '02' as a subject AND 'lang' as a task. If you provide a list of values for a criteria, they will be OR combined.
-
-        .. code-block::
-
-            file_paths = layout.get(subj='02', task='lang', suffix='bold', return_type='files')
-
-            file_paths = layout.get(subj=['02', '03'], task='lang', return_type='files')
+        """Retrieve files and/or metadata from the current Layout.
 
         Parameters
         ----------
-        return_type:
-            Either 'files' to return paths of matched files
-            or 'object' to return :class:`Artifact <ancpbids.model_v1_7_0.Artifact>` object, defaults to 'object'
-
-        target:
-            Either `suffixes`, `extensions` or one of any valid BIDS entities key
-            (see :class:`EntityEnum <ancpbids.model_v1_7_0.EntityEnum>`, defaults to `None`
-        scope:
-            a hint where to search for files
-            If passed, only nodes/directories that match the specified scope will be
+        return_type : str, optional
+            Type of result to return. Valid values:
+            'object' (default): return a list of matching BIDSFile objects.
+            'file' or 'filename': return a list of matching filenames.
+            'dir': return a list of directories.
+            'id': return a list of unique IDs. Must be used together
+                  with a valid target.
+        target : str, optional
+            Optional name of the target entity to get results for
+            (only used if return_type is 'dir' or 'id').
+        scope : str or list, optional
+            Scope of the search space. If passed, only
+            nodes/directories that match the specified scope will be
             searched. Possible values include:
             'all' (default): search all available directories.
             'derivatives': search all derivatives directories.
             'raw': search only BIDS-Raw directories.
             'self': search only the directly called BIDSLayout.
             <PipelineName>: the name of a BIDS-Derivatives pipeline.
-        extension:
-            criterion to match any files containing the provided extension only
-        suffix:
-            criterion to match any files containing the provided suffix only
-        entities
-            a list of key-values to match the entities of interest, example: subj='02',task='lang'
+        regex_search : bool or None, optional
+            Whether to require exact matching
+            (False) or regex search (True) when comparing the query string
+            to each entity.
+        absolute_paths : bool, optional
+            Optionally override the instance-wide option
+            to report either absolute or relative (to the top of the
+            dataset) paths. If None, will fall back on the value specified
+            at BIDSLayout initialization.
+        invalid_filters (str): Controls behavior when named filters are
+            encountered that don't exist in the database (e.g., in the case of
+            a typo like subbject='0.1'). Valid values:
+                'error' (default): Raise an explicit error.
+                'drop': Silently drop invalid filters (equivalent to not having
+                    passed them as arguments in the first place).
+                'allow': Include the invalid filters in the query, resulting
+                    in no results being returned.
+        filters : dict
+            Any optional key/values to filter the entities on.
+            Keys are entity names, values are regexes to filter on. For
+            example, passing filters={'subject': 'sub-[12]'} would return
+            only files that match the first two subjects. In addition to
+            ordinary data types, the following enums are defined (in the
+            Query class):
+                * Query.NONE: The named entity must not be defined.
+                * Query.ANY: the named entity must be defined, but can have any
+                    value.
 
         Returns
         -------
-            depending on the return_type value either paths to files that matched the filtering criteria
-            or Artifact objects for further processing by the caller
+        list of :obj:`bids.layout.BIDSFile` or str
+            A list of BIDSFiles (default) or strings (see return_type).
         """
         # Provide some suggestions if target is specified and invalid.
         self_entities = self.get_entities()
@@ -195,7 +213,10 @@ class BIDSLayoutV2(BIDSLayoutMRIMixin):
             raise TargetError(("Unknown target '{}'. " + message)
                               .format(target))
         folder = self.dataset
-        return query(folder, return_type, target, scope, extension, suffix, regex_search, **entities)
+        result = query(folder, return_type, target, scope, extension, suffix, regex_search, **entities)
+        if return_type in 'files':
+            result = natural_sort(result)
+        return result
 
     @property
     def entities(self):
@@ -350,6 +371,13 @@ class BIDSLayoutV2(BIDSLayoutMRIMixin):
         return self.get_dataset_description()
 
     @property
+    def derivatives(self):
+        derivatives = self.dataset.select(self.schema.DerivativeFolder).where(
+            CustomOpExpr(lambda df: df.dataset_description is not None)).objects(as_list=True)
+        # a dict where the key is the name of the derivative
+        return {derivative.name: derivative for derivative in derivatives}
+
+    @property
     def root(self):
         return self.dataset.base_dir_
 
@@ -362,6 +390,3 @@ class BIDSLayoutV2(BIDSLayoutMRIMixin):
         s = ("BIDS Layout: ...{} | Subjects: {} | Sessions: {} | "
              "Runs: {}".format(self.dataset.base_dir_, n_subjects, n_sessions, n_runs))
         return s
-
-
-
