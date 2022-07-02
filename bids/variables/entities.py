@@ -8,6 +8,7 @@ import pandas as pd
 from . import collections as clc
 from bids.utils import matches_entities
 
+BASE_ENTITIES = ['subject', 'session', 'task', 'run']
 
 class Node(object):
     """Base class for objects that represent a single object in the BIDS
@@ -23,6 +24,9 @@ class Node(object):
     def __init__(self, level, entities):
         self.level = level.lower()
         self.entities = entities
+        self.base_ents = {
+            e: val for e, val in entities.items() if e in BASE_ENTITIES
+            }
         self.variables = {}
 
     def add_variable(self, variable):
@@ -33,6 +37,9 @@ class Node(object):
         variable : BIDSVariable
             The Variable to add to the list.
         """
+        for e, val in self.base_ents.items():
+            if e in variable.entities and variable.entities[e] !=  val:
+                raise ValueError("Variable and node entity mismatch.")
         self.variables[variable.name] = variable
 
 
