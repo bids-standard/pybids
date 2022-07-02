@@ -232,6 +232,7 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
                                  "specified entities! You may need to pass "
                                  "additional selectors to narrow the search.")
             run_info = result[0].get_info()
+            run = result[0]
 
         else:
             # Otherwise create a new node and use that.
