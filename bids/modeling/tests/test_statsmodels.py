@@ -25,6 +25,15 @@ def graph():
     graph.load_collections(scan_length=480, subject=["01", "02"])
     return graph
 
+@pytest.fixture
+def graph_nodummy():
+    layout_path = join(get_test_data_path(), "ds005")
+    layout = BIDSLayout(layout_path)
+    json_file = join(layout_path, "models", "ds-005_type-testnodummy_model.json")
+    graph = BIDSStatsModelsGraph(layout, json_file)
+    graph.load_collections(scan_length=480, subject=["01", "02"])
+    return graph
+
 @pytest.mark.skipif(not has_graphviz, reason="Test requires graphviz")
 def test_write_graph(graph, tmp_path):
     from graphviz import Digraph
@@ -84,6 +93,34 @@ def test_contrast_info(graph):
         assert isinstance(cl[0], ContrastInfo)
         assert cl[0]._fields == ("name", "conditions", "weights", "test", "entities")
 
+
+def test_contrast_dummy_vs_explicit(graph, graph_nodummy):
+    # Check that ContrastInfo from model w/ DummyContrasts
+    # and explicit Contrasts are identical
+    outputs = graph["run"].run(subject="01", run=1)
+    outputs_nodummy = graph_nodummy["run"].run(subject="01", run=1)
+    
+    for con in outputs[0].contrasts:
+        match = [c for c in outputs_nodummy[0].contrasts if c.name == con.name][0]
+
+        assert con.conditions == match.conditions
+        assert con.weights == match.weights
+        assert con.test == match.test
+
+    cis = list(chain(*[op.contrasts for op in outputs]))
+    outputs_sub = graph["participant"].run(cis, group_by=['subject', 'contrast'])
+    output = [o for o in outputs_sub if o.entities['contrast'] == 'RT'][0]
+
+    cis = list(chain(*[op.contrasts for op in outputs_nodummy]))
+    outputs_nodummy_sub = graph_nodummy["participant"].run(cis, group_by=['subject', 'contrast'])
+    output_nodummy = [o for o in outputs_nodummy_sub if o.entities['contrast'] == 'RT'][0]
+
+    for con in output.contrasts:
+        match = [c for c in output_nodummy.contrasts if c.name == con.name][0]
+
+        assert con.conditions == match.conditions
+        assert con.weights == match.weights
+        assert con.test == match.test
 
 def test_get_run_level_model_spec(graph):
     outputs = graph["run"].run(subject="01", run=1)

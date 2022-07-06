@@ -27,9 +27,11 @@
                     "Output": "gain"
                 }
             ],
-            "DummyContrasts": {
-                "Test": "t"
-            }
+            "Contrasts": [
+                {"Name": "RT", "ConditionList": ["RT"], "Weights": [1], "Test": "t"},
+                {"Name": "gain", "ConditionList": ["gain"], "Weights": [1], "Test": "t"},
+                {"Name": "RT:gain", "ConditionList": ["RT:gain"], "Weights": [1], "Test": "t"}
+              ]
         },
         {
             "Name": "participant",
@@ -45,15 +47,18 @@
             },
             "Contrasts": [
                 {
+                    "Name": 1,
+                    "ConditionList": [1],
+                    "Weights": [1],
+                    "Test": "FEMA"
+                },
+                {
                     "Name": "neg",
                     "ConditionList": [1],
                     "Weights": [-1],
                     "Test": "FEMA"
                 }
-            ],
-            "DummyContrasts": {
-                "Test": "FEMA"
-            }
+            ]
         },
         {
             "Name": "by-group",
@@ -67,9 +72,14 @@
                     1
                 ]
             },
-            "DummyContrasts": {
-                "Test": "t"
-            }
+            "Contrasts": [
+                {
+                    "Name": 1,
+                    "ConditionList": [1],
+                    "Weights": [1],
+                    "Test": "FEMA"
+                }
+            ]
         },
         {
             "Name": "group-diff",
