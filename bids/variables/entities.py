@@ -40,9 +40,10 @@ class Node(object):
         variable : BIDSVariable
             The Variable to add to the list.
         """
-        for e, val in self.base_ents.items():
-            if e in variable.entities and variable.entities[e] !=  val:
-                raise ValueError("Variable and node entity mismatch.")
+        if self.base_ents is not None:
+            for e, val in self.base_ents.items():
+                if e in variable.entities and variable.entities[e] !=  val:
+                    raise ValueError("Variable and node entity mismatch.")
         self.variables[variable.name] = variable
 
 
