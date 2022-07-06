@@ -24,9 +24,12 @@ class Node(object):
     def __init__(self, level, entities):
         self.level = level.lower()
         self.entities = entities
-        self.base_ents = {
-            e: val for e, val in entities.items() if e in BASE_ENTITIES
-            }
+        if self.entities is not None:
+            self.base_ents = {
+                e: val for e, val in entities.items() if e in BASE_ENTITIES
+                }
+        else:
+            self.base_ents = None
         self.variables = {}
 
     def add_variable(self, variable):
