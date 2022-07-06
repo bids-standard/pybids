@@ -231,7 +231,6 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
                 raise ValueError("More than one existing Node matches the "
                                  "specified entities! You may need to pass "
                                  "additional selectors to narrow the search.")
-            run_info = result[0].get_info()
             run = result[0]
 
         else:
@@ -250,7 +249,7 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
             run = dataset.create_node('run', entities, image_file=img_f,
                                       duration=duration, repetition_time=tr,
                                       n_vols=nvols)
-            run_info = run.get_info()
+        run_info = run.get_info()
 
         # Process event files
         if events:
