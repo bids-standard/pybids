@@ -590,6 +590,9 @@ class BIDSStatsModelsNodeOutput:
         # Handle the special 1 construct.
         # Add column of 1's to the design matrix called "intercept" 
         if 1 in var_names:
+            if "intercept" in var_names:
+                raise ValueError("Cannot define both '1' and 'intercept' in 'X'")
+                
             var_names = ['intercept' if i == 1 else i for i in var_names]
             if 'intercept' not in df.columns:
                 df.insert(0, 'intercept', 1)

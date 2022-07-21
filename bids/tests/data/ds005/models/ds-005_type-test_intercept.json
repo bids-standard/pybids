@@ -1,0 +1,51 @@
+{
+    "Name": "test_intercept",
+    "Description": "simple test model",
+    "Nodes": [
+        {
+            "Name": "run",
+            "Level": "Run",
+            "GroupBy": [
+                "run",
+                "subject"
+            ],
+            "Model": {
+                "X": [
+                    1,
+                    "gain"
+                ]
+            },
+            "DummyContrasts": {
+                "Test": "t"
+            }
+        },
+        {
+            "Name": "participant",
+            "Level": "Subject",
+            "GroupBy": [
+                "subject",
+                "contrast"
+            ],
+            "Model": {
+                "X": [
+                    1
+                ]
+            },
+            "DummyContrasts": {
+                "Test": "FEMA"
+            }
+        },
+        {
+            "Name": "group",
+            "Level": "Dataset",
+            "GroupBy": ["contrast"],
+            "Model": {
+                "X": [
+                    1                ]
+            },
+            "DummyContrasts": {
+                "Test": "t"
+            }
+        }
+    ]
+}

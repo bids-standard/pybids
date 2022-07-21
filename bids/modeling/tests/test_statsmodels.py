@@ -26,6 +26,15 @@ def graph():
     return graph
 
 @pytest.fixture
+def graph_intercept():
+    layout_path = join(get_test_data_path(), "ds005")
+    layout = BIDSLayout(layout_path, derivatives=join(layout_path, 'derivatives', 'events'))
+    json_file = join(layout_path, "models", "ds-005_type-test_intercept.json")
+    graph = BIDSStatsModelsGraph(layout, json_file)
+    graph.load_collections(scan_length=480, subject=["01", "02"])
+    return graph
+
+@pytest.fixture
 def graph_nodummy():
     layout_path = join(get_test_data_path(), "ds005")
     layout = BIDSLayout(layout_path)
@@ -42,6 +51,26 @@ def test_write_graph(graph, tmp_path):
     assert isinstance(dot, Digraph)
     assert path.exists(tmp_path / "graph.dot")
     assert path.exists(tmp_path / "graph.dot.png")
+
+
+def test_manual_intercept(graph_intercept):
+    # Test that a automatic intercept (1) is correct
+    # Intercept could should be all 1s
+    run = graph_intercept["run"]
+    outputs = run.run(subject="01", run=1)
+    assert outputs[0].X.intercept.min() == 1.0
+
+    # Defining both 1 and 'intercept' raises an error
+    run.model['x'] = [1, 'intercept']
+    with pytest.raises(ValueError, match="Cannot define both '1' and 'intercept' in 'X'"):
+        run.run(subject="01", run=1)
+
+    # "intercept" variable from event files is loaded correctly (should not be all 1s)
+    run = graph_intercept.nodes['run']
+    run.model['x'] = ['intercept']
+    outputs= run.run(subject="01", run=1)
+    assert outputs[0].X.intercept.min() != 1.0
+    
 
 def test_first_level_sparse_design_matrix(graph):
     outputs = graph["run"].run(subject=["01"], force_dense=False)
