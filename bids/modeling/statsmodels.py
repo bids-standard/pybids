@@ -4,6 +4,7 @@ import json
 from collections import namedtuple, OrderedDict, Counter, defaultdict
 import itertools
 from functools import reduce
+from multiprocessing.sharedctypes import Value
 import re
 import fnmatch
 
@@ -16,10 +17,6 @@ from bids.variables import (BIDSVariableCollection, merge_collections)
 from bids.modeling import transformations as tm
 from .model_spec import create_model_spec
 import warnings
-
-
-# Only entities in this list can be used in grouping
-VALID_GROUPING_ENTITIES = {'run', 'session', 'subject', 'task', 'contrast'}
 
 
 def validate_model(model):
@@ -267,11 +264,11 @@ class BIDSStatsModelsNode:
         overridden if one is passed when run() is called on a node.
     """
 
-    def __init__(self, level, name, transformations=None, model=None,
-                 contrasts=None, dummy_contrasts=False, group_by=None):
+    def __init__(self, level, name, model, group_by, transformations=None,
+                 contrasts=None, dummy_contrasts=False):
         self.level = level.lower()
         self.name = name
-        self.model = model or {}
+        self.model = model
         if transformations is None:
             transformations = {"transformer": "pybids-transforms-v1",
                                "instructions": []}
@@ -283,14 +280,19 @@ class BIDSStatsModelsNode:
         self.children = []
         self.parents = []
         if group_by is None:
-            group_by = []
-            # Loop over contrasts after first level
-            if self.level != "run":
-                group_by.append("contrast")
-            # Loop over node level of this node
-            if self.level != "dataset":
-                group_by.append(self.level)
+            raise ValueError(f"group_by is not defined for Node: {name}")
         self.group_by = group_by
+
+        # Check for intercept only run level model and throw an error
+        try:
+            if (self.level == 'run') and (self.model['x'] == [1]):
+                raise NotImplementedError("Run level intercept only models are not currently supported."
+                                          "If this is a feature you need, please leave a comment at"
+                                          "https://github.com/bids-standard/pybids/issues/852.")
+        except KeyError:
+            # We talked about X being required, I don't know if we want to throw an error over that requirement here
+            # though.
+            pass
 
     def __repr__(self):
         return f"<{self.__class__.__name__}[{self.level}] {self.name}>"
@@ -337,21 +339,22 @@ class BIDSStatsModelsNode:
 
         groups = defaultdict(list)
 
-        # sanitize grouping entities, otherwise weird things can happen
-        group_by = list(set(group_by) & VALID_GROUPING_ENTITIES)
-
         # Get unique values in each grouping variable and construct indexing DF
         entities = [obj.entities for obj in objects]
         df = pd.DataFrame.from_records(entities)
 
+        # Single-run tasks and single-session subjects may not have entities
+        dummy_groups = {"run", "session"} - set(df.columns)
+        group_by = set(group_by) - dummy_groups
+
         # Verify all columns in group_by exist and raise sensible error if not
-        missing_vars = list(set(group_by) - set(df.columns))
+        missing_vars = list(group_by - set(df.columns))
         if missing_vars:
             raise ValueError("group_by contains variable(s) {} that could not "
                              "be found in the entity index.".format(missing_vars) )
 
         # Restrict DF to only grouping columns
-        df = df.loc[:, group_by]
+        df = df.loc[:, list(group_by)]
 
         unique_vals = {col: df[col].dropna().unique().tolist() for col in group_by}
 
@@ -580,33 +583,25 @@ class BIDSStatsModelsNodeOutput:
         if inputs:
             dfs.append(self._inputs_to_df(inputs))
 
-        # merge all the DataFrames into one DF to rule them all
-        def merge_dfs(a, b):
-            on = list(set(a.columns) & set(b.columns) & VALID_GROUPING_ENTITIES)
-            return a.merge(b, on=on)
-        df = reduce(merge_dfs, dfs)
+        df = reduce(pd.DataFrame.merge, dfs)
 
         var_names = list(self.node.model['x'])
 
-        # Handle the special 1 construct. If it's present, we add a
-        # column of 1's to the design matrix. But behavior varies:
-        # * If there's only a single contrast across all of the inputs,
-        #   the intercept column is given the same name as the input contrast.
-        #   It may already exist, in which case we do nothing.
-        # * Otherwise, we name the column 'intercept'.
-        int_name = None
+        # Handle the special 1 construct.
+        # Add column of 1's to the design matrix called "intercept" 
         if 1 in var_names:
-            if ('contrast' not in df.columns or df['contrast'].nunique() > 1):
-                int_name = 'intercept'
-            else:
-                int_name = df['contrast'].unique()[0]
+            if "intercept" in var_names:
+                raise ValueError("Cannot define both '1' and 'intercept' in 'X'")
+                
+            var_names = ['intercept' if i == 1 else i for i in var_names]
+            if 'intercept' not in df.columns:
+                df.insert(0, 'intercept', 1)
 
-            var_names.remove(1)
-
-            if int_name not in df.columns:
-                df.insert(0, int_name, 1)
-            else:
-                var_names.append(int_name)
+        # If a single incoming contrast
+        if ('contrast' in df.columns and df['contrast'].nunique() == 1):
+            unique_in_contrast = df['contrast'].unique()[0]
+        else:
+            unique_in_contrast = None
 
         var_names = expand_wildcards(var_names, df.columns)
 
@@ -622,7 +617,7 @@ class BIDSStatsModelsNodeOutput:
 
         # Create ModelSpec and build contrasts
         self.model_spec = create_model_spec(self.data, node.model, self.metadata)
-        self.contrasts = self._build_contrasts(int_name)
+        self.contrasts = self._build_contrasts(unique_in_contrast)
 
     def _collections_to_dfs(self, collections):
         """Merges collections and converts them to a pandas DataFrame."""
@@ -686,17 +681,58 @@ class BIDSStatsModelsNodeOutput:
                 input_df.loc[input_df.index[i], con.name] = 1
         return input_df
 
-    def _build_contrasts(self, int_name):
-        """Contrast list of ContrastInfo objects based on current state."""
-        contrasts = {}
+    def _build_contrasts(self, unique_in_contrast=None):
+        """Contrast list of ContrastInfo objects based on current state.
+        
+        Parameters
+        ----------
+        unique_in_contrast : string
+            Name of unique incoming contrast inputs (i.e. if there is only 1)
+        """
+        in_contrasts = self.node.contrasts.copy()
         col_names = set(self.X.columns)
-        for con in self.node.contrasts:
-            name = con["name"]
+
+        # Create dummy contrasts as regular contrasts
+        dummies = self.node.dummy_contrasts
+        if dummies:
+            if 'conditionlist' in dummies:
+                conditions = set(dummies['condition_list'])
+            else:
+                conditions = col_names
+
+            for col_name in conditions:
+                if col_name == "intercept":
+                    col_name = 1
+
+                in_contrasts.insert(0, 
+                    {
+                        'name': col_name,
+                        'condition_list': [col_name],
+                        'weights': [1],
+                        'test': dummies.get('test')
+                    }
+                )
+
+        # Process all contrasts, starting with dummy contrasts 
+        # Dummy contrasts are replaced if a contrast is defined with same name
+        contrasts = {}
+        for con in in_contrasts:
             condition_list = list(con["condition_list"])
-            if 1 in condition_list and int_name is not None:
-                condition_list[condition_list.index(1)] = int_name
-            if name == 1 and int_name is not None:
-                name = int_name
+
+            # Rename special 1 construct
+            condition_list = ['intercept' if i == 1 else i for i in condition_list]
+
+            name = con["name"]
+            
+            # Rename contrast name
+            if name == 1:
+                name = unique_in_contrast or 'intercept'
+            else:
+                # If Node has single contrast input, as is grouped by contrast
+                # Rename contrast to append incoming contrast name
+                if unique_in_contrast:
+                    name = f"{unique_in_contrast}_{name}" 
+                    
             missing_vars = set(condition_list) - col_names
             if missing_vars:
                 if self.invalid_contrasts == 'error':
@@ -707,30 +743,12 @@ class BIDSStatsModelsNodeOutput:
                 elif self.invalid_contrasts == 'drop':
                     continue
             weights = np.atleast_2d(con['weights'])
+
             # Add contrast name to entities; can be used in grouping downstream
             entities = {**self.entities, 'contrast': name}
             ci = ContrastInfo(name, condition_list,
                               con['weights'], con.get("test"), entities)
             contrasts[name] = ci
-
-        dummies = self.node.dummy_contrasts
-        if dummies:
-            conditions = col_names
-            if 'conditions' in dummies:
-                conds = set(dummies['conditions'])
-                if 1 in conds and int_name is not None:
-                    conds.discard(1)
-                    conds.add(int_name)
-                conditions &= conds
-            conditions -= set(c.name for c in contrasts.values())
-
-            for col_name in conditions:
-                if col_name in contrasts:
-                    continue
-                entities = {**self.entities, 'contrast': col_name}
-                ci = ContrastInfo(col_name, [col_name], [1], dummies.get("test"),
-                                  entities)
-                contrasts[col_name] = ci
 
         return list(contrasts.values())
 

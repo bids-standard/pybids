@@ -8,6 +8,7 @@ import pandas as pd
 from . import collections as clc
 from bids.utils import matches_entities
 
+BASE_ENTITIES = ['subject', 'session', 'task', 'run']
 
 class Node(object):
     """Base class for objects that represent a single object in the BIDS
@@ -23,6 +24,12 @@ class Node(object):
     def __init__(self, level, entities):
         self.level = level.lower()
         self.entities = entities
+        if self.entities is not None:
+            self.base_ents = {
+                e: val for e, val in entities.items() if e in BASE_ENTITIES
+                }
+        else:
+            self.base_ents = None
         self.variables = {}
 
     def add_variable(self, variable):
@@ -33,6 +40,10 @@ class Node(object):
         variable : BIDSVariable
             The Variable to add to the list.
         """
+        if self.base_ents is not None:
+            for e, val in self.base_ents.items():
+                if e in variable.entities and variable.entities[e] !=  val:
+                    raise ValueError("Variable and node entity mismatch.")
         self.variables[variable.name] = variable
 
 
@@ -241,8 +252,11 @@ class NodeIndex(object):
 
         entities = dict(entities, node_index=len(self.nodes), level=level)
         self.nodes.append(node)
-        node_row = pd.Series(entities)
-        self.index = self.index.append(node_row, ignore_index=True)
+        # Because "entities" may have non-scalar values (such as `SliceTiming`)
+        # we need to first create a Series to avoid expansion
+        # From here we can concatenate
+        node_row = pd.DataFrame(pd.Series(entities)).T
+        self.index = pd.concat([self.index, node_row], ignore_index=True)
         return node
 
     def get_or_create_node(self, level, entities, *args, **kwargs):

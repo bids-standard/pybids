@@ -1,2 +1,2 @@
 [build-system]
-requires = ["setuptools >= 30.3.0", "wheel"]
+requires = ["setuptools >= 30.3.0, != 61.0.0", "wheel"]

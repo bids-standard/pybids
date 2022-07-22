@@ -1,6 +1,60 @@
 Changelog
 =========
 
+Version 0.15.1 (April 04, 2022)
+-------------------------------
+
+Bug-fix release in the 0.15.x series.
+
+* RF/FIX: Decompose filter construction for special queries and lists (#826)
+* ENH: Relax group_by rules, allowing any entity to be used (#829)
+* MNT: Replace deprecated DataFrame.append call (#833)
+* DOC: Fresh rerun of entire pybids_tutorial.ipynb (#832)
+
+Version 0.15.0 (March 28, 2022)
+-------------------------------
+
+New feature release in the 0.15.x series.
+
+Downstream tools should be aware of a potentially breaking, albeit
+long-demanded, change introduced in #819. Run indices are now stored
+so that the integers that come out retain any zero-padding that was
+found during parsing.
+
+This release also introduces the ``bids.ext`` namespace package that
+allows independent packages to install modules in this namespace.
+This is an infrastructural change that will allow some components to
+be separately managed and follow a different development pace.
+
+* FIX: Allow grouping by run and session when entities are undefined (#822)
+* FIX: Clarify exception message (#806)
+* FIX: Catch UnicodeDecodeErrors along with JSONDecodeErrors for better reporting (#796)
+* FIX: Accept paths/strings for layout configuration files (#799)
+* FIX: Small typo: repeated word in docstring (#793)
+* ENH: Retain zero-padding in run entities while preserving integer queries and comparisons (#819)
+* ENH: Add bids.ext namespace package for subpackages (#820)
+* ENH: Handle wildcards in model X (#810)
+* ENH: Implement automatic detection of derivative data (#805)
+* ENH: Add new ``Query`` for optional entities (#809)
+* ENH: Add __main__ to allow ``python -m bids`` to run CLI (#794)
+* REF: Improve modularization of bids.reports (#617)
+* DOC: Link from sphinx documentation to notebook tutorials. (#797)
+* MNT: Test on Python 3.10, various CI updates (#824)
+* MNT: Avoid jinja2 v3 until nbconvert handles breakages (#823)
+
+Version 0.14.1 (March 29, 2022)
+-------------------------------
+Bug-fix release in the 0.14.x series.
+
+* RF/FIX: Decompose filter construction for special queries and lists (#826)
+
+Includes the following back-ports from 0.15.0:
+
+* FIX: Clarify exception message (#806)
+* FIX: Catch UnicodeDecodeErrors along with JSONDecodeErrors for better reporting (#796)
+* FIX: Accept paths/strings for layout configuration files (#799)
+* ENH: Add __main__ to allow ``python -m bids`` to run CLI (#794)
+
 Version 0.14.0 (November 09, 2021)
 ----------------------------------
 
