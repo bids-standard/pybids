@@ -67,9 +67,13 @@ def test_convolve(collection):
     transform.ToDense(collection, ['RT'], output=['rt_dense'])
     transform.Convolve(collection, 'rt_dense', derivative=True)
 
+    # test the derivative exists
+    assert collection.variables.get('rt_dense_derivative')
+
     dense_conv = collection.variables['reaction_time']
 
     assert dense_conv.values.shape[0] == \
+        collection.variables['rt_dense_derivative'].values.shape[0] == \
         rt.get_duration() * collection.sampling_rate
 
     # Test adapative oversampling computation
