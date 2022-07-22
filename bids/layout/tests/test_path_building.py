@@ -55,7 +55,6 @@ reconstructs the fullpath of each file by relying on pybids config
 and compares it what's actually in the dataset
 """
 
-@pytest.mark.parametrize("scope", ["raw"])
 @pytest.mark.parametrize(
     "dataset",
     [
@@ -66,16 +65,25 @@ and compares it what's actually in the dataset
         ("qmri_mtsat"),
         ("qmri_sa2rage"),
         ("qmri_vfa"),
-        ("ds000117"),
+        ("synthetic"),
     ],
 )
-def test_path_building_on_examples_with_derivatives(dataset, scope, bids_examples):
+def test_path_building_on_derivative_examples(dataset, bids_examples):
     layout = BIDSLayout(bids_examples / dataset, derivatives=True)
-    files = layout.get(subject=".*", datatype=".*", regex_search = True, scope=scope)
-    for bf in files:
-        entities = bf.get_entities()
-        path = layout.build_path(entities)
-        assert(path==bf.path)
+    for derivative in layout.derivatives:
+        sublayout = layout.derivatives[derivative]
+        files = sublayout.get(subject=".*", datatype=".*", regex_search=True)
+        for bf in files:
+            entities = bf.get_entities()
+
+            # Some examples include unfinalized derivatives
+            if {"label"} & set(entities):  # BEP011
+                continue
+            if entities["suffix"] in {"timeseries"}:  # BEP012
+                continue
+
+            path = sublayout.build_path(entities, strict=True, validate=False)
+            assert path == bf.path
 
 @pytest.mark.parametrize(
     "dataset",
@@ -100,15 +108,23 @@ def test_path_building_on_examples_with_derivatives(dataset, scope, bids_example
         ("ds000248"),
         ("ds001"),
         ("ds114"),
+        ("qmri_irt1"),
+        ("qmri_mese"),
+        ("qmri_mp2rage"),
+        ("qmri_mp2rageme"),
+        ("qmri_mtsat"),
+        ("qmri_sa2rage"),
+        ("qmri_vfa"),
+        ("ds000117"),
     ],
 )
-def test_path_building_on_examples_with_no_derivatives(dataset, bids_examples):
+def test_path_building_in_raw_scope(dataset, bids_examples):
     layout = BIDSLayout(bids_examples / dataset, derivatives=False)
-    files = layout.get(subject=".*", datatype=".*", regex_search =  True)
+    files = layout.get(subject=".*", datatype=".*", regex_search=True, scope="raw")
     for bf in files:
         entities = bf.get_entities()
         path = layout.build_path(entities)
-        assert(path==bf.path)
+        assert path == bf.path
 
 @pytest.mark.parametrize("scope", ["raw"])
 @pytest.mark.parametrize(
