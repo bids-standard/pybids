@@ -468,7 +468,7 @@ def test_layout_with_derivs(layout_ds005_derivs):
     assert len(layout_ds005_derivs.derivatives) == 1
     deriv = layout_ds005_derivs.derivatives['events']
     assert deriv.files
-    assert len(deriv.files) == 3
+    assert len(deriv.files) == 2
     event_file = "sub-01_task-mixedgamblestask_run-01_desc-extra_events.tsv"
     deriv_files = [basename(f) for f in list(deriv.files.keys())]
     assert event_file in deriv_files
@@ -482,7 +482,7 @@ def test_layout_with_multi_derivs(layout_ds005_multi_derivs):
     assert len(layout_ds005_multi_derivs.derivatives) == 2
     deriv = layout_ds005_multi_derivs.derivatives['events']
     assert deriv.files
-    assert len(deriv.files) == 3
+    assert len(deriv.files) == 2
     deriv = layout_ds005_multi_derivs.derivatives['dummy']
     assert deriv.files
     assert len(deriv.files) == 4
