@@ -102,5 +102,5 @@ jobs:
         with:
           commit-message: Update submodules
           delete-branch: true
-          title: '[BOT] update git submodules'
-          body: 'done via this [GitHub Action](https://github.com/bids-standard/bids-validator/blob/master/.github/workflows/update_submodules.yml)'          
+          title: 'MNT: Update git submodules'
+          body: 'done via this [GitHub Action](https://github.com/${{ github.repository }}/blob/${{ github.ref_name }}/.github/workflows/update_submodules.yml)'
