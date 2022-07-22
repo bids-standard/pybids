@@ -25,6 +25,24 @@ def graph():
     graph.load_collections(scan_length=480, subject=["01", "02"])
     return graph
 
+@pytest.fixture
+def graph_intercept():
+    layout_path = join(get_test_data_path(), "ds005")
+    layout = BIDSLayout(layout_path, derivatives=join(layout_path, 'derivatives', 'events'))
+    json_file = join(layout_path, "models", "ds-005_type-test_intercept.json")
+    graph = BIDSStatsModelsGraph(layout, json_file)
+    graph.load_collections(scan_length=480, subject=["01", "02"])
+    return graph
+
+@pytest.fixture
+def graph_nodummy():
+    layout_path = join(get_test_data_path(), "ds005")
+    layout = BIDSLayout(layout_path)
+    json_file = join(layout_path, "models", "ds-005_type-testnodummy_model.json")
+    graph = BIDSStatsModelsGraph(layout, json_file)
+    graph.load_collections(scan_length=480, subject=["01", "02"])
+    return graph
+
 @pytest.mark.skipif(not has_graphviz, reason="Test requires graphviz")
 def test_write_graph(graph, tmp_path):
     from graphviz import Digraph
@@ -33,6 +51,26 @@ def test_write_graph(graph, tmp_path):
     assert isinstance(dot, Digraph)
     assert path.exists(tmp_path / "graph.dot")
     assert path.exists(tmp_path / "graph.dot.png")
+
+
+def test_manual_intercept(graph_intercept):
+    # Test that a automatic intercept (1) is correct
+    # Intercept could should be all 1s
+    run = graph_intercept["run"]
+    outputs = run.run(subject="01", run=1)
+    assert outputs[0].X.intercept.min() == 1.0
+
+    # Defining both 1 and 'intercept' raises an error
+    run.model['x'] = [1, 'intercept']
+    with pytest.raises(ValueError, match="Cannot define both '1' and 'intercept' in 'X'"):
+        run.run(subject="01", run=1)
+
+    # "intercept" variable from event files is loaded correctly (should not be all 1s)
+    run = graph_intercept.nodes['run']
+    run.model['x'] = ['intercept']
+    outputs= run.run(subject="01", run=1)
+    assert outputs[0].X.intercept.min() != 1.0
+    
 
 def test_first_level_sparse_design_matrix(graph):
     outputs = graph["run"].run(subject=["01"], force_dense=False)
@@ -85,6 +123,34 @@ def test_contrast_info(graph):
         assert cl[0]._fields == ("name", "conditions", "weights", "test", "entities")
 
 
+def test_contrast_dummy_vs_explicit(graph, graph_nodummy):
+    # Check that ContrastInfo from model w/ DummyContrasts
+    # and explicit Contrasts are identical
+    outputs = graph["run"].run(subject="01", run=1)
+    outputs_nodummy = graph_nodummy["run"].run(subject="01", run=1)
+    
+    for con in outputs[0].contrasts:
+        match = [c for c in outputs_nodummy[0].contrasts if c.name == con.name][0]
+
+        assert con.conditions == match.conditions
+        assert con.weights == match.weights
+        assert con.test == match.test
+
+    cis = list(chain(*[op.contrasts for op in outputs]))
+    outputs_sub = graph["participant"].run(cis, group_by=['subject', 'contrast'])
+    output = [o for o in outputs_sub if o.entities['contrast'] == 'RT'][0]
+
+    cis = list(chain(*[op.contrasts for op in outputs_nodummy]))
+    outputs_nodummy_sub = graph_nodummy["participant"].run(cis, group_by=['subject', 'contrast'])
+    output_nodummy = [o for o in outputs_nodummy_sub if o.entities['contrast'] == 'RT'][0]
+
+    for con in output.contrasts:
+        match = [c for c in output_nodummy.contrasts if c.name == con.name][0]
+
+        assert con.conditions == match.conditions
+        assert con.weights == match.weights
+        assert con.test == match.test
+
 def test_get_run_level_model_spec(graph):
     outputs = graph["run"].run(subject="01", run=1)
     assert len(outputs) == 1
@@ -113,10 +179,22 @@ def test_entire_graph_smoketest(graph):
     cis = list(chain(*[op.contrasts for op in outputs]))
     assert len(cis) == 18
     outputs = graph["participant"].run(cis, group_by=['subject', 'contrast'])
-    # 2 subjects x 3 contrasts
+    # 2 subjects x 3 contrasts)
     assert len(outputs) == 6
+    # * 2 participant level contrasts = 12
     cis = list(chain(*[op.contrasts for op in outputs]))
-    assert len(cis) == 6
+    assert len(cis) == 12
+
+    # Test output names for single subject
+    out_contrasts = [
+        c.entities['contrast'] for c in cis if c.entities['subject'] == '01'
+        ]
+
+    expected_outs = [
+        'gain', 'gain_neg', 'RT', 'RT_neg', 'RT:gain', 'RT:gain_neg'
+    ]
+
+    assert set(out_contrasts) == set(expected_outs)
 
     # Construct new ContrastInfo objects with name updated to reflect last
     # contrast. This would normally be done by the handling tool (e.g., fitlins)
@@ -140,7 +218,7 @@ def test_entire_graph_smoketest(graph):
     assert model_spec.X.shape == (2, 2)
     assert model_spec.Z is None
     assert len(model_spec.terms) == 2
-    assert not set(model_spec.terms.keys()) - {"RT", "gain", "RT:gain", "sex"}
+    assert not set(model_spec.terms.keys()) - {"intercept", "sex"}
 
     # BY-GROUP NODE
     outputs = graph["by-group"].run(inputs, group_by=['contrast'])
@@ -153,7 +231,7 @@ def test_entire_graph_smoketest(graph):
     assert model_spec.__class__.__name__ == "GLMMSpec"
     assert model_spec.X.shape == (2, 1)
     assert model_spec.Z is None
-    assert not set(model_spec.terms.keys()) - {"RT", "gain", "RT:gain"}
+    assert not set(model_spec.terms.keys()) - {"intercept"}
 
 
 def test_expand_wildcards():
