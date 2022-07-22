@@ -58,18 +58,22 @@ def sparse_run_variable_with_missing_values():
 
 def test_convolve(collection):
     rt = collection.variables['RT']
-    transform.Convolve(collection, 'RT', output='reaction_time')
+    transform.Convolve(collection, ['RT'], output=['reaction_time'])
     rt_conv = collection.variables['reaction_time']
 
     assert rt_conv.values.shape[0] == \
         rt.get_duration() * collection.sampling_rate
 
-    transform.ToDense(collection, 'RT', output='rt_dense')
-    transform.Convolve(collection, 'rt_dense', output='dense_convolved')
+    transform.ToDense(collection, ['RT'], output=['rt_dense'])
+    transform.Convolve(collection, 'rt_dense', derivative=True)
+
+    # test the derivative exists
+    assert collection.variables.get('rt_dense_derivative')
 
     dense_conv = collection.variables['reaction_time']
 
     assert dense_conv.values.shape[0] == \
+        collection.variables['rt_dense_derivative'].values.shape[0] == \
         rt.get_duration() * collection.sampling_rate
 
     # Test adapative oversampling computation
@@ -77,34 +81,40 @@ def test_convolve(collection):
     # To resolve 1Hz frequencies, we must sample at >=2Hz
     args = (mock.ANY, 'spm', mock.ANY)
     kwargs = dict(fir_delays=None, min_onset=0)
-    with mock.patch('bids.modeling.transformations.compute.hrf') as mocked:
+    mock_return = (np.array([[0, 0]]), ["cond"])
+    with mock.patch('bids.modeling.transformations.compute.hrf.compute_regressor') as mocked:
+        mocked.return_value = mock_return
         # Sampling rate is 10Hz, no oversampling needed
         transform.Convolve(collection, 'RT', output='rt_mock')
-        mocked.compute_regressor.assert_called_with(*args, oversampling=1.0, **kwargs)
+        mocked.assert_called_with(*args, oversampling=1.0, **kwargs)
 
-    with mock.patch('bids.modeling.transformations.compute.hrf') as mocked:
+    with mock.patch('bids.modeling.transformations.compute.hrf.compute_regressor') as mocked:
+        mocked.return_value = mock_return
         # Sampling rate is 10Hz, no oversampling needed
         transform.Convolve(collection, 'rt_dense', output='rt_mock')
-        mocked.compute_regressor.assert_called_with(*args, oversampling=1.0, **kwargs)
+        mocked.assert_called_with(*args, oversampling=1.0, **kwargs)
 
-    with mock.patch('bids.modeling.transformations.compute.hrf') as mocked:
+    with mock.patch('bids.modeling.transformations.compute.hrf.compute_regressor') as mocked:
+        mocked.return_value = mock_return
         # Slow sampling rate, oversample (4x) to 2Hz
         collection.sampling_rate = 0.5
         transform.Convolve(collection, 'RT', output='rt_mock')
-        mocked.compute_regressor.assert_called_with(*args, oversampling=4.0, **kwargs)
+        mocked.assert_called_with(*args, oversampling=4.0, **kwargs)
 
-    with mock.patch('bids.modeling.transformations.compute.hrf') as mocked:
+    with mock.patch('bids.modeling.transformations.compute.hrf.compute_regressor') as mocked:
+        mocked.return_value = mock_return
         # Dense variable is already sampled at 10Hz, no oversampling needed
         collection.sampling_rate = 0.5
         transform.Convolve(collection, 'rt_dense', output='rt_mock')
-        mocked.compute_regressor.assert_called_with(*args, oversampling=1.0, **kwargs)
+        mocked.assert_called_with(*args, oversampling=1.0, **kwargs)
 
-    with mock.patch('bids.modeling.transformations.compute.hrf') as mocked:
+    with mock.patch('bids.modeling.transformations.compute.hrf.compute_regressor') as mocked:
+        mocked.return_value = mock_return
         # Onset requires 10Hz resolution, oversample (2x) to 20Hz
         collection.sampling_rate = 10
         collection['RT'].onset[0] += 0.1
         transform.Convolve(collection, 'RT', output='rt_mock')
-        mocked.compute_regressor.assert_called_with(*args, oversampling=2.0, **kwargs)
+        mocked.assert_called_with(*args, oversampling=2.0, **kwargs)
 
 
 def test_convolve_impulse():
@@ -126,7 +136,7 @@ def test_convolve_impulse():
 def test_rename(collection):
     dense_rt = collection.variables['RT'].to_dense(collection.sampling_rate)
     assert len(dense_rt.values) == math.ceil(len(SUBJECTS) * NRUNS * SCAN_LENGTH * collection.sampling_rate)
-    transform.Rename(collection, 'RT', output='reaction_time')
+    transform.Rename(collection, ['RT'], output=['reaction_time'])
     assert 'reaction_time' in collection.variables
     assert 'RT' not in collection.variables
     col = collection.variables['reaction_time']
