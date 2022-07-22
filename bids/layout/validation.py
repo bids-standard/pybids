@@ -171,7 +171,7 @@ def validate_derivative_paths(paths, layout=None, **kwargs):
             raise BIDSDerivativesValidationError(
                                 "Pipeline name '%s' has already been added "
                                 "to this BIDSLayout. Every added pipeline "
-                                "must have a unique name!")
+                                "must have a unique name!" % pipeline_name)
         paths[pipeline_name] = deriv
 
     return paths
