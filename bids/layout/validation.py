@@ -30,8 +30,13 @@ EXAMPLE_DERIVATIVES_DESCRIPTION = {
     k: val[k] for val in MANDATORY_DERIVATIVES_FIELDS.values() for k in val}
 
 
-DEFAULT_LOCATIONS_TO_IGNORE = ("code", "stimuli", "sourcedata", "models",
-                               re.compile(r'^\.'))
+DEFAULT_LOCATIONS_TO_IGNORE = {
+    "code",
+    "stimuli",
+    "sourcedata",
+    "models",
+    re.compile(r'^\.'),
+}
 
 def absolute_path_deprecation_warning():
     warnings.warn("The absolute_paths argument will be removed from PyBIDS "
@@ -172,27 +177,40 @@ def validate_derivative_paths(paths, layout=None, **kwargs):
     return paths
 
 
+def _sort_patterns(patterns, root):
+    """Return sorted patterns, from more specific to more general."""
+    regexes = [patt for patt in patterns if hasattr(patt, "search")]
+
+    paths = [
+        str((root / patt).absolute())
+        for patt in listify(patterns)
+        if not hasattr(patt, "search")
+    ]
+    # Sort patterns from general to specific
+    paths.sort(key=len)
+
+    # Combine and return (note path patterns are reversed, specific first)
+    return [Path(p) for p in reversed(paths)] + regexes
+
+
 def validate_indexing_args(ignore, force_index, root):
     if ignore is None:
-        ignore = DEFAULT_LOCATIONS_TO_IGNORE
+        ignore = list(
+            DEFAULT_LOCATIONS_TO_IGNORE - set(force_index or [])
+        )
 
     # root has already been validated to be a directory
-    ignore = [(root / patt).absolute()
-              if isinstance(patt, str) else patt
-              for patt in listify(ignore or [])]
-    force_index = [(root / patt).absolute()
-                   if isinstance(patt, str) else patt
-                   for patt in listify(force_index or [])]
+    ignore = _sort_patterns(ignore, root)
+    force_index = _sort_patterns(force_index or [], root)
 
     # Derivatives get special handling; they shouldn't be indexed normally
-    if force_index is not None:
-        for entry in force_index:
-            condi = (isinstance(entry, str) and
-                     str(entry.resolve()).startswith('derivatives'))
-            if condi:
-                msg = ("Do not pass 'derivatives' in the force_index "
-                        "list. To index derivatives, either set "
-                        "derivatives=True, or use add_derivatives().")
-                raise ValueError(msg)
+    for entry in force_index:
+        condi = (isinstance(entry, str) and
+                 str(entry.resolve()).startswith('derivatives'))
+        if condi:
+            msg = ("Do not pass 'derivatives' in the force_index "
+                    "list. To index derivatives, either set "
+                    "derivatives=True, or use add_derivatives().")
+            raise ValueError(msg)
 
     return ignore, force_index
