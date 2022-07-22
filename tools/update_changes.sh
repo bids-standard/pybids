@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # Collects the pull-requests since the latest release and
-# aranges them in the CHANGELOG.rst file.
+# arranges them in the CHANGELOG.rst file.
 #
 # This is a script to be run before releasing a new version.
 #
@@ -13,13 +13,12 @@
 set -u         # Treat unset variables as an error when substituting.
 set -x         # Print command traces before executing command.
 
-CHANGES=CHANGELOG.rst
+ROOT=$( git rev-parse --show-toplevel )
+CHANGES=$ROOT/CHANGELOG.rst
 
 # Elaborate today's release header
 HEADER="Version $1 ($(date '+%B %d, %Y'))"
-LEN=${#HEADER}
-UNDERLINE=$(printf "%0.s-" $(seq 1 $LEN))
-
+UNDERLINE=$( printf "%${#HEADER}s" | tr " " "-" )
 cat <<END > newchanges
 Changelog
 =========
@@ -30,7 +29,20 @@ $UNDERLINE
 END
 
 # Search for PRs since previous release
-git log --grep="Merge pull request" `git describe --tags --abbrev=0`..HEAD --pretty='format:* %b %s' | sed  's+Merge pull request \(\#[^\d]*\)\ from\ .*+(\1)+' >> newchanges
+MERGE_COMMITS=$( git log --grep="Merge pull request\|(#.*)$" `git describe --tags --abbrev=0`..HEAD --pretty='format:%h' )
+for COMMIT in ${MERGE_COMMITS//\n}; do
+    SUB=$( git log -n 1 --pretty="format:%s" $COMMIT )
+    if ( echo $SUB | grep "^Merge pull request" ); then
+        # Merge commit
+        PR=$( echo $SUB | sed -e "s/Merge pull request \#\([0-9]*\).*/\1/" )
+        TITLE=$( git log -n 1 --pretty="format:%b" $COMMIT )
+    else
+        # Squashed merge
+        PR=$( echo $SUB | sed -e "s/.*(\#\([0-9]*\))$/\1/" )
+        TITLE=$( echo $SUB | sed -e "s/\(.*\)(\#[0-9]*)$/\1/" )
+    fi
+    echo "* $TITLE (#$PR)" >> newchanges
+done
 
 # Append old changes
 tail -n+3 $CHANGES >> newchanges
