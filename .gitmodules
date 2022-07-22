@@ -1,3 +1,4 @@
 [submodule "bids-examples"]
 	path = bids-examples
 	url = https://github.com/bids-standard/bids-examples.git
+	branch = master
