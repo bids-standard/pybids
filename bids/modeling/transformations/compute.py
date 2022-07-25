@@ -192,6 +192,7 @@ class Sum(Transformation):
     _groupable = False
     _aligned_required = True
     _output_required = True
+    _sync_kwargs = False
 
     def _transform(self, data, weights=None):
         data = pd.concat(data, axis=1, sort=True)
