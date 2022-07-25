@@ -443,13 +443,16 @@ vast majority of cases, 0.8 should be a drop-in replacement for 0.7.*.
 API-BREAKING CHANGES:
 
 * Changes to (rarely-used) BIDSLayout initialization arguments:
-  * ``include`` and ``exclude`` have been replaced with ``ignore`` and
-    ``force_index``. Paths passed to ``ignore`` will be ignored from indexing;
-    paths passed to ``force_index`` will be forcibly indexed even if they are
-    otherwise BIDS-non-compliant. ``force_index`` takes precedence over ``ignore``.
+
+   * ``include`` and ``exclude`` have been replaced with ``ignore`` and
+     ``force_index``. Paths passed to ``ignore`` will be ignored from indexing;
+     paths passed to ``force_index`` will be forcibly indexed even if they are
+     otherwise BIDS-non-compliant. ``force_index`` takes precedence over ``ignore``.
+
 * Most querying/selection methods add a new ``scope`` argument that controls
   scope of querying (e.g., ``'raw'``\ , ``'derivatives'``\ , ``'all'``\ , etc.). In some
   cases this replaces the more limited ``derivatives`` argument.
+
 * No more ``domains``\ : with the grabbit removal (see below), the notion of a
   ``'domain'`` has been removed. This should impact few users, but those who need
   to restrict indexing or querying to specific parts of a BIDS project should be
