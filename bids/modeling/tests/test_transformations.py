@@ -126,9 +126,12 @@ def test_convolve_impulse():
 def test_rename(collection):
     dense_rt = collection.variables['RT'].to_dense(collection.sampling_rate)
     assert len(dense_rt.values) == math.ceil(len(SUBJECTS) * NRUNS * SCAN_LENGTH * collection.sampling_rate)
-    transform.Rename(collection, 'RT', output='reaction_time')
-    assert 'reaction_time' in collection.variables
-    assert 'RT' not in collection.variables
+    # test that the name is correctly set for multiple inputs
+    current_names = ['RT', 'respcat', 'respnum']
+    new_names = ['reaction_time', 'response_category', 'response_number']
+    transform.Rename(collection, current_names, output=new_names)
+    assert all(name in collection.variables for name in new_names)
+    assert not any(name in collection.variables for name in current_names)
     col = collection.variables['reaction_time']
     assert col.name == 'reaction_time'
     assert col.onset.max() == 476
