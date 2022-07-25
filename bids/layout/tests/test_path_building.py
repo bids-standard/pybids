@@ -77,7 +77,7 @@ def test_path_building_on_derivative_examples(dataset, bids_examples):
             entities = bf.get_entities()
 
             # Some examples include unfinalized derivatives
-            if {"label"} & set(entities):  # BEP011
+            if entities["suffix"] in {"dseg", "pseg"}:
                 continue
             if entities["suffix"] in {"timeseries"}:  # BEP012
                 continue
