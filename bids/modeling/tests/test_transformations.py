@@ -343,6 +343,17 @@ def test_assign(collection):
     assert np.array_equal(t2.onset, pg.onset)
     assert np.array_equal(t2.duration, pg.duration)
 
+    # test kwarg distribution
+    transform.Assign(collection, ['RT', 'respcat'], target=['gain', 'loss'],
+                     input_attr=['amplitude', 'amplitude'], target_attr=['duration', 'amplitude'],
+                     output=['gain_rt', 'loss_cat'])
+    gain_rt = collection['gain_rt']
+    loss_cat = collection['loss_cat']
+    rc = collection['respcat']
+
+    assert np.array_equal(gain_rt.duration, rt.values.values)
+    assert np.array_equal(loss_cat.values.values, rc.values.values)
+
 
 def test_copy(collection):
     transform.Copy(collection, 'RT', output='RT_copy')
