@@ -231,7 +231,7 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
                 raise ValueError("More than one existing Node matches the "
                                  "specified entities! You may need to pass "
                                  "additional selectors to narrow the search.")
-            run_info = result[0].get_info()
+            run = result[0]
 
         else:
             # Otherwise create a new node and use that.
@@ -249,7 +249,7 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
             run = dataset.create_node('run', entities, image_file=img_f,
                                       duration=duration, repetition_time=tr,
                                       n_vols=nvols)
-            run_info = run.get_info()
+        run_info = run.get_info()
 
         # Process event files
         if events:
@@ -409,9 +409,12 @@ def _load_tsv_variables(layout, suffix, dataset=None, columns=None,
     """
 
     # Sanitize the selectors: only keep entities at current level or above
-    remap = {'scans': 'run', 'sessions': 'session', 'participants': 'subject'}
-    level = remap[suffix]
-    valid_entities = BASE_ENTITIES[:BASE_ENTITIES.index(level)]
+    valid_entities_map = {
+        'scans': ['subject', 'session'],
+        'sessions': ['subject'],
+        'participants': []
+    }
+    valid_entities = valid_entities_map[suffix]
     layout_kwargs = {k: v for k, v in selectors.items() if k in valid_entities}
 
     if dataset is None:

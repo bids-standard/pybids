@@ -39,7 +39,7 @@ class Convolve(Transformation):
     -----
     Uses the HRF convolution functions implemented in nistats.
     """
-
+    _groupable = False
     _input_type = 'variable'
     _return_type = 'variable'
 
@@ -93,9 +93,16 @@ class Convolve(Transformation):
             oversampling=np.ceil(effective_sr / sampling_rate)
             )
 
-        return DenseRunVariable(
-            name=var.name, values=convolved[0], run_info=var.run_info,
-            source=var.source, sampling_rate=sampling_rate)
+        results = []
+        arr, names = convolved
+        for conv, name in zip(np.split(arr, arr.shape[1], axis=1), names):
+            new_name = '_'.join([var.name, name.split('_')[-1]]) if '_' in name else var.name
+            results.append(
+                DenseRunVariable(
+                    name=new_name, values=conv, run_info=var.run_info,
+                    source=var.source, sampling_rate=sampling_rate)
+            )
+        return results
 
 
 class Demean(Transformation):

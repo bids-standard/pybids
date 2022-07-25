@@ -1,0 +1,113 @@
+{
+    "Name": "test_model",
+    "Description": "simple test model",
+    "Nodes": [
+        {
+            "Name": "run",
+            "Level": "Run",
+            "GroupBy": [
+                "run",
+                "subject"
+            ],
+            "Model": {
+                "X": [
+                    "RT",
+                    "gain"
+                ],
+                "Formula": "0 + RT * gain"
+            },
+            "Transformations": [
+                {
+                    "Name": "Factor",
+                    "Input": "trial_type"
+                },
+                {
+                    "Name": "Rename",
+                    "Input": "trial_type.parametric gain",
+                    "Output": "gain"
+                }
+            ],
+            "Contrasts": [
+                {"Name": "RT", "ConditionList": ["RT"], "Weights": [1], "Test": "t"},
+                {"Name": "gain", "ConditionList": ["gain"], "Weights": [1], "Test": "t"},
+                {"Name": "RT:gain", "ConditionList": ["RT:gain"], "Weights": [1], "Test": "t"}
+              ]
+        },
+        {
+            "Name": "participant",
+            "Level": "Subject",
+            "GroupBy": [
+                "subject",
+                "contrast"
+            ],
+            "Model": {
+                "X": [
+                    1
+                ]
+            },
+            "Contrasts": [
+                {
+                    "Name": 1,
+                    "ConditionList": [1],
+                    "Weights": [1],
+                    "Test": "FEMA"
+                },
+                {
+                    "Name": "neg",
+                    "ConditionList": [1],
+                    "Weights": [-1],
+                    "Test": "FEMA"
+                }
+            ]
+        },
+        {
+            "Name": "by-group",
+            "Level": "Dataset",
+            "GroupBy": [
+                "sex",
+                "contrast"
+            ],
+            "Model": {
+                "X": [
+                    1
+                ]
+            },
+            "Contrasts": [
+                {
+                    "Name": 1,
+                    "ConditionList": [1],
+                    "Weights": [1],
+                    "Test": "FEMA"
+                }
+            ]
+        },
+        {
+            "Name": "group-diff",
+            "Level": "Dataset",
+            "GroupBy": ["contrast"],
+            "Model": {
+                "X": [
+                    1,
+                    "sex"
+                ]
+            },
+            "DummyContrasts": {
+                "Test": "t"
+            }
+        }
+    ],
+    "Edges": [
+        {
+            "Source": "run",
+            "Destination": "participant"
+        },
+        {
+            "Source": "participant",
+            "Destination": "by-group"
+        },
+        {
+            "Source": "participant",
+            "Destination": "group-diff"
+        }
+    ]
+}

@@ -25,10 +25,6 @@
                     "Name": "Rename",
                     "Input": "trial_type.parametric gain",
                     "Output": "gain"
-                },
-                {
-                    "Name": "Scale",
-                    "Input": "RT"
                 }
             ],
             "DummyContrasts": {
@@ -49,18 +45,22 @@
             },
             "Contrasts": [
                 {
-                    "Name": 1,
+                    "Name": "neg",
                     "ConditionList": [1],
-                    "Weights": [1],
+                    "Weights": [-1],
                     "Test": "FEMA"
                 }
-            ]
+            ],
+            "DummyContrasts": {
+                "Test": "FEMA"
+            }
         },
         {
             "Name": "by-group",
             "Level": "Dataset",
             "GroupBy": [
-                "sex"
+                "sex",
+                "contrast"
             ],
             "Model": {
                 "X": [
@@ -68,14 +68,13 @@
                 ]
             },
             "DummyContrasts": {
-                "Conditions": [1],
                 "Test": "t"
             }
         },
         {
             "Name": "group-diff",
             "Level": "Dataset",
-            "GroupBy": [],
+            "GroupBy": ["contrast"],
             "Model": {
                 "X": [
                     1,

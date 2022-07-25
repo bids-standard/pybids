@@ -12,6 +12,57 @@ from .utils import validate_multiple as _validate_multiple
 CONTEXT_SETTINGS = {'help_option_names': ['-h', '--help']}
 
 
+class Either(click.ParamType):
+    """Click type that will accept any of the types passed at initialization.
+
+    Examples
+    --------
+    >>> Either(click.BOOL, click.STRING).convert(True, None, None)
+    True
+    >>> Either(click.BOOL, click.STRING).convert("Test", None, None)
+    'Test'
+
+    Note that the order of types can affect the interpreted type.
+
+    >>> Either(click.BOOL, click.INT).convert("1", None, None)
+    True
+    >>> Either(click.INT, click.BOOL).convert("1", None, None)
+    1
+
+    The motivating use case is True or path:
+
+    >>> PathOrTrue = Either(click.BOOL, click.Path(exists=True))
+    >>> PathOrTrue.convert(True, None, None)
+    True
+    >>> cwd = os.getcwd()
+    >>> PathOrTrue.convert(cwd, None, None) == cwd
+    True
+    >>> PathOrTrue.convert('/does/not/exist', None, None)  # doctest: +IGNORE_EXCEPTION_DETAIL
+    Traceback (most recent call last):
+    ...
+    BadParameter: '/does/not/exist' does not match expected types:
+    boolean: "'/does/not/exist' is not a valid boolean."
+    path: "'/does/not/exist' does not exist."
+    """
+    def __init__(self, *types):
+        self.types = types
+
+    @property
+    def name(self):
+        tpstrings = tuple(tp.name for tp in self.types)
+        return "any type in {tpstrings}"
+
+    def convert(self, value, param, ctx):
+        errors = []
+        for tp in self.types:
+            try:
+                return tp.convert(value, param, ctx)
+            except click.BadParameter as err:
+                errors.append(f"{tp.name}: {err.message!r}")
+        messages = "\n".join(errors)
+        self.fail(f"{value!r} does not match expected types:\n{messages}")
+
+
 class PathOrRegex(click.ParamType):
     "A helper Type to parse BIDSLayoutIndexer ignore/force entries"
     name = "path or m/regex/"
@@ -33,7 +84,8 @@ def cli():
 @cli.command(context_settings=CONTEXT_SETTINGS)
 @click.argument('root', type=click.Path(file_okay=False, exists=True))
 @click.argument('db-path', type=click.Path(file_okay=False, resolve_path=True, exists=True))
-@click.option('--derivatives', multiple=True, default=[False], show_default=True, flag_value=True,
+@click.option('--derivatives', multiple=True, default=[False], is_flag=False, flag_value=True,
+              show_default=True, type=Either(click.BOOL, click.Path(exists=True)),
               help="Specifies whether and/or which derivatives to index.")
 @click.option('--reset-db', default=False, show_default=True, is_flag=True,
               help="Remove existing database index if present.")
