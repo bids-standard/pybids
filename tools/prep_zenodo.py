@@ -13,7 +13,7 @@ def decommify(name):
 # XXX We should add a shortlog since the most recent tag and explicitly note
 # that a blacklisted user has contributed again recently, and verify they still
 # do not want to be cited.
-blacklist = {'Cecile Madjar', 'Matthew Wardrop', 'Peter Van Dyken'}
+blacklist = {'Cecile Madjar', 'Matthew Wardrop', 'Peter Van Dyken', 'github-actions[bot]'}
 
 # List of repositories whose commits should be counted as contributions
 codependents = [('https://github.com/grabbles/grabbit.git', '0.2.6')]
@@ -84,4 +84,4 @@ creators = [
     ]
 
 zenodo['creators'] = creators
-zenodo_file.write_text(json.dumps(zenodo, indent=2) + '\n')
+zenodo_file.write_text(json.dumps(zenodo, indent=2, ensure_ascii=False) + '\n')
