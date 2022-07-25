@@ -1,6 +1,33 @@
 Changelog
 =========
 
+Version 0.15.2 (July 25, 2022)
+------------------------------
+
+Bug-fix release in 0.15.x series.
+
+* FIX: Synchronize kwargs in transformations, e.g., in Assign (#836)
+* FIX: Add HRF derivatives to variable collection when created (#838)
+* FIX: Interpolate derivative pipeline name in error message (#847)
+* FIX: Match only within relative path when indexer is validating (#859)
+* FIX: Rename intercept in DummyContrast (#866)
+* FIX: Add variables to correct Node in load_tsv_variables (#872)
+* FIX: Repair variable IO so scans.tsv is found (#869)
+* FIX: Restore automodel functionality (#853)
+* FIX: Allow ``pybids layout --derivatives`` to be a boolean flag or accept a path (#848)
+* ENH: Add default path patterns to derivatives.json (#605)
+* ENH: Rename statsmodels contrasts if they cannot be uniquely identified downstream (#861)
+* ENH: Make intercept-only first level models throw a NotImplementedError (#854)
+* ENH: Update config to support microscopy, qMRI, PET, ASL (#840)
+* TEST: Add bids-examples submodule and bids_examples pytest fixture (#842)
+* TEST: Add tests for default path patterns (#846)
+* TEST: Update bids-examples and remove expected failing tests (#845)
+* MNT: Update git submodules (#874)
+* MNT: Add workflow top automatically update submodule (#870)
+* MNT: Remove deprecated no dot config (#841)
+* CI: Upgrade several GitHub actions to v3 (#867)
+* CI: Add cron jobs to avoid sneaky failures during low activity periods (#860)
+
 Version 0.15.1 (April 04, 2022)
 -------------------------------
 
