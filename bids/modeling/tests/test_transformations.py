@@ -326,8 +326,8 @@ def test_threshold(collection):
 
 
 def test_assign(collection):
-    transform.Assign(collection, ['parametric gain'], target=['RT'],
-                     target_attr=['onset'], output=['test1'])
+    transform.Assign(collection, 'parametric gain', target='RT',
+                     target_attr='onset', output='test1')
     t1 = collection['test1']
     pg = collection['parametric gain']
     rt = collection['RT']
@@ -343,10 +343,13 @@ def test_assign(collection):
     assert np.array_equal(t2.onset, pg.onset)
     assert np.array_equal(t2.duration, pg.duration)
 
+
+def test_assign_multiple(collection):
     # test kwarg distribution
     transform.Assign(collection, ['RT', 'respcat'], target=['gain', 'loss'],
                      input_attr=['amplitude', 'amplitude'], target_attr=['duration', 'amplitude'],
                      output=['gain_rt', 'loss_cat'])
+    rt = collection['RT']
     gain_rt = collection['gain_rt']
     loss_cat = collection['loss_cat']
     rc = collection['respcat']
