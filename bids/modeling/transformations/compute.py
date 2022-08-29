@@ -37,7 +37,7 @@ class Convolve(Transformation):
 
     Notes
     -----
-    Uses the HRF convolution functions implemented in nistats.
+    Uses the HRF convolution functions implemented in nilearn.
     """
     _groupable = False
     _input_type = 'variable'
