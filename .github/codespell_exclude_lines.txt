@@ -1,0 +1,8 @@
+        "/RADME",  # wrong filename
+        "/CANGES",  # wrong filename
+        "/dataset_descrption.json",  # wrong filename
+        "/dataset_description.jon",  # wrong extension
+        "/participants.sv",  # wrong extension
+        "/participnts.tsv",  # wrong filename
+        "/particpants.json"  # wrong filename
+        "/participants.son"  # wrong extension
