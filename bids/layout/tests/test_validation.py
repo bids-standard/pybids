@@ -216,9 +216,9 @@ def test_is_subject_false(testvalidator):
 
 
 # def test_is_anat_false(testvalidator):
-#     target_list = ["/sub-01/anat/sub-1_T1w.json",  # subject incosistency
+#     target_list = ["/sub-01/anat/sub-1_T1w.json",  # subject inconsistency
 #                    "/sub-01/anat/sub-01_dwi.nii.gz",  # wrong modality suffix
-#                    "/sub-01/anat/sub-02_rec-CSD_T1w.json",  # subject incosistency
+#                    "/sub-01/anat/sub-02_rec-CSD_T1w.json",  # subject inconsistency
 #                    "/sub-01/anat/sub-01_rec-CS-D_T1w.nii.gz",  # rec label wrong
 #                    "/sub-01/anat/sub-01_acq-23_T1W.json",  # modality suffix wrong
 #                    "/sub-01/dwi/sub-01_acq-23_dwi.nii.gz",  # wrong data type
