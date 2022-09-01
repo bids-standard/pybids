@@ -33,13 +33,13 @@ def test_is_top_level_true(testvalidator):
 # checks is_top_level() function false cases
 def test_is_top_level_false(testvalidator):
     target_list = [
-        "/RADME",  # wrong the the filename
-        "/CANGES",  # wrong the the filename
-        "/dataset_descrption.json",  # wrong the the filename
+        "/RADME",  # wrong filename
+        "/CANGES",  # wrong filename
+        "/dataset_descrption.json",  # wrong filename
         "/dataset_description.jon",  # wrong extension
         "/participants.sv",  # wrong extension
-        "/participnts.tsv",  # wrong the the filename
-        "/particpants.json"  # wrong the the filename
+        "/participnts.tsv",  # wrong filename
+        "/particpants.json"  # wrong filename
         "/participants.son"  # wrong extension
     ]
 
