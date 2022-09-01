@@ -76,7 +76,7 @@ def test_convolve(collection):
         collection.variables['rt_dense_derivative'].values.shape[0] == \
         rt.get_duration() * collection.sampling_rate
 
-    # Test adapative oversampling computation
+    # Test adaptive oversampling computation
     # Events are 3s duration events every 4s, so resolution demanded by the data is 1Hz
     # To resolve 1Hz frequencies, we must sample at >=2Hz
     args = (mock.ANY, 'spm', mock.ANY)
