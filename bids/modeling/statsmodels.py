@@ -590,7 +590,7 @@ class BIDSStatsModelsNodeOutput:
         # If a single incoming contrast, set to intercept
         if ('contrast' in df.columns and df['contrast'].nunique() == 1):
             unique_in_contrast = df['contrast'].unique()[0]
-            df.rename({unique_in_contrast:'intercept'}, inplace=True)
+            df.rename(columns={unique_in_contrast:'intercept'}, inplace=True)
         else:
             unique_in_contrast = None
 
