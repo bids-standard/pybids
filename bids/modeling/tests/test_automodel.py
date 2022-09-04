@@ -60,15 +60,13 @@ def test_auto_model_graph(model):
     assert block['Name'] == 'Subject'
     assert block['Level'] == 'Subject'
     assert block['Model']['Type'] == 'meta'
-    assert block['Model']['X'][0] == 'run_parametric gain'
-    assert block['Contrasts'][0]['Name'] == 'subject_run_parametric gain'
-    assert block['Contrasts'][0]['Test'] == 't'
+    assert block['Model']['X'][0] == 1
+    assert block['DummyContrasts'] == {'Test': 't'}
 
     # dataset level
     block = model['Nodes'][2]
     assert block['Name'] == 'Dataset'
     assert block['Level'] == 'Dataset'
     assert block['Model']['Type'] == 'glm'
-    assert block['Model']['X'][0] == 'subject_run_parametric gain'
-    assert block['Contrasts'][0]['Name'] == 'dataset_subject_run_parametric gain'
-    assert block['Contrasts'][0]['Test'] == 't'
+    assert block['Model']['X'][0] == 1
+    assert block['DummyContrasts'] == {'Test': 't'}

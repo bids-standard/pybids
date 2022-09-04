@@ -3,21 +3,17 @@ from collections import OrderedDict
 import numpy as np
 
 
-def _make_passthrough_contrast(level, contrast_names, model_type='glm', test="t"):
+def _make_passthrough_contrast(level, model_type='glm', test="t"):
     gb_dict = dict(Subject=['subject', 'contrast'],
                    Session=['session', 'contrast'],
                    Dataset=['contrast'])
-    block = dict(Level=level,
-                 Name=level,
-                 GroupBy=gb_dict[level],
-                 Model={'Type': model_type,
-                        'X': contrast_names})
-    contrasts = []
-    for cn in contrast_names:
-        cdict = OrderedDict(Name=level.lower() + "_" + cn, ConditionList=[cn],
-                            Weights=[1], Test=test)
-        contrasts.append(cdict)
-    block["Contrasts"] = contrasts
+    block = dict(
+        Level=level,
+        Name=level,
+        GroupBy=gb_dict[level],
+        Model={'Type': model_type, 'X': [1]},
+        DummyContrasts={"Test": test}
+    )
     return block
 
 
@@ -125,26 +121,15 @@ def auto_model(layout, scan_length=None, one_vs_rest=False):
         nodes.append(run)
 
         if one_vs_rest:
-            # if there are multiple sessions, t-test run level contrasts at
-            # session level
-            sessions = layout.get_sessions()
-            if len(sessions) > 1:
-                # get contrasts names from previous block
-                contrast_names = [cc["Name"] for cc in nodes[-1]["Contrasts"]]
-                nodes.append(_make_passthrough_contrast(
-                    "Session", contrast_names, "meta"))
+            # if there are multiple sessions/subjects, t-test run level contrasts at
+            # session/subject level
+            if len(layout.get_sessions()) > 1:
+                nodes.append(_make_passthrough_contrast("Session", "meta"))
 
-            subjects = layout.get_subjects()
-            if len(subjects) > 1:
-                # get contrasts names from previous block
-                contrast_names = [cc["Name"] for cc in nodes[-1]["Contrasts"]]
-                nodes.append(_make_passthrough_contrast(
-                    "Subject", contrast_names, "meta"))
+            if len(layout.get_subjects()) > 1:
+                nodes.append(_make_passthrough_contrast("Subject", "meta"))
 
-            # get contrasts names from previous block
-            contrast_names = [cc["Name"] for cc in nodes[-1]["Contrasts"]]
-            nodes.append(_make_passthrough_contrast(
-                "Dataset", contrast_names))
+            nodes.append(_make_passthrough_contrast("Dataset"))
 
         model["Nodes"] = nodes
         task_models.append(model)
