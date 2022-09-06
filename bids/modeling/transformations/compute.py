@@ -42,6 +42,7 @@ class Convolve(Transformation):
     _groupable = False
     _input_type = 'variable'
     _return_type = 'variable'
+    _sync_kwargs = False
 
     def _transform(self, var, model='spm', derivative=False, dispersion=False,
                    fir_delays=None):
