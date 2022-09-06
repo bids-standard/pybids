@@ -107,12 +107,12 @@ def test_entire_graph_smoketest(graph):
     # Note that there are only 2 subjects in the graph.
     # Note also that there is only one session (with no session label), which
     # should have no effect as a grouping variable
-    outputs = graph["run"].run(group_by=['subject', 'session', 'run'])
+    outputs = graph["run"].run()
     # 2 subjects x 3 runs
     assert len(outputs) == 6
     cis = list(chain(*[op.contrasts for op in outputs]))
     assert len(cis) == 18
-    outputs = graph["participant"].run(cis, group_by=['subject', 'contrast'])
+    outputs = graph["participant"].run(cis)
     # 2 subjects x 3 contrasts)
     assert len(outputs) == 6
     # * 2 participant level contrasts = 12
@@ -141,7 +141,7 @@ def test_entire_graph_smoketest(graph):
         inputs.append(ContrastInfo(**fields))
 
     # GROUP DIFFERENCE NODE
-    outputs = graph["group-diff"].run(inputs, group_by=['contrast'])
+    outputs = graph["group-diff"].run(inputs)
     # 3 contrasts
     assert len(outputs) == 3
     cis = list(chain(*[op.contrasts for op in outputs]))
@@ -155,7 +155,7 @@ def test_entire_graph_smoketest(graph):
     assert not set(model_spec.terms.keys()) - {"intercept", "sex"}
 
     # BY-GROUP NODE
-    outputs = graph["by-group"].run(inputs, group_by=['contrast'])
+    outputs = graph["by-group"].run(inputs)
     # 3 contrasts
     assert len(outputs) == 3
     cis = list(chain(*[op.contrasts for op in outputs]))
