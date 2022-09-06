@@ -58,7 +58,15 @@ def sparse_run_variable_with_missing_values():
 
 def test_convolve_multi(collection):
     # Just tests that we can convolve multiple arguments with one model
-    transform.Convolve(collection, ['parametric gain', 'loss'], model='spm')
+    output_names = ['unique_name', 'another_unique_name']
+    transform.Convolve(
+        collection,
+        ['parametric gain', 'loss'],
+        output=output_names,
+        model='spm'
+    )
+
+    assert set(output_names).issubset(collection.variables)
 
 
 def test_convolve(collection):
