@@ -586,6 +586,13 @@ class BIDSStatsModelsNodeOutput:
         df = reduce(pd.DataFrame.merge, dfs)
 
         var_names = list(self.node.model['x'])
+    
+        # If a single incoming contrast, set to intercept
+        if 'contrast' in df.columns and df['contrast'].nunique() == 1:
+            unique_in_contrast = df['contrast'].unique()[0]
+            df.rename(columns={unique_in_contrast: 'intercept'}, inplace=True)
+        else:
+            unique_in_contrast = None
 
         # Handle the special 1 construct.
         # Add column of 1's to the design matrix called "intercept" 
@@ -596,12 +603,6 @@ class BIDSStatsModelsNodeOutput:
             var_names = ['intercept' if i == 1 else i for i in var_names]
             if 'intercept' not in df.columns:
                 df.insert(0, 'intercept', 1)
-
-        # If a single incoming contrast
-        if ('contrast' in df.columns and df['contrast'].nunique() == 1):
-            unique_in_contrast = df['contrast'].unique()[0]
-        else:
-            unique_in_contrast = None
 
         var_names = expand_wildcards(var_names, df.columns)
 
