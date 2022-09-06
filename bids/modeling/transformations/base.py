@@ -91,10 +91,10 @@ class Transformation(metaclass=ABCMeta):
     # be passed through as-is even if categorical.
     _allow_categorical = None
 
-    # Boolean or Set indicating whether to treat each key word argument as a one-to-one
+    # Boolean indicating whether to treat each key word argument as a one-to-one
     # mapping with each variable or to treat the key word argument as applying to
     # every input variable.
-    _sync_kwargs = True # or can be a set ("Input", "Output")
+    _sync_kwargs = True
 
     def __new__(cls, collection, variables, *args, **kwargs):
         t = super(Transformation, cls).__new__(cls)
@@ -123,11 +123,8 @@ class Transformation(metaclass=ABCMeta):
                 kwargs[arg_spec.args[2 + i]] = arg_val
 
         # listify kwargs if synced
-        if self._sync_kwargs is True:
+        if self._sync_kwargs:
             self.kwargs = {k: listify(v) for k, v in kwargs.items()}
-        elif isinstance(self._sync_kwargs, set):
-            self.kwargs = {k: listify(v) if k in self._sync_kwargs else v
-                           for k, v in kwargs.items()}
         else:
             self.kwargs = kwargs
 
@@ -269,11 +266,8 @@ class Transformation(metaclass=ABCMeta):
 
         i_kwargs = kwargs
         for i, col in enumerate(variables):
-            if self._sync_kwargs is True:
+            if self._sync_kwargs:
                 i_kwargs = {k: v[i] for k, v in kwargs.items()}
-            elif isinstance(self._sync_kwargs, set):
-                i_kwargs = {k: v[i] if k in self._sync_kwargs else v
-                            for k, v in kwargs.items()}
             # If we still have a list, pass all variables in one block
             if isinstance(col, (list, tuple)):
                 result = self._transform(data, **i_kwargs)
