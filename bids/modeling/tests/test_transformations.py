@@ -56,6 +56,11 @@ def sparse_run_variable_with_missing_values():
     return BIDSRunVariableCollection([var])
 
 
+def test_convolve_multi(collection):
+    # Just tests that we can convolve multiple arguments with one model
+    transform.Convolve(collection, ['parametric gain', 'loss'], model='spm')
+
+
 def test_convolve(collection):
     rt = collection.variables['RT']
     transform.Convolve(collection, ['RT'], output=['reaction_time'])
