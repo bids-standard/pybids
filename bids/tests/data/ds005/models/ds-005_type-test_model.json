@@ -59,7 +59,7 @@
             ]
         },
         {
-            "Name": "by-contrast",
+            "Name": "by-group",
             "Level": "Dataset",
             "GroupBy": [
                 "contrast"
