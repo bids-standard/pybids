@@ -328,7 +328,7 @@ class BIDSStatsModelsNode:
         >>> bidsfile2 = bidsfile(entities={'subject': '02'})
         >>> groups = {(('subject', '01'),): [bidsfile1],
         ...           (('subject', '02'),): [bidsfile2]}
-        >>> BIDSStatsModelsNode._build_groups(
+        >>> BIDSStatsModelsNode._build_groups(self,
         ...     [bidsfile1, bidsfile2],
         ...     ['subject']) == groups
         True
