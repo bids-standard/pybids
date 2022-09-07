@@ -346,10 +346,9 @@ class BIDSStatsModelsNode:
         if self.level == 'dataset':
             # Separate BIDSVariableCollections
             collections = [o.to_df() for o in objects if type(o).__name__ == 'BIDSVariableCollection']
-            collections = reduce(pd.DataFrame.merge, collections)
-            common = set(collections.columns).intersection(df.columns) - {'suffix'}
-            if common:
-                df = df.merge(collections, how='left', on=list(common))
+            if collections:
+                collections = reduce(pd.DataFrame.merge, collections)
+                df = df.merge(collections, how='left', on='subject')
 
         # Single-run tasks and single-session subjects may not have entities
         dummy_groups = {"run", "session"} - set(df.columns)
