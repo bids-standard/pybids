@@ -157,13 +157,13 @@ def test_entire_graph_smoketest(graph):
     # BY-GROUP NODE
     outputs = graph["by-group"].run(inputs)
     # 3 contrasts
-    assert len(outputs) == 3
+    assert len(outputs) == 6
     cis = list(chain(*[op.contrasts for op in outputs]))
     # two groups x 3 contrasts
-    assert len(cis) == 3
+    assert len(cis) == 6
     model_spec = outputs[0].model_spec
     assert model_spec.__class__.__name__ == "GLMMSpec"
-    assert model_spec.X.shape == (2, 1)
+    assert model_spec.X.shape == (1, 1)
     assert model_spec.Z is None
     assert not set(model_spec.terms.keys()) - {"intercept"}
 
@@ -180,7 +180,7 @@ def test_entire_graph_smoketest(graph):
 
     contrast = outputs[0].contrasts[0]
     assert contrast.name == 'gain'
-    
+
 
 def test_expand_wildcards():
     # No wildcards == no modification

@@ -62,7 +62,8 @@
             "Name": "by-group",
             "Level": "Dataset",
             "GroupBy": [
-                "contrast"
+                "contrast",
+                "sex"
             ],
             "Model": {
                 "X": [
