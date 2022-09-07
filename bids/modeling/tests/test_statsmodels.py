@@ -167,6 +167,20 @@ def test_entire_graph_smoketest(graph):
     assert model_spec.Z is None
     assert not set(model_spec.terms.keys()) - {"intercept"}
 
+    # explicit-contrast NODE
+    outputs = graph["explicit-contrast"].run(inputs)
+    # 1 group x 1 contrast
+    assert len(outputs) == 1
+    assert len(outputs[0].contrasts) == 1
+    assert outputs[0].X['gain'].sum() == 2
+    model_spec = outputs[0].model_spec
+    assert model_spec.__class__.__name__ == "GLMMSpec"
+    assert model_spec.X.shape == (6, 1)
+    assert not set(model_spec.terms.keys()) - {"gain"}
+
+    contrast = outputs[0].contrasts[0]
+    assert contrast.name == 'gain'
+    
 
 def test_expand_wildcards():
     # No wildcards == no modification
