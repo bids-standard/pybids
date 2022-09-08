@@ -297,8 +297,7 @@ class BIDSStatsModelsNode:
     def __repr__(self):
         return f"<{self.__class__.__name__}[{self.level}] {self.name}>"
 
-    @staticmethod
-    def _build_groups(objects, group_by):
+    def _build_groups(self, objects, group_by):
         """Group list of objects into bins defined by specified entities.
 
         Parameters
@@ -345,9 +344,13 @@ class BIDSStatsModelsNode:
 
         # Separate BIDSVariableCollections
         collections = [obj.to_df() for obj in objects if type(obj) == BIDSVariableCollection]
-        if collections:
+        if self.level in ['subject', 'dataset'] and collections:
             metadata_vars = reduce(pd.DataFrame.merge, collections)
-            df = df.merge(metadata_vars, how='left', on='subject')
+            on_var = {
+                'subject': 'session',
+                'dataset': 'participant'
+            }
+            df = df.merge(metadata_vars, how='left', on=on_var[self.level])
 
         # Single-run tasks and single-session subjects may not have entities
         dummy_groups = {"run", "session"} - set(df.columns)
