@@ -299,6 +299,7 @@ class Split(Transformation):
     _return_type = 'variable'
     _allow_categorical = ('by',)
     _densify = ('variables', 'by')
+    _sync_kwargs = False
 
     def _transform(self, var, by):
 

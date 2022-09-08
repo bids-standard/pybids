@@ -26,18 +26,60 @@ def _extract_entities(bidsfile, entities):
     return match_vals
 
 
-def _check_path_matches_patterns(path, patterns):
+def _check_path_matches_patterns(path, patterns, root=None):
     """Check if the path matches at least one of the provided patterns. """
     if not patterns:
         return False
+
     path = path.absolute()
+    if root is not None:
+        path = Path("/") / path.relative_to(root)
+
+    # Path now can be downcast to str
+    path = str(path)
     for patt in patterns:
-        if isinstance(patt, Path):
-            if path == patt:
+        if hasattr(patt, "search"):
+            if patt.search(path):
                 return True
-        elif patt.search(str(path)):
-            return True
+            else:
+                continue
+
+        if isinstance(patt, Path):
+            patt = str(
+                patt if root is None
+                else Path("/") / patt.relative_to(root)
+            )
+        if str(patt) in path:
+            return str(patt)
+
     return False
+
+
+def _validate_path(path, incl_patt=None, excl_patt=None, root=None, default=None):
+    incl_matched = _check_path_matches_patterns(path, incl_patt, root=root)
+    excl_matched = _check_path_matches_patterns(path, excl_patt, root=root)
+
+    if incl_matched is False and excl_matched is False:
+        return default
+
+    # Include: if a inclusion regex pattern matched or a nonregex inclusion pattern matched
+    if incl_matched is True or (incl_matched and not excl_matched):
+        return True
+
+    if excl_matched is True:
+        return False
+
+    if not incl_matched and excl_matched:
+        return False
+
+    # Both matched: nested pattern
+    if incl_matched not in excl_matched:
+        return True
+
+    if excl_matched not in incl_matched:
+        return False
+
+    return default
 
 
 class BIDSLayoutIndexer:
@@ -114,19 +156,16 @@ class BIDSLayoutIndexer:
     def session(self):
         return self._layout.connection_manager.session
 
-    def _validate_dir(self, d, default=None):
-        if _check_path_matches_patterns(d, self._include_patterns):
-            return True
-        if _check_path_matches_patterns(d, self._exclude_patterns):
-            return False
-        return default
-
     def _validate_file(self, f, default=None):
-        # Inclusion takes priority over exclusion
-        if _check_path_matches_patterns(f, self._include_patterns):
-            return True
-        if _check_path_matches_patterns(f, self._exclude_patterns):
-            return False
+        matched_patt = _validate_path(
+            f,
+            incl_patt=self._include_patterns,
+            excl_patt=self._exclude_patterns,
+            default=default,
+            root=self._layout._root
+        )
+        if matched_patt is not None:
+            return matched_patt
 
         # If inclusion/exclusion is inherited from a parent directory, that
         # takes precedence over the remaining file-level rules
@@ -173,7 +212,13 @@ class BIDSLayoutIndexer:
         _, dirnames, filenames = next(os.walk(path))
 
         # Set the default inclusion/exclusion directive
-        default = self._validate_dir(path, default=default_action)
+        default = _validate_path(
+            path,
+            incl_patt=self._include_patterns,
+            excl_patt=self._exclude_patterns,
+            default=default_action,
+            root=self._layout._root,
+        )
 
         # If layout configuration file exists, delete it
         if self.config_filename in filenames:
@@ -191,7 +236,6 @@ class BIDSLayoutIndexer:
         for d in dirnames:
             d = path / d
             self._index_dir(d, list(config), default_action=default)
-
 
     def _index_file(self, f, dirpath, entities, default_action=None):
         """Create DB record for file and its tags. """

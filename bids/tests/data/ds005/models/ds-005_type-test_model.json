@@ -45,18 +45,15 @@
             },
             "Contrasts": [
                 {
-                    "Name": 1,
-                    "ConditionList": [1],
-                    "Weights": [1],
-                    "Test": "FEMA"
-                },
-                {
                     "Name": "neg",
                     "ConditionList": [1],
                     "Weights": [-1],
                     "Test": "FEMA"
                 }
-            ]
+            ],
+            "DummyContrasts": {
+                "Test": "FEMA"
+            }
         },
         {
             "Name": "by-group",
@@ -71,7 +68,6 @@
                 ]
             },
             "DummyContrasts": {
-                "Conditions": [1],
                 "Test": "t"
             }
         },

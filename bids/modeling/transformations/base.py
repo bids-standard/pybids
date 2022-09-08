@@ -91,6 +91,11 @@ class Transformation(metaclass=ABCMeta):
     # be passed through as-is even if categorical.
     _allow_categorical = None
 
+    # Boolean indicating whether to treat each key word argument as a one-to-one
+    # mapping with each variable or to treat the key word argument as applying to
+    # every input variable.
+    _sync_kwargs = True
+
     def __new__(cls, collection, variables, *args, **kwargs):
         t = super(Transformation, cls).__new__(cls)
         t._setup(collection, variables, *args, **kwargs)
@@ -117,7 +122,11 @@ class Transformation(metaclass=ABCMeta):
                 # 'variables'
                 kwargs[arg_spec.args[2 + i]] = arg_val
 
-        self.kwargs = kwargs
+        # listify kwargs if synced
+        if self._sync_kwargs:
+            self.kwargs = {k: listify(v) for k, v in kwargs.items()}
+        else:
+            self.kwargs = kwargs
 
         # Expand any detected variable group names or wild cards
         self._expand_variable_groups()
@@ -255,20 +264,22 @@ class Transformation(metaclass=ABCMeta):
         if not self._loopable:
             variables = [variables]
 
+        i_kwargs = kwargs
         for i, col in enumerate(variables):
-
+            if self._sync_kwargs:
+                i_kwargs = {k: v[i] for k, v in kwargs.items()}
             # If we still have a list, pass all variables in one block
             if isinstance(col, (list, tuple)):
-                result = self._transform(data, **kwargs)
+                result = self._transform(data, **i_kwargs)
                 if self._return_type not in ['none', None]:
                     col = col[0].clone(data=result, name=self.output[0])
             # Otherwise loop over variables individually
             else:
                 if self._groupable and self.groupby is not None:
                     result = col.apply(self._transform, groupby=self.groupby,
-                                       **kwargs)
+                                       **i_kwargs)
                 else:
-                    result = self._transform(data[i], **kwargs)
+                    result = self._transform(data[i], **i_kwargs)
 
             if self._return_type in ['none', None]:
                 continue
@@ -313,8 +324,17 @@ class Transformation(metaclass=ABCMeta):
                 if self.output_suffix is not None:
                     _output += self.output_suffix
 
-                col.name = _output
-                self.collection[_output] = col
+                # If multiple variables were returned, add each one separately
+                if isinstance(result, (list, tuple)):
+                    # rename first output
+                    result[0].name = _output
+                    self.collection[_output] = result[0]
+
+                    for r in result[1:]:
+                        self.collection[r.name] = r
+                else:
+                    col.name = _output
+                    self.collection[_output] = col
 
     @abstractmethod
     def _transform(self, **kwargs):

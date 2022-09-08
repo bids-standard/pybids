@@ -1,6 +1,33 @@
 Changelog
 =========
 
+Version 0.15.2 (July 25, 2022)
+------------------------------
+
+Bug-fix release in 0.15.x series.
+
+* FIX: Synchronize kwargs in transformations, e.g., in Assign (#836)
+* FIX: Add HRF derivatives to variable collection when created (#838)
+* FIX: Interpolate derivative pipeline name in error message (#847)
+* FIX: Match only within relative path when indexer is validating (#859)
+* FIX: Rename intercept in DummyContrast (#866)
+* FIX: Add variables to correct Node in load_tsv_variables (#872)
+* FIX: Repair variable IO so scans.tsv is found (#869)
+* FIX: Restore automodel functionality (#853)
+* FIX: Allow ``pybids layout --derivatives`` to be a boolean flag or accept a path (#848)
+* ENH: Add default path patterns to derivatives.json (#605)
+* ENH: Rename statsmodels contrasts if they cannot be uniquely identified downstream (#861)
+* ENH: Make intercept-only first level models throw a NotImplementedError (#854)
+* ENH: Update config to support microscopy, qMRI, PET, ASL (#840)
+* TEST: Add bids-examples submodule and bids_examples pytest fixture (#842)
+* TEST: Add tests for default path patterns (#846)
+* TEST: Update bids-examples and remove expected failing tests (#845)
+* MNT: Update git submodules (#874)
+* MNT: Add workflow top automatically update submodule (#870)
+* MNT: Remove deprecated no dot config (#841)
+* CI: Upgrade several GitHub actions to v3 (#867)
+* CI: Add cron jobs to avoid sneaky failures during low activity periods (#860)
+
 Version 0.15.1 (April 04, 2022)
 -------------------------------
 
@@ -416,13 +443,16 @@ vast majority of cases, 0.8 should be a drop-in replacement for 0.7.*.
 API-BREAKING CHANGES:
 
 * Changes to (rarely-used) BIDSLayout initialization arguments:
-  * ``include`` and ``exclude`` have been replaced with ``ignore`` and
-    ``force_index``. Paths passed to ``ignore`` will be ignored from indexing;
-    paths passed to ``force_index`` will be forcibly indexed even if they are
-    otherwise BIDS-non-compliant. ``force_index`` takes precedence over ``ignore``.
+
+   * ``include`` and ``exclude`` have been replaced with ``ignore`` and
+     ``force_index``. Paths passed to ``ignore`` will be ignored from indexing;
+     paths passed to ``force_index`` will be forcibly indexed even if they are
+     otherwise BIDS-non-compliant. ``force_index`` takes precedence over ``ignore``.
+
 * Most querying/selection methods add a new ``scope`` argument that controls
   scope of querying (e.g., ``'raw'``\ , ``'derivatives'``\ , ``'all'``\ , etc.). In some
   cases this replaces the more limited ``derivatives`` argument.
+
 * No more ``domains``\ : with the grabbit removal (see below), the notion of a
   ``'domain'`` has been removed. This should impact few users, but those who need
   to restrict indexing or querying to specific parts of a BIDS project should be

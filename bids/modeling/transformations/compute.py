@@ -37,11 +37,12 @@ class Convolve(Transformation):
 
     Notes
     -----
-    Uses the HRF convolution functions implemented in nistats.
+    Uses the HRF convolution functions implemented in nilearn.
     """
-
+    _groupable = False
     _input_type = 'variable'
     _return_type = 'variable'
+    _sync_kwargs = False
 
     def _transform(self, var, model='spm', derivative=False, dispersion=False,
                    fir_delays=None):
@@ -93,9 +94,16 @@ class Convolve(Transformation):
             oversampling=np.ceil(effective_sr / sampling_rate)
             )
 
-        return DenseRunVariable(
-            name=var.name, values=convolved[0], run_info=var.run_info,
-            source=var.source, sampling_rate=sampling_rate)
+        results = []
+        arr, names = convolved
+        for conv, name in zip(np.split(arr, arr.shape[1], axis=1), names):
+            new_name = '_'.join([var.name, name.split('_')[-1]]) if '_' in name else var.name
+            results.append(
+                DenseRunVariable(
+                    name=new_name, values=conv, run_info=var.run_info,
+                    source=var.source, sampling_rate=sampling_rate)
+            )
+        return results
 
 
 class Demean(Transformation):
@@ -110,6 +118,7 @@ class Orthogonalize(Transformation):
     _densify = ('variables', 'other')
     _aligned_required = 'force_dense'
     _aligned_variables = ('other')
+    _sync_kwargs = False
 
     def _transform(self, var, other):
 
@@ -185,6 +194,7 @@ class Sum(Transformation):
     _groupable = False
     _aligned_required = True
     _output_required = True
+    _sync_kwargs = False
 
     def _transform(self, data, weights=None):
         data = pd.concat(data, axis=1, sort=True)
@@ -252,6 +262,7 @@ class And_(Transformation):
     _groupable = False
     _output_required = True
     _aligned_required = True
+    _sync_kwargs = False
 
     def _transform(self, dfs):
         df = pd.concat(dfs, axis=1, sort=True)
@@ -269,6 +280,7 @@ class Not(Transformation):
 
     _loopable = True
     _groupable = False
+    sync_kwargs = False
 
     def _transform(self, var):
         return ~var.astype(bool)
@@ -287,6 +299,7 @@ class Or_(Transformation):
     _groupable = False
     _output_required = True
     _aligned_required = True
+    sync_kwargs = False
 
     def _transform(self, dfs):
         df = pd.concat(dfs, axis=1, sort=True)
