@@ -297,7 +297,8 @@ class BIDSStatsModelsNode:
     def __repr__(self):
         return f"<{self.__class__.__name__}[{self.level}] {self.name}>"
 
-    def _build_groups(self, objects, group_by):
+    @staticmethod
+    def _build_groups(objects, group_by):
         """Group list of objects into bins defined by specified entities.
 
         Parameters
@@ -328,7 +329,7 @@ class BIDSStatsModelsNode:
         >>> bidsfile2 = bidsfile(entities={'subject': '02'})
         >>> groups = {(('subject', '01'),): [bidsfile1],
         ...           (('subject', '02'),): [bidsfile2]}
-        >>> BIDSStatsModelsNode._build_groups(self,
+        >>> BIDSStatsModelsNode._build_groups(
         ...     [bidsfile1, bidsfile2],
         ...     ['subject']) == groups
         True
@@ -342,13 +343,11 @@ class BIDSStatsModelsNode:
         entities = [obj.entities for obj in objects]
         df = pd.DataFrame.from_records(entities)
 
-        # Load participants.tsv as entities
-        if self.level == 'dataset':
-            # Separate BIDSVariableCollections
-            collections = [o.to_df() for o in objects if type(o).__name__ == 'BIDSVariableCollection']
-            if collections:
-                collections = reduce(pd.DataFrame.merge, collections)
-                df = df.merge(collections, how='left', on='subject')
+        # Separate BIDSVariableCollections
+        collections = [obj.to_df() for obj in objects if type(obj) == BIDSVariableCollection]
+        if collections:
+            metadata_vars = reduce(pd.DataFrame.merge, collections)
+            df = df.merge(metadata_vars, how='left', on='subject')
 
         # Single-run tasks and single-session subjects may not have entities
         dummy_groups = {"run", "session"} - set(df.columns)
