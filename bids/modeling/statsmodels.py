@@ -348,7 +348,7 @@ class BIDSStatsModelsNode:
             metadata_vars = reduce(pd.DataFrame.merge, collections)
             on_var = {
                 'subject': 'session',
-                'dataset': 'participant'
+                'dataset': 'subject'
             }
             df = df.merge(metadata_vars, how='left', on=on_var[self.level])
 
