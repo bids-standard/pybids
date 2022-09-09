@@ -483,11 +483,12 @@ def _load_tsv_variables(layout, suffix, dataset=None, columns=None,
         # Filter rows on all selectors
         comm_cols = list(set(_data.columns) & set(selectors.keys()))
         for col in comm_cols:
-            ent_patts = [make_patt(x, regex_search=layout.regex_search)
-                            for x in listify(selectors.get(col))]
-            patt = '|'.join(ent_patts)
-
-            _data = _data[_data[col].str.contains(patt)]
+            vals = listify(selectors.get(col))
+            if layout.regex_search and any(isinstance(val, str) for val in vals):
+                ent_patts = '|'.join(make_patt(x, regex_search=True) for x in vals)
+                _data = _data[_data[col].str.contains(patt)]
+            else:
+                _data = _data[_data[col].isin(vals)]
 
         level = {'scans': 'session', 'sessions': 'subject',
                  'participants': 'dataset'}[suffix]
