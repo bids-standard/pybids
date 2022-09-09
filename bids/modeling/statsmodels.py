@@ -343,6 +343,13 @@ class BIDSStatsModelsNode:
         entities = [obj.entities for obj in objects]
         df = pd.DataFrame.from_records(entities)
 
+        # Separate BIDSVariableCollections
+        collections = [obj.to_df() for obj in objects if type(obj) == BIDSVariableCollection]
+        if collections:
+            metadata_vars = reduce(pd.DataFrame.merge, collections)
+            on_vars = list({'subject', 'session', 'run'} & set(metadata_vars.columns))
+            df = df.merge(metadata_vars, how='left', on=on_vars)
+
         # Single-run tasks and single-session subjects may not have entities
         dummy_groups = {"run", "session"} - set(df.columns)
         group_by = set(group_by) - dummy_groups
