@@ -16,7 +16,8 @@ ALL_ENTITIES = BASE_ENTITIES + ['datatype', 'suffix', 'acquisition']
 
 
 def load_variables(layout, types=None, levels=None, skip_empty=True,
-                   dataset=None, scope='all', **kwargs):
+                   dataset=None, scope='all', regex_search=None,
+                   **kwargs):
     """A convenience wrapper for one or more load_*_variables() calls.
 
     Parameters
@@ -94,7 +95,7 @@ def load_variables(layout, types=None, levels=None, skip_empty=True,
     for t in ({'scans', 'sessions', 'participants'} & set(types)):
         kwargs.pop('suffix', None) # suffix is always one of values above
         dataset = _load_tsv_variables(layout, t, dataset, scope=scope,
-                                      **kwargs)
+                                      regex_search=regex_search, **kwargs)
 
     return dataset
 
@@ -376,7 +377,8 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
 
 
 def _load_tsv_variables(layout, suffix, dataset=None, columns=None,
-                        prepend_type=False, scope='all', **selectors):
+                        prepend_type=False, scope='all', regex_search=None,
+                        **selectors):
     """Reads variables from scans.tsv, sessions.tsv, and participants.tsv.
 
     Parameters
@@ -407,6 +409,8 @@ def _load_tsv_variables(layout, suffix, dataset=None, columns=None,
     -------
     A NodeIndex instance.
     """
+    if regex_search is None:
+        regex_search = layout.regex_search
 
     # Sanitize the selectors: only keep entities at current level or above
     valid_entities_map = {
@@ -484,8 +488,8 @@ def _load_tsv_variables(layout, suffix, dataset=None, columns=None,
         comm_cols = list(set(_data.columns) & set(selectors.keys()))
         for col in comm_cols:
             vals = listify(selectors.get(col))
-            if layout.regex_search and any(isinstance(val, str) for val in vals):
-                ent_patts = '|'.join(make_patt(x, regex_search=True) for x in vals)
+            if regex_search and any(isinstance(val, str) for val in vals):
+                patt = '|'.join(make_patt(x, regex_search=True) for x in vals)
                 _data = _data[_data[col].str.contains(patt)]
             else:
                 _data = _data[_data[col].isin(vals)]
