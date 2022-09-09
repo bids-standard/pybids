@@ -54,8 +54,10 @@ def test_get_or_create_node(layout1):
 
 def test_get_nodes(layout1):
     index = load_variables(layout1, scan_length=480)
+    # scans.tsv
     nodes = index.get_nodes('session')
-    assert len(nodes) == 0
+    assert len(nodes) == 2
+    # participants.tsv
     nodes = index.get_nodes('dataset')
     assert len(nodes) == 1
     assert all([isinstance(n, Node) for n in nodes])
