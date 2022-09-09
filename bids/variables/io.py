@@ -71,7 +71,7 @@ def load_variables(layout, types=None, levels=None, skip_empty=True,
             lev_map = {
                 'run': ['events', 'physio', 'stim', 'regressors'],
                 'session': ['scans'],
-                'subject': ['sessions'],
+                'subject': ['sessions', 'scans'],
                 'dataset': ['participants']
             }
             [types.extend(lev_map[l.lower()]) for l in listify(levels)]
