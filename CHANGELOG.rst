@@ -1,6 +1,23 @@
 Changelog
 =========
 
+Version 0.15.3 (September 12, 2022)
+-----------------------------------
+
+Bug-fix release in 0.15.x series.
+
+* FIX: Test and update sync_kwargs class variable on transformations (#891)
+* FIX: Filtering of DM columns (#892)
+* ENH: Enable using participants.tsv, scans.tsv & session.tsv values as grouping variables (#894)
+* REF: Rename incoming single contrast column to intercept (#886)
+* DOC: Update references to nistats with references to nilearn in docs (#882)
+* TST: some sort of QA for derivatives' default_path_patterns (#879)
+* MNT: Update git submodules (#887)
+* MNT: Codespell errors (#885)
+* MNT: Update git submodules (#884)
+* MNT: Update git submodules (#883)
+* CI: Update actions versions (#897)
+
 Version 0.15.2 (July 25, 2022)
 ------------------------------
 
