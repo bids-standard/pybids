@@ -128,6 +128,9 @@ class Transformation(metaclass=ABCMeta):
             for k, v in self.kwargs.items():
                 if not isinstance(v, list):
                     self.kwargs[k] = [v] * len(self.variables)
+                elif not len(self.kwargs[k]) == len(self.variables):
+                    raise ValueError("Length of {} must match length of "
+                                     "variables".format(k))
 
         # Expand any detected variable group names or wild cards
         self._expand_variable_groups()
