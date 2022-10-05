@@ -343,6 +343,13 @@ class BIDSStatsModelsNode:
         entities = [obj.entities for obj in objects]
         df = pd.DataFrame.from_records(entities)
 
+        # Separate BIDSVariableCollections
+        collections = [obj.to_df() for obj in objects if type(obj) == BIDSVariableCollection]
+        if collections:
+            metadata_vars = reduce(pd.DataFrame.merge, collections)
+            on_vars = list({'subject', 'session', 'run'} & set(metadata_vars.columns))
+            df = df.merge(metadata_vars, how='left', on=on_vars)
+
         # Single-run tasks and single-session subjects may not have entities
         dummy_groups = {"run", "session"} - set(df.columns)
         group_by = set(group_by) - dummy_groups
@@ -587,6 +594,19 @@ class BIDSStatsModelsNodeOutput:
 
         var_names = list(self.node.model['x'])
 
+        # If dummy coded condition columns needed, generate and concat
+        if inputs:
+            dummy_df = pd.get_dummies(df['contrast'])
+            dummies_needed = set(var_names).intersection(dummy_df)
+            if dummies_needed:
+                df = pd.concat([df, dummy_df[dummies_needed]], axis=1)
+
+        # If a single incoming contrast, keep track of name
+        if 'contrast' in df.columns and df['contrast'].nunique() == 1:
+            unique_in_contrast = df['contrast'].unique()[0]
+        else:
+            unique_in_contrast = None
+
         # Handle the special 1 construct.
         # Add column of 1's to the design matrix called "intercept" 
         if 1 in var_names:
@@ -596,12 +616,6 @@ class BIDSStatsModelsNodeOutput:
             var_names = ['intercept' if i == 1 else i for i in var_names]
             if 'intercept' not in df.columns:
                 df.insert(0, 'intercept', 1)
-
-        # If a single incoming contrast
-        if ('contrast' in df.columns and df['contrast'].nunique() == 1):
-            unique_in_contrast = df['contrast'].unique()[0]
-        else:
-            unique_in_contrast = None
 
         var_names = expand_wildcards(var_names, df.columns)
 
@@ -670,15 +684,9 @@ class BIDSStatsModelsNodeOutput:
 
     def _inputs_to_df(self, inputs):
         # Convert the inputs to a DataFrame and add to list. Each row is
-        # an input; each column is either an entity or a contrast name from
-        # the previous level.
-        if inputs:
-            rows = [{**con.entities, 'contrast': con.name} for con in inputs]
-            input_df = pd.DataFrame.from_records(rows)
-            for i, con in enumerate(inputs):
-                if con.name not in input_df.columns:
-                    input_df.loc[:, con.name] = 0
-                input_df.loc[input_df.index[i], con.name] = 1
+        # an input; each column is an entity
+        rows = [{**con.entities, 'contrast': con.name} for con in inputs]
+        input_df = pd.DataFrame.from_records(rows)
         return input_df
 
     def _build_contrasts(self, unique_in_contrast=None):

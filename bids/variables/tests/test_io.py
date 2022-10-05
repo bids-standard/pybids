@@ -56,7 +56,7 @@ def test_load_participants(layout1):
     assert age.index.shape == (16, 2)
     assert age.values.shape == (16,)
 
-    index = load_variables(layout1, types='participants', subject=['^1.*'])
+    index = load_variables(layout1, types='participants', subject=['^1.*'], regex_search=True)
     age = index.get_nodes(level='dataset')[0].variables['age']
     assert age.index.shape == (7, 2)
     assert age.values.shape == (7,)

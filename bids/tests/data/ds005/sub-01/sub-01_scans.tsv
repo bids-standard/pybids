@@ -1,0 +1,6 @@
+filename	acq_time	meanRT
+anat/sub-01_T1w.nii.gz	1880-01-10T05:17:54	n/a
+dwi/sub-01_dwi.nii.gz	1880-01-10T05:18:54	n/a
+func/sub-01_task-mixedgamblestask_run-01_bold.nii.gz	1880-01-10T05:22:54	0.4
+func/sub-01_task-mixedgamblestask_run-02_bold.nii.gz	1880-01-10T05:37:54	0.5
+func/sub-01_task-mixedgamblestask_run-03_bold.nii.gz	1880-01-10T05:52:54	0.3

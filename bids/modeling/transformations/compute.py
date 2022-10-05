@@ -37,11 +37,12 @@ class Convolve(Transformation):
 
     Notes
     -----
-    Uses the HRF convolution functions implemented in nistats.
+    Uses the HRF convolution functions implemented in nilearn.
     """
     _groupable = False
     _input_type = 'variable'
     _return_type = 'variable'
+    _sync_kwargs = False
 
     def _transform(self, var, model='spm', derivative=False, dispersion=False,
                    fir_delays=None):
@@ -117,6 +118,7 @@ class Orthogonalize(Transformation):
     _densify = ('variables', 'other')
     _aligned_required = 'force_dense'
     _aligned_variables = ('other')
+    _sync_kwargs = False
 
     def _transform(self, var, other):
 
@@ -260,6 +262,7 @@ class And_(Transformation):
     _groupable = False
     _output_required = True
     _aligned_required = True
+    _sync_kwargs = False
 
     def _transform(self, dfs):
         df = pd.concat(dfs, axis=1, sort=True)
@@ -277,6 +280,7 @@ class Not(Transformation):
 
     _loopable = True
     _groupable = False
+    sync_kwargs = False
 
     def _transform(self, var):
         return ~var.astype(bool)
@@ -295,6 +299,7 @@ class Or_(Transformation):
     _groupable = False
     _output_required = True
     _aligned_required = True
+    sync_kwargs = False
 
     def _transform(self, dfs):
         df = pd.concat(dfs, axis=1, sort=True)

@@ -52,14 +52,14 @@
       "orcid": "0000-0002-9794-749X"
     },
     {
-      "affiliation": "University of Iowa",
-      "name": "Johnson, Hans",
-      "orcid": "0000-0001-9513-2660"
-    },
-    {
       "affiliation": "Université catholique de Louvain",
       "name": "Gau, Remi",
       "orcid": "0000-0002-1535-9767"
+    },
+    {
+      "affiliation": "University of Iowa",
+      "name": "Johnson, Hans",
+      "orcid": "0000-0001-9513-2660"
     },
     {
       "name": "Kalenkovich, Evgenii",
@@ -75,6 +75,11 @@
       "orcid": "0000-0003-4613-6643"
     },
     {
+      "affiliation": "University of Texas at Austin",
+      "orcid": "0000-0002-4892-2659",
+      "name": "James Kent"
+    },
+    {
       "affiliation": "Neuroscience Program, University of Iowa",
       "name": "Kent, James D.",
       "orcid": "0000-0002-4892-2659"
@@ -83,11 +88,6 @@
       "affiliation": "Center for Adaptive Rationality, Max Planck Institute for Human Development, Berlin, Germany",
       "name": "Appelhoff, Stefan",
       "orcid": "0000-0001-8002-0877"
-    },
-    {
-      "affiliation": "University of Texas at Austin",
-      "orcid": "0000-0002-4892-2659",
-      "name": "James Kent"
     },
     {
       "affiliation": "Department of Psychology, Stanford University",
@@ -213,6 +213,9 @@
       "orcid": "0000-0002-0926-3531"
     },
     {
+      "name": "Thual, Alexis"
+    },
+    {
       "affiliation": "Berkeley Institute for Data Science; University of California at Berkeley",
       "name": "Holdgraf, Chris",
       "orcid": "0000-0002-2391-0678"
@@ -250,6 +253,11 @@
       "affiliation": "Centre for Addiction and Mental Health, University of Toronto, Canada",
       "name": "Dickie, Erin W",
       "orcid": "0000-0003-3028-9864"
+    },
+    {
+      "affiliation": "Sagol School of Neuroscience, Tel Aviv University",
+      "name": "Ben-Zvi, Gal",
+      "orcid": "0000-0002-5655-9423"
     },
     {
       "affiliation": "NIMH IRP",

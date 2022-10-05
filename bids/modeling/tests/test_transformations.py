@@ -56,6 +56,19 @@ def sparse_run_variable_with_missing_values():
     return BIDSRunVariableCollection([var])
 
 
+def test_convolve_multi(collection):
+    # Just tests that we can convolve multiple arguments with one model
+    output_names = ['unique_name', 'another_unique_name']
+    transform.Convolve(
+        collection,
+        ['parametric gain', 'loss'],
+        output=output_names,
+        model='spm'
+    )
+
+    assert set(output_names).issubset(collection.variables)
+
+
 def test_convolve(collection):
     rt = collection.variables['RT']
     transform.Convolve(collection, ['RT'], output=['reaction_time'])
@@ -76,7 +89,7 @@ def test_convolve(collection):
         collection.variables['rt_dense_derivative'].values.shape[0] == \
         rt.get_duration() * collection.sampling_rate
 
-    # Test adapative oversampling computation
+    # Test adaptive oversampling computation
     # Events are 3s duration events every 4s, so resolution demanded by the data is 1Hz
     # To resolve 1Hz frequencies, we must sample at >=2Hz
     args = (mock.ANY, 'spm', mock.ANY)
