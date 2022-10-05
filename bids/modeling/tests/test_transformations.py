@@ -170,7 +170,8 @@ def test_sum(collection):
 
 def test_scale(collection, sparse_run_variable_with_missing_values):
     transform.Scale(collection, variables=['RT', 'parametric gain'],
-                    output=['RT_Z', 'gain_Z'], groupby=['run', 'subject'])
+                    output=['RT_Z', 'gain_Z'], groupby=['run', 'subject'], 
+                    rescale=True)
     groupby = collection['RT'].get_grouper(['run', 'subject'])
     z1 = collection['RT_Z'].values
     z2 = collection['RT'].values.groupby(
