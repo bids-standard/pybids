@@ -122,11 +122,15 @@ class Transformation(metaclass=ABCMeta):
                 # 'variables'
                 kwargs[arg_spec.args[2 + i]] = arg_val
 
+        self.kwargs = kwargs
         # listify kwargs if synced
         if self._sync_kwargs:
-            self.kwargs = {k: listify(v) for k, v in kwargs.items()}
-        else:
-            self.kwargs = kwargs
+            for k, v in self.kwargs.items():
+                if not isinstance(v, list):
+                    self.kwargs[k] = [v] * len(self.variables)
+                elif not len(self.kwargs[k]) == len(self.variables):
+                    raise ValueError("Length of {} must match length of "
+                                     "variables".format(k))
 
         # Expand any detected variable group names or wild cards
         self._expand_variable_groups()
