@@ -705,7 +705,7 @@ class BIDSStatsModelsNodeOutput:
         if dummies:
             if {'conditions', 'condition_list'} & set(dummies):
                 warnings.warn(
-                    "Use 'Contrasts' not 'Conditions' or 'ConditionsList' to specify"
+                    "Use 'Contrasts' not 'Conditions' or 'ConditionList' to specify"
                     "DummyContrasts. Renaming to 'Contrasts' for now.")
                 dummies['contrasts'] = dummies.pop('conditions', None) or dummies.pop('condition_list', None)
 
