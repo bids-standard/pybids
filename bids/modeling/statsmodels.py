@@ -703,7 +703,7 @@ class BIDSStatsModelsNodeOutput:
         # Create dummy contrasts as regular contrasts
         dummies = self.node.dummy_contrasts
         if dummies:
-            if {'conditions', 'condition_list'} & set(dummies.keys()):
+            if {'conditions', 'condition_list'} & set(dummies):
                 warnings.warn(
                     "Use 'Contrasts' not 'Conditions' or 'ConditionsList' to specify"
                     "DummyContrasts. Renaming to 'Contrasts' for now.")
