@@ -1,6 +1,15 @@
 Changelog
 =========
 
+Version 0.15.4 (October 08, 2022)
+---------------------------------
+
+Bug-fix release in 0.15.x series.
+
+* FIX: Use 'contrasts' in DummyContrasts, not 'condition_list' (#902)
+* FIX: Transformations: sync_kwargs, for non-list arguments, listify by variable length (#901)
+* CI: Update actions versions (#899)
+
 Version 0.15.3 (September 12, 2022)
 -----------------------------------
 
