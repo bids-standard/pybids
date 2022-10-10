@@ -15,7 +15,7 @@ from bids.layout import BIDSLayout
 from bids.utils import matches_entities, convert_JSON, listify
 from bids.variables import (BIDSVariableCollection, merge_collections)
 from bids.modeling import transformations as tm
-from .model_spec import create_model_spec
+from .model_spec import GLMMSpec, MetaAnalysisSpec
 import warnings
 
 
@@ -575,7 +575,10 @@ class BIDSStatsModelsNodeOutput:
     """
     def __init__(self, node, entities={}, collections=None, inputs=None,
                  force_dense=True, sampling_rate='TR', invalid_contrasts='drop'):
-
+        """Initialize a new BIDSStatsModelsNodeOutput instance.
+        Applies the node's model to the specified collections and inputs, including
+        applying transformations and generating final model specs and design matrices (X).
+        """
         collections = collections or []
         inputs = inputs or []
 
@@ -585,6 +588,7 @@ class BIDSStatsModelsNodeOutput:
         self.sampling_rate = sampling_rate
         self.invalid_contrasts = invalid_contrasts
 
+        # Apply transformations and convert collections to single DF
         dfs = self._collections_to_dfs(collections)
 
         if inputs:
@@ -592,9 +596,8 @@ class BIDSStatsModelsNodeOutput:
 
         df = reduce(pd.DataFrame.merge, dfs)
 
-        var_names = list(self.node.model['x'])
-
         # If dummy coded condition columns needed, generate and concat
+        var_names = list(self.node.model['x'])
         if inputs:
             dummy_df = pd.get_dummies(df['contrast'])
             dummies_needed = set(var_names).intersection(dummy_df)
@@ -629,8 +632,13 @@ class BIDSStatsModelsNodeOutput:
         self.data = df.loc[:, var_names]
         self.metadata = df.loc[:, df.columns.difference(var_names)]
 
-        # Create ModelSpec and build contrasts
-        self.model_spec = create_model_spec(self.data, node.model, self.metadata)
+        # create ModelSpec and build contrasts
+        kind = node.model.get('type', 'glm').lower()
+        SpecCls = {
+            'glm': GLMMSpec,
+            'meta': MetaAnalysisSpec,
+        }[kind]
+        self.model_spec = SpecCls.from_df(self.data, node.model, self.metadata)
         self.contrasts = self._build_contrasts(unique_in_contrast)
 
     def _collections_to_dfs(self, collections):
