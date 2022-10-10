@@ -26,6 +26,9 @@ class BIDSVariable(metaclass=ABCMeta):
         self.source = source
         self.entities = self._extract_entities()
 
+    def __repr__(self):
+        return f"<{self.__class__.__name__}(name='{self.name}', source='{self.source}')>"
+
     def clone(self, data=None, **kwargs):
         """Clone (deep copy) the current column, optionally replacing its
         data and/or any other attributes.

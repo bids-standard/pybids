@@ -88,6 +88,9 @@ s
         if Z is not None:
             self.build_variance_components(Z, groups, sigma)
 
+    def __repr__(self):
+        return f"<{self.__class__.__name__}{self.X.columns.tolist()}'>"
+
     def set_priors(self, fixed=None, random=None):
         raise NotImplementedError("Custom prior use hasn't been implemented yet.")
 
