@@ -99,7 +99,7 @@ class BIDSStatsModelsGraph:
         self._root_node = self.model.get('root', list(self.nodes.values())[0])
 
     def __repr__(self):
-        return f"<{self.__class__.__name__}[{{name: '{self.model['name']}', 'description': '{self.model['description']}', ... }}]>"
+        return f"<{self.__class__.__name__}[{{name='{self.model['name']}', 'description'='{self.model['description']}', ... }}]>"
 
     def __getitem__(self, key):
         '''Alias for get_node(key).'''
