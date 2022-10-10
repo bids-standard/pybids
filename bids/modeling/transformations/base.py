@@ -6,6 +6,7 @@ from abc import ABCMeta, abstractmethod
 from copy import deepcopy
 import itertools
 import inspect
+from dataclasses import dataclass
 
 import numpy as np
 import pandas as pd
@@ -13,6 +14,7 @@ import pandas as pd
 from bids.utils import listify, convert_JSON
 from bids.variables import SparseRunVariable
 from bids.modeling import transformations as pbt
+from bids.variables.collections import BIDSVariableCollection
 
 
 class Transformation(metaclass=ABCMeta):
@@ -415,6 +417,14 @@ class Transformation(metaclass=ABCMeta):
         else:
             _align(listify(variables) + _aligned_variables)
 
+@dataclass
+class TransformationOutput:
+    index: int
+    output: BIDSVariableCollection
+    transformation_name: str
+    transformation_kwargs: dict
+    input_cols: list
+    level: str
 
 class TransformerManager(object):
     """Handles registration and application of transformations to
@@ -477,9 +487,9 @@ class TransformerManager(object):
             List of transformations to apply.
         """
         if self.keep_history:
-            self.history_ = [collection.clone()]
+            self.history_ = []
 
-        for t in transformations:
+        for ix, t in enumerate(transformations):
             t = convert_JSON(t) # make sure all keys are snake case
             kwargs = dict(t)
             name = self._sanitize_name(kwargs.pop('name'))
@@ -499,6 +509,15 @@ class TransformerManager(object):
 
                 # Take snapshot of collection after transformation
                 if self.keep_history:
-                    self.history_.append(collection.clone())
+                    self.history_.append(
+                        TransformationOutput(
+                            index=ix+1,
+                            output=collection.clone(),
+                            transformation_name=name,
+                            transformation_kwargs=kwargs,
+                            input_cols=cols,
+                            level=collection.level
+                        )
+                    )
 
         return collection

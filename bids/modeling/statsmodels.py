@@ -572,13 +572,13 @@ class BIDSStatsModelsNodeOutput:
             * 'drop' (default): Drop invalid contrasts, retain the rest.
             * 'ignore': Keep invalid contrasts despite the missing variables.
             * 'error': Raise an error.
-    collection_history: bool
+    transformation_history: bool
         If True, the returned ModelSpec instances will include a history of
         variable collections after each transformation.
     """
     def __init__(self, node, entities={}, collections=None, inputs=None,
                  force_dense=True, sampling_rate='TR', invalid_contrasts='drop',
-                 collection_history=True):
+                 transformation_history=True):
         """Initialize a new BIDSStatsModelsNodeOutput instance.
         Applies the node's model to the specified collections and inputs, including
         applying transformations and generating final model specs and design matrices (X).
@@ -594,7 +594,7 @@ class BIDSStatsModelsNodeOutput:
         self.coll_hist = None
 
         # Apply transformations and convert collections to single DF
-        dfs = self._collections_to_dfs(collections, collection_history=collection_history)
+        dfs = self._collections_to_dfs(collections, collection_history=transformation_history)
 
         if inputs:
             dfs.append(self._inputs_to_df(inputs))
@@ -658,7 +658,7 @@ class BIDSStatsModelsNodeOutput:
         var_names = list(set(self.node.model['x']) - {1})
 
         grp_dfs = []
-        coll_hist = {}
+        trans_hist = []
         # merge all collections at each level and export to a DataFrame
         for level, colls in coll_levels.items():
 
@@ -678,7 +678,7 @@ class BIDSStatsModelsNodeOutput:
                 coll = transformer.transform(coll.clone(), transformations['instructions'])
                 
                 if hasattr(transformer, 'history_'):
-                    coll_hist[level] = transformer.history_
+                    trans_hist += transformer.history_
 
             # Take the intersection of variables and Model.X (var_names), ignoring missing
             # variables (usually contrasts)
@@ -699,7 +699,7 @@ class BIDSStatsModelsNodeOutput:
             grp_dfs.append(coll)
 
         if collection_history:
-            self.coll_hist = coll_hist
+            self.trans_hist = trans_hist
 
         return grp_dfs
 
