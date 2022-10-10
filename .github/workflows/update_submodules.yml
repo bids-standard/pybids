@@ -98,7 +98,7 @@ jobs:
       # a PR is created using the checkout branch for this workflow
       # https://github.com/peter-evans/create-pull-request
       - name: Create Pull-Request
-        uses: peter-evans/create-pull-request@v3
+        uses: peter-evans/create-pull-request@v4
         with:
           commit-message: Update submodules
           delete-branch: true
