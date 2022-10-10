@@ -572,9 +572,13 @@ class BIDSStatsModelsNodeOutput:
             * 'drop' (default): Drop invalid contrasts, retain the rest.
             * 'ignore': Keep invalid contrasts despite the missing variables.
             * 'error': Raise an error.
+    collection_history: bool
+        If True, the returned ModelSpec instances will include a history of
+        variable collections after each transformation.
     """
     def __init__(self, node, entities={}, collections=None, inputs=None,
-                 force_dense=True, sampling_rate='TR', invalid_contrasts='drop'):
+                 force_dense=True, sampling_rate='TR', invalid_contrasts='drop',
+                 collection_history=True):
         """Initialize a new BIDSStatsModelsNodeOutput instance.
         Applies the node's model to the specified collections and inputs, including
         applying transformations and generating final model specs and design matrices (X).
@@ -587,9 +591,10 @@ class BIDSStatsModelsNodeOutput:
         self.force_dense = force_dense
         self.sampling_rate = sampling_rate
         self.invalid_contrasts = invalid_contrasts
+        self.coll_hist = None
 
         # Apply transformations and convert collections to single DF
-        dfs = self._collections_to_dfs(collections)
+        dfs = self._collections_to_dfs(collections, collection_history=collection_history)
 
         if inputs:
             dfs.append(self._inputs_to_df(inputs))
@@ -641,7 +646,7 @@ class BIDSStatsModelsNodeOutput:
         self.model_spec = SpecCls.from_df(self.data, node.model, self.metadata)
         self.contrasts = self._build_contrasts(unique_in_contrast)
 
-    def _collections_to_dfs(self, collections):
+    def _collections_to_dfs(self, collections, collection_history=True):
         """Merges collections and converts them to a pandas DataFrame."""
         if not collections:
             return []
@@ -653,6 +658,7 @@ class BIDSStatsModelsNodeOutput:
         var_names = list(set(self.node.model['x']) - {1})
 
         grp_dfs = []
+        coll_hist = {}
         # merge all collections at each level and export to a DataFrame
         for level, colls in coll_levels.items():
 
@@ -667,8 +673,12 @@ class BIDSStatsModelsNodeOutput:
             # apply transformations
             transformations = self.node.transformations
             if transformations:
-                transformer = tm.TransformerManager(transformations['transformer'])
+                transformer = tm.TransformerManager(
+                    transformations['transformer'], keep_history=collection_history)
                 coll = transformer.transform(coll.clone(), transformations['instructions'])
+                
+                if hasattr(transformer, 'history_'):
+                    coll_hist[level] = transformer.history_
 
             # Take the intersection of variables and Model.X (var_names), ignoring missing
             # variables (usually contrasts)
@@ -687,6 +697,9 @@ class BIDSStatsModelsNodeOutput:
             else:
                 coll = coll.to_df()
             grp_dfs.append(coll)
+
+        if collection_history:
+            self.coll_hist = coll_hist
 
         return grp_dfs
 

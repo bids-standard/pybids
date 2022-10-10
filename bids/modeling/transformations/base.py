@@ -427,14 +427,18 @@ class TransformerManager(object):
             attributes. Any named transformation not explicitly registered on
             the TransformerManager instance is expected to be found here.
             If None, the PyBIDS transformations module is used.
+    keep_history: bool
+        Whether to keep snapshots variable after a transformation is applied.
+        If True, a list of collections will be stored in the ``history_`` attribute.
     """
 
-    def __init__(self, default=None):
+    def __init__(self, default=None, keep_history=True):
         self.transformations = {}
         if default in (None, "pybids-transforms-v1"):
             # Default to PyBIDS transformations
             default = pbt
         self.default = default
+        self.keep_history = keep_history
 
     def _sanitize_name(self, name):
         """ Replace any invalid/reserved transformation names with acceptable
@@ -472,6 +476,9 @@ class TransformerManager(object):
         transformations : list
             List of transformations to apply.
         """
+        if self.keep_history:
+            self.history_ = [collection.clone()]
+
         for t in transformations:
             t = convert_JSON(t) # make sure all keys are snake case
             kwargs = dict(t)
@@ -486,5 +493,12 @@ class TransformerManager(object):
                                      "explicitly register a handler, or pass a"
                                      " default module that supports it." % name)
                 func = getattr(self.default, name)
+
+                # Apply the transformation
                 func(collection, cols, **kwargs)
+
+                # Take snapshot of collection after transformation
+                if self.keep_history:
+                    self.history_.append(collection.clone())
+
         return collection
