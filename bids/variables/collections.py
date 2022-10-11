@@ -305,7 +305,7 @@ class BIDSVariableCollection(object):
         return results
 
     def __repr__(self):
-        return f"<{self.__class__.__name__}{list(self.variables.keys())}>"
+        return f"<{self.__class__.__name__}{sorted(list(self.variables.keys()))}>"
 
 
 class BIDSRunVariableCollection(BIDSVariableCollection):
