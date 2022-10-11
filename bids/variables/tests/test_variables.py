@@ -44,6 +44,7 @@ def test_dense_event_variable_init():
     assert dev.run_info[0].duration == 480
     assert dev.source == 'dummy'
     assert len(dev.values) == len(dev.index)
+    assert dev.__repr__() == "<DenseRunVariable(name='test', source='dummy')>"
 
 
 def test_dense_event_variable_resample():
