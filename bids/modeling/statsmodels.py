@@ -98,6 +98,9 @@ class BIDSStatsModelsGraph:
         self.edges = self._load_edges(self.model, self.nodes)
         self._root_node = self.model.get('root', list(self.nodes.values())[0])
 
+    def __repr__(self):
+        return f"<{self.__class__.__name__}[{{name='{self.model['name']}', description='{self.model['description']}', ... }}]>"
+
     def __getitem__(self, key):
         '''Alias for get_node(key).'''
         return self.get_node(key)
@@ -295,7 +298,7 @@ class BIDSStatsModelsNode:
             pass
 
     def __repr__(self):
-        return f"<{self.__class__.__name__}[{self.level}] {self.name}>"
+        return f"<{self.__class__.__name__}(level={self.level}, name={self.name})>"
 
     @staticmethod
     def _build_groups(objects, group_by):
@@ -770,3 +773,6 @@ class BIDSStatsModelsNodeOutput:
     def X(self):
         """Return design matrix via the current ModelSpec."""
         return self.model_spec.X
+
+    def __repr__(self):
+        return f"<{self.__class__.__name__}(level={self.node.name}, entities={self.entities})>"
