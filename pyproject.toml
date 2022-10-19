@@ -1,2 +1,48 @@
 [build-system]
-requires = ["setuptools >= 30.3.0, != 61.0.0", "wheel"]
+requires = ["setuptools", "versioneer[toml]"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pybids"
+description = "bids: interface with datasets conforming to BIDS"
+readme = "README.md"
+requires-python = ">=3.7"
+license = { file="LICENSE" }
+authors = [
+  { name = "PyBIDS Developers", email = "bids-discussion@googlegroups.com" },
+]
+keywords = ["BIDS", "neuroimaging"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Environment :: Console",
+  "Intended Audience :: Science/Research",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python",
+  "Topic :: Scientific/Engineering",
+]
+dependencies = [
+  "numpy",
+  "scipy",
+  "nibabel >=2.1",
+  "pandas >=0.23",
+  "formulaic >=0.2.4, <0.6",  # Tested on 0.2.4-0.5.2
+  "sqlalchemy <1.4.0.dev0",
+  "bids-validator",
+  "num2words",
+  "click >=8.0",
+]
+dynamic = ["version"]
+
+[project.urls]
+Homepage = "http://github.com/bids-standard/pybids"
+"Bug Tracker" = "http://github.com/bids-standard/pybids/issues"
+
+[project.scripts]
+pybids = "bids.cli:cli"
+
+[tool.versioneer]
+VCS = "git"
+style = "pep440-pre"
+versionfile_source = "bids/_version.py"
+versionfile_build = "bids/_version.py"
