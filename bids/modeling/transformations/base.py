@@ -487,7 +487,16 @@ class TransformerManager(object):
             List of transformations to apply.
         """
         if self.keep_history:
-            self.history_ = []
+            self.history_ = [
+                TransformationOutput(
+                    index=0,
+                    output=collection.clone(),
+                    transformation_name=None,
+                    transformation_kwargs=None,
+                    input_cols=None,
+                    level=None
+                )
+            ]
 
         for ix, t in enumerate(transformations):
             t = convert_JSON(t) # make sure all keys are snake case
