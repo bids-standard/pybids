@@ -581,7 +581,7 @@ class BIDSStatsModelsNodeOutput:
     """
     def __init__(self, node, entities={}, collections=None, inputs=None,
                  force_dense=True, sampling_rate='TR', invalid_contrasts='drop',
-                 transformation_history=True):
+                 *, transformation_history=False):
         """Initialize a new BIDSStatsModelsNodeOutput instance.
         Applies the node's model to the specified collections and inputs, including
         applying transformations and generating final model specs and design matrices (X).
