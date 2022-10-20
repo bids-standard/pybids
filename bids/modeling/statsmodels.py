@@ -399,7 +399,8 @@ class BIDSStatsModelsNode:
         return groups
 
     def run(self, inputs=None, group_by=None, force_dense=True,
-              sampling_rate='TR', invalid_contrasts='drop', **filters):
+              sampling_rate='TR', invalid_contrasts='drop', 
+              transformation_history=False, **filters):
         """Execute node with provided inputs.
 
         Parameters
@@ -436,6 +437,9 @@ class BIDSStatsModelsNode:
                 * 'drop' (default): Drop invalid contrasts, retain the rest.
                 * 'ignore': Keep invalid contrasts despite the missing variables.
                 * 'error': Raise an error.
+        transformation_history: bool
+            If True, the returned ModelSpec instances will include a history of
+            variable collections after each transformation.
         filters: dict
             Optional keyword arguments used to constrain the subset of the data
             that's processed. E.g., passing subject='01' will process and
@@ -474,7 +478,8 @@ class BIDSStatsModelsNode:
             node_output = BIDSStatsModelsNodeOutput(
                 node=self, entities=dict(grp_ents), collections=grp_colls,
                 inputs=grp_inputs, force_dense=force_dense,
-                sampling_rate=sampling_rate, invalid_contrasts=invalid_contrasts)
+                sampling_rate=sampling_rate, invalid_contrasts=invalid_contrasts,
+                transformation_history=transformation_history)
             results.append(node_output)
 
         return results
@@ -672,6 +677,8 @@ class BIDSStatsModelsNodeOutput:
             # in the model section already exist; some might be created by the
             # transformations.
             coll = merge_collections(colls)
+
+
 
             # apply transformations
             transformations = self.node.transformations
