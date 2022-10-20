@@ -11,7 +11,7 @@ kernelspec:
   name: python3
 ---
 
-# Writing methods reports with `pybids`
+# Writing methods reports with `pybids.reports`
 
 This tutorial 
 

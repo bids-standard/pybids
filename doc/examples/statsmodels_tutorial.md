@@ -11,7 +11,7 @@ kernelspec:
   name: python3
 ---
 
-## PyBIDS BIDS-StatsModels tutorial
+## Executing and inspecting StatsModels with `pybids.modeling`
 A minimalistic tutorial illustrating usage of the tools in the `bids.modeling` module—most notably, `BIDSStatsModelsGraph` and its various components.
 
 ```{code-cell} ipython3
@@ -228,7 +228,7 @@ sess_outputs[0].contrasts
 # Concatenate the X and metadata DFs for easy reading.
 # Note that only the first column is actually part of the
 # design matrix; the others are just metadata.
-pd.concat([sess_outputs[0].X, sess_specs[0].metadata], axis=1)
+pd.concat([sess_outputs[0].X, sess_outputs[0].metadata], axis=1)
 ```
 
 Notice how the entities differ: the run-level node grouped on `run` and `subject`; the subject-level node groups on `subject` and `contrast`. The number of outputs is identical in both cases, but this is just an (un)happy accident, not a general principle. You can verify this for yourself by re-running the subject-level node with a different grouping (e.g., only `['subject']`).

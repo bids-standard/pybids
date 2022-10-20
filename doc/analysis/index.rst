@@ -1,4 +1,4 @@
-.. _reports:
+.. _analysis:
 
 =====================================================
 ``analysis``: Model specification for BIDS datasets
@@ -37,7 +37,7 @@ What pybids.modeling will do for you is automatically handle the loading and
 transformation of all variables, and the construction of design matrices and
 contrasts.
 
-.. _BIDS Models specification: https://docs.google.com/document/d/1bq5eNDHTb6Nkx3WUiOBgKvLNnaa5OMcGtD0AZ9yms2M/edit#heading=h.mqkmyp254xh6
+.. _BIDS Models specification: https://bids-standard.github.io/model-zoo/
 .. _nilearn: https://nilearn.github.io
 .. _AfNI: https://afni.nimh.nih.gov
 .. _FSL: https://fsl.fmrib.ox.ac.uk/fsl/fslwiki/
@@ -65,4 +65,4 @@ JSON specification in ``model.json``.
 
 .. note::
 
-    For a more detailed set of examples, please refer to the `tutorial <https://github.com/bids-standard/pybids/blob/0.14.0/examples/statsmodels_tutorial.ipynb>`_
+    For a more detailed example, please refer to the `tutorial <https://github.com/bids-standard/pybids/blob/0.14.0/examples/statsmodels_tutorial.ipynb>`_
