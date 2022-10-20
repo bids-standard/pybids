@@ -6,7 +6,7 @@ jupytext:
     format_version: 0.13
     jupytext_version: 1.14.1
 kernelspec:
-  display_name: Python 3
+  display_name: Python 3 (ipykernel)
   language: python
   name: python3
 ---
@@ -59,6 +59,29 @@ Now that the graph is loaded, we can start interacting with its nodes. We'll typ
 root_node = graph.root_node
 ```
 
+### Inspect `BIDSVariableCollection`
+
++++
+
+We can take a look at the original variables available for each node prior to running the node (i.e. applying any transformations)
+
+```{code-cell} ipython3
+colls = root_node.get_collections()
+first_sub = colls[0] # Collection for the first subject / run 
+```
+
+```{code-cell} ipython3
+first_sub.to_df(entities=False)
+```
+
+Note that by default `to_df` combines both sparse and dense variables. 
+
+We can take a look at the individual variable objects as well:
+
+```{code-cell} ipython3
+first_sub.variables
+```
+
 ### Executing a node
 We can "run" each node to produce design matrices for each unique combination of entities/inputs we want. This is determined by the grouping structure. When working with the API directly, this is indicated via the `group_by` argument to a `.run()` method. In this case, we're indicating that the design information should be set up separately for every unique combination of `run` and `subject`.
 
@@ -68,7 +91,7 @@ Note that we need to include `subject` even though this is a strictly run-level 
 # force_dense controls whether the output for run-level design matrices
 # will be resampled to a uniform "dense" representation, or left alone
 # as a sparse representation if possible.
-specs = root_node.run(group_by=['run', 'subject'], force_dense=False)
+outputs = root_node.run(group_by=['run', 'subject'], force_dense=False, transformation_history=True)
 ```
 
 ### Node outputs
@@ -78,25 +101,30 @@ specs = root_node.run(group_by=['run', 'subject'], force_dense=False)
 The result is a list of objects of type `BIDSStatsModelsNodeOutput`. This is a lightweight container that stores design information and various other useful pieces of information. There should one element in the list for each unique combination of the grouping variables (in this case, run and subject):
 
 ```{code-cell} ipython3
-len(specs)
+len(outputs)
+```
+
+```{code-cell} ipython3
+# The first 10 `BIDSStatsModelsNodeOutput` objects
+outputs[:10]
 ```
 
 Let's take a closer look at the `BIDSStatsModelsNodeOutput`. First, we have an `.entities` attribute that tells us what levels of the grouping variables this output corresponds to:
 
 ```{code-cell} ipython3
-specs[0].entities
+outputs[0].entities
 ```
 
 Next, we can get the design matrix itself via the `.X` attribute:
 
 ```{code-cell} ipython3
-specs[0].X
+outputs[0].X
 ```
 
 Here we have a column for each of the contrasts specified in the model (with the same name as the contrast). We can access the contrasts too, via—you guessed it—`.contrasts`:
 
 ```{code-cell} ipython3
-specs[0].contrasts
+outputs[0].contrasts
 ```
 
 Each `ContrastInfo` is a named tuple with fields that map directly on the definition of contrasts in the BIDS-StatsModels specification. The only addition is the inclusion of an `.entities` field that stores a dictionary of the entities that identify what subset of our data the contrast applies to.
@@ -106,10 +134,14 @@ One thing you might be puzzled by, looking at the output of the `.X` call above,
 The answer is that `.X` contains *only* the actual values that go into the design matrix, and not any metadata—no matter how important. Fortunately, that metadata is available to us. It's conveniently stored in a `.metadata` attribute on the `BIDSStatsModelsNodeOutput` object.
 
 ```{code-cell} ipython3
-specs[0].metadata
+outputs[0].metadata
 ```
 
 There's a 1-to-1 mapping from rows in `.X` to rows in `.metadata`. This means you can, if you like, simply concatenate the two along the column axis to get one big DataFrame with everything. But by maintaining a default separation, it's made very clear to us which columns are properly a part of the design, and which contain additional metadata.
+
++++
+
+### Transformation History
 
 +++
 
