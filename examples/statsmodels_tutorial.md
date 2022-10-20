@@ -145,6 +145,39 @@ There's a 1-to-1 mapping from rows in `.X` to rows in `.metadata`. This means yo
 
 +++
 
+To generate the final design matrix, pybids applies all transformations specified in the model for that given run.
+
+However, it's often useful to look at the intermediary outputs from each transformation to perform sanity checks, such as previewing the variable prior to convolution.
+
+Optionally, you can run the `Node` with `transformation_history=True`, and the `BIDSStatsModelsNodeOutput` object will have a `trans_hist` attribute which is a list of intermediary outputs after every transformation
+
+```{code-cell} ipython3
+ts = outputs[0].trans_hist
+ts
+```
+
+The first item (index=0), is the original collection. We can access the `BIDSRunVariableCollection` using the output attribute:
+
+```{code-cell} ipython3
+ts[0].output
+```
+
+We can examine the full collection at each step using either a combined dataframe:
+
+```{code-cell} ipython3
+ts[1].output.to_df(entities=False)
+```
+
+Or examine individual variables in their native representation (e.g. `SparseRunVariable` or `DenseRunVariable`)
+
+```{code-cell} ipython3
+ts[1].output.variables
+```
+
+```{code-cell} ipython3
+ts[1].output.variables['RT'].to_df(entities=False)
+```
+
 ### Traversing the graph
 So far we've executed the root node, which by definition required no inputs from any previous node. But in typical workflows, we'll be passing outputs from one node in as inputs to another. For example, we often want to take the run-level parameter estimates and pass them to a subject-level model that does nothing but average over runs within each subject. This requires us to somehow traverse the graph based on the edges specified in the BIDS-StatsModel document. We can do that by taking advantage of each node's `.children` attribute, which contains a list of `BIDSStatsModelsEdge` named tuples that specify an edge between two nodes.
 
@@ -170,7 +203,7 @@ Let's concatenate the 48 outputs we got from the previous level and drop the las
 
 ```{code-cell} ipython3
 from itertools import chain
-contrasts = list(chain(*[s.contrasts for s in specs[:-2]]))
+contrasts = list(chain(*[s.contrasts for s in outputs[:-2]]))
 len(contrasts)
 ```
 
@@ -179,8 +212,8 @@ Notice that we're left we're 138 individual `ContrastInfo` objects. Why 138? Bec
 Now we can call `.run()` on our session-level node, passing in the contrasts as inputs. We want the model specification (i.e., the part in the `"Model"` section of the node) to be applied separately to each unique combination of `contrast`, `session`, and `subject`.
 
 ```{code-cell} ipython3
-sess_specs = next_node.run(contrasts, group_by=['subject', 'contrast'])
-len(sess_specs)
+sess_outputs = next_node.run(contrasts, group_by=['subject', 'contrast'])
+len(sess_outputs)
 ```
 
 Again we get back a list of `BIDSStatsModelsNodeOutput` objects. And again we have 48 of them. It might seem odd that we have the same number of outputs from a subject-level node as we had from the run-level node, but there's actually a difference. In the run-level case, our 48 results reflected 16 subjects x 3 runs. In the subject-level case, we *have* successfully aggregated over runs within each subject, but we now have 3 sets of contrasts producing outputs (i.e., 16 subjects x 3 contrasts).
@@ -188,14 +221,14 @@ Again we get back a list of `BIDSStatsModelsNodeOutput` objects. And again we ha
 This becomes clearer if we inspect the same attributes we looked at earlier:
 
 ```{code-cell} ipython3
-sess_specs[0].contrasts
+sess_outputs[0].contrasts
 ```
 
 ```{code-cell} ipython3
 # Concatenate the X and metadata DFs for easy reading.
 # Note that only the first column is actually part of the
 # design matrix; the others are just metadata.
-pd.concat([sess_specs[0].X, sess_specs[0].metadata], axis=1)
+pd.concat([sess_outputs[0].X, sess_specs[0].metadata], axis=1)
 ```
 
 Notice how the entities differ: the run-level node grouped on `run` and `subject`; the subject-level node groups on `subject` and `contrast`. The number of outputs is identical in both cases, but this is just an (un)happy accident, not a general principle. You can verify this for yourself by re-running the subject-level node with a different grouping (e.g., only `['subject']`).
