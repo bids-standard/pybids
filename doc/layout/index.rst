@@ -73,4 +73,4 @@ We can also extract metadata from the json files associated with a scan file::
 
 .. note::
 
-    For a more detailed set of examples, please refer to the `tutorial <https://github.com/bids-standard/pybids/blob/0.14.0/examples/pybids_tutorial.md>`_
+    For a more detailed set of examples, please refer to the  Tutorial: :doc:`/examples/pybids_tutorial`

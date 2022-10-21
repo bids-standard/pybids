@@ -65,4 +65,4 @@ JSON specification in ``model.json``.
 
 .. note::
 
-    For a more detailed example, please refer to the `tutorial <https://github.com/bids-standard/pybids/blob/0.14.0/examples/statsmodels_tutorial.ipynb>`_
+    For a more detailed example, please refer to the Tutorial: :doc:`/examples/statsmodels_tutorial`
