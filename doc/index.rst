@@ -15,9 +15,9 @@ Contents
    :maxdepth: 2
 
    user_guide.rst
+   examples/index.rst
    api.rst
    whats_new.rst
-
 
 Citing pybids
 =============
