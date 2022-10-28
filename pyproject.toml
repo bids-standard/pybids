@@ -34,6 +34,34 @@ dependencies = [
 ]
 dynamic = ["version"]
 
+[project.optional-dependencies]
+doc = [
+  "sphinx >=2.2, !=5.1.0",
+  "numpydoc",
+  "sphinx_rtd_theme",
+  "myst_nb",
+  "jupytext",
+]
+plotting = ["graphviz"]
+test = [
+  "pytest >=3.3",
+  "pytest-cov",
+  "bsmschema",
+  "coverage[toml]",
+]
+tutorial = [
+  "nbconvert",
+  "jinja2 <3",  # Required until nbconvert handles all deprecations/removals
+  "markupsafe <2.1",  # Required until we can upgrade jinja2
+  "jupyter_client",
+  "ipykernel",
+]
+ci_tests = ["pybids[test]", "codecov", "pytest-xdist"]
+# Aliases
+docs = ["pybids[doc]"]
+tests = ["pybids[test]"]
+dev = ["pybids[doc,test,plotting]"]
+
 [project.urls]
 Homepage = "http://github.com/bids-standard/pybids"
 "Bug Tracker" = "http://github.com/bids-standard/pybids/issues"
