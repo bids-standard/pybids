@@ -6,6 +6,7 @@ from abc import ABCMeta, abstractmethod
 from copy import deepcopy
 import itertools
 import inspect
+from dataclasses import dataclass
 
 import numpy as np
 import pandas as pd
@@ -13,6 +14,7 @@ import pandas as pd
 from bids.utils import listify, convert_JSON
 from bids.variables import SparseRunVariable
 from bids.modeling import transformations as pbt
+from bids.variables.collections import BIDSVariableCollection
 
 
 class Transformation(metaclass=ABCMeta):
@@ -415,6 +417,14 @@ class Transformation(metaclass=ABCMeta):
         else:
             _align(listify(variables) + _aligned_variables)
 
+@dataclass
+class TransformationOutput:
+    index: int
+    output: BIDSVariableCollection
+    transformation_name: str
+    transformation_kwargs: dict
+    input_cols: list
+    level: str
 
 class TransformerManager(object):
     """Handles registration and application of transformations to
@@ -427,14 +437,18 @@ class TransformerManager(object):
             attributes. Any named transformation not explicitly registered on
             the TransformerManager instance is expected to be found here.
             If None, the PyBIDS transformations module is used.
+    keep_history: bool
+        Whether to keep snapshots variable after a transformation is applied.
+        If True, a list of collections will be stored in the ``history_`` attribute.
     """
 
-    def __init__(self, default=None):
+    def __init__(self, default=None, keep_history=True):
         self.transformations = {}
         if default in (None, "pybids-transforms-v1"):
             # Default to PyBIDS transformations
             default = pbt
         self.default = default
+        self.keep_history = keep_history
 
     def _sanitize_name(self, name):
         """ Replace any invalid/reserved transformation names with acceptable
@@ -472,7 +486,19 @@ class TransformerManager(object):
         transformations : list
             List of transformations to apply.
         """
-        for t in transformations:
+        if self.keep_history:
+            self.history_ = [
+                TransformationOutput(
+                    index=0,
+                    output=collection.clone(),
+                    transformation_name=None,
+                    transformation_kwargs=None,
+                    input_cols=None,
+                    level=None
+                )
+            ]
+
+        for ix, t in enumerate(transformations):
             t = convert_JSON(t) # make sure all keys are snake case
             kwargs = dict(t)
             name = self._sanitize_name(kwargs.pop('name'))
@@ -486,5 +512,21 @@ class TransformerManager(object):
                                      "explicitly register a handler, or pass a"
                                      " default module that supports it." % name)
                 func = getattr(self.default, name)
+
+                # Apply the transformation
                 func(collection, cols, **kwargs)
+
+                # Take snapshot of collection after transformation
+                if self.keep_history:
+                    self.history_.append(
+                        TransformationOutput(
+                            index=ix+1,
+                            output=collection.clone(),
+                            transformation_name=name,
+                            transformation_kwargs=kwargs,
+                            input_cols=cols,
+                            level=collection.level
+                        )
+                    )
+
         return collection

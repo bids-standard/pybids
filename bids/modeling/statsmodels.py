@@ -15,7 +15,7 @@ from bids.layout import BIDSLayout
 from bids.utils import matches_entities, convert_JSON, listify
 from bids.variables import (BIDSVariableCollection, merge_collections)
 from bids.modeling import transformations as tm
-from .model_spec import create_model_spec
+from .model_spec import GLMMSpec, MetaAnalysisSpec
 import warnings
 
 
@@ -399,7 +399,8 @@ class BIDSStatsModelsNode:
         return groups
 
     def run(self, inputs=None, group_by=None, force_dense=True,
-              sampling_rate='TR', invalid_contrasts='drop', **filters):
+              sampling_rate='TR', invalid_contrasts='drop', 
+              transformation_history=False, **filters):
         """Execute node with provided inputs.
 
         Parameters
@@ -436,6 +437,9 @@ class BIDSStatsModelsNode:
                 * 'drop' (default): Drop invalid contrasts, retain the rest.
                 * 'ignore': Keep invalid contrasts despite the missing variables.
                 * 'error': Raise an error.
+        transformation_history: bool
+            If True, the returned ModelSpec instances will include a history of
+            variable collections after each transformation.
         filters: dict
             Optional keyword arguments used to constrain the subset of the data
             that's processed. E.g., passing subject='01' will process and
@@ -474,7 +478,8 @@ class BIDSStatsModelsNode:
             node_output = BIDSStatsModelsNodeOutput(
                 node=self, entities=dict(grp_ents), collections=grp_colls,
                 inputs=grp_inputs, force_dense=force_dense,
-                sampling_rate=sampling_rate, invalid_contrasts=invalid_contrasts)
+                sampling_rate=sampling_rate, invalid_contrasts=invalid_contrasts,
+                transformation_history=transformation_history)
             results.append(node_output)
 
         return results
@@ -575,10 +580,17 @@ class BIDSStatsModelsNodeOutput:
             * 'drop' (default): Drop invalid contrasts, retain the rest.
             * 'ignore': Keep invalid contrasts despite the missing variables.
             * 'error': Raise an error.
+    transformation_history: bool
+        If True, the returned ModelSpec instances will include a history of
+        variable collections after each transformation.
     """
     def __init__(self, node, entities={}, collections=None, inputs=None,
-                 force_dense=True, sampling_rate='TR', invalid_contrasts='drop'):
-
+                 force_dense=True, sampling_rate='TR', invalid_contrasts='drop',
+                 *, transformation_history=False):
+        """Initialize a new BIDSStatsModelsNodeOutput instance.
+        Applies the node's model to the specified collections and inputs, including
+        applying transformations and generating final model specs and design matrices (X).
+        """
         collections = collections or []
         inputs = inputs or []
 
@@ -587,17 +599,18 @@ class BIDSStatsModelsNodeOutput:
         self.force_dense = force_dense
         self.sampling_rate = sampling_rate
         self.invalid_contrasts = invalid_contrasts
+        self.coll_hist = None
 
-        dfs = self._collections_to_dfs(collections)
+        # Apply transformations and convert collections to single DF
+        dfs = self._collections_to_dfs(collections, collection_history=transformation_history)
 
         if inputs:
             dfs.append(self._inputs_to_df(inputs))
 
         df = reduce(pd.DataFrame.merge, dfs)
 
-        var_names = list(self.node.model['x'])
-
         # If dummy coded condition columns needed, generate and concat
+        var_names = list(self.node.model['x'])
         if inputs:
             dummy_df = pd.get_dummies(df['contrast'])
             dummies_needed = set(var_names).intersection(dummy_df)
@@ -632,11 +645,16 @@ class BIDSStatsModelsNodeOutput:
         self.data = df.loc[:, var_names]
         self.metadata = df.loc[:, df.columns.difference(var_names)]
 
-        # Create ModelSpec and build contrasts
-        self.model_spec = create_model_spec(self.data, node.model, self.metadata)
+        # create ModelSpec and build contrasts
+        kind = node.model.get('type', 'glm').lower()
+        SpecCls = {
+            'glm': GLMMSpec,
+            'meta': MetaAnalysisSpec,
+        }[kind]
+        self.model_spec = SpecCls.from_df(self.data, node.model, self.metadata)
         self.contrasts = self._build_contrasts(unique_in_contrast)
 
-    def _collections_to_dfs(self, collections):
+    def _collections_to_dfs(self, collections, *, collection_history=False):
         """Merges collections and converts them to a pandas DataFrame."""
         if not collections:
             return []
@@ -648,6 +666,7 @@ class BIDSStatsModelsNodeOutput:
         var_names = list(set(self.node.model['x']) - {1})
 
         grp_dfs = []
+        trans_hist = []
         # merge all collections at each level and export to a DataFrame
         for level, colls in coll_levels.items():
 
@@ -659,11 +678,17 @@ class BIDSStatsModelsNodeOutput:
             # transformations.
             coll = merge_collections(colls)
 
+
+
             # apply transformations
             transformations = self.node.transformations
             if transformations:
-                transformer = tm.TransformerManager(transformations['transformer'])
+                transformer = tm.TransformerManager(
+                    transformations['transformer'], keep_history=collection_history)
                 coll = transformer.transform(coll.clone(), transformations['instructions'])
+                
+                if hasattr(transformer, 'history_'):
+                    trans_hist += transformer.history_
 
             # Take the intersection of variables and Model.X (var_names), ignoring missing
             # variables (usually contrasts)
@@ -682,6 +707,9 @@ class BIDSStatsModelsNodeOutput:
             else:
                 coll = coll.to_df()
             grp_dfs.append(coll)
+
+        if collection_history:
+            self.trans_hist = trans_hist
 
         return grp_dfs
 

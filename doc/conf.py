@@ -45,6 +45,7 @@ extensions = [
     'sphinx.ext.githubpages',
     'sphinx.ext.napoleon',
     'numpydoc',
+    'myst_nb',
 ]
 
 intersphinx_mapping = {
@@ -126,3 +127,7 @@ texinfo_documents = [
 
 # If false, no module index is generated.
 texinfo_domain_indices = False
+
+nb_custom_formats = {
+    ".md": ["jupytext.reads", {"fmt": "mystnb"}],
+}

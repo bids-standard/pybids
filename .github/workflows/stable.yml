@@ -37,12 +37,6 @@ jobs:
             install: pip
             check: doc
             pip-flags: ''
-          # Run tutorial
-          - os: ubuntu-latest
-            python-version: 3.8
-            install: pip
-            check: tutorial
-            pip-flags: ''
           # Clean install imports only with package-declared dependencies
           - os: ubuntu-latest
             python-version: 3.8
