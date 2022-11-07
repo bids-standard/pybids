@@ -19,6 +19,10 @@ defaults:
   run:
     shell: bash
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   pre-release:
     # Check pre-releases of dependencies on stable Python

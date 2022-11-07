@@ -522,7 +522,7 @@ class BIDSLayout(object):
 
         tags = [[t.file_path, t.entity_name, t.value] for t in tags]
         data = pd.DataFrame(tags, columns=['path', 'entity', 'value'])
-        data = data.pivot('path', 'entity', 'value')
+        data = data.pivot(index='path', columns='entity', values='value')
 
         # Add in orphaned files with no Tags. Maybe make this an argument?
         orphans = list(set(file_paths) - set(data.index))
