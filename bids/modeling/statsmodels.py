@@ -615,7 +615,7 @@ class BIDSStatsModelsNodeOutput:
             dummy_df = pd.get_dummies(df['contrast'])
             dummies_needed = set(var_names).intersection(dummy_df)
             if dummies_needed:
-                df = pd.concat([df, dummy_df[dummies_needed]], axis=1)
+                df = pd.concat([df, dummy_df[list(dummies_needed)]], axis=1)
 
         # If a single incoming contrast, keep track of name
         if 'contrast' in df.columns and df['contrast'].nunique() == 1:
