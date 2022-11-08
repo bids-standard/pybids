@@ -33,13 +33,13 @@ def test_is_top_level_true(testvalidator):
 # checks is_top_level() function false cases
 def test_is_top_level_false(testvalidator):
     target_list = [
-        "/RADME",  # wrong the the filename
-        "/CANGES",  # wrong the the filename
-        "/dataset_descrption.json",  # wrong the the filename
+        "/RADME",  # wrong filename
+        "/CANGES",  # wrong filename
+        "/dataset_descrption.json",  # wrong filename
         "/dataset_description.jon",  # wrong extension
         "/participants.sv",  # wrong extension
-        "/participnts.tsv",  # wrong the the filename
-        "/particpants.json"  # wrong the the filename
+        "/participnts.tsv",  # wrong filename
+        "/particpants.json"  # wrong filename
         "/participants.son"  # wrong extension
     ]
 
@@ -216,9 +216,9 @@ def test_is_subject_false(testvalidator):
 
 
 # def test_is_anat_false(testvalidator):
-#     target_list = ["/sub-01/anat/sub-1_T1w.json",  # subject incosistency
+#     target_list = ["/sub-01/anat/sub-1_T1w.json",  # subject inconsistency
 #                    "/sub-01/anat/sub-01_dwi.nii.gz",  # wrong modality suffix
-#                    "/sub-01/anat/sub-02_rec-CSD_T1w.json",  # subject incosistency
+#                    "/sub-01/anat/sub-02_rec-CSD_T1w.json",  # subject inconsistency
 #                    "/sub-01/anat/sub-01_rec-CS-D_T1w.nii.gz",  # rec label wrong
 #                    "/sub-01/anat/sub-01_acq-23_T1W.json",  # modality suffix wrong
 #                    "/sub-01/dwi/sub-01_acq-23_dwi.nii.gz",  # wrong data type

@@ -16,7 +16,8 @@ ALL_ENTITIES = BASE_ENTITIES + ['datatype', 'suffix', 'acquisition']
 
 
 def load_variables(layout, types=None, levels=None, skip_empty=True,
-                   dataset=None, scope='all', **kwargs):
+                   dataset=None, scope='all', regex_search=None,
+                   **kwargs):
     """A convenience wrapper for one or more load_*_variables() calls.
 
     Parameters
@@ -71,7 +72,7 @@ def load_variables(layout, types=None, levels=None, skip_empty=True,
             lev_map = {
                 'run': ['events', 'physio', 'stim', 'regressors'],
                 'session': ['scans'],
-                'subject': ['sessions'],
+                'subject': ['sessions', 'scans'],
                 'dataset': ['participants']
             }
             [types.extend(lev_map[l.lower()]) for l in listify(levels)]
@@ -94,7 +95,7 @@ def load_variables(layout, types=None, levels=None, skip_empty=True,
     for t in ({'scans', 'sessions', 'participants'} & set(types)):
         kwargs.pop('suffix', None) # suffix is always one of values above
         dataset = _load_tsv_variables(layout, t, dataset, scope=scope,
-                                      **kwargs)
+                                      regex_search=regex_search, **kwargs)
 
     return dataset
 
@@ -231,7 +232,7 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
                 raise ValueError("More than one existing Node matches the "
                                  "specified entities! You may need to pass "
                                  "additional selectors to narrow the search.")
-            run_info = result[0].get_info()
+            run = result[0]
 
         else:
             # Otherwise create a new node and use that.
@@ -249,7 +250,7 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
             run = dataset.create_node('run', entities, image_file=img_f,
                                       duration=duration, repetition_time=tr,
                                       n_vols=nvols)
-            run_info = run.get_info()
+        run_info = run.get_info()
 
         # Process event files
         if events:
@@ -376,7 +377,8 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
 
 
 def _load_tsv_variables(layout, suffix, dataset=None, columns=None,
-                        prepend_type=False, scope='all', **selectors):
+                        prepend_type=False, scope='all', regex_search=None,
+                        **selectors):
     """Reads variables from scans.tsv, sessions.tsv, and participants.tsv.
 
     Parameters
@@ -407,11 +409,16 @@ def _load_tsv_variables(layout, suffix, dataset=None, columns=None,
     -------
     A NodeIndex instance.
     """
+    if regex_search is None:
+        regex_search = layout.regex_search
 
     # Sanitize the selectors: only keep entities at current level or above
-    remap = {'scans': 'run', 'sessions': 'session', 'participants': 'subject'}
-    level = remap[suffix]
-    valid_entities = BASE_ENTITIES[:BASE_ENTITIES.index(level)]
+    valid_entities_map = {
+        'scans': ['subject', 'session'],
+        'sessions': ['subject'],
+        'participants': []
+    }
+    valid_entities = valid_entities_map[suffix]
     layout_kwargs = {k: v for k, v in selectors.items() if k in valid_entities}
 
     if dataset is None:
@@ -480,11 +487,12 @@ def _load_tsv_variables(layout, suffix, dataset=None, columns=None,
         # Filter rows on all selectors
         comm_cols = list(set(_data.columns) & set(selectors.keys()))
         for col in comm_cols:
-            ent_patts = [make_patt(x, regex_search=layout.regex_search)
-                            for x in listify(selectors.get(col))]
-            patt = '|'.join(ent_patts)
-
-            _data = _data[_data[col].str.contains(patt)]
+            vals = listify(selectors.get(col))
+            if regex_search and any(isinstance(val, str) for val in vals):
+                patt = '|'.join(make_patt(x, regex_search=True) for x in vals)
+                _data = _data[_data[col].str.contains(patt)]
+            else:
+                _data = _data[_data[col].isin(vals)]
 
         level = {'scans': 'session', 'sessions': 'subject',
                  'participants': 'dataset'}[suffix]

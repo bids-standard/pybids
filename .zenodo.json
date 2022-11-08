@@ -33,6 +33,11 @@
       "orcid": "0000-0003-3456-2493"
     },
     {
+      "affiliation": "Department of Psychology, Stanford University",
+      "name": "Esteban, Oscar",
+      "orcid": "0000-0001-8435-6191"
+    },
+    {
       "affiliation": "University of Texas at Austin",
       "name": "McNamara, Quinten"
     },
@@ -47,14 +52,14 @@
       "orcid": "0000-0002-9794-749X"
     },
     {
+      "affiliation": "Université catholique de Louvain",
+      "name": "Gau, Remi",
+      "orcid": "0000-0002-1535-9767"
+    },
+    {
       "affiliation": "University of Iowa",
       "name": "Johnson, Hans",
       "orcid": "0000-0001-9513-2660"
-    },
-    {
-      "affiliation": "Department of Psychology, Stanford University",
-      "name": "Esteban, Oscar",
-      "orcid": "0000-0001-8435-6191"
     },
     {
       "name": "Kalenkovich, Evgenii",
@@ -65,9 +70,14 @@
       "name": "Petrov, Dmitry"
     },
     {
-      "affiliation": "Universit\u00e9 catholique de Louvain",
-      "name": "Gau, Remi",
-      "orcid": "0000-0002-1535-9767"
+      "affiliation": "National Institute of Mental Health",
+      "name": "Nielson, Dylan M.",
+      "orcid": "0000-0003-4613-6643"
+    },
+    {
+      "affiliation": "University of Texas at Austin",
+      "orcid": "0000-0002-4892-2659",
+      "name": "James Kent"
     },
     {
       "affiliation": "Neuroscience Program, University of Iowa",
@@ -78,6 +88,9 @@
       "affiliation": "Center for Adaptive Rationality, Max Planck Institute for Human Development, Berlin, Germany",
       "name": "Appelhoff, Stefan",
       "orcid": "0000-0001-8002-0877"
+    },
+    {
+      "name": "Papadopoulos Orfanos, Dimitri"
     },
     {
       "affiliation": "Department of Psychology, Stanford University",
@@ -91,16 +104,8 @@
     },
     {
       "affiliation": "Concordia University",
-      "name": "Hayot-Sasson, Val\u00e9rie",
+      "name": "Hayot-Sasson, Valérie",
       "orcid": "0000-0002-4830-4535"
-    },
-    {
-      "affiliation": "National Institute of Mental Health",
-      "name": "Nielson, Dylan M.",
-      "orcid": "0000-0003-4613-6643"
-    },
-    {
-      "name": "Papadopoulos Orfanos, Dimitri"
     },
     {
       "affiliation": "MRC Cognition and Brain Sciences Unit",
@@ -164,7 +169,7 @@
       "orcid": "0000-0001-8421-365X"
     },
     {
-      "affiliation": "Universit\u00e9 de Sherbrooke",
+      "affiliation": "Université de Sherbrooke",
       "name": "Legarreta, Jon Haitz",
       "orcid": "0000-0002-9661-1396"
     },
@@ -174,7 +179,7 @@
       "orcid": "0000-0002-3239-6957"
     },
     {
-      "affiliation": "T\u00e9l\u00e9com ParisTech, France",
+      "affiliation": "Télécom ParisTech, France",
       "name": "Jas, Mainak",
       "orcid": "0000-0002-3199-9027"
     },
@@ -184,7 +189,7 @@
       "orcid": "0000-0001-6398-6370"
     },
     {
-      "affiliation": "Polytechnique Montr\u00e9al",
+      "affiliation": "Polytechnique Montréal",
       "name": "Guenther, Nick"
     },
     {
@@ -203,6 +208,15 @@
       "orcid": "0000-0003-1747-3931"
     },
     {
+      "affiliation": "Stanford University",
+      "name": "Mumford, Jeanette",
+      "orcid": "0000-0002-0926-3531"
+    },
+    {
+      "affiliation": "CEA, Inria",
+      "name": "Thual, Alexis"
+    },
+    {
       "affiliation": "Berkeley Institute for Data Science; University of California at Berkeley",
       "name": "Holdgraf, Chris",
       "orcid": "0000-0002-2391-0678"
@@ -213,17 +227,17 @@
       "orcid": "0000-0002-0795-1154"
     },
     {
-      "affiliation": "University of Texas at Austin",
-      "orcid": "0000-0002-4892-2659",
-      "name": "James Kent"
-    },
-    {
       "name": "Staph, Jason A.",
       "orcid": "0000-0002-5226-3350"
     },
     {
+      "affiliation": "Université Libre de Bruxelles - Hôpital Erasme",
+      "name": "Rovai, Antonin",
+      "orcid": "0000-0001-6781-5341"
+    },
+    {
       "affiliation": "University of Pennsylvania",
-      "name": "Azeez Adebimpe",
+      "name": "Adebimpe, Azeez",
       "orcid": "0000-0001-9049-0135"
     },
     {
@@ -240,6 +254,11 @@
       "affiliation": "Centre for Addiction and Mental Health, University of Toronto, Canada",
       "name": "Dickie, Erin W",
       "orcid": "0000-0003-3028-9864"
+    },
+    {
+      "affiliation": "Sagol School of Neuroscience, Tel Aviv University",
+      "name": "Ben-Zvi, Gal",
+      "orcid": "0000-0002-5655-9423"
     },
     {
       "affiliation": "NIMH IRP",
@@ -260,7 +279,7 @@
       "orcid": "0000-0002-5866-047X"
     },
     {
-      "affiliation": "Sainte-Anne Hospital Center, Universit\u00e9 Paris Descartes",
+      "affiliation": "Sainte-Anne Hospital Center, Université Paris Descartes",
       "name": "Roca, Pauline",
       "orcid": "0000-0003-2089-6636"
     },

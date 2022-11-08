@@ -45,25 +45,22 @@
             },
             "Contrasts": [
                 {
-                    "Name": 1,
-                    "ConditionList": [1],
-                    "Weights": [1],
-                    "Test": "FEMA"
-                },
-                {
                     "Name": "neg",
                     "ConditionList": [1],
                     "Weights": [-1],
                     "Test": "FEMA"
                 }
-            ]
+            ],
+            "DummyContrasts": {
+                "Test": "FEMA"
+            }
         },
         {
             "Name": "by-group",
             "Level": "Dataset",
             "GroupBy": [
-                "sex",
-                "contrast"
+                "contrast",
+                "sex"
             ],
             "Model": {
                 "X": [
@@ -71,7 +68,6 @@
                 ]
             },
             "DummyContrasts": {
-                "Conditions": [1],
                 "Test": "t"
             }
         },
@@ -88,6 +84,13 @@
             "DummyContrasts": {
                 "Test": "t"
             }
+        },
+        {
+            "Name": "explicit-contrast",
+            "Level": "Dataset",
+            "GroupBy": [],
+            "Model": {"X": ["gain"], "Type": "glm"},
+            "DummyContrasts": {"Test": "t"}
         }
     ],
     "Edges": [
@@ -102,6 +105,11 @@
         {
             "Source": "participant",
             "Destination": "group-diff"
+        },
+        {
+            "Source": "participant",
+            "Destination": "explicit-contrast",
+            "Filter": {"contrast": ["gain"]}
         }
     ]
 }

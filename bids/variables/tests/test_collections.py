@@ -34,9 +34,20 @@ def run_coll_list():
                                   scan_length=480, subject=['01', '02', '04'])
 
 
+@pytest.fixture(scope="module")
+def run_coll_derivs():
+    path = join(get_test_data_path(), 'ds005')
+    deriv_path = join(get_test_data_path(), 'ds005', 'derivatives', 'fmriprep')
+    layout = BIDSLayout(path, derivatives=deriv_path)
+    # Limit to a few subjects to reduce test running time
+    return layout.get_collections('run', types=['events', 'regressors'], merge=False,
+                                  scan_length=480, subject=['01', '02'])
+
+
 def test_run_variable_collection_init(run_coll):
     assert isinstance(run_coll.variables, dict)
     assert run_coll.sampling_rate == 10
+    assert run_coll.__repr__() == "<BIDSRunVariableCollection['PTval', 'RT', 'gain', 'loss', 'parametric gain', 'respcat', 'respnum', 'trial_type']>"
 
 
 def test_run_variable_collection_sparse_variable_accessors(run_coll):
@@ -300,3 +311,18 @@ def test_match_variables(run_coll):
     assert all([isinstance(m, SparseRunVariable) for m in matches])
     matches = run_coll.match_variables('*gain')
     assert set(matches) == {'gain', 'parametric gain'}
+
+
+def test_n_variables(run_coll_derivs):
+    # Test that variables are ingested into correct collection
+    # non_steady_state_outlier00 should only exist for sub-01 run-01 
+    match = [c for c in run_coll_derivs if c.entities.get('subject', None) == '01' and c.entities['run'] == 1]
+    assert 'non_steady_state_outlier00' in match[0].variables.keys()
+
+    # Find collections with 'non_steady_state_outlier00'
+    matches = [c for c in run_coll_derivs if 'non_steady_state_outlier00' in c.variables.keys()]
+    assert len(matches) == 1
+
+    # Test that collections have not incorrectly merged multiple subjects
+    for c in run_coll_derivs:
+        assert 'subject' in c.entities

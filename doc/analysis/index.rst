@@ -1,4 +1,4 @@
-.. _reports:
+.. _analysis:
 
 =====================================================
 ``analysis``: Model specification for BIDS datasets
@@ -24,21 +24,21 @@ An overview of the analysis module
   fitted to BIDS datasets.
 
   A GLM can be concisely described with a json file, regardless of the software
-  used to fit the model (e.g., `nistats`_, `AfNI`_, `FSL`_, `SPM`_).
+  used to fit the model (e.g., `nilearn`_, `AfNI`_, `FSL`_, `SPM`_).
 
 The PyBIDS analysis module provides high-level model specification functionality
 for BIDS datasets. It assumes that model information is represented in line with
 the (upcoming) BIDS-Model specification.
 
 Note that, at present, pybids.modeling does not provide a one-stop model-fitting
-solution. You will need to call some other package (e.g., `nistats`_, or a
+solution. You will need to call some other package (e.g., `nilearn`_, or a
 non-Python package like `FSL`_ or `SPM`_ via `Nipype`_) to handle model estimation.
 What pybids.modeling will do for you is automatically handle the loading and
 transformation of all variables, and the construction of design matrices and
 contrasts.
 
-.. _BIDS Models specification: https://docs.google.com/document/d/1bq5eNDHTb6Nkx3WUiOBgKvLNnaa5OMcGtD0AZ9yms2M/edit#heading=h.mqkmyp254xh6
-.. _nistats: https://nistats.github.io
+.. _BIDS Models specification: https://bids-standard.github.io/model-zoo/
+.. _nilearn: https://nilearn.github.io
 .. _AfNI: https://afni.nimh.nih.gov
 .. _FSL: https://fsl.fmrib.ox.ac.uk/fsl/fslwiki/
 .. _SPM: http://www.fil.ion.ucl.ac.uk/spm/
@@ -65,4 +65,4 @@ JSON specification in ``model.json``.
 
 .. note::
 
-    For a more detailed set of examples, please refer to the `tutorial <https://github.com/bids-standard/pybids/blob/0.14.0/examples/statsmodels_tutorial.ipynb>`_
+    For a more detailed example, please refer to the Tutorial: :doc:`/examples/statsmodels_tutorial`

@@ -15,9 +15,9 @@ Contents
    :maxdepth: 2
 
    user_guide.rst
+   examples/index.rst
    api.rst
    whats_new.rst
-
 
 Citing pybids
 =============
@@ -33,5 +33,3 @@ Indices and tables
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
-
-.. _joss: https://nistats.github.io

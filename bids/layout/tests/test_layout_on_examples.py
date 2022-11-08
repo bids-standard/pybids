@@ -37,8 +37,8 @@ def test_layout_on_examples_with_derivatives(dataset, nb_files, bids_examples):
 @pytest.mark.parametrize(
     "dataset, nb_files",
     [
-        ("micr_SEM", 12),
-        ("micr_SPIM", 22),
+        ("micr_SEM", 16),
+        ("micr_SPIM", 26),
         ("asl001", 8),
         ("asl002", 10),
         ("asl003", 10),

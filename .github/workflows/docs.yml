@@ -27,22 +27,15 @@ jobs:
           submodules: recursive
           fetch-depth: 0
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v3
+        uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
       - name: Display Python version
         run: python -c "import sys; print(sys.version)"
-      - name: Create virtual environment
-        run: tools/ci/create_venv.sh
       - name: Install pybids
-        run: tools/ci/install_extras.sh
-        env:
-          EXTRA_PIP_FLAGS: ""
-          CHECK_TYPE: doc
+        run: pip install .[doc]
       - name: Build documentation
-        run: |
-            source tools/ci/activate.sh
-            make -C doc html
+        run: make -C doc html
       - name: Upload docs as artifacts
         uses: actions/upload-artifact@v3
         with:

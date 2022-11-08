@@ -15,7 +15,7 @@ from bids.layout import BIDSLayout
 from bids.utils import matches_entities, convert_JSON, listify
 from bids.variables import (BIDSVariableCollection, merge_collections)
 from bids.modeling import transformations as tm
-from .model_spec import create_model_spec
+from .model_spec import GLMMSpec, MetaAnalysisSpec
 import warnings
 
 
@@ -97,6 +97,9 @@ class BIDSStatsModelsGraph:
         self.nodes = self._load_nodes(self.model)
         self.edges = self._load_edges(self.model, self.nodes)
         self._root_node = self.model.get('root', list(self.nodes.values())[0])
+
+    def __repr__(self):
+        return f"<{self.__class__.__name__}[{{name='{self.model['name']}', description='{self.model['description']}', ... }}]>"
 
     def __getitem__(self, key):
         '''Alias for get_node(key).'''
@@ -295,7 +298,7 @@ class BIDSStatsModelsNode:
             pass
 
     def __repr__(self):
-        return f"<{self.__class__.__name__}[{self.level}] {self.name}>"
+        return f"<{self.__class__.__name__}(level={self.level}, name={self.name})>"
 
     @staticmethod
     def _build_groups(objects, group_by):
@@ -343,6 +346,13 @@ class BIDSStatsModelsNode:
         entities = [obj.entities for obj in objects]
         df = pd.DataFrame.from_records(entities)
 
+        # Separate BIDSVariableCollections
+        collections = [obj.to_df() for obj in objects if type(obj) == BIDSVariableCollection]
+        if collections:
+            metadata_vars = reduce(pd.DataFrame.merge, collections)
+            on_vars = list({'subject', 'session', 'run'} & set(metadata_vars.columns))
+            df = df.merge(metadata_vars, how='left', on=on_vars)
+
         # Single-run tasks and single-session subjects may not have entities
         dummy_groups = {"run", "session"} - set(df.columns)
         group_by = set(group_by) - dummy_groups
@@ -389,7 +399,8 @@ class BIDSStatsModelsNode:
         return groups
 
     def run(self, inputs=None, group_by=None, force_dense=True,
-              sampling_rate='TR', invalid_contrasts='drop', **filters):
+              sampling_rate='TR', invalid_contrasts='drop', 
+              transformation_history=False, **filters):
         """Execute node with provided inputs.
 
         Parameters
@@ -426,6 +437,9 @@ class BIDSStatsModelsNode:
                 * 'drop' (default): Drop invalid contrasts, retain the rest.
                 * 'ignore': Keep invalid contrasts despite the missing variables.
                 * 'error': Raise an error.
+        transformation_history: bool
+            If True, the returned ModelSpec instances will include a history of
+            variable collections after each transformation.
         filters: dict
             Optional keyword arguments used to constrain the subset of the data
             that's processed. E.g., passing subject='01' will process and
@@ -464,7 +478,8 @@ class BIDSStatsModelsNode:
             node_output = BIDSStatsModelsNodeOutput(
                 node=self, entities=dict(grp_ents), collections=grp_colls,
                 inputs=grp_inputs, force_dense=force_dense,
-                sampling_rate=sampling_rate, invalid_contrasts=invalid_contrasts)
+                sampling_rate=sampling_rate, invalid_contrasts=invalid_contrasts,
+                transformation_history=transformation_history)
             results.append(node_output)
 
         return results
@@ -565,10 +580,17 @@ class BIDSStatsModelsNodeOutput:
             * 'drop' (default): Drop invalid contrasts, retain the rest.
             * 'ignore': Keep invalid contrasts despite the missing variables.
             * 'error': Raise an error.
+    transformation_history: bool
+        If True, the returned ModelSpec instances will include a history of
+        variable collections after each transformation.
     """
     def __init__(self, node, entities={}, collections=None, inputs=None,
-                 force_dense=True, sampling_rate='TR', invalid_contrasts='drop'):
-
+                 force_dense=True, sampling_rate='TR', invalid_contrasts='drop',
+                 *, transformation_history=False):
+        """Initialize a new BIDSStatsModelsNodeOutput instance.
+        Applies the node's model to the specified collections and inputs, including
+        applying transformations and generating final model specs and design matrices (X).
+        """
         collections = collections or []
         inputs = inputs or []
 
@@ -577,28 +599,39 @@ class BIDSStatsModelsNodeOutput:
         self.force_dense = force_dense
         self.sampling_rate = sampling_rate
         self.invalid_contrasts = invalid_contrasts
+        self.coll_hist = None
 
-        dfs = self._collections_to_dfs(collections)
+        # Apply transformations and convert collections to single DF
+        dfs = self._collections_to_dfs(collections, collection_history=transformation_history)
 
         if inputs:
             dfs.append(self._inputs_to_df(inputs))
 
         df = reduce(pd.DataFrame.merge, dfs)
 
+        # If dummy coded condition columns needed, generate and concat
         var_names = list(self.node.model['x'])
+        if inputs:
+            dummy_df = pd.get_dummies(df['contrast'])
+            dummies_needed = set(var_names).intersection(dummy_df)
+            if dummies_needed:
+                df = pd.concat([df, dummy_df[list(dummies_needed)]], axis=1)
+
+        # If a single incoming contrast, keep track of name
+        if 'contrast' in df.columns and df['contrast'].nunique() == 1:
+            unique_in_contrast = df['contrast'].unique()[0]
+        else:
+            unique_in_contrast = None
 
         # Handle the special 1 construct.
         # Add column of 1's to the design matrix called "intercept" 
         if 1 in var_names:
+            if "intercept" in var_names:
+                raise ValueError("Cannot define both '1' and 'intercept' in 'X'")
+                
             var_names = ['intercept' if i == 1 else i for i in var_names]
             if 'intercept' not in df.columns:
                 df.insert(0, 'intercept', 1)
-
-        # If a single incoming contrast
-        if ('contrast' in df.columns and df['contrast'].nunique() == 1):
-            unique_in_contrast = df['contrast'].unique()[0]
-        else:
-            unique_in_contrast = None
 
         var_names = expand_wildcards(var_names, df.columns)
 
@@ -612,11 +645,16 @@ class BIDSStatsModelsNodeOutput:
         self.data = df.loc[:, var_names]
         self.metadata = df.loc[:, df.columns.difference(var_names)]
 
-        # Create ModelSpec and build contrasts
-        self.model_spec = create_model_spec(self.data, node.model, self.metadata)
+        # create ModelSpec and build contrasts
+        kind = node.model.get('type', 'glm').lower()
+        SpecCls = {
+            'glm': GLMMSpec,
+            'meta': MetaAnalysisSpec,
+        }[kind]
+        self.model_spec = SpecCls.from_df(self.data, node.model, self.metadata)
         self.contrasts = self._build_contrasts(unique_in_contrast)
 
-    def _collections_to_dfs(self, collections):
+    def _collections_to_dfs(self, collections, *, collection_history=False):
         """Merges collections and converts them to a pandas DataFrame."""
         if not collections:
             return []
@@ -628,6 +666,7 @@ class BIDSStatsModelsNodeOutput:
         var_names = list(set(self.node.model['x']) - {1})
 
         grp_dfs = []
+        trans_hist = []
         # merge all collections at each level and export to a DataFrame
         for level, colls in coll_levels.items():
 
@@ -639,11 +678,17 @@ class BIDSStatsModelsNodeOutput:
             # transformations.
             coll = merge_collections(colls)
 
+
+
             # apply transformations
             transformations = self.node.transformations
             if transformations:
-                transformer = tm.TransformerManager(transformations['transformer'])
+                transformer = tm.TransformerManager(
+                    transformations['transformer'], keep_history=collection_history)
                 coll = transformer.transform(coll.clone(), transformations['instructions'])
+                
+                if hasattr(transformer, 'history_'):
+                    trans_hist += transformer.history_
 
             # Take the intersection of variables and Model.X (var_names), ignoring missing
             # variables (usually contrasts)
@@ -663,19 +708,16 @@ class BIDSStatsModelsNodeOutput:
                 coll = coll.to_df()
             grp_dfs.append(coll)
 
+        if collection_history:
+            self.trans_hist = trans_hist
+
         return grp_dfs
 
     def _inputs_to_df(self, inputs):
         # Convert the inputs to a DataFrame and add to list. Each row is
-        # an input; each column is either an entity or a contrast name from
-        # the previous level.
-        if inputs:
-            rows = [{**con.entities, 'contrast': con.name} for con in inputs]
-            input_df = pd.DataFrame.from_records(rows)
-            for i, con in enumerate(inputs):
-                if con.name not in input_df.columns:
-                    input_df.loc[:, con.name] = 0
-                input_df.loc[input_df.index[i], con.name] = 1
+        # an input; each column is an entity
+        rows = [{**con.entities, 'contrast': con.name} for con in inputs]
+        input_df = pd.DataFrame.from_records(rows)
         return input_df
 
     def _build_contrasts(self, unique_in_contrast=None):
@@ -692,12 +734,21 @@ class BIDSStatsModelsNodeOutput:
         # Create dummy contrasts as regular contrasts
         dummies = self.node.dummy_contrasts
         if dummies:
-            if 'conditionlist' in dummies:
-                conditions = set(dummies['condition_list'])
+            if {'conditions', 'condition_list'} & set(dummies):
+                warnings.warn(
+                    "Use 'Contrasts' not 'Conditions' or 'ConditionList' to specify"
+                    "DummyContrasts. Renaming to 'Contrasts' for now.")
+                dummies['contrasts'] = dummies.pop('conditions', None) or dummies.pop('condition_list', None)
+
+            if 'contrasts' in dummies:
+                conditions = set(dummies['contrasts'])
             else:
                 conditions = col_names
 
             for col_name in conditions:
+                if col_name == "intercept":
+                    col_name = 1
+
                 in_contrasts.insert(0, 
                     {
                         'name': col_name,
@@ -750,3 +801,6 @@ class BIDSStatsModelsNodeOutput:
     def X(self):
         """Return design matrix via the current ModelSpec."""
         return self.model_spec.X
+
+    def __repr__(self):
+        return f"<{self.__class__.__name__}(level={self.node.name}, entities={self.entities})>"
