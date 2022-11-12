@@ -522,11 +522,11 @@ def test_layout_with_derivs(layout_ds005_derivs):
     assert 'subject' in deriv.entities
 
 
-def test_accessing_deriv_by_pipeline_name_is_deprecated(layout_ds005_derivs):
+def test_accessing_deriv_by_pipeline_name_is_deprecated(layout_ds005_deriv_dummy_vxxx):
     with pytest.deprecated_call():
-        deriv = layout_ds005_derivs.derivatives['eventsPipeline']
+        deriv = layout_ds005_deriv_dummy_vxxx.derivatives['dummy']
     assert deriv.files
-    assert len(deriv.files) == 2
+    assert len(deriv.files) == 4
 
 
 def test_layout_with_multi_derivs(layout_ds005_multi_derivs):

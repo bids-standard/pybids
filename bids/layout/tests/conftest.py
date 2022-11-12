@@ -40,6 +40,15 @@ def layout_ds005_derivs():
     return layout
 
 
+@pytest.fixture(scope="module")
+def layout_ds005_deriv_dummy_vxxx():
+    data_dir = join(get_test_data_path(), 'ds005')
+    layout = BIDSLayout(data_dir)
+    deriv_dir = join(get_test_data_path(), 'ds005_derivs', 'dummy-vx.x.x')
+    layout.add_derivatives(deriv_dir)
+    return layout
+
+
 @pytest.fixture(scope="session")
 def db_dir(tmpdir_factory):
     fn = tmpdir_factory.mktemp("data")
