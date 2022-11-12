@@ -99,7 +99,7 @@ class ConnectionManager:
     def exists(cls, database_path):
         return get_database_file(database_path).exists()
 
-    def reset_database(self, init_args, config=None):
+    def reset_database(self, init_args, config):
         Base.metadata.drop_all(self.engine)
         Base.metadata.create_all(self.engine)
         # Add LayoutInfo record

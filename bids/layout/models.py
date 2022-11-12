@@ -734,12 +734,13 @@ class DerivativeDatasets(UserDict):
 
         try:
             result = self.get_pipeline(key)
-            print(
-                "[DEPRECATION WARNING] Directly selecting derivative datasets using "
+            warnings.warn(
+                "Directly selecting derivative datasets using "
                 "pipeline name (i.e. dataset.derivatives[<pipeline_name>] will be "
                 "phased out in an upcoming release. Select instead using the folder "
                 "name of the dataset (i.e. dataset.derivatives[<folder_name>]), or use "
-                "dataset.derivatives.get_pipeline(<pipeline_name>)."
+                "dataset.derivatives.get_pipeline(<pipeline_name>).",
+                DeprecationWarning,
             )
             return result
         except KeyError as err:

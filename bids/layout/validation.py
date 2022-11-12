@@ -114,29 +114,28 @@ def validate_root(root, validate):
 
 def validate_derivative_path(path, **kwargs):
     # Collect all paths that contain a dataset_description.json
-    dd = path / 'dataset_description.json'
-    with dd.open('r', encoding='utf-8') as ddfd:
-        description = json.load(ddfd)
+    dd = Path(path) / 'dataset_description.json'
+    description = json.loads(dd.read_text(encoding='utf-8'))
     pipeline_names = [pipeline["Name"]
-                        for pipeline in description.get("GeneratedBy", [])
-                        if "Name" in pipeline]
+                      for pipeline in description.get("GeneratedBy", [])
+                      if "Name" in pipeline]
     if pipeline_names:
         pipeline_name = pipeline_names[0]
     elif "PipelineDescription" in description:
         warnings.warn("The PipelineDescription field was superseded "
-                        "by GeneratedBy in BIDS 1.4.0. You can use "
-                        "``pybids upgrade`` to update your derivative "
-                        "dataset.")
+                      "by GeneratedBy in BIDS 1.4.0. You can use "
+                      "``pybids upgrade`` to update your derivative "
+                      "dataset.")
         pipeline_name = description["PipelineDescription"].get("Name")
     else:
         pipeline_name = None
     if pipeline_name is None:
         raise BIDSDerivativesValidationError(
-                            "Every valid BIDS-derivatives dataset must "
-                            "have a GeneratedBy.Name field set "
-                            "inside 'dataset_description.json'. "
-                            "\nExample: %s" %
-                            MANDATORY_DERIVATIVES_FIELDS['GeneratedBy'])
+            "Every valid BIDS-derivatives dataset must "
+            "have a GeneratedBy.Name field set "
+            "inside 'dataset_description.json'. "
+            f"\nExample: {MANDATORY_DERIVATIVES_FIELDS['GeneratedBy']}"
+        )
     return pipeline_name
 
 

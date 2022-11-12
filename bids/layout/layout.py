@@ -136,9 +136,11 @@ class BIDSLayout(object):
             is_derivative,
             description and description.get("DatasetType") == "derivative"
         ]):
-            if validate:
+            try:
                 self.source_pipeline = validate_derivative_path(root)
-            else:
+            except BIDSValidationError as err: 
+                if validate:
+                    raise err
                 self.source_pipeline = None
             default_config = ["bids", "derivatives"]
             self.is_derivative = True
@@ -465,7 +467,7 @@ class BIDSLayout(object):
 
     def _get_derivative_dirs(self, paths):
         def check_for_description(path):
-            return (path/"dataset_description.json").exists()
+            return Path.exists(path/"dataset_description.json")
 
         for path in paths:
             p = Path(path).absolute()
@@ -511,14 +513,14 @@ class BIDSLayout(object):
         deriv_paths = [*self._get_derivative_dirs(paths)]
         if not deriv_paths:
             warnings.warn("Derivative indexing was requested, but no valid "
-                            "datasets were found in the specified locations "
-                            "({}). Note that all BIDS-Derivatives datasets must"
-                            " meet all the requirements for BIDS-Raw datasets "
-                            "(a common problem is to fail to include a "
-                            "'dataset_description.json' file in derivatives "
-                            "datasets).\n".format(paths) +
-                            "Example contents of 'dataset_description.json':\n%s" %
-                            json.dumps(EXAMPLE_DERIVATIVES_DESCRIPTION))
+                          "datasets were found in the specified locations "
+                          "({}). Note that all BIDS-Derivatives datasets must"
+                          " meet all the requirements for BIDS-Raw datasets "
+                          "(a common problem is to fail to include a "
+                          "'dataset_description.json' file in derivatives "
+                          "datasets).\n".format(paths) +
+                          "Example contents of 'dataset_description.json':\n%s" %
+                          json.dumps(EXAMPLE_DERIVATIVES_DESCRIPTION))
 
         # Default config and sources values
         kwargs['sources'] = kwargs.get('sources') or self
