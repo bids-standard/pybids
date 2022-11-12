@@ -161,6 +161,25 @@ class TestDerivativeAsRoot:
         validated = BIDSLayout(Path(get_test_data_path())/dataset_path)
         assert len(validated.get()) == 1
 
+    def test_derivative_indexing_forced_with_is_derivative(self):
+        dataset_path = Path("ds005_derivs", "format_errs", "no_type_or_description")
+        unvalidated = BIDSLayout(
+            Path(get_test_data_path())/dataset_path,
+            is_derivative=True,
+            validate=False
+        )
+        assert len(unvalidated.get()) == 4
+        assert len(unvalidated.get(desc="preproc")) == 3
+
+    def test_forced_derivative_indexing_fails_validation(self):
+        dataset_path = Path("ds005_derivs", "format_errs", "no_type_or_description")
+        with pytest.raises(BIDSDerivativesValidationError):
+            BIDSLayout(
+                Path(get_test_data_path())/dataset_path,
+                is_derivative=True,
+                validate=True
+            )
+
     def test_dataset_missing_generatedby_fails_validation(self):
         dataset_path = Path("ds005_derivs", "format_errs", "no_pipeline_description")
         with pytest.raises(BIDSDerivativesValidationError):
@@ -503,6 +522,13 @@ def test_layout_with_derivs(layout_ds005_derivs):
     assert 'subject' in deriv.entities
 
 
+def test_accessing_deriv_by_pipeline_name_is_deprecated(layout_ds005_derivs):
+    with pytest.deprecated_call():
+        deriv = layout_ds005_derivs.derivatives['eventsPipeline']
+    assert deriv.files
+    assert len(deriv.files) == 2
+
+
 def test_layout_with_multi_derivs(layout_ds005_multi_derivs):
     assert layout_ds005_multi_derivs.root == join(get_test_data_path(), 'ds005')
     assert isinstance(layout_ds005_multi_derivs.files, dict)
@@ -517,6 +543,8 @@ def test_layout_with_multi_derivs(layout_ds005_multi_derivs):
     assert 'subject' in deriv.entities
     preproc = layout_ds005_multi_derivs.get(desc='preproc')
     assert len(preproc) == 3
+
+
 
 
 def test_query_derivatives(layout_ds005_derivs):
