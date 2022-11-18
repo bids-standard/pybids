@@ -2,7 +2,7 @@ from os.path import join
 
 import pytest
 
-from bids.layout import BIDSLayoutV2 as BIDSLayout
+from bids.layout import BIDSLayoutV2 as BIDSLayoutV2 as BIDSLayout
 from bids.tests import get_test_data_path
 
 

@@ -3,7 +3,7 @@ from bids.modeling import transformations as transform
 from bids.variables import SparseRunVariable, DenseRunVariable
 from bids.variables.entities import RunInfo
 from bids.variables.collections import BIDSRunVariableCollection
-from bids.layout import BIDSLayout
+from bids.layout import BIDSLayoutV2 as BIDSLayout
 import math
 import pytest
 from os.path import join, sep

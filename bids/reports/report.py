@@ -78,7 +78,7 @@ class BIDSReport(object):
         Examples
         --------
         >>> from os.path import join
-        >>> from bids.layout import BIDSLayout
+        >>> from bids.layout import BIDSLayoutV2 as BIDSLayout
         >>> from bids.reports import BIDSReport
         >>> from bids.tests import get_test_data_path
         >>> layout = BIDSLayout(join(get_test_data_path(), 'synthetic'))
@@ -153,7 +153,7 @@ class BIDSReport(object):
         Examples
         --------
         >>> from os.path import join
-        >>> from bids.layout import BIDSLayout
+        >>> from bids.layout import BIDSLayoutV2 as BIDSLayout
         >>> from bids.reports import BIDSReport
         >>> from bids.tests import get_test_data_path
         >>> layout = BIDSLayout(join(get_test_data_path(), 'synthetic'))

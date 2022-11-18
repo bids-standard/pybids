@@ -2,7 +2,7 @@ from os.path import join
 from itertools import chain
 from bids.modeling.auto_model import auto_model
 from bids.modeling import BIDSStatsModelsGraph
-from bids.layout import BIDSLayout
+from bids.layout import BIDSLayoutV2 as BIDSLayout
 from bids.tests import get_test_data_path
 import pytest
 

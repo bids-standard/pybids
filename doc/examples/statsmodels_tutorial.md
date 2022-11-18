@@ -21,7 +21,7 @@ A minimalistic tutorial illustrating usage of the tools in the `bids.modeling` m
 import pandas as pd
 import numpy as np
 from bids.modeling import BIDSStatsModelsGraph
-from bids.layout import BIDSLayout
+from bids.layout import BIDSLayoutV2 as BIDSLayout
 from bids.tests import get_test_data_path
 from os.path import join
 import json

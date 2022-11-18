@@ -11,7 +11,7 @@ import json
 import numpy as np
 import pytest
 
-from bids.layout import BIDSLayout, Query
+from bids.layout import BIDSLayoutV2 as BIDSLayout, Query
 from bids.layout.models import Config
 from bids.layout.index import BIDSLayoutIndexer, _check_path_matches_patterns
 from bids.layout.utils import PaddedInt

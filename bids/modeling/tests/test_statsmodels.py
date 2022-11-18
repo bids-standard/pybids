@@ -11,7 +11,7 @@ import pytest
 
 from bids.modeling import BIDSStatsModelsGraph
 from bids.modeling.statsmodels import ContrastInfo, expand_wildcards
-from bids.layout import BIDSLayout
+from bids.layout import BIDSLayoutV2 as BIDSLayout
 from bids.tests import get_test_data_path
 from bids.variables import BIDSVariableCollection
 

@@ -3,7 +3,7 @@ from os.path import join, dirname, abspath
 import pytest
 import numpy as np
 
-from bids.layout import BIDSLayout
+from bids.layout import BIDSLayoutV2 as BIDSLayout
 from bids.tests import get_test_data_path
 from bids.variables import (DenseRunVariable, SparseRunVariable,
                             merge_collections)

@@ -17,7 +17,7 @@ from bids.exceptions import (
     NoMatchError,
     TargetError,
 )
-from bids.layout import BIDSLayoutV2 as BIDSLayout, Query
+from bids.layout import BIDSLayoutV2 as BIDSLayoutV2 as BIDSLayout, Query
 from bids.layout.index import BIDSLayoutIndexer
 from bids.layout.models import Config
 from bids.layout.utils import PaddedInt

@@ -1,4 +1,4 @@
-from bids.layout import BIDSLayout
+from bids.layout import BIDSLayoutV2 as BIDSLayout
 from bids.variables import (SparseRunVariable, SimpleVariable,
                             DenseRunVariable, load_variables)
 from bids.variables.entities import Node, RunNode, NodeIndex

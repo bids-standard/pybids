@@ -12,7 +12,7 @@ Additionally, only MRI datatypes (func, anat, fmap, and dwi) are currently suppo
 A simple example of standard usage follows. We assume that we have a root folder containing a BIDS-compliant project in `/bidsproject`.
 
 ```python
-from bids.layout import BIDSLayout
+from bids.layout import BIDSLayoutV2 as BIDSLayout
 from bids.reports import BIDSReport
 
 # Load the BIDS dataset

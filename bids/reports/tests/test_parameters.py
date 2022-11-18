@@ -4,7 +4,7 @@ import nibabel as nib
 
 from os.path import abspath, join
 
-from bids.layout import BIDSLayout
+from bids.layout import BIDSLayoutV2 as BIDSLayout
 from bids.reports import parameters
 from bids.tests import get_test_data_path
 

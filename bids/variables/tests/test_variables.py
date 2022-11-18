@@ -1,4 +1,4 @@
-from bids.layout import BIDSLayout
+from bids.layout import BIDSLayoutV2 as BIDSLayout
 import pytest
 import os
 from os.path import join
