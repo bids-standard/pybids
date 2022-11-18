@@ -76,6 +76,7 @@ def test_invalid_dataset_description(tmp_path):
     )
     with pytest.raises(BIDSValidationError) as exc:
         BIDSLayout(tmp_path / "7t_dset")
+        
 
     assert "is not a valid json file" in str(exc.value)
 
@@ -157,7 +158,7 @@ class TestDerivativeAsRoot:
         assert len(unvalidated.get()) == 4
         with pytest.raises(ValueError):
             unvalidated.get(desc="preproc")
-
+        assert 0
         validated = BIDSLayout(Path(get_test_data_path())/dataset_path)
         assert len(validated.get()) == 1
 
@@ -165,7 +166,7 @@ class TestDerivativeAsRoot:
         dataset_path = Path("ds005_derivs", "format_errs", "no_pipeline_description")
         with pytest.raises(BIDSDerivativesValidationError):
             BIDSLayout(Path(get_test_data_path())/dataset_path)
-
+        assert 0
 
     def test_correctly_formatted_derivative_loads_as_derivative(self):
         dataset_path = Path("ds005_derivs", "dummy")
@@ -240,6 +241,7 @@ def test_get_metadata5(layout_7t_trt):
     target = target.split('/')
     result = layout_7t_trt.get_metadata(
         join(layout_7t_trt.root, *target), include_entities=True)
+    assert 0
     assert result['EchoTime'] == 0.020
     assert result['subject'] == '01'
     assert result['acquisition'] == 'fullbrain'
@@ -277,6 +279,7 @@ def test_get_with_bad_target(layout_7t_trt):
         layout_7t_trt.get(target='unicorn')
     msg = str(exc.value)
     assert 'subject' in msg and 'reconstruction' in msg and 'proc' in msg
+    assert 0
     with pytest.raises(TargetError) as exc:
         layout_7t_trt.get(target='sub')
     msg = str(exc.value)
@@ -285,6 +288,7 @@ def test_get_with_bad_target(layout_7t_trt):
 
 def test_get_bvals_bvecs(layout_ds005):
     dwifile = layout_ds005.get(subject="01", datatype="dwi")[0]
+    assert 0
     result = layout_ds005.get_bval(dwifile.path)
     assert result == abspath(join(layout_ds005.root, 'dwi.bval'))
 
@@ -303,6 +307,7 @@ def test_get_fieldmap(layout_7t_trt):
              'rest_acq-fullbrain_run-1_bold.nii.gz'
     target = target.split('/')
     result = layout_7t_trt.get_fieldmap(join(layout_7t_trt.root, *target))
+    assert 0
     assert result["suffix"] == "phasediff"
     assert result["phasediff"].endswith('sub-03_ses-1_run-1_phasediff.nii.gz')
 
@@ -312,6 +317,7 @@ def test_get_fieldmap2(layout_7t_trt):
              'rest_acq-fullbrain_run-2_bold.nii.gz'
     target = target.split('/')
     result = layout_7t_trt.get_fieldmap(join(layout_7t_trt.root, *target))
+    assert 0
     assert result["suffix"] == "phasediff"
     assert result["phasediff"].endswith('sub-03_ses-2_run-2_phasediff.nii.gz')
 
@@ -320,6 +326,7 @@ def test_bids_json(layout_7t_trt):
     res = layout_7t_trt.get(return_type='id', target='run')
     assert set(res) == {1, 2}
     res = layout_7t_trt.get(return_type='id', target='session')
+    assert 0
     assert set(res) == {'1', '2'}
 
 
@@ -383,7 +390,7 @@ def test_get_val_enum_any_optional(layout_7t_trt, layout_ds005):
     assert not bold_files
     bold_files = layout_ds005.get(session=Query.OPTIONAL, **query)
     assert len(bold_files) == 1
-
+    assert 0
 
 def test_get_return_sorted(layout_7t_trt):
     bids_files = layout_7t_trt.get(target='subject')
@@ -493,6 +500,7 @@ def test_layout_with_derivs(layout_ds005_derivs):
     assert layout_ds005_derivs.root == join(get_test_data_path(), 'ds005')
     assert isinstance(layout_ds005_derivs.files, dict)
     assert len(layout_ds005_derivs.derivatives) == 1
+    assert 0
     deriv = layout_ds005_derivs.derivatives['events']
     assert deriv.files
     assert len(deriv.files) == 2
@@ -681,6 +689,7 @@ def test_get_dataset_description(layout_ds005_multi_derivs):
     dd = l.get_dataset_description('all', True)
     assert isinstance(dd, list)
     assert len(dd) == 3
+    assert 0
     names = {'Mixed-gambles task', 'Mixed-gambles task -- dummy derivative'}
     assert set([d['Name'] for d in dd]) == names
 
@@ -781,6 +790,8 @@ def test_get_with_invalid_filters(layout_ds005):
         l.get(subject='12', ses=True, invalid_filters='error')
     with pytest.raises(ValueError, match='session'):
         l.get(subject='12', ses=True)
+
+    assert 0
     # Silently drop amazing
     res_without = l.get(subject='12', suffix='bold')
     res_drop = l.get(subject='12', suffix='bold', amazing='!!!',
@@ -856,6 +867,8 @@ def test_padded_run_roundtrip(layout_ds005):
         res = layout_ds005.get(subject="01", task="mixedgamblestask",
                                run=run, extension=".nii.gz")
         assert len(res) == 1
+
+    assert 0
     boldfile = res[0]
     ents = boldfile.get_entities()
     assert isinstance(ents["run"], PaddedInt)
