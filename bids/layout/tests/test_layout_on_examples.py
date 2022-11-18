@@ -7,7 +7,7 @@
 
 import pytest
 
-from bids.layout import BIDSLayoutV2 as BIDSLayoutV2 as BIDSLayout
+from bids.layout import BIDSLayoutV2 as BIDSLayout
 
 # Values for the number of file got from a:
 #
