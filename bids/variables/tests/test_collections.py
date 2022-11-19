@@ -12,7 +12,7 @@ from bids.variables.entities import RunInfo
 @pytest.fixture(scope="module")
 def run_coll():
     path = join(get_test_data_path(), 'ds005')
-    layout = BIDSLayout(path)
+    layout = BIDSLayout(path, validate=False)
     # Limit to a few subjects to reduce test running time
     return layout.get_collections('run', types=['events'], merge=True,
                                   scan_length=480, subject=['01', '02', '04'])
