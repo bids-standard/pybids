@@ -10,7 +10,7 @@ from sqlalchemy.orm import sessionmaker
 
 from bids.layout.writing import build_path, _PATTERN_FIND
 from bids.tests import get_test_data_path
-from bids import BIDSLayout
+from bids.layout import BIDSLayoutV2 as BIDSLayout
 from bids.layout.models import BIDSFile, Entity, Tag, Base
 
 

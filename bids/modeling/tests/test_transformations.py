@@ -30,7 +30,7 @@ cached_collections = {}
 def collection():
     if 'ds005' not in cached_collections:
         layout_path = join(get_test_data_path(), 'ds005')
-        layout = BIDSLayout(layout_path)
+        layout = BIDSLayout(layout_path, validate=False)
         cached_collections['ds005'] = layout.get_collections(
             'run',
             types=['events'],

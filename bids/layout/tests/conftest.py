@@ -22,7 +22,7 @@ def layout_7t_trt_relpath():
 @pytest.fixture(scope="module")
 def layout_ds005():
     data_dir = join(get_test_data_path(), 'ds005')
-    return BIDSLayout(data_dir)
+    return BIDSLayout(data_dir, validate=False)
 
 
 @pytest.fixture(scope="module")
@@ -34,7 +34,7 @@ def layout_ds117():
 @pytest.fixture(scope="module")
 def layout_ds005_derivs():
     data_dir = join(get_test_data_path(), 'ds005')
-    layout = BIDSLayout(data_dir)
+    layout = BIDSLayout(data_dir, validate=False)
     deriv_dir = join(data_dir, 'derivatives', 'events')
     layout.add_derivatives(deriv_dir)
     return layout
@@ -53,7 +53,7 @@ def layout_ds005_multi_derivs(request, db_dir):
     database_path = str(db_dir / request.param) if request.param else None
 
     layout = BIDSLayout(data_dir,
-                        database_path=database_path)
+                        database_path=database_path, validate=False)
     deriv_dir1 = join(get_test_data_path(), 'ds005_derivs', 'dummy')
     deriv_dir2 = join(data_dir, 'derivatives', 'events')
     layout.add_derivatives([deriv_dir1, deriv_dir2])

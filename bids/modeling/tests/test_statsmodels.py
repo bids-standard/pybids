@@ -19,7 +19,7 @@ from bids.variables import BIDSVariableCollection
 @pytest.fixture
 def graph():
     layout_path = join(get_test_data_path(), "ds005")
-    layout = BIDSLayout(layout_path)
+    layout = BIDSLayout(layout_path, validate=False)
     json_file = join(layout_path, "models", "ds-005_type-test_model.json")
     graph = BIDSStatsModelsGraph(layout, json_file)
     graph.load_collections(scan_length=480, subject=["01", "02"])
@@ -28,7 +28,7 @@ def graph():
 @pytest.fixture
 def graph_intercept():
     layout_path = join(get_test_data_path(), "ds005")
-    layout = BIDSLayout(layout_path, derivatives=join(layout_path, 'derivatives', 'events'))
+    layout = BIDSLayout(layout_path, derivatives=join(layout_path, 'derivatives', 'events'), validate=False)
     json_file = join(layout_path, "models", "ds-005_type-test_intercept.json")
     graph = BIDSStatsModelsGraph(layout, json_file)
     graph.load_collections(scan_length=480, subject=["01", "02"])
@@ -37,7 +37,7 @@ def graph_intercept():
 @pytest.fixture
 def graph_nodummy():
     layout_path = join(get_test_data_path(), "ds005")
-    layout = BIDSLayout(layout_path)
+    layout = BIDSLayout(layout_path, validate=False)
     json_file = join(layout_path, "models", "ds-005_type-testnodummy_model.json")
     graph = BIDSStatsModelsGraph(layout, json_file)
     graph.load_collections(scan_length=480, subject=["01", "02"])
@@ -98,7 +98,7 @@ def test_first_level_sparse_design_matrix(graph):
 
 def test_incremental_data_loading():
     layout_path = join(get_test_data_path(), "ds005")
-    layout = BIDSLayout(layout_path)
+    layout = BIDSLayout(layout_path, validate=False)
     json_file = join(layout_path, "models", "ds-005_type-test_model.json")
     graph = BIDSStatsModelsGraph(layout, json_file)
     graph.load_collections(scan_length=480, subject=["01"], run=[1])
@@ -272,7 +272,7 @@ def test_expand_wildcards():
 
 def test_interceptonly_runlevel_error():
     layout_path = join(get_test_data_path(), "ds005")
-    layout = BIDSLayout(layout_path)
+    layout = BIDSLayout(layout_path, validate=False)
     json_file = join(layout_path, "models", "ds-005_type-interceptonlyrunlevel_model.json")
     with pytest.raises(NotImplementedError):
         graph = BIDSStatsModelsGraph(layout, json_file)

@@ -25,7 +25,7 @@ def test_automodel_valid(model):
 
 def test_automodel_runs(model):
     layout_path = join(get_test_data_path(), 'ds005')
-    layout = BIDSLayout(layout_path)
+    layout = BIDSLayout(layout_path, validate=False)
 
     # Test to make sure an analaysis can be setup from the generated model
     graph = BIDSStatsModelsGraph(layout, model)
