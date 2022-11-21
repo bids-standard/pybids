@@ -10,7 +10,7 @@ import pytest
 @pytest.fixture
 def model():
     layout_path = join(get_test_data_path(), 'ds005')
-    layout = BIDSLayout(layout_path)
+    layout = BIDSLayout(layout_path, validate=False)
 
     models = auto_model(layout, scan_length=480, one_vs_rest=True)
 
