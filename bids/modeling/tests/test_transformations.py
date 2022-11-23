@@ -188,7 +188,7 @@ def test_scale(collection, sparse_run_variable_with_missing_values):
     groupby = collection['RT'].get_grouper(['run', 'subject'])
     z1 = collection['RT_Z'].values
     z2 = collection['RT'].values.groupby(
-        groupby).apply(lambda x: (x - x.mean()) / x.std())
+        groupby, group_keys=False).apply(lambda x: (x - x.mean()) / x.std())
     assert np.allclose(z1, z2)
 
     # Test constant input
@@ -231,8 +231,8 @@ def test_orthogonalize_dense(collection):
     vals = np.c_[rt.values, pg_pre.values, pg_post.values]
     df = pd.DataFrame(vals, columns=['rt', 'pre', 'post'])
     groupby = rt.get_grouper(['run', 'subject'])
-    pre_r = df.groupby(groupby).apply(lambda x: x.corr().iloc[0, 1])
-    post_r = df.groupby(groupby).apply(lambda x: x.corr().iloc[0, 2])
+    pre_r = df.groupby(groupby, group_keys=False).apply(lambda x: x.corr().iloc[0, 1])
+    post_r = df.groupby(groupby, group_keys=False).apply(lambda x: x.corr().iloc[0, 2])
     assert (pre_r > 0.2).any()
     assert (post_r < 0.0001).all()
 
@@ -246,8 +246,8 @@ def test_orthogonalize_sparse(collection):
     vals = np.c_[rt.values, pg_pre.values, pg_post.values]
     df = pd.DataFrame(vals, columns=['rt', 'pre', 'post'])
     groupby = collection['RT'].get_grouper(['run', 'subject'])
-    pre_r = df.groupby(groupby).apply(lambda x: x.corr().iloc[0, 1])
-    post_r = df.groupby(groupby).apply(lambda x: x.corr().iloc[0, 2])
+    pre_r = df.groupby(groupby, group_keys=False).apply(lambda x: x.corr().iloc[0, 1])
+    post_r = df.groupby(groupby, group_keys=False).apply(lambda x: x.corr().iloc[0, 2])
     assert (pre_r > 0.2).any()
     assert (post_r < 0.0001).all()
 

@@ -1,0 +1,246 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html
+    PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en" data-theme="light">
+
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>PyBIDS StatsModel Report</title>
+    <style type="text/css">
+        .warning {
+            border: 1px solid #ffaaaa;
+            background: #ffe8e8;
+            padding: 0.8em;
+        }
+        .vega-embed.has-actions {
+            width: 90%
+        }
+    </style>
+    <!-- Import Vega & Vega-Lite -->
+    <script src="https://cdn.jsdelivr.net/npm/vega@5"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vega-lite@4"></script>
+    <!-- Import vega-embed -->
+    <script src="https://cdn.jsdelivr.net/npm/vega-embed@6"></script>
+    <link rel="stylesheet" href="https://unpkg.com/@picocss/pico@latest/css/pico.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.1/css/jquery.dataTables.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.3.2/css/buttons.dataTables.min.css">
+    <script src="https://code.jquery.com/jquery-3.5.1.js"></script>
+    <script src="https://cdn.datatables.net/1.13.1/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.3.2/js/dataTables.buttons.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.3.2/js/buttons.html5.min.js"></script>
+</head>
+
+<body>
+    <script>
+        $.extend( $.fn.dataTable.defaults, {
+        searching: false,
+        ordering:  false
+        } );
+    </script>
+    <main class="container">
+    <div id="summary">
+        <h2 class="sub-report-title">Stats Model Summary</h2>
+        <ul class="elem-desc">
+            <li>Dataset: {{ dataset.name }}{% if dataset.doi %} (doi:<a href="https://doi.org/{{ dataset.doi }}">{{
+                    dataset.doi }}</a>){% endif %}</li>
+            <li>Model: {{ model.name }}</li>
+            <li>Participants ({{ subjects|count }}): {{ subjects|join(', ') }}
+        </ul>
+        <details>
+            <summary>Specification</summary>
+            <pre><code>{{ model|tojson(indent=2) }}</code></pre>
+        </details>
+
+        <details>
+            <summary>Graph</summary>
+            <div id="model-graph">
+            {{ graph_plot }}
+            </div>
+        </details>
+    </div>    
+    <div id="model">
+    <h2>Node Reports</h2>
+        {% for node in nodes %}
+            {% set node_loop = loop %}
+            <details>
+            <summary role="button">{{ node.name }}</summary>
+
+            <ul>
+            <li>Level: {{ node.level }}</li>
+            <li>Group By: {{ node.group_by | join(", ")}} </li>
+            <li>Model: 
+                <ul>
+                    <li>X: {{ node.model['x'] | join(", ") }}</li>
+                    <li>Type: {{ node.model['type'] }}</li>
+                </ul>
+            </li>
+            </ul>  
+
+            {% if loop.first %}
+            <p>A report was generated for each node instance. All but the
+                first are collapsed, but each should be inspected.
+            </p>
+            {% endif %}
+
+            {% for analysis in node.analyses %}
+                {% set analysis_loop = loop %}
+                <details {% if loop.first %}open{% endif %}>
+                <summary>{{ analysis.entities.items()|map('join', ': ')|map('capitalize')|join(', ')
+                }}</summary>
+
+                <h4>Design Matrix</h4>
+
+                {% if 'design_matrix_plot' in analysis %}
+                <div id="{{ node.name }}{{ loop.index }}_dm"></div>
+                <script type="text/javascript">
+                    var spec = {{ analysis.design_matrix_plot }};
+                    vegaEmbed('#{{ node.name }}{{ loop.index }}_dm', spec).then(function (result) {
+                    }).catch(console.error);
+                </script>
+
+                <details>
+                <summary  role="button" class="secondary">Design Matrix Table</summary>
+                {% endif %}
+
+                <figure>
+                {{ analysis.X.to_html(border=0, bold_rows=True, classes=["display", "compact"], table_id="{}{}_dmraw".format(node.name,loop.index)) | safe }}
+                </figure>
+                <script>
+                    $(document).ready( function () {
+                    $('#{{ node.name }}{{ loop.index }}_dmraw').DataTable({
+                            dom: 'Bfrtip',
+                            buttons: [
+                                {
+                                    extend: 'csvHtml5',
+                                    text: 'Download TSV',
+                                    fieldSeparator: '\t',
+                                }
+                            ]
+                    });
+                    } );
+                </script>
+                {% if 'design_matrix_plot' in analysis %}</details>{% endif %}
+                {% if 'trans_hist' in analysis %}
+                <h5>Transformation History</h5>
+                {% for trans in analysis.trans_hist %}
+                    {% if loop.first %}
+                        <p>Each
+                            transformation is applied to the design matrix in the order shown.
+                            The final design matrix is used in the model estimation.
+                        </p>
+                        <details>
+                        <summary>Original Variables</summary>
+                    {% else %}
+                        <details>
+                        <summary>{{ trans.index }}. {{ trans.transformation_name}}</summary>
+                        <ul class="elem-desc">
+                            <li><strong>Input Columns:</strong> {{ trans.input_cols|join(', ') }}</li>
+                            <li><strong>Arguments:</strong> {{ trans.transformation_kwargs.items()|map('join', ': ')|map('capitalize')|join(', ')}}</li>
+                        </ul>
+                    {% endif %}
+                    {% for var in trans.output.variables %}
+                    <div id="{{ node.name }}{{ analysis_loop.index }}{{ trans.index }}{{ var }}_thdiv">
+                        {{ trans.output.variables[var].to_df(entities=False, condition=False).to_html(
+                            index=False, border=0,
+                            table_id="{}{}{}{}_thvar".format(node.name, analysis_loop.index, trans.index, var))}}
+                            <script>
+                            $(document).ready( function () {
+                            $('#{{ node.name }}{{ analysis_loop.index }}{{ trans.index }}{{ var }}_thvar').DataTable({
+                                    dom: 'Bfrtip',
+                                    buttons: [
+                                        {
+                                            extend: 'csvHtml5',
+                                            text: 'Download TSV',
+                                            fieldSeparator: '\t',
+                                        }
+                                      ]
+                            });
+                            } );
+                        </script>
+                    </div>
+                    {% endfor %}
+                    </details>
+                {% endfor %}
+                {% endif %}
+                {% if 'design_matrix_corrplot' in analysis %}
+                <h5>Correlation Matrix</h5>
+                <div class="grid">
+                    <div id="{{ node.name }}{{ loop.index }}_corrdm"></div>
+                    <div>
+                        {% if node_loop.first %}
+                        <p><strong>Pairwise correlation between regressors.</strong> Very high or low correlations among variables of
+                            interest or between variables of interest and nuisance regressors
+                            can indicate deficiency in the design. High correlations among
+                            nuisance regressors will generally have little effect on the model. 
+                            It is reccomended to interpret these correlations in the context of the
+                            VIF for each contrast.
+                        </p>
+                        {% endif %}
+                    </div>
+                
+                </div>
+                <script type="text/javascript">
+                    var spec = {{ analysis.design_matrix_corrplot }};
+                    vegaEmbed('#{{ node.name }}{{ loop.index }}_corrdm', spec).then(function (result) {
+                    }).catch(console.error);
+                </script>
+                {% endif %}
+                <h4>Contrasts</h4>
+                {% if node_loop.first %}
+                <p>A contrast matrix was generated for each {{ node.name }}. Except
+                    in rare cases, these should be identical.</p>
+                {% endif %}
+                <figure>    
+                {{ analysis.contrast_matrix.style.to_html(border=0) | safe }}
+                </figure>
+
+                {% if 'VIF' in analysis %}
+                <h5>Variance Inflation Factor</h5>
+                <div class="grid">
+                <div>
+                <figure>    
+                {{ analysis.VIF.style.hide(axis='index').to_html(border=0) | safe }}
+                </figure>
+                </div>
+                <div>
+                {% if node_loop.first %}
+                <p> <strong>Estimated VIF for each contrast. </strong>
+                    This is done by extending the effective regressor definition from <em>Smith et al (2007)
+                    Meaningful design and contrast estimability (NeuroImage).</em>  Regressors involved
+                    in the contrast estimate are rotated to span the same space as the original space
+                    consisting of the effective regressor and and an orthogonal basis.  The rest of the 
+                    regressors are unchanged. VIF values below 5 are generally considered acceptable, 
+                    but values above 10 are problematic. VIF can be used to determine if high pass filter
+                    range is appropriate.  If the VIF for a contrast is high, it may be necessary to increase the
+                    high pass filter cutoff.  If the VIF for a contrast is low, it may be possible to
+                    decrease the high pass filter cutoff.
+                </p>
+                {% endif %}
+                </div>
+                </div>
+                {% endif %}
+
+
+                </details>
+
+                {% if node.analyses|count > 1 and loop.first %}
+                <details><summary><em>... more node outputs </em></summary>
+                {% endif %}
+                {% endfor %}
+                {% if node.analyses|count > 1%}</details>{% endif %}
+
+        </details>
+    {% endfor %}
+    </div>
+
+    <div id="about">
+        <h3 class="sub-report-title">About</h3>
+        <ul>
+            <li>PyBIDS version: {{ version }}</li>
+            <li>Date processed: {{ timestamp }}</li>
+        </ul>
+    </div>
+    </main>
+</body>
+
+</html>

@@ -56,7 +56,7 @@ def test_repr(graph):
     assert graph.__repr__() == "<BIDSStatsModelsGraph[{name='test_model', description='simple test model', ... }]>"
     node = graph.nodes['run']
     assert node.__repr__() == "<BIDSStatsModelsNode(level=run, name=run)>"
-    assert node.run()[0].__repr__() == "<BIDSStatsModelsNodeOutput(level=run, entities={'run': 1, 'subject': '01'})>"
+    assert node.run()[0].__repr__() == "<BIDSStatsModelsNodeOutput(name=run, entities={'run': 1, 'subject': '01'})>"
 
 def test_manual_intercept(graph_intercept):
     # Test that a automatic intercept (1) is correct
