@@ -139,7 +139,10 @@ class BIDSLayout(object):
             if description and description.get("DatasetType") == "derivative":
                 if validate:
                     validate_derivative_paths([root], self)
-                config = ["bids", "derivatives"]
+                if config:
+                    config += ["bids", "derivatives"]
+                else:
+                    config = ["bids", "derivatives"]
 
             init_args = dict(root=root, absolute_paths=absolute_paths,
                              derivatives=derivatives, config=config)
