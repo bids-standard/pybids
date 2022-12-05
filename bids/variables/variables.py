@@ -199,7 +199,7 @@ class BIDSVariable(metaclass=ABCMeta):
             onto the function call.
         """
         grouper = self.get_grouper(groupby)
-        return self.values.groupby(grouper).apply(func, *args, **kwargs)
+        return self.values.groupby(grouper, group_keys=False).apply(func, *args, **kwargs)
 
     def to_df(self, condition=True, entities=True, **kwargs):
         """Convert to a DataFrame, with columns for name and entities.
