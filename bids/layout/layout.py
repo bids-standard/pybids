@@ -187,7 +187,7 @@ class BIDSLayout(BIDSLayoutMRIMixin):
 
     def get(self, return_type: str = 'object', target: str = None, scope: str = None,
             extension: Union[str, List[str]] = None, suffix: Union[str, List[str]] = None,
-            regex_search=False,
+            regex_search=None,
             **entities) -> Union[List[str], List[object]]:
         """Retrieve files and/or metadata from the current Layout.
 
@@ -245,6 +245,8 @@ class BIDSLayout(BIDSLayoutMRIMixin):
         list of :obj:`bids.layout.BIDSFile` or str
             A list of BIDSFiles (default) or strings (see return_type).
         """
+        if regex_search is None:
+            regex_search = self._regex_search
         # Provide some suggestions if target is specified and invalid.
         self_entities = self.get_entities()
         if target is not None and target not in self_entities:
