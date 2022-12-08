@@ -4,7 +4,8 @@ import os.path
 from collections import OrderedDict
 from functools import partial
 from pathlib import Path
-from typing import List, Union, Dict
+from typing import List, Union, Dict, Optional, Any, Callable
+import warnings
 
 from .utils import BIDSMetadata
 from ..exceptions import (
@@ -78,17 +79,59 @@ class BIDSLayout(BIDSLayoutMRIMixin):
         the (absolute) path to the dataset to load
     """
 
-    def __init__(self, ds_dir: Union[str, Path], validate=True, **kwargs):
-        if isinstance(ds_dir, Path):
-            ds_dir = ds_dir.absolute()
-        self.dataset = load_dataset(ds_dir)
+    def __init__(
+        self,
+        root: Union[str, Path],
+        validate: bool=True,
+        absolute_paths: bool=True,
+        derivatives: bool=False,
+        config: Optional[Union[str, List[str]]]=None,
+        sources: Optional[List[Any]]=None,
+        config_filename: Optional[str]=None,
+        regex_search: bool=False,
+        database_path: Optional[str]=None,
+        reset_database: Optional[bool]=None,
+        indexer: Optional[Callable]=None,
+        **kwargs,
+    ):
+        if isinstance(root, Path):
+            root = root.absolute()
+        self.dataset = load_dataset(root)
         self.schema = self.dataset.get_schema()
         self.validationReport = None
+
+        self._regex_search = regex_search
+        self._absolute_paths = absolute_paths
+
         if validate:
             self.validationReport = self.validate()
             if self.validationReport.has_errors():
                 error_message = os.linesep.join(map(lambda error: error['message'], self.validationReport.get_errors()))
                 raise BIDSValidationError(error_message)
+
+        if database_path is not None:
+            warnings.warn(
+                "database_path no longer has any effect and will be removed",
+                DeprecationWarning
+            )
+        if reset_database is not None:
+            warnings.warn(
+                "reset_database no longer has any effect and will be removed",
+                DeprecationWarning
+            )
+        if indexer is not None:
+            warnings.warn(
+                "indexer no longer has any effect and will be removed",
+                DeprecationWarning
+            )
+        if kwargs:
+            warnings.warn(f"Unknown keyword arguments: {kwargs}")
+        if config is not None:
+            raise NotImplementedError("config is not implemented")
+        if sources is not None:
+            raise NotImplementedError("sources is not implemented")
+        if config_filename is not None:
+            raise NotImplementedError("config_filename is not implemented")
 
     def __getattr__(self, key):
         """Dynamically inspect missing methods for get_<entity>() calls
