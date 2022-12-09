@@ -83,7 +83,6 @@ class BIDSLayout(BIDSLayoutMRIMixin):
         self,
         root: Union[str, Path],
         validate: bool=True,
-        absolute_paths: bool=True,
         derivatives: bool=False,
         config: Optional[Union[str, List[str]]]=None,
         sources: Optional[List[Any]]=None,
@@ -101,7 +100,6 @@ class BIDSLayout(BIDSLayoutMRIMixin):
         self.validationReport = None
 
         self._regex_search = regex_search
-        self._absolute_paths = absolute_paths
 
         if validate:
             self.validationReport = self.validate()
@@ -216,11 +214,6 @@ class BIDSLayout(BIDSLayoutMRIMixin):
             Whether to require exact matching
             (False) or regex search (True) when comparing the query string
             to each entity.
-        absolute_paths : bool, optional
-            Optionally override the instance-wide option
-            to report either absolute or relative (to the top of the
-            dataset) paths. If None, will fall back on the value specified
-            at BIDSLayout initialization.
         invalid_filters (str): Controls behavior when named filters are
             encountered that don't exist in the database (e.g., in the case of
             a typo like subbject='0.1'). Valid values:
