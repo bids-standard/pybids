@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import List, Union, Dict, Optional, Any, Callable
 import warnings
 
+from .models import BIDSFile
 from .utils import BIDSMetadata
 from ..exceptions import (
     BIDSEntityError,
@@ -183,7 +184,7 @@ class BIDSLayout(BIDSLayoutMRIMixin):
         if md and include_entities:
             schema_entities = {e.entity_: e.literal_ for e in list(self.schema.EntityEnum)}
             md.update({schema_entities[e.key]: e.value for e in file.entities})
-        bmd = BIDSMetadata(file.get_absolute_path())
+        bmd = BIDSMetadata(file.path)
         bmd.update(md)
         return bmd
 
@@ -257,9 +258,9 @@ class BIDSLayout(BIDSLayoutMRIMixin):
                               .format(target))
         folder = self.dataset
         result = query(folder, return_type, target, scope, extension, suffix, regex_search, **entities)
-        if return_type in 'files':
+        if return_type == 'files':
             result = natural_sort(result)
-        return result
+        return [BIDSFile.from_path(res.get_absolute_path()) for res in result]
 
     @property
     def entities(self):
@@ -382,7 +383,7 @@ class BIDSLayout(BIDSLayoutMRIMixin):
 
         """
         all_files = self.get(return_type="object", scope=scope)
-        files = {file.get_absolute_path(): file for file in all_files}
+        files = {file.path: file for file in all_files}
         return files
 
     def get_file(self, filename, scope='all'):
