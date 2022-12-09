@@ -260,7 +260,12 @@ class BIDSLayout(BIDSLayoutMRIMixin):
         result = query(folder, return_type, target, scope, extension, suffix, regex_search, **entities)
         if return_type == 'files':
             result = natural_sort(result)
-        return [BIDSFile.from_path(res.get_absolute_path()) for res in result]
+        if return_type == "object":
+            result = natural_sort(
+                [BIDSFile.from_path(res.get_absolute_path()) for res in result],
+                "path"
+            )
+        return result
 
     @property
     def entities(self):
