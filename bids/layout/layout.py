@@ -134,6 +134,10 @@ class BIDSLayout(BIDSLayoutMRIMixin):
     def __getattr__(self, key):
         """Dynamically inspect missing methods for get_<entity>() calls
         and return a partial function of get() if a match is found."""
+        try:
+            return self.__dict__[key]
+        except KeyError:
+            pass
         if key.startswith('get_'):
             ent_name = key.replace('get_', '')
             ent_name = self.schema.fuzzy_match_entity_key(ent_name)
