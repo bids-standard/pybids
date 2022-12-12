@@ -84,7 +84,7 @@ class RunNode(Node):
 
 
 # Stores key information for each Run.
-RunInfo_ = namedtuple('RunInfo', ['entities', 'duration', 'tr', 'image', 'n_vols'])
+ RunInfo_ = namedtuple('RunInfo', ['entities', 'duration', 'tr', 'image', 'n_vols'])
 
 
 # Wrap with class to provide docstring
