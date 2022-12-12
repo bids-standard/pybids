@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import List, Union, Dict, Optional, Any, Callable
 import warnings
 
+from .models import BIDSFile
 from .utils import BIDSMetadata
 from ..exceptions import (
     BIDSEntityError,
@@ -134,6 +135,10 @@ class BIDSLayout(BIDSLayoutMRIMixin):
     def __getattr__(self, key):
         """Dynamically inspect missing methods for get_<entity>() calls
         and return a partial function of get() if a match is found."""
+        try:
+            return self.__dict__[key]
+        except KeyError:
+            pass
         if key.startswith('get_'):
             ent_name = key.replace('get_', '')
             ent_name = self.schema.fuzzy_match_entity_key(ent_name)
@@ -179,7 +184,7 @@ class BIDSLayout(BIDSLayoutMRIMixin):
         if md and include_entities:
             schema_entities = {e.entity_: e.literal_ for e in list(self.schema.EntityEnum)}
             md.update({schema_entities[e.key]: e.value for e in file.entities})
-        bmd = BIDSMetadata(file.get_absolute_path())
+        bmd = BIDSMetadata(file.path)
         bmd.update(md)
         return bmd
 
@@ -241,20 +246,31 @@ class BIDSLayout(BIDSLayoutMRIMixin):
         if regex_search is None:
             regex_search = self._regex_search
         # Provide some suggestions if target is specified and invalid.
-        self_entities = self.get_entities()
-        if target is not None and target not in self_entities:
-            potential = list(self_entities.keys())
-            suggestions = difflib.get_close_matches(target, potential)
-            if suggestions:
-                message = "Did you mean one of: {}?".format(suggestions)
-            else:
-                message = "Valid targets are: {}".format(potential)
-            raise TargetError(("Unknown target '{}'. " + message)
-                              .format(target))
+        if return_type in ("dir", "id"):
+            if target is None:
+                raise TargetError(f'If return_type is "id" or "dir", a valid target '
+                                  'entity must also be specified.')
+            # Resolve proper target names to their "key", e.g., session to ses
+            # XXX should we allow ses?
+            target = getattr(self.dataset._schema.EntityEnum, target, target)
+            self_entities = self.get_entities()
+            if target not in self_entities:
+                potential = list(self_entities.keys())
+                suggestions = difflib.get_close_matches(target, potential)
+                if suggestions:
+                    message = "Did you mean one of: {}?".format(suggestions)
+                else:
+                    message = "Valid targets are: {}".format(potential)
+                raise TargetError(f"Unknown target '{target}'. {message}")
         folder = self.dataset
         result = query(folder, return_type, target, scope, extension, suffix, regex_search, **entities)
-        if return_type in 'files':
+        if return_type == 'files':
             result = natural_sort(result)
+        if return_type == "object":
+            result = natural_sort(
+                [BIDSFile.from_path(res.get_absolute_path()) for res in result],
+                "path"
+            )
         return result
 
     @property
@@ -378,7 +394,7 @@ class BIDSLayout(BIDSLayoutMRIMixin):
 
         """
         all_files = self.get(return_type="object", scope=scope)
-        files = {file.get_absolute_path(): file for file in all_files}
+        files = {file.path: file for file in all_files}
         return files
 
     def get_file(self, filename, scope='all'):
