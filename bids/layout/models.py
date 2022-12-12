@@ -152,6 +152,8 @@ class BIDSFile:
         if values == 'object':
             raise NotImplementedError
 
+        return entities
+
     def copy(self, path_patterns, symbolic_link=False, root=None,
              conflicts='fail'):
         """Copy the contents of a file to a new location.
