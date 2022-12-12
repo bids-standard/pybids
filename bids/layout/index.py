@@ -11,7 +11,6 @@ from bids_validator import BIDSValidator
 from ..utils import listify, make_bidsfile
 from ..exceptions import BIDSConflictingValuesError
 
-from .models import Config, Entity, Tag, FileAssociation
 from .validation import validate_indexing_args
 
 
