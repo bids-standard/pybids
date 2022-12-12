@@ -36,37 +36,42 @@ class BIDSFile:
         return cls(path)
 
     @classmethod
-    def from_artifact(cls, ancp):
+    def from_artifact(cls, artifact, root):
         """ Load from ANCPBids Artifact """
-        return cls(artifact=ancp.path)
+        return cls(root, artifact=artifact)
 
-    def __init__(self, artifact=None, filename=None, root=None):
+    def __init__(self, root, artifact=None, filename=None):
         if artifact is not None:
             self.artifact = artifact
-        else:
-            # Problem here is we need to extract the entities, suffix, etc from filename
+        elif filename is not None:
+            # We need to extract the entities, suffix, etc from filename
             # and we need the root, which is not available in Artifact object
             raise NotImplementedError
             # self.artifact = Artifact(
             #     suffix=suffix, entities=entities, name=str(filename), extension=extension, uri=uri)
+        else:
+            raise ValueError("Either artifact or filename must be provided")
         
         self._root = root
 
     @property
     def path(self):
-        return self.artifact.path
+        """ Convenience property for accessing path as a string."""
+        return self.artifact.name
 
     @property
     def _path(self):
+        """ Convenience property for accessing path as a Path object."""
         return Path(self.path)
 
     @property
     def filename(self):
+        """ Convenience property for accessing filename."""
         return self._path.name
 
     @property
     def is_dir(self):
-        return not self.filename
+        return not self._path.isdir()
 
     @property
     def dirname(self):
@@ -81,8 +86,6 @@ class BIDSFile:
     @property
     def relpath(self):
         """Return path relative to layout root"""
-        if self._root is None:
-            raise NotImplementedError
         return str(self._path.relative_to(self._root))
 
     def get_associations(self, kind=None, include_parents=False):
