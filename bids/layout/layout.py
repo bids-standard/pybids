@@ -72,7 +72,7 @@ class BIDSLayout(BIDSLayoutMRIMixin):
     .. code-block::
 
         dataset_path = 'path/to/your/dataset'
-        layout = BIDSLayout(dataset_path)
+        layouBIDSFilet = BIDSLayout(dataset_path)
 
     Parameters
     ----------
@@ -268,7 +268,7 @@ class BIDSLayout(BIDSLayoutMRIMixin):
             result = natural_sort(result)
         if return_type == "object":
             result = natural_sort(
-                [BIDSFile.from_path(res.get_absolute_path()) for res in result],
+                [BIDSFile.from_artifact(self.root, res) for res in result],
                 "path"
             )
         return result
