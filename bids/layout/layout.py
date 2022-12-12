@@ -195,7 +195,7 @@ class BIDSLayout(BIDSLayoutMRIMixin, BIDSLayoutWritingMixin):
     .. code-block::
 
         dataset_path = 'path/to/your/dataset'
-        layouBIDSFilet = BIDSLayout(dataset_path)
+        layout = BIDSLayout(dataset_path)
 
     Parameters
     ----------
@@ -340,6 +340,14 @@ class BIDSLayout(BIDSLayoutMRIMixin, BIDSLayoutWritingMixin):
             Dictionary where keys are Entity names and values are the
             values extracted from the filename.
         """
+        # # If either entities or config is specified, just pass through
+        # if entities is None and config is None:
+        #     layouts = self._get_layouts_in_scope(scope)
+        #     config = chain(*[list(l.config.values()) for l in layouts])
+        #     config = list(set(config))
+
+        # return parse_file_entities(filename, entities, config,
+        #                            include_unmatched)
 
         raise NotImplementedError("parse_file_entities is not implemented")
 
@@ -371,6 +379,7 @@ class BIDSLayout(BIDSLayoutMRIMixin, BIDSLayoutWritingMixin):
         """
         
         raise NotImplementedError("get_nearest is not implemented")
+
 
 
     def get(self, return_type: str = 'object', target: str = None, scope: str = None,
