@@ -36,7 +36,7 @@ class BIDSFile:
         return cls(path)
 
     @classmethod
-    def from_artifact(cls, artifact, root):
+    def from_artifact(cls, root, artifact):
         """ Load from ANCPBids Artifact """
         return cls(root, artifact=artifact)
 
