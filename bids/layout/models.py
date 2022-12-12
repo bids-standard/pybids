@@ -1,18 +1,13 @@
 """ Model classes used in BIDSLayouts. """
 
-import re
 import os
 from pathlib import Path
-import warnings
 import json
-from copy import deepcopy
-from itertools import chain
-from functools import lru_cache
+from ancpbids.model_v1_8_0 import Artifact
 
 from ..utils import listify
 from .writing import build_path, write_to_file
-from ..config import get_option
-from .utils import BIDSMetadata, PaddedInt
+from .utils import BIDSMetadata
 
 
 class BIDSFile:
@@ -40,16 +35,47 @@ class BIDSFile:
                 break
         return cls(path)
 
-    def __init__(self, filename, root=None):
-        self.path = str(filename)
-        self.filename = self._path.name
-        self.dirname = str(self._path.parent)
-        self.is_dir = not self.filename
+    @classmethod
+    def from_artifact(cls, artifact, root):
+        """ Load from ANCPBids Artifact """
+        return cls(root, artifact=artifact)
+
+    def __init__(self, root, artifact=None, filename=None):
+        if artifact is not None:
+            self.artifact = artifact
+        elif filename is not None:
+            # We need to extract the entities, suffix, etc from filename
+            # and we need the root, which is not available in Artifact object
+            raise NotImplementedError
+            # self.artifact = Artifact(
+            #     suffix=suffix, entities=entities, name=str(filename), extension=extension, uri=uri)
+        else:
+            raise ValueError("Either artifact or filename must be provided")
+        
         self._root = root
 
     @property
+    def path(self):
+        """ Convenience property for accessing path as a string."""
+        return self.artifact.name
+
+    @property
     def _path(self):
+        """ Convenience property for accessing path as a Path object."""
         return Path(self.path)
+
+    @property
+    def filename(self):
+        """ Convenience property for accessing filename."""
+        return self._path.name
+
+    @property
+    def is_dir(self):
+        return not self._path.isdir()
+
+    @property
+    def dirname(self):
+        return str(self._path.parent)
 
     def __repr__(self):
         return f"<{self.__class__.__name__} filename='{self.path}'>"
@@ -60,7 +86,7 @@ class BIDSFile:
     @property
     def relpath(self):
         """Return path relative to layout root"""
-        return str(Path(self.path).relative_to(self._root))
+        return str(self._path.relative_to(self._root))
 
     def get_associations(self, kind=None, include_parents=False):
         """Get associated files, optionally limiting by association kind.
@@ -91,6 +117,10 @@ class BIDSFile:
         md.update(self.get_entities(metadata=True))
         return md
 
+    @property
+    def entities(self):
+        return self.get_entities()
+        
     def get_entities(self, metadata=False, values='tags'):
         """Return entity information for the current file.
 
@@ -115,18 +145,12 @@ class BIDSFile:
             A dict, where keys are entity names and values are Entity
             instances.
         """
-        session = object_session(self)
-        query = (session.query(Tag)
-                 .filter_by(file_path=self.path)
-                 .join(Entity))
-
-        if metadata not in (None, 'all'):
-            query = query.filter(Tag.is_metadata == metadata)
-
-        results = query.all()
-        if values.startswith('obj'):
-            return {t.entity_name: t.entity for t in results}
-        return {t.entity_name: t.value for t in results}
+        entities = self.artifact.get_entities()
+        if metadata:
+            entities = {**entities, **self.artifact.get_metadata()}
+        
+        if values == 'object':
+            raise NotImplementedError
 
     def copy(self, path_patterns, symbolic_link=False, root=None,
              conflicts='fail'):
