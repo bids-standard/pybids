@@ -88,60 +88,6 @@ class PaddedInt(int):
         return super().__hash__()
 
 
-def parse_file_entities(filename, entities=None, config=None,
-                        include_unmatched=False):
-    """Parse the passed filename for entity/value pairs.
-
-    Parameters
-    ----------
-    filename : str
-        The filename to parse for entity values
-    entities : list or None, optional
-        An optional list of Entity instances to use in extraction.
-        If passed, the config argument is ignored. Default is None.
-    config : str or :obj:`bids.layout.models.Config` or list or None, optional
-        One or more :obj:`bids.layout.models.Config` objects or names of
-        configurations to use in matching. Each element must be a
-        :obj:`bids.layout.models.Config` object, or a valid
-        :obj:`bids.layout.models.Config` name (e.g., 'bids' or 'derivatives').
-        If None, all available configs are used. Default is None.
-    include_unmatched : bool, optional
-        If True, unmatched entities are included in the returned dict,
-        with values set to None.
-        If False (default), unmatched entities are ignored.
-
-    Returns
-    -------
-    dict
-        Keys are Entity names and values are the values from the filename.
-    """
-    # Load Configs if needed
-    if entities is None:
-
-        if config is None:
-            config = ['bids', 'derivatives']
-
-        from .models import Config
-        config = [Config.load(c) if not isinstance(c, Config) else c
-                  for c in listify(config)]
-
-        # Consolidate entities from all Configs into a single dict
-        entities = {}
-        for c in config:
-            entities.update(c.entities)
-        entities = entities.values()
-
-    # Extract matches
-    bf = make_bidsfile(filename)
-    ent_vals = {}
-    for ent in entities:
-        match = ent.match_file(bf)
-        if match is not None or include_unmatched:
-            ent_vals[ent.name] = match
-
-    return ent_vals
-
-
 def add_config_paths(**kwargs):
     """Add to the pool of available configuration files for BIDSLayout.
 
