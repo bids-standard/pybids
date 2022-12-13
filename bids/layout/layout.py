@@ -541,7 +541,7 @@ class BIDSLayout(BIDSLayoutMRIMixin, BIDSLayoutWritingMixin):
             result = natural_sort(result)
         if return_type == "object":
             result = natural_sort(
-                [BIDSFile.from_artifact(self.root, res) for res in result],
+                [BIDSFile.from_artifact(res) for res in result],
                 "path"
             )
         return result
