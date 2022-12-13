@@ -349,7 +349,7 @@ class BIDSLayout(BIDSLayoutMRIMixin, BIDSLayoutWritingMixin):
             results = {e: results[e] for e in entities if e in results}
 
         if include_unmatched:
-            for k in set(self.get_entities()) - set(results)):
+            for k in set(self.get_entities()) - set(results):
                 results[k] = None
         
         if scope is not None or config is not None:

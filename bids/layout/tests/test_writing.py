@@ -18,12 +18,6 @@ def writable_file(tmpdir):
     fn = tmpdir.mkdir("tmp").join(testfile)
     fn.write('###')
     bf = BIDSFile(os.path.join(str(fn)))
-
-    entity_dict = {
-        'task': 'rest',
-        'run': 2,
-        'subject': '3'
-    }
     return bf
 
 
