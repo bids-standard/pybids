@@ -28,20 +28,20 @@ class BIDSFile:
             BIDSFile._ext_registry[ext] = cls
 
     @classmethod
-    def from_filename(cls, root, filename):
+    def from_filename(cls, filename):
         path = Path(filename)
         for ext, subclass in cls._ext_registry.items():
             if path.name.endswith(ext):
                 cls = subclass
                 break
-        return cls(root==root, filename=path)
+        return cls(filename=path)
 
     @classmethod
-    def from_artifact(cls, root, artifact):
+    def from_artifact(cls, artifact):
         """ Load from ANCPBids Artifact """
-        return cls(root, artifact=artifact)
+        return cls(artifact=artifact)
 
-    def __init__(self, root, artifact=None, filename=None):
+    def __init__(self, artifact=None, filename=None):
         if artifact is not None:
             self.artifact = artifact
         elif filename is not None:
@@ -49,8 +49,6 @@ class BIDSFile:
         else:
             raise ValueError("Either artifact or filename must be provided")
         
-        self._root = root
-
     @property
     def path(self):
         """ Convenience property for accessing path as a string."""
@@ -81,9 +79,9 @@ class BIDSFile:
         return self.path
 
     @property
-    def relpath(self):
+    def relpath(self, root):
         """Return path relative to layout root"""
-        return str(self._path.relative_to(self._root))
+        return str(self._path.relative_to(root))
 
     def get_associations(self, kind=None, include_parents=False):
         """Get associated files, optionally limiting by association kind.
