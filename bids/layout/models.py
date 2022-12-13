@@ -11,7 +11,7 @@ from .writing import build_path, write_to_file
 from .utils import BIDSMetadata
 
 
-class BIDSFile:
+class BIDSFile(Artifact):
     """Represents a single file or directory in a BIDS dataset.
 
     Parameters
@@ -43,16 +43,16 @@ class BIDSFile:
 
     def __init__(self, artifact=None, filename=None):
         if artifact is not None:
-            self.artifact = artifact
+            self._artifact = artifact
         elif filename is not None:
-            self.artifact = Artifact(**parse_bids_name(filename))
+            self._artifact = Artifact(**parse_bids_name(filename))
         else:
             raise ValueError("Either artifact or filename must be provided")
         
     @property
     def path(self):
         """ Convenience property for accessing path as a string."""
-        return self.artifact.name
+        return self._artifact.name
 
     @property
     def _path(self):
@@ -140,9 +140,9 @@ class BIDSFile:
             A dict, where keys are entity names and values are Entity
             instances.
         """
-        entities = self.artifact.get_entities()
+        entities = self._artifact.get_entities()
         if metadata:
-            entities = {**entities, **self.artifact.get_metadata()}
+            entities = {**entities, **self._artifact.get_metadata()}
         
         if values == 'object':
             raise NotImplementedError
