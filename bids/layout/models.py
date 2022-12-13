@@ -16,8 +16,8 @@ class BIDSFile(Artifact):
 
     Parameters
     ----------
-    filename : str
-        The path to the corresponding file.
+    file_ref : str
+        The path to the file or directory or an Artifact instance.
     """
     _ext_registry = {}
 
@@ -41,36 +41,37 @@ class BIDSFile(Artifact):
         """ Load from ANCPBids Artifact """
         return cls(artifact=artifact)
 
-    def __init__(self, artifact=None, filename=None):
-        if artifact is not None:
-            self._artifact = artifact
-        elif filename is not None:
-            self._artifact = Artifact(**parse_bids_name(filename))
-        else:
-            raise ValueError("Either artifact or filename must be provided")
+    def __init__(self, file_ref: str | os.PathLike | Artifact):
+        self._path = None
+        self._artifact = None
+        if isinstance(file_ref, (str, os.PathLike)):
+            self._path = Path(file_ref)
+        elif isinstance(file_ref, Artifact):
+            self._artifact = file_ref
         
     @property
     def path(self):
         """ Convenience property for accessing path as a string."""
-        return self._artifact.name
-
-    @property
-    def _path(self):
-        """ Convenience property for accessing path as a Path object."""
-        return Path(self.path)
+        try:
+            return self._artifact.get_absolute_path()
+        except AttributeError:
+            return str(self._path)
 
     @property
     def filename(self):
         """ Convenience property for accessing filename."""
-        return self._path.name
+        try:
+            return self._artifact.name
+        except AttributeError:
+            return self._path.name
 
     @property
     def is_dir(self):
-        return not self._path.isdir()
+        return Path(self.path).is_dir()
 
     @property
     def _dirname(self):
-        return str(self._path.parent)
+        return str(Path(self.path).parent)
 
     def __repr__(self):
         return f"<{self.__class__.__name__} filename='{self.path}'>"
@@ -79,9 +80,9 @@ class BIDSFile(Artifact):
         return self.path
 
     @property
-    def relpath(self, root):
-        """Return path relative to layout root"""
-        return str(self._path.relative_to(root))
+    def relpath(self):
+        """ No longer have access to the BIDSLayout root directory """
+        raise NotImplementedError
 
     def get_associations(self, kind=None, include_parents=False):
         """Get associated files, optionally limiting by association kind.
@@ -140,9 +141,12 @@ class BIDSFile(Artifact):
             A dict, where keys are entity names and values are Entity
             instances.
         """
-        entities = self._artifact.get_entities()
-        if metadata:
-            entities = {**entities, **self._artifact.get_metadata()}
+        try:
+            entities = self._artifact.get_entities()
+            if metadata:
+                entities = {**entities, **self._artifact.get_metadata()}
+        except AttributeError:
+            raise NotImplementedError
         
         if values == 'object':
             raise NotImplementedError
@@ -178,11 +182,8 @@ class BIDSFile(Artifact):
         if new_filename[-1] == os.sep:
             new_filename += self.filename
 
-        if self._path.is_absolute() or root is None:
-            path = self._path
-        else:
-            path = Path(root) / self._path
-
+        path = Path(self.path)
+        
         if not path.exists():
             raise ValueError("Target filename to copy/symlink (%s) doesn't "
                              "exist." % path)
