@@ -390,7 +390,7 @@ class BIDSLayout(BIDSLayoutMRIMixin, BIDSLayoutWritingMixin, BIDSLayoutVariables
             values extracted from the filename.
         """
         results = parse_bids_name(filename)
-        entities = results.pop['entities']
+        entities = results.pop('entities')
         results = {**entities, **results}
 
         if entities:
