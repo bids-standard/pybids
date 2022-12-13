@@ -69,7 +69,7 @@ class BIDSFile:
         return not self._path.isdir()
 
     @property
-    def dirname(self):
+    def _dirname(self):
         return str(self._path.parent)
 
     def __repr__(self):
