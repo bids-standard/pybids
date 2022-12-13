@@ -7,7 +7,7 @@ import bids
 from bids.exceptions import ConfigError
 
 from ..models import Entity, Config
-from ..utils import BIDSMetadata, parse_file_entities, add_config_paths
+from ..utils import BIDSMetadata, add_config_paths
 
 
 def test_bidsmetadata_class():

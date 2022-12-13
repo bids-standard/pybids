@@ -1,6 +1,7 @@
 """ Model classes used in BIDSLayouts. """
 
 import os
+from typing import Union
 from pathlib import Path
 import json
 from ancpbids.model_v1_8_0 import Artifact
@@ -41,7 +42,7 @@ class BIDSFile(Artifact):
         """ Load from ANCPBids Artifact """
         return cls(artifact=artifact)
 
-    def __init__(self, file_ref: str | os.PathLike | Artifact):
+    def __init__(self, file_ref: Union[str, os.PathLike, Artifact]):
         self._path = None
         self._artifact = None
         if isinstance(file_ref, (str, os.PathLike)):
