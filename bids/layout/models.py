@@ -4,6 +4,7 @@ import os
 from pathlib import Path
 import json
 from ancpbids.model_v1_8_0 import Artifact
+from ancpbids import parse_bids_name
 
 from ..utils import listify
 from .writing import build_path, write_to_file
@@ -27,13 +28,13 @@ class BIDSFile:
             BIDSFile._ext_registry[ext] = cls
 
     @classmethod
-    def from_path(cls, path):
-        path = Path(path)
+    def from_filename(cls, root, filename):
+        path = Path(filename)
         for ext, subclass in cls._ext_registry.items():
             if path.name.endswith(ext):
                 cls = subclass
                 break
-        return cls(path)
+        return cls(root==root, filename=path)
 
     @classmethod
     def from_artifact(cls, root, artifact):
@@ -44,11 +45,7 @@ class BIDSFile:
         if artifact is not None:
             self.artifact = artifact
         elif filename is not None:
-            # We need to extract the entities, suffix, etc from filename
-            # and we need the root, which is not available in Artifact object
-            raise NotImplementedError
-            # self.artifact = Artifact(
-            #     suffix=suffix, entities=entities, name=str(filename), extension=extension, uri=uri)
+            self.artifact = Artifact(**parse_bids_name(filename))
         else:
             raise ValueError("Either artifact or filename must be provided")
         
