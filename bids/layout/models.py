@@ -35,12 +35,7 @@ class BIDSFile(Artifact):
             if path.name.endswith(ext):
                 cls = subclass
                 break
-        return cls(filename=path)
-
-    @classmethod
-    def from_artifact(cls, artifact):
-        """ Load from ANCPBids Artifact """
-        return cls(artifact=artifact)
+        return cls(path)
 
     def __init__(self, file_ref: Union[str, os.PathLike, Artifact]):
         self._path = None
