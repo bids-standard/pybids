@@ -1,7 +1,7 @@
 import difflib
 import enum
 import os.path
-from collections import OrderedDict
+from collections import defaultdict
 from functools import partial
 from pathlib import Path
 from typing import List, Union, Dict, Optional, Any, Callable
@@ -20,11 +20,11 @@ from ..exceptions import (
 from ancpbids import CustomOpExpr, EntityExpr, AllExpr, ValidationPlugin, load_dataset, validate_dataset, \
     write_derivative
 from ancpbids.query import query, query_entities, FnMatchExpr, AnyExpr
-from ancpbids.utils import deepupdate, resolve_segments, convert_to_relative
+from ancpbids.utils import deepupdate, resolve_segments, convert_to_relative, parse_bids_name
 
 __all__ = ['BIDSLayout, Query']
 
-from ..utils import natural_sort
+from ..utils import natural_sort, listify
 
 class BIDSLayoutWritingMixin:
     def build_path(self, source, path_patterns=None, strict=False,
@@ -311,7 +311,7 @@ class BIDSLayout(BIDSLayoutMRIMixin, BIDSLayoutWritingMixin):
         bmd.update(md)
         return bmd
 
-    def parse_file_entities(self, filename, scope='all', entities=None,
+    def parse_file_entities(self, filename, scope=None, entities=None,
                             config=None, include_unmatched=False):
         """Parse the passed filename for entity/value pairs.
         Parameters
@@ -340,16 +340,24 @@ class BIDSLayout(BIDSLayoutMRIMixin, BIDSLayoutWritingMixin):
             Dictionary where keys are Entity names and values are the
             values extracted from the filename.
         """
-        # # If either entities or config is specified, just pass through
-        # if entities is None and config is None:
-        #     layouts = self._get_layouts_in_scope(scope)
-        #     config = chain(*[list(l.config.values()) for l in layouts])
-        #     config = list(set(config))
+        results = parse_bids_name(filename)
+        entities = results.pop['entities']
+        results = {**entities, **results}
 
-        # return parse_file_entities(filename, entities, config,
-        #                            include_unmatched)
+        if entities:
+            # Filter out any entities that aren't in the specified
+            results = {e: results[e] for e in entities if e in results}
 
-        raise NotImplementedError("parse_file_entities is not implemented")
+        if include_unmatched:
+            for k in set(self.get_entities()) - set(results)):
+                results[k] = None
+        
+        if scope is not None or config is not None:
+            # To implement, need to be able to parse given a speciifc scope / config
+            # Currently, parse_bids_name uses a fixed config in ancpbids
+            raise NotImplementedError("scope and config are not implemented")
+
+        return results
 
     def get_nearest(self, path, return_type='filename', strict=True,
                     all_=False, ignore_strict_entities='extension',
@@ -378,9 +386,80 @@ class BIDSLayout(BIDSLayoutMRIMixin, BIDSLayoutWritingMixin):
             Optional keywords to pass on to :obj:`bids.layout.BIDSLayout.get`.
         """
         
-        raise NotImplementedError("get_nearest is not implemented")
+        path = Path(path).absolute()
 
+        # Make sure we have a valid suffix
+        if not filters.get('suffix'):
+            f = self.get_file(path)
+            if 'suffix' not in f.entities:
+                raise BIDSValidationError(
+                    "File '%s' does not have a valid suffix, most "
+                    "likely because it is not a valid BIDS file." % path
+                )
+            filters['suffix'] = f.entities['suffix']
 
+        # Collect matches for all entities for this file
+        entities = self.parse_file_entities(str(path))
+
+        # Remove any entities we want to ignore when strict matching is on
+        if strict and ignore_strict_entities is not None:
+            for k in listify(ignore_strict_entities):
+                entities.pop(k, None)
+
+        # Get candidate files
+        results = self.get(**filters)
+
+        # Make a dictionary of directories --> contained files
+        folders = defaultdict(list)
+        for f in results:
+            folders[f._dirname].append(f)
+
+        # Build list of candidate directories to check
+        # Walking up from path, add all parent directories with a
+        # matching file
+        search_paths = []
+        while True:
+            if path in folders and folders[path]:
+                search_paths.append(path)
+            parent = path.parent
+            if parent == path:
+                break
+            path = parent
+
+        if full_search:
+            unchecked = set(folders.keys()) - set(search_paths)
+            search_paths.extend(path for path in unchecked if folders[path])
+
+        def count_matches(f):
+            # Count the number of entities shared with the passed file
+            # Returns a tuple of (num_shared, num_perfect)
+            f_ents = f.entities
+            keys = set(entities.keys()) & set(f_ents.keys())
+            shared = len(keys)
+            return (shared, sum([entities[k] == f_ents[k] for k in keys]))
+
+        matches = []
+
+        for path in search_paths:
+            # Sort by number of matching entities. Also store number of
+            # common entities, for filtering when strict=True.
+            num_ents = [(f, ) + count_matches(f) for f in folders[path]]
+            # Filter out imperfect matches (i.e., where number of common
+            # entities does not equal number of matching entities).
+            if strict:
+                num_ents = [f for f in num_ents if f[1] == f[2]]
+            num_ents.sort(key=lambda x: x[2], reverse=True)
+
+            if num_ents:
+                matches += [f_match[0] for f_match in num_ents]
+
+            if not all_:
+                break
+
+        matches = [match.path if return_type == 'filename'
+                   else match for match in matches]
+        return matches if all_ else matches[0] if matches else None
+        
 
     def get(self, return_type: str = 'object', target: str = None, scope: str = None,
             extension: Union[str, List[str]] = None, suffix: Union[str, List[str]] = None,
