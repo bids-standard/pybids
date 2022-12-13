@@ -17,14 +17,6 @@ from bids.layout.utils import PaddedInt
 from bids.tests import get_test_data_path
 
 
-
-def create_session():
-    engine = create_engine('sqlite://')
-    Base.metadata.create_all(engine)
-    Session = sessionmaker(bind=engine)
-    return Session()
-
-
 @pytest.fixture
 def sample_bidsfile(tmpdir):
     testfile = 'sub-03_ses-2_task-rest_acq-fullbrain_run-2_bold.nii.gz'
@@ -93,26 +85,25 @@ def test_entity_deepcopy(subject_entity):
     assert e != clone
 
 
-def test_file_associations():
-    session = create_session()
-    img = BIDSFile('sub-03/func/sub-03_task-rest_run-2_bold.nii.gz')
-    md1 = BIDSFile('sub-03/func/sub-03_task-rest_run-2_bold.json')
-    md2 = BIDSFile('task-rest_run-2_bold.json')
-    assocs = [
-        FileAssociation(src=md1.path, dst=img.path, kind="MetadataFor"),
-        FileAssociation(src=img.path, dst=md1.path, kind="MetadataIn"),
-        FileAssociation(src=md1.path, dst=md2.path, kind="Child"),
-        FileAssociation(src=md2.path, dst=md1.path, kind="Parent"),
-        FileAssociation(src=md2.path, dst=img.path, kind="Informs")
-    ]
-    session.add_all([img, md1, md2] + assocs)
-    session.commit()
-    assert img._associations == [md1, md2] == img.get_associations()
-    assert md2._associations == [md1]
-    assert img.get_associations(kind='MetadataFor') == []
-    assert img.get_associations(kind='MetadataIn') == [md1]
-    results = img.get_associations(kind='MetadataIn', include_parents=True)
-    assert set(results) == {md1, md2}
+# def test_file_associations():
+#     img = BIDSFile('sub-03/func/sub-03_task-rest_run-2_bold.nii.gz')
+#     md1 = BIDSFile('sub-03/func/sub-03_task-rest_run-2_bold.json')
+#     md2 = BIDSFile('task-rest_run-2_bold.json')
+#     assocs = [
+#         FileAssociation(src=md1.path, dst=img.path, kind="MetadataFor"),
+#         FileAssociation(src=img.path, dst=md1.path, kind="MetadataIn"),
+#         FileAssociation(src=md1.path, dst=md2.path, kind="Child"),
+#         FileAssociation(src=md2.path, dst=md1.path, kind="Parent"),
+#         FileAssociation(src=md2.path, dst=img.path, kind="Informs")
+#     ]
+#     session.add_all([img, md1, md2] + assocs)
+#     session.commit()
+#     assert img._associations == [md1, md2] == img.get_associations()
+#     assert md2._associations == [md1]
+#     assert img.get_associations(kind='MetadataFor') == []
+#     assert img.get_associations(kind='MetadataIn') == [md1]
+#     results = img.get_associations(kind='MetadataIn', include_parents=True)
+#     assert set(results) == {md1, md2}
 
 
 def test_tag_init(sample_bidsfile, subject_entity):
@@ -137,52 +128,52 @@ def test_tag_dtype(sample_bidsfile, subject_entity):
     assert all(t.value == 4 for t in tags)
 
 
-def test_entity_add_file(sample_bidsfile):
-    session = create_session()
-    bf = sample_bidsfile
-    e = Entity('prop', r'-(\d+)')
-    t = Tag(file=bf, entity=e, value=4)
-    session.add_all([t, e, bf])
-    session.commit()
-    assert e.files[bf.path] == 4
+# def test_entity_add_file(sample_bidsfile):
+#     session = create_session()
+#     bf = sample_bidsfile
+#     e = Entity('prop', r'-(\d+)')
+#     t = Tag(file=bf, entity=e, value=4)
+#     session.add_all([t, e, bf])
+#     session.commit()
+#     assert e.files[bf.path] == 4
 
 
-def test_config_init_with_args():
-    session = create_session()
-    ents = [
-        {
-            "name": "task",
-            "pattern": "[_/\\\\]task-([a-zA-Z0-9]+)"
-        },
-        {
-            "name": "acquisition",
-            "pattern": "[_/\\\\]acq-([a-zA-Z0-9]+)"
-        }
-    ]
-    patterns = ['this_will_never_match_anything', 'and_neither_will_this']
-    config = Config('custom', entities=ents, default_path_patterns=patterns)
-    assert config.name == 'custom'
-    target = {'task', 'acquisition'}
-    assert set(ent.name for ent in config.entities.values()) == target
-    assert config.default_path_patterns  == patterns
+# def test_config_init_with_args():
+#     session = create_session()
+#     ents = [
+#         {
+#             "name": "task",
+#             "pattern": "[_/\\\\]task-([a-zA-Z0-9]+)"
+#         },
+#         {
+#             "name": "acquisition",
+#             "pattern": "[_/\\\\]acq-([a-zA-Z0-9]+)"
+#         }
+#     ]
+#     patterns = ['this_will_never_match_anything', 'and_neither_will_this']
+#     config = Config('custom', entities=ents, default_path_patterns=patterns)
+#     assert config.name == 'custom'
+#     target = {'task', 'acquisition'}
+#     assert set(ent.name for ent in config.entities.values()) == target
+#     assert config.default_path_patterns  == patterns
 
 
-def test_load_existing_config():
-    session = create_session()
-    first = Config('dummy')
-    session.add(first)
-    session.commit()
+# def test_load_existing_config():
+#     session = create_session()
+#     first = Config('dummy')
+#     session.add(first)
+#     session.commit()
 
-    second = Config.load({"name": "dummy"}, session=session)
-    assert first == second
-    session.add(second)
-    session.commit()
+#     second = Config.load({"name": "dummy"}, session=session)
+#     assert first == second
+#     session.add(second)
+#     session.commit()
 
-    from sqlalchemy.orm.exc import FlushError
-    with pytest.raises(FlushError):
-        second = Config.load({"name": "dummy"})
-        session.add(second)
-        session.commit()
+#     from sqlalchemy.orm.exc import FlushError
+#     with pytest.raises(FlushError):
+#         second = Config.load({"name": "dummy"})
+#         session.add(second)
+#         session.commit()
 
 
 def test_bidsfile_get_df_from_tsv_gz(layout_synthetic):

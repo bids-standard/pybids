@@ -4,6 +4,7 @@ import os
 from pathlib import Path
 import json
 from ancpbids.model_v1_8_0 import Artifact
+from ancpbids.utils import parse_bids_name
 
 from ..utils import listify
 from .writing import build_path, write_to_file
@@ -27,33 +28,27 @@ class BIDSFile:
             BIDSFile._ext_registry[ext] = cls
 
     @classmethod
-    def from_path(cls, path):
-        path = Path(path)
+    def from_filename(cls, filename):
+        path = Path(filename)
         for ext, subclass in cls._ext_registry.items():
             if path.name.endswith(ext):
                 cls = subclass
                 break
-        return cls(path)
+        return cls(filename=path)
 
     @classmethod
-    def from_artifact(cls, root, artifact):
+    def from_artifact(cls, artifact):
         """ Load from ANCPBids Artifact """
-        return cls(root, artifact=artifact)
+        return cls(artifact=artifact)
 
-    def __init__(self, root, artifact=None, filename=None):
+    def __init__(self, artifact=None, filename=None):
         if artifact is not None:
             self.artifact = artifact
         elif filename is not None:
-            # We need to extract the entities, suffix, etc from filename
-            # and we need the root, which is not available in Artifact object
-            raise NotImplementedError
-            # self.artifact = Artifact(
-            #     suffix=suffix, entities=entities, name=str(filename), extension=extension, uri=uri)
+            self.artifact = Artifact(**parse_bids_name(filename))
         else:
             raise ValueError("Either artifact or filename must be provided")
         
-        self._root = root
-
     @property
     def path(self):
         """ Convenience property for accessing path as a string."""
@@ -84,9 +79,9 @@ class BIDSFile:
         return self.path
 
     @property
-    def relpath(self):
+    def relpath(self, root):
         """Return path relative to layout root"""
-        return str(self._path.relative_to(self._root))
+        return str(self._path.relative_to(root))
 
     def get_associations(self, kind=None, include_parents=False):
         """Get associated files, optionally limiting by association kind.
