@@ -4,7 +4,7 @@ import os
 from pathlib import Path
 import json
 from ancpbids.model_v1_8_0 import Artifact
-from ancpbids import parse_bids_name
+from ancpbids.utils import parse_bids_name
 
 from ..utils import listify
 from .writing import build_path, write_to_file
