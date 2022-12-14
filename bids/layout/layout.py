@@ -583,9 +583,10 @@ class BIDSLayout(BIDSLayoutMRIMixin, BIDSLayoutWritingMixin, BIDSLayoutVariables
         if return_type in ("dir", "id"):
             # Resolve proper target names to their "key", e.g., session to ses
             # XXX should we allow ses?
-            target_match = getattr(self.dataset._schema.EntityEnum, target, None)
+            target_match = [e for e in self.dataset._schema.EntityEnum 
+                if target in [e.name, e.literal_]]
             potential = list(self.get_entities().keys())
-            if (not target_match) or target_match.name not in potential:
+            if (not target_match) or target_match[0].literal_ not in potential:
                 suggestions = difflib.get_close_matches(target, potential)
                 if suggestions:
                     message = "Did you mean one of: {}?".format(suggestions)
@@ -593,7 +594,7 @@ class BIDSLayout(BIDSLayoutMRIMixin, BIDSLayoutWritingMixin, BIDSLayoutVariables
                     message = "Valid targets are: {}".format(potential)
                 raise TargetError(f"Unknown target '{target}'. {message}")  
         folder = self.dataset
-        result = query(folder, return_type, target_match.name, scope, extension, suffix, regex_search, **entities)
+        result = query(folder, return_type, target_match[0].name, scope, extension, suffix, regex_search, **entities)
         if return_type == 'files':
             result = natural_sort(result)
         if return_type == "object":
