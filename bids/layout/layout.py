@@ -278,8 +278,12 @@ class BIDSLayout(BIDSLayoutMRIMixin, BIDSLayoutWritingMixin):
         except KeyError:
             pass
         if key.startswith('get_'):
-            ent_name = key.replace('get_', '')
-            ent_name = self.schema.fuzzy_match_entity_key(ent_name)
+            orig_ent_name = key.replace('get_', '')
+            ent_name = self.schema.fuzzy_match_entity_key(orig_ent_name)
+            if ent_name not in self.get_entities():
+                raise BIDSEntityError(
+                    "'get_{}' can't be called because '{}' isn't a "
+                    "recognized entity name.".format(orig_ent_name, orig_ent_name))
             return partial(self.get, return_type='id', target=ent_name)
         # Spit out default message if we get this far
         raise AttributeError("%s object has no attribute named %r" %
