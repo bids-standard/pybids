@@ -188,8 +188,57 @@ class BIDSLayoutMRIMixin:
                                .format(entities))
         return all_trs.pop()
 
+class BIDSLayoutVariablesMixin:
+    def get_collections(self, level, types=None, variables=None, merge=False,
+                        sampling_rate=None, skip_empty=False, **kwargs):
+        """Return one or more variable Collections in the BIDS project.
+        Parameters
+        ----------
+        level : {'run', 'session', 'subject', 'dataset'}
+            The level of analysis to return variables for.
+            Must be one of 'run', 'session','subject', or 'dataset'.
+        types : str or list
+            Types of variables to retrieve. All valid values reflect the
+            filename stipulated in the BIDS spec for each kind of variable.
+            Valid values include: 'events', 'physio', 'stim', 'scans',
+            'participants', 'sessions', and 'regressors'. Default is None.
+        variables : list
+            Optional list of variables names to return. If None, all available
+            variables are returned.
+        merge : bool
+            If True, variables are merged across all observations of the
+            current level. E.g., if level='subject', variables from all
+            subjects will be merged into a single collection. If False, each
+            observation is handled separately, and the result is returned
+            as a list.
+        sampling_rate : int or str
+            If level='run', the sampling rate to pass onto the returned
+            :obj:`bids.variables.collections.BIDSRunVariableCollection`.
+        skip_empty : bool
+            Whether or not to skip empty Variables (i.e., where there are no
+            rows/records in a file after applying any filtering operations
+            like dropping NaNs).
+        kwargs
+            Optional additional arguments to pass onto
+            :obj:`bids.variables.io.load_variables`.
+        Returns
+        -------
+        list of :obj:`bids.variables.collections.BIDSVariableCollection`
+            or :obj:`bids.variables.collections.BIDSVariableCollection`
+            A list if merge=False;
+            a single :obj:`bids.variables.collections.BIDSVariableCollection`
+            if merge=True.
+        """
 
-class BIDSLayout(BIDSLayoutMRIMixin, BIDSLayoutWritingMixin):
+        from bids.variables import load_variables
+        index = load_variables(self, types=types, levels=level,
+                               skip_empty=skip_empty, **kwargs)
+        return index.get_collections(level, variables, merge,
+                                     sampling_rate=sampling_rate)
+
+
+
+class BIDSLayout(BIDSLayoutMRIMixin, BIDSLayoutWritingMixin, BIDSLayoutVariablesMixin):
     """A convenience class to provide access to an in-memory representation of a BIDS dataset.
 
     .. code-block::
