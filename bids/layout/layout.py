@@ -592,9 +592,11 @@ class BIDSLayout(BIDSLayoutMRIMixin, BIDSLayoutWritingMixin, BIDSLayoutVariables
                     message = "Did you mean one of: {}?".format(suggestions)
                 else:
                     message = "Valid targets are: {}".format(potential)
+                    assert 0
                 raise TargetError(f"Unknown target '{target}'. {message}")  
+            target = target_match[0].name
         folder = self.dataset
-        result = query(folder, return_type, target_match[0].name, scope, extension, suffix, regex_search, **entities)
+        result = query(folder, return_type, target, scope, extension, suffix, regex_search, **entities)
         if return_type == 'files':
             result = natural_sort(result)
         if return_type == "object":
@@ -608,7 +610,7 @@ class BIDSLayout(BIDSLayoutMRIMixin, BIDSLayoutWritingMixin, BIDSLayoutVariables
     def entities(self):
         return self.get_entities()
 
-    def get_entities(self, scope: str = None, sort: bool = False) -> dict:
+    def get_entities(self, scope: str = None, sort: bool = False, long_form: bool = True) -> dict:
         """Returns a unique set of entities found within the dataset as a dict.
         Each key of the resulting dict contains a list of values (with at least one element).
 
@@ -626,13 +628,15 @@ class BIDSLayout(BIDSLayoutMRIMixin, BIDSLayoutWritingMixin, BIDSLayoutVariables
             see BIDSLayout.get()
         sort: default is `False`
             whether to sort the keys by name
+        long_form: default is `True`
+            whether to return the long form of the entity name (e.g., 'subject' instead of 'sub')
 
         Returns
         -------
         dict
             a unique set of entities found within the dataset as a dict
         """
-        return query_entities(self.dataset, scope, sort)
+        return query_entities(self.dataset, scope, sort, long_form=long_form)
 
     def get_dataset_description(self, scope='self', all_=False) -> Union[List[Dict], Dict]:
         """Return contents of dataset_description.json.
@@ -770,8 +774,8 @@ class BIDSLayout(BIDSLayoutMRIMixin, BIDSLayoutWritingMixin, BIDSLayoutVariables
     def __repr__(self):
         """Provide a tidy summary of key properties."""
         ents = self.get_entities()
-        n_subjects = len(set(ents['sub'])) if 'sub' in ents else 0
-        n_sessions = len(set(ents['ses'])) if 'ses' in ents else 0
+        n_subjects = len(set(ents['subject'])) if 'subject' in ents else 0
+        n_sessions = len(set(ents['session'])) if 'session' in ents else 0
         n_runs = len(set(ents['run'])) if 'run' in ents else 0
         s = ("BIDS Layout: ...{} | Subjects: {} | Sessions: {} | "
              "Runs: {}".format(self.dataset.base_dir_, n_subjects, n_sessions, n_runs))
