@@ -596,13 +596,14 @@ class BIDSLayout(BIDSLayoutMRIMixin, BIDSLayoutWritingMixin, BIDSLayoutVariables
             target = target_match[0].name
         folder = self.dataset
         result = query(folder, return_type, target, scope, extension, suffix, regex_search, **entities)
-        if return_type == 'files':
+        if return_type == 'file':
             result = natural_sort(result)
         if return_type == "object":
-            result = natural_sort(
-                [BIDSFile(res) for res in result],
-                "path"
-            )
+            if result:
+                result = natural_sort(
+                    [BIDSFile(res) for res in result],
+                    "path"
+                )
         return result
 
     @property
@@ -675,8 +676,10 @@ class BIDSLayout(BIDSLayoutMRIMixin, BIDSLayoutWritingMixin, BIDSLayoutVariables
         raise NotImplementedError
 
     def add_derivatives(self, path):
-        path = convert_to_relative(self.dataset, path)
-        self.dataset.create_derivative(path=path)
+        paths = listify(path)
+        for path in paths:
+            path = convert_to_relative(self.dataset, path)
+            self.dataset.create_derivative(path=path)
 
     def write_derivative(self, derivative):
         """Writes the provided derivative folder to the dataset.
