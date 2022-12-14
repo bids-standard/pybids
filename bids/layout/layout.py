@@ -533,6 +533,7 @@ class BIDSLayout(BIDSLayoutMRIMixin, BIDSLayoutWritingMixin):
         """
         if regex_search is None:
             regex_search = self._regex_search
+
         # Provide some suggestions if target is specified and invalid.
         if return_type in ("dir", "id"):
             if target is None:

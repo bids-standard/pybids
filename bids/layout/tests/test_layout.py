@@ -232,7 +232,7 @@ def test_get_metadata_error(layout_7t_trt):
 
 def test_get_with_bad_target(layout_7t_trt):
     with pytest.raises(TargetError) as exc:
-        layout_7t_trt.get(target='unicorn')
+        layout_7t_trt.get(target='unicorn', return_type='id')
     msg = str(exc.value)
     assert 'subject' in msg and 'reconstruction' in msg and 'proc' in msg
     with pytest.raises(TargetError) as exc:
