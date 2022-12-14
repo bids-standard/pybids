@@ -12,7 +12,7 @@ from .writing import build_path, write_to_file
 from .utils import BIDSMetadata
 
 
-class BIDSFile():
+class BIDSFile:
     """Represents a single file or directory in a BIDS dataset.
 
     Parameters
@@ -144,7 +144,7 @@ class BIDSFile():
         except AttributeError:
             raise NotImplementedError
         
-        if values == 'object':
+        if values != 'tags':
             raise NotImplementedError
 
         return entities
