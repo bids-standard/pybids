@@ -3,9 +3,8 @@ BIDSLayout class."""
 
 import json
 import os
-import re
 import shutil
-from os.path import join, abspath, basename
+from os.path import join, abspath
 from pathlib import Path
 
 import numpy as np
@@ -17,10 +16,7 @@ from bids.exceptions import (
     NoMatchError,
     TargetError,
 )
-from bids.layout import BIDSLayout, Query
-from bids.layout.index import BIDSLayoutIndexer
-from bids.layout.models import Config
-from bids.layout.utils import PaddedInt
+from bids.layout import BIDSLayout
 from bids.tests import get_test_data_path
 from bids.utils import natural_sort
 

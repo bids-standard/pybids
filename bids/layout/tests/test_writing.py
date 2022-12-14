@@ -9,7 +9,7 @@ import pytest
 from bids.layout.writing import build_path, _PATTERN_FIND
 from bids.tests import get_test_data_path
 from bids import BIDSLayout
-from bids.layout.models import BIDSFile, Entity, Tag, Base
+from bids.layout.models import BIDSFile
 
 
 @pytest.fixture

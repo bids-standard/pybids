@@ -26,6 +26,7 @@ __all__ = ['BIDSLayout, Query']
 
 from ..utils import natural_sort, listify
 
+
 class BIDSLayoutWritingMixin:
     def build_path(self, source, path_patterns=None, strict=False,
                    scope='all', validate=True, absolute_paths=None):
@@ -189,7 +190,15 @@ class BIDSLayoutMRIMixin:
         return all_trs.pop()
 
 
-class BIDSLayout(BIDSLayoutMRIMixin, BIDSLayoutWritingMixin):
+        from bids.variables import load_variables
+        index = load_variables(self, types=types, levels=level,
+                               skip_empty=skip_empty, **kwargs)
+        return index.get_collections(level, variables, merge,
+                                     sampling_rate=sampling_rate)
+
+
+
+class BIDSLayout(BIDSLayoutMRIMixin, BIDSLayoutWritingMixin, BIDSLayoutVariablesMixin):
     """A convenience class to provide access to an in-memory representation of a BIDS dataset.
 
     .. code-block::
@@ -215,6 +224,7 @@ class BIDSLayout(BIDSLayoutMRIMixin, BIDSLayoutWritingMixin):
         database_path: Optional[str]=None,
         reset_database: Optional[bool]=None,
         indexer: Optional[Callable]=None,
+        absolute_paths: Optional[bool]=None,
         **kwargs,
     ):
         if isinstance(root, Path):
@@ -244,6 +254,11 @@ class BIDSLayout(BIDSLayoutMRIMixin, BIDSLayoutWritingMixin):
         if indexer is not None:
             warnings.warn(
                 "indexer no longer has any effect and will be removed",
+                DeprecationWarning
+            )
+        if absolute_paths is not None:
+            warnings.warn(
+                "absolute_paths no longer has any effect and will be removed",
                 DeprecationWarning
             )
         if kwargs:
