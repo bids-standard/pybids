@@ -198,7 +198,7 @@ class BIDSLayoutMRIMixin:
 
 
 
-class BIDSLayout(BIDSLayoutMRIMixin, BIDSLayoutWritingMixin, BIDSLayoutVariablesMixin):
+class BIDSLayout(BIDSLayoutMRIMixin, BIDSLayoutWritingMixin):
     """A convenience class to provide access to an in-memory representation of a BIDS dataset.
 
     .. code-block::
