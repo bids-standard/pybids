@@ -581,23 +581,19 @@ class BIDSLayout(BIDSLayoutMRIMixin, BIDSLayoutWritingMixin, BIDSLayoutVariables
 
         # Provide some suggestions if target is specified and invalid.
         if return_type in ("dir", "id"):
-            if target is None:
-                raise TargetError(f'If return_type is "id" or "dir", a valid target '
-                                  'entity must also be specified.')
             # Resolve proper target names to their "key", e.g., session to ses
             # XXX should we allow ses?
-            target = getattr(self.dataset._schema.EntityEnum, target, target)
-            self_entities = self.get_entities()
-            if target not in self_entities:
-                potential = list(self_entities.keys())
+            target_match = getattr(self.dataset._schema.EntityEnum, target, None)
+            potential = list(self.get_entities().keys())
+            if (not target_match) or target_match.name not in potential:
                 suggestions = difflib.get_close_matches(target, potential)
                 if suggestions:
                     message = "Did you mean one of: {}?".format(suggestions)
                 else:
                     message = "Valid targets are: {}".format(potential)
-                raise TargetError(f"Unknown target '{target}'. {message}")
+                raise TargetError(f"Unknown target '{target}'. {message}")  
         folder = self.dataset
-        result = query(folder, return_type, target, scope, extension, suffix, regex_search, **entities)
+        result = query(folder, return_type, target_match.name, scope, extension, suffix, regex_search, **entities)
         if return_type == 'files':
             result = natural_sort(result)
         if return_type == "object":
