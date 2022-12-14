@@ -320,7 +320,7 @@ class BIDSLayout(BIDSLayoutMRIMixin, BIDSLayoutWritingMixin, BIDSLayoutVariables
             pass
         if key.startswith('get_'):
             orig_ent_name = key.replace('get_', '')
-            ent_name = self.schema.fuzzy_match_entity_key(orig_ent_name)
+            ent_name = self.schema.fuzzy_match_entity(orig_ent_name).name
             if ent_name not in self.get_entities():
                 raise BIDSEntityError(
                     "'get_{}' can't be called because '{}' isn't a "
@@ -586,13 +586,12 @@ class BIDSLayout(BIDSLayoutMRIMixin, BIDSLayoutWritingMixin, BIDSLayoutVariables
             target_match = [e for e in self.dataset._schema.EntityEnum 
                 if target in [e.name, e.literal_]]
             potential = list(self.get_entities().keys())
-            if (not target_match) or target_match[0].literal_ not in potential:
+            if (not target_match) or target_match[0].name not in potential:
                 suggestions = difflib.get_close_matches(target, potential)
                 if suggestions:
                     message = "Did you mean one of: {}?".format(suggestions)
                 else:
                     message = "Valid targets are: {}".format(potential)
-                    assert 0
                 raise TargetError(f"Unknown target '{target}'. {message}")  
             target = target_match[0].name
         folder = self.dataset
@@ -671,6 +670,9 @@ class BIDSLayout(BIDSLayoutMRIMixin, BIDSLayoutWritingMixin, BIDSLayoutVariables
             the in-memory representation of this layout/dataset
         """
         return self.dataset
+
+    def get_fieldmap(self, path):
+        raise NotImplementedError
 
     def add_derivatives(self, path):
         path = convert_to_relative(self.dataset, path)
