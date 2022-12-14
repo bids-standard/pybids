@@ -1,18 +1,15 @@
 """ Model classes used in BIDSLayouts. """
 
-import re
 import os
+from typing import Union
 from pathlib import Path
-import warnings
 import json
-from copy import deepcopy
-from itertools import chain
-from functools import lru_cache
+from ancpbids.model_v1_8_0 import Artifact
+from ancpbids.utils import parse_bids_name
 
 from ..utils import listify
 from .writing import build_path, write_to_file
-from ..config import get_option
-from .utils import BIDSMetadata, PaddedInt
+from .utils import BIDSMetadata
 
 
 class BIDSFile:
@@ -20,8 +17,8 @@ class BIDSFile:
 
     Parameters
     ----------
-    filename : str
-        The path to the corresponding file.
+    file_ref : str
+        The path to the file or directory or an Artifact instance.
     """
     _ext_registry = {}
 
@@ -32,24 +29,45 @@ class BIDSFile:
             BIDSFile._ext_registry[ext] = cls
 
     @classmethod
-    def from_path(cls, path):
-        path = Path(path)
+    def from_filename(cls, filename):
+        path = Path(filename)
         for ext, subclass in cls._ext_registry.items():
             if path.name.endswith(ext):
                 cls = subclass
                 break
         return cls(path)
 
-    def __init__(self, filename, root=None):
-        self.path = str(filename)
-        self.filename = self._path.name
-        self.dirname = str(self._path.parent)
-        self.is_dir = not self.filename
-        self._root = root
+    def __init__(self, file_ref: Union[str, os.PathLike, Artifact]):
+        self._path = None
+        self._artifact = None
+        if isinstance(file_ref, (str, os.PathLike)):
+            self._path = Path(file_ref)
+        elif isinstance(file_ref, Artifact):
+            self._artifact = file_ref
+        
+    @property
+    def path(self):
+        """ Convenience property for accessing path as a string."""
+        try:
+            return self._artifact.get_absolute_path()
+        except AttributeError:
+            return str(self._path)
 
     @property
-    def _path(self):
-        return Path(self.path)
+    def filename(self):
+        """ Convenience property for accessing filename."""
+        try:
+            return self._artifact.name
+        except AttributeError:
+            return self._path.name
+
+    @property
+    def is_dir(self):
+        return Path(self.path).is_dir()
+
+    @property
+    def _dirname(self):
+        return str(Path(self.path).parent)
 
     def __repr__(self):
         return f"<{self.__class__.__name__} filename='{self.path}'>"
@@ -59,8 +77,8 @@ class BIDSFile:
 
     @property
     def relpath(self):
-        """Return path relative to layout root"""
-        return str(Path(self.path).relative_to(self._root))
+        """ No longer have access to the BIDSLayout root directory """
+        raise NotImplementedError
 
     def get_associations(self, kind=None, include_parents=False):
         """Get associated files, optionally limiting by association kind.
@@ -91,6 +109,10 @@ class BIDSFile:
         md.update(self.get_entities(metadata=True))
         return md
 
+    @property
+    def entities(self):
+        return self.get_entities()
+        
     def get_entities(self, metadata=False, values='tags'):
         """Return entity information for the current file.
 
@@ -115,18 +137,17 @@ class BIDSFile:
             A dict, where keys are entity names and values are Entity
             instances.
         """
-        session = object_session(self)
-        query = (session.query(Tag)
-                 .filter_by(file_path=self.path)
-                 .join(Entity))
+        try:
+            entities = self._artifact.get_entities()
+            if metadata:
+                entities = {**entities, **self._artifact.get_metadata()}
+        except AttributeError:
+            raise NotImplementedError
+        
+        if values != 'tags':
+            raise NotImplementedError
 
-        if metadata not in (None, 'all'):
-            query = query.filter(Tag.is_metadata == metadata)
-
-        results = query.all()
-        if values.startswith('obj'):
-            return {t.entity_name: t.entity for t in results}
-        return {t.entity_name: t.value for t in results}
+        return entities
 
     def copy(self, path_patterns, symbolic_link=False, root=None,
              conflicts='fail'):
@@ -157,11 +178,8 @@ class BIDSFile:
         if new_filename[-1] == os.sep:
             new_filename += self.filename
 
-        if self._path.is_absolute() or root is None:
-            path = self._path
-        else:
-            path = Path(root) / self._path
-
+        path = Path(self.path)
+        
         if not path.exists():
             raise ValueError("Target filename to copy/symlink (%s) doesn't "
                              "exist." % path)

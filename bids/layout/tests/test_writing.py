@@ -5,8 +5,6 @@ import os
 from os.path import join, exists, islink, dirname
 
 import pytest
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
 
 from bids.layout.writing import build_path, _PATTERN_FIND
 from bids.tests import get_test_data_path
@@ -16,27 +14,10 @@ from bids.layout.models import BIDSFile, Entity, Tag, Base
 
 @pytest.fixture
 def writable_file(tmpdir):
-    engine = create_engine('sqlite://')
-    Base.metadata.create_all(engine)
-    Session = sessionmaker(bind=engine)
-    session = Session()
-
     testfile = 'sub-03_ses-2_task-rest_acq-fullbrain_run-2_bold.nii.gz'
     fn = tmpdir.mkdir("tmp").join(testfile)
     fn.write('###')
     bf = BIDSFile(os.path.join(str(fn)))
-
-    tag_dict = {
-        'task': 'rest',
-        'run': 2,
-        'subject': '3'
-    }
-    ents = {name: Entity(name) for name in tag_dict.keys()}
-    tags = [Tag(bf, ents[k], value=v)
-            for k, v in tag_dict.items()]
-
-    session.add_all(list(ents.values()) + tags + [bf])
-    session.commit()
     return bf
 
 

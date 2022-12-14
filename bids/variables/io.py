@@ -177,7 +177,7 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
     if dataset is None:
         dataset = NodeIndex()
 
-    selectors['datatype'] = 'func'
+    # selectors['datatype'] = 'func'
     selectors['suffix'] = 'bold'
     exts = selectors.pop('extension', ['.nii', '.nii.gz', '.func.gii', '.dtseries.nii'])
     images = layout.get(return_type='object', scope=scope, extension=exts, **selectors)

@@ -1,7 +1,7 @@
 import difflib
 import enum
 import os.path
-from collections import OrderedDict
+from collections import defaultdict
 from functools import partial
 from pathlib import Path
 from typing import List, Union, Dict, Optional, Any, Callable
@@ -9,6 +9,7 @@ import warnings
 
 from .models import BIDSFile
 from .utils import BIDSMetadata
+from .writing import build_path, write_to_file
 from ..exceptions import (
     BIDSEntityError,
     BIDSValidationError,
@@ -19,11 +20,133 @@ from ..exceptions import (
 from ancpbids import CustomOpExpr, EntityExpr, AllExpr, ValidationPlugin, load_dataset, validate_dataset, \
     write_derivative
 from ancpbids.query import query, query_entities, FnMatchExpr, AnyExpr
-from ancpbids.utils import deepupdate, resolve_segments, convert_to_relative
+from ancpbids.utils import deepupdate, resolve_segments, convert_to_relative, parse_bids_name
 
 __all__ = ['BIDSLayout, Query']
 
-from ..utils import natural_sort
+from ..utils import natural_sort, listify
+
+class BIDSLayoutWritingMixin:
+    def build_path(self, source, path_patterns=None, strict=False,
+                   scope='all', validate=True, absolute_paths=None):
+        """Construct a target filename for a file or dictionary of entities.
+        Parameters
+        ----------
+        source : str or :obj:`bids.layout.BIDSFile` or dict
+            The source data to use to construct the new file path.
+            Must be one of:
+            - A BIDSFile object
+            - A string giving the path of a BIDSFile contained within the
+              current Layout.
+            - A dict of entities, with entity names in keys and values in
+              values
+        path_patterns : list
+            Optional path patterns to use to construct
+            the new file path. If None, the Layout-defined patterns will
+            be used. Entities should be represented by the name
+            surrounded by curly braces. Optional portions of the patterns
+            should be denoted by square brackets. Entities that require a
+            specific value for the pattern to match can pass them inside
+            angle brackets. Default values can be assigned by specifying a string
+            after the pipe operator. E.g., (e.g., {type<image>|bold} would
+            only match the pattern if the entity 'type' was passed and its
+            value is "image", otherwise the default value "bold" will be
+            used).
+                Example: 'sub-{subject}/[var-{name}/]{id}.csv'
+                Result: 'sub-01/var-SES/1045.csv'
+        strict : bool, optional
+            If True, all entities must be matched inside a
+            pattern in order to be a valid match. If False, extra entities
+            will be ignored so long as all mandatory entities are found.
+        scope : str or list, optional
+            The scope of the search space. Indicates which
+            BIDSLayouts' path patterns to use. See BIDSLayout docstring
+            for valid values. By default, uses all available layouts. If
+            two or more values are provided, the order determines the
+            precedence of path patterns (i.e., earlier layouts will have
+            higher precedence).
+        validate : bool, optional
+            If True, built path must pass BIDS validator. If
+            False, no validation is attempted, and an invalid path may be
+            returned (e.g., if an entity value contains a hyphen).
+        absolute_paths : bool, optional
+            Optionally override the instance-wide option
+            to report either absolute or relative (to the top of the
+            dataset) paths. If None, will fall back on the value specified
+            at BIDSLayout initialization.
+        """
+        raise NotImplementedError
+
+    def copy_files(self, files=None, path_patterns=None, symbolic_links=True,
+                   root=None, conflicts='fail', **kwargs):
+        """Copy BIDSFile(s) to new locations.
+        The new locations are defined by each BIDSFile's entities and the
+        specified `path_patterns`.
+        Parameters
+        ----------
+        files : list
+            Optional list of BIDSFile objects to write out. If
+            none provided, use files from running a get() query using
+            remaining **kwargs.
+        path_patterns : str or list
+            Write patterns to pass to each file's write_file method.
+        symbolic_links : bool
+            Whether to copy each file as a symbolic link or a deep copy.
+        root : str
+            Optional root directory that all patterns are relative
+            to. Defaults to dataset root.
+        conflicts : str
+            Defines the desired action when the output path already exists.
+            Must be one of:
+                'fail': raises an exception
+                'skip' does nothing
+                'overwrite': overwrites the existing file
+                'append': adds a suffix to each file copy, starting with 1
+        kwargs : dict
+            Optional key word arguments to pass into a get() query.
+        """
+        raise NotImplementedError
+
+
+    def write_to_file(self, entities, path_patterns=None,
+                      contents=None, link_to=None, copy_from=None,
+                      content_mode='text', conflicts='fail',
+                      strict=False, validate=True):
+        """Write data to a file defined by the passed entities and patterns.
+        Parameters
+        ----------
+        entities : dict
+            A dictionary of entities, with Entity names in
+            keys and values for the desired file in values.
+        path_patterns : list
+            Optional path patterns to use when building
+            the filename. If None, the Layout-defined patterns will be
+            used.
+        contents : object
+            Contents to write to the generate file path.
+            Can be any object serializable as text or binary data (as
+            defined in the content_mode argument).
+        link_to : str
+            Optional path with which to create a symbolic link
+            to. Used as an alternative to and takes priority over the
+            contents argument.
+        conflicts : str
+            Defines the desired action when the output path already exists.
+            Must be one of:
+                'fail': raises an exception
+                'skip' does nothing
+                'overwrite': overwrites the existing file
+                'append': adds a suffix to each file copy, starting with 1
+        strict : bool
+            If True, all entities must be matched inside a
+            pattern in order to be a valid match. If False, extra entities
+            will be ignored so long as all mandatory entities are found.
+        validate : bool
+            If True, built path must pass BIDS validator. If
+            False, no validation is attempted, and an invalid path may be
+            returned (e.g., if an entity value contains a hyphen).
+        """
+        raise NotImplementedError
 
 
 class BIDSLayoutMRIMixin:
@@ -66,7 +189,7 @@ class BIDSLayoutMRIMixin:
         return all_trs.pop()
 
 
-class BIDSLayout(BIDSLayoutMRIMixin):
+class BIDSLayout(BIDSLayoutMRIMixin, BIDSLayoutWritingMixin):
     """A convenience class to provide access to an in-memory representation of a BIDS dataset.
 
     .. code-block::
@@ -188,6 +311,156 @@ class BIDSLayout(BIDSLayoutMRIMixin):
         bmd.update(md)
         return bmd
 
+    def parse_file_entities(self, filename, scope=None, entities=None,
+                            config=None, include_unmatched=False):
+        """Parse the passed filename for entity/value pairs.
+        Parameters
+        ----------
+        filename : str
+            The filename to parse for entity values
+        scope : str or list, optional
+            The scope of the search space. Indicates which BIDSLayouts'
+            entities to extract. See :obj:`bids.layout.BIDSLayout.get`
+            docstring for valid values. By default, extracts all entities.
+        entities : list or None, optional
+            An optional list of Entity instances to use in
+            extraction. If passed, the scope and config arguments are
+            ignored, and only the Entities in this list are used.
+        config : str or :obj:`bids.layout.models.Config` or list or None, optional
+            One or more :obj:`bids.layout.models.Config` objects, or paths
+            to JSON config files on disk, containing the Entity definitions
+            to use in extraction. If passed, scope is ignored.
+        include_unmatched : bool, optional
+            If True, unmatched entities are included
+            in the returned dict, with values set to None. If False
+            (default), unmatched entities are ignored.
+        Returns
+        -------
+        dict
+            Dictionary where keys are Entity names and values are the
+            values extracted from the filename.
+        """
+        results = parse_bids_name(filename)
+        entities = results.pop('entities')
+        results = {**entities, **results}
+
+        if entities:
+            # Filter out any entities that aren't in the specified
+            results = {e: results[e] for e in entities if e in results}
+
+        if include_unmatched:
+            for k in set(self.get_entities()) - set(results):
+                results[k] = None
+        
+        if scope is not None or config is not None:
+            # To implement, need to be able to parse given a speciifc scope / config
+            # Currently, parse_bids_name uses a fixed config in ancpbids
+            raise NotImplementedError("scope and config are not implemented")
+
+        return results
+
+    def get_nearest(self, path, return_type='filename', strict=True,
+                    all_=False, ignore_strict_entities='extension',
+                    full_search=False, **filters):
+        """Walk up file tree from specified path and return nearest matching file(s).
+        Parameters
+        ----------
+        path (str): The file to search from.
+        return_type (str): What to return; must be one of 'filename'
+            (default) or 'tuple'.
+        strict (bool): When True, all entities present in both the input
+            path and the target file(s) must match perfectly. When False,
+            files will be ordered by the number of matching entities, and
+            partial matches will be allowed.
+        all_ (bool): When True, returns all matching files. When False
+            (default), only returns the first match.
+        ignore_strict_entities (str, list): Optional entity/entities to
+            exclude from strict matching when strict is True. This allows
+            one to search, e.g., for files of a different type while
+            matching all other entities perfectly by passing
+            ignore_strict_entities=['type']. Ignores extension by default.
+        full_search (bool): If True, searches all indexed files, even if
+            they don't share a common root with the provided path. If
+            False, only files that share a common root will be scanned.
+        filters : dict
+            Optional keywords to pass on to :obj:`bids.layout.BIDSLayout.get`.
+        """
+        
+        path = Path(path).absolute()
+
+        # Make sure we have a valid suffix
+        if not filters.get('suffix'):
+            f = self.get_file(path)
+            if 'suffix' not in f.entities:
+                raise BIDSValidationError(
+                    "File '%s' does not have a valid suffix, most "
+                    "likely because it is not a valid BIDS file." % path
+                )
+            filters['suffix'] = f.entities['suffix']
+
+        # Collect matches for all entities for this file
+        entities = self.parse_file_entities(str(path))
+
+        # Remove any entities we want to ignore when strict matching is on
+        if strict and ignore_strict_entities is not None:
+            for k in listify(ignore_strict_entities):
+                entities.pop(k, None)
+
+        # Get candidate files
+        results = self.get(**filters)
+
+        # Make a dictionary of directories --> contained files
+        folders = defaultdict(list)
+        for f in results:
+            folders[f._dirname].append(f)
+
+        # Build list of candidate directories to check
+        # Walking up from path, add all parent directories with a
+        # matching file
+        search_paths = []
+        while True:
+            if path in folders and folders[path]:
+                search_paths.append(path)
+            parent = path.parent
+            if parent == path:
+                break
+            path = parent
+
+        if full_search:
+            unchecked = set(folders.keys()) - set(search_paths)
+            search_paths.extend(path for path in unchecked if folders[path])
+
+        def count_matches(f):
+            # Count the number of entities shared with the passed file
+            # Returns a tuple of (num_shared, num_perfect)
+            f_ents = f.entities
+            keys = set(entities.keys()) & set(f_ents.keys())
+            shared = len(keys)
+            return (shared, sum([entities[k] == f_ents[k] for k in keys]))
+
+        matches = []
+
+        for path in search_paths:
+            # Sort by number of matching entities. Also store number of
+            # common entities, for filtering when strict=True.
+            num_ents = [(f, ) + count_matches(f) for f in folders[path]]
+            # Filter out imperfect matches (i.e., where number of common
+            # entities does not equal number of matching entities).
+            if strict:
+                num_ents = [f for f in num_ents if f[1] == f[2]]
+            num_ents.sort(key=lambda x: x[2], reverse=True)
+
+            if num_ents:
+                matches += [f_match[0] for f_match in num_ents]
+
+            if not all_:
+                break
+
+        matches = [match.path if return_type == 'filename'
+                   else match for match in matches]
+        return matches if all_ else matches[0] if matches else None
+        
+
     def get(self, return_type: str = 'object', target: str = None, scope: str = None,
             extension: Union[str, List[str]] = None, suffix: Union[str, List[str]] = None,
             regex_search=None,
@@ -268,7 +541,7 @@ class BIDSLayout(BIDSLayoutMRIMixin):
             result = natural_sort(result)
         if return_type == "object":
             result = natural_sort(
-                [BIDSFile.from_path(res.get_absolute_path()) for res in result],
+                [BIDSFile(res) for res in result],
                 "path"
             )
         return result
