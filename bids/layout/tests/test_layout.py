@@ -358,18 +358,18 @@ def test_layout_with_multi_derivs(layout_ds005_multi_derivs):
 def test_query_derivatives(layout_ds005_derivs):
     result = layout_ds005_derivs.get(suffix='events', return_type='object',
                                      extension='.tsv')
-    result = [f.name for f in result]
+    result = [f.path for f in result]
     assert len(result) == 49
     assert 'sub-01_task-mixedgamblestask_run-01_desc-extra_events.tsv' in result
     result = layout_ds005_derivs.get(suffix='events', return_type='object',
                                      scope='raw', extension='.tsv')
     assert len(result) == 48
-    result = [f.name for f in result]
+    result = [f.path for f in result]
     assert 'sub-01_task-mixedgamblestask_run-01_desc-extra_events.tsv' not in result
     result = layout_ds005_derivs.get(suffix='events', return_type='object',
                                      desc='extra', extension='.tsv')
     assert len(result) == 1
-    result = [f.name for f in result]
+    result = [f.path for f in result]
     assert 'sub-01_task-mixedgamblestask_run-01_desc-extra_events.tsv' in result
 
 
