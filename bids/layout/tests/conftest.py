@@ -10,13 +10,13 @@ from bids.tests import get_test_data_path
 @pytest.fixture(scope="module")
 def layout_7t_trt():
     data_dir = join(get_test_data_path(), '7t_trt')
-    return BIDSLayout(data_dir, validate=False)
+    return BIDSLayout(data_dir)
 
 
 @pytest.fixture(scope="module")
 def layout_7t_trt_relpath():
     data_dir = join(get_test_data_path(), '7t_trt')
-    return BIDSLayout(data_dir, absolute_paths=False, validate=False)
+    return BIDSLayout(data_dir, absolute_paths=False)
 
 
 @pytest.fixture(scope="module")

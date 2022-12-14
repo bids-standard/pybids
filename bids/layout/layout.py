@@ -215,7 +215,7 @@ class BIDSLayout(BIDSLayoutMRIMixin, BIDSLayoutWritingMixin):
     def __init__(
         self,
         root: Union[str, Path],
-        validate: bool=True,
+        validate: bool=False,
         derivatives: bool=False,
         config: Optional[Union[str, List[str]]]=None,
         sources: Optional[List[Any]]=None,
