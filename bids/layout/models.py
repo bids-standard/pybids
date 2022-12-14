@@ -144,7 +144,7 @@ class BIDSFile:
         except AttributeError:
             raise NotImplementedError
         
-        if values == 'object':
+        if values != 'tags':
             raise NotImplementedError
 
         return entities
