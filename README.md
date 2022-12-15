@@ -5,6 +5,7 @@
 [![Build Status (Linux and OS X)](https://travis-ci.org/bids-standard/pybids.svg?branch=master)](https://travis-ci.org/bids-standard/pybids)<!---[![Build Status (Windows)](https://ci.appveyor.com/api/projects/status/5aa4c6e3m15ew4v7?svg=true)](https://ci.appveyor.com/project/chrisfilo/pybids-ilb80)-->
 [![Binder](https://mybinder.org/badge.svg)](https://mybinder.org/v2/gh/bids-standard/pybids/master)
 [![PyPI version](https://badge.fury.io/py/pybids.svg)](https://badge.fury.io/py/pybids)
+[![Conda version](https://img.shields.io/conda/vn/conda-forge/pybids)](https://anaconda.org/conda-forge/pybids)
 
 PyBIDS is a Python library to centralize interactions with datasets conforming
 BIDS (Brain Imaging Data Structure) format.  For more information about BIDS
@@ -16,6 +17,10 @@ PyBIDS currently supports Python 3 on POSIX operating systems (including Mac OS)
 PyBIDS is most easily installed from pip. To install the latest official release:
 
 > pip install pybids
+
+Or, alternatively via conda:
+
+> conda install -c conda-forge pybids
 
 If you want to live on the bleeding edge, you can install from master:
 
