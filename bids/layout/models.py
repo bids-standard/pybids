@@ -139,8 +139,17 @@ class BIDSFile:
         """
         try:
             entities = self._artifact.get_entities()
+
+            # Convert literal entity values to their names
+            # TODO: Generalize this, as this is commmon throughout pybids
+            schema_entities = {e.literal_: e.name for e in list(self.schema.EntityEnum)}
+            entities = {schema_entities[k]: v for k, v in entities.items()}
+            entities['suffix'] = self._artifact.suffix
+            entities['extension'] = self._artifact.extension
+            
             if metadata:
-                entities = {**entities, **self._artifact.get_metadata()}
+                entities = {**entities, **self._artifact.get_metadata(), 
+                **self._artifact.suffix}
         except AttributeError:
             raise NotImplementedError
         
