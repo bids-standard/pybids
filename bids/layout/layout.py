@@ -363,7 +363,7 @@ class BIDSLayout(BIDSLayoutMRIMixin, BIDSLayoutWritingMixin, BIDSLayoutVariables
         """
         path = convert_to_relative(self.dataset, path)
         file = self.dataset.get_file(path)
-        md = file.get_metadata(include_entities=include_entities, scope=scope)
+        md = file.get_metadata(include_entities=include_entities)
         bmd = BIDSMetadata(file.get_absolute_path())
         bmd.update(md)
         return bmd
