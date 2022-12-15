@@ -401,6 +401,8 @@ class BIDSLayout(BIDSLayoutMRIMixin, BIDSLayoutWritingMixin, BIDSLayoutVariables
             values extracted from the filename.
         """
         results = parse_bids_name(filename)
+
+        ## Need to map entity literal to entity name
         entities = results.pop('entities')
         results = {**entities, **results}
 
@@ -734,7 +736,7 @@ class BIDSLayout(BIDSLayoutMRIMixin, BIDSLayoutWritingMixin, BIDSLayoutVariables
                         cur_fieldmap["suffix"] = "fieldmap"
                     fieldmap_set.append(cur_fieldmap)
         return fieldmap_set
-        
+
     def add_derivatives(self, path):
         paths = listify(path)
         for path in paths:
