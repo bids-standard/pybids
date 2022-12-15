@@ -402,8 +402,9 @@ class BIDSLayout(BIDSLayoutMRIMixin, BIDSLayoutWritingMixin, BIDSLayoutVariables
         """
         results = parse_bids_name(filename)
 
-        ## Need to map entity literal to entity name
         entities = results.pop('entities')
+        schema_entities = {e.literal_: e.name for e in list(self.schema.EntityEnum)}
+        entities = {schema_entities[k]: v for k, v in entities.items()}
         results = {**entities, **results}
 
         if entities:
