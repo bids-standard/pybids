@@ -266,11 +266,31 @@ class BIDSLayout(BIDSLayoutMRIMixin, BIDSLayoutWritingMixin, BIDSLayoutVariables
         reset_database: Optional[bool]=None,
         indexer: Optional[Callable]=None,
         absolute_paths: Optional[bool]=None,
+        ignore: Optional[List[str]]=None,
+        force_index: Optional[List[str]]=None,
         **kwargs,
     ):
         if isinstance(root, Path):
             root = root.absolute()
-        self.dataset = load_dataset(root)
+
+        if ignore is None:
+            # If there is no .bidsignore file, apply default ignore patterns
+            if not (Path(root) / '.bidsignore').exists():
+                ignore = ['.*', 'models', 'stimuli', 'code', 'sourcedata']
+                warnings.warn(
+                    """ No .bidsignore file found. Setting default ignore patterns.
+                    In future versions of pybids a .bidsignore file will be 
+                    required to ignore files. """,
+                    DeprecationWarning
+                )
+
+        if force_index is not None:
+            warnings.warn(
+                "force_index no longer has any effect and will be removed",
+                DeprecationWarning
+            )
+
+        self.dataset = load_dataset(root, ignore=ignore)
         self.schema = self.dataset.get_schema()
         self.validationReport = None
 
