@@ -672,9 +672,69 @@ class BIDSLayout(BIDSLayoutMRIMixin, BIDSLayoutWritingMixin, BIDSLayoutVariables
         """
         return self.dataset
 
-    def get_fieldmap(self, path):
-        raise NotImplementedError
+    def get_fieldmap(self, path, return_list=False):
+        """Get fieldmap(s) for specified path."""
+        fieldmaps = self._get_fieldmaps(path)
 
+        if return_list:
+            return fieldmaps
+        else:
+            if len(fieldmaps) == 1:
+                return fieldmaps[0]
+            elif len(fieldmaps) > 1:
+                raise ValueError("More than one fieldmap found, but the "
+                                 "'return_list' argument was set to False. "
+                                 "Either ensure that there is only one "
+                                 "fieldmap for this image, or set the "
+                                 "'return_list' argument to True and handle "
+                                 "the result as a list.")
+            else:  # len(fieldmaps) == 0
+                return None
+
+    def _get_fieldmaps(self, path):
+        path = str(path)
+        sub = self.parse_file_entities(path)['subject']
+        fieldmap_set = []
+        suffix = '(phase1|phasediff|epi|fieldmap)'
+        files = self.get(subject=sub, suffix=suffix, regex_search=True,
+                         extension=['.nii.gz', '.nii'])
+        for file in files:
+            metadata = self.get_metadata(file.path)
+            if metadata and "IntendedFor" in metadata.keys():
+                intended_for = listify(metadata["IntendedFor"])
+                # path uses local os separators while _suff read from json likely uses author's os separators, so we
+                # convert _suff to use local separators.
+                if any([path.endswith(str(Path(_suff))) for _suff in intended_for]):
+                    cur_fieldmap = {}
+                    if file.entities['suffix'] == "phasediff":
+                        cur_fieldmap = {"phasediff": file.path,
+                                        "magnitude1": file.path.replace(
+                                            "phasediff", "magnitude1"),
+                                        "suffix": "phasediff"}
+                        magnitude2 = file.path.replace(
+                            "phasediff", "magnitude2")
+                        if Path(magnitude2).is_file():
+                            cur_fieldmap['magnitude2'] = magnitude2
+                    elif file.entities['suffix'] == "phase1":
+                        cur_fieldmap["phase1"] = file.path
+                        cur_fieldmap["magnitude1"] = \
+                            file.path.replace("phase1", "magnitude1")
+                        cur_fieldmap["phase2"] = \
+                            file.path.replace("phase1", "phase2")
+                        cur_fieldmap["magnitude2"] = \
+                            file.path.replace("phase1", "magnitude2")
+                        cur_fieldmap["suffix"] = "phase"
+                    elif file.entities['suffix'] == "epi":
+                        cur_fieldmap["epi"] = file.path
+                        cur_fieldmap["suffix"] = "epi"
+                    elif file.entities['suffix'] == "fieldmap":
+                        cur_fieldmap["fieldmap"] = file.path
+                        cur_fieldmap["magnitude"] = \
+                            file.path.replace("fieldmap", "magnitude")
+                        cur_fieldmap["suffix"] = "fieldmap"
+                    fieldmap_set.append(cur_fieldmap)
+        return fieldmap_set
+        
     def add_derivatives(self, path):
         paths = listify(path)
         for path in paths:
