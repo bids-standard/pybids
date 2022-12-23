@@ -91,7 +91,7 @@ class Convolve(Transformation):
         effective_sr = max(min_freq, min(safety / required_resolution, max_freq))
         convolved = hrf.compute_regressor(
             vals, model, resample_frames, fir_delays=fir_delays, min_onset=0,
-            oversampling=np.ceil(effective_sr / sampling_rate)
+            oversampling=int(np.ceil(effective_sr / sampling_rate))
             )
 
         results = []
@@ -172,7 +172,7 @@ class Scale(Transformation):
     """
 
     def _transform(self, data, demean=True, rescale=True, replace_na=None):
-        if data.nunique() == 1 and replace_na in {None, 'before'}:
+        if data.nunique().values[0] == 1 and replace_na in {None, 'before'}:
             val = data.unique()[0]
             raise ValueError("Cannot scale a column with constant value ({})! "
                              "If you want a constant column of 0's returned, "
