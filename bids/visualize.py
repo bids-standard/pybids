@@ -13,7 +13,12 @@ from plotly.subplots import make_subplots
 
 
 class EventPlotter:
-    def __init__(self, events_file: str | Path, event_column: str | None = None, include: list[str] | None = None):
+    def __init__(
+        self,
+        events_file: str | Path,
+        event_column: str | None = None,
+        include: list[str] | None = None,
+    ):
 
         self.COLOR_LIST = px.colors.qualitative.Plotly
         self.FONT_SIZE = 14
@@ -35,12 +40,14 @@ class EventPlotter:
         self.fig = None
 
         self._trial_type_index: int = 0
-        self._trial_types : None | list[str] = None
-        self._bottom_isi_row: list[int] = []
-        self._bottom_duration_row: list[int] = []
-        self._bottom_response_row: list[int] = []
+        self._trial_types: None | list[str] = None
+        self._bottom_row: dict(str, list[int]) = {
+            "ISI": [],
+            "duration": [],
+            "response": [],
+        }
 
-        self.get_data_from_file(events_file)      
+        self.get_data_from_file(events_file)
 
         self.event_column = event_column
         if event_column is None:
@@ -57,8 +64,10 @@ Creating a dummy trial_type column.
 
         self.trial_types(include=include)
         if self.trial_types() is None or len(self.trial_types()) == 0:
-            warnings.warn(f"No trial types found in {events_file} for 'include={include}'")
-            return            
+            warnings.warn(
+                f"No trial types found in {events_file} for 'include={include}'"
+            )
+            return
 
         self.fig = go.FigureWidget(
             make_subplots(
@@ -82,13 +91,13 @@ Creating a dummy trial_type column.
             value += 1
         if "response_time" in self.event_data.columns:
             value += 1
-        return value     
+        return value
 
     @property
     def plot_duration_flag(self) -> bool:
         """Do not plot duration if all durations are the same"""
         if get_duration(self.event_data).unique().size == 1:
-            return False  
+            return False
 
         idx = self._trial_type_index
         tmp = [
@@ -108,6 +117,7 @@ Creating a dummy trial_type column.
             return self.FOUR_COLUMN_WIDTHS
 
     """Properties that are specific to a given trial type."""
+
     @property
     def this_trial_type(self) -> str:
         return self.trial_types()[self._trial_type_index]
@@ -126,7 +136,7 @@ Creating a dummy trial_type column.
         mask = self.event_data[self.event_column] == self.this_trial_type
         return self.event_data[mask]
 
-    def trial_types(self, include:list[str]=None) -> list[str]:
+    def trial_types(self, include: list[str] = None) -> list[str]:
         """Set trial types that will be plotted.
 
         Parameters
@@ -155,52 +165,39 @@ Creating a dummy trial_type column.
         self.title = events_file.name
         self.event_data = pd.read_csv(events_file, sep="\t")
 
-    # Used only to keep track on which row to plot the x axis title 
+    # Used only to keep track on which row to plot the x axis title
     # for the histograms.
-    def bottom_duration_row(self, new_value: int | None = None) -> int | None:
-        if new_value is None:
-            return None if len(self._bottom_duration_row) == 0 else self._bottom_duration_row[0]
+    def bottom_row(
+        self, col_name: str | None = None, new_value: int | None = None
+    ) -> int | None:
+        if col_name is None:
+            col_name = "ISI"
 
-        self._bottom_duration_row.append(new_value)
-        self._bottom_duration_row = [max(self._bottom_duration_row)]
-        return None
-
-    # Used only to keep track on which row to plot the x axis title 
-    # for the histograms.
-    def bottom_isi_row(self, new_value: int | None = None) -> int | None:
-        if new_value is None:
-            return None if len(self._bottom_isi_row) == 0 else self._bottom_isi_row[0]
-
-        self._bottom_isi_row.append(new_value)
-        self._bottom_isi_row = [max(self._bottom_isi_row)]
-        return None        
-
-    # Used only to keep track on which row to plot the x axis title 
-    # for the histograms.
-    def bottom_response_row(self, new_value: int | None = None) -> int | None:
         if new_value is None:
             return (
                 None
-                if len(self._bottom_response_row) == 0
-                else self._bottom_response_row[0]
+                if len(self._bottom_row[col_name]) == 0
+                else self._bottom_row[col_name][0]
             )
 
-        self._bottom_response_row.append(new_value)
-        self._bottom_response_row = [max(self._bottom_response_row)]
+        self._bottom_row[col_name].append(new_value)
+        self._bottom_row[col_name] = [max(self._bottom_row[col_name])]
         return None
 
     """Wrapper methods"""
+
     def plot(self) -> None:
         self.plot_trial_types()
         self.update_axes()
 
-    def show(self) -> None :
+    def show(self) -> None:
         self.fig.show()
 
     """Plotting methods"""
+
     def plot_trial_types(self) -> None:
         """Loop over trial types and plot them one by one.
-        
+
         Plots the following:
         - trial type timeline
         - response time timeline if response_time is present
@@ -242,7 +239,7 @@ Creating a dummy trial_type column.
                 col=2,
                 prefix="ISI",
             )
-            self.bottom_isi_row(status)
+            self.bottom_row("ISI", status)
 
             if self.plot_duration_flag:
                 status = self.plot_histogram(
@@ -250,7 +247,7 @@ Creating a dummy trial_type column.
                     col=3,
                     prefix="duration",
                 )
-                self.bottom_duration_row(status)            
+                self.bottom_row("duration", status)
 
     def plot_timeline(self, x: Any, y: Any, name: str, mode: str, color: str) -> None:
 
@@ -314,7 +311,7 @@ Creating a dummy trial_type column.
             col=self.nb_cols,
             prefix="response time",
         )
-        self.bottom_response_row(status)
+        self.bottom_row("response", status)
 
     def plot_response_timeline(
         self,
@@ -376,9 +373,10 @@ Creating a dummy trial_type column.
         )
 
         # we keep track of the lowest row to plot the title of that column
-        return self.this_row        
+        return self.this_row
 
     """Axis formatting methods"""
+
     def default_axes(self, col: int) -> None:
         self.fig.update_yaxes(
             row=self.this_row,
@@ -421,14 +419,16 @@ Creating a dummy trial_type column.
             ),
         )
 
-        self.label_axes_histogram(col=2, row=self.bottom_isi_row(), text="ISI (s)")
+        self.label_axes_histogram(col=2, row=self.bottom_row("ISI"), text="ISI (s)")
         if self.plot_duration_flag:
-            self.label_axes_histogram(col=3, row=self.bottom_isi_row(), text="duration (s)")
+            self.label_axes_histogram(
+                col=3, row=self.bottom_row("duration"), text="duration (s)"
+            )
 
         if "response_time" in self.event_data.columns:
             self.label_axes_histogram(
                 col=self.nb_cols,
-                row=self.bottom_response_row(),
+                row=self.bottom_row("response"),
                 text="Response time (s)",
             )
 
