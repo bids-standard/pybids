@@ -31,21 +31,16 @@ class EventPlotter:
         self.FOUR_COLUMN_WIDTHS = [0.7, 0.1, 0.1, 0.1]
         self.TICK_LENGTH = 6
 
-        self.title = None
+        self.title: None | str = None
         self.fig = None
 
         self._trial_type_index: int = 0
-        self._trial_types = None
+        self._trial_types : None | list[str] = None
         self._bottom_isi_row: list[int] = []
         self._bottom_duration_row: list[int] = []
         self._bottom_response_row: list[int] = []
 
-        self.get_data_from_file(events_file)
-
-        # Do not plot duration if all durations are the same
-        self.plot_duration_flag = True
-        if get_duration(self.event_data).unique().size == 1:
-            self.plot_duration_flag = False        
+        self.get_data_from_file(events_file)      
 
         self.event_column = event_column
         if event_column is None:
@@ -63,7 +58,7 @@ Creating a dummy trial_type column.
         self.trial_types(include=include)
         if self.trial_types() is None or len(self.trial_types()) == 0:
             warnings.warn(f"No trial types found in {events_file} for 'include={include}'")
-            return
+            return            
 
         self.fig = go.FigureWidget(
             make_subplots(
@@ -81,15 +76,6 @@ Creating a dummy trial_type column.
         return len(self.trial_types())
 
     @property
-    def column_widths(self) -> list[float]:
-        if self.nb_cols == 2:
-            return self.TWO_COLUMN_WIDTHS
-        elif self.nb_cols == 3:
-            return self.THREE_COLUMN_WIDTHS
-        else:
-            return self.FOUR_COLUMN_WIDTHS
-
-    @property
     def nb_cols(self) -> int:
         value = 2
         if self.plot_duration_flag:
@@ -97,6 +83,29 @@ Creating a dummy trial_type column.
         if "response_time" in self.event_data.columns:
             value += 1
         return value     
+
+    @property
+    def plot_duration_flag(self) -> bool:
+        """Do not plot duration if all durations are the same"""
+        if get_duration(self.event_data).unique().size == 1:
+            return False  
+
+        idx = self._trial_type_index
+        tmp = [
+            get_duration(self.data_this_trial_type).unique().size > 1
+            for self._trial_type_index in range(self.nb_trial_types)
+        ]
+        self._trial_type_index = idx
+        return any(tmp)
+
+    @property
+    def column_widths(self) -> list[float]:
+        if self.nb_cols == 2:
+            return self.TWO_COLUMN_WIDTHS
+        elif self.nb_cols == 3:
+            return self.THREE_COLUMN_WIDTHS
+        else:
+            return self.FOUR_COLUMN_WIDTHS
 
     """Properties that are specific to a given trial type."""
     @property
@@ -185,7 +194,7 @@ Creating a dummy trial_type column.
         self.plot_trial_types()
         self.update_axes()
 
-    def show(self) -> None:
+    def show(self) -> None :
         self.fig.show()
 
     """Plotting methods"""
@@ -199,7 +208,7 @@ Creating a dummy trial_type column.
         - response time histogram if response_time is present
         """
 
-        for self._trial_type_index in range(len(self.trial_types())):
+        for self._trial_type_index in range(self.nb_trial_types):
 
             onset = self.data_this_trial_type["onset"]
             duration = get_duration(self.data_this_trial_type)

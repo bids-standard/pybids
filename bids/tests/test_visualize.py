@@ -83,13 +83,14 @@ def test_EventPlotter_include(bids_examples):
     this.plot()
     this.show()
 
+
 def test_EventPlotter_duration():
 
     dataset = Path(get_test_data_path()).joinpath("ds000117")
     layout = BIDSLayout(dataset)
-    files = layout.get(return_type="filename", subject="01", session="mri", suffix="events")
-    this = EventPlotter(
-        files[0], event_column="stim_type"
+    files = layout.get(
+        return_type="filename", subject="01", session="mri", suffix="events"
     )
+    this = EventPlotter(files[0], event_column="stim_type")
     this.plot()
     this.show()
