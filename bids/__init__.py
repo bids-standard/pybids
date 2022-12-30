@@ -14,6 +14,7 @@ __all__ = [
     "reports",
     "utils",
     "variables"
+    "visualize"
 ]
 
 due.cite(Doi("10.1038/sdata.2016.44"),
