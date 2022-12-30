@@ -31,7 +31,8 @@ dependencies = [
   "bids-validator",
   "num2words",
   "click >=8.0",
-  "plotly"
+  "plotly",
+  "ipywidgets >=7.0.0"
 ]
 dynamic = ["version"]
 

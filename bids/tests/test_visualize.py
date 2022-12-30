@@ -10,11 +10,16 @@ from bids.visualize import EventPlotter  # type: ignore
 -   test with limiting event types
 """
 
-@pytest.mark.parametrize("dataset,subject,event_column", 
-  [("ds001", "02",None),
-   ("ds002", "17",None),
-   ("ds006", "02",None), 
-   ("eeg_ds003654s_hed", "002", "event_type")])
+
+@pytest.mark.parametrize(
+    "dataset,subject,event_column",
+    [
+        ("ds001", "02", None),
+        ("ds002", "17", None),
+        ("ds006", "02", None),
+        ("eeg_ds003654s_hed", "002", "event_type"),
+    ],
+)
 def test_EventPlotter_smoke(dataset, subject, event_column, bids_examples):
 
     dataset = Path(bids_examples).joinpath(dataset)
@@ -38,6 +43,7 @@ def test_EventPlotter_only_onset_and_duration_column(bids_examples):
     this.plot()
     this.show()
 
+
 def test_EventPlotter_flag_fast_response(bids_examples):
 
     dataset = Path(bids_examples).joinpath("ds001")
@@ -50,6 +56,7 @@ def test_EventPlotter_flag_fast_response(bids_examples):
     this.plot()
     this.show()
 
+
 def test_EventPlotter_warning_event_column(bids_examples):
 
     with pytest.warns(UserWarning):
@@ -57,6 +64,7 @@ def test_EventPlotter_warning_event_column(bids_examples):
         layout = BIDSLayout(dataset)
         files = layout.get(return_type="filename", subject="02", suffix="events")
         this = EventPlotter(files[0], event_column="foo")
+
 
 def test_EventPlotter_no_file():
     with pytest.raises(FileNotFoundError):
