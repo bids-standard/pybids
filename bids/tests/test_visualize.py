@@ -5,9 +5,10 @@ import pytest
 from bids.layout import BIDSLayout
 from bids.visualize import EventPlotter  # type: ignore
 
+from bids.tests import get_test_data_path
+
 """TODO
 -   test on datasets with a large range of events types
--   test with limiting event types
 """
 
 
@@ -78,6 +79,17 @@ def test_EventPlotter_include(bids_examples):
     files = layout.get(return_type="filename", subject="002", suffix="events")
     this = EventPlotter(
         files[0], event_column="event_type", include=["show_face", "show_circle"]
+    )
+    this.plot()
+    this.show()
+
+def test_EventPlotter_duration():
+
+    dataset = Path(get_test_data_path()).joinpath("ds000117")
+    layout = BIDSLayout(dataset)
+    files = layout.get(return_type="filename", subject="01", session="mri", suffix="events")
+    this = EventPlotter(
+        files[0], event_column="stim_type"
     )
     this.plot()
     this.show()

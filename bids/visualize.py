@@ -28,6 +28,7 @@ class EventPlotter:
         self.NB_BINS = 40
         self.TWO_COLUMN_WIDTHS = [0.7, 0.3]
         self.THREE_COLUMN_WIDTHS = [0.7, 0.15, 0.15]
+        self.FOUR_COLUMN_WIDTHS = [0.7, 0.1, 0.1, 0.1]
         self.TICK_LENGTH = 6
 
         self.title = None
@@ -36,9 +37,15 @@ class EventPlotter:
         self._trial_type_index: int = 0
         self._trial_types = None
         self._bottom_isi_row: list[int] = []
+        self._bottom_duration_row: list[int] = []
         self._bottom_response_row: list[int] = []
 
         self.get_data_from_file(events_file)
+
+        # Do not plot duration if all durations are the same
+        self.plot_duration_flag = True
+        if get_duration(self.event_data).unique().size == 1:
+            self.plot_duration_flag = False        
 
         self.event_column = event_column
         if event_column is None:
@@ -55,7 +62,7 @@ Creating a dummy trial_type column.
 
         self.trial_types(include=include)
         if self.trial_types() is None or len(self.trial_types()) == 0:
-            warnings.warn(f"No trial types found in {events_file}")
+            warnings.warn(f"No trial types found in {events_file} for 'include={include}'")
             return
 
         self.fig = go.FigureWidget(
@@ -75,15 +82,21 @@ Creating a dummy trial_type column.
 
     @property
     def column_widths(self) -> list[float]:
-        return (
-            self.THREE_COLUMN_WIDTHS
-            if "response_time" in self.event_data.columns
-            else self.TWO_COLUMN_WIDTHS
-        )
+        if self.nb_cols == 2:
+            return self.TWO_COLUMN_WIDTHS
+        elif self.nb_cols == 3:
+            return self.THREE_COLUMN_WIDTHS
+        else:
+            return self.FOUR_COLUMN_WIDTHS
 
     @property
     def nb_cols(self) -> int:
-        return 3 if "response_time" in self.event_data.columns else 2
+        value = 2
+        if self.plot_duration_flag:
+            value += 1
+        if "response_time" in self.event_data.columns:
+            value += 1
+        return value     
 
     """Properties that are specific to a given trial type."""
     @property
@@ -135,13 +148,23 @@ Creating a dummy trial_type column.
 
     # Used only to keep track on which row to plot the x axis title 
     # for the histograms.
+    def bottom_duration_row(self, new_value: int | None = None) -> int | None:
+        if new_value is None:
+            return None if len(self._bottom_duration_row) == 0 else self._bottom_duration_row[0]
+
+        self._bottom_duration_row.append(new_value)
+        self._bottom_duration_row = [max(self._bottom_duration_row)]
+        return None
+
+    # Used only to keep track on which row to plot the x axis title 
+    # for the histograms.
     def bottom_isi_row(self, new_value: int | None = None) -> int | None:
         if new_value is None:
             return None if len(self._bottom_isi_row) == 0 else self._bottom_isi_row[0]
 
         self._bottom_isi_row.append(new_value)
         self._bottom_isi_row = [max(self._bottom_isi_row)]
-        return None
+        return None        
 
     # Used only to keep track on which row to plot the x axis title 
     # for the histograms.
@@ -212,6 +235,14 @@ Creating a dummy trial_type column.
             )
             self.bottom_isi_row(status)
 
+            if self.plot_duration_flag:
+                status = self.plot_histogram(
+                    duration,
+                    col=3,
+                    prefix="duration",
+                )
+                self.bottom_duration_row(status)            
+
     def plot_timeline(self, x: Any, y: Any, name: str, mode: str, color: str) -> None:
 
         x = np.append(0, x)
@@ -271,7 +302,7 @@ Creating a dummy trial_type column.
 
         status = self.plot_histogram(
             self.data_this_trial_type["response_time"],
-            col=3,
+            col=self.nb_cols,
             prefix="response time",
         )
         self.bottom_response_row(status)
@@ -310,7 +341,7 @@ Creating a dummy trial_type column.
     ) -> None | int:
         mask = values.isnull() | values.isna()
         values.loc[mask] = 0
-        if (values == 0).all():
+        if (values == 0).all() or values.unique().size == 1:
             return None
 
         self.fig.add_trace(
@@ -382,10 +413,12 @@ Creating a dummy trial_type column.
         )
 
         self.label_axes_histogram(col=2, row=self.bottom_isi_row(), text="ISI (s)")
+        if self.plot_duration_flag:
+            self.label_axes_histogram(col=3, row=self.bottom_isi_row(), text="duration (s)")
 
         if "response_time" in self.event_data.columns:
             self.label_axes_histogram(
-                col=3,
+                col=self.nb_cols,
                 row=self.bottom_response_row(),
                 text="Response time (s)",
             )
