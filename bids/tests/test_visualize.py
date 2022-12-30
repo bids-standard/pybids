@@ -63,9 +63,21 @@ def test_EventPlotter_warning_event_column(bids_examples):
         dataset = Path(bids_examples).joinpath("ds001")
         layout = BIDSLayout(dataset)
         files = layout.get(return_type="filename", subject="02", suffix="events")
-        this = EventPlotter(files[0], event_column="foo")
+        EventPlotter(files[0], event_column="foo")
 
 
 def test_EventPlotter_no_file():
     with pytest.raises(FileNotFoundError):
         EventPlotter("foo.tsv")
+
+
+def test_EventPlotter_include(bids_examples):
+
+    dataset = Path(bids_examples).joinpath("eeg_ds003654s_hed")
+    layout = BIDSLayout(dataset)
+    files = layout.get(return_type="filename", subject="002", suffix="events")
+    this = EventPlotter(
+        files[0], event_column="event_type", include=["show_face", "show_circle"]
+    )
+    this.plot()
+    this.show()

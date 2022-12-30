@@ -13,7 +13,7 @@ from plotly.subplots import make_subplots
 
 
 class EventPlotter:
-    def __init__(self, events_file: str | Path, event_column: str | None = None):
+    def __init__(self, events_file: str | Path, event_column: str | None = None, include: list[str] | None = None):
 
         self.COLOR_LIST = px.colors.qualitative.Plotly
         self.FONT_SIZE = 14
@@ -30,7 +30,14 @@ class EventPlotter:
         self.THREE_COLUMN_WIDTHS = [0.7, 0.15, 0.15]
         self.TICK_LENGTH = 6
 
-        self.trial_type_index: int = 0
+        self.title = None
+        self.fig = None
+
+        self._trial_type_index: int = 0
+        self._trial_types = None
+        self._bottom_isi_row: list[int] = []
+        self._bottom_response_row: list[int] = []
+
         self.get_data_from_file(events_file)
 
         self.event_column = event_column
@@ -46,20 +53,14 @@ Creating a dummy trial_type column.
             )
             self.event_data["trial_type"] = "trial_type"
 
-        if self.event_column in self.event_data.columns:
-            trial_type = self.event_data[self.event_column]
-            trial_type.dropna(inplace=True)
-            self.trial_type = trial_type.unique()
-        else:
-            warnings.warn(f"No column '{self.event_column}' in {events_file}")
+        self.trial_types(include=include)
+        if self.trial_types() is None or len(self.trial_types()) == 0:
+            warnings.warn(f"No trial types found in {events_file}")
             return
-
-        self._bottom_isi_row: list[int] = []
-        self._bottom_response_row: list[int] = []
 
         self.fig = go.FigureWidget(
             make_subplots(
-                rows=len(self.trial_type),
+                rows=len(self.trial_types()),
                 cols=self.nb_cols,
                 horizontal_spacing=0.02,
                 vertical_spacing=0.08,
@@ -69,29 +70,62 @@ Creating a dummy trial_type column.
         )
 
     @property
+    def nb_trial_types(self) -> int:
+        return len(self.trial_types())
+
+    @property
+    def column_widths(self) -> list[float]:
+        return (
+            self.THREE_COLUMN_WIDTHS
+            if "response_time" in self.event_data.columns
+            else self.TWO_COLUMN_WIDTHS
+        )
+
+    @property
     def nb_cols(self) -> int:
         return 3 if "response_time" in self.event_data.columns else 2
 
+    """Properties that are specific to a given trial type."""
     @property
     def this_trial_type(self) -> str:
-        return self.trial_type[self.trial_type_index]
+        return self.trial_types()[self._trial_type_index]
 
     @property
     def this_color(self) -> str:
-        return self.COLOR_LIST[self.trial_type_index]
+        return self.COLOR_LIST[self._trial_type_index]
 
     @property
     def this_row(self) -> int:
         subplot_rows = list(range(1, self.nb_trial_types + 1))
-        return subplot_rows[self.trial_type_index]
+        return subplot_rows[self._trial_type_index]
 
     @property
     def data_this_trial_type(self) -> pd.DataFrame:
         mask = self.event_data[self.event_column] == self.this_trial_type
         return self.event_data[mask]
 
-    def get_data_from_file(self, events_file: str | Path) -> None:
+    def trial_types(self, include:list[str]=None) -> list[str]:
+        """Set trial types that will be plotted.
 
+        Parameters
+        ----------
+        include : list[str]
+            List of trial types to include. If None, all trial types will be included.
+        """
+        if self._trial_types is not None:
+            return self._trial_types
+
+        if self.event_column in self.event_data.columns:
+            trial_type = self.event_data[self.event_column]
+            trial_type.dropna(inplace=True)
+            self._trial_types = trial_type.unique()
+        else:
+            warnings.warn(f"No column '{self.event_column}' in {self.title}")
+            return
+        if include is not None:
+            self._trial_types = list(set(self._trial_types) & set(include))
+
+    def get_data_from_file(self, events_file: str | Path) -> None:
         events_file = Path(events_file)
         if not events_file.exists():
             raise FileNotFoundError(f"File {events_file} does not exist.")
@@ -99,9 +133,8 @@ Creating a dummy trial_type column.
         self.title = events_file.name
         self.event_data = pd.read_csv(events_file, sep="\t")
 
-    """Used only to keep track on which row to plot the x axis title 
-    for the the histograms."""
-
+    # Used only to keep track on which row to plot the x axis title 
+    # for the histograms.
     def bottom_isi_row(self, new_value: int | None = None) -> int | None:
         if new_value is None:
             return None if len(self._bottom_isi_row) == 0 else self._bottom_isi_row[0]
@@ -110,6 +143,8 @@ Creating a dummy trial_type column.
         self._bottom_isi_row = [max(self._bottom_isi_row)]
         return None
 
+    # Used only to keep track on which row to plot the x axis title 
+    # for the histograms.
     def bottom_response_row(self, new_value: int | None = None) -> int | None:
         if new_value is None:
             return (
@@ -122,18 +157,7 @@ Creating a dummy trial_type column.
         self._bottom_response_row = [max(self._bottom_response_row)]
         return None
 
-    @property
-    def nb_trial_types(self) -> int:
-        return len(self.trial_type)
-
-    @property
-    def column_widths(self) -> list[float]:
-        return (
-            self.THREE_COLUMN_WIDTHS
-            if "response_time" in self.event_data.columns
-            else self.TWO_COLUMN_WIDTHS
-        )
-
+    """Wrapper methods"""
     def plot(self) -> None:
         self.plot_trial_types()
         self.update_axes()
@@ -141,9 +165,18 @@ Creating a dummy trial_type column.
     def show(self) -> None:
         self.fig.show()
 
+    """Plotting methods"""
     def plot_trial_types(self) -> None:
+        """Loop over trial types and plot them one by one.
+        
+        Plots the following:
+        - trial type timeline
+        - response time timeline if response_time is present
+        - ISI histogram
+        - response time histogram if response_time is present
+        """
 
-        for self.trial_type_index in range(len(self.trial_type)):
+        for self._trial_type_index in range(len(self.trial_types())):
 
             onset = self.data_this_trial_type["onset"]
             duration = get_duration(self.data_this_trial_type)
@@ -204,6 +237,7 @@ Creating a dummy trial_type column.
             row=self.this_row,
             col=1,
         )
+        # add ticks every 15 and 60 seconds
         self.fig.update_xaxes(
             row=self.this_row,
             col=1,
@@ -268,36 +302,6 @@ Creating a dummy trial_type column.
             color=color,
         )
 
-    def default_axes(self, col: int) -> None:
-        self.fig.update_yaxes(
-            row=self.this_row,
-            col=col,
-            tickfont=dict(size=self.FONT_SIZE),
-            ticklen=self.TICK_LENGTH,
-            ticks="outside",
-            tickwidth=self.AXES_LINE_WIDTH,
-            tickcolor=self.AXES_COLOR,
-            showline=True,
-            linewidth=self.AXES_LINE_WIDTH,
-            linecolor=self.AXES_COLOR,
-            showticklabels=True,
-        )
-
-        self.fig.update_xaxes(
-            row=self.this_row,
-            col=col,
-            tickfont=dict(size=self.FONT_SIZE),
-            ticklen=self.TICK_LENGTH,
-            ticks="outside",
-            tickwidth=self.AXES_LINE_WIDTH,
-            tickcolor=self.AXES_COLOR,
-            showline=True,
-            linewidth=self.AXES_LINE_WIDTH,
-            linecolor=self.AXES_COLOR,
-            showticklabels=True,
-            autorange=True,
-        )
-
     def plot_histogram(
         self,
         values: pd.Series,
@@ -332,7 +336,38 @@ Creating a dummy trial_type column.
         )
 
         # we keep track of the lowest row to plot the title of that column
-        return self.this_row
+        return self.this_row        
+
+    """Axis formatting methods"""
+    def default_axes(self, col: int) -> None:
+        self.fig.update_yaxes(
+            row=self.this_row,
+            col=col,
+            tickfont=dict(size=self.FONT_SIZE),
+            ticklen=self.TICK_LENGTH,
+            ticks="outside",
+            tickwidth=self.AXES_LINE_WIDTH,
+            tickcolor=self.AXES_COLOR,
+            showline=True,
+            linewidth=self.AXES_LINE_WIDTH,
+            linecolor=self.AXES_COLOR,
+            showticklabels=True,
+        )
+
+        self.fig.update_xaxes(
+            row=self.this_row,
+            col=col,
+            tickfont=dict(size=self.FONT_SIZE),
+            ticklen=self.TICK_LENGTH,
+            ticks="outside",
+            tickwidth=self.AXES_LINE_WIDTH,
+            tickcolor=self.AXES_COLOR,
+            showline=True,
+            linewidth=self.AXES_LINE_WIDTH,
+            linecolor=self.AXES_COLOR,
+            showticklabels=True,
+            autorange=True,
+        )
 
     def update_axes(self) -> None:
 
