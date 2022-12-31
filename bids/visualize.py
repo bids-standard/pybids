@@ -47,7 +47,7 @@ class EventPlotter:
             "response": [],
         }
 
-        self.get_data_from_file(events_file)
+        self._get_data_from_file(events_file)
 
         self.event_column = event_column
         if event_column is None:
@@ -157,7 +157,7 @@ Creating a dummy trial_type column.
         if include is not None:
             self._trial_types = list(set(self._trial_types) & set(include))
 
-    def get_data_from_file(self, events_file: str | Path) -> None:
+    def _get_data_from_file(self, events_file: str | Path) -> None:
         events_file = Path(events_file)
         if not events_file.exists():
             raise FileNotFoundError(f"File {events_file} does not exist.")
@@ -188,7 +188,7 @@ Creating a dummy trial_type column.
 
     def plot(self) -> None:
         self.plot_trial_types()
-        self.update_axes()
+        self._update_axes()
 
     def show(self) -> None:
         self.fig.show()
@@ -200,8 +200,9 @@ Creating a dummy trial_type column.
 
         Plots the following:
         - trial type timeline
-        - response time timeline if response_time is present
         - ISI histogram
+        - duration histogram
+        - response time timeline if response_time is present
         - response time histogram if response_time is present
         """
 
@@ -213,7 +214,7 @@ Creating a dummy trial_type column.
             x = np.array([[onset], [onset + duration]]).flatten("F")
             y = np.tile([self.EVENT_HEIGHT, 0], (1, len(x) // 2))[0]
 
-            self.plot_timeline(
+            self._plot_timeline(
                 x,
                 y,
                 name=self.this_trial_type,
@@ -221,9 +222,9 @@ Creating a dummy trial_type column.
                 color=self.this_color,
             )
 
-            self.plot_responses()
+            self._plot_responses()
 
-            self.default_axes(col=1)
+            self._default_axes(col=1)
 
             self.fig.update_yaxes(
                 row=self.this_row,
@@ -234,7 +235,7 @@ Creating a dummy trial_type column.
 
             isi = onset.diff()
 
-            status = self.plot_histogram(
+            status = self._plot_histogram(
                 isi,
                 col=2,
                 prefix="ISI",
@@ -242,14 +243,14 @@ Creating a dummy trial_type column.
             self.bottom_row("ISI", status)
 
             if self.plot_duration_flag:
-                status = self.plot_histogram(
+                status = self._plot_histogram(
                     duration,
                     col=3,
                     prefix="duration",
                 )
                 self.bottom_row("duration", status)
 
-    def plot_timeline(self, x: Any, y: Any, name: str, mode: str, color: str) -> None:
+    def _plot_timeline(self, x: Any, y: Any, name: str, mode: str, color: str) -> None:
 
         x = np.append(0, x)
         y = np.append(0, y)
@@ -285,12 +286,12 @@ Creating a dummy trial_type column.
             ),
         )
 
-    def plot_responses(self) -> None:
+    def _plot_responses(self) -> None:
 
         if "response_time" not in self.event_data.columns:
             return
 
-        self.plot_response_timeline(
+        self._plot_response_timeline(
             self.data_this_trial_type["response_time"],
             self.data_this_trial_type["onset"],
         )
@@ -299,21 +300,21 @@ Creating a dummy trial_type column.
         if mask.any():
             fast_response_time = self.data_this_trial_type["response_time"][mask]
             fast_response_onset = self.data_this_trial_type["onset"][mask]
-            self.plot_response_timeline(
+            self._plot_response_timeline(
                 fast_response_time,
                 fast_response_onset,
                 prefix="fast responses",
                 color="red",
             )
 
-        status = self.plot_histogram(
+        status = self._plot_histogram(
             self.data_this_trial_type["response_time"],
             col=self.nb_cols,
             prefix="response time",
         )
         self.bottom_row("response", status)
 
-    def plot_response_timeline(
+    def _plot_response_timeline(
         self,
         response_time: pd.Series,
         onset: pd.Series,
@@ -331,7 +332,7 @@ Creating a dummy trial_type column.
         x = np.array([[responses_onset], [responses_onset]]).flatten("F")
         y = np.tile([self.EVENT_HEIGHT / 2, 0], (1, len(x) // 2))[0]
 
-        self.plot_timeline(
+        self._plot_timeline(
             x,
             y,
             name=name,
@@ -339,7 +340,7 @@ Creating a dummy trial_type column.
             color=color,
         )
 
-    def plot_histogram(
+    def _plot_histogram(
         self,
         values: pd.Series,
         col: int,
@@ -366,7 +367,7 @@ Creating a dummy trial_type column.
             col=col,
         )
 
-        self.default_axes(col)
+        self._default_axes(col)
         hist, bin_edges = np.histogram(values, bins=self.NB_BINS)
         self.fig.update_yaxes(
             row=self.this_row, col=col, dtick=math.ceil(max(hist) / 4)
@@ -377,7 +378,7 @@ Creating a dummy trial_type column.
 
     """Axis formatting methods"""
 
-    def default_axes(self, col: int) -> None:
+    def _default_axes(self, col: int) -> None:
         self.fig.update_yaxes(
             row=self.this_row,
             col=col,
@@ -407,7 +408,7 @@ Creating a dummy trial_type column.
             autorange=True,
         )
 
-    def update_axes(self) -> None:
+    def _update_axes(self) -> None:
 
         self.fig.update_xaxes(
             row=self.nb_trial_types,
