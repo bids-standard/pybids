@@ -19,7 +19,6 @@ class EventPlotter:
         event_column: str | None = None,
         include: list[str] | None = None,
     ):
-
         self.COLOR_LIST = px.colors.qualitative.Plotly
         self.FONT_SIZE = 14
         self.STANDOFF = 16
@@ -53,14 +52,14 @@ class EventPlotter:
         if event_column is None:
             self.event_column = "trial_type"
 
-        if len(self.event_data.columns.to_list()) == 2:
+        if len(self.data.columns.to_list()) == 2:
             warnings.warn(
                 f"""Only columns 'onset' and 'duration' found in:
     {events_file}
 Creating a dummy trial_type column.
             """
             )
-            self.event_data["trial_type"] = "trial_type"
+            self.data["trial_type"] = "trial_type"
 
         self.trial_types(include=include)
         if self.trial_types() is None or len(self.trial_types()) == 0:
@@ -89,14 +88,14 @@ Creating a dummy trial_type column.
         value = 2
         if self.plot_duration_flag:
             value += 1
-        if "response_time" in self.event_data.columns:
+        if "response_time" in self.data.columns:
             value += 1
         return value
 
     @property
     def plot_duration_flag(self) -> bool:
         """Do not plot duration if all durations are the same"""
-        if get_duration(self.event_data).unique().size == 1:
+        if get_duration(self.data).unique().size == 1:
             return False
 
         idx = self._trial_type_index
@@ -133,22 +132,16 @@ Creating a dummy trial_type column.
 
     @property
     def data_this_trial_type(self) -> pd.DataFrame:
-        mask = self.event_data[self.event_column] == self.this_trial_type
-        return self.event_data[mask]
+        mask = self.data[self.event_column] == self.this_trial_type
+        return self.data[mask]
 
     def trial_types(self, include: list[str] = None) -> list[str]:
-        """Set trial types that will be plotted.
-
-        Parameters
-        ----------
-        include : list[str]
-            List of trial types to include. If None, all trial types will be included.
-        """
+        """Set trial types that will be plotted."""
         if self._trial_types is not None:
             return self._trial_types
 
-        if self.event_column in self.event_data.columns:
-            trial_type = self.event_data[self.event_column]
+        if self.event_column in self.data.columns:
+            trial_type = self.data[self.event_column]
             trial_type.dropna(inplace=True)
             self._trial_types = trial_type.unique()
         else:
@@ -163,7 +156,7 @@ Creating a dummy trial_type column.
             raise FileNotFoundError(f"File {events_file} does not exist.")
 
         self.title = events_file.name
-        self.event_data = pd.read_csv(events_file, sep="\t")
+        self.data = pd.read_csv(events_file, sep="\t")
 
     # Used only to keep track on which row to plot the x axis title
     # for the histograms.
@@ -288,7 +281,7 @@ Creating a dummy trial_type column.
 
     def _plot_responses(self) -> None:
 
-        if "response_time" not in self.event_data.columns:
+        if "response_time" not in self.data.columns:
             return
 
         self._plot_response_timeline(
@@ -426,7 +419,7 @@ Creating a dummy trial_type column.
                 col=3, row=self.bottom_row("duration"), text="duration (s)"
             )
 
-        if "response_time" in self.event_data.columns:
+        if "response_time" in self.data.columns:
             self.label_axes_histogram(
                 col=self.nb_cols,
                 row=self.bottom_row("response"),
