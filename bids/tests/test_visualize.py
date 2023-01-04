@@ -46,7 +46,7 @@ def test_LayoutPlotter_smoke(
     this = LayoutPlotter(layout, filters=filters)
     this.plot(plot_by=plot_by, show=show, output_dir=output_dir)
     this.plot_by_task(show=show, output_dir=output_dir)
-    this.plot_by_entity(entity=plot_by[0], show=show, output_dir=output_dir)
+    this.plot_by_entity(entity=plot_by, show=show, output_dir=output_dir)
     if output_dir is not None:
         shutil.rmtree(output_dir)
 
@@ -117,7 +117,7 @@ def test_EventPlotter_include(bids_examples):
     layout = BIDSLayout(dataset)
     files = layout.get(return_type="filename", subject="002", suffix="events")
     this = EventPlotter(
-        files, event_column="event_type", include=["show_face", "show_circle"]
+        files[0], event_column="event_type", include=["show_face", "show_circle"]
     )
     this.plot()
     this.show()
