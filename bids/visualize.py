@@ -203,8 +203,8 @@ Creating a dummy trial_type column.
 
             >>> from bids.visualize import EventPlotter
             >>> from pathlib import Path
-            >>> events_file = Path(path_to_events_file)
-            >>> this = EventPlotter(path_to_events_file)
+            >>> events_file = Path("path_to_events_file")
+            >>> this = EventPlotter(events_file)
             >>> this.plot()
         """
         self.plot_trial_types()
@@ -217,8 +217,8 @@ Creating a dummy trial_type column.
 
             >>> from bids.visualize import EventPlotter
             >>> from pathlib import Path
-            >>> events_file = Path(path_to_events_file)            
-            >>> this = EventPlotter(path_to_events_file)
+            >>> events_file = Path("path_to_events_file")            
+            >>> this = EventPlotter(events_file)
             >>> this.plot()
             >>> this.show()
         """
