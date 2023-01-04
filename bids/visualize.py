@@ -7,7 +7,6 @@ import re
 from typing import Any
 
 from bids import BIDSLayout
-from matplotlib.figure import Figure  # type: ignore
 import numpy as np
 import pandas as pd
 import plotly.express as px
@@ -492,15 +491,17 @@ class LayoutPlotter:
     ) -> None:
         """Create summary figures of bids dataset content.
 
-        :param plot_by: Define extra plot to be done by splitting the dataset by entities,
-                        defaults to ``None``
-        :type  plot_by: None | str | list[str], optional
+        Parameters
+        ----------
+        plot_by : None | str | list[str], optional
+            Define extra plot to be done by splitting the dataset by entities,
+            defaults to `None`
 
-        :param output_dir: Where the figure should be saved, defaults to ``None``
-        :type  output_dir: str | Path | None, optional
+        output_dir: output_dir: str | Path | None, optional
+            Where the figure should be saved, defaults to `None`
 
-        :param show: Set to ``True`` to show the output figures after plotting, defaults to ``True``
-        :type  show: bool, optional
+        show: bool, optional
+            Set to `True` to show the output figures after plotting, defaults to `True`
 
         Subplot in each figure have subject as rows.
 
@@ -523,17 +524,22 @@ class LayoutPlotter:
 
     def plot_by_datatype(
         self, output_dir: str | Path | None = None, show: bool = True
-    ) -> Figure:
+    ) -> px.density_heatmap:
         """Plot dataset content split by datatype.
 
-        :param output_dir: Where the figure should be saved, defaults to ``None``
-        :type  output_dir: str | Path | None, optional
+        Parameters
+        ----------
+        output_dir: str | Path | None, optional
+            Where the figure should be saved, defaults to ``None``
 
-        :param show: Set to ``True`` to show the output figures after plotting, defaults to ``True``
-        :type  show: bool, optional
+        show: bool, optional
+            Set to `True` to show the output figures after plotting, defaults to `True`
 
-        :return: Figure object
-        :rtype: ``Figure``
+        Returns
+        -------
+        px.density_heatmap
+            Plotly figure
+
         """
 
         if len(self.datatype) > 0:
@@ -552,21 +558,23 @@ class LayoutPlotter:
 
             self._write_html(fig, suffix="datatype", output_dir=output_dir)
 
-            return Figure
-
     def plot_by_task(
         self, output_dir: str | Path | None = None, show: bool = True
-    ) -> Figure:
+    ) -> px.density_heatmap:
         """Plot dataset content split by task.
 
-        :param output_dir: Where the figure should be saved, defaults to ``None``
-        :type  output_dir: str | Path | None, optional
+        Parameters
+        ----------
+        output_dir: str | Path | None, optional
+            Where the figure should be saved, defaults to ``None``
 
-        :param show: Set to ``True`` to show the output figures after plotting, defaults to ``True``
-        :type  show: bool, optional
+        show: bool, optional
+            Set to `True` to show the output figures after plotting, defaults to `True`
 
-        :return: Figure object
-        :rtype: Figure
+        Returns
+        -------
+        px.density_heatmap
+            Plotly figure
         """
         if len(self.task) > 0:
             fig = self.plot_by_entity(entity="task", output_dir=output_dir, show=show)
@@ -577,21 +585,25 @@ class LayoutPlotter:
         entity: str | None,
         output_dir: str | Path | None = None,
         show: bool = True,
-    ) -> Figure:
+    ) -> px.density_heatmap:
         """_summary_
 
-        :param entity: Define extra plot to be done by splitting the dataset by entities,
-                       defaults to ``None``
-        :type entity: str | None
+        Parameters
+        ----------
+        entity: str | None
+            Define extra plot to be done by splitting the dataset by entities,
+            defaults to ``None``
 
-        :param output_dir: Where the figure should be saved, defaults to ``None``
-        :type  output_dir: str | Path | None, optional
+        output_dir: str | Path | None, optional
+            Where the figure should be saved, defaults to ``None``
 
-        :param show: Set to ``True`` to show the output figures after plotting, defaults to ``True``
-        :type  show: bool, optional
+        show: bool, optional
+            Set to `True` to show the output figures after plotting, defaults to `True`
 
-        :return: Figure object
-        :rtype: Figure
+        Returns
+        -------
+        px.density_heatmap
+            Plotly figure
         """
         if entity is None:
             return
@@ -634,7 +646,7 @@ class LayoutPlotter:
         y: str,
         facet_col: str | None = None,
         facet_row: str | None = None,
-    ) -> Figure:
+    ) -> px.density_heatmap:
         fig = px.density_heatmap(
             df,
             x=x,
@@ -648,7 +660,7 @@ class LayoutPlotter:
         )
         return fig
 
-    def _set_axis_and_title(self, fig: Figure, suffix: str) -> None:
+    def _set_axis_and_title(self, fig: px.density_heatmap, suffix: str) -> None:
         fig.update_xaxes(
             showline=True,
             linewidth=2,
@@ -685,7 +697,7 @@ class LayoutPlotter:
         return f"dataset-{dataset_name}_splitby-{suffix}_summary.html"
 
     def _write_html(
-        self, fig: Figure, suffix: str, output_dir: str | Path | None = None
+        self, fig: px.density_heatmap, suffix: str, output_dir: str | Path | None = None
     ) -> None:
         if output_dir is not None:
             output_dir = Path(output_dir)
