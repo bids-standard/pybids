@@ -15,6 +15,21 @@ from plotly.subplots import make_subplots
 
 
 class EventPlotter:
+    """Class to handle plotting the content of events files.
+
+    Parameters
+    ----------
+    events_file : str | Path
+        Path to the events file.
+
+    event_column : str | None, optional
+        Name of the column containing the events.
+        If `None`, events types are assumed to be in the "trial_type" column.
+
+    include : list[str] | None, optional
+        List of events type to include in the plot.
+    """
+
     def __init__(
         self,
         events_file: str | Path,
@@ -182,10 +197,27 @@ Creating a dummy trial_type column.
     """Wrapper methods"""
 
     def plot(self) -> None:
+        """Plot trial types.
+
+        :Example:
+
+            >>> from bids.visualize import EventPlotter
+            >>> this = EventPlotter(path_to_events_file)
+            >>> this.plot()
+        """
         self.plot_trial_types()
         self._update_axes()
 
     def show(self) -> None:
+        """Show the figure.
+
+        :Example:
+
+            >>> from bids.visualize import EventPlotter
+            >>> this = EventPlotter(path_to_events_file)
+            >>> this.plot()
+            >>> this.show()
+        """
         self.fig.show()
 
     """Plotting methods"""
@@ -466,6 +498,21 @@ def get_duration(df: pd.DataFrame) -> pd.Series:
 
 
 class LayoutPlotter:
+    """Class to handle plotting the content of a BIDSLayout.
+
+    Parameters
+    ----------
+    layout : BIDSLayout
+        Define extra plot to be done by splitting the dataset by entities,
+        defaults to `None`
+
+    filters : dict, optional
+        Any optional key/values to filter the layout on.
+        Keys are entity names, values are regexes to filter on. For
+        example, passing filters={'subject': 'sub-[12]'} would return
+        only files that match the first two subjects.
+    """
+
     def __init__(
         self,
         layout: BIDSLayout,

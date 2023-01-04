@@ -117,7 +117,7 @@ def test_EventPlotter_include(bids_examples):
     layout = BIDSLayout(dataset)
     files = layout.get(return_type="filename", subject="002", suffix="events")
     this = EventPlotter(
-        files[0], event_column="event_type", include=["show_face", "show_circle"]
+        files, event_column="event_type", include=["show_face", "show_circle"]
     )
     this.plot()
     this.show()
