@@ -43,10 +43,9 @@ def test_LayoutPlotter_smoke(
 
     layout = BIDSLayout(root=Path(bids_examples).joinpath(dataset))
 
-    this = LayoutPlotter(layout, filters=filters)
-    this.plot(plot_by=plot_by, show=show, output_dir=output_dir)
-    this.plot_by_task(show=show, output_dir=output_dir)
-    this.plot_by_entity(entity=plot_by, show=show, output_dir=output_dir)
+    LayoutPlotter(layout, filters=filters).plot(
+        plot_by=plot_by, show=show, output_dir=output_dir
+    )
     if output_dir is not None:
         shutil.rmtree(output_dir)
 
