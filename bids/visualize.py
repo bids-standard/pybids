@@ -202,6 +202,8 @@ Creating a dummy trial_type column.
         :Example:
 
             >>> from bids.visualize import EventPlotter
+            >>> from pathlib import Path
+            >>> events_file = Path(path_to_events_file)
             >>> this = EventPlotter(path_to_events_file)
             >>> this.plot()
         """
@@ -214,6 +216,8 @@ Creating a dummy trial_type column.
         :Example:
 
             >>> from bids.visualize import EventPlotter
+            >>> from pathlib import Path
+            >>> events_file = Path(path_to_events_file)            
             >>> this = EventPlotter(path_to_events_file)
             >>> this.plot()
             >>> this.show()
