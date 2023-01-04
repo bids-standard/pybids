@@ -3,8 +3,11 @@ from __future__ import annotations
 import math
 import warnings
 from pathlib import Path
+import re
 from typing import Any
 
+from bids import BIDSLayout
+from matplotlib.figure import Figure  # type: ignore
 import numpy as np
 import pandas as pd
 import plotly.express as px
@@ -461,3 +464,230 @@ def get_duration(df: pd.DataFrame) -> pd.Series:
     mask = df["duration"].isnull()
     tmp.loc[mask, "duration"] = 0
     return tmp["duration"]
+
+
+class LayoutPlotter:
+    def __init__(
+        self,
+        layout: BIDSLayout,
+        filters: dict[str, list[str]] | None = None,
+    ) -> None:
+
+        self.FONT_SIZE = 16
+
+        self.datatype = sorted(layout.get(return_type="id", target="datatype"))
+        self.task = sorted(layout.get_task())
+        self.title = layout.description.get("Name", "BIDS dataset")
+        self.df_layout = (
+            layout.to_df(**filters) if filters is not None else layout.to_df()
+        )
+        if len(self.datatype) > 0:
+            self.df_layout.dropna(subset=["datatype"], inplace=True)
+
+    def plot(
+        self,
+        plot_by: None | str | list[str] = None,
+        output_dir: str | Path | None = None,
+        show: bool = True,
+    ) -> None:
+        """Create summary figures of bids dataset content.
+
+        :param plot_by: Define extra plot to be done by splitting the dataset by entities,
+                        defaults to ``None``
+        :type  plot_by: None | str | list[str], optional
+
+        :param output_dir: Where the figure should be saved, defaults to ``None``
+        :type  output_dir: str | Path | None, optional
+
+        :param show: Set to ``True`` to show the output figures after plotting, defaults to ``True``
+        :type  show: bool, optional
+
+        Subplot in each figure have subject as rows.
+
+        If a session level is present, subplots are grouped by session along rows.
+
+        - show number of files per subject for each datatype
+        - show number of files per subject for each task
+        - show number of files per subject for each entity passed in plot_by
+        """
+
+        self.plot_by_datatype(output_dir=output_dir, show=show)
+
+        self.plot_by_task(output_dir=output_dir, show=show)
+
+        if plot_by is not None:
+            if isinstance(plot_by, str):
+                plot_by = [plot_by]
+            for entity in plot_by:
+                self.plot_by_entity(entity=entity, output_dir=output_dir, show=show)
+
+    def plot_by_datatype(
+        self, output_dir: str | Path | None = None, show: bool = True
+    ) -> Figure:
+        """Plot dataset content split by datatype.
+
+        :param output_dir: Where the figure should be saved, defaults to ``None``
+        :type  output_dir: str | Path | None, optional
+
+        :param show: Set to ``True`` to show the output figures after plotting, defaults to ``True``
+        :type  show: bool, optional
+
+        :return: Figure object
+        :rtype: ``Figure``
+        """
+
+        if len(self.datatype) > 0:
+
+            if "session" in self.df_layout.columns.tolist():
+                fig = self._generate_heat_map(
+                    self.df_layout, x="datatype", y="subject", facet_row="session"
+                )
+            else:
+                fig = self._generate_heat_map(self.df_layout, x="datatype", y="subject")
+
+            self._set_axis_and_title(fig, suffix="datatype")
+
+            if show:
+                fig.show()
+
+            self._write_html(fig, suffix="datatype", output_dir=output_dir)
+
+            return Figure
+
+    def plot_by_task(
+        self, output_dir: str | Path | None = None, show: bool = True
+    ) -> Figure:
+        """Plot dataset content split by task.
+
+        :param output_dir: Where the figure should be saved, defaults to ``None``
+        :type  output_dir: str | Path | None, optional
+
+        :param show: Set to ``True`` to show the output figures after plotting, defaults to ``True``
+        :type  show: bool, optional
+
+        :return: Figure object
+        :rtype: Figure
+        """
+        if len(self.task) > 0:
+            fig = self.plot_by_entity(entity="task", output_dir=output_dir, show=show)
+            return fig
+
+    def plot_by_entity(
+        self,
+        entity: str | None,
+        output_dir: str | Path | None = None,
+        show: bool = True,
+    ) -> Figure:
+        """_summary_
+
+        :param entity: Define extra plot to be done by splitting the dataset by entities,
+                       defaults to ``None``
+        :type entity: str | None
+
+        :param output_dir: Where the figure should be saved, defaults to ``None``
+        :type  output_dir: str | Path | None, optional
+
+        :param show: Set to ``True`` to show the output figures after plotting, defaults to ``True``
+        :type  show: bool, optional
+
+        :return: Figure object
+        :rtype: Figure
+        """
+        if entity is None:
+            return
+
+        if entity not in self.df_layout.columns.tolist():
+            warnings.warn(
+                f"""Entity '{entity}' not found in layout.
+    Entities available: {self.df_layout.columns.tolist()}"""
+            )
+            entity = None
+        if entity is None:
+            return
+
+        df = self.df_layout.dropna(subset=[entity])
+
+        facet_col = "datatype" if "datatype" in df.columns.tolist() else None
+
+        if "session" in df.columns.tolist():
+            fig = self._generate_heat_map(
+                df, x=entity, y="subject", facet_row="session", facet_col=facet_col
+            )
+        else:
+            fig = self._generate_heat_map(
+                df, x=entity, y="subject", facet_col=facet_col
+            )
+
+        self._set_axis_and_title(fig, suffix=entity)
+
+        if show:
+            fig.show()
+
+        self._write_html(fig, suffix=entity, output_dir=output_dir)
+
+        return fig
+
+    def _generate_heat_map(
+        self,
+        df: pd.DataFrame,
+        x: str,
+        y: str,
+        facet_col: str | None = None,
+        facet_row: str | None = None,
+    ) -> Figure:
+        fig = px.density_heatmap(
+            df,
+            x=x,
+            y=y,
+            facet_row=facet_row,
+            facet_col=facet_col,
+            facet_row_spacing=0.04,
+            facet_col_spacing=0.04,
+            color_continuous_scale="gray",
+            text_auto=True,
+        )
+        return fig
+
+    def _set_axis_and_title(self, fig: Figure, suffix: str) -> None:
+        fig.update_xaxes(
+            showline=True,
+            linewidth=2,
+            linecolor="black",
+            mirror=True,
+            tickfont=dict(size=self.FONT_SIZE),
+            tickcolor="rgba(0,0,0,0)",
+            ticklen=4,
+            ticks="outside",
+        )
+        fig.update_yaxes(
+            showline=True,
+            linewidth=2,
+            linecolor="black",
+            mirror=True,
+            tickprefix="sub-",
+            tickfont=dict(size=self.FONT_SIZE),
+            tickcolor="rgba(0,0,0,0)",
+            ticklen=4,
+            ticks="outside",
+        )
+        fig.update_layout(
+            title=dict(
+                text=f"<b>{self.title}: {suffix}</b>",
+                x=0.05,
+                y=0.98,
+                font=dict(size=self.FONT_SIZE + 2),
+            )
+        )
+
+    def _fig_name(self, suffix: str) -> str:
+        dataset_name = self.title.lower().replace(" ", "_")
+        dataset_name = re.sub("[^0-9a-zA-Z]+", "", dataset_name)
+        return f"dataset-{dataset_name}_splitby-{suffix}_summary.html"
+
+    def _write_html(
+        self, fig: Figure, suffix: str, output_dir: str | Path | None = None
+    ) -> None:
+        if output_dir is not None:
+            output_dir = Path(output_dir)
+            output_dir.mkdir(parents=True, exist_ok=True)
+            fig.write_html(output_dir.joinpath(self._fig_name(suffix=suffix)))

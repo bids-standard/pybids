@@ -1,15 +1,54 @@
 from pathlib import Path
 
+import shutil
+
 import pytest
 
 from bids.layout import BIDSLayout
 from bids.visualize import EventPlotter  # type: ignore
-
+from bids.visualize import LayoutPlotter  # type: ignore
 from bids.tests import get_test_data_path
 
 """TODO
 -   test on datasets with a large range of events types
 """
+
+
+@pytest.mark.parametrize(
+    "output_dir",
+    [
+        (Path(__file__).parent.joinpath("tmp")),
+        (None),
+    ],
+)
+@pytest.mark.parametrize(
+    "show",
+    [
+        (True),
+        (False),
+    ],
+)
+@pytest.mark.parametrize(
+    "dataset,filters,plot_by",
+    [
+        ("ds114", None, "suffix"),
+        ("eeg_ds003654s_hed", None, ["suffix", "run"]),
+        ("ds000117", dict(session=["mri", "meg"]), None),
+        ("fnirs_tapping", None, "suffix"),
+    ],
+)
+def test_LayoutPlotter_smoke(
+    dataset, filters, plot_by, show, output_dir, bids_examples
+):
+
+    layout = BIDSLayout(root=Path(bids_examples).joinpath(dataset))
+
+    this = LayoutPlotter(layout, filters=filters)
+    this.plot(plot_by=plot_by, show=show, output_dir=output_dir)
+    this.plot_by_task(show=show, output_dir=output_dir)
+    this.plot_by_entity(entity=plot_by[0], show=show, output_dir=output_dir)
+    if output_dir is not None:
+        shutil.rmtree(output_dir)
 
 
 @pytest.mark.parametrize(
