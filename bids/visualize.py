@@ -198,29 +198,12 @@ Creating a dummy trial_type column.
 
     def plot(self) -> None:
         """Plot trial types.
-
-        :Example:
-
-            >>> from bids.visualize import EventPlotter
-            >>> from pathlib import Path
-            >>> events_file = Path("path_to_events_file")
-            >>> this = EventPlotter(events_file)
-            >>> this.plot()
         """
         self.plot_trial_types()
         self._update_axes()
 
     def show(self) -> None:
         """Show the figure.
-
-        :Example:
-
-            >>> from bids.visualize import EventPlotter
-            >>> from pathlib import Path
-            >>> events_file = Path("path_to_events_file")            
-            >>> this = EventPlotter(events_file)
-            >>> this.plot()
-            >>> this.show()
         """
         self.fig.show()
 
