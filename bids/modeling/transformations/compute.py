@@ -172,7 +172,7 @@ class Scale(Transformation):
     """
 
     def _transform(self, data, demean=True, rescale=True, replace_na=None):
-        if data.nunique().values[0] == 1 and replace_na in {None, 'before'}:
+        if data.nunique() == 1 and replace_na in {None, 'before'}:
             val = data.unique()[0]
             raise ValueError("Cannot scale a column with constant value ({})! "
                              "If you want a constant column of 0's returned, "
