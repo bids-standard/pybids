@@ -95,6 +95,15 @@ def test_EventPlotter_flag_fast_response(bids_examples):
     this.plot()
     this.show()
 
+def test_EventPlotter_too_many_events():
+
+    dataset = Path(get_test_data_path()).joinpath("synthetic")
+
+    file = dataset.joinpath("task-memento_events.tsv")
+
+    with pytest.warns(UserWarning):
+        EventPlotter(file)
+
 
 def test_EventPlotter_warning_event_column(bids_examples):
 

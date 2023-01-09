@@ -79,9 +79,19 @@ Creating a dummy trial_type column.
             self.data["trial_type"] = "trial_type"
 
         self.trial_types(include=include)
-        if self.trial_types() is None or len(self.trial_types()) == 0:
+        if self.trial_types() is None or self.nb_trial_types == 0:
             warnings.warn(
                 f"No trial types found in {events_file} for 'include={include}'"
+            )
+            return
+
+        if self.nb_trial_types > 13:
+            warnings.warn(
+                f"""More than 18 trial types found in {events_file}.
+The plot will be unreadable.
+
+Specify a subset of trial types using the 'include' argument.
+                """
             )
             return
 
