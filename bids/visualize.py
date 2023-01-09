@@ -207,14 +207,12 @@ Specify a subset of trial types using the 'include' argument.
     """Wrapper methods"""
 
     def plot(self) -> None:
-        """Plot trial types.
-        """
+        """Plot trial types."""
         self.plot_trial_types()
         self._update_axes()
 
     def show(self) -> None:
-        """Show the figure.
-        """
+        """Show the figure."""
         self.fig.show()
 
     """Plotting methods"""
@@ -524,6 +522,11 @@ class LayoutPlotter:
         self.df_layout = (
             layout.to_df(**filters) if filters is not None else layout.to_df()
         )
+        if self.df_layout.size == 0:
+            warnings.warn(
+                f"No data found in the layout for the given filters {filters}."
+            )
+            return
         if len(self.datatype) > 0:
             self.df_layout.dropna(subset=["datatype"], inplace=True)
 

@@ -50,6 +50,15 @@ def test_LayoutPlotter_smoke(
         shutil.rmtree(output_dir)
 
 
+def test_LayoutPlotter_missing_subject(bids_examples):
+
+    layout = BIDSLayout(root=Path(bids_examples).joinpath("ds114"))
+
+    filters = dict(subject="foo")
+    with pytest.warns(UserWarning):
+        LayoutPlotter(layout, filters=filters)
+
+
 @pytest.mark.parametrize(
     "dataset,subject,event_column",
     [
@@ -94,6 +103,7 @@ def test_EventPlotter_flag_fast_response(bids_examples):
     this.FAST_RESPONSE_THRESHOLD = 0.5
     this.plot()
     this.show()
+
 
 def test_EventPlotter_too_many_events():
 
