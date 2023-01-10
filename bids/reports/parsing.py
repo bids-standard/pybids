@@ -70,7 +70,8 @@ def func_info(files, config):
     parameters_str = "; ".join(parameters_str)
 
     desc = f"""{nb_runs_str(nb_runs)} of {task_name} {variants} {seqs} {me_str} 
-    fMRI data were collected ({parameters_str}). {dur_str}"""
+    fMRI data were collected ({parameters_str}). 
+    Run duration was {dur_str} minutes, during which {parameters.describe_nb_vols(files)} volumes were acquired."""
 
     return desc
 

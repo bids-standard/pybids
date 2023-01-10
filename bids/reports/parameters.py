@@ -1,8 +1,12 @@
+from __future__ import annotations
+
 """Functions for building strings for individual parameters."""
 import logging
 import math
 import os
 import os.path as op
+
+from typing import Tuple, List
 
 import nibabel as nib
 from num2words import num2words
@@ -28,44 +32,56 @@ def describe_slice_timing(img, metadata: dict) -> str:
     )
 
 
-def describe_repetition_time(metadata: dict):
+def describe_repetition_time(metadata: dict) -> str:
     """Generate description of repetition time from metadata."""
     tr = metadata["RepetitionTime"] * 1000
     return num_to_str(tr)
 
 
-def describe_func_duration(n_vols: int, tr) -> str:
+def describe_func_duration(nb_vols: int, tr) -> str:
     """Generate description of functional run length from repetition time and number of volumes."""
-    run_secs = math.ceil(n_vols * tr)
+    run_secs = math.ceil(nb_vols * tr)
     mins, secs = divmod(run_secs, 60)
-    return "{0}:{1:02.0f}".format(int(mins), int(secs))
+    return f"{mins}:{secs}"
 
+def get_nb_vols(files) -> List[int]:
+    """Get number of volumes from list of files.
+    
+    If all files have the same nb of vols it will return the number of volumes, 
+    otherwise it will return the minimum and maximum number of volumes.
+    """
+    imgs = [nib.load(f) for f in files]
+    nb_vols = [img.shape[3] for img in imgs]
+    nb_vols = list(set(nb_vols))
 
-def describe_duration(files) -> str:
+    if len(nb_vols) <= 1:
+        return [nb_vols[0]]
+
+    min_vols = min(nb_vols)
+    max_vols = max(nb_vols)
+    return [min_vols, max_vols]
+
+def describe_nb_vols(files):
+    """Generate str for nb of volumes from files."""
+    nb_vols = get_nb_vols(files)
+    return f"{nb_vols[0]}-{nb_vols[1]}" if len(nb_vols) > 1 else str(nb_vols)
+
+def describe_duration(files) -> Tuple[str, int]:
     """Generate general description of scan length from files."""
+
+    nb_vols = get_nb_vols(files)
+
     first_file = files[0]
     metadata = first_file.get_metadata()
 
     tr = metadata["RepetitionTime"]
-    imgs = [nib.load(f) for f in files]
-    n_vols = [img.shape[3] for img in imgs]
 
-    if len(set(n_vols)) > 1:
-        min_vols = min(n_vols)
-        max_vols = max(n_vols)
-        min_dur = describe_func_duration(min_vols, tr)
-        max_dur = describe_func_duration(max_vols, tr)
-        dur_str = f"{min_dur}-{max_dur}"
-        n_vols = f"{min_vols}-{max_vols}"
+    if len(nb_vols) <= 1:
+        return describe_func_duration(nb_vols[0], tr)
 
-    else:
-        n_vols = n_vols[0]
-        dur_str = describe_func_duration(n_vols, tr)
-
-    dur_str = (
-        "Run duration was {0} minutes, during which {1} volumes were acquired."
-    ).format(dur_str, n_vols)
-    return dur_str
+    min_dur = describe_func_duration(nb_vols[0], tr)
+    max_dur = describe_func_duration(nb_vols[1], tr)
+    return f"{min_dur}-{max_dur}"
 
 
 def describe_multiband_factor(metadata) -> str:
