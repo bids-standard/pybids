@@ -237,27 +237,45 @@ def fmap_info(layout, files, config):
     fov_str, matrixsize_str, voxelsize_str = parameters.describe_image_size(img)
     mb_str = parameters.describe_multiband_factor(metadata)
 
-    parameters_str = [
-        dir_str,
-        slice_str,
-        f"repetition time, TR={tr}ms",
-        te_str,
-        fa_str,
-        fov_str,
-        matrixsize_str,
-        voxelsize_str,
-        mb_str,
-    ]
-    parameters_str = [d for d in parameters_str if len(d)]
-    parameters_str = "; ".join(parameters_str)
+    # parameters_str = [
+    #     dir_str,
+    #     slice_str,
+    #     f"repetition time, TR={tr}ms",
+    #     te_str,
+    #     fa_str,
+    #     fov_str,
+    #     matrixsize_str,
+    #     voxelsize_str,
+    #     mb_str,
+    # ]
+    # parameters_str = [d for d in parameters_str if len(d)]
+    # parameters_str = "; ".join(parameters_str)
 
-    for_str = parameters.describe_intendedfor_targets(metadata, layout)
+    # for_str = parameters.describe_intendedfor_targets(metadata, layout)
 
-    desc = f"""A {variants} {seqs} field map ({parameters_str}) was "
-        "acquired{for_str}."""
+    desc_data = {
+        "slice_str": slice_str, 
+        "tr" : tr,
+        "te_str" : te_str,
+        "fa_str" : fa_str,
+        "fov_str" : fov_str,
+        "matrixsize_str" : matrixsize_str,
+        "voxelsize_str" : voxelsize_str,        
+        "variants": variants,
+        "seqs": seqs,
+        "mb_str": mb_str,
+        "for_str": for_str,}      
 
+    return fmap_info_template(desc_data)
+
+def fmap_info_template(desc_data):
+    desc = f"""A {desc_data["variants"]} 
+{desc_data["seqs"]} fieldmap (repetition time, TR={desc_data["tr"]}ms; 
+{desc_data["mb_str"]}; {desc_data["slice_str"]};
+{desc_data["te_str"]}; {desc_data["fa_str"]}; {desc_data["fov_str"]}; {desc_data["matrixsize_str"]}; 
+{desc_data["voxelsize_str"]}) was acquired {desc_data["for_str"]}.
+"""
     return desc
-
 
 def general_acquisition_info(metadata):
     """General sentence on data acquisition.
