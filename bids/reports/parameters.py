@@ -7,7 +7,6 @@ import os
 import os.path as op
 from typing import List, Tuple
 
-import nibabel as nib
 import numpy as np
 from num2words import num2words
 
@@ -17,7 +16,7 @@ logging.basicConfig()
 LOGGER = logging.getLogger("pybids.reports.parsing")
 
 
-def nb_slices(img, metadata: dict):
+def nb_slices(img, metadata: dict) -> int:
     if "SliceTiming" in metadata:
         return len(metadata["SliceTiming"])
     else:
@@ -26,14 +25,13 @@ def nb_slices(img, metadata: dict):
 
 def slice_order(metadata: dict) -> str:
     """Generate description of slice timing from metadata."""
-
     if "SliceTiming" in metadata:
         return " in {0} order".format(get_slice_info(metadata["SliceTiming"]))
     else:
         return ""
 
 
-def func_duration(nb_vols: int, tr) -> str:
+def func_duration(nb_vols: int, tr: float) -> str:
     """Generate description of functional run length from repetition time and number of volumes."""
     run_secs = math.ceil(nb_vols * tr)
     mins, secs = divmod(run_secs, 60)
@@ -57,13 +55,12 @@ def get_nb_vols(all_imgs) -> List[int]:
     return [min_vols, max_vols]
 
 
-def nb_vols(all_imgs):
-    """Generate str for nb of volumes from files."""
+def nb_vols(all_imgs) -> str:
     nb_vols = get_nb_vols(all_imgs)
     return f"{nb_vols[0]}-{nb_vols[1]}" if len(nb_vols) > 1 else str(nb_vols)
 
 
-def duration(all_imgs, metadata) -> Tuple[str, int]:
+def duration(all_imgs, metadata: dict) -> str:
     """Generate general description of scan length from files."""
 
     nb_vols = get_nb_vols(all_imgs)
@@ -78,7 +75,7 @@ def duration(all_imgs, metadata) -> Tuple[str, int]:
     return f"{min_dur}-{max_dur}"
 
 
-def multiband_factor(metadata) -> str:
+def multiband_factor(metadata: dict) -> str:
     """Generate description of the multi-band acceleration applied, if used."""
     return (
         f'MB factor={metadata["MultibandAccelerationFactor"]}'
@@ -87,7 +84,7 @@ def multiband_factor(metadata) -> str:
     )
 
 
-def echo_time_ms(files) -> float:
+def echo_time_ms(files) -> str:
     """Generate description of echo times from metadata field.
 
     Parameters
@@ -153,9 +150,9 @@ def echo_times_fmap(files):
     if len(echo_times1) <= 1 and len(echo_times2) <= 1:
         # if that's not the case we should probably throw a warning
         # because we should expect the same echo times for all values
-        te1 = num_to_str(echo_times1[0] * 1000)
-        te2 = num_to_str(echo_times2[0] * 1000)
-    return "echo time 1 / 2, TE1/2={0}{1}ms".format(te1, te2)
+        te1 = echo_times1[0] * 1000
+        te2 = echo_times2[0] * 1000
+    return te1, te2
 
 
 def inplane_accel(metadata: dict) -> str:
@@ -224,7 +221,7 @@ def intendedfor_targets(metadata: dict, layout) -> str:
     return " for the {0}".format(list_to_str(out_list))
 
 
-def get_slice_info(slice_times) -> str:
+def get_slice_info(slice_times) -> str | List[str]:
     """Extract slice order from slice timing info.
 
     TODO: Be more specific with slice orders.
@@ -260,7 +257,7 @@ def get_slice_info(slice_times) -> str:
 
     else:
         slice_order = [str(s) for s in slice_order]
-        raise Exception("Unknown slice order: [{0}]".format(", ".join(slice_order)))
+        raise Exception(f"Unknown slice order: [{', '.join(slice_order)}]")
 
     return slice_order_name
 

@@ -1,0 +1,24 @@
+---
+repos:
+
+- repo: https://github.com/pre-commit/pre-commit-hooks
+  rev: v4.4.0
+  hooks:
+  - id: trailing-whitespace
+  - id: end-of-file-fixer
+  # Detect mistake of inline code touching normal text in rst
+
+- repo: https://github.com/psf/black
+  rev: 22.12.0
+  hooks:
+  - id: black
+
+# - repo: https://github.com/pycqa/flake8
+#   rev: 6.0.0
+#   hooks:
+#   - id: flake8
+
+# - repo: https://github.com/pre-commit/mirrors-mypy
+#   rev: v0.991
+#   hooks:
+#   - id: mypy

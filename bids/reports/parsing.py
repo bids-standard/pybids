@@ -11,6 +11,19 @@ logging.basicConfig()
 LOGGER = logging.getLogger("pybids.reports.parsing")
 
 
+def common_mri_desc(img, metadata: dict, config: dict) -> dict:
+    return {
+        "tr": metadata["RepetitionTime"] * 1000,
+        "flip_angle": metadata.get("FlipAngle", "UNKNOWN"),
+        "fov": parameters.field_of_view(img),
+        "matrix_size": parameters.matrix_size(img),
+        "voxel_size": parameters.voxel_size(img),
+        "variants": parameters.variants(metadata, config),
+        "seqs": parameters.sequence(metadata, config),
+        "nb_slices": parameters.nb_slices(img, metadata),
+    }
+
+
 def func_info(files, config):
     """Generate a paragraph describing T2*-weighted functional scans.
 
@@ -32,26 +45,17 @@ def func_info(files, config):
     img = nib.load(first_file.path)
     all_imgs = [nib.load(f) for f in files]
 
-    # General info
-    task_name = first_file.get_entities()["task"] + " task"
+    task_name = first_file.get_entities()["task"]
 
     all_runs = sorted(list({f.get_entities().get("run", 1) for f in files}))
 
-    desc_data = {
-        "tr": metadata["RepetitionTime"] * 1000,
-        "te": parameters.echo_time_ms(files),
-        "fa": metadata.get("FlipAngle", "UNKNOWN"),
-        "fov": parameters.field_of_view(img),
-        "matrix_size": parameters.matrix_size(img),
-        "voxel_size": parameters.voxel_size(img),
-        "nb_slices": parameters.nb_slices(img, metadata),
+    desc_data = common_mri_desc(img, metadata, config) + {
+        "echo_time": parameters.echo_time_ms(files),
         "slice_order": parameters.slice_order(metadata),
-        "mb_str": parameters.multiband_factor(metadata),
+        "multiband_factor": parameters.multiband_factor(metadata),
         "inplaneaccel_str": parameters.inplane_accel(metadata),
         "nb_runs": len(all_runs),
         "task_name": metadata.get("TaskName", task_name),
-        "variants": parameters.variants(metadata, config),
-        "seqs": parameters.sequence(metadata, config),
         "multi_echo": parameters.multi_echo(files),
         "nb_vols": parameters.nb_vols(all_imgs),
         "duration": parameters.duration(all_imgs, metadata),
@@ -82,19 +86,11 @@ def anat_info(files, config):
 
     all_runs = sorted(list({f.get_entities().get("run", 1) for f in files}))
 
-    desc_data = {
-        "tr": metadata["RepetitionTime"] * 1000,
-        "te": parameters.echo_time_ms(files),
-        "fa": metadata.get("FlipAngle", "UNKNOWN"),
-        "fov": parameters.field_of_view(img),
-        "matrix_size": parameters.matrix_size(img),
-        "voxel_size": parameters.voxel_size(img),
-        "nb_slices": parameters.nb_slices(img, metadata),
+    desc_data = common_mri_desc(img, metadata, config) + {
+        "echo_time": parameters.echo_time_ms(files),
         "slice_order": parameters.slice_order(metadata),
         "scan_type": first_file.get_entities()["suffix"].replace("w", "-weighted"),
         "nb_runs": len(all_runs),
-        "variants": parameters.variants(metadata, config),
-        "seqs": parameters.sequence(metadata, config),
         "multi_echo": parameters.multi_echo(files),
     }
 
@@ -124,19 +120,12 @@ def dwi_info(files, config):
 
     all_runs = sorted(list({f.get_entities().get("run", 1) for f in files}))
 
-    desc_data = {
-        "tr": metadata["RepetitionTime"] * 1000,
-        "te": parameters.echo_time_ms(files),
-        "fa": metadata.get("FlipAngle", "UNKNOWN"),
-        "fov": parameters.field_of_view(img),
-        "matrix_size": parameters.matrix_size(img),
-        "voxel_size": parameters.voxel_size(img),
+    desc_data = common_mri_desc(img, metadata, config) + {
+        "echo_time": parameters.echo_time_ms(files),
         "nb_runs": len(all_runs),
-        "variants": parameters.variants(metadata, config),
-        "seqs": parameters.sequence(metadata, config),
         "bvals": parameters.bvals(bval_file),
         "dmri_dir": img.shape[3],
-        "mb_str": parameters.multiband_factor(metadata),
+        "multiband_factor": parameters.multiband_factor(metadata),
     }
 
     return templates.dwi_info(desc_data)
@@ -164,21 +153,13 @@ def fmap_info(layout, files, config):
     metadata = first_file.get_metadata()
     img = nib.load(first_file.path)
 
-    # Parameters
-    desc_data = {
-        "tr": metadata["RepetitionTime"] * 1000,
-        "te": parameters.echo_times_fmap(files),
-        "fa": metadata.get("FlipAngle", "UNKNOWN"),
-        "fov": parameters.field_of_view(img),
-        "matrix_size": parameters.matrix_size(img),
-        "voxel_size": parameters.voxel_size(img),
-        "nb_slices": parameters.nb_slices(img, metadata),
+    desc_data = common_mri_desc(img, metadata, config) + {
+        "te_1": parameters.echo_times_fmap(files)[0],
+        "te_2": parameters.echo_times_fmap(files)[2],
         "slice_order": parameters.slice_order(metadata),
         "dir": config["dir"][metadata["PhaseEncodingDirection"]],
-        "variants": parameters.variants(metadata, config),
-        "seqs": parameters.sequence(metadata, config),
-        "mb_str": parameters.multiband_factor(metadata),
-        "for_str": parameters.intendedfor_targets(metadata, layout),
+        "multiband_factor": parameters.multiband_factor(metadata),
+        "intended_for": parameters.intendedfor_targets(metadata, layout),
     }
 
     return templates.fmap_info(desc_data)

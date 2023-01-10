@@ -157,31 +157,31 @@ def test_describe_func_duration_smoke():
 def test_multiband_factor_smoke(testmeta, testmeta_light):
 
     # when
-    mb_str = parameters.multiband_factor(testmeta)
+    multiband_factor = parameters.multiband_factor(testmeta)
     # then
     expected = "MB factor=2"
-    assert mb_str == expected
+    assert multiband_factor == expected
 
     # when
-    mb_str = parameters.multiband_factor(testmeta_light)
+    multiband_factor = parameters.multiband_factor(testmeta_light)
     # then
     expected = ""
-    assert mb_str == expected
+    assert multiband_factor == expected
 
 
 def test_inplane_accel_smoke(testmeta, testmeta_light):
 
     # when
-    mb_str = parameters.inplane_accel(testmeta)
+    multiband_factor = parameters.inplane_accel(testmeta)
     # then
     expected = "in-plane acceleration factor=2"
-    assert mb_str == expected
+    assert multiband_factor == expected
 
     # when
-    mb_str = parameters.inplane_accel(testmeta_light)
+    multiband_factor = parameters.inplane_accel(testmeta_light)
     # then
     expected = ""
-    assert mb_str == expected
+    assert multiband_factor == expected
 
 
 @pytest.mark.parametrize(
@@ -208,8 +208,8 @@ def test_slice_timing(testmeta):
 
 def test_intendedfor_targets(testmeta_light, testlayout):
 
-    for_str = parameters.intendedfor_targets(testmeta_light, testlayout)
-    assert for_str == ""
+    intended_for = parameters.intendedfor_targets(testmeta_light, testlayout)
+    assert intended_for == ""
 
     fmap_files = testlayout.get(
         subject="01",
@@ -218,5 +218,5 @@ def test_intendedfor_targets(testmeta_light, testlayout):
         extension=[".nii.gz"],
     )
     metadata = fmap_files[0].get_metadata()
-    for_str = parameters.intendedfor_targets(metadata, testlayout)
-    assert for_str == " for the first and second runs of the N-Back BOLD scan"
+    intended_for = parameters.intendedfor_targets(metadata, testlayout)
+    assert intended_for == " for the first and second runs of the N-Back BOLD scan"
