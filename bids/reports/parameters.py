@@ -94,7 +94,7 @@ def describe_multiband_factor(metadata) -> str:
     )
 
 
-def describe_echo_times(files):
+def echo_time_ms(files) -> float:
     """Generate description of echo times from metadata field.
 
     Parameters
@@ -104,10 +104,8 @@ def describe_echo_times(files):
 
     Returns
     -------
-    te_str : str
+    te : float
         Description of echo times.
-    me_str : str
-        Whether the data are multi-echo or single-echo.
     """
 
     echo_times = [f.get_metadata()["EchoTime"] for f in files]
@@ -115,12 +113,29 @@ def describe_echo_times(files):
     if len(echo_times) > 1:
         te = [num_to_str(t * 1000) for t in echo_times]
         te = list_to_str(te)
-        me_str = "multi-echo"
     else:
         te = num_to_str(echo_times[0] * 1000)
-        me_str = "single-echo"
-    te_str = f"echo time, TE={te}ms"
-    return te_str, me_str
+    return te
+
+
+def multi_echo(files) -> str:
+    """Generate description of echo times from metadata field.
+
+    Parameters
+    ----------
+    files : :obj:`list` of :obj:`bids.layout.models.BIDSFile`
+        List of nifti files in layout corresponding to file collection.
+
+    Returns
+    -------
+    multi_echo : str
+        Whether the data are multi-echo or single-echo.
+    """
+
+    echo_times = [f.get_metadata()["EchoTime"] for f in files]
+    echo_times = sorted(list(set(echo_times)))
+    multi_echo = "multi-echo" if len(echo_times) > 1 else "single-echo"
+    return multi_echo
 
 
 def describe_echo_times_fmap(files):
