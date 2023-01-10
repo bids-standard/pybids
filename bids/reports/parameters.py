@@ -5,7 +5,7 @@ import logging
 import math
 import os
 import os.path as op
-from typing import List, Tuple
+from typing import List
 
 import numpy as np
 from num2words import num2words
@@ -14,13 +14,6 @@ from .utils import list_to_str, num_to_str, remove_duplicates
 
 logging.basicConfig()
 LOGGER = logging.getLogger("pybids.reports.parsing")
-
-
-def nb_slices(img, metadata: dict) -> int:
-    if "SliceTiming" in metadata:
-        return len(metadata["SliceTiming"])
-    else:
-        return img.shape[2]
 
 
 def slice_order(metadata: dict) -> str:
@@ -94,7 +87,7 @@ def echo_time_ms(files) -> str:
 
     Returns
     -------
-    te : float
+    te : str
         Description of echo times.
     """
 
@@ -180,6 +173,7 @@ def bvals(bval_file) -> str:
 
 def intendedfor_targets(metadata: dict, layout) -> str:
     """Generate description of intended for targets."""
+
     if "IntendedFor" not in metadata:
         return ""
 
@@ -279,7 +273,7 @@ def variants(metadata: dict, config: dict):
         Sequence variant names.
     """
     variants = [
-        config["seqvar"].get(var, var)
+        config["seqvar"].get(var, "UNKNOwN SEQUENCE VARIANT")
         for var in metadata.get("SequenceVariant", "").split("_")
     ]
     variants = list_to_str(variants)
@@ -304,10 +298,12 @@ def sequence(metadata: dict, config: dict):
         Sequence names.
     """
     seq_abbrs = metadata.get("ScanningSequence", "").split("_")
-    seqs = [config["seq"].get(seq, seq) for seq in seq_abbrs]
+    seqs = [config["seq"].get(seq, "") for seq in seq_abbrs]
     seqs = list_to_str(seqs)
-    if seq_abbrs[0]:
+    if seq_abbrs[0] and seqs:
         seqs += " ({0})".format(os.path.sep.join(seq_abbrs))
+    else:
+        seqs = "UNKNOwN SEQUENCE"
 
     return seqs
 

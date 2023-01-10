@@ -20,7 +20,9 @@ def common_mri_desc(img, metadata: dict, config: dict) -> dict:
         "voxel_size": parameters.voxel_size(img),
         "variants": parameters.variants(metadata, config),
         "seqs": parameters.sequence(metadata, config),
-        "nb_slices": parameters.nb_slices(img, metadata),
+        "nb_slices": len(metadata["SliceTiming"])
+        if "SliceTiming" in metadata
+        else img.shape[2],
     }
 
 
@@ -49,7 +51,8 @@ def func_info(files, config):
 
     all_runs = sorted(list({f.get_entities().get("run", 1) for f in files}))
 
-    desc_data = common_mri_desc(img, metadata, config) + {
+    desc_data = {
+        **common_mri_desc(img, metadata, config),
         "echo_time": parameters.echo_time_ms(files),
         "slice_order": parameters.slice_order(metadata),
         "multiband_factor": parameters.multiband_factor(metadata),
@@ -86,7 +89,8 @@ def anat_info(files, config):
 
     all_runs = sorted(list({f.get_entities().get("run", 1) for f in files}))
 
-    desc_data = common_mri_desc(img, metadata, config) + {
+    desc_data = {
+        **common_mri_desc(img, metadata, config),
         "echo_time": parameters.echo_time_ms(files),
         "slice_order": parameters.slice_order(metadata),
         "scan_type": first_file.get_entities()["suffix"].replace("w", "-weighted"),
@@ -120,7 +124,8 @@ def dwi_info(files, config):
 
     all_runs = sorted(list({f.get_entities().get("run", 1) for f in files}))
 
-    desc_data = common_mri_desc(img, metadata, config) + {
+    desc_data = {
+        **common_mri_desc(img, metadata, config),
         "echo_time": parameters.echo_time_ms(files),
         "nb_runs": len(all_runs),
         "bvals": parameters.bvals(bval_file),
@@ -153,11 +158,14 @@ def fmap_info(layout, files, config):
     metadata = first_file.get_metadata()
     img = nib.load(first_file.path)
 
-    desc_data = common_mri_desc(img, metadata, config) + {
+    desc_data = {
+        **common_mri_desc(img, metadata, config),
         "te_1": parameters.echo_times_fmap(files)[0],
-        "te_2": parameters.echo_times_fmap(files)[2],
+        "te_2": parameters.echo_times_fmap(files)[1],
         "slice_order": parameters.slice_order(metadata),
-        "dir": config["dir"][metadata["PhaseEncodingDirection"]],
+        "dir": config["dir"].get(
+            metadata["PhaseEncodingDirection"], "UNKNOWN PHASE ENCODING"
+        ),
         "multiband_factor": parameters.multiband_factor(metadata),
         "intended_for": parameters.intendedfor_targets(metadata, layout),
     }

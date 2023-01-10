@@ -77,6 +77,7 @@ def testmeta_light():
         ("RM", "research mode (RM)"),
         ("SE", "spin echo (SE)"),
         ("SE_EP", "spin echo and echo planar (SE/EP)"),
+        ("spam egg", "UNKNOwN SEQUENCE"),
     ],
 )
 def test_sequence(ScanningSequence, expected_seq, testconfig):
@@ -99,6 +100,7 @@ def test_sequence(ScanningSequence, expected_seq, testconfig):
         ("SS", "steady state"),
         ("TRSS", "time reversed steady state"),
         ("MP_SS", "MAG prepared and steady state"),
+        ("spam", "UNKNOwN SEQUENCE VARIANT"),
     ],
 )
 def test_variants(SequenceVariant, expected_var, testconfig):
@@ -138,8 +140,8 @@ def test_echo_times_fmap(testlayout):
         extension=[".nii.gz"],
     )
 
-    te_str = parameters.echo_times_fmap(fmap_file)
-    assert isinstance(te_str, str)
+    te_1, te_2 = parameters.echo_times_fmap(fmap_file)
+    assert isinstance(te_1, float)
 
 
 def test_describe_func_duration_smoke():
