@@ -171,12 +171,9 @@ def test_describe_echo_times_fmap(testlayout):
     assert isinstance(te_str, str)
 
 
-def test_describe_repetition_time_smoke(testmeta):
-
-    # when
-    tr_str = parameters.describe_repetition_time(testmeta)
-    # then
-    expected = "2000"
+def test_repetition_time_ms_smoke(testmeta):
+    tr_str = parameters.repetition_time_ms(testmeta)
+    expected = 2000
     assert tr_str == expected
 
 
@@ -222,15 +219,6 @@ def test_describe_inplane_accel_smoke(testmeta, testmeta_light):
     assert mb_str == expected
 
 
-def test_describe_flip_angle_smoke(testmeta):
-
-    # when
-    mb_str = parameters.describe_flip_angle(testmeta)
-    # then
-    expected = "flip angle, FA=90<deg>"
-    assert mb_str == expected
-
-
 @pytest.mark.parametrize(
     "slice_times, expected",
     [
@@ -255,28 +243,6 @@ def test_describe_slice_timing(testimg, testmeta, testmeta_light):
     slice_str = parameters.describe_slice_timing(testimg, testmeta_light)
     expected = "64 slices"
     assert slice_str == expected
-
-
-def test_get_size_str(testimg):
-
-    voxel_size, matrix_size, fov = parameters.get_size_str(testimg)
-    expected_vox = "2x2x2"
-    expected_mat = "64x64"
-    expected_fov = "128x128"
-    assert voxel_size == expected_vox
-    assert matrix_size == expected_mat
-    assert fov == expected_fov
-
-
-def test_describe_image_size(testimg):
-
-    fov_str, matrixsize_str, voxelsize_str = parameters.describe_image_size(testimg)
-    expected_vox = "voxel size=2x2x2mm"
-    expected_mat = "matrix size=64x64"
-    expected_fov = "field of view, FOV=128x128mm"
-    assert voxelsize_str == expected_vox
-    assert matrixsize_str == expected_mat
-    assert fov_str == expected_fov
 
 
 def test_describe_dmri_directions(testdiffimg):

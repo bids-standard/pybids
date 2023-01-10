@@ -6,6 +6,8 @@ import math
 import os
 import os.path as op
 
+import numpy as np
+
 from typing import Tuple, List
 
 import nibabel as nib
@@ -32,10 +34,10 @@ def describe_slice_timing(img, metadata: dict) -> str:
     )
 
 
-def describe_repetition_time(metadata: dict) -> str:
-    """Generate description of repetition time from metadata."""
+def repetition_time_ms(metadata: dict) -> str:
+    """return repetition time in milliseconds."""
     tr = metadata["RepetitionTime"] * 1000
-    return num_to_str(tr)
+    return tr
 
 
 def describe_func_duration(nb_vols: int, tr) -> str:
@@ -44,10 +46,11 @@ def describe_func_duration(nb_vols: int, tr) -> str:
     mins, secs = divmod(run_secs, 60)
     return f"{mins}:{secs}"
 
+
 def get_nb_vols(all_imgs) -> List[int]:
     """Get number of volumes from list of files.
-    
-    If all files have the same nb of vols it will return the number of volumes, 
+
+    If all files have the same nb of vols it will return the number of volumes,
     otherwise it will return the minimum and maximum number of volumes.
     """
     nb_vols = [img.shape[3] for img in all_imgs]
@@ -60,10 +63,12 @@ def get_nb_vols(all_imgs) -> List[int]:
     max_vols = max(nb_vols)
     return [min_vols, max_vols]
 
+
 def describe_nb_vols(all_imgs):
     """Generate str for nb of volumes from files."""
     nb_vols = get_nb_vols(all_imgs)
     return f"{nb_vols[0]}-{nb_vols[1]}" if len(nb_vols) > 1 else str(nb_vols)
+
 
 def describe_duration(all_imgs, metadata) -> Tuple[str, int]:
     """Generate general description of scan length from files."""
@@ -145,29 +150,6 @@ def describe_echo_times_fmap(files):
     return "echo time 1 / 2, TE1/2={0}{1}ms".format(te1, te2)
 
 
-def describe_image_size(img):
-    """Generate description imaging data sizes, including FOV, voxel size, and matrix size.
-
-    Parameters
-    ----------
-    img : nibabel.nifti1.Nifti1Image
-        Image object from which to determine sizes.
-
-    Returns
-    -------
-    fov_str
-    matrixsize_str
-    voxelsize_str
-    """
-    vs_str, ms_str, fov_str = get_size_str(img)
-
-    fov_str = f"field of view, FOV={fov_str}mm"
-    voxelsize_str = f"voxel size={vs_str}mm"
-    matrixsize_str = f"matrix size={ms_str}"
-
-    return fov_str, matrixsize_str, voxelsize_str
-
-
 def describe_inplane_accel(metadata: dict) -> str:
     """Generate description of in-plane acceleration factor, if any."""
     return (
@@ -175,11 +157,6 @@ def describe_inplane_accel(metadata: dict) -> str:
         if metadata.get("ParallelReductionFactorInPlane", 1) > 1
         else ""
     )
-
-
-def describe_flip_angle(metadata: dict) -> str:
-    """Generate description of flip angle."""
-    return f'flip angle, FA={metadata.get("FlipAngle", "UNKNOWN")}<deg>'
 
 
 def describe_dmri_directions(img):
@@ -239,9 +216,7 @@ def describe_intendedfor_targets(metadata: dict, layout) -> str:
         run_dict[target_type_str].append(run_num)
 
     for scan in run_dict:
-        run_dict[scan] = [
-            num2words(r, ordinal=True) for r in sorted(run_dict[scan])
-        ]
+        run_dict[scan] = [num2words(r, ordinal=True) for r in sorted(run_dict[scan])]
 
     out_list = []
 
@@ -329,8 +304,25 @@ def describe_sequence(metadata: dict, config: dict):
     return seqs, variants
 
 
-def get_size_str(img):
+def matrix_size(img):
     """Extract and reformat voxel size, matrix size, FOV, and number of slices into strings.
+
+    Parameters
+    ----------
+    img : :obj:`nibabel.Nifti1Image`
+        Image from scan from which to derive parameters.
+
+    Returns
+    -------
+    matrix_size : :obj:`str`
+        Matrix size string (e.g., '128x128')
+    """
+    n_x, n_y = img.shape[:2]
+    return f"{n_x}x{n_y}"
+
+
+def voxel_size(img):
+    """Extract and reformat voxel size.
 
     Parameters
     ----------
@@ -341,22 +333,25 @@ def get_size_str(img):
     -------
     voxel_size : :obj:`str`
         Voxel size string (e.g., '2x2x2')
-    matrix_size : :obj:`str`
-        Matrix size string (e.g., '128x128')
+    """
+    voxel_dims = np.array(img.header.get_zooms()[:3])
+    return "x".join([num_to_str(s) for s in voxel_dims])
+
+
+def field_of_view(img):
+    """Extract and reformat FOV.
+
+    Parameters
+    ----------
+    img : :obj:`nibabel.Nifti1Image`
+        Image from scan from which to derive parameters.
+
+    Returns
+    -------
     fov : :obj:`str`
         Field of view string (e.g., '256x256')
     """
     n_x, n_y = img.shape[:2]
-    import numpy as np
-
-    matrix_size = "{0}x{1}".format(num_to_str(n_x), num_to_str(n_y))
-
     voxel_dims = np.array(img.header.get_zooms()[:3])
-
-    voxel_size = "x".join([num_to_str(s) for s in voxel_dims])
-    
-    
     fov = [n_x, n_y] * voxel_dims[:2]
-    fov = "x".join([num_to_str(s) for s in fov])
-
-    return voxel_size, matrix_size, fov
+    return "x".join([num_to_str(s) for s in fov])

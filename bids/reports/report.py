@@ -109,7 +109,9 @@ class BIDSReport(object):
                         data_files,
                         self.config,
                     )
-                    ses_description[0] = "In session {0}, ".format(ses) + ses_description[0]
+                    ses_description[0] = (
+                        "In session {0}, ".format(ses) + ses_description[0]
+                    )
                     description_list += ses_description
                     metadata = self.layout.get_metadata(data_files[0].path)
                 else:
