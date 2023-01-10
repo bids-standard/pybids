@@ -59,7 +59,7 @@ def func_info(files, config):
 
     desc_data = {
         "slice_str": slice_str, 
-        "tr" : f"repetition time, TR={tr}ms",
+        "tr" : tr,
         "te_str" : te_str,
         "fa_str" : fa_str,
         "fov_str" : fov_str,
@@ -75,9 +75,8 @@ def func_info(files, config):
         "nb_vols_str": nb_vols_str,
         "dur_str": dur_str}
 
-    desc = func_info_template(desc_data)
+    return func_info_template(desc_data)
 
-    return desc
 
 def func_info_template(desc_data):
     desc = f"""{nb_runs_str(desc_data["nb_runs"])} of {desc_data["task_name"]} {desc_data["variants"]} 
@@ -121,22 +120,43 @@ def anat_info(files, config):
     fa_str = parameters.describe_flip_angle(metadata)
     fov_str, matrixsize_str, voxelsize_str = parameters.describe_image_size(img)
 
-    parameters_str = [
-        slice_str,
-        f"repetition time, TR={tr}ms",
-        te_str,
-        fa_str,
-        fov_str,
-        matrixsize_str,
-        voxelsize_str,
-    ]
-    parameters_str = [d for d in parameters_str if len(d)]
-    parameters_str = "; ".join(parameters_str)
+    # parameters_str = [
+    #     slice_str,
+    #     f"repetition time, TR={tr}ms",
+    #     te_str,
+    #     fa_str,
+    #     fov_str,
+    #     matrixsize_str,
+    #     voxelsize_str,
+    # ]
+    # parameters_str = [d for d in parameters_str if len(d)]
+    # parameters_str = "; ".join(parameters_str)
 
-    desc = f"""{nb_runs_str(nb_runs)} of {scan_type} {variants} {seqs} {me_str} structural MRI "
-        "data were collected ({parameters_str})."""
+    desc_data = {
+        "scan_type": scan_type,
+        "slice_str": slice_str, 
+        "tr" : tr,
+        "te_str" : te_str,
+        "fa_str" : fa_str,
+        "fov_str" : fov_str,
+        "matrixsize_str" : matrixsize_str,
+        "voxelsize_str" : voxelsize_str,        
+        "nb_runs": nb_runs, 
+        "variants": variants,
+        "seqs": seqs,
+        "me_str": me_str}
+
+    # desc = f"""{nb_runs_str(nb_runs)} of {scan_type} {variants} {seqs} {me_str} structural MRI "
+    #     "data were collected ({parameters_str})."""
+    return anat_info_template(desc_data)
+
+def anat_info_template(desc_data):
+    desc = f"""{nb_runs_str(desc_data["nb_runs"])} of {desc_data["scan_type"]} {desc_data["variants"]} 
+{desc_data["seqs"]} {desc_data["me_str"]} structural MRI (repetition time, TR={desc_data["tr"]}ms; {desc_data["slice_str"]}; 
+{desc_data["te_str"]}; {desc_data["fa_str"]}; {desc_data["fov_str"]}; {desc_data["matrixsize_str"]}; 
+{desc_data["voxelsize_str"]})."""
+
     return desc
-
 
 def dwi_info(files, config):
     """Generate a paragraph describing DWI scan acquisition information.
@@ -342,7 +362,7 @@ def parse_files(layout, data_files, config):
         ] == "phasediff":
             group_description = fmap_info(layout, group, config)
 
-        elif group[0].entities["datatype"] in ["eeg", "meg", "beh", "perf"]:
+        elif group[0].entities["datatype"] in ["eeg", "meg", "pet", "ieeg", "beh", "perf", "fnirs", "microscopy"]:
             warnings.warn(group[0].entities["datatype"] + " not yet supported.")
             continue
 
