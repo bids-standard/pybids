@@ -237,24 +237,9 @@ def fmap_info(layout, files, config):
     fov_str, matrixsize_str, voxelsize_str = parameters.describe_image_size(img)
     mb_str = parameters.describe_multiband_factor(metadata)
 
-    # parameters_str = [
-    #     dir_str,
-    #     slice_str,
-    #     f"repetition time, TR={tr}ms",
-    #     te_str,
-    #     fa_str,
-    #     fov_str,
-    #     matrixsize_str,
-    #     voxelsize_str,
-    #     mb_str,
-    # ]
-    # parameters_str = [d for d in parameters_str if len(d)]
-    # parameters_str = "; ".join(parameters_str)
-
-    # for_str = parameters.describe_intendedfor_targets(metadata, layout)
-
     desc_data = {
         "slice_str": slice_str, 
+        "dir_str": dir_str,
         "tr" : tr,
         "te_str" : te_str,
         "fa_str" : fa_str,
@@ -264,7 +249,7 @@ def fmap_info(layout, files, config):
         "variants": variants,
         "seqs": seqs,
         "mb_str": mb_str,
-        "for_str": for_str,}      
+        "for_str": parameters.describe_intendedfor_targets(metadata, layout),}      
 
     return fmap_info_template(desc_data)
 
