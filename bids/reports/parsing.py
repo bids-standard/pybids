@@ -3,29 +3,12 @@ import logging
 import warnings
 
 import nibabel as nib
-from num2words import num2words
 
-from .. import __version__
 from ..utils import collect_associated_files
-from . import parameters
+from . import parameters, templates
 
 logging.basicConfig()
 LOGGER = logging.getLogger("pybids.reports.parsing")
-
-
-def nb_runs_str(nb_runs: int):
-    if nb_runs == 1:
-        return f"{num2words(nb_runs).title()} run"
-    else:
-        return f"{num2words(nb_runs).title()} runs"
-
-
-def template_mri_info(desc_data):
-    return f"""repetition time, TR={desc_data["tr"]}ms; echo time, TE={desc_data["te"]}ms; 
-    flip angle, FA={desc_data["fa"]}<deg>; 
-field of view, FOV={desc_data["fov"]}mm; 
-matrix size={desc_data["matrix_size"]}; 
-voxel size={desc_data["voxel_size"]}mm;"""
 
 
 def func_info(files, config):
@@ -55,33 +38,26 @@ def func_info(files, config):
     all_runs = sorted(list({f.get_entities().get("run", 1) for f in files}))
 
     desc_data = {
-        "tr": parameters.repetition_time_ms(metadata),
+        "tr": metadata["RepetitionTime"] * 1000,
         "te": parameters.echo_time_ms(files),
         "fa": metadata.get("FlipAngle", "UNKNOWN"),
         "fov": parameters.field_of_view(img),
         "matrix_size": parameters.matrix_size(img),
         "voxel_size": parameters.voxel_size(img),
-        "slice_timing": parameters.describe_slice_timing(img, metadata),
-        "mb_str": parameters.describe_multiband_factor(metadata),
-        "inplaneaccel_str": parameters.describe_inplane_accel(metadata),
+        "nb_slices": parameters.nb_slices(img, metadata),
+        "slice_order": parameters.slice_order(metadata),
+        "mb_str": parameters.multiband_factor(metadata),
+        "inplaneaccel_str": parameters.inplane_accel(metadata),
         "nb_runs": len(all_runs),
         "task_name": metadata.get("TaskName", task_name),
         "variants": parameters.variants(metadata, config),
         "seqs": parameters.sequence(metadata, config),
         "multi_echo": parameters.multi_echo(files),
-        "nb_vols": parameters.describe_nb_vols(all_imgs),
-        "duration": parameters.describe_duration(all_imgs, metadata),
+        "nb_vols": parameters.nb_vols(all_imgs),
+        "duration": parameters.duration(all_imgs, metadata),
     }
 
-    return template_func_info(desc_data)
-
-
-def template_func_info(desc_data):
-    return f"""{nb_runs_str(desc_data["nb_runs"])} of {desc_data["task_name"]} {desc_data["variants"]} 
-{desc_data["seqs"]} {desc_data["multi_echo"]} fMRI data were collected 
-({template_mri_info(desc_data)}  {desc_data["slice_timing"]}; 
-{desc_data["te"]}; {desc_data["mb_str"]}; {desc_data["inplaneaccel_str"]}). 
-Run duration was {desc_data["duration"]} minutes, during which {desc_data["nb_vols"]} volumes were acquired."""
+    return templates.func_info(desc_data)
 
 
 def anat_info(files, config):
@@ -107,27 +83,22 @@ def anat_info(files, config):
     all_runs = sorted(list({f.get_entities().get("run", 1) for f in files}))
 
     desc_data = {
-        "tr": parameters.repetition_time_ms(metadata),
+        "tr": metadata["RepetitionTime"] * 1000,
         "te": parameters.echo_time_ms(files),
         "fa": metadata.get("FlipAngle", "UNKNOWN"),
         "fov": parameters.field_of_view(img),
         "matrix_size": parameters.matrix_size(img),
         "voxel_size": parameters.voxel_size(img),
+        "nb_slices": parameters.nb_slices(img, metadata),
+        "slice_order": parameters.slice_order(metadata),
         "scan_type": first_file.get_entities()["suffix"].replace("w", "-weighted"),
-        "slice_timing": parameters.describe_slice_timing(img, metadata),
         "nb_runs": len(all_runs),
         "variants": parameters.variants(metadata, config),
         "seqs": parameters.sequence(metadata, config),
         "multi_echo": parameters.multi_echo(files),
     }
 
-    return template_anat_info(desc_data)
-
-
-def template_anat_info(desc_data):
-    return f"""{nb_runs_str(desc_data["nb_runs"])} of {desc_data["scan_type"]} {desc_data["variants"]} 
-{desc_data["seqs"]} {desc_data["multi_echo"]} structural MRI data were collected 
-({template_mri_info(desc_data)} {desc_data["slice_timing"]}; {desc_data["te"]})."""
+    return templates.anat_info(desc_data)
 
 
 def dwi_info(files, config):
@@ -154,7 +125,7 @@ def dwi_info(files, config):
     all_runs = sorted(list({f.get_entities().get("run", 1) for f in files}))
 
     desc_data = {
-        "tr": parameters.repetition_time_ms(metadata),
+        "tr": metadata["RepetitionTime"] * 1000,
         "te": parameters.echo_time_ms(files),
         "fa": metadata.get("FlipAngle", "UNKNOWN"),
         "fov": parameters.field_of_view(img),
@@ -163,19 +134,12 @@ def dwi_info(files, config):
         "nb_runs": len(all_runs),
         "variants": parameters.variants(metadata, config),
         "seqs": parameters.sequence(metadata, config),
-        "bval_str": parameters.describe_bvals(bval_file),
-        "nvec_str": parameters.describe_dmri_directions(img),
-        "mb_str": parameters.describe_multiband_factor(metadata),
+        "bvals": parameters.bvals(bval_file),
+        "dmri_dir": img.shape[3],
+        "mb_str": parameters.multiband_factor(metadata),
     }
 
-    return template_dwi_info(desc_data)
-
-
-def template_dwi_info(desc_data):
-    return f"""{nb_runs_str(desc_data["nb_runs"])} of {desc_data["variants"]} 
-{desc_data["seqs"]} diffusion-weighted (dMRI) data were collected ({template_mri_info(desc_data)} 
-{desc_data["bval_str"]}; {desc_data["nvec_str"]}; {desc_data["mb_str"]};
-{desc_data["te"]};)."""
+    return templates.dwi_info(desc_data)
 
 
 def fmap_info(layout, files, config):
@@ -202,32 +166,22 @@ def fmap_info(layout, files, config):
 
     # Parameters
     desc_data = {
-        "tr": parameters.repetition_time_ms(metadata),
-        "te": parameters.describe_echo_times_fmap(files),
+        "tr": metadata["RepetitionTime"] * 1000,
+        "te": parameters.echo_times_fmap(files),
         "fa": metadata.get("FlipAngle", "UNKNOWN"),
         "fov": parameters.field_of_view(img),
         "matrix_size": parameters.matrix_size(img),
         "voxel_size": parameters.voxel_size(img),
-        "slice_timing": parameters.describe_slice_timing(img, metadata),
-        "dir_str": parameters.describe_pe_direction(metadata, config),
+        "nb_slices": parameters.nb_slices(img, metadata),
+        "slice_order": parameters.slice_order(metadata),
+        "dir": config["dir"][metadata["PhaseEncodingDirection"]],
         "variants": parameters.variants(metadata, config),
         "seqs": parameters.sequence(metadata, config),
-        "mb_str": parameters.describe_multiband_factor(metadata),
-        "for_str": parameters.describe_intendedfor_targets(metadata, layout),
+        "mb_str": parameters.multiband_factor(metadata),
+        "for_str": parameters.intendedfor_targets(metadata, layout),
     }
 
-    return template_fmap_info(desc_data)
-
-
-def template_fmap_info(desc_data):
-    return f"""A {desc_data["variants"]} {desc_data["seqs"]} fieldmap ({template_mri_info(desc_data)}
-{desc_data["mb_str"]}; {desc_data["slice_timing"]}; {desc_data["te"]};) was acquired {desc_data["for_str"]}.
-"""
-
-
-def template_general_acquisition_info(desc_data):
-    return f"""MR data were acquired using a {desc_data["tesla"]}-Tesla 
-    {desc_data["manufacturer"]} {desc_data["model"]}."""
+    return templates.fmap_info(desc_data)
 
 
 def general_acquisition_info(metadata):
@@ -252,7 +206,7 @@ def general_acquisition_info(metadata):
         "model": metadata.get("ManufacturersModelName", "MODEL"),
     }
 
-    return template_general_acquisition_info(desc_data)
+    return templates.general_acquisition_info(desc_data)
 
 
 def final_paragraph(metadata):
@@ -275,12 +229,6 @@ def final_paragraph(metadata):
     else:
         software_str = ""
     return f"Dicoms were converted to NIfTI-1 format{software_str}."
-
-
-def footer():
-    return (
-        "This section was (in part) generated automatically using pybids {__version__}."
-    )
 
 
 def parse_files(layout, data_files, config):

@@ -57,8 +57,7 @@ def list_to_str(lst):
     elif len(lst) == 2:
         str_ = " and ".join(lst)
     elif len(lst) > 2:
-        str_ = ", ".join(lst[:-1])
-        str_ += ", and {0}".format(lst[-1])
+        str_ = f"{', '.join(lst[:-1])}, and {lst[-1]}"
     else:
         raise ValueError("List of length 0 provided.")
     return str_

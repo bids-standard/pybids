@@ -1,8 +1,8 @@
-import pytest
 import json
-import nibabel as nib
-
 from os.path import abspath, join
+
+import nibabel as nib
+import pytest
 
 from bids.layout import BIDSLayout
 from bids.reports import parameters
@@ -79,15 +79,14 @@ def testmeta_light():
         ("SE_EP", "spin echo and echo planar (SE/EP)"),
     ],
 )
-def test_sequence(
-    ScanningSequence, expected_seq, testconfig
-):
+def test_sequence(ScanningSequence, expected_seq, testconfig):
     """test for sequence and variant type description"""
     metadata = {
         "ScanningSequence": ScanningSequence,
     }
     seqs = parameters.sequence(metadata, testconfig)
     assert seqs == expected_seq
+
 
 @pytest.mark.parametrize(
     "SequenceVariant, expected_var",
@@ -102,9 +101,7 @@ def test_sequence(
         ("MP_SS", "MAG prepared and steady state"),
     ],
 )
-def test_variants(
-    SequenceVariant, expected_var, testconfig
-):
+def test_variants(SequenceVariant, expected_var, testconfig):
     """test for sequence and variant type description"""
     metadata = {
         "SequenceVariant": SequenceVariant,
@@ -113,25 +110,7 @@ def test_variants(
     assert variants == expected_var
 
 
-@pytest.mark.parametrize(
-    "pe_direction, expected",
-    [
-        ("i", "left to right"),
-        ("i-", "right to left"),
-        ("j", "posterior to anterior"),
-        ("j-", "anterior to posterior"),
-        ("k", "inferior to superior"),
-        ("k-", "superior to inferior"),
-    ],
-)
-def test_describe_pe_direction(pe_direction, expected, testconfig):
-    """test for phase encoding direction description"""
-    metadata = {"PhaseEncodingDirection": pe_direction}
-    dir_str = parameters.describe_pe_direction(metadata, testconfig)
-    assert dir_str == "phase encoding: " + expected
-
-
-def test_describe_bvals_smoke(testlayout):
+def test_bvals_smoke(testlayout):
     """Smoke test for parsing _dwi.bval
 
     It should return a str description when provided valid inputs.
@@ -143,11 +122,11 @@ def test_describe_bvals_smoke(testlayout):
         extension=[".bval"],
     )
 
-    bval_str = parameters.describe_bvals(bval_file[0])
+    bval_str = parameters.bvals(bval_file[0])
     assert isinstance(bval_str, str)
 
 
-def test_describe_echo_times_fmap(testlayout):
+def test_echo_times_fmap(testlayout):
     """Smoke test for parsing echo time
 
     It should return a str description when provided valid inputs.
@@ -159,14 +138,8 @@ def test_describe_echo_times_fmap(testlayout):
         extension=[".nii.gz"],
     )
 
-    te_str = parameters.describe_echo_times_fmap(fmap_file)
+    te_str = parameters.echo_times_fmap(fmap_file)
     assert isinstance(te_str, str)
-
-
-def test_repetition_time_ms_smoke(testmeta):
-    tr_str = parameters.repetition_time_ms(testmeta)
-    expected = 2000
-    assert tr_str == expected
 
 
 def test_describe_func_duration_smoke():
@@ -175,37 +148,37 @@ def test_describe_func_duration_smoke():
     n_vols = 100
     tr = 2.5
     # when
-    duration = parameters.describe_func_duration(n_vols, tr)
+    duration = parameters.func_duration(n_vols, tr)
     # then
     expected = "4:10"
     assert duration == expected
 
 
-def test_describe_multiband_factor_smoke(testmeta, testmeta_light):
+def test_multiband_factor_smoke(testmeta, testmeta_light):
 
     # when
-    mb_str = parameters.describe_multiband_factor(testmeta)
+    mb_str = parameters.multiband_factor(testmeta)
     # then
     expected = "MB factor=2"
     assert mb_str == expected
 
     # when
-    mb_str = parameters.describe_multiband_factor(testmeta_light)
+    mb_str = parameters.multiband_factor(testmeta_light)
     # then
     expected = ""
     assert mb_str == expected
 
 
-def test_describe_inplane_accel_smoke(testmeta, testmeta_light):
+def test_inplane_accel_smoke(testmeta, testmeta_light):
 
     # when
-    mb_str = parameters.describe_inplane_accel(testmeta)
+    mb_str = parameters.inplane_accel(testmeta)
     # then
     expected = "in-plane acceleration factor=2"
     assert mb_str == expected
 
     # when
-    mb_str = parameters.describe_inplane_accel(testmeta_light)
+    mb_str = parameters.inplane_accel(testmeta_light)
     # then
     expected = ""
     assert mb_str == expected
@@ -226,27 +199,16 @@ def test_get_slice_info(slice_times, expected):
     assert slice_order_name == expected
 
 
-def test_describe_slice_timing(testimg, testmeta, testmeta_light):
+def test_slice_timing(testmeta):
 
-    slice_str = parameters.describe_slice_timing(testimg, testmeta)
-    expected = "4 slices in sequential ascending order"
-    assert slice_str == expected
-
-    slice_str = parameters.describe_slice_timing(testimg, testmeta_light)
-    expected = "64 slices"
+    slice_str = parameters.slice_order(testmeta)
+    expected = " in sequential ascending order"
     assert slice_str == expected
 
 
-def test_describe_dmri_directions(testdiffimg):
+def test_intendedfor_targets(testmeta_light, testlayout):
 
-    dif_dir_str = parameters.describe_dmri_directions(testdiffimg)
-    expected = "64 diffusion directions"
-    assert dif_dir_str == expected
-
-
-def test_describe_intendedfor_targets(testmeta_light, testlayout):
-
-    for_str = parameters.describe_intendedfor_targets(testmeta_light, testlayout)
+    for_str = parameters.intendedfor_targets(testmeta_light, testlayout)
     assert for_str == ""
 
     fmap_files = testlayout.get(
@@ -256,5 +218,5 @@ def test_describe_intendedfor_targets(testmeta_light, testlayout):
         extension=[".nii.gz"],
     )
     metadata = fmap_files[0].get_metadata()
-    for_str = parameters.describe_intendedfor_targets(metadata, testlayout)
+    for_str = parameters.intendedfor_targets(metadata, testlayout)
     assert for_str == " for the first and second runs of the N-Back BOLD scan"

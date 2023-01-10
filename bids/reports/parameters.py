@@ -5,12 +5,10 @@ import logging
 import math
 import os
 import os.path as op
-
-import numpy as np
-
-from typing import Tuple, List
+from typing import List, Tuple
 
 import nibabel as nib
+import numpy as np
 from num2words import num2words
 
 from .utils import list_to_str, num_to_str, remove_duplicates
@@ -19,28 +17,23 @@ logging.basicConfig()
 LOGGER = logging.getLogger("pybids.reports.parsing")
 
 
-def describe_slice_timing(img, metadata: dict) -> str:
+def nb_slices(img, metadata: dict):
+    if "SliceTiming" in metadata:
+        return len(metadata["SliceTiming"])
+    else:
+        return img.shape[2]
+
+
+def slice_order(metadata: dict) -> str:
     """Generate description of slice timing from metadata."""
 
     if "SliceTiming" in metadata:
-        slice_order = " in {0} order".format(get_slice_info(metadata["SliceTiming"]))
-        n_slices = len(metadata["SliceTiming"])
+        return " in {0} order".format(get_slice_info(metadata["SliceTiming"]))
     else:
-        slice_order = ""
-        n_slices = img.shape[2]
-
-    return "{n_slices} slices{slice_order}".format(
-        n_slices=n_slices, slice_order=slice_order
-    )
+        return ""
 
 
-def repetition_time_ms(metadata: dict) -> str:
-    """return repetition time in milliseconds."""
-    tr = metadata["RepetitionTime"] * 1000
-    return tr
-
-
-def describe_func_duration(nb_vols: int, tr) -> str:
+def func_duration(nb_vols: int, tr) -> str:
     """Generate description of functional run length from repetition time and number of volumes."""
     run_secs = math.ceil(nb_vols * tr)
     mins, secs = divmod(run_secs, 60)
@@ -64,13 +57,13 @@ def get_nb_vols(all_imgs) -> List[int]:
     return [min_vols, max_vols]
 
 
-def describe_nb_vols(all_imgs):
+def nb_vols(all_imgs):
     """Generate str for nb of volumes from files."""
     nb_vols = get_nb_vols(all_imgs)
     return f"{nb_vols[0]}-{nb_vols[1]}" if len(nb_vols) > 1 else str(nb_vols)
 
 
-def describe_duration(all_imgs, metadata) -> Tuple[str, int]:
+def duration(all_imgs, metadata) -> Tuple[str, int]:
     """Generate general description of scan length from files."""
 
     nb_vols = get_nb_vols(all_imgs)
@@ -78,14 +71,14 @@ def describe_duration(all_imgs, metadata) -> Tuple[str, int]:
     tr = metadata["RepetitionTime"]
 
     if len(nb_vols) <= 1:
-        return describe_func_duration(nb_vols[0], tr)
+        return func_duration(nb_vols[0], tr)
 
-    min_dur = describe_func_duration(nb_vols[0], tr)
-    max_dur = describe_func_duration(nb_vols[1], tr)
+    min_dur = func_duration(nb_vols[0], tr)
+    max_dur = func_duration(nb_vols[1], tr)
     return f"{min_dur}-{max_dur}"
 
 
-def describe_multiband_factor(metadata) -> str:
+def multiband_factor(metadata) -> str:
     """Generate description of the multi-band acceleration applied, if used."""
     return (
         f'MB factor={metadata["MultibandAccelerationFactor"]}'
@@ -138,7 +131,7 @@ def multi_echo(files) -> str:
     return multi_echo
 
 
-def describe_echo_times_fmap(files):
+def echo_times_fmap(files):
     """Generate description of echo times from metadata field for fmaps
 
     Parameters
@@ -165,7 +158,7 @@ def describe_echo_times_fmap(files):
     return "echo time 1 / 2, TE1/2={0}{1}ms".format(te1, te2)
 
 
-def describe_inplane_accel(metadata: dict) -> str:
+def inplane_accel(metadata: dict) -> str:
     """Generate description of in-plane acceleration factor, if any."""
     return (
         f'in-plane acceleration factor={metadata["ParallelReductionFactorInPlane"]}'
@@ -174,12 +167,7 @@ def describe_inplane_accel(metadata: dict) -> str:
     )
 
 
-def describe_dmri_directions(img):
-    """Generate description of diffusion directions."""
-    return f"{img.shape[3]} diffusion directions"
-
-
-def describe_bvals(bval_file) -> str:
+def bvals(bval_file) -> str:
     """Generate description of dMRI b-values."""
     # Parse bval file
     with open(bval_file, "r") as file_object:
@@ -190,19 +178,10 @@ def describe_bvals(bval_file) -> str:
     ]
     bvals = sorted([int(v) for v in set(bvals)])
     bvals = [num_to_str(v) for v in bvals]
-    bval_str = list_to_str(bvals)
-    bval_str = f"b-values of {bval_str} acquired"
-    return bval_str
+    return list_to_str(bvals)
 
 
-def describe_pe_direction(metadata: dict, config: dict) -> str:
-    """Generate description of phase encoding direction."""
-    dir_str = config["dir"][metadata["PhaseEncodingDirection"]]
-    dir_str = f"phase encoding: {dir_str}"
-    return dir_str
-
-
-def describe_intendedfor_targets(metadata: dict, layout) -> str:
+def intendedfor_targets(metadata: dict, layout) -> str:
     """Generate description of intended for targets."""
     if "IntendedFor" not in metadata:
         return ""

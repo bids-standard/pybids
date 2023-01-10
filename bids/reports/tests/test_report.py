@@ -4,6 +4,7 @@ from collections import Counter
 from os.path import abspath, join
 
 import pytest
+
 from bids.layout import BIDSLayout
 from bids.reports import BIDSReport
 from bids.tests import get_test_data_path
