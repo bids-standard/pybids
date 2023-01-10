@@ -221,4 +221,4 @@ def test_intendedfor_targets(testmeta_light, testlayout):
     )
     metadata = fmap_files[0].get_metadata()
     intended_for = parameters.intendedfor_targets(metadata, testlayout)
-    assert intended_for == " for the first and second runs of the N-Back BOLD scan"
+    assert intended_for == "first and second runs of the N-Back BOLD scan"

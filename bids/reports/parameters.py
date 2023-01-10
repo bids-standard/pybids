@@ -212,7 +212,7 @@ def intendedfor_targets(metadata: dict, layout) -> str:
         string = "{rs} run{s} of the {sc}".format(rs=run_str, s=s, sc=scan)
         out_list.append(string)
 
-    return " for the {0}".format(list_to_str(out_list))
+    return list_to_str(out_list)
 
 
 def get_slice_info(slice_times) -> str | List[str]:

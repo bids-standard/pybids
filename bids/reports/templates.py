@@ -51,5 +51,5 @@ def fmap_info(desc_data):
     return f"""A {desc_data["variants"]} {desc_data["seqs"]} fieldmap ({_mri_info(desc_data)}
 phase encoding: {desc_data["multiband_factor"]};  {desc_data["nb_slices"]} slices {desc_data["slice_order"]};
 echo time 1 / 2, TE1/2={desc_data["te_1"]}/{desc_data["te_1"]};)
-was acquired {desc_data["intended_for"]}.
+was acquired for the {desc_data["intended_for"]}.
 """
