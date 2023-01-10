@@ -110,7 +110,7 @@ def anat_info(layout, files, config):
 
     # General info
     seqs, variants = parameters.describe_sequence(metadata, config)
-    all_runs = sorted(list(set([f.get_entities().get("run", 1) for f in files])))
+    all_runs = sorted(list({f.get_entities().get("run", 1) for f in files}))
     n_runs = len(all_runs)
     if n_runs == 1:
         run_str = "{0} run".format(num2words(n_runs).title())
@@ -176,7 +176,7 @@ def dwi_info(layout, files, config):
 
     # General info
     seqs, variants = parameters.describe_sequence(metadata, config)
-    all_runs = sorted(list(set([f.get_entities().get("run", 1) for f in files])))
+    all_runs = sorted(list({f.get_entities().get("run", 1) for f in files}))
     n_runs = len(all_runs)
     if n_runs == 1:
         run_str = "{0} run".format(num2words(n_runs).title())
@@ -357,10 +357,7 @@ def parse_files(layout, data_files, sub, config):
 
     # print(data_files)
 
-    description_list = []
-    # Assume all data have same basic info
-    description_list.append(general_acquisition_info(data_files[0][0].get_metadata()))
-
+    description_list = [general_acquisition_info(data_files[0][0].get_metadata())]
     for group in data_files:
 
         if group[0].entities["datatype"] == "func":
@@ -384,7 +381,7 @@ def parse_files(layout, data_files, sub, config):
             continue
 
         else:
-            warnings.warn(group[0].filename + " not yet supported.")
+            warnings.warn(f"{group[0].filename} not yet supported.")
             continue
 
         description_list.append(group_description)

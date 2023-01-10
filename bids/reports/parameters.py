@@ -56,9 +56,9 @@ def describe_duration(files) -> str:
         max_vols = max(n_vols)
         min_dur = describe_func_duration(min_vols, tr)
         max_dur = describe_func_duration(max_vols, tr)
-        dur_str = "{}-{}".format(min_dur, max_dur)
-        n_vols = "{}-{}".format(min_vols, max_vols)
-        
+        dur_str = f"{min_dur}-{max_dur}"
+        n_vols = f"{min_vols}-{max_vols}"
+
     else:
         n_vols = n_vols[0]
         dur_str = describe_func_duration(n_vols, tr)
@@ -72,7 +72,7 @@ def describe_duration(files) -> str:
 def describe_multiband_factor(metadata) -> str:
     """Generate description of the multi-band acceleration applied, if used."""
     return (
-        "MB factor={}".format(metadata["MultibandAccelerationFactor"])
+        f'MB factor={metadata["MultibandAccelerationFactor"]}'
         if metadata.get("MultibandAccelerationFactor", 1) > 1
         else ""
     )
@@ -103,7 +103,7 @@ def describe_echo_times(files):
     else:
         te = num_to_str(echo_times[0] * 1000)
         me_str = "single-echo"
-    te_str = "echo time, TE={}ms".format(te)
+    te_str = f"echo time, TE={te}ms"
     return te_str, me_str
 
 
@@ -150,9 +150,9 @@ def describe_image_size(img):
     """
     vs_str, ms_str, fov_str = get_size_str(img)
 
-    fov_str = "field of view, FOV={}mm".format(fov_str)
-    voxelsize_str = "voxel size={}mm".format(vs_str)
-    matrixsize_str = "matrix size={}".format(ms_str)
+    fov_str = f"field of view, FOV={fov_str}mm"
+    voxelsize_str = f"voxel size={vs_str}mm"
+    matrixsize_str = f"matrix size={ms_str}"
 
     return fov_str, matrixsize_str, voxelsize_str
 
@@ -160,9 +160,7 @@ def describe_image_size(img):
 def describe_inplane_accel(metadata: dict) -> str:
     """Generate description of in-plane acceleration factor, if any."""
     return (
-        "in-plane acceleration factor={}".format(
-            metadata["ParallelReductionFactorInPlane"]
-        )
+        f'in-plane acceleration factor={metadata["ParallelReductionFactorInPlane"]}'
         if metadata.get("ParallelReductionFactorInPlane", 1) > 1
         else ""
     )
@@ -170,12 +168,12 @@ def describe_inplane_accel(metadata: dict) -> str:
 
 def describe_flip_angle(metadata: dict) -> str:
     """Generate description of flip angle."""
-    return "flip angle, FA={}<deg>".format(metadata.get("FlipAngle", "UNKNOWN"))
+    return f'flip angle, FA={metadata.get("FlipAngle", "UNKNOWN")}<deg>'
 
 
 def describe_dmri_directions(img):
     """Generate description of diffusion directions."""
-    return "{} diffusion directions".format(img.shape[3])
+    return f"{img.shape[3]} diffusion directions"
 
 
 def describe_bvals(bval_file) -> str:
@@ -190,68 +188,60 @@ def describe_bvals(bval_file) -> str:
     bvals = sorted([int(v) for v in set(bvals)])
     bvals = [num_to_str(v) for v in bvals]
     bval_str = list_to_str(bvals)
-    bval_str = "b-values of {} acquired".format(bval_str)
+    bval_str = f"b-values of {bval_str} acquired"
     return bval_str
 
 
 def describe_pe_direction(metadata: dict, config: dict) -> str:
     """Generate description of phase encoding direction."""
     dir_str = config["dir"][metadata["PhaseEncodingDirection"]]
-    dir_str = "phase encoding: {}".format(dir_str)
+    dir_str = f"phase encoding: {dir_str}"
     return dir_str
 
 
 def describe_intendedfor_targets(metadata: dict, layout) -> str:
     """Generate description of intended for targets."""
-    if "IntendedFor" in metadata.keys():
+    if "IntendedFor" not in metadata:
+        return ""
 
-        scans = metadata["IntendedFor"]
-        run_dict = {}
+    scans = metadata["IntendedFor"]
+    run_dict = {}
 
-        for scan in scans:
-            fn = op.basename(scan)
-            if_file = [
-                f for f in layout.get(extension=[".nii", ".nii.gz"]) if fn in f.path
-            ][0]
-            run_num = int(if_file.run)
-            target_type = if_file.entities["suffix"].upper()
+    for scan in scans:
+        fn = op.basename(scan)
+        if_file = [
+            f for f in layout.get(extension=[".nii", ".nii.gz"]) if fn in f.path
+        ][0]
+        run_num = int(if_file.run)
+        target_type = if_file.entities["suffix"].upper()
 
-            if target_type == "BOLD":
-                iff_meta = layout.get_metadata(if_file.path)
-                task = iff_meta.get("TaskName", if_file.entities["task"])
-                target_type_str = "{0} {1} scan".format(task, target_type)
-            else:
-                target_type_str = "{0} scan".format(target_type)
+        if target_type == "BOLD":
+            iff_meta = layout.get_metadata(if_file.path)
+            task = iff_meta.get("TaskName", if_file.entities["task"])
+            target_type_str = "{0} {1} scan".format(task, target_type)
+        else:
+            target_type_str = "{0} scan".format(target_type)
 
-            if target_type_str not in run_dict.keys():
-                run_dict[target_type_str] = []
+        if target_type_str not in run_dict.keys():
+            run_dict[target_type_str] = []
 
-            run_dict[target_type_str].append(run_num)
+        run_dict[target_type_str].append(run_num)
 
-        for scan in run_dict.keys():
-            run_dict[scan] = [
-                num2words(r, ordinal=True) for r in sorted(run_dict[scan])
-            ]
+    for scan in run_dict:
+        run_dict[scan] = [
+            num2words(r, ordinal=True) for r in sorted(run_dict[scan])
+        ]
 
-        out_list = []
+    out_list = []
 
-        for scan in run_dict.keys():
+    for scan in run_dict:
 
-            if len(run_dict[scan]) > 1:
-                s = "s"
-            else:
-                s = ""
+        s = "s" if len(run_dict[scan]) > 1 else ""
+        run_str = list_to_str(run_dict[scan])
+        string = "{rs} run{s} of the {sc}".format(rs=run_str, s=s, sc=scan)
+        out_list.append(string)
 
-            run_str = list_to_str(run_dict[scan])
-            string = "{rs} run{s} of the {sc}".format(rs=run_str, s=s, sc=scan)
-            out_list.append(string)
-
-        for_str = " for the {0}".format(list_to_str(out_list))
-
-    else:
-        for_str = ""
-
-    return for_str
+    return " for the {0}".format(list_to_str(out_list))
 
 
 def get_slice_info(slice_times) -> str:
