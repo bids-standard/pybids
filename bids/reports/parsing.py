@@ -37,6 +37,7 @@ def func_info(files, config):
     first_file = files[0]
     metadata = first_file.get_metadata()
     img = nib.load(first_file.path)
+    all_imgs = [nib.load(f) for f in files]
 
     # General info
     task_name = first_file.get_entities()["task"] + " task"
@@ -44,7 +45,7 @@ def func_info(files, config):
     seqs, variants = parameters.describe_sequence(metadata, config)
     all_runs = sorted(list({f.get_entities().get("run", 1) for f in files}))
     nb_runs = len(all_runs)
-    dur_str = parameters.describe_duration(files)
+    dur_str = parameters.describe_duration(all_imgs, metadata)
 
     # Parameters
     slice_str = parameters.describe_slice_timing(img, metadata)
@@ -54,27 +55,38 @@ def func_info(files, config):
     fov_str, matrixsize_str, voxelsize_str = parameters.describe_image_size(img)
     mb_str = parameters.describe_multiband_factor(metadata)
     inplaneaccel_str = parameters.describe_inplane_accel(metadata)
+    nb_vols_str = parameters.describe_nb_vols(all_imgs)
 
-    parameters_str = [
-        slice_str,
-        f"repetition time, TR={tr}ms",
-        te_str,
-        fa_str,
-        fov_str,
-        matrixsize_str,
-        voxelsize_str,
-        mb_str,
-        inplaneaccel_str,
-    ]
-    parameters_str = [d for d in parameters_str if len(d)]
-    parameters_str = "; ".join(parameters_str)
+    desc_data = {
+        "slice_str": slice_str, 
+        "tr" : f"repetition time, TR={tr}ms",
+        "te_str" : te_str,
+        "fa_str" : fa_str,
+        "fov_str" : fov_str,
+        "matrixsize_str" : matrixsize_str,
+        "voxelsize_str" : voxelsize_str,
+        "mb_str" : mb_str,
+        "inplaneaccel_str" : inplaneaccel_str,        
+        "nb_runs": nb_runs, 
+        "task_name": task_name, 
+        "variants": variants,
+        "seqs": seqs,
+        "me_str": me_str,
+        "nb_vols_str": nb_vols_str,
+        "dur_str": dur_str}
 
-    desc = f"""{nb_runs_str(nb_runs)} of {task_name} {variants} {seqs} {me_str} 
-    fMRI data were collected ({parameters_str}). 
-    Run duration was {dur_str} minutes, during which {parameters.describe_nb_vols(files)} volumes were acquired."""
+    desc = func_info_template(desc_data)
 
     return desc
 
+def func_info_template(desc_data):
+    desc = f"""{nb_runs_str(desc_data["nb_runs"])} of {desc_data["task_name"]} {desc_data["variants"]} 
+{desc_data["seqs"]} {desc_data["me_str"]} fMRI data were collected (repetition time, TR={desc_data["tr"]}ms; {desc_data["slice_str"]}; 
+{desc_data["te_str"]}; {desc_data["fa_str"]}; {desc_data["fov_str"]}; {desc_data["matrixsize_str"]}; 
+{desc_data["voxelsize_str"]}; {desc_data["mb_str"]}; {desc_data["inplaneaccel_str"]}). 
+Run duration was {desc_data["dur_str"]} minutes, during which {desc_data["nb_vols_str"]} volumes were acquired."""
+
+    return desc
 
 def anat_info(files, config):
     """Generate a paragraph describing T1- and T2-weighted structural scans.

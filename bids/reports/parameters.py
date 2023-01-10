@@ -44,14 +44,13 @@ def describe_func_duration(nb_vols: int, tr) -> str:
     mins, secs = divmod(run_secs, 60)
     return f"{mins}:{secs}"
 
-def get_nb_vols(files) -> List[int]:
+def get_nb_vols(all_imgs) -> List[int]:
     """Get number of volumes from list of files.
     
     If all files have the same nb of vols it will return the number of volumes, 
     otherwise it will return the minimum and maximum number of volumes.
     """
-    imgs = [nib.load(f) for f in files]
-    nb_vols = [img.shape[3] for img in imgs]
+    nb_vols = [img.shape[3] for img in all_imgs]
     nb_vols = list(set(nb_vols))
 
     if len(nb_vols) <= 1:
@@ -61,18 +60,15 @@ def get_nb_vols(files) -> List[int]:
     max_vols = max(nb_vols)
     return [min_vols, max_vols]
 
-def describe_nb_vols(files):
+def describe_nb_vols(all_imgs):
     """Generate str for nb of volumes from files."""
-    nb_vols = get_nb_vols(files)
+    nb_vols = get_nb_vols(all_imgs)
     return f"{nb_vols[0]}-{nb_vols[1]}" if len(nb_vols) > 1 else str(nb_vols)
 
-def describe_duration(files) -> Tuple[str, int]:
+def describe_duration(all_imgs, metadata) -> Tuple[str, int]:
     """Generate general description of scan length from files."""
 
-    nb_vols = get_nb_vols(files)
-
-    first_file = files[0]
-    metadata = first_file.get_metadata()
+    nb_vols = get_nb_vols(all_imgs)
 
     tr = metadata["RepetitionTime"]
 
