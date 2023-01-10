@@ -20,9 +20,6 @@ def nb_runs_str(nb_runs: int):
         return f"{num2words(nb_runs).title()} runs"
 
 
-""
-
-
 def template_mri_info(desc_data):
     return f"""repetition time, TR={desc_data["tr"]}ms; echo time, TE={desc_data["te"]}ms; 
     flip angle, FA={desc_data["fa"]}<deg>; 
@@ -54,26 +51,23 @@ def func_info(files, config):
 
     # General info
     task_name = first_file.get_entities()["task"] + " task"
-    task_name = metadata.get("TaskName", task_name)
-
-    seqs, variants = parameters.describe_sequence(metadata, config)
 
     all_runs = sorted(list({f.get_entities().get("run", 1) for f in files}))
 
     desc_data = {
         "tr": parameters.repetition_time_ms(metadata),
+        "te": parameters.echo_time_ms(files),
         "fa": metadata.get("FlipAngle", "UNKNOWN"),
         "fov": parameters.field_of_view(img),
         "matrix_size": parameters.matrix_size(img),
         "voxel_size": parameters.voxel_size(img),
         "slice_timing": parameters.describe_slice_timing(img, metadata),
-        "te": parameters.echo_time_ms(files),
         "mb_str": parameters.describe_multiband_factor(metadata),
         "inplaneaccel_str": parameters.describe_inplane_accel(metadata),
         "nb_runs": len(all_runs),
-        "task_name": task_name,
-        "variants": variants,
-        "seqs": seqs,
+        "task_name": metadata.get("TaskName", task_name),
+        "variants": parameters.variants(metadata, config),
+        "seqs": parameters.sequence(metadata, config),
         "multi_echo": parameters.multi_echo(files),
         "nb_vols": parameters.describe_nb_vols(all_imgs),
         "duration": parameters.describe_duration(all_imgs, metadata),
@@ -110,9 +104,6 @@ def anat_info(files, config):
     metadata = first_file.get_metadata()
     img = nib.load(first_file.path)
 
-    # General info
-    seqs, variants = parameters.describe_sequence(metadata, config)
-
     all_runs = sorted(list({f.get_entities().get("run", 1) for f in files}))
 
     desc_data = {
@@ -125,8 +116,8 @@ def anat_info(files, config):
         "scan_type": first_file.get_entities()["suffix"].replace("w", "-weighted"),
         "slice_timing": parameters.describe_slice_timing(img, metadata),
         "nb_runs": len(all_runs),
-        "variants": variants,
-        "seqs": seqs,
+        "variants": parameters.variants(metadata, config),
+        "seqs": parameters.sequence(metadata, config),
         "multi_echo": parameters.multi_echo(files),
     }
 
@@ -160,9 +151,6 @@ def dwi_info(files, config):
     img = nib.load(first_file.path)
     bval_file = first_file.path.replace(".nii.gz", ".bval").replace(".nii", ".bval")
 
-    # General info
-    seqs, variants = parameters.describe_sequence(metadata, config)
-
     all_runs = sorted(list({f.get_entities().get("run", 1) for f in files}))
 
     desc_data = {
@@ -173,8 +161,8 @@ def dwi_info(files, config):
         "matrix_size": parameters.matrix_size(img),
         "voxel_size": parameters.voxel_size(img),
         "nb_runs": len(all_runs),
-        "variants": variants,
-        "seqs": seqs,
+        "variants": parameters.variants(metadata, config),
+        "seqs": parameters.sequence(metadata, config),
         "bval_str": parameters.describe_bvals(bval_file),
         "nvec_str": parameters.describe_dmri_directions(img),
         "mb_str": parameters.describe_multiband_factor(metadata),
@@ -212,9 +200,6 @@ def fmap_info(layout, files, config):
     metadata = first_file.get_metadata()
     img = nib.load(first_file.path)
 
-    # General info
-    seqs, variants = parameters.describe_sequence(metadata, config)
-
     # Parameters
     desc_data = {
         "tr": parameters.repetition_time_ms(metadata),
@@ -225,8 +210,8 @@ def fmap_info(layout, files, config):
         "voxel_size": parameters.voxel_size(img),
         "slice_timing": parameters.describe_slice_timing(img, metadata),
         "dir_str": parameters.describe_pe_direction(metadata, config),
-        "variants": variants,
-        "seqs": seqs,
+        "variants": parameters.variants(metadata, config),
+        "seqs": parameters.sequence(metadata, config),
         "mb_str": parameters.describe_multiband_factor(metadata),
         "for_str": parameters.describe_intendedfor_targets(metadata, layout),
     }

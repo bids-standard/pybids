@@ -79,6 +79,16 @@ def testmeta_light():
         ("SE_EP", "spin echo and echo planar (SE/EP)"),
     ],
 )
+def test_sequence(
+    ScanningSequence, expected_seq, testconfig
+):
+    """test for sequence and variant type description"""
+    metadata = {
+        "ScanningSequence": ScanningSequence,
+    }
+    seqs = parameters.sequence(metadata, testconfig)
+    assert seqs == expected_seq
+
 @pytest.mark.parametrize(
     "SequenceVariant, expected_var",
     [
@@ -92,17 +102,14 @@ def testmeta_light():
         ("MP_SS", "MAG prepared and steady state"),
     ],
 )
-def test_describe_sequence(
-    ScanningSequence, expected_seq, SequenceVariant, expected_var, testconfig
+def test_variants(
+    SequenceVariant, expected_var, testconfig
 ):
     """test for sequence and variant type description"""
     metadata = {
         "SequenceVariant": SequenceVariant,
-        "ScanningSequence": ScanningSequence,
     }
-    seqs, variants = parameters.describe_sequence(metadata, testconfig)
-
-    assert seqs == expected_seq
+    variants = parameters.variants(metadata, testconfig)
     assert variants == expected_var
 
 

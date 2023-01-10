@@ -286,7 +286,32 @@ def get_slice_info(slice_times) -> str:
     return slice_order_name
 
 
-def describe_sequence(metadata: dict, config: dict):
+def variants(metadata: dict, config: dict):
+    """Extract and reformat imaging variant(s).
+
+    Parameters
+    ----------
+    metadata : :obj:`dict`
+        The metadata for the scan.
+    config : :obj:`dict`
+        A dictionary with relevant information regarding sequences, sequence
+        variants, phase encoding directions, and task names.
+
+    Returns
+    -------
+    variants : :obj:`str`
+        Sequence variant names.
+    """
+    variants = [
+        config["seqvar"].get(var, var)
+        for var in metadata.get("SequenceVariant", "").split("_")
+    ]
+    variants = list_to_str(variants)
+
+    return variants
+
+
+def sequence(metadata: dict, config: dict):
     """Extract and reformat imaging sequence(s) and variant(s) into pretty strings.
 
     Parameters
@@ -301,8 +326,6 @@ def describe_sequence(metadata: dict, config: dict):
     -------
     seqs : :obj:`str`
         Sequence names.
-    variants : :obj:`str`
-        Sequence variant names.
     """
     seq_abbrs = metadata.get("ScanningSequence", "").split("_")
     seqs = [config["seq"].get(seq, seq) for seq in seq_abbrs]
@@ -310,13 +333,7 @@ def describe_sequence(metadata: dict, config: dict):
     if seq_abbrs[0]:
         seqs += " ({0})".format(os.path.sep.join(seq_abbrs))
 
-    variants = [
-        config["seqvar"].get(var, var)
-        for var in metadata.get("SequenceVariant", "").split("_")
-    ]
-    variants = list_to_str(variants)
-
-    return seqs, variants
+    return seqs
 
 
 def matrix_size(img):
