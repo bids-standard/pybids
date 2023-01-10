@@ -176,7 +176,7 @@ def test_describe_repetition_time_smoke(testmeta):
     # when
     tr_str = parameters.describe_repetition_time(testmeta)
     # then
-    expected = "repetition time, TR=2000ms"
+    expected = "2000"
     assert tr_str == expected
 
 

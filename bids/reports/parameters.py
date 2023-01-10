@@ -31,8 +31,7 @@ def describe_slice_timing(img, metadata: dict) -> str:
 def describe_repetition_time(metadata: dict):
     """Generate description of repetition time from metadata."""
     tr = metadata["RepetitionTime"] * 1000
-    tr = num_to_str(tr)
-    return "repetition time, TR={tr}ms".format(tr=tr)
+    return num_to_str(tr)
 
 
 def describe_func_duration(n_vols: int, tr) -> str:

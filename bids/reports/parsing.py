@@ -1,7 +1,6 @@
 """Parsing functions for generating BIDSReports."""
 import logging
 import warnings
-from pathlib import Path
 
 import nibabel as nib
 from num2words import num2words
@@ -13,14 +12,17 @@ from . import parameters
 logging.basicConfig()
 LOGGER = logging.getLogger("pybids.reports.parsing")
 
+def nb_runs_str(nb_runs: int):
+    if nb_runs == 1:
+        return f"{num2words(nb_runs).title()} run"
+    else:
+        return f"{num2words(nb_runs).title()} runs"
 
-def func_info(layout, files, config):
+def func_info(files, config):
     """Generate a paragraph describing T2*-weighted functional scans.
 
     Parameters
     ----------
-    layout : :obj:`bids.layout.BIDSLayout`
-        Layout object for a BIDS dataset.
     files : :obj:`list` of :obj:`bids.layout.models.BIDSFile`
         List of nifti files in layout corresponding to DWI scan.
     config : :obj:`dict`
@@ -40,17 +42,13 @@ def func_info(layout, files, config):
     task_name = first_file.get_entities()["task"] + " task"
     task_name = metadata.get("TaskName", task_name)
     seqs, variants = parameters.describe_sequence(metadata, config)
-    all_runs = sorted(list(set([f.get_entities().get("run", 1) for f in files])))
-    n_runs = len(all_runs)
-    if n_runs == 1:
-        run_str = "{0} run".format(num2words(n_runs).title())
-    else:
-        run_str = "{0} runs".format(num2words(n_runs).title())
+    all_runs = sorted(list({f.get_entities().get("run", 1) for f in files}))
+    nb_runs = len(all_runs)
     dur_str = parameters.describe_duration(files)
 
     # Parameters
     slice_str = parameters.describe_slice_timing(img, metadata)
-    tr_str = parameters.describe_repetition_time(metadata)
+    tr = parameters.describe_repetition_time(metadata)
     te_str, me_str = parameters.describe_echo_times(files)
     fa_str = parameters.describe_flip_angle(metadata)
     fov_str, matrixsize_str, voxelsize_str = parameters.describe_image_size(img)
@@ -59,7 +57,7 @@ def func_info(layout, files, config):
 
     parameters_str = [
         slice_str,
-        tr_str,
+        f"repetition time, TR={tr}ms",
         te_str,
         fa_str,
         fov_str,
@@ -71,28 +69,17 @@ def func_info(layout, files, config):
     parameters_str = [d for d in parameters_str if len(d)]
     parameters_str = "; ".join(parameters_str)
 
-    desc = (
-        "{run_str} of {task} {variants} {seqs} {me_str} fMRI data were "
-        "collected ({parameters_str}). {dur_str}".format(
-            run_str=run_str,
-            task=task_name,
-            variants=variants,
-            seqs=seqs,
-            me_str=me_str,
-            parameters_str=parameters_str,
-            dur_str=dur_str,
-        )
-    )
+    desc = f"""{nb_runs_str(nb_runs)} of {task_name} {variants} {seqs} {me_str} 
+    fMRI data were collected ({parameters_str}). {dur_str}"""
+
     return desc
 
 
-def anat_info(layout, files, config):
+def anat_info(files, config):
     """Generate a paragraph describing T1- and T2-weighted structural scans.
 
     Parameters
     ----------
-    layout : :obj:`bids.layout.BIDSLayout`
-        Layout object for a BIDS dataset.
     files : :obj:`list` of :obj:`bids.layout.models.BIDSFile`
         List of nifti files in layout corresponding to DWI scan.
     config : :obj:`dict`
@@ -111,23 +98,19 @@ def anat_info(layout, files, config):
     # General info
     seqs, variants = parameters.describe_sequence(metadata, config)
     all_runs = sorted(list({f.get_entities().get("run", 1) for f in files}))
-    n_runs = len(all_runs)
-    if n_runs == 1:
-        run_str = "{0} run".format(num2words(n_runs).title())
-    else:
-        run_str = "{0} runs".format(num2words(n_runs).title())
+    nb_runs = len(all_runs)
     scan_type = first_file.get_entities()["suffix"].replace("w", "-weighted")
 
     # Parameters
     slice_str = parameters.describe_slice_timing(img, metadata)
-    tr_str = parameters.describe_repetition_time(metadata)
+    tr = parameters.describe_repetition_time(metadata)
     te_str, me_str = parameters.describe_echo_times(files)
     fa_str = parameters.describe_flip_angle(metadata)
     fov_str, matrixsize_str, voxelsize_str = parameters.describe_image_size(img)
 
     parameters_str = [
         slice_str,
-        tr_str,
+        f"repetition time, TR={tr}ms",
         te_str,
         fa_str,
         fov_str,
@@ -137,27 +120,16 @@ def anat_info(layout, files, config):
     parameters_str = [d for d in parameters_str if len(d)]
     parameters_str = "; ".join(parameters_str)
 
-    desc = (
-        "{run_str} of {scan_type} {variants} {seqs} {me_str} structural MRI "
-        "data were collected ({parameters_str}).".format(
-            run_str=run_str,
-            scan_type=scan_type,
-            variants=variants,
-            seqs=seqs,
-            me_str=me_str,
-            parameters_str=parameters_str,
-        )
-    )
+    desc = f"""{nb_runs_str(nb_runs)} of {scan_type} {variants} {seqs} {me_str} structural MRI "
+        "data were collected ({parameters_str})."""
     return desc
 
 
-def dwi_info(layout, files, config):
+def dwi_info(files, config):
     """Generate a paragraph describing DWI scan acquisition information.
 
     Parameters
     ----------
-    layout : :obj:`bids.layout.BIDSLayout`
-        Layout object for a BIDS dataset.
     files : :obj:`list` of :obj:`bids.layout.models.BIDSFile`
         List of nifti files in layout corresponding to DWI scan.
     config : :obj:`dict`
@@ -177,14 +149,10 @@ def dwi_info(layout, files, config):
     # General info
     seqs, variants = parameters.describe_sequence(metadata, config)
     all_runs = sorted(list({f.get_entities().get("run", 1) for f in files}))
-    n_runs = len(all_runs)
-    if n_runs == 1:
-        run_str = "{0} run".format(num2words(n_runs).title())
-    else:
-        run_str = "{0} runs".format(num2words(n_runs).title())
+    nb_runs = len(all_runs)
 
     # Parameters
-    tr_str = parameters.describe_repetition_time(metadata)
+    tr = parameters.describe_repetition_time(metadata)
     te_str, me_str = parameters.describe_echo_times(files)
     fa_str = parameters.describe_flip_angle(metadata)
     fov_str, voxelsize_str, matrixsize_str = parameters.describe_image_size(img)
@@ -193,7 +161,7 @@ def dwi_info(layout, files, config):
     mb_str = parameters.describe_multiband_factor(metadata)
 
     parameters_str = [
-        tr_str,
+        f"repetition time, TR={tr}ms",
         te_str,
         fa_str,
         fov_str,
@@ -206,15 +174,8 @@ def dwi_info(layout, files, config):
     parameters_str = [d for d in parameters_str if len(d)]
     parameters_str = "; ".join(parameters_str)
 
-    desc = (
-        "{run_str} of {variants} {seqs} diffusion-weighted (dMRI) data were "
-        "collected ({parameters_str}).".format(
-            run_str=run_str,
-            variants=variants,
-            seqs=seqs,
-            parameters_str=parameters_str,
-        )
-    )
+    desc = f"""{nb_runs_str(nb_runs)} of {variants} {seqs} diffusion-weighted (dMRI) data were "
+        "collected ({parameters_str})."""
     return desc
 
 
@@ -246,7 +207,7 @@ def fmap_info(layout, files, config):
     # Parameters
     dir_str = parameters.describe_pe_direction(metadata, config)
     slice_str = parameters.describe_slice_timing(img, metadata)
-    tr_str = parameters.describe_repetition_time(metadata)
+    tr = parameters.describe_repetition_time(metadata)
     te_str = parameters.describe_echo_times_fmap(files)
     fa_str = parameters.describe_flip_angle(metadata)
     fov_str, matrixsize_str, voxelsize_str = parameters.describe_image_size(img)
@@ -255,7 +216,7 @@ def fmap_info(layout, files, config):
     parameters_str = [
         dir_str,
         slice_str,
-        tr_str,
+        f"repetition time, TR={tr}ms",
         te_str,
         fa_str,
         fov_str,
@@ -268,15 +229,9 @@ def fmap_info(layout, files, config):
 
     for_str = parameters.describe_intendedfor_targets(metadata, layout)
 
-    desc = (
-        "A {variants} {seqs} field map ({parameters_str}) was "
-        "acquired{for_str}.".format(
-            variants=variants,
-            seqs=seqs,
-            for_str=for_str,
-            parameters_str=parameters_str,
-        )
-    )
+    desc = f"""A {variants} {seqs} field map ({parameters_str}) was "
+        "acquired{for_str}."""
+
     return desc
 
 
@@ -336,7 +291,7 @@ def final_paragraph(metadata):
     return desc
 
 
-def parse_files(layout, data_files, sub, config):
+def parse_files(layout, data_files, config):
     """Loop through files in a BIDSLayout and generate appropriate descriptions.
 
     Then, compile all of the descriptions into a list.
@@ -347,8 +302,6 @@ def parse_files(layout, data_files, sub, config):
         Layout object for a BIDS dataset.
     data_files : :obj:`list` of :obj:`bids.layout.models.BIDSFile`
         List of nifti files in layout corresponding to subject/session combo.
-    sub : :obj:`str`
-        Subject ID.
     config : :obj:`dict`
         Configuration info for methods generation.
     """
@@ -361,15 +314,15 @@ def parse_files(layout, data_files, sub, config):
     for group in data_files:
 
         if group[0].entities["datatype"] == "func":
-            group_description = func_info(layout, group, config)
+            group_description = func_info(group, config)
 
         elif (group[0].entities["datatype"] == "anat") and group[0].entities[
             "suffix"
         ].endswith("w"):
-            group_description = anat_info(layout, group, config)
+            group_description = anat_info(group, config)
 
         elif group[0].entities["datatype"] == "dwi":
-            group_description = dwi_info(layout, group, config)
+            group_description = dwi_info(group, config)
 
         elif (group[0].entities["datatype"] == "fmap") and group[0].entities[
             "suffix"

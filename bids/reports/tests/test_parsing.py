@@ -43,7 +43,7 @@ def test_anat_info_smoke(testlayout, testconfig):
         extension=[".nii.gz"],
     )
 
-    desc = parsing.anat_info(testlayout, anat_files, testconfig)
+    desc = parsing.anat_info(anat_files, testconfig)
     assert isinstance(desc, str)
 
 
@@ -59,7 +59,7 @@ def test_dwi_info_smoke(testlayout, testconfig):
         extension=[".nii.gz"],
     )
 
-    desc = parsing.dwi_info(testlayout, dwi_files, testconfig)
+    desc = parsing.dwi_info(dwi_files, testconfig)
     assert isinstance(desc, str)
 
 
@@ -93,7 +93,7 @@ def test_func_info_smoke(testlayout, testconfig):
         extension=[".nii.gz"],
     )
 
-    desc = parsing.func_info(testlayout, func_files, testconfig)
+    desc = parsing.func_info(func_files, testconfig)
     assert isinstance(desc, str)
 
 
@@ -124,6 +124,6 @@ def test_parse_files_smoke(testlayout, testconfig):
     """
     subject = "01"
     niftis = testlayout.get(subject=subject, extension=[".nii", ".nii.gz"])
-    desc = parsing.parse_files(testlayout, niftis, subject, testconfig)
+    desc = parsing.parse_files(testlayout, niftis, testconfig)
     assert isinstance(desc, list)
     assert isinstance(desc[0], str)
