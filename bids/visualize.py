@@ -84,7 +84,6 @@ Creating a dummy trial_type column.
                 f"No trial types found in {events_file} for 'include={include}'"
             )
             return
-        self.trial_types = sorted(self.trial_types)
 
         if self.nb_trial_types > 13:
             warnings.warn(
@@ -488,13 +487,6 @@ Specify a subset of trial types using the 'include' argument.
         )
 
 
-def get_duration(df: pd.DataFrame) -> pd.Series:
-    tmp = df.copy()
-    mask = df["duration"].isnull()
-    tmp.loc[mask, "duration"] = 0
-    return tmp["duration"]
-
-
 class LayoutPlotter:
     """Class to handle plotting the content of a BIDSLayout.
 
@@ -742,8 +734,7 @@ class LayoutPlotter:
         )
 
     def _fig_name(self, suffix: str) -> str:
-        dataset_name = self.title.lower().replace(" ", "_")
-        dataset_name = re.sub("[^0-9a-zA-Z]+", "", dataset_name)
+        dataset_name = camel_case(self.title)
         return f"dataset-{dataset_name}_splitby-{suffix}_summary.html"
 
     def _write_html(
@@ -753,3 +744,15 @@ class LayoutPlotter:
             output_dir = Path(output_dir)
             output_dir.mkdir(parents=True, exist_ok=True)
             fig.write_html(output_dir.joinpath(self._fig_name(suffix=suffix)))
+
+
+def get_duration(df: pd.DataFrame) -> pd.Series:
+    tmp = df.copy()
+    mask = df["duration"].isnull()
+    tmp.loc[mask, "duration"] = 0
+    return tmp["duration"]
+
+
+def camel_case(s):
+    s = re.sub(r"(_|-)+", " ", s).title().replace(" ", "")
+    return "".join([s[0].lower(), s[1:]])
