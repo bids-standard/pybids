@@ -91,7 +91,7 @@ class Convolve(Transformation):
         effective_sr = max(min_freq, min(safety / required_resolution, max_freq))
         convolved = hrf.compute_regressor(
             vals, model, resample_frames, fir_delays=fir_delays, min_onset=0,
-            oversampling=np.ceil(effective_sr / sampling_rate)
+            oversampling=int(np.ceil(effective_sr / sampling_rate))
             )
 
         results = []
