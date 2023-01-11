@@ -84,10 +84,11 @@ Creating a dummy trial_type column.
                 f"No trial types found in {events_file} for 'include={include}'"
             )
             return
+        self.trial_types = sorted(self.trial_types)
 
         if self.nb_trial_types > 13:
             warnings.warn(
-                f"""More than 18 trial types found in {events_file}.
+                f"""More than 13 trial types found in {events_file}.
 The plot will be unreadable.
 
 Specify a subset of trial types using the 'include' argument.
@@ -176,6 +177,8 @@ Specify a subset of trial types using the 'include' argument.
             return
         if include is not None:
             self._trial_types = list(set(self._trial_types) & set(include))
+
+        self._trial_types = sorted(self._trial_types)
 
     def _get_data_from_file(self, events_file: str | Path) -> None:
         events_file = Path(events_file)
