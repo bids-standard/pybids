@@ -403,9 +403,7 @@ Specify a subset of trial types using the 'include' argument.
     """Axis formatting methods"""
 
     def _default_axes(self, col: int) -> None:
-        self.fig.update_yaxes(
-            row=self.this_row,
-            col=col,
+        tick_kwargs = dict(
             tickfont=dict(size=self.FONT_SIZE),
             ticklen=self.TICK_LENGTH,
             ticks="outside",
@@ -417,20 +415,8 @@ Specify a subset of trial types using the 'include' argument.
             showticklabels=True,
         )
 
-        self.fig.update_xaxes(
-            row=self.this_row,
-            col=col,
-            tickfont=dict(size=self.FONT_SIZE),
-            ticklen=self.TICK_LENGTH,
-            ticks="outside",
-            tickwidth=self.AXES_LINE_WIDTH,
-            tickcolor=self.AXES_COLOR,
-            showline=True,
-            linewidth=self.AXES_LINE_WIDTH,
-            linecolor=self.AXES_COLOR,
-            showticklabels=True,
-            autorange=True,
-        )
+        self.fig.update_yaxes(row=self.this_row, col=col, **tick_kwargs)
+        self.fig.update_xaxes(row=self.this_row, col=col, **tick_kwargs)
 
     def _update_axes(self) -> None:
 
