@@ -52,6 +52,11 @@ def test_write_graph(graph, tmp_path):
     assert path.exists(tmp_path / "graph.dot")
     assert path.exists(tmp_path / "graph.dot.png")
 
+def test_repr(graph):
+    assert graph.__repr__() == "<BIDSStatsModelsGraph[{name='test_model', description='simple test model', ... }]>"
+    node = graph.nodes['run']
+    assert node.__repr__() == "<BIDSStatsModelsNode(level=run, name=run)>"
+    assert node.run()[0].__repr__() == "<BIDSStatsModelsNodeOutput(level=run, entities={'run': 1, 'subject': '01'})>"
 
 def test_manual_intercept(graph_intercept):
     # Test that a automatic intercept (1) is correct
@@ -173,12 +178,12 @@ def test_entire_graph_smoketest(graph):
     # Note that there are only 2 subjects in the graph.
     # Note also that there is only one session (with no session label), which
     # should have no effect as a grouping variable
-    outputs = graph["run"].run(group_by=['subject', 'session', 'run'])
+    outputs = graph["run"].run()
     # 2 subjects x 3 runs
     assert len(outputs) == 6
     cis = list(chain(*[op.contrasts for op in outputs]))
     assert len(cis) == 18
-    outputs = graph["participant"].run(cis, group_by=['subject', 'contrast'])
+    outputs = graph["participant"].run(cis)
     # 2 subjects x 3 contrasts)
     assert len(outputs) == 6
     # * 2 participant level contrasts = 12
@@ -207,7 +212,7 @@ def test_entire_graph_smoketest(graph):
         inputs.append(ContrastInfo(**fields))
 
     # GROUP DIFFERENCE NODE
-    outputs = graph["group-diff"].run(inputs, group_by=['contrast'])
+    outputs = graph["group-diff"].run(inputs)
     # 3 contrasts
     assert len(outputs) == 3
     cis = list(chain(*[op.contrasts for op in outputs]))
@@ -221,17 +226,31 @@ def test_entire_graph_smoketest(graph):
     assert not set(model_spec.terms.keys()) - {"intercept", "sex"}
 
     # BY-GROUP NODE
-    outputs = graph["by-group"].run(inputs, group_by=['contrast'])
+    outputs = graph["by-group"].run(inputs)
     # 3 contrasts
-    assert len(outputs) == 3
+    assert len(outputs) == 6
     cis = list(chain(*[op.contrasts for op in outputs]))
     # two groups x 3 contrasts
-    assert len(cis) == 3
+    assert len(cis) == 6
     model_spec = outputs[0].model_spec
     assert model_spec.__class__.__name__ == "GLMMSpec"
-    assert model_spec.X.shape == (2, 1)
+    assert model_spec.X.shape == (1, 1)
     assert model_spec.Z is None
     assert not set(model_spec.terms.keys()) - {"intercept"}
+
+    # explicit-contrast NODE
+    outputs = graph["explicit-contrast"].run(inputs)
+    # 1 group x 1 contrast
+    assert len(outputs) == 1
+    assert len(outputs[0].contrasts) == 1
+    assert outputs[0].X['gain'].sum() == 2
+    model_spec = outputs[0].model_spec
+    assert model_spec.__class__.__name__ == "GLMMSpec"
+    assert model_spec.X.shape == (6, 1)
+    assert not set(model_spec.terms.keys()) - {"gain"}
+
+    contrast = outputs[0].contrasts[0]
+    assert contrast.name == 'gain'
 
 
 def test_expand_wildcards():

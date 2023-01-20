@@ -13,7 +13,7 @@ import pytest
 
 from bids.layout import BIDSLayout, Query
 from bids.layout.models import Config
-from bids.layout.index import BIDSLayoutIndexer
+from bids.layout.index import BIDSLayoutIndexer, _check_path_matches_patterns
 from bids.layout.utils import PaddedInt
 from bids.tests import get_test_data_path
 from bids.utils import natural_sort
@@ -43,7 +43,11 @@ def test_layout_init(layout_7t_trt):
     ])
 def test_index_metadata(index_metadata, query, result, mock_config):
     data_dir = join(get_test_data_path(), '7t_trt')
-    layout = BIDSLayout(data_dir, index_metadata=index_metadata, **query)
+    layout = BIDSLayout(
+        data_dir,
+        indexer=BIDSLayoutIndexer(index_metadata=index_metadata),
+        **query
+    )
     sample_file = layout.get(task='rest', extension='.nii.gz',
                              acquisition='fullbrain')[0]
     metadata = sample_file.get_metadata()
@@ -425,22 +429,39 @@ def test_nested_include_exclude():
     target1 = join(data_dir, 'models', 'ds-005_type-test_model.json')
     target2 = join(data_dir, 'models', 'extras', 'ds-005_type-test_model.json')
 
-    # Nest a directory exclusion within an inclusion
-    layout = BIDSLayout(data_dir, validate=True, force_index=['models'],
-                        ignore=[os.path.join('models', 'extras')])
-    assert layout.get_file(target1)
-    assert not layout.get_file(target2)
-
     # Nest a directory inclusion within an exclusion
-    layout = BIDSLayout(data_dir, validate=True, ignore=['models'],
-                        force_index=[os.path.join('models', 'extras')])
+    layout = BIDSLayout(
+        data_dir,
+        indexer=BIDSLayoutIndexer(
+            validate=True,
+            force_index=[os.path.join('models', 'extras')],
+            ignore=['models'],
+        ),
+    )
     assert not layout.get_file(target1)
     assert layout.get_file(target2)
 
+    # Nest a directory exclusion within an inclusion
+    layout = BIDSLayout(
+        data_dir,
+        indexer=BIDSLayoutIndexer(
+            validate=True,
+            force_index=['models'],
+            ignore=[os.path.join('models', 'extras')],
+        ),
+    )
+    assert layout.get_file(target1)
+    assert not layout.get_file(target2)
+
     # Force file inclusion despite directory-level exclusion
-    models = ['models', target2]
-    layout = BIDSLayout(data_dir, validate=True, force_index=models,
-                        ignore=[os.path.join('models', 'extras')])
+    layout = BIDSLayout(
+        data_dir,
+        indexer=BIDSLayoutIndexer(
+            validate=True,
+            force_index=['models', target2],
+            ignore=[os.path.join('models', 'extras')],
+        ),
+    )
     assert layout.get_file(target1)
     assert layout.get_file(target2)
 
@@ -453,11 +474,17 @@ def test_nested_include_exclude_with_regex():
     target1 = join(data_dir, 'models', 'ds-005_type-test_model.json')
     target2 = join(data_dir, 'models', 'extras', 'ds-005_type-test_model.json')
 
-    layout = BIDSLayout(data_dir, ignore=[patt2], force_index=[patt1])
+    layout = BIDSLayout(
+        data_dir,
+        indexer=BIDSLayoutIndexer(ignore=[patt2], force_index=[patt1])
+    )
     assert layout.get_file(target1)
     assert not layout.get_file(target2)
 
-    layout = BIDSLayout(data_dir, ignore=[patt1], force_index=[patt2])
+    layout = BIDSLayout(
+        data_dir,
+        indexer=BIDSLayoutIndexer(ignore=[patt1], force_index=[patt2])
+    )
     assert not layout.get_file(target1)
     assert layout.get_file(target2)
 
@@ -835,3 +862,33 @@ def test_padded_run_roundtrip(layout_ds005):
     assert ents["run"] == 1
     newpath = layout_ds005.build_path(ents, absolute_paths=False)
     assert newpath == "sub-01/func/sub-01_task-mixedgamblestask_run-01_bold.nii.gz"
+
+@pytest.mark.parametrize(
+    "fname", [
+        "sub-01/anat/sub-01_T1w.nii.gz",
+        ".datalad",
+        "code",
+        "sub-01/.datalad",
+    ],
+)
+def test_indexer_patterns(fname):
+    root = Path("/home/user/.cache/data/")
+    path = root / fname
+
+    assert bool(_check_path_matches_patterns(
+        path,
+        ["code"],
+        root=None,
+    )) is (fname == "code")
+
+    assert _check_path_matches_patterns(
+        path,
+        [re.compile(r"/\.")],
+        root=None,
+    ) is True
+
+    assert _check_path_matches_patterns(
+        path,
+        [re.compile(r"/\.")],
+        root=root,
+    ) is (".datalad" in fname)

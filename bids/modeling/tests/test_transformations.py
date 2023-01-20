@@ -56,55 +56,78 @@ def sparse_run_variable_with_missing_values():
     return BIDSRunVariableCollection([var])
 
 
+def test_convolve_multi(collection):
+    # Just tests that we can convolve multiple arguments with one model
+    output_names = ['unique_name', 'another_unique_name']
+    transform.Convolve(
+        collection,
+        ['parametric gain', 'loss'],
+        output=output_names,
+        model='spm'
+    )
+
+    assert set(output_names).issubset(collection.variables)
+
+
 def test_convolve(collection):
     rt = collection.variables['RT']
-    transform.Convolve(collection, 'RT', output='reaction_time')
+    transform.Convolve(collection, ['RT'], output=['reaction_time'])
     rt_conv = collection.variables['reaction_time']
 
     assert rt_conv.values.shape[0] == \
         rt.get_duration() * collection.sampling_rate
 
-    transform.ToDense(collection, 'RT', output='rt_dense')
-    transform.Convolve(collection, 'rt_dense', output='dense_convolved')
+    transform.ToDense(collection, ['RT'], output=['rt_dense'])
+    transform.Convolve(collection, 'rt_dense', derivative=True)
+
+    # test the derivative exists
+    assert collection.variables.get('rt_dense_derivative')
 
     dense_conv = collection.variables['reaction_time']
 
     assert dense_conv.values.shape[0] == \
+        collection.variables['rt_dense_derivative'].values.shape[0] == \
         rt.get_duration() * collection.sampling_rate
 
-    # Test adapative oversampling computation
+    # Test adaptive oversampling computation
     # Events are 3s duration events every 4s, so resolution demanded by the data is 1Hz
     # To resolve 1Hz frequencies, we must sample at >=2Hz
     args = (mock.ANY, 'spm', mock.ANY)
     kwargs = dict(fir_delays=None, min_onset=0)
-    with mock.patch('bids.modeling.transformations.compute.hrf') as mocked:
+    mock_return = (np.array([[0, 0]]), ["cond"])
+    with mock.patch('bids.modeling.transformations.compute.hrf.compute_regressor') as mocked:
+        mocked.return_value = mock_return
         # Sampling rate is 10Hz, no oversampling needed
         transform.Convolve(collection, 'RT', output='rt_mock')
-        mocked.compute_regressor.assert_called_with(*args, oversampling=1.0, **kwargs)
+        mocked.assert_called_with(*args, oversampling=1.0, **kwargs)
 
-    with mock.patch('bids.modeling.transformations.compute.hrf') as mocked:
+    with mock.patch('bids.modeling.transformations.compute.hrf.compute_regressor') as mocked:
+        mocked.return_value = mock_return
         # Sampling rate is 10Hz, no oversampling needed
         transform.Convolve(collection, 'rt_dense', output='rt_mock')
-        mocked.compute_regressor.assert_called_with(*args, oversampling=1.0, **kwargs)
+        mocked.assert_called_with(*args, oversampling=1.0, **kwargs)
 
-    with mock.patch('bids.modeling.transformations.compute.hrf') as mocked:
+    with mock.patch('bids.modeling.transformations.compute.hrf.compute_regressor') as mocked:
+        mocked.return_value = mock_return
         # Slow sampling rate, oversample (4x) to 2Hz
         collection.sampling_rate = 0.5
         transform.Convolve(collection, 'RT', output='rt_mock')
-        mocked.compute_regressor.assert_called_with(*args, oversampling=4.0, **kwargs)
+        mocked.assert_called_with(*args, oversampling=4.0, **kwargs)
 
-    with mock.patch('bids.modeling.transformations.compute.hrf') as mocked:
+    with mock.patch('bids.modeling.transformations.compute.hrf.compute_regressor') as mocked:
+        mocked.return_value = mock_return
         # Dense variable is already sampled at 10Hz, no oversampling needed
         collection.sampling_rate = 0.5
         transform.Convolve(collection, 'rt_dense', output='rt_mock')
-        mocked.compute_regressor.assert_called_with(*args, oversampling=1.0, **kwargs)
+        mocked.assert_called_with(*args, oversampling=1.0, **kwargs)
 
-    with mock.patch('bids.modeling.transformations.compute.hrf') as mocked:
+    with mock.patch('bids.modeling.transformations.compute.hrf.compute_regressor') as mocked:
+        mocked.return_value = mock_return
         # Onset requires 10Hz resolution, oversample (2x) to 20Hz
         collection.sampling_rate = 10
         collection['RT'].onset[0] += 0.1
         transform.Convolve(collection, 'RT', output='rt_mock')
-        mocked.compute_regressor.assert_called_with(*args, oversampling=2.0, **kwargs)
+        mocked.assert_called_with(*args, oversampling=2.0, **kwargs)
 
 
 def test_convolve_impulse():
@@ -126,7 +149,7 @@ def test_convolve_impulse():
 def test_rename(collection):
     dense_rt = collection.variables['RT'].to_dense(collection.sampling_rate)
     assert len(dense_rt.values) == math.ceil(len(SUBJECTS) * NRUNS * SCAN_LENGTH * collection.sampling_rate)
-    transform.Rename(collection, 'RT', output='reaction_time')
+    transform.Rename(collection, ['RT'], output=['reaction_time'])
     assert 'reaction_time' in collection.variables
     assert 'RT' not in collection.variables
     col = collection.variables['reaction_time']
@@ -160,11 +183,12 @@ def test_sum(collection):
 
 def test_scale(collection, sparse_run_variable_with_missing_values):
     transform.Scale(collection, variables=['RT', 'parametric gain'],
-                    output=['RT_Z', 'gain_Z'], groupby=['run', 'subject'])
+                    output=['RT_Z', 'gain_Z'], groupby=['run', 'subject'], 
+                    rescale=True)
     groupby = collection['RT'].get_grouper(['run', 'subject'])
     z1 = collection['RT_Z'].values
     z2 = collection['RT'].values.groupby(
-        groupby).apply(lambda x: (x - x.mean()) / x.std())
+        groupby, group_keys=False).apply(lambda x: (x - x.mean()) / x.std())
     assert np.allclose(z1, z2)
 
     # Test constant input
@@ -207,8 +231,8 @@ def test_orthogonalize_dense(collection):
     vals = np.c_[rt.values, pg_pre.values, pg_post.values]
     df = pd.DataFrame(vals, columns=['rt', 'pre', 'post'])
     groupby = rt.get_grouper(['run', 'subject'])
-    pre_r = df.groupby(groupby).apply(lambda x: x.corr().iloc[0, 1])
-    post_r = df.groupby(groupby).apply(lambda x: x.corr().iloc[0, 2])
+    pre_r = df.groupby(groupby, group_keys=False).apply(lambda x: x.corr().iloc[0, 1])
+    post_r = df.groupby(groupby, group_keys=False).apply(lambda x: x.corr().iloc[0, 2])
     assert (pre_r > 0.2).any()
     assert (post_r < 0.0001).all()
 
@@ -222,8 +246,8 @@ def test_orthogonalize_sparse(collection):
     vals = np.c_[rt.values, pg_pre.values, pg_post.values]
     df = pd.DataFrame(vals, columns=['rt', 'pre', 'post'])
     groupby = collection['RT'].get_grouper(['run', 'subject'])
-    pre_r = df.groupby(groupby).apply(lambda x: x.corr().iloc[0, 1])
-    post_r = df.groupby(groupby).apply(lambda x: x.corr().iloc[0, 2])
+    pre_r = df.groupby(groupby, group_keys=False).apply(lambda x: x.corr().iloc[0, 1])
+    post_r = df.groupby(groupby, group_keys=False).apply(lambda x: x.corr().iloc[0, 2])
     assert (pre_r > 0.2).any()
     assert (post_r < 0.0001).all()
 
@@ -332,6 +356,20 @@ def test_assign(collection):
     assert np.array_equal(t2.values.values, rt.onset)
     assert np.array_equal(t2.onset, pg.onset)
     assert np.array_equal(t2.duration, pg.duration)
+
+
+def test_assign_multiple(collection):
+    # test kwarg distribution
+    transform.Assign(collection, ['RT', 'respcat'], target=['gain', 'loss'],
+                     input_attr=['amplitude', 'amplitude'], target_attr=['duration', 'amplitude'],
+                     output=['gain_rt', 'loss_cat'])
+    rt = collection['RT']
+    gain_rt = collection['gain_rt']
+    loss_cat = collection['loss_cat']
+    rc = collection['respcat']
+
+    assert np.array_equal(gain_rt.duration, rt.values.values)
+    assert np.array_equal(loss_cat.values.values, rc.values.values)
 
 
 def test_copy(collection):

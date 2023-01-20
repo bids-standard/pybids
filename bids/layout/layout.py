@@ -139,7 +139,8 @@ class BIDSLayout(object):
             if description and description.get("DatasetType") == "derivative":
                 if validate:
                     validate_derivative_paths([root], self)
-                config = ["bids", "derivatives"]
+                if not config:
+                    config = ["bids", "derivatives"]
 
             init_args = dict(root=root, absolute_paths=absolute_paths,
                              derivatives=derivatives, config=config)
@@ -522,7 +523,7 @@ class BIDSLayout(object):
 
         tags = [[t.file_path, t.entity_name, t.value] for t in tags]
         data = pd.DataFrame(tags, columns=['path', 'entity', 'value'])
-        data = data.pivot('path', 'entity', 'value')
+        data = data.pivot(index='path', columns='entity', values='value')
 
         # Add in orphaned files with no Tags. Maybe make this an argument?
         orphans = list(set(file_paths) - set(data.index))

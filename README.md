@@ -5,6 +5,7 @@
 [![Build Status (Linux and OS X)](https://travis-ci.org/bids-standard/pybids.svg?branch=master)](https://travis-ci.org/bids-standard/pybids)<!---[![Build Status (Windows)](https://ci.appveyor.com/api/projects/status/5aa4c6e3m15ew4v7?svg=true)](https://ci.appveyor.com/project/chrisfilo/pybids-ilb80)-->
 [![Binder](https://mybinder.org/badge.svg)](https://mybinder.org/v2/gh/bids-standard/pybids/master)
 [![PyPI version](https://badge.fury.io/py/pybids.svg)](https://badge.fury.io/py/pybids)
+[![Conda version](https://img.shields.io/conda/vn/conda-forge/pybids)](https://anaconda.org/conda-forge/pybids)
 
 PyBIDS is a Python library to centralize interactions with datasets conforming
 BIDS (Brain Imaging Data Structure) format.  For more information about BIDS
@@ -17,6 +18,10 @@ PyBIDS is most easily installed from pip. To install the latest official release
 
 > pip install pybids
 
+Or, alternatively via conda:
+
+> conda install -c conda-forge pybids
+
 If you want to live on the bleeding edge, you can install from master:
 
 > pip install git+https://github.com/bids-standard/pybids.git
@@ -27,7 +32,7 @@ PyBIDS has a number of dependencies. The core querying functionality requires on
 ## Usage
 Get started by checking out [the documentation](https://bids-standard.github.io/pybids)!
 
-Or you can start at [our tutorial](examples/pybids_tutorial.ipynb)! You can run it interactively without installing anything via [binder](https://mybinder.org/v2/gh/bids-standard/pybids/master). Click on the link and then navigate to `examples/pybids_tutorial.ipynb` to explore.
+Or you can start at [our tutorial](examples/pybids_tutorial.md)! You can run it interactively without installing anything via [binder](https://mybinder.org/v2/gh/bids-standard/pybids/master). Click on the link and then navigate to `examples/pybids_tutorial.md` to explore.
 
 ## How to cite
 To credit PyBIDS in your work, please cite both the [JOSS paper](https://joss.theoj.org/papers/10.21105/joss.01294) and the [Zenodo archive](https://zenodo.org/record/3363985). The former provides a high level description of the package, and the latter points to a permanent record of all PyBIDS versions (we encourage you to cite the specific version you used). Example citations (for PyBIDS 0.9.3):

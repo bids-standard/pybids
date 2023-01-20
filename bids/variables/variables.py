@@ -26,6 +26,9 @@ class BIDSVariable(metaclass=ABCMeta):
         self.source = source
         self.entities = self._extract_entities()
 
+    def __repr__(self):
+        return f"<{self.__class__.__name__}(name='{self.name}', source='{self.source}')>"
+
     def clone(self, data=None, **kwargs):
         """Clone (deep copy) the current column, optionally replacing its
         data and/or any other attributes.
@@ -196,7 +199,7 @@ class BIDSVariable(metaclass=ABCMeta):
             onto the function call.
         """
         grouper = self.get_grouper(groupby)
-        return self.values.groupby(grouper).apply(func, *args, **kwargs)
+        return self.values.groupby(grouper, group_keys=False).apply(func, *args, **kwargs)
 
     def to_df(self, condition=True, entities=True, **kwargs):
         """Convert to a DataFrame, with columns for name and entities.

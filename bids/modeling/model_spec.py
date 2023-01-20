@@ -7,27 +7,6 @@ from formulaic import model_matrix
 from bids.utils import convert_JSON
 
 
-def create_model_spec(df, model, *args, **kwargs):
-    """Create and return a instance of the appropriate ModelSpec subclass.
-
-    Parameters
-    ----------
-    df : pd.DataFrame
-        A pandas DataFrame containing predictor data
-    model : dict
-        Dictionary containing the BIDS-StatsModels model information
-    args, kwargs:
-        Optional positional and keyword arguments to pass onto to subclass
-        initializer.
-    """
-    kind = model.get('type', 'glm').lower()
-    SpecCls = {
-        'glm': GLMMSpec,
-        'meta': MetaAnalysisSpec,
-    }[kind]
-    return SpecCls.from_df(df, model, *args, **kwargs)
-
-
 class ModelSpec(metaclass=ABCMeta):
     """Base class for all ModelSpec classes."""
     @abstractmethod
@@ -87,6 +66,9 @@ s
             self.build_fixed_terms(X)
         if Z is not None:
             self.build_variance_components(Z, groups, sigma)
+
+    def __repr__(self):
+        return f"<{self.__class__.__name__}{[term.name for term in self.fixed_terms]}'>"
 
     def set_priors(self, fixed=None, random=None):
         raise NotImplementedError("Custom prior use hasn't been implemented yet.")

@@ -6,6 +6,7 @@ from abc import ABCMeta, abstractmethod
 from copy import deepcopy
 import itertools
 import inspect
+from dataclasses import dataclass
 
 import numpy as np
 import pandas as pd
@@ -13,6 +14,7 @@ import pandas as pd
 from bids.utils import listify, convert_JSON
 from bids.variables import SparseRunVariable
 from bids.modeling import transformations as pbt
+from bids.variables.collections import BIDSVariableCollection
 
 
 class Transformation(metaclass=ABCMeta):
@@ -91,6 +93,11 @@ class Transformation(metaclass=ABCMeta):
     # be passed through as-is even if categorical.
     _allow_categorical = None
 
+    # Boolean indicating whether to treat each key word argument as a one-to-one
+    # mapping with each variable or to treat the key word argument as applying to
+    # every input variable.
+    _sync_kwargs = True
+
     def __new__(cls, collection, variables, *args, **kwargs):
         t = super(Transformation, cls).__new__(cls)
         t._setup(collection, variables, *args, **kwargs)
@@ -118,6 +125,14 @@ class Transformation(metaclass=ABCMeta):
                 kwargs[arg_spec.args[2 + i]] = arg_val
 
         self.kwargs = kwargs
+        # listify kwargs if synced
+        if self._sync_kwargs:
+            for k, v in self.kwargs.items():
+                if not isinstance(v, list):
+                    self.kwargs[k] = [v] * len(self.variables)
+                elif not len(self.kwargs[k]) == len(self.variables):
+                    raise ValueError("Length of {} must match length of "
+                                     "variables".format(k))
 
         # Expand any detected variable group names or wild cards
         self._expand_variable_groups()
@@ -255,20 +270,22 @@ class Transformation(metaclass=ABCMeta):
         if not self._loopable:
             variables = [variables]
 
+        i_kwargs = kwargs
         for i, col in enumerate(variables):
-
+            if self._sync_kwargs:
+                i_kwargs = {k: v[i] for k, v in kwargs.items()}
             # If we still have a list, pass all variables in one block
             if isinstance(col, (list, tuple)):
-                result = self._transform(data, **kwargs)
+                result = self._transform(data, **i_kwargs)
                 if self._return_type not in ['none', None]:
                     col = col[0].clone(data=result, name=self.output[0])
             # Otherwise loop over variables individually
             else:
                 if self._groupable and self.groupby is not None:
                     result = col.apply(self._transform, groupby=self.groupby,
-                                       **kwargs)
+                                       **i_kwargs)
                 else:
-                    result = self._transform(data[i], **kwargs)
+                    result = self._transform(data[i], **i_kwargs)
 
             if self._return_type in ['none', None]:
                 continue
@@ -313,8 +330,17 @@ class Transformation(metaclass=ABCMeta):
                 if self.output_suffix is not None:
                     _output += self.output_suffix
 
-                col.name = _output
-                self.collection[_output] = col
+                # If multiple variables were returned, add each one separately
+                if isinstance(result, (list, tuple)):
+                    # rename first output
+                    result[0].name = _output
+                    self.collection[_output] = result[0]
+
+                    for r in result[1:]:
+                        self.collection[r.name] = r
+                else:
+                    col.name = _output
+                    self.collection[_output] = col
 
     @abstractmethod
     def _transform(self, **kwargs):
@@ -391,6 +417,14 @@ class Transformation(metaclass=ABCMeta):
         else:
             _align(listify(variables) + _aligned_variables)
 
+@dataclass
+class TransformationOutput:
+    index: int
+    output: BIDSVariableCollection
+    transformation_name: str
+    transformation_kwargs: dict
+    input_cols: list
+    level: str
 
 class TransformerManager(object):
     """Handles registration and application of transformations to
@@ -403,14 +437,18 @@ class TransformerManager(object):
             attributes. Any named transformation not explicitly registered on
             the TransformerManager instance is expected to be found here.
             If None, the PyBIDS transformations module is used.
+    keep_history: bool
+        Whether to keep snapshots variable after a transformation is applied.
+        If True, a list of collections will be stored in the ``history_`` attribute.
     """
 
-    def __init__(self, default=None):
+    def __init__(self, default=None, keep_history=True):
         self.transformations = {}
         if default in (None, "pybids-transforms-v1"):
             # Default to PyBIDS transformations
             default = pbt
         self.default = default
+        self.keep_history = keep_history
 
     def _sanitize_name(self, name):
         """ Replace any invalid/reserved transformation names with acceptable
@@ -448,7 +486,19 @@ class TransformerManager(object):
         transformations : list
             List of transformations to apply.
         """
-        for t in transformations:
+        if self.keep_history:
+            self.history_ = [
+                TransformationOutput(
+                    index=0,
+                    output=collection.clone(),
+                    transformation_name=None,
+                    transformation_kwargs=None,
+                    input_cols=None,
+                    level=None
+                )
+            ]
+
+        for ix, t in enumerate(transformations):
             t = convert_JSON(t) # make sure all keys are snake case
             kwargs = dict(t)
             name = self._sanitize_name(kwargs.pop('name'))
@@ -462,5 +512,21 @@ class TransformerManager(object):
                                      "explicitly register a handler, or pass a"
                                      " default module that supports it." % name)
                 func = getattr(self.default, name)
+
+                # Apply the transformation
                 func(collection, cols, **kwargs)
+
+                # Take snapshot of collection after transformation
+                if self.keep_history:
+                    self.history_.append(
+                        TransformationOutput(
+                            index=ix+1,
+                            output=collection.clone(),
+                            transformation_name=name,
+                            transformation_kwargs=kwargs,
+                            input_cols=cols,
+                            level=collection.level
+                        )
+                    )
+
         return collection

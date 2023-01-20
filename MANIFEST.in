@@ -1,4 +1,3 @@
-include versioneer.py
 include bids/_version.py
 recursive-include bids/layout/config *.json
 recursive-include bids/tests/data *

@@ -59,8 +59,8 @@
             "Name": "by-group",
             "Level": "Dataset",
             "GroupBy": [
-                "sex",
-                "contrast"
+                "contrast",
+                "sex"
             ],
             "Model": {
                 "X": [
@@ -84,6 +84,13 @@
             "DummyContrasts": {
                 "Test": "t"
             }
+        },
+        {
+            "Name": "explicit-contrast",
+            "Level": "Dataset",
+            "GroupBy": [],
+            "Model": {"X": ["gain"], "Type": "glm"},
+            "DummyContrasts": {"Test": "t"}
         }
     ],
     "Edges": [
@@ -98,6 +105,11 @@
         {
             "Source": "participant",
             "Destination": "group-diff"
+        },
+        {
+            "Source": "participant",
+            "Destination": "explicit-contrast",
+            "Filter": {"contrast": ["gain"]}
         }
     ]
 }

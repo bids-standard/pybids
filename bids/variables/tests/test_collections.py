@@ -47,6 +47,7 @@ def run_coll_derivs():
 def test_run_variable_collection_init(run_coll):
     assert isinstance(run_coll.variables, dict)
     assert run_coll.sampling_rate == 10
+    assert run_coll.__repr__() == "<BIDSRunVariableCollection['PTval', 'RT', 'gain', 'loss', 'parametric gain', 'respcat', 'respnum', 'trial_type']>"
 
 
 def test_run_variable_collection_sparse_variable_accessors(run_coll):

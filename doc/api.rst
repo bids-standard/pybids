@@ -35,8 +35,8 @@ API Reference
 
    bids.modeling.statsmodels
    bids.modeling.auto_model
-   bids.modeling.statsmodels.Step
-   bids.modeling.statsmodels.BIDSStatsModelsGraphNode
+   bids.modeling.statsmodels.BIDSStatsModelsGraph
+   bids.modeling.statsmodels.BIDSStatsModelsNode
 
 .. currentmodule:: bids
 
