@@ -136,7 +136,7 @@ def layout(
         validate=validate,
         config=config,
         indexer=BIDSLayoutIndexer(
-            validate=validate,
+            valid_only=validate,
             index_metadata=index_metadata,
             ignore=ignore,
             force_index=force_index,
