@@ -11,7 +11,6 @@ __all__ = [
     "BIDSValidator",
     "config",
     "layout",
-    "reports",
     "utils",
     "variables"
 ]
