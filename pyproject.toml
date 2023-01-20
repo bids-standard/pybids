@@ -29,7 +29,6 @@ dependencies = [
   "formulaic >=0.2.4, <0.6",  # Tested on 0.2.4-0.5.2
   "sqlalchemy <1.4.0.dev0",
   "bids-validator",
-  "num2words",
   "click >=8.0",
 ]
 dynamic = ["version"]
