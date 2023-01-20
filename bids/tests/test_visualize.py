@@ -13,19 +13,14 @@ from bids.tests import get_test_data_path
 -   test on datasets with a large range of events types
 """
 
+# toggle to True to see plots when testing or debugging
+SHOW = False
 
 @pytest.mark.parametrize(
     "output_dir",
     [
         (Path(__file__).parent.joinpath("tmp")),
         (None),
-    ],
-)
-@pytest.mark.parametrize(
-    "show",
-    [
-        (True),
-        (False),
     ],
 )
 @pytest.mark.parametrize(
@@ -38,13 +33,13 @@ from bids.tests import get_test_data_path
     ],
 )
 def test_LayoutPlotter_smoke(
-    dataset, filters, plot_by, show, output_dir, bids_examples
+    dataset, filters, plot_by,  output_dir, bids_examples
 ):
 
     layout = BIDSLayout(root=Path(bids_examples).joinpath(dataset))
 
     LayoutPlotter(layout, filters=filters).plot(
-        plot_by=plot_by, show=show, output_dir=output_dir
+        plot_by=plot_by, show=SHOW, output_dir=output_dir
     )
     if output_dir is not None:
         shutil.rmtree(output_dir)
@@ -52,7 +47,7 @@ def test_LayoutPlotter_smoke(
 
 def test_LayoutPlotter_missing_subject(bids_examples):
 
-    layout = BIDSLayout(root=Path(bids_examples).joinpath("ds114"))
+    layout = BIDSLayout(root=Path(bids_examples) / "ds114")
 
     filters = dict(subject="foo")
     with pytest.warns(UserWarning):
@@ -77,24 +72,25 @@ def test_EventPlotter_smoke(dataset, subject, event_column, bids_examples):
 
     this = EventPlotter(files[0], event_column=event_column)
     this.plot()
-    this.show()
+    if SHOW:
+        this.show()
 
 
 def test_EventPlotter_only_onset_and_duration_column(bids_examples):
 
-    dataset = Path(bids_examples).joinpath("genetics_ukbb")
+    dataset = Path(bids_examples) / "genetics_ukbb"
     layout = BIDSLayout(dataset)
 
     files = layout.get(return_type="filename", suffix="events")
 
     this = EventPlotter(files[0])
     this.plot()
-    this.show()
-
+    if SHOW:
+        this.show()
 
 def test_EventPlotter_flag_fast_response(bids_examples):
 
-    dataset = Path(bids_examples).joinpath("ds001")
+    dataset = Path(bids_examples) / "ds001"
     layout = BIDSLayout(dataset)
 
     files = layout.get(return_type="filename", subject="02", suffix="events")
@@ -102,7 +98,8 @@ def test_EventPlotter_flag_fast_response(bids_examples):
     this = EventPlotter(files[0])
     this.FAST_RESPONSE_THRESHOLD = 0.5
     this.plot()
-    this.show()
+    if SHOW:
+        this.show()
 
 
 def test_EventPlotter_too_many_events():
@@ -118,7 +115,7 @@ def test_EventPlotter_too_many_events():
 def test_EventPlotter_warning_event_column(bids_examples):
 
     with pytest.warns(UserWarning):
-        dataset = Path(bids_examples).joinpath("ds001")
+        dataset = Path(bids_examples) / "ds001"
         layout = BIDSLayout(dataset)
         files = layout.get(return_type="filename", subject="02", suffix="events")
         EventPlotter(files[0], event_column="foo")
@@ -131,23 +128,25 @@ def test_EventPlotter_no_file():
 
 def test_EventPlotter_include(bids_examples):
 
-    dataset = Path(bids_examples).joinpath("eeg_ds003654s_hed")
+    dataset = Path(bids_examples) / "eeg_ds003654s_hed"
     layout = BIDSLayout(dataset)
     files = layout.get(return_type="filename", subject="002", suffix="events")
     this = EventPlotter(
         files[0], event_column="event_type", include=["show_face", "show_circle"]
     )
     this.plot()
-    this.show()
+    if SHOW:
+        this.show()
 
 
 def test_EventPlotter_duration():
 
-    dataset = Path(get_test_data_path()).joinpath("ds000117")
+    dataset = Path(get_test_data_path()) / "ds000117"
     layout = BIDSLayout(dataset)
     files = layout.get(
         return_type="filename", subject="01", session="mri", suffix="events"
     )
     this = EventPlotter(files[0], event_column="stim_type")
     this.plot()
-    this.show()
+    if SHOW:
+        this.show()
