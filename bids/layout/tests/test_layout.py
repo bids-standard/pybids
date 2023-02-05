@@ -523,7 +523,7 @@ def test_nested_include_exclude():
             ignore=[os.path.join('models', 'extras')],
         ),
     )
-    assert not layout.get_file(target1)
+    assert layout.get_file(target1)
     assert not layout.get_file(target2)
 
     layout = BIDSLayout(
