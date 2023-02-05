@@ -177,7 +177,7 @@ class BIDSLayoutIndexer:
         to_check = to_check.as_posix()
         return self.validator.is_bids(to_check)
 
-    def _index_dir(self, path, config, default_action=None):
+    def _index_dir(self, path, config, force=None):
 
         abs_path = self._layout._root / path
 
@@ -209,24 +209,22 @@ class BIDSLayoutIndexer:
         for f in filenames:
             abs_fn = path / f
             # Skip files that fail validation, unless forcibly indexing
-            if not self._validate_file(abs_fn):
-                continue
-
-            self._index_file(abs_fn, config_entities)
+            if force or self._validate_file(abs_fn):
+                self._index_file(abs_fn, config_entities)
 
         self.session.commit()
 
         # Recursively index subdirectories
         for d in dirnames:
             d = path / d
-            valid_dir = _validate_path(
+            force = _validate_path(
                 d,
                 incl_patt=self._include_patterns,
                 excl_patt=self._exclude_patterns,
                 root=self._layout._root,
             )
-            if valid_dir is not False:
-                self._index_dir(d, list(config), default_action=default_action)
+            if force is not False:
+                self._index_dir(d, config, force=force)
 
     def _index_file(self, abs_fn, entities):
         """Create DB record for file and its tags. """
