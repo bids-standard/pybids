@@ -71,14 +71,12 @@ class BIDSLayoutIndexer:
 
     Parameters
     ----------
-    valid_only : bool, optional
+    validate : bool, optional
         If True, all files are checked for BIDS compliance when first indexed,
         and non-compliant files are ignored. This provides a convenient way to
         restrict file indexing to only those files defined in the "core" BIDS
-        spec, as setting ``valid_only=True`` will lead noncompliant files
+        spec, as setting ``validate=True`` will lead noncompliant files
         like ``sub-01/nonbidsfile.txt`` to be ignored.
-    validate : bool, optional
-        Deprecated. Please use ``valid_only``.
     ignore : str or SRE_Pattern or list
         Path(s) to exclude from indexing. Each path is either a string or a
         SRE_Pattern object (i.e., compiled regular expression). If a string is
@@ -110,22 +108,13 @@ class BIDSLayoutIndexer:
 
     def __init__(
         self,
-        valid_only=None,
-        validate=None,
+        validate=False,
         ignore=None,
         force_index=None,
         index_metadata=True,
         config_filename='layout_config.json',
         **filters,
     ):
-        if validate is not None:
-            warnings.warn(
-                "The validate argument of BIDSLayoutIndexer is deprecated; "
-                "please set valid_only instead."
-            )
-
-        valid_only = valid_only if valid_only is not None else validate
-
         self.ignore = ignore
         self.force_index = force_index
         self.index_metadata = index_metadata
@@ -133,7 +122,7 @@ class BIDSLayoutIndexer:
         self.filters = filters
         self.validator = None
 
-        if valid_only or valid_only is None:
+        if validate:
             self.validator = BIDSValidator(index_associated=True)
 
         # Layout-dependent attributes to be set in __call__()

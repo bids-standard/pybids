@@ -408,7 +408,7 @@ def test_ignore_files(layout_ds005):
     # overrides the default - but 'model/extras/' should still be ignored
     # because of the regex.
     ignore = [re.compile('xtra'), 'dummy']
-    indexer = BIDSLayoutIndexer(valid_only=False, ignore=ignore)
+    indexer = BIDSLayoutIndexer(validate=False, ignore=ignore)
     layout2 = BIDSLayout(data_dir, indexer=indexer)
     assert target1 in layout2.files
     assert target2 not in layout2.files
@@ -435,7 +435,7 @@ def test_nested_include_exclude():
     layout = BIDSLayout(
         data_dir,
         indexer=BIDSLayoutIndexer(
-            valid_only=False,
+            validate=False,
             force_index=[os.path.join('models', 'extras')],
             ignore=['models'],
         ),
@@ -447,7 +447,7 @@ def test_nested_include_exclude():
     layout = BIDSLayout(
         data_dir,
         indexer=BIDSLayoutIndexer(
-            valid_only=False,
+            validate=False,
             force_index=[os.path.join('models', 'extras')],
             ignore=[re.compile('^/models/.+$')],
         ),
@@ -459,7 +459,7 @@ def test_nested_include_exclude():
     layout = BIDSLayout(
         data_dir,
         indexer=BIDSLayoutIndexer(
-            valid_only=False,
+            validate=False,
             force_index=['models'],
             ignore=[os.path.join('models', 'extras')],
         ),
@@ -471,7 +471,7 @@ def test_nested_include_exclude():
     layout = BIDSLayout(
         data_dir,
         indexer=BIDSLayoutIndexer(
-            valid_only=False,
+            validate=False,
             force_index=[re.compile('^/models/?$')],
             ignore=[os.path.join('models', 'extras')],
         ),
@@ -483,7 +483,7 @@ def test_nested_include_exclude():
     layout = BIDSLayout(
         data_dir,
         indexer=BIDSLayoutIndexer(
-            valid_only=False,
+            validate=False,
             force_index=['models', target2],
             ignore=[os.path.join('models', 'extras')],
         ),
@@ -495,7 +495,7 @@ def test_nested_include_exclude():
     layout = BIDSLayout(
         data_dir,
         indexer=BIDSLayoutIndexer(
-            valid_only=False,
+            validate=False,
             force_index=[os.path.join('models', 'extras')],
             ignore=[re.compile('^/models/.+$')],
         ),
@@ -507,7 +507,7 @@ def test_nested_include_exclude():
     layout = BIDSLayout(
         data_dir,
         indexer=BIDSLayoutIndexer(
-            valid_only=True,
+            validate=True,
             force_index=['models'],
             ignore=[os.path.join('models', 'extras')],
         ),
@@ -518,7 +518,7 @@ def test_nested_include_exclude():
     layout = BIDSLayout(
         data_dir,
         indexer=BIDSLayoutIndexer(
-            valid_only=True,
+            validate=True,
             force_index=[re.compile('^/models/?$')],
             ignore=[os.path.join('models', 'extras')],
         ),
@@ -529,7 +529,7 @@ def test_nested_include_exclude():
     layout = BIDSLayout(
         data_dir,
         indexer=BIDSLayoutIndexer(
-            valid_only=True,
+            validate=True,
             force_index=['models', target2],
             ignore=[os.path.join('models', 'extras')],
         ),
@@ -549,7 +549,7 @@ def test_nested_include_exclude_with_regex():
     layout = BIDSLayout(
         data_dir,
         indexer=BIDSLayoutIndexer(
-            valid_only=False,
+            validate=False,
             ignore=[patt2],
             force_index=[patt1],
         )
@@ -562,7 +562,7 @@ def test_nested_include_exclude_with_regex():
     layout = BIDSLayout(
         data_dir,
         indexer=BIDSLayoutIndexer(
-            valid_only=False,
+            validate=False,
             ignore=[patt1],
             force_index=[patt2],
         )
@@ -576,7 +576,7 @@ def test_nested_include_exclude_with_regex():
     layout = BIDSLayout(
         data_dir,
         indexer=BIDSLayoutIndexer(
-            valid_only=True,
+            validate=True,
             ignore=[patt2],
             force_index=[patt1],
         )
@@ -589,7 +589,7 @@ def test_nested_include_exclude_with_regex():
     layout = BIDSLayout(
         data_dir,
         indexer=BIDSLayoutIndexer(
-            valid_only=True,
+            validate=True,
             ignore=[patt1],
             force_index=[patt2],
         )
