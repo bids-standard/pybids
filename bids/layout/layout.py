@@ -161,7 +161,7 @@ class BIDSLayout(object):
                 validate=validate, absolute_paths=absolute_paths,
                 derivatives=None, sources=self, config=None,
                 regex_search=regex_search, reset_database=reset_database,
-                indexer=indexer, **indexer_kwargs)
+                **indexer_kwargs)
 
     @property
     def root(self):
@@ -477,11 +477,13 @@ class BIDSLayout(object):
         kwargs['config'] = kwargs.get('config') or ['bids', 'derivatives']
         kwargs['sources'] = kwargs.get('sources') or self
 
+        # TODO: Derivatives cannot be validated
+        kwargs.pop("validate", None)
         for name, deriv in deriv_paths.items():
             if parent_database_path:
                 child_database_path = parent_database_path / name
                 kwargs['database_path'] = child_database_path
-            self.derivatives[name] = BIDSLayout(deriv, **kwargs)
+            self.derivatives[name] = BIDSLayout(deriv, validate=False, **kwargs)
 
     def to_df(self, metadata=False, **filters):
         """Return information for BIDSFiles tracked in Layout as pd.DataFrame.

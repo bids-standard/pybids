@@ -31,11 +31,8 @@ EXAMPLE_DERIVATIVES_DESCRIPTION = {
 
 
 DEFAULT_LOCATIONS_TO_IGNORE = {
-    "code",
-    "stimuli",
-    "sourcedata",
-    "models",
-    re.compile(r'^\.'),
+    re.compile(r"^/(code|models|sourcedata|stimuli)"),
+    re.compile(r'/\.'),
 }
 
 def absolute_path_deprecation_warning():
