@@ -312,6 +312,9 @@ class BIDSFile(Base):
             A dict, where keys are entity names and values are Entity
             instances.
         """
+        if metadata is None and values == 'tags':
+            return self.entities
+
         session = object_session(self)
         query = (session.query(Tag)
                  .filter_by(file_path=self.path)
