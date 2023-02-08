@@ -32,7 +32,7 @@ PyBIDS has a number of dependencies. The core querying functionality requires on
 ## Usage
 Get started by checking out [the documentation](https://bids-standard.github.io/pybids)!
 
-Or you can start at [our tutorial](examples/pybids_tutorial.md)! You can run it interactively without installing anything via [binder](https://mybinder.org/v2/gh/bids-standard/pybids/master). Click on the link and then navigate to `examples/pybids_tutorial.md` to explore.
+Or you can start at [our tutorial](https://bids-standard.github.io/pybids/examples/pybids_tutorial.html)! You can run it interactively without installing anything via [binder](https://mybinder.org/v2/gh/bids-standard/pybids/master). Click on the link and then navigate to `doc/examples/pybids_tutorial.md` to explore.
 
 ## How to cite
 To credit PyBIDS in your work, please cite both the [JOSS paper](https://joss.theoj.org/papers/10.21105/joss.01294) and the [Zenodo archive](https://zenodo.org/record/3363985). The former provides a high level description of the package, and the latter points to a permanent record of all PyBIDS versions (we encourage you to cite the specific version you used). Example citations (for PyBIDS 0.9.3):
