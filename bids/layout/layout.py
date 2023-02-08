@@ -533,7 +533,6 @@ class BIDSLayout(object):
             data.loc[o] = pd.Series(dtype=float)
 
         return data.reset_index()
-    
     def get(self, return_type='object', target=None, scope='all',
             regex_search=False, absolute_paths=None, invalid_filters='error',
             **filters):
