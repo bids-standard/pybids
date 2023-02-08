@@ -533,7 +533,6 @@ class BIDSLayout(object):
             data.loc[o] = pd.Series(dtype=float)
 
         return data.reset_index()
-
     def get(self, return_type='object', target=None, scope='all',
             regex_search=False, absolute_paths=None, invalid_filters='error',
             **filters):
@@ -673,10 +672,8 @@ class BIDSLayout(object):
                 raise TargetError('If return_type is "id" or "dir", a valid '
                                  'target entity must also be specified.')
 
-            metadata = target not in self.get_entities(metadata=False)
-
             if return_type == 'id':
-                ent_iter = (x.get_entities(metadata=metadata) for x in results)
+                ent_iter = (x.entities for x in results)
                 results = list({
                     ents[target] for ents in ent_iter if target in ents
                 })

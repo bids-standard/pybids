@@ -683,6 +683,9 @@ def test_get_tr(layout_7t_trt):
     tr = layout_7t_trt.get_tr(subject=['01', '02'], acquisition="prefrontal")
     assert tr == 4.0
 
+    tr = layout_7t_trt.get_RepetitionTime()
+    assert sum([t in tr for t in [3.0, 4.0]]) == 2
+
 
 def test_to_df(layout_ds117):
     # Only filename entities
