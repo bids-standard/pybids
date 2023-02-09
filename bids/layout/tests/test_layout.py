@@ -17,10 +17,7 @@ from bids.exceptions import (
     NoMatchError,
     TargetError,
 )
-from bids.layout import BIDSLayout, Query
-from bids.layout.index import BIDSLayoutIndexer
-from bids.layout.models import Config
-from bids.layout.utils import PaddedInt
+from bids.layout import BIDSLayout
 from bids.tests import get_test_data_path
 from bids.utils import natural_sort
 
@@ -205,8 +202,8 @@ def test_get_metadata5(layout_7t_trt):
     result = layout_7t_trt.get_metadata(
         join(layout_7t_trt.root, *target), include_entities=True)
     assert result['EchoTime'] == 0.020
-    assert result['subject'] == '01'
-    assert result['acquisition'] == 'fullbrain'
+    assert result['Subject'] == '01'
+    assert result['Acquisition'] == 'fullbrain'
 
 
 def test_get_metadata_via_bidsfile(layout_7t_trt):

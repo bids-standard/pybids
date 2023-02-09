@@ -354,9 +354,9 @@ class BIDSLayout(BIDSLayoutMRIMixin, BIDSLayoutWritingMixin, BIDSLayoutVariables
         file = self.dataset.get_file(path)
         md = file.get_metadata()
         if md and include_entities:
-            schema_entities = {e.entity_: e.literal_ for e in list(self.schema.EntityEnum)}
+            schema_entities = {e.literal_: e.display_name_ for e in list(self.schema.EntityEnum)}
             md.update({schema_entities[e.key]: e.value for e in file.entities})
-        bmd = BIDSMetadata(file.path)
+        bmd = BIDSMetadata(file['name'])
         bmd.update(md)
         return bmd
 
