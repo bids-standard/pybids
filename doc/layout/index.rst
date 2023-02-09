@@ -34,7 +34,7 @@ the file tree. By default, defined BIDS entities include things like "subject",
 
     To exclude folders from indexing (e.g. only index a subset of subjects to save time),
     you can pass a list of folder names, or a regex pattern to the ``ignore`` argument. 
-    For example, to ignore all subject directories except "25", you could do:
+    For example, to ignore all subjects except "25":
 
         >>> BIDSLayout(bids_dir, ignore=[re.compile(r"(sub-(?!25)\d*/)")])
 
