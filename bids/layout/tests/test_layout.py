@@ -202,8 +202,8 @@ def test_get_metadata5(layout_7t_trt):
     result = layout_7t_trt.get_metadata(
         join(layout_7t_trt.root, *target), include_entities=True)
     assert result['EchoTime'] == 0.020
-    assert result['Subject'] == '01'
-    assert result['Acquisition'] == 'fullbrain'
+    assert result['subject'] == '01'
+    assert result['acquisition'] == 'fullbrain'
 
 
 def test_get_metadata_via_bidsfile(layout_7t_trt):
