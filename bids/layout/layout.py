@@ -574,7 +574,6 @@ class BIDSLayout(BIDSLayoutMRIMixin, BIDSLayoutWritingMixin, BIDSLayoutVariables
                                   'entity must also be specified.')
             # Resolve proper target names to their "key", e.g., session to ses
             # XXX should we allow ses?
-            target = getattr(self.dataset._schema.EntityEnum, target, target)
             self_entities = self.get_entities()
             if target not in self_entities:
                 potential = list(self_entities.keys())
