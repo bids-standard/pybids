@@ -139,6 +139,13 @@ class BIDSFile:
         """
         try:
             entities = self._artifact.get_entities()
+
+            # Convert literal entity values to their names
+            # schema_entities = {e.literal_: e.name for e in list(self.schema.EntityEnum)}
+            # entities = {schema_entities[k]: v for k, v in entities.items()}
+            entities['suffix'] = self._artifact.suffix
+            entities['extension'] = self._artifact.extension
+
             if metadata:
                 entities = {**entities, **self._artifact.get_metadata()}
         except AttributeError:

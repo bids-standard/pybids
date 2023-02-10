@@ -3,9 +3,8 @@ BIDSLayout class."""
 
 import json
 import os
-import re
 import shutil
-from os.path import join, abspath, basename
+from os.path import join, abspath
 from pathlib import Path
 
 import numpy as np
@@ -17,10 +16,7 @@ from bids.exceptions import (
     NoMatchError,
     TargetError,
 )
-from bids.layout import BIDSLayout, Query
-from bids.layout.index import BIDSLayoutIndexer
-from bids.layout.models import Config
-from bids.layout.utils import PaddedInt
+from bids.layout import BIDSLayout
 from bids.tests import get_test_data_path
 from bids.utils import natural_sort
 
@@ -236,7 +232,7 @@ def test_get_metadata_error(layout_7t_trt):
 
 def test_get_with_bad_target(layout_7t_trt):
     with pytest.raises(TargetError) as exc:
-        layout_7t_trt.get(target='unicorn')
+        layout_7t_trt.get(target='unicorn', return_type='id')
     msg = str(exc.value)
     assert 'subject' in msg and 'reconstruction' in msg and 'proc' in msg
     with pytest.raises(TargetError) as exc:
@@ -294,7 +290,7 @@ def test_get_return_type_dir(layout_7t_trt):
 def test_get_val_none(layout_7t_trt):
     t1w_files = layout_7t_trt.get(subject='01', session='1', suffix='T1w')
     assert len(t1w_files) == 1
-    assert 'acq' not in t1w_files[0].name
+    assert 'acq' not in t1w_files[0].path
     t1w_files = layout_7t_trt.get(
         subject='01', session='1', suffix='T1w', acquisition=None)
     assert len(t1w_files) == 1
@@ -362,18 +358,18 @@ def test_layout_with_multi_derivs(layout_ds005_multi_derivs):
 def test_query_derivatives(layout_ds005_derivs):
     result = layout_ds005_derivs.get(suffix='events', return_type='object',
                                      extension='.tsv')
-    result = [f.name for f in result]
+    result = [f.path for f in result]
     assert len(result) == 49
     assert 'sub-01_task-mixedgamblestask_run-01_desc-extra_events.tsv' in result
     result = layout_ds005_derivs.get(suffix='events', return_type='object',
                                      scope='raw', extension='.tsv')
     assert len(result) == 48
-    result = [f.name for f in result]
+    result = [f.path for f in result]
     assert 'sub-01_task-mixedgamblestask_run-01_desc-extra_events.tsv' not in result
     result = layout_ds005_derivs.get(suffix='events', return_type='object',
                                      desc='extra', extension='.tsv')
     assert len(result) == 1
-    result = [f.name for f in result]
+    result = [f.path for f in result]
     assert 'sub-01_task-mixedgamblestask_run-01_desc-extra_events.tsv' in result
 
 

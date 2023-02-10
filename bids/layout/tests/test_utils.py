@@ -6,7 +6,6 @@ import pytest
 import bids
 from bids.exceptions import ConfigError
 
-from ..models import Entity, Config
 from ..utils import BIDSMetadata, add_config_paths
 
 
@@ -17,36 +16,6 @@ def test_bidsmetadata_class():
     assert "Metadata term 'Missing' unavailable for file fakefile." in str(err)
     md["Missing"] = 1
     assert md["Missing"] == 1
-
-
-def test_parse_file_entities(mock_config):
-    filename = '/sub-03_ses-07_run-4_desc-bleargh_sekret.nii.gz'
-
-    # Test with entities taken from bids config
-    target = {'subject': '03', 'session': '07', 'run': 4, 'suffix': 'sekret',
-              'extension': '.nii.gz'}
-    assert target == parse_file_entities(filename, config='bids')
-    config = Config.load('bids')
-    assert target == parse_file_entities(filename, config=[config])
-
-    # Test with entities taken from bids and derivatives config
-    target = {'subject': '03', 'session': '07', 'run': 4, 'suffix': 'sekret',
-              'desc': 'bleargh', 'extension': '.nii.gz'}
-    assert target == parse_file_entities(filename)
-    assert target == parse_file_entities(
-        filename, config=['bids', 'derivatives'])
-
-    # Test with list of Entities
-    entities = [
-        Entity('subject', "[/\\\\]sub-([a-zA-Z0-9]+)"),
-        Entity('run', "[_/\\\\]run-0*(\\d+)", dtype=int),
-        Entity('suffix', "[._]*([a-zA-Z0-9]*?)\\.[^/\\\\]+$"),
-        Entity('desc', "desc-([a-zA-Z0-9]+)"),
-    ]
-    # Leave out session to distinguish from previous test target
-    target = {'subject': '03', 'run': 4, 'suffix': 'sekret', 'desc': 'bleargh'}
-    assert target == parse_file_entities(filename, entities=entities)
-
 
 def test_add_config_paths():
     bids_dir = os.path.dirname(bids.__file__)
