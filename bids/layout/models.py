@@ -4,7 +4,7 @@ import os
 from typing import Union
 from pathlib import Path
 import json
-from ancpbids.model_v1_8_0 import Artifact
+from ancpbids.model_v1_8_0 import Artifact, Dataset
 from ancpbids.utils import parse_bids_name
 
 from ..utils import listify
@@ -37,9 +37,10 @@ class BIDSFile:
                 break
         return cls(path)
 
-    def __init__(self, file_ref: Union[str, os.PathLike, Artifact]):
+    def __init__(self, file_ref: Union[str, os.PathLike, Artifact], schema):
         self._path = None
         self._artifact = None
+        self._schema = schema # Adding this to be able to convert metadata
         if isinstance(file_ref, (str, os.PathLike)):
             self._path = Path(file_ref)
         elif isinstance(file_ref, Artifact):
@@ -106,7 +107,7 @@ class BIDSFile:
     def get_metadata(self):
         """Return all metadata associated with the current file. """
         md = BIDSMetadata(self.path)
-        md.update(self.get_entities(metadata=True))
+        md.update(self._artifact.get_metadata())
         return md
 
     @property
@@ -139,10 +140,9 @@ class BIDSFile:
         """
         try:
             entities = self._artifact.get_entities()
-
             # Convert literal entity values to their names
-            # schema_entities = {e.literal_: e.name for e in list(self.schema.EntityEnum)}
-            # entities = {schema_entities[k]: v for k, v in entities.items()}
+            known_entities = {e.value['name']: e.name for e in list(self._schema.EntityEnum)}
+            entities = {known_entities[k] if k in known_entities else k: v for k, v in entities.items()}
             entities['suffix'] = self._artifact.suffix
             entities['extension'] = self._artifact.extension
 

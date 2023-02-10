@@ -421,7 +421,7 @@ class BIDSLayout(BIDSLayoutMRIMixin, BIDSLayoutWritingMixin, BIDSLayoutVariables
         results = parse_bids_name(filename)
 
         entities = results.pop('entities')
-        schema_entities = {e.literal_: e.name for e in list(self.schema.EntityEnum)}
+        schema_entities = {e.value['name']: e.name for e in list(self.schema.EntityEnum)}
         entities = {schema_entities[k]: v for k, v in entities.items()}
         results = {**entities, **results}
 
@@ -614,7 +614,7 @@ class BIDSLayout(BIDSLayoutMRIMixin, BIDSLayoutWritingMixin, BIDSLayoutVariables
                 else:
                     message = "Valid targets are: {}".format(potential)
                 raise TargetError(f"Unknown target '{target}'. {message}")  
-            target = target_match[0].name
+
         folder = self.dataset
         result = query(folder, return_type, target, scope, extension, suffix, regex_search, **entities)
         if return_type == 'file':
@@ -622,7 +622,7 @@ class BIDSLayout(BIDSLayoutMRIMixin, BIDSLayoutWritingMixin, BIDSLayoutVariables
         if return_type == "object":
             if result:
                 result = natural_sort(
-                    [BIDSFile(res) for res in result],
+                    [BIDSFile(res, schema=self.schema) for res in result],
                     "path"
                 )
         return result
