@@ -571,9 +571,6 @@ class BIDSLayout(BIDSLayoutMRIMixin, BIDSLayoutWritingMixin, BIDSLayoutVariables
             if target is None:
                 raise TargetError(f'If return_type is "id" or "dir", a valid target '
                                   'entity must also be specified.')
-            # Resolve proper target names to their "key", e.g., session to ses
-            # XXX should we allow ses?
-            assert 0
             self_entities = self.get_entities()
             if target not in self_entities:
                 potential = list(self_entities.keys())
