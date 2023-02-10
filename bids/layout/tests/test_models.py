@@ -1,18 +1,14 @@
 """Tests of functionality in the models module."""
 
-import sys
 import os
 import pytest
 import copy
 import json
 from pathlib import Path
 
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
 import numpy as np
 
-from bids.layout.models import (BIDSFile, Entity, Tag, Base, Config,
-                                FileAssociation, BIDSImageFile, LayoutInfo)
+from bids.layout.models import (BIDSFile, BIDSImageFile)
 from bids.layout.utils import PaddedInt
 from bids.tests import get_test_data_path
 

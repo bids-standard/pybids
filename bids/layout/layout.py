@@ -26,6 +26,7 @@ __all__ = ['BIDSLayout, Query']
 
 from ..utils import natural_sort, listify
 
+
 class BIDSLayoutWritingMixin:
     def build_path(self, source, path_patterns=None, strict=False,
                    scope='all', validate=True, absolute_paths=None):
@@ -264,11 +265,32 @@ class BIDSLayout(BIDSLayoutMRIMixin, BIDSLayoutWritingMixin, BIDSLayoutVariables
         database_path: Optional[str]=None,
         reset_database: Optional[bool]=None,
         indexer: Optional[Callable]=None,
+        absolute_paths: Optional[bool]=None,
+        ignore: Optional[List[str]]=None,
+        force_index: Optional[List[str]]=None,
         **kwargs,
     ):
         if isinstance(root, Path):
             root = root.absolute()
-        self.dataset = load_dataset(root)
+
+        if ignore is None:
+            # If there is no .bidsignore file, apply default ignore patterns
+            if not (Path(root) / '.bidsignore').exists():
+                ignore = ['.*', 'models', 'stimuli', 'code', 'sourcedata']
+                warnings.warn(
+                    """ No .bidsignore file found. Setting default ignore patterns.
+                    In future versions of pybids a .bidsignore file will be 
+                    required to ignore files. """,
+                    DeprecationWarning
+                )
+
+        if force_index is not None:
+            warnings.warn(
+                "force_index no longer has any effect and will be removed",
+                DeprecationWarning
+            )
+
+        self.dataset = load_dataset(root, ignore=ignore)
         self.schema = self.dataset.get_schema()
         self.validationReport = None
 
@@ -295,6 +317,11 @@ class BIDSLayout(BIDSLayoutMRIMixin, BIDSLayoutWritingMixin, BIDSLayoutVariables
                 "indexer no longer has any effect and will be removed",
                 DeprecationWarning
             )
+        if absolute_paths is not None:
+            warnings.warn(
+                "absolute_paths no longer has any effect and will be removed",
+                DeprecationWarning
+            )
         if kwargs:
             warnings.warn(f"Unknown keyword arguments: {kwargs}")
         if config is not None:
@@ -312,8 +339,12 @@ class BIDSLayout(BIDSLayoutMRIMixin, BIDSLayoutWritingMixin, BIDSLayoutVariables
         except KeyError:
             pass
         if key.startswith('get_'):
-            ent_name = key.replace('get_', '')
-            ent_name = self.schema.fuzzy_match_entity_key(ent_name)
+            orig_ent_name = key.replace('get_', '')
+            ent_name = self.schema.fuzzy_match_entity(orig_ent_name).name
+            if ent_name not in self.get_entities():
+                raise BIDSEntityError(
+                    "'get_{}' can't be called because '{}' isn't a "
+                    "recognized entity name.".format(orig_ent_name, orig_ent_name))
             return partial(self.get, return_type='id', target=ent_name)
         # Spit out default message if we get this far
         raise AttributeError("%s object has no attribute named %r" %
@@ -352,10 +383,8 @@ class BIDSLayout(BIDSLayoutMRIMixin, BIDSLayoutWritingMixin, BIDSLayoutVariables
         """
         path = convert_to_relative(self.dataset, path)
         file = self.dataset.get_file(path)
-        md = file.get_metadata()
-        if md and include_entities:
-            md.update(file.entities)
-        bmd = BIDSMetadata(file['name'])
+        md = file.get_metadata(include_entities=include_entities)
+        bmd = BIDSMetadata(file.get_absolute_path())
         bmd.update(md)
         return bmd
 
@@ -389,7 +418,10 @@ class BIDSLayout(BIDSLayoutMRIMixin, BIDSLayoutWritingMixin, BIDSLayoutVariables
             values extracted from the filename.
         """
         results = parse_bids_name(filename)
+
         entities = results.pop('entities')
+        schema_entities = {e.literal_: e.name for e in list(self.schema.EntityEnum)}
+        entities = {schema_entities[k]: v for k, v in entities.items()}
         results = {**entities, **results}
 
         if entities:
@@ -566,36 +598,48 @@ class BIDSLayout(BIDSLayoutMRIMixin, BIDSLayoutWritingMixin, BIDSLayoutVariables
         """
         if regex_search is None:
             regex_search = self._regex_search
+
         # Provide some suggestions if target is specified and invalid.
         if return_type in ("dir", "id"):
+<<<<<<< HEAD
             if target is None:
                 raise TargetError(f'If return_type is "id" or "dir", a valid target '
                                   'entity must also be specified.')
             self_entities = self.get_entities()
             if target not in self_entities:
                 potential = list(self_entities.keys())
+=======
+            # Resolve proper target names to their "key", e.g., session to ses
+            # XXX should we allow ses?
+            target_match = [e for e in self.dataset._schema.EntityEnum 
+                if target in [e.name, e.literal_]]
+            potential = list(self.get_entities().keys())
+            if (not target_match) or target_match[0].name not in potential:
+>>>>>>> rf/ancp-layout
                 suggestions = difflib.get_close_matches(target, potential)
                 if suggestions:
                     message = "Did you mean one of: {}?".format(suggestions)
                 else:
                     message = "Valid targets are: {}".format(potential)
-                raise TargetError(f"Unknown target '{target}'. {message}")
+                raise TargetError(f"Unknown target '{target}'. {message}")  
+            target = target_match[0].name
         folder = self.dataset
         result = query(folder, return_type, target, scope, extension, suffix, regex_search, **entities)
-        if return_type == 'files':
+        if return_type == 'file':
             result = natural_sort(result)
         if return_type == "object":
-            result = natural_sort(
-                [BIDSFile(res) for res in result],
-                "path"
-            )
+            if result:
+                result = natural_sort(
+                    [BIDSFile(res) for res in result],
+                    "path"
+                )
         return result
 
     @property
     def entities(self):
         return self.get_entities()
 
-    def get_entities(self, scope: str = None, sort: bool = False) -> dict:
+    def get_entities(self, scope: str = None, sort: bool = False, long_form: bool = True) -> dict:
         """Returns a unique set of entities found within the dataset as a dict.
         Each key of the resulting dict contains a list of values (with at least one element).
 
@@ -613,13 +657,19 @@ class BIDSLayout(BIDSLayoutMRIMixin, BIDSLayoutWritingMixin, BIDSLayoutVariables
             see BIDSLayout.get()
         sort: default is `False`
             whether to sort the keys by name
+        long_form: default is `True`
+            whether to return the long form of the entity name (e.g., 'subject' instead of 'sub')
 
         Returns
         -------
         dict
             a unique set of entities found within the dataset as a dict
         """
+<<<<<<< HEAD
         return query_entities(self.dataset, scope, sort, long_form=True)
+=======
+        return query_entities(self.dataset, scope, sort, long_form=long_form)
+>>>>>>> rf/ancp-layout
 
     def get_dataset_description(self, scope='self', all_=False) -> Union[List[Dict], Dict]:
         """Return contents of dataset_description.json.
@@ -655,9 +705,74 @@ class BIDSLayout(BIDSLayoutMRIMixin, BIDSLayoutWritingMixin, BIDSLayoutVariables
         """
         return self.dataset
 
+    def get_fieldmap(self, path, return_list=False):
+        """Get fieldmap(s) for specified path."""
+        fieldmaps = self._get_fieldmaps(path)
+
+        if return_list:
+            return fieldmaps
+        else:
+            if len(fieldmaps) == 1:
+                return fieldmaps[0]
+            elif len(fieldmaps) > 1:
+                raise ValueError("More than one fieldmap found, but the "
+                                 "'return_list' argument was set to False. "
+                                 "Either ensure that there is only one "
+                                 "fieldmap for this image, or set the "
+                                 "'return_list' argument to True and handle "
+                                 "the result as a list.")
+            else:  # len(fieldmaps) == 0
+                return None
+
+    def _get_fieldmaps(self, path):
+        path = str(path)
+        sub = self.parse_file_entities(path)['subject']
+        fieldmap_set = []
+        suffix = '(phase1|phasediff|epi|fieldmap)'
+        files = self.get(subject=sub, suffix=suffix, regex_search=True,
+                         extension=['.nii.gz', '.nii'])
+        for file in files:
+            metadata = self.get_metadata(file.path)
+            if metadata and "IntendedFor" in metadata.keys():
+                intended_for = listify(metadata["IntendedFor"])
+                # path uses local os separators while _suff read from json likely uses author's os separators, so we
+                # convert _suff to use local separators.
+                if any([path.endswith(str(Path(_suff))) for _suff in intended_for]):
+                    cur_fieldmap = {}
+                    if file.entities['suffix'] == "phasediff":
+                        cur_fieldmap = {"phasediff": file.path,
+                                        "magnitude1": file.path.replace(
+                                            "phasediff", "magnitude1"),
+                                        "suffix": "phasediff"}
+                        magnitude2 = file.path.replace(
+                            "phasediff", "magnitude2")
+                        if Path(magnitude2).is_file():
+                            cur_fieldmap['magnitude2'] = magnitude2
+                    elif file.entities['suffix'] == "phase1":
+                        cur_fieldmap["phase1"] = file.path
+                        cur_fieldmap["magnitude1"] = \
+                            file.path.replace("phase1", "magnitude1")
+                        cur_fieldmap["phase2"] = \
+                            file.path.replace("phase1", "phase2")
+                        cur_fieldmap["magnitude2"] = \
+                            file.path.replace("phase1", "magnitude2")
+                        cur_fieldmap["suffix"] = "phase"
+                    elif file.entities['suffix'] == "epi":
+                        cur_fieldmap["epi"] = file.path
+                        cur_fieldmap["suffix"] = "epi"
+                    elif file.entities['suffix'] == "fieldmap":
+                        cur_fieldmap["fieldmap"] = file.path
+                        cur_fieldmap["magnitude"] = \
+                            file.path.replace("fieldmap", "magnitude")
+                        cur_fieldmap["suffix"] = "fieldmap"
+                    fieldmap_set.append(cur_fieldmap)
+        return fieldmap_set
+
     def add_derivatives(self, path):
-        path = convert_to_relative(self.dataset, path)
-        self.dataset.create_derivative(path=path)
+        paths = listify(path)
+        for path in paths:
+            path = convert_to_relative(self.dataset, path)
+            self.dataset.create_derivative(path=path)
 
     def write_derivative(self, derivative):
         """Writes the provided derivative folder to the dataset.
@@ -757,8 +872,8 @@ class BIDSLayout(BIDSLayoutMRIMixin, BIDSLayoutWritingMixin, BIDSLayoutVariables
     def __repr__(self):
         """Provide a tidy summary of key properties."""
         ents = self.get_entities()
-        n_subjects = len(set(ents['sub'])) if 'sub' in ents else 0
-        n_sessions = len(set(ents['ses'])) if 'ses' in ents else 0
+        n_subjects = len(set(ents['subject'])) if 'subject' in ents else 0
+        n_sessions = len(set(ents['session'])) if 'session' in ents else 0
         n_runs = len(set(ents['run'])) if 'run' in ents else 0
         s = ("BIDS Layout: ...{} | Subjects: {} | Sessions: {} | "
              "Runs: {}".format(self.dataset.base_dir_, n_subjects, n_sessions, n_runs))
