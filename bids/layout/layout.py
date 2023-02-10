@@ -602,21 +602,12 @@ class BIDSLayout(BIDSLayoutMRIMixin, BIDSLayoutWritingMixin, BIDSLayoutVariables
 
         # Provide some suggestions if target is specified and invalid.
         if return_type in ("dir", "id"):
-<<<<<<< HEAD
             if target is None:
                 raise TargetError(f'If return_type is "id" or "dir", a valid target '
                                   'entity must also be specified.')
             self_entities = self.get_entities()
             if target not in self_entities:
                 potential = list(self_entities.keys())
-=======
-            # Resolve proper target names to their "key", e.g., session to ses
-            # XXX should we allow ses?
-            target_match = [e for e in self.dataset._schema.EntityEnum 
-                if target in [e.name, e.literal_]]
-            potential = list(self.get_entities().keys())
-            if (not target_match) or target_match[0].name not in potential:
->>>>>>> rf/ancp-layout
                 suggestions = difflib.get_close_matches(target, potential)
                 if suggestions:
                     message = "Did you mean one of: {}?".format(suggestions)
@@ -666,11 +657,7 @@ class BIDSLayout(BIDSLayoutMRIMixin, BIDSLayoutWritingMixin, BIDSLayoutVariables
         dict
             a unique set of entities found within the dataset as a dict
         """
-<<<<<<< HEAD
-        return query_entities(self.dataset, scope, sort, long_form=True)
-=======
         return query_entities(self.dataset, scope, sort, long_form=long_form)
->>>>>>> rf/ancp-layout
 
     def get_dataset_description(self, scope='self', all_=False) -> Union[List[Dict], Dict]:
         """Return contents of dataset_description.json.
