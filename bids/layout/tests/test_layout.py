@@ -336,8 +336,8 @@ def test_layout_with_derivs(layout_ds005_derivs):
     event_file = "sub-01_task-mixedgamblestask_run-01_desc-extra_events.tsv"
     deriv_files = [f.name for f in files]
     assert event_file in deriv_files
-    entities = deriv.query_entities()
-    assert 'sub' in entities
+    entities = deriv.query_entities(long_form=True)
+    assert 'subject' in entities
 
 
 def test_layout_with_multi_derivs(layout_ds005_multi_derivs):

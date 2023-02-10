@@ -354,8 +354,7 @@ class BIDSLayout(BIDSLayoutMRIMixin, BIDSLayoutWritingMixin, BIDSLayoutVariables
         file = self.dataset.get_file(path)
         md = file.get_metadata()
         if md and include_entities:
-            schema_entities = {e.value['name']: e.name for e in list(self.schema.EntityEnum)}
-            md.update({schema_entities[e.key]: e.value for e in file.entities})
+            md.update(file.entities)
         bmd = BIDSMetadata(file['name'])
         bmd.update(md)
         return bmd
@@ -574,6 +573,7 @@ class BIDSLayout(BIDSLayoutMRIMixin, BIDSLayoutWritingMixin, BIDSLayoutVariables
                                   'entity must also be specified.')
             # Resolve proper target names to their "key", e.g., session to ses
             # XXX should we allow ses?
+            assert 0
             self_entities = self.get_entities()
             if target not in self_entities:
                 potential = list(self_entities.keys())
@@ -622,7 +622,7 @@ class BIDSLayout(BIDSLayoutMRIMixin, BIDSLayoutWritingMixin, BIDSLayoutVariables
         dict
             a unique set of entities found within the dataset as a dict
         """
-        return query_entities(self.dataset, scope, sort)
+        return query_entities(self.dataset, scope, sort, long_form=True)
 
     def get_dataset_description(self, scope='self', all_=False) -> Union[List[Dict], Dict]:
         """Return contents of dataset_description.json.
