@@ -236,7 +236,7 @@ def test_get_with_bad_target(layout_7t_trt):
     msg = str(exc.value)
     assert 'subject' in msg and 'reconstruction' in msg and 'proc' in msg
     with pytest.raises(TargetError) as exc:
-        layout_7t_trt.get(target='sub')
+        layout_7t_trt.get(target='subject')
     msg = str(exc.value)
     assert 'subject' in msg and 'reconstruction' not in msg
 
@@ -282,7 +282,7 @@ def test_bids_json(layout_7t_trt):
 
 
 def test_get_return_type_dir(layout_7t_trt):
-    res_relpath = layout_7t_trt.get(target='sub', return_type='dir')
+    res_relpath = layout_7t_trt.get(target='subject', return_type='dir')
     target_relpath = ["sub-{:02d}".format(i) for i in range(1, 11)]
     assert all([tp in res_relpath for tp in target_relpath])
 
@@ -322,7 +322,7 @@ def test_get_val_enum_any_optional(layout_7t_trt, layout_ds005):
 
 
 def test_get_return_sorted(layout_7t_trt):
-    paths = layout_7t_trt.get(target='sub', return_type='file')
+    paths = layout_7t_trt.get(target='subject', return_type='file')
     assert natural_sort(paths) == paths
 
 
