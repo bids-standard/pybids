@@ -18,7 +18,7 @@ from ..exceptions import (
 )
 
 from ancpbids import CustomOpExpr, EntityExpr, AllExpr, ValidationPlugin, load_dataset, validate_dataset, \
-    write_derivative
+    write_derivative, DatasetOptions
 from ancpbids.query import query, query_entities, FnMatchExpr, AnyExpr
 from ancpbids.utils import deepupdate, resolve_segments, convert_to_relative, parse_bids_name
 
@@ -274,7 +274,6 @@ class BIDSLayout(BIDSLayoutMRIMixin, BIDSLayoutWritingMixin, BIDSLayoutVariables
             root = root.absolute()
 
         if ignore is None:
-            # If there is no .bidsignore file, apply default ignore patterns
             if not (Path(root) / '.bidsignore').exists():
                 ignore = ['.*', 'models', 'stimuli', 'code', 'sourcedata']
                 warnings.warn(
@@ -290,7 +289,9 @@ class BIDSLayout(BIDSLayoutMRIMixin, BIDSLayoutWritingMixin, BIDSLayoutVariables
                 DeprecationWarning
             )
 
-        self.dataset = load_dataset(root, ignore=ignore)
+        options = DatasetOptions(ignore=ignore)
+
+        self.dataset = load_dataset(root, options=options)
         self.schema = self.dataset.get_schema()
         self.validationReport = None
 
