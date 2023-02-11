@@ -19,6 +19,7 @@ from bids.tests import get_test_data_path
 from bids.utils import natural_sort
 
 from bids.exceptions import (
+    BIDSChildDatasetError,
     BIDSDerivativesValidationError,
     BIDSValidationError,
     NoMatchError,
@@ -529,6 +530,27 @@ def test_accessing_deriv_by_pipeline_name_is_deprecated(layout_ds005_deriv_dummy
     assert len(deriv.files) == 4
 
 
+def test_cant_access_nonexistant_deriv_by_key(layout_ds005_deriv_dummy_vxxx):
+    with pytest.raises(KeyError):
+        layout_ds005_deriv_dummy_vxxx.derivatives['foo']
+
+
+def test_accessing_deriv_by_pipeline_name_via_method(layout_ds005_deriv_dummy_vxxx):
+    deriv = layout_ds005_deriv_dummy_vxxx.derivatives.get_pipeline('dummy')
+    assert deriv.files
+    assert len(deriv.files) == 4
+
+
+def test_cant_get_nonexistant_deriv_via_method(layout_ds005_deriv_dummy_vxxx):
+    with pytest.raises(KeyError):
+        layout_ds005_deriv_dummy_vxxx.derivatives.get_pipeline('foo')
+
+
+def test_cant_get_deriv_with_duplicate_pipeline_via_method(layout_ds005_deriv_both_dummies):
+    with pytest.raises(BIDSChildDatasetError):
+        layout_ds005_deriv_both_dummies.derivatives.get_pipeline('dummy')
+
+
 def test_layout_with_multi_derivs(layout_ds005_multi_derivs):
     assert layout_ds005_multi_derivs.root == join(get_test_data_path(), 'ds005')
     assert isinstance(layout_ds005_multi_derivs.files, dict)
@@ -545,6 +567,13 @@ def test_layout_with_multi_derivs(layout_ds005_multi_derivs):
     assert len(preproc) == 3
 
 
+def test_layout_with_conflicting_deriv_folders():
+    data_dir = join(get_test_data_path(), 'ds005')
+    layout = BIDSLayout(data_dir)
+    deriv_dir1 = join(get_test_data_path(), 'ds005_derivs', 'dummy')
+    deriv_dir2 = join(get_test_data_path(), 'ds005_derivs', 'dummy')
+    with pytest.raises(BIDSDerivativesValidationError):
+        layout.add_derivatives([deriv_dir1, deriv_dir2])
 
 
 def test_query_derivatives(layout_ds005_derivs):
