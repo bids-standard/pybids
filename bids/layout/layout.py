@@ -659,6 +659,17 @@ class BIDSLayout(BIDSLayoutMRIMixin, BIDSLayoutWritingMixin, BIDSLayoutVariables
         """
         return query_entities(self.dataset, scope, sort, long_form=long_form)
 
+    def _get_metadata_keys(self):
+        """Return a list of all metadata keys found in the dataset."""
+        
+        all_metadata_objects = self.dataset.select(self.schema.MetadataArtifact).objects()
+
+        keys = set()
+        for obj in all_metadata_objects:
+            keys.update(obj['contents'].keys())
+
+        return keys
+
     def get_dataset_description(self, scope='self', all_=False) -> Union[List[Dict], Dict]:
         """Return contents of dataset_description.json.
 
