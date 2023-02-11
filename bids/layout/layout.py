@@ -631,7 +631,7 @@ class BIDSLayout(BIDSLayoutMRIMixin, BIDSLayoutWritingMixin, BIDSLayoutVariables
     def entities(self):
         return self.get_entities()
 
-    def get_entities(self, scope: str = None, sort: bool = False, long_form: bool = True) -> dict:
+    def get_entities(self, scope: str = None, sort: bool = False, long_form: bool = True, metadata: bool = False) -> dict:
         """Returns a unique set of entities found within the dataset as a dict.
         Each key of the resulting dict contains a list of values (with at least one element).
 
@@ -657,7 +657,14 @@ class BIDSLayout(BIDSLayoutMRIMixin, BIDSLayoutWritingMixin, BIDSLayoutVariables
         dict
             a unique set of entities found within the dataset as a dict
         """
-        return query_entities(self.dataset, scope, sort, long_form=long_form)
+
+        entities = query_entities(self.dataset, scope, sort, long_form=long_form)
+
+        metadata = {}
+        if metadata is True:
+            metadata = self._get_metadata_keys()
+            
+        return {**entities, **metadata}
 
     def _get_metadata_keys(self):
         """Return a list of all metadata keys found in the dataset."""
