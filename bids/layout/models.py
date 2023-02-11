@@ -37,13 +37,14 @@ class BIDSFile:
                 break
         return cls(path)
 
-    def __init__(self, file_ref: Union[str, os.PathLike, Artifact], schema):
+    def __init__(self, file_ref: Union[str, os.PathLike, Artifact], schema = None):
         self._path = None
         self._artifact = None
-        self._schema = schema # Adding this to be able to convert metadata
+        self._schema = schema
         if isinstance(file_ref, (str, os.PathLike)):
             self._path = Path(file_ref)
         elif isinstance(file_ref, Artifact):
+            self._schema = file_ref.get_schema()
             self._artifact = file_ref
         
     @property

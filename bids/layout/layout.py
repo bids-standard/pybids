@@ -622,7 +622,7 @@ class BIDSLayout(BIDSLayoutMRIMixin, BIDSLayoutWritingMixin, BIDSLayoutVariables
         if return_type == "object":
             if result:
                 result = natural_sort(
-                    [BIDSFile(res, schema=self.schema) for res in result],
+                    [BIDSFile(res) for res in result],
                     "path"
                 )
         return result
