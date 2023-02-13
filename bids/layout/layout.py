@@ -1,6 +1,7 @@
 import difflib
 import enum
 import os.path
+import typing
 from collections import defaultdict
 from functools import partial
 from pathlib import Path
@@ -10,6 +11,7 @@ import warnings
 from .models import BIDSFile
 from .utils import BIDSMetadata
 from .writing import build_path, write_to_file
+from ..external import inflect
 from ..exceptions import (
     BIDSEntityError,
     BIDSValidationError,
@@ -341,11 +343,15 @@ class BIDSLayout(BIDSLayoutMRIMixin, BIDSLayoutWritingMixin, BIDSLayoutVariables
             pass
         if key.startswith('get_'):
             orig_ent_name = key.replace('get_', '')
-            ent_name = self.schema.fuzzy_match_entity(orig_ent_name).name
-            if ent_name not in self.get_entities():
-                raise BIDSEntityError(
-                    "'get_{}' can't be called because '{}' isn't a "
-                    "recognized entity name.".format(orig_ent_name, orig_ent_name))
+            entities = self.get_entities(metadata=True)
+            if ent_name not in entities:
+                sing = inflect.engine().singular_noun(ent_name)
+                if sing in entities:
+                    ent_name = sing
+                else:
+                    raise BIDSEntityError(
+                        "'get_{}' can't be called because '{}' isn't a "
+                        "recognized entity name.".format(orig_ent_name, orig_ent_name))
             return partial(self.get, return_type='id', target=ent_name)
         # Spit out default message if we get this far
         raise AttributeError("%s object has no attribute named %r" %
@@ -631,7 +637,8 @@ class BIDSLayout(BIDSLayoutMRIMixin, BIDSLayoutWritingMixin, BIDSLayoutVariables
     def entities(self):
         return self.get_entities()
 
-    def get_entities(self, scope: str = None, sort: bool = False, long_form: bool = True, metadata: bool = False) -> dict:
+    def get_entities(self, scope: str = None, sort: bool = False, 
+        long_form: bool = True, metadata: bool = True) -> dict:
         """Returns a unique set of entities found within the dataset as a dict.
         Each key of the resulting dict contains a list of values (with at least one element).
 
@@ -658,24 +665,28 @@ class BIDSLayout(BIDSLayoutMRIMixin, BIDSLayoutWritingMixin, BIDSLayoutVariables
             a unique set of entities found within the dataset as a dict
         """
 
-        entities = query_entities(self.dataset, scope, sort, long_form=long_form)
+        entities = query_entities(self.dataset, scope, long_form=long_form)
 
-        metadata = {}
         if metadata is True:
-            metadata = self._get_metadata_keys()
-            
-        return {**entities, **metadata}
+            results = {**entities, **self._get_unique_metadata()}
 
-    def _get_metadata_keys(self):
-        """Return a list of all metadata keys found in the dataset."""
+        if sort:
+            results = {k: sorted(v) for k, v in sorted(results.items())}
+
+        return results
+
+    def _get_unique_metadata(self):
+        """Return a list of all unique metadata key and values found in the dataset."""
         
         all_metadata_objects = self.dataset.select(self.schema.MetadataArtifact).objects()
 
-        keys = set()
+        metadata = defaultdict(set)
         for obj in all_metadata_objects:
-            keys.update(obj['contents'].keys())
+            for k, v in obj['contents'].items():
+                if isinstance(v, typing.Hashable):
+                    metadata[k].add(v)
 
-        return keys
+        return metadata
 
     def get_dataset_description(self, scope='self', all_=False) -> Union[List[Dict], Dict]:
         """Return contents of dataset_description.json.
