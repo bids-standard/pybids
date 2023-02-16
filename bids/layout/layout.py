@@ -657,9 +657,11 @@ class BIDSLayout(object):
 
             _res = set()
             for sq in results:
-                _res.union(
-                    self.session.query(Tag._value).filter(
-                    Tag.file_path.in_(sq)).filter_by(entity_name=target).distinct().all()
+                q = self.session.query(Tag._value).filter(
+                    Tag.file_path.in_(sq)).filter_by(entity_name=target).distinct()
+
+                _res.update(
+                    [x[0] for x in q.all()]
                 )
 
             return natural_sort(list(_res))
