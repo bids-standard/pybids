@@ -674,13 +674,10 @@ class BIDSLayout(object):
                                  'target entity must also be specified.')
 
             if return_type == 'id':
-                u_results = set()
-                for f in results:
-                    if target in f.entities:
-                        val = f.entities[target]
-                        if isinstance(val, Hashable):
-                            u_results.add(val)
-                results = list(u_results)
+                results = list(dict.from_keys(
+                    res.entities[target] for res in results
+                    if target in res.entities and isinstance(res.entities[target], Hashable)
+                ))
 
             elif return_type == 'dir':
                 template = entities[target].directory
