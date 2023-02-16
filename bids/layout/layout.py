@@ -645,15 +645,24 @@ class BIDSLayout(object):
         for l in layouts:
             query = l._build_file_query(filters=filters,
                                         regex_search=regex_search)
-            # NOTE: The following line, when uncommented, eager loads
-            # associations. This was introduced in order to prevent sessions
-            # from randomly detaching. It should be fixed by setting
-            # expire_on_commit at session creation, but let's leave this here
-            # for another release or two to make sure we don't have any further
-            # problems.
-            # query = query.options(joinedload(BIDSFile.tags)
-            #                       .joinedload(Tag.entity))
-            results.extend(query.all())
+            if return_type == 'id':
+                results.append(query.with_entities('file_path').subquery())
+            else:
+                results.extend(query.all())
+
+        if return_type == 'id':
+            if target is None:
+                raise TargetError('If return_type is "id" or "dir", a valid '
+                                 'target entity must also be specified.')
+
+            _res = set()
+            for sq in results:
+                _res.union(
+                    self.session.query(Tag._value).filter(
+                    Tag.file_path.in_(sq)).filter_by(entity_name=target).distinct().all()
+                )
+
+            return natural_sort(list(_res))
 
         # Convert to relative paths if needed
         if absolute_paths is None:  # can be overloaded as option to .get
@@ -668,48 +677,35 @@ class BIDSLayout(object):
         if return_type.startswith('file'):
             results = natural_sort([f.path for f in results])
 
-        elif return_type in ['id', 'dir']:
+        elif return_type == 'dir':
+
             if target is None:
                 raise TargetError('If return_type is "id" or "dir", a valid '
                                  'target entity must also be specified.')
 
-            if return_type == 'id':
-                u_results = set()
-                for f in results:
-                    if target in f.entities:
-                        val = f.entities[target]
-                        if isinstance(val, Hashable):
-                            u_results.add(val)
-                results = list(u_results)
+            template = entities[target].directory
+            if template is None:
+                raise ValueError('Return type set to directory, but no '
+                                    'directory template is defined for the '
+                                    'target entity (\"%s\").' % target)
+            # Construct regex search pattern from target directory template
+            # On Windows, the regex won't compile if, e.g., there is a folder starting with "U" on the path.
+            # Converting to a POSIX path with forward slashes solves this.
+            template = self._root.as_posix() + template
+            to_rep = re.findall(r'{(.*?)\}', template)
+            for ent in to_rep:
+                patt = entities[ent].pattern
+                template = template.replace('{%s}' % ent, patt)
+            # Avoid matching subfolders. We are working with POSIX paths here, so we explicitly use "/"
+            # as path separator.
+            template += r'[^/]*$'
+            matches = [
+                f.dirname if absolute_paths else str(f._dirname.relative_to(self._root))  # noqa: E501
+                for f in results
+                if re.search(template, f._dirname.as_posix())
+            ]
 
-            elif return_type == 'dir':
-                template = entities[target].directory
-                if template is None:
-                    raise ValueError('Return type set to directory, but no '
-                                     'directory template is defined for the '
-                                     'target entity (\"%s\").' % target)
-                # Construct regex search pattern from target directory template
-                # On Windows, the regex won't compile if, e.g., there is a folder starting with "U" on the path.
-                # Converting to a POSIX path with forward slashes solves this.
-                template = self._root.as_posix() + template
-                to_rep = re.findall(r'{(.*?)\}', template)
-                for ent in to_rep:
-                    patt = entities[ent].pattern
-                    template = template.replace('{%s}' % ent, patt)
-                # Avoid matching subfolders. We are working with POSIX paths here, so we explicitly use "/"
-                # as path separator.
-                template += r'[^/]*$'
-                matches = [
-                    f.dirname if absolute_paths else str(f._dirname.relative_to(self._root))  # noqa: E501
-                    for f in results
-                    if re.search(template, f._dirname.as_posix())
-                ]
-
-                results = natural_sort(list(set(matches)))
-
-            else:
-                raise ValueError("Invalid return_type specified (must be one "
-                                 "of 'tuple', 'filename', 'id', or 'dir'.")
+            results = natural_sort(list(set(matches)))
         else:
             results = natural_sort(results, 'path')
 
