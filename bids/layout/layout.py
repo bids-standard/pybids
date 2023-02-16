@@ -646,7 +646,7 @@ class BIDSLayout(object):
             query = l._build_file_query(filters=filters,
                                         regex_search=regex_search)
             if return_type == 'id':
-                results.append(query.with_entities('file_path').subquery())
+                results.append(query.with_entities('path').subquery())
             else:
                 results.extend(query.all())
 
@@ -664,7 +664,7 @@ class BIDSLayout(object):
                     [x[0] for x in q.all()]
                 )
 
-            return natural_sort(list(_res))
+            return list(_res)
 
         # Convert to relative paths if needed
         if absolute_paths is None:  # can be overloaded as option to .get
