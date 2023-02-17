@@ -674,7 +674,7 @@ class BIDSLayout(object):
                                  'target entity must also be specified.')
 
             if return_type == 'id':
-                results = list(dict.from_keys(
+                results = list(dict.fromkeys(
                     res.entities[target] for res in results
                     if target in res.entities and isinstance(res.entities[target], Hashable)
                 ))
