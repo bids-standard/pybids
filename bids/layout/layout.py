@@ -342,7 +342,7 @@ class BIDSLayout(BIDSLayoutMRIMixin, BIDSLayoutWritingMixin, BIDSLayoutVariables
         except KeyError:
             pass
         if key.startswith('get_'):
-            orig_ent_name = key.replace('get_', '')
+            ent_name = key.replace('get_', '')
             entities = self.get_entities(metadata=True)
             if ent_name not in entities:
                 sing = inflect.engine().singular_noun(ent_name)
@@ -351,7 +351,7 @@ class BIDSLayout(BIDSLayoutMRIMixin, BIDSLayoutWritingMixin, BIDSLayoutVariables
                 else:
                     raise BIDSEntityError(
                         "'get_{}' can't be called because '{}' isn't a "
-                        "recognized entity name.".format(orig_ent_name, orig_ent_name))
+                        "recognized entity name.".format(ent_name, ent_name))
             return partial(self.get, return_type='id', target=ent_name)
         # Spit out default message if we get this far
         raise AttributeError("%s object has no attribute named %r" %
@@ -550,8 +550,8 @@ class BIDSLayout(BIDSLayoutMRIMixin, BIDSLayoutWritingMixin, BIDSLayoutVariables
 
     def get(self, return_type: str = 'object', target: str = None, scope: str = None,
             extension: Union[str, List[str]] = None, suffix: Union[str, List[str]] = None,
-            regex_search=None,
-            **entities) -> Union[List[str], List[object]]:
+            regex_search=None, invalid_filters: str = 'error', 
+            **filters) -> Union[List[str], List[object]]:
         """Retrieve files and/or metadata from the current Layout.
 
         Parameters
@@ -606,12 +606,30 @@ class BIDSLayout(BIDSLayoutMRIMixin, BIDSLayoutWritingMixin, BIDSLayoutVariables
         if regex_search is None:
             regex_search = self._regex_search
 
+        self_entities = self.get_entities()
+
+        if invalid_filters != 'allow':
+            bad_filters = set(filters.keys()) - set(self_entities.keys())
+            if bad_filters:
+                if invalid_filters == 'drop':
+                    for bad_filt in bad_filters:
+                        filters.pop(bad_filt)
+                elif invalid_filters == 'error':
+                    first_bad = list(bad_filters)[0]
+                    msg = "'{}' is not a recognized entity. ".format(first_bad)
+                    ents = list(self_entities.keys())
+                    suggestions = difflib.get_close_matches(first_bad, ents)
+                    if suggestions:
+                        msg += "Did you mean {}? ".format(suggestions)
+                    raise ValueError(msg + "If you're sure you want to impose "
+                                        "this constraint, set "
+                                        "invalid_filters='allow'.")
+
         # Provide some suggestions if target is specified and invalid.
         if return_type in ("dir", "id"):
             if target is None:
                 raise TargetError(f'If return_type is "id" or "dir", a valid target '
                                   'entity must also be specified.')
-            self_entities = self.get_entities()
             if target not in self_entities:
                 potential = list(self_entities.keys())
                 suggestions = difflib.get_close_matches(target, potential)
@@ -622,7 +640,7 @@ class BIDSLayout(BIDSLayoutMRIMixin, BIDSLayoutWritingMixin, BIDSLayoutVariables
                 raise TargetError(f"Unknown target '{target}'. {message}")  
 
         folder = self.dataset
-        result = query(folder, return_type, target, scope, extension, suffix, regex_search, **entities)
+        result = query(folder, return_type, target, scope, extension, suffix, regex_search, **filters)
         if return_type == 'file':
             result = natural_sort(result)
         if return_type == "object":
