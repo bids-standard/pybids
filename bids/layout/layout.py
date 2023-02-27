@@ -637,10 +637,9 @@ class BIDSLayout(BIDSLayoutMRIMixin, BIDSLayoutWritingMixin, BIDSLayoutVariables
 
         folder = self.dataset
 
-        if not self._absolute_paths:
-            filters['absolute_path'] = False
+        result = query(folder, return_type, target, scope, extension, suffix, regex_search, 
+            absolute_paths=self._absolute_paths, **filters)
 
-        result = query(folder, return_type, target, scope, extension, suffix, regex_search, **filters)
         if return_type == 'file':
             result = natural_sort(result)
         if return_type == "object":

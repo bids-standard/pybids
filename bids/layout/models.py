@@ -37,11 +37,13 @@ class BIDSFile:
                 break
         return cls(path)
 
-    def __init__(self, file_ref: Union[str, os.PathLike, Artifact], schema = None, absolute_paths=True):
+    def __init__(self, file_ref: Union[str, os.PathLike, Artifact], schema = None, 
+            absolute_path=True):
+
         self._path = None
         self._artifact = None
         self._schema = schema
-        self._absolute_path = absolute_paths
+        self._absolute_path = absolute_path
         if isinstance(file_ref, (str, os.PathLike)):
             self._path = Path(file_ref)
         elif isinstance(file_ref, Artifact):
