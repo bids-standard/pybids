@@ -267,7 +267,7 @@ class BIDSLayout(BIDSLayoutMRIMixin, BIDSLayoutWritingMixin, BIDSLayoutVariables
         database_path: Optional[str]=None,
         reset_database: Optional[bool]=None,
         indexer: Optional[Callable]=None,
-        absolute_paths: Optional[bool]=None,
+        absolute_paths: Optional[bool]=True,
         ignore: Optional[List[str]]=None,
         force_index: Optional[List[str]]=None,
         **kwargs,
