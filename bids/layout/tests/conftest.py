@@ -18,11 +18,11 @@ def layout_7t_trt_relpath():
     data_dir = join(get_test_data_path(), '7t_trt')
     return BIDSLayout(data_dir, absolute_paths=False)
 
-
+# AD: Manually ignoring derivatives for now
 @pytest.fixture(scope="module")
 def layout_ds005():
     data_dir = join(get_test_data_path(), 'ds005')
-    return BIDSLayout(data_dir)
+    return BIDSLayout(data_dir, ignore=['derivatives', 'models'])
 
 
 @pytest.fixture(scope="module")

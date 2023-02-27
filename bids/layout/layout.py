@@ -599,10 +599,37 @@ class BIDSLayout(BIDSLayoutMRIMixin, BIDSLayoutWritingMixin, BIDSLayoutVariables
         list of :obj:`bids.layout.BIDSFile` or str
             A list of BIDSFiles (default) or strings (see return_type).
         """
+        
+        # error check on users accidentally passing in filters
+        if isinstance(filters.get('filters'), dict):
+            raise RuntimeError('You passed in filters as a dictionary named '
+                               'filters; please pass the keys in as named '
+                               'keywords to the `get()` call. For example: '
+                               '`layout.get(**filters)`.')
+
         if regex_search is None:
             regex_search = self._regex_search
 
         self_entities = self.get_entities()
+
+        def _suggest(target):
+            """Suggest a valid value for an entity."""
+            potential = list(self_entities.keys())
+            suggestions = difflib.get_close_matches(target, potential)
+            if suggestions:
+                message = "Did you mean one of: {}?".format(suggestions)
+            else:
+                message = "Valid options are: {}".format(potential)
+            return message
+
+        # Provide some suggestions if target is specified and invalid.
+        if return_type in ("dir", "id"):
+            if target is None:
+                raise TargetError(f'If return_type is "id" or "dir", a valid target '
+                                  'entity must also be specified.')
+            
+            if target not in self_entities:
+                raise TargetError(f"Unknown target '{target}'. {_suggest(target)}")  
 
         if invalid_filters != 'allow':
             bad_filters = set(filters.keys()) - set(self_entities.keys())
@@ -612,29 +639,12 @@ class BIDSLayout(BIDSLayoutMRIMixin, BIDSLayoutWritingMixin, BIDSLayoutVariables
                         filters.pop(bad_filt)
                 elif invalid_filters == 'error':
                     first_bad = list(bad_filters)[0]
-                    msg = "'{}' is not a recognized entity. ".format(first_bad)
-                    ents = list(self_entities.keys())
-                    suggestions = difflib.get_close_matches(first_bad, ents)
-                    if suggestions:
-                        msg += "Did you mean {}? ".format(suggestions)
-                    raise ValueError(msg + "If you're sure you want to impose "
-                                        "this constraint, set "
-                                        "invalid_filters='allow'.")
-
-        # Provide some suggestions if target is specified and invalid.
-        if return_type in ("dir", "id"):
-            if target is None:
-                raise TargetError(f'If return_type is "id" or "dir", a valid target '
-                                  'entity must also be specified.')
-            if target not in self_entities:
-                potential = list(self_entities.keys())
-                suggestions = difflib.get_close_matches(target, potential)
-                if suggestions:
-                    message = "Did you mean one of: {}?".format(suggestions)
-                else:
-                    message = "Valid targets are: {}".format(potential)
-                raise TargetError(f"Unknown target '{target}'. {message}")  
-
+                    message = _suggest(first_bad)
+                    raise ValueError(f"Unknown entity. {message}",
+                                     "If you're sure you want to impose ",
+                                     "this constraint, set ",
+                                     "invalid_filters='allow'.")
+                                     
         folder = self.dataset
 
         result = query(folder, return_type, target, scope, extension, suffix, regex_search, 
