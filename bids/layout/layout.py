@@ -18,7 +18,7 @@ from ..exceptions import (
 )
 
 from ancpbids import CustomOpExpr, EntityExpr, AllExpr, ValidationPlugin, load_dataset, validate_dataset, \
-    write_derivative
+    write_derivative, DatasetOptions
 from ancpbids.query import query, query_entities, FnMatchExpr, AnyExpr
 from ancpbids.utils import deepupdate, resolve_segments, convert_to_relative, parse_bids_name
 
@@ -274,7 +274,6 @@ class BIDSLayout(BIDSLayoutMRIMixin, BIDSLayoutWritingMixin, BIDSLayoutVariables
             root = root.absolute()
 
         if ignore is None:
-            # If there is no .bidsignore file, apply default ignore patterns
             if not (Path(root) / '.bidsignore').exists():
                 ignore = ['.*', 'models', 'stimuli', 'code', 'sourcedata']
                 warnings.warn(
@@ -290,7 +289,9 @@ class BIDSLayout(BIDSLayoutMRIMixin, BIDSLayoutWritingMixin, BIDSLayoutVariables
                 DeprecationWarning
             )
 
-        self.dataset = load_dataset(root, ignore=ignore)
+        options = DatasetOptions(ignore=ignore)
+
+        self.dataset = load_dataset(root, options=options)
         self.schema = self.dataset.get_schema()
         self.validationReport = None
 
@@ -420,7 +421,7 @@ class BIDSLayout(BIDSLayoutMRIMixin, BIDSLayoutWritingMixin, BIDSLayoutVariables
         results = parse_bids_name(filename)
 
         entities = results.pop('entities')
-        schema_entities = {e.literal_: e.name for e in list(self.schema.EntityEnum)}
+        schema_entities = {e.value['name']: e.name for e in list(self.schema.EntityEnum)}
         entities = {schema_entities[k]: v for k, v in entities.items()}
         results = {**entities, **results}
 
@@ -601,19 +602,19 @@ class BIDSLayout(BIDSLayoutMRIMixin, BIDSLayoutWritingMixin, BIDSLayoutVariables
 
         # Provide some suggestions if target is specified and invalid.
         if return_type in ("dir", "id"):
-            # Resolve proper target names to their "key", e.g., session to ses
-            # XXX should we allow ses?
-            target_match = [e for e in self.dataset._schema.EntityEnum 
-                if target in [e.name, e.literal_]]
-            potential = list(self.get_entities().keys())
-            if (not target_match) or target_match[0].name not in potential:
+            if target is None:
+                raise TargetError(f'If return_type is "id" or "dir", a valid target '
+                                  'entity must also be specified.')
+            self_entities = self.get_entities()
+            if target not in self_entities:
+                potential = list(self_entities.keys())
                 suggestions = difflib.get_close_matches(target, potential)
                 if suggestions:
                     message = "Did you mean one of: {}?".format(suggestions)
                 else:
                     message = "Valid targets are: {}".format(potential)
                 raise TargetError(f"Unknown target '{target}'. {message}")  
-            target = target_match[0].name
+
         folder = self.dataset
         result = query(folder, return_type, target, scope, extension, suffix, regex_search, **entities)
         if return_type == 'file':
