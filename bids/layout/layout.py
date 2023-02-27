@@ -298,6 +298,7 @@ class BIDSLayout(BIDSLayoutMRIMixin, BIDSLayoutWritingMixin, BIDSLayoutVariables
         self.validationReport = None
 
         self._regex_search = regex_search
+        self._absolute_paths = absolute_paths
 
         if validate:
             self.validationReport = self.validate()
@@ -318,11 +319,6 @@ class BIDSLayout(BIDSLayoutMRIMixin, BIDSLayoutWritingMixin, BIDSLayoutVariables
         if indexer is not None:
             warnings.warn(
                 "indexer no longer has any effect and will be removed",
-                DeprecationWarning
-            )
-        if absolute_paths is not None:
-            warnings.warn(
-                "absolute_paths no longer has any effect and will be removed",
                 DeprecationWarning
             )
         if kwargs:
@@ -640,13 +636,17 @@ class BIDSLayout(BIDSLayoutMRIMixin, BIDSLayoutWritingMixin, BIDSLayoutVariables
                 raise TargetError(f"Unknown target '{target}'. {message}")  
 
         folder = self.dataset
+
+        if not self._absolute_paths:
+            filters['absolute_path'] = False
+
         result = query(folder, return_type, target, scope, extension, suffix, regex_search, **filters)
         if return_type == 'file':
             result = natural_sort(result)
         if return_type == "object":
             if result:
                 result = natural_sort(
-                    [BIDSFile(res) for res in result],
+                    [BIDSFile(res, absolute_path=self._absolute_paths) for res in result],
                     "path"
                 )
         return result

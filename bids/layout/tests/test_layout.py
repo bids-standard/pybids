@@ -360,7 +360,7 @@ def test_query_derivatives(layout_ds005_derivs):
                                      extension='.tsv')
     result = [f.path for f in result]
     assert len(result) == 49
-    assert 'sub-01_task-mixedgamblestask_run-01_desc-extra_events.tsv' in result
+    assert 'sub-01_task-mixedgamblestask_run-01_desc-extra_events.tsv' in result # Fails due to absolute path
     result = layout_ds005_derivs.get(suffix='events', return_type='object',
                                      scope='raw', extension='.tsv')
     assert len(result) == 48

@@ -37,10 +37,11 @@ class BIDSFile:
                 break
         return cls(path)
 
-    def __init__(self, file_ref: Union[str, os.PathLike, Artifact], schema = None):
+    def __init__(self, file_ref: Union[str, os.PathLike, Artifact], schema = None, absolute_paths=True):
         self._path = None
         self._artifact = None
         self._schema = schema
+        self._absolute_path = absolute_paths
         if isinstance(file_ref, (str, os.PathLike)):
             self._path = Path(file_ref)
         elif isinstance(file_ref, Artifact):
@@ -51,7 +52,10 @@ class BIDSFile:
     def path(self):
         """ Convenience property for accessing path as a string."""
         try:
-            return self._artifact.get_absolute_path()
+            if self._absolute_path:
+                return self._artifact.get_absolute_path()
+            else:
+                return self._artifact.get_relative_path()
         except AttributeError:
             return str(self._path)
 
@@ -80,7 +84,7 @@ class BIDSFile:
     @property
     def relpath(self):
         """ No longer have access to the BIDSLayout root directory """
-        raise NotImplementedError
+        raise self._artifact.get_relative_path()
 
     def get_associations(self, kind=None, include_parents=False):
         """Get associated files, optionally limiting by association kind.
