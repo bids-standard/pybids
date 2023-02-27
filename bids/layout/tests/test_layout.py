@@ -188,9 +188,9 @@ def test_get_metadata4(layout_ds005):
 
 def test_get_metadata_meg(layout_ds117):
     funcs = ['get_subjects', 'get_sessions', 'get_tasks', 'get_runs',
-             'get_acquisitions', 'get_procs']
+             'get_acquisitions', 'get_processing']
     assert all([hasattr(layout_ds117, f) for f in funcs])
-    procs = layout_ds117.get_procs()
+    procs = layout_ds117.get_processing()
     assert procs == ['sss']
     target = 'sub-02/ses-meg/meg/sub-02_ses-meg_task-facerecognition_run-01_meg.fif'
     target = target.split('/')
@@ -233,16 +233,17 @@ def test_get_metadata_error(layout_7t_trt):
     with pytest.raises(KeyError) as err:
         result['Missing']
 
-
+# Changed this test to not expect 'reconstruction' and 'proc'
+# which AFAIK ae not in 7t_trt
 def test_get_with_bad_target(layout_7t_trt):
     with pytest.raises(TargetError) as exc:
         layout_7t_trt.get(target='unicorn', return_type='id')
     msg = str(exc.value)
-    assert 'subject' in msg and 'reconstruction' in msg and 'proc' in msg
+    assert 'subject' in msg and 'session' in msg and 'acquisition' in msg
     with pytest.raises(TargetError) as exc:
         layout_7t_trt.get(target='subject')
     msg = str(exc.value)
-    assert 'subject' in msg and 'reconstruction' not in msg
+    assert 'subject' in msg and 'session' not in msg
 
 @pytest.mark.xfail(reason="datatype not yet implemented")
 def test_get_bvals_bvecs(layout_ds005):
