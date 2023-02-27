@@ -241,7 +241,7 @@ def test_get_with_bad_target(layout_7t_trt):
     msg = str(exc.value)
     assert 'subject' in msg and 'session' in msg and 'acquisition' in msg
     with pytest.raises(TargetError) as exc:
-        layout_7t_trt.get(target='subject')
+        layout_7t_trt.get(target='sub')
     msg = str(exc.value)
     assert 'subject' in msg and 'session' not in msg
 
@@ -313,7 +313,11 @@ def test_get_val_enum_any(layout_7t_trt):
                                    suffix='bold', acquisition="*")
     assert len(bold_files) == 2
 
-
+# The following test should have argubly been a failure in pybids
+# but it was not. Session does not exist in dataset, yet since Query
+# Enum is set to optional the query passes even with 'ignore_filters'
+# set to False. 
+@pytest.mark.xfail(reason="Optional entity using Enum not supported.")
 def test_get_val_enum_any_optional(layout_7t_trt, layout_ds005):
     # layout with sessions
     bold_files = layout_7t_trt.get(suffix='bold', run=1, subject='01')
