@@ -31,6 +31,7 @@ dependencies = [
   "bids-validator",
   "num2words",
   "click >=8.0",
+  "ancpbids @ git+https://github.com/adelavega/ancp-bids.git",
 ]
 dynamic = ["version"]
 
