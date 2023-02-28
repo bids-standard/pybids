@@ -610,15 +610,14 @@ class BIDSLayout(BIDSLayoutMRIMixin, BIDSLayoutWritingMixin, BIDSLayoutVariables
         # Process Query Enum
         if filters:
             for k, val in filters.items():
-                if val in [a for a in Query]:
-                    regex_search = True # Force true if these are defined
-                    if val == Query.REQUIRED:
-                        filters[k] = '.+'
-                    elif val == Query.OPTIONAL:
-                        filters[k] = '.*'
-                    elif val == Query.NONE:
-                        # Regex for match no value -- guess from Copilot
-                        filters[k] = '^(?!.*[^/])'
+                if val == Query.OPTIONAL:
+                    del filters[k]
+                elif val == Query.REQUIRED:
+                    regex_search = True  # Force true if these are defined
+                    filters[k] = '.+'
+                elif val == Query.NONE:
+                    regex_search = True
+                    filters[k] = '^$'
 
         return target, filters, regex_search
 
