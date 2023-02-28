@@ -9,6 +9,7 @@ import copy
 import enum
 import difflib
 from pathlib import Path
+from typing import Hashable
 
 import sqlalchemy as sa
 from sqlalchemy.orm import aliased
@@ -673,10 +674,10 @@ class BIDSLayout(object):
                                  'target entity must also be specified.')
 
             if return_type == 'id':
-                ent_iter = (x.entities for x in results)
-                results = list({
-                    ents[target] for ents in ent_iter if target in ents
-                })
+                results = list(dict.fromkeys(
+                    res.entities[target] for res in results
+                    if target in res.entities and isinstance(res.entities[target], Hashable)
+                ))
 
             elif return_type == 'dir':
                 template = entities[target].directory
