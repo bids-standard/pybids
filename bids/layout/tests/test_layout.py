@@ -233,13 +233,13 @@ def test_get_metadata_error(layout_7t_trt):
     with pytest.raises(KeyError) as err:
         result['Missing']
 
-# Changed this test to not expect 'reconstruction' and 'proc'
-# which AFAIK ae not in 7t_trt
+# Changed this test to only expect suggestions if target is close
 def test_get_with_bad_target(layout_7t_trt):
     with pytest.raises(TargetError) as exc:
         layout_7t_trt.get(target='unicorn', return_type='id')
     msg = str(exc.value)
-    assert 'subject' in msg and 'session' in msg and 'acquisition' in msg
+    assert msg == "Unknown target 'unicorn'"
+    
     with pytest.raises(TargetError) as exc:
         layout_7t_trt.get(target='sub', return_type='id')
     msg = str(exc.value)

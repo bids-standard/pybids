@@ -543,7 +543,7 @@ class BIDSLayout(BIDSLayoutMRIMixin, BIDSLayoutWritingMixin, BIDSLayoutVariables
                    else match for match in matches]
         return matches if all_ else matches[0] if matches else None
         
-    def _sanitize_validate_query(self, target, filters, return_type, invalid_filters):
+    def _sanitize_validate_query(self, target, filters, return_type, invalid_filters, regex_search):
         """Sanitize and validate query parameters
 
         Parameters
@@ -581,7 +581,7 @@ class BIDSLayout(BIDSLayoutMRIMixin, BIDSLayoutWritingMixin, BIDSLayoutVariables
             potential = list(schema_entities)
             suggestions = difflib.get_close_matches(target, potential)
             if suggestions:
-                message = "Did you mean one of: {}?".format(suggestions)
+                message = ". Did you mean one of: {}?".format(suggestions)
             else:
                 message = ""
             return message
@@ -592,7 +592,7 @@ class BIDSLayout(BIDSLayoutMRIMixin, BIDSLayoutWritingMixin, BIDSLayoutVariables
                                   'entity must also be specified.')
             
             if target not in schema_entities:
-                raise TargetError(f"Unknown target '{target}'. {_suggest(target)}")  
+                raise TargetError(f"Unknown target '{target}'{_suggest(target)}")  
 
         if invalid_filters != 'allow':
             bad_filters = set(filters.keys()) - set(schema_entities)
@@ -604,22 +604,10 @@ class BIDSLayout(BIDSLayoutMRIMixin, BIDSLayoutWritingMixin, BIDSLayoutVariables
                     first_bad = list(bad_filters)[0]
                     message = _suggest(first_bad)
                     raise ValueError(
-                        f"Unknown entity '{first_bad}'. {message}. If you're sure you want to impose " + \
+                        f"Unknown entity '{first_bad}'{message} If you're sure you want to impose " + \
                         "this constraint, set invalid_filters='allow'.")
 
-        # Process Query Enum
-        if filters:
-            for k, val in filters.items():
-                if val == Query.REQUIRED:
-                    val = '.+'
-
-                elif val == Query.OPTIONAL:
-                    val = '.*'
-
-                elif val == Query.NONE:
-                    pass
-
-        return target, filters
+        return target, filters, regex_search
 
     def get(self, return_type: str = 'object', target: str = None, scope: str = None,
             extension: Union[str, List[str]] = None, suffix: Union[str, List[str]] = None,
@@ -681,8 +669,8 @@ class BIDSLayout(BIDSLayoutMRIMixin, BIDSLayoutWritingMixin, BIDSLayoutVariables
             regex_search = self._regex_search
 
         # Sanitize & validate query
-        target, filters = self._sanitize_validate_query(target, filters, return_type,
-                                                        invalid_filters)
+        target, filters, regex_search = self._sanitize_validate_query(target, filters, return_type,
+                                                        invalid_filters, regex_search)
                                      
         folder = self.dataset
 
