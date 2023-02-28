@@ -231,7 +231,9 @@
       "orcid": "0000-0002-5226-3350"
     },
     {
-      "name": "Drew, William"
+      "affiliation": "Brigham and Women's Hospital",
+      "name": "Drew, William",
+      "orcid": "0000-0002-9178-8731"
     },
     {
       "name": "Sinha, Ankur"
@@ -295,7 +297,9 @@
       "orcid": "0000-0003-3007-1056"
     },
     {
-      "name": "Pati, Sarthak"
+      "affiliation": "University of Pennsylvania",
+      "name": "Pati, Sarthak",
+      "orcid": "0000-0003-2243-8487"
     },
     {
       "name": "Sundaravadivelu, Suganya"
