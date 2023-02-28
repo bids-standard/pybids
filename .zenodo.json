@@ -47,14 +47,14 @@
       "orcid": "0000-0002-3959-9060"
     },
     {
-      "affiliation": "McGill University",
-      "name": "Poline, Jean-Baptiste",
-      "orcid": "0000-0002-9794-749X"
-    },
-    {
       "affiliation": "Université catholique de Louvain",
       "name": "Gau, Remi",
       "orcid": "0000-0002-1535-9767"
+    },
+    {
+      "affiliation": "McGill University",
+      "name": "Poline, Jean-Baptiste",
+      "orcid": "0000-0002-9794-749X"
     },
     {
       "affiliation": "University of Iowa",
@@ -231,6 +231,12 @@
       "orcid": "0000-0002-5226-3350"
     },
     {
+      "name": "Drew, William"
+    },
+    {
+      "name": "Sinha, Ankur"
+    },
+    {
       "affiliation": "Université Libre de Bruxelles - Hôpital Erasme",
       "name": "Rovai, Antonin",
       "orcid": "0000-0001-6781-5341"
@@ -287,6 +293,9 @@
       "affiliation": "Stanford University",
       "name": "Blair, Ross",
       "orcid": "0000-0003-3007-1056"
+    },
+    {
+      "name": "Pati, Sarthak"
     },
     {
       "name": "Sundaravadivelu, Suganya"
