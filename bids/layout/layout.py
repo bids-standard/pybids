@@ -607,6 +607,19 @@ class BIDSLayout(BIDSLayoutMRIMixin, BIDSLayoutWritingMixin, BIDSLayoutVariables
                         f"Unknown entity '{first_bad}'{message} If you're sure you want to impose " + \
                         "this constraint, set invalid_filters='allow'.")
 
+        # Process Query Enum
+        if filters:
+            for k, val in filters.items():
+                if val in [a for a in Query]:
+                    regex_search = True # Force true if these are defined
+                    if val == Query.REQUIRED:
+                        filters[k] = '.+'
+                    elif val == Query.OPTIONAL:
+                        filters[k] = '.*'
+                    elif val == Query.NONE:
+                        # Regex for match no value -- guess from Copilot
+                        filters[k] = '^(?!.*[^/])'
+
         return target, filters, regex_search
 
     def get(self, return_type: str = 'object', target: str = None, scope: str = None,
