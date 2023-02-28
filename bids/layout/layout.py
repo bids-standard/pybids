@@ -573,23 +573,17 @@ class BIDSLayout(BIDSLayoutMRIMixin, BIDSLayoutWritingMixin, BIDSLayoutVariables
                                'keywords to the `get()` call. For example: '
                                '`layout.get(**filters)`.')
 
-        # Entity filtering
-        if filters:
-            # TODO: Implement _sanitize_query_dtypes
-
-            # TODO: Implement _sanitize_query_entities
-            # i.e. optional Query entities.
-            pass
+        schema_entities = [e.name for e in self.schema.EntityEnum]
 
         # Provide some suggestions for target and filter names
         def _suggest(target):
             """Suggest a valid value for an entity."""
-            potential = list(self.get_entities().keys())
+            potential = list(schema_entities)
             suggestions = difflib.get_close_matches(target, potential)
             if suggestions:
                 message = "Did you mean one of: {}?".format(suggestions)
             else:
-                message = "Valid options are: {}".format(potential)
+                message = ""
             return message
 
         if return_type in ("dir", "id"):
@@ -597,11 +591,11 @@ class BIDSLayout(BIDSLayoutMRIMixin, BIDSLayoutWritingMixin, BIDSLayoutVariables
                 raise TargetError(f'If return_type is "id" or "dir", a valid target '
                                   'entity must also be specified.')
             
-            if target not in self.get_entities():
+            if target not in schema_entities:
                 raise TargetError(f"Unknown target '{target}'. {_suggest(target)}")  
 
         if invalid_filters != 'allow':
-            bad_filters = set(filters.keys()) - set(self.get_entities().keys())
+            bad_filters = set(filters.keys()) - set(schema_entities)
             if bad_filters:
                 if invalid_filters == 'drop':
                     for bad_filt in bad_filters:
@@ -609,10 +603,21 @@ class BIDSLayout(BIDSLayoutMRIMixin, BIDSLayoutWritingMixin, BIDSLayoutVariables
                 elif invalid_filters == 'error':
                     first_bad = list(bad_filters)[0]
                     message = _suggest(first_bad)
-                    raise ValueError(f"Unknown entity. {message}",
-                                     "If you're sure you want to impose ",
-                                     "this constraint, set ",
-                                     "invalid_filters='allow'.")
+                    raise ValueError(
+                        f"Unknown entity '{first_bad}'. {message}. If you're sure you want to impose " + \
+                        "this constraint, set invalid_filters='allow'.")
+
+        # Process Query Enum
+        if filters:
+            for k, val in filters.items():
+                if val == Query.REQUIRED:
+                    val = '.+'
+
+                elif val == Query.OPTIONAL:
+                    val = '.*'
+
+                elif val == Query.NONE:
+                    pass
 
         return target, filters
 
@@ -676,7 +681,8 @@ class BIDSLayout(BIDSLayoutMRIMixin, BIDSLayoutWritingMixin, BIDSLayoutVariables
             regex_search = self._regex_search
 
         # Sanitize & validate query
-        target, filters = self._sanitize_validate_query(target, filters)
+        target, filters = self._sanitize_validate_query(target, filters, return_type,
+                                                        invalid_filters)
                                      
         folder = self.dataset
 
@@ -955,3 +961,9 @@ class BIDSLayout(BIDSLayoutMRIMixin, BIDSLayoutWritingMixin, BIDSLayoutVariables
         s = ("BIDS Layout: ...{} | Subjects: {} | Sessions: {} | "
              "Runs: {}".format(self.dataset.base_dir_, n_subjects, n_sessions, n_runs))
         return s
+
+class Query(enum.Enum):
+    """Enums for use with BIDSLayout.get()."""
+    NONE = 1 # Entity must not be present
+    REQUIRED = ANY = 2  # Entity must be defined, but with an arbitrary value
+    OPTIONAL = 3  # Entity may or may not be defined
