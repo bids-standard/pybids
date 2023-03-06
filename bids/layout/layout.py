@@ -170,7 +170,9 @@ class BIDSLayout(object):
                 database_path, reset_database, config, init_args)
 
             if indexer is None:
-                indexer = BIDSLayoutIndexer(validate=validate, **indexer_kwargs)
+                indexer = BIDSLayoutIndexer(
+                    validate=validate and not is_derivative, **indexer_kwargs
+                )
             indexer(self)
 
         # Add derivatives if any are found
