@@ -13,7 +13,7 @@ import pytest
 
 from bids.layout import BIDSLayout, Query
 from bids.layout.models import Config
-from bids.layout.index import BIDSLayoutIndexer, _check_path_matches_patterns
+from bids.layout.index import BIDSLayoutIndexer, _check_path_matches_patterns, _regexfy
 from bids.layout.utils import PaddedInt
 from bids.tests import get_test_data_path
 from bids.utils import natural_sort
@@ -49,9 +49,11 @@ def test_index_metadata(index_metadata, query, result, mock_config):
         indexer=BIDSLayoutIndexer(index_metadata=index_metadata),
         **query
     )
+
     sample_file = layout.get(task='rest', extension='.nii.gz',
-                             acquisition='fullbrain')[0]
-    metadata = sample_file.get_metadata()
+                             acquisition='fullbrain')
+    assert bool(sample_file)
+    metadata = sample_file[0].get_metadata()
     assert metadata.get('RepetitionTime') == result
 
 
@@ -189,7 +191,7 @@ class TestDerivativeAsRoot:
 
     def test_correctly_formatted_derivative_loads_as_derivative(self):
         dataset_path = Path("ds005_derivs", "dummy")
-        layout = BIDSLayout(Path(get_test_data_path())/dataset_path)
+        layout = BIDSLayout(Path(get_test_data_path())/dataset_path, validate=False)
         assert len(layout.get()) == 4
         assert len(layout.get(desc="preproc")) == 3
 
@@ -435,7 +437,7 @@ def test_ignore_files(layout_ds005):
 def test_force_index(layout_ds005):
     data_dir = join(get_test_data_path(), 'ds005')
     target = join(data_dir, 'models', 'ds-005_type-test_model.json')
-    indexer = BIDSLayoutIndexer(force_index=['models'])
+    indexer = BIDSLayoutIndexer(force_index=[re.compile('models(/.*)?')])
     model_layout = BIDSLayout(data_dir, validate=True, indexer=indexer)
     assert target not in layout_ds005.files
     assert target in model_layout.files
@@ -449,19 +451,79 @@ def test_nested_include_exclude():
     target1 = join(data_dir, 'models', 'ds-005_type-test_model.json')
     target2 = join(data_dir, 'models', 'extras', 'ds-005_type-test_model.json')
 
-    # Nest a directory inclusion within an exclusion
+    # Excluding a directory will disallow indexing further, even if forced
     layout = BIDSLayout(
         data_dir,
         indexer=BIDSLayoutIndexer(
-            validate=True,
+            validate=False,
             force_index=[os.path.join('models', 'extras')],
             ignore=['models'],
         ),
     )
     assert not layout.get_file(target1)
+    assert not layout.get_file(target2)
+
+    # To nest patterns, we must allow searching within
+    layout = BIDSLayout(
+        data_dir,
+        indexer=BIDSLayoutIndexer(
+            validate=False,
+            force_index=[os.path.join('models', 'extras')],
+            ignore=[re.compile('^/models/.+$')],
+        ),
+    )
+    assert not layout.get_file(target1)
     assert layout.get_file(target2)
 
-    # Nest a directory exclusion within an inclusion
+    # Including a directory will disallow marking ignore subdirectories within
+    layout = BIDSLayout(
+        data_dir,
+        indexer=BIDSLayoutIndexer(
+            validate=False,
+            force_index=['models'],
+            ignore=[os.path.join('models', 'extras')],
+        ),
+    )
+    assert layout.get_file(target1)
+    assert layout.get_file(target2)
+
+    # To nest a directory exclusion within an inclusion, use regex
+    layout = BIDSLayout(
+        data_dir,
+        indexer=BIDSLayoutIndexer(
+            validate=False,
+            force_index=[re.compile('^/models/?$')],
+            ignore=[os.path.join('models', 'extras')],
+        ),
+    )
+    assert layout.get_file(target1)
+    assert not layout.get_file(target2)
+
+    # Force file inclusion despite directory-level exclusion
+    layout = BIDSLayout(
+        data_dir,
+        indexer=BIDSLayoutIndexer(
+            validate=False,
+            force_index=['models', target2],
+            ignore=[os.path.join('models', 'extras')],
+        ),
+    )
+    assert layout.get_file(target1)
+    assert layout.get_file(target2)
+
+    # To nest patterns, we must allow searching within
+    layout = BIDSLayout(
+        data_dir,
+        indexer=BIDSLayoutIndexer(
+            validate=False,
+            force_index=[os.path.join('models', 'extras')],
+            ignore=[re.compile('^/models/.+$')],
+        ),
+    )
+    assert not layout.get_file(target1)
+    assert layout.get_file(target2)
+
+    # With the validator, these paths will not be valid anyways
     layout = BIDSLayout(
         data_dir,
         indexer=BIDSLayoutIndexer(
@@ -471,9 +533,19 @@ def test_nested_include_exclude():
         ),
     )
     assert layout.get_file(target1)
+    assert layout.get_file(target2)
+
+    layout = BIDSLayout(
+        data_dir,
+        indexer=BIDSLayoutIndexer(
+            validate=True,
+            force_index=[re.compile('^/models/?$')],
+            ignore=[os.path.join('models', 'extras')],
+        ),
+    )
+    assert layout.get_file(target1)
     assert not layout.get_file(target2)
 
-    # Force file inclusion despite directory-level exclusion
     layout = BIDSLayout(
         data_dir,
         indexer=BIDSLayoutIndexer(
@@ -488,22 +560,59 @@ def test_nested_include_exclude():
 
 def test_nested_include_exclude_with_regex():
     # ~same as above test, but use regexps instead of strings
-    patt1 = re.compile('.*dels$')
-    patt2 = re.compile('xtra')
+    patt1 = re.compile(r'.*dels/?$')
+    patt2 = re.compile(r'.*xtra.*')
     data_dir = join(get_test_data_path(), 'ds005')
     target1 = join(data_dir, 'models', 'ds-005_type-test_model.json')
     target2 = join(data_dir, 'models', 'extras', 'ds-005_type-test_model.json')
 
     layout = BIDSLayout(
         data_dir,
-        indexer=BIDSLayoutIndexer(ignore=[patt2], force_index=[patt1])
+        indexer=BIDSLayoutIndexer(
+            validate=False,
+            ignore=[patt2],
+            force_index=[patt1],
+        )
     )
     assert layout.get_file(target1)
     assert not layout.get_file(target2)
 
+    # If ignore matches a folder, it won't be indexed
+    patt1 = re.compile(r'.*dels/.+$')
     layout = BIDSLayout(
         data_dir,
-        indexer=BIDSLayoutIndexer(ignore=[patt1], force_index=[patt2])
+        indexer=BIDSLayoutIndexer(
+            validate=False,
+            ignore=[patt1],
+            force_index=[patt2],
+        )
+    )
+    assert not layout.get_file(target1)
+    assert layout.get_file(target2)
+
+    # With valid_only no path should be indexed under models/
+    patt1 = re.compile(r'.*dels/ds-005.*')
+    patt2 = re.compile(r'.*xtra.*')
+    layout = BIDSLayout(
+        data_dir,
+        indexer=BIDSLayoutIndexer(
+            validate=True,
+            ignore=[patt2],
+            force_index=[patt1],
+        )
+    )
+    assert layout.get_file(target1)
+    assert not layout.get_file(target2)
+
+    # If ignore matches a folder, it won't be indexed
+    patt1 = re.compile(r'.*dels/.+$')
+    layout = BIDSLayout(
+        data_dir,
+        indexer=BIDSLayoutIndexer(
+            validate=True,
+            ignore=[patt1],
+            force_index=[patt2],
+        )
     )
     assert not layout.get_file(target1)
     assert layout.get_file(target2)
@@ -630,6 +739,9 @@ def test_get_tr(layout_7t_trt):
     assert tr == 3.0
     tr = layout_7t_trt.get_tr(subject=['01', '02'], acquisition="prefrontal")
     assert tr == 4.0
+
+    tr = layout_7t_trt.get_RepetitionTime()
+    assert sum([t in tr for t in [3.0, 4.0]]) == 2
 
 
 def test_to_df(layout_ds117):
@@ -937,8 +1049,14 @@ def test_indexer_patterns(fname):
 
     assert bool(_check_path_matches_patterns(
         path,
-        ["code"],
-        root=None,
+        [_regexfy("code")],
+        root=root,
+    )) is (fname == "code")
+
+    assert bool(_check_path_matches_patterns(
+        path,
+        [_regexfy("code", root=root)],
+        root=root,
     )) is (fname == "code")
 
     assert _check_path_matches_patterns(

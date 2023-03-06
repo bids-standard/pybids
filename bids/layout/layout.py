@@ -9,6 +9,7 @@ import enum
 import difflib
 from pathlib import Path
 import warnings
+from typing import Hashable
 
 import sqlalchemy as sa
 from sqlalchemy.orm import aliased
@@ -181,7 +182,7 @@ class BIDSLayout(object):
                 validate=validate, absolute_paths=absolute_paths,
                 derivatives=None, sources=self, config=None,
                 regex_search=regex_search, reset_database=reset_database,
-                indexer=indexer, **indexer_kwargs)
+                **indexer_kwargs)
 
     @property
     def root(self):
@@ -586,7 +587,6 @@ class BIDSLayout(object):
             data.loc[o] = pd.Series(dtype=float)
 
         return data.reset_index()
-
     def get(self, return_type='object', target=None, scope='all',
             regex_search=False, absolute_paths=None, invalid_filters='error',
             **filters):
@@ -726,13 +726,11 @@ class BIDSLayout(object):
                 raise TargetError('If return_type is "id" or "dir", a valid '
                                  'target entity must also be specified.')
 
-            metadata = target not in self.get_entities(metadata=False)
-
             if return_type == 'id':
-                ent_iter = (x.get_entities(metadata=metadata) for x in results)
-                results = list({
-                    ents[target] for ents in ent_iter if target in ents
-                })
+                results = list(dict.fromkeys(
+                    res.entities[target] for res in results
+                    if target in res.entities and isinstance(res.entities[target], Hashable)
+                ))
 
             elif return_type == 'dir':
                 template = entities[target].directory

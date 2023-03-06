@@ -23,6 +23,7 @@ classifiers = [
 ]
 dependencies = [
   "numpy",
+  "numpy <1.25.0.dev0; python_version < '3.9'",
   "scipy",
   "nibabel >=2.1",
   "pandas >=0.23",
