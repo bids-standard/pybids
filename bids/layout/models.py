@@ -85,7 +85,6 @@ class BIDSFile:
 
     @property
     def relpath(self):
-        """ No longer have access to the BIDSLayout root directory """
         return self._artifact.get_relative_path()
 
     def get_associations(self, kind=None, include_parents=False):
