@@ -469,21 +469,15 @@ class BIDSLayout(object):
                                    include_unmatched)
 
     def _get_derivative_dirs(self, paths):
-        def check_for_description(path):
-            return Path.exists(path/"dataset_description.json")
-
         for path in paths:
             p = Path(path).absolute()
-            if p.exists():
-                if check_for_description(p):
-                    yield p
-                    continue
-
-                # Check subdirectories for dataset_description
+            base = p.name
+            if Path.exists(p / "dataset_description.json"):
+                yield (base, p)
+            else:
                 yield from (
-                    subdir for subdir in p.iterdir() if (
-                        subdir.is_dir() and check_for_description(subdir)
-                    )
+                    (f"{base}/{dd.parent.name}", dd.parent)
+                    for dd in p.glob("*/dataset_description.json")
                 )
 
     def add_derivatives(self, path, parent_database_path=None, **kwargs):
@@ -513,7 +507,7 @@ class BIDSLayout(object):
         paths = listify(path)
         if parent_database_path:
             parent_database_path = Path(parent_database_path)
-        deriv_paths = [*self._get_derivative_dirs(paths)]
+        deriv_paths = list(self._get_derivative_dirs(paths))
         if not deriv_paths:
             warnings.warn("Derivative indexing was requested, but no valid "
                           "datasets were found in the specified locations "
@@ -528,18 +522,16 @@ class BIDSLayout(object):
         # Default config and sources values
         kwargs['sources'] = kwargs.get('sources') or self
 
-        for deriv_path in deriv_paths:
+        for name, path in deriv_paths:
             if parent_database_path:
-                child_database_path = parent_database_path / deriv_path.name
+                child_database_path = parent_database_path / name
                 kwargs['database_path'] = child_database_path
-            if deriv_path.name in self.derivatives:
+            if name in self.derivatives:
                 raise BIDSDerivativesValidationError(
-                    f"Pipeline name {deriv_path.name} has already been added to this "
+                    f"Pipeline name {name} has already been added to this "
                     "BIDSLayout. Every added pipeline must have a unique name!"
                 )
-            self.derivatives[deriv_path.name] = BIDSLayout(
-                deriv_path, is_derivative=True, **kwargs
-            )
+            self.derivatives[name] = BIDSLayout(path, is_derivative=True, **kwargs)
 
     def to_df(self, metadata=False, **filters):
         """Return information for BIDSFiles tracked in Layout as pd.DataFrame.
