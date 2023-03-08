@@ -1,6 +1,7 @@
 import difflib
 import enum
 import os.path
+import typing
 from collections import defaultdict
 from functools import partial
 from pathlib import Path
@@ -10,6 +11,7 @@ import warnings
 from .models import BIDSFile
 from .utils import BIDSMetadata
 from .writing import build_path, write_to_file
+from ..external import inflect
 from ..exceptions import (
     BIDSEntityError,
     BIDSValidationError,
@@ -265,7 +267,7 @@ class BIDSLayout(BIDSLayoutMRIMixin, BIDSLayoutWritingMixin, BIDSLayoutVariables
         database_path: Optional[str]=None,
         reset_database: Optional[bool]=None,
         indexer: Optional[Callable]=None,
-        absolute_paths: Optional[bool]=None,
+        absolute_paths: Optional[bool]=True,
         ignore: Optional[List[str]]=None,
         force_index: Optional[List[str]]=None,
         **kwargs,
@@ -296,6 +298,7 @@ class BIDSLayout(BIDSLayoutMRIMixin, BIDSLayoutWritingMixin, BIDSLayoutVariables
         self.validationReport = None
 
         self._regex_search = regex_search
+        self._absolute_paths = absolute_paths
 
         if validate:
             self.validationReport = self.validate()
@@ -318,11 +321,6 @@ class BIDSLayout(BIDSLayoutMRIMixin, BIDSLayoutWritingMixin, BIDSLayoutVariables
                 "indexer no longer has any effect and will be removed",
                 DeprecationWarning
             )
-        if absolute_paths is not None:
-            warnings.warn(
-                "absolute_paths no longer has any effect and will be removed",
-                DeprecationWarning
-            )
         if kwargs:
             warnings.warn(f"Unknown keyword arguments: {kwargs}")
         if config is not None:
@@ -340,12 +338,16 @@ class BIDSLayout(BIDSLayoutMRIMixin, BIDSLayoutWritingMixin, BIDSLayoutVariables
         except KeyError:
             pass
         if key.startswith('get_'):
-            orig_ent_name = key.replace('get_', '')
-            ent_name = self.schema.fuzzy_match_entity(orig_ent_name).name
-            if ent_name not in self.get_entities():
-                raise BIDSEntityError(
-                    "'get_{}' can't be called because '{}' isn't a "
-                    "recognized entity name.".format(orig_ent_name, orig_ent_name))
+            ent_name = key.replace('get_', '')
+            entities = self.get_entities(metadata=True)
+            if ent_name not in entities:
+                sing = inflect.engine().singular_noun(ent_name)
+                if sing in entities:
+                    ent_name = sing
+                else:
+                    raise BIDSEntityError(
+                        "'get_{}' can't be called because '{}' isn't a "
+                        "recognized entity name.".format(ent_name, ent_name))
             return partial(self.get, return_type='id', target=ent_name)
         # Spit out default message if we get this far
         raise AttributeError("%s object has no attribute named %r" %
@@ -541,11 +543,88 @@ class BIDSLayout(BIDSLayoutMRIMixin, BIDSLayoutWritingMixin, BIDSLayoutVariables
                    else match for match in matches]
         return matches if all_ else matches[0] if matches else None
         
+    def _sanitize_validate_query(self, target, filters, return_type, invalid_filters, regex_search):
+        """Sanitize and validate query parameters
+
+        Parameters
+        ----------
+        target : str
+            Name of the target entity to get results for.
+        filters : dict
+            Dictionary of filters to apply to the query.
+        return_type : str
+            The type of object to return. Must be one of 'filename',
+            'object', or 'dir'.
+        invalid_filters : str
+            What to do when an invalid filter is encountered. Must be one
+            of 'error', 'drop', or 'allow'.
+
+        Returns
+        -------
+        target : str
+            The sanitized target.
+        filters : dict
+            The sanitized filters.
+        """
+        # error check on users accidentally passing in filters
+        if isinstance(filters.get('filters'), dict):
+            raise RuntimeError('You passed in filters as a dictionary named '
+                               'filters; please pass the keys in as named '
+                               'keywords to the `get()` call. For example: '
+                               '`layout.get(**filters)`.')
+
+        schema_entities = [e.name for e in self.schema.EntityEnum]
+
+        # Provide some suggestions for target and filter names
+        def _suggest(target):
+            """Suggest a valid value for an entity."""
+            potential = list(schema_entities)
+            suggestions = difflib.get_close_matches(target, potential)
+            if suggestions:
+                message = ". Did you mean one of: {}?".format(suggestions)
+            else:
+                message = ""
+            return message
+
+        if return_type in ("dir", "id"):
+            if target is None:
+                raise TargetError(f'If return_type is "id" or "dir", a valid target '
+                                  'entity must also be specified.')
+            
+            if target not in schema_entities:
+                raise TargetError(f"Unknown target '{target}'{_suggest(target)}")  
+
+        if invalid_filters != 'allow':
+            bad_filters = set(filters.keys()) - set(schema_entities)
+            if bad_filters:
+                if invalid_filters == 'drop':
+                    for bad_filt in bad_filters:
+                        filters.pop(bad_filt)
+                elif invalid_filters == 'error':
+                    first_bad = list(bad_filters)[0]
+                    message = _suggest(first_bad)
+                    raise ValueError(
+                        f"Unknown entity '{first_bad}'{message} If you're sure you want to impose " + \
+                        "this constraint, set invalid_filters='allow'.")
+
+        # Process Query Enum
+        if filters:
+            for k, val in filters.items():
+                if val == Query.OPTIONAL:
+                    del filters[k]
+                elif val == Query.REQUIRED:
+                    regex_search = True  # Force true if these are defined
+                    filters[k] = '.+'
+                elif val == Query.NONE:
+                    regex_search = True
+                    filters[k] = '^$'
+
+        return target, filters, regex_search
 
     def get(self, return_type: str = 'object', target: str = None, scope: str = None,
             extension: Union[str, List[str]] = None, suffix: Union[str, List[str]] = None,
-            regex_search=None,
-            **entities) -> Union[List[str], List[object]]:
+            regex_search=None, invalid_filters: str = 'error', 
+            **filters) -> Union[List[str], List[object]]:
         """Retrieve files and/or metadata from the current Layout.
 
         Parameters
@@ -597,32 +676,25 @@ class BIDSLayout(BIDSLayoutMRIMixin, BIDSLayoutWritingMixin, BIDSLayoutVariables
         list of :obj:`bids.layout.BIDSFile` or str
             A list of BIDSFiles (default) or strings (see return_type).
         """
+
         if regex_search is None:
             regex_search = self._regex_search
 
-        # Provide some suggestions if target is specified and invalid.
-        if return_type in ("dir", "id"):
-            if target is None:
-                raise TargetError(f'If return_type is "id" or "dir", a valid target '
-                                  'entity must also be specified.')
-            self_entities = self.get_entities()
-            if target not in self_entities:
-                potential = list(self_entities.keys())
-                suggestions = difflib.get_close_matches(target, potential)
-                if suggestions:
-                    message = "Did you mean one of: {}?".format(suggestions)
-                else:
-                    message = "Valid targets are: {}".format(potential)
-                raise TargetError(f"Unknown target '{target}'. {message}")  
-
+        # Sanitize & validate query
+        target, filters, regex_search = self._sanitize_validate_query(target, filters, return_type,
+                                                        invalid_filters, regex_search)
+                                     
         folder = self.dataset
-        result = query(folder, return_type, target, scope, extension, suffix, regex_search, **entities)
+
+        result = query(folder, return_type, target, scope, extension, suffix, regex_search, 
+            absolute_paths=self._absolute_paths, **filters)
+
         if return_type == 'file':
             result = natural_sort(result)
         if return_type == "object":
             if result:
                 result = natural_sort(
-                    [BIDSFile(res) for res in result],
+                    [BIDSFile(res, absolute_path=self._absolute_paths) for res in result],
                     "path"
                 )
         return result
@@ -631,7 +703,8 @@ class BIDSLayout(BIDSLayoutMRIMixin, BIDSLayoutWritingMixin, BIDSLayoutVariables
     def entities(self):
         return self.get_entities()
 
-    def get_entities(self, scope: str = None, sort: bool = False, long_form: bool = True) -> dict:
+    def get_entities(self, scope: str = None, sort: bool = False, 
+        long_form: bool = True, metadata: bool = True) -> dict:
         """Returns a unique set of entities found within the dataset as a dict.
         Each key of the resulting dict contains a list of values (with at least one element).
 
@@ -657,7 +730,29 @@ class BIDSLayout(BIDSLayoutMRIMixin, BIDSLayoutWritingMixin, BIDSLayoutVariables
         dict
             a unique set of entities found within the dataset as a dict
         """
-        return query_entities(self.dataset, scope, sort, long_form=long_form)
+
+        entities = query_entities(self.dataset, scope, long_form=long_form)
+
+        if metadata is True:
+            results = {**entities, **self._get_unique_metadata()}
+
+        if sort:
+            results = {k: sorted(v) for k, v in sorted(results.items())}
+
+        return results
+
+    def _get_unique_metadata(self):
+        """Return a list of all unique metadata key and values found in the dataset."""
+        
+        all_metadata_objects = self.dataset.select(self.schema.MetadataArtifact).objects()
+
+        metadata = defaultdict(set)
+        for obj in all_metadata_objects:
+            for k, v in obj['contents'].items():
+                if isinstance(v, typing.Hashable):
+                    metadata[k].add(v)
+
+        return metadata
 
     def get_dataset_description(self, scope='self', all_=False) -> Union[List[Dict], Dict]:
         """Return contents of dataset_description.json.
@@ -866,7 +961,6 @@ class BIDSLayout(BIDSLayoutMRIMixin, BIDSLayoutWritingMixin, BIDSLayoutVariables
         s = ("BIDS Layout: ...{} | Subjects: {} | Sessions: {} | "
              "Runs: {}".format(self.dataset.base_dir_, n_subjects, n_sessions, n_runs))
         return s
-
 
 class Query(enum.Enum):
     """Enums for use with BIDSLayout.get()."""
