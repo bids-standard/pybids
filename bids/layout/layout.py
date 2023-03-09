@@ -528,7 +528,7 @@ class BIDSLayout(object):
                 kwargs['database_path'] = child_database_path
             if name in self.derivatives:
                 raise BIDSDerivativesValidationError(
-                    f"Pipeline name {name} has already been added to this "
+                    f"Pipeline name {name} ({path!s}) has already been added to this "
                     "BIDSLayout. Every added pipeline must have a unique name!"
                 )
             self.derivatives[name] = BIDSLayout(path, is_derivative=True, **kwargs)
