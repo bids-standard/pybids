@@ -163,7 +163,7 @@ class BIDSStatsModelsGraph:
         -------
         A BIDSStatsModelsNode instance.
         """
-        if not name in self.nodes:
+        if name not in self.nodes:
             raise KeyError('There is no node with the name "{}".'.format(name))
         return self.nodes[name]
 
