@@ -680,7 +680,7 @@ class Tag(Base):
             try:
                 value = json.dumps(value)
                 dtype = 'json'
-            except:
+            except Exception:
                 raise ValueError(
                     "Passed value has an invalid dtype ({}). Must be one of "
                     "int, float, bool, or 'str.".format(dtype))
