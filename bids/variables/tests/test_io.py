@@ -2,11 +2,9 @@ from bids.layout import BIDSLayout
 from bids.variables import (SparseRunVariable, SimpleVariable,
                             DenseRunVariable, load_variables)
 from bids.variables.entities import Node, RunNode, NodeIndex
-from unittest.mock import patch
 import pytest
 from os.path import join
 from bids.tests import get_test_data_path
-from bids.config import set_option, get_option
 
 
 @pytest.fixture

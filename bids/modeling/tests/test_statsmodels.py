@@ -5,8 +5,6 @@ from itertools import chain
 from nibabel.optpkg import optional_package
 graphviz, has_graphviz, _ = optional_package("graphviz")
 
-import os
-import numpy as np
 import pytest
 
 from bids.modeling import BIDSStatsModelsGraph

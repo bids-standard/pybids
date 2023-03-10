@@ -3,7 +3,6 @@
 import os
 import json
 import re
-import warnings
 from collections import defaultdict
 from pathlib import Path
 from functools import partial, lru_cache

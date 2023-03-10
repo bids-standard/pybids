@@ -7,8 +7,6 @@ import pytest
 
 from bids.variables import BIDSVariableCollection
 from bids.modeling.model_spec import (GLMMSpec, Term, VarComp)
-from bids.modeling import TransformerManager
-from bids.layout import BIDSLayout
 from bids.tests import get_test_data_path
 
 
