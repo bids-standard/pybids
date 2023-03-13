@@ -19,6 +19,7 @@ from bids.tests import get_test_data_path
 from bids.utils import natural_sort
 
 from bids.exceptions import (
+    BIDSChildDatasetError,
     BIDSDerivativesValidationError,
     BIDSValidationError,
     NoMatchError,
@@ -162,6 +163,25 @@ class TestDerivativeAsRoot:
 
         validated = BIDSLayout(Path(get_test_data_path())/dataset_path)
         assert len(validated.get()) == 1
+
+    def test_derivative_indexing_forced_with_is_derivative(self):
+        dataset_path = Path("ds005_derivs", "format_errs", "no_type_or_description")
+        unvalidated = BIDSLayout(
+            Path(get_test_data_path())/dataset_path,
+            is_derivative=True,
+            validate=False
+        )
+        assert len(unvalidated.get()) == 4
+        assert len(unvalidated.get(desc="preproc")) == 3
+
+    def test_forced_derivative_indexing_fails_validation(self):
+        dataset_path = Path("ds005_derivs", "format_errs", "no_type_or_description")
+        with pytest.raises(BIDSDerivativesValidationError):
+            BIDSLayout(
+                Path(get_test_data_path())/dataset_path,
+                is_derivative=True,
+                validate=True
+            )
 
     def test_dataset_missing_generatedby_fails_validation(self):
         dataset_path = Path("ds005_derivs", "format_errs", "no_pipeline_description")
@@ -612,6 +632,34 @@ def test_layout_with_derivs(layout_ds005_derivs):
     assert 'subject' in deriv.entities
 
 
+def test_accessing_deriv_by_pipeline_name_is_deprecated(layout_ds005_deriv_dummy_vxxx):
+    with pytest.deprecated_call():
+        deriv = layout_ds005_deriv_dummy_vxxx.derivatives['dummy']
+    assert deriv.files
+    assert len(deriv.files) == 4
+
+
+def test_cant_access_nonexistant_deriv_by_key(layout_ds005_deriv_dummy_vxxx):
+    with pytest.raises(KeyError):
+        layout_ds005_deriv_dummy_vxxx.derivatives['foo']
+
+
+def test_accessing_deriv_by_pipeline_name_via_method(layout_ds005_deriv_dummy_vxxx):
+    deriv = layout_ds005_deriv_dummy_vxxx.derivatives.get_pipeline('dummy')
+    assert deriv.files
+    assert len(deriv.files) == 4
+
+
+def test_cant_get_nonexistant_deriv_via_method(layout_ds005_deriv_dummy_vxxx):
+    with pytest.raises(KeyError):
+        layout_ds005_deriv_dummy_vxxx.derivatives.get_pipeline('foo')
+
+
+def test_cant_get_deriv_with_duplicate_pipeline_via_method(layout_ds005_deriv_both_dummies):
+    with pytest.raises(BIDSChildDatasetError):
+        layout_ds005_deriv_both_dummies.derivatives.get_pipeline('dummy')
+
+
 def test_layout_with_multi_derivs(layout_ds005_multi_derivs):
     assert layout_ds005_multi_derivs.root == join(get_test_data_path(), 'ds005')
     assert isinstance(layout_ds005_multi_derivs.files, dict)
@@ -626,6 +674,15 @@ def test_layout_with_multi_derivs(layout_ds005_multi_derivs):
     assert 'subject' in deriv.entities
     preproc = layout_ds005_multi_derivs.get(desc='preproc')
     assert len(preproc) == 3
+
+
+def test_layout_with_conflicting_deriv_folders():
+    data_dir = join(get_test_data_path(), 'ds005')
+    layout = BIDSLayout(data_dir)
+    deriv_dir1 = join(get_test_data_path(), 'ds005_derivs', 'dummy')
+    deriv_dir2 = join(get_test_data_path(), 'ds005_derivs', 'dummy')
+    with pytest.raises(BIDSDerivativesValidationError):
+        layout.add_derivatives([deriv_dir1, deriv_dir2])
 
 
 def test_query_derivatives(layout_ds005_derivs):
@@ -949,6 +1006,9 @@ def test_load_layout_config_not_overwritten(layout_synthetic_nodb, tmpdir):
     with dataset_description.open('r') as f:
         description = json.load(f)
     description["DatasetType"] = "derivative"
+    description["GeneratedBy"] = [
+        { "Name": "foo" }
+    ]
     with dataset_description.open('w') as f:
         json.dump(description, f)
 

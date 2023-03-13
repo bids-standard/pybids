@@ -1,14 +1,14 @@
 """BIDSLayout class."""
-import os
 import re
 from collections import defaultdict
-from io import open
 from functools import partial, lru_cache
 from itertools import chain
+import json
 import copy
 import enum
 import difflib
 from pathlib import Path
+import warnings
 from typing import Hashable
 
 import sqlalchemy as sa
@@ -19,17 +19,19 @@ from bids_validator import BIDSValidator
 from ..utils import listify, natural_sort
 from ..external import inflect
 from ..exceptions import (
+    BIDSDerivativesValidationError,
     BIDSEntityError,
     BIDSValidationError,
     NoMatchError,
     TargetError,
 )
 
-from .validation import (validate_root, validate_derivative_paths,
+from .validation import (validate_root, validate_derivative_path,
                          absolute_path_deprecation_warning,
-                         indexer_arg_deprecation_warning)
+                         indexer_arg_deprecation_warning,
+                         EXAMPLE_DERIVATIVES_DESCRIPTION)
 from .writing import build_path, write_to_file
-from .models import (Config, BIDSFile, Entity, Tag)
+from .models import (Config, BIDSFile, DerivativeDatasets, Entity, Tag)
 from .index import BIDSLayoutIndexer
 from .db import ConnectionManager
 from .utils import (BIDSMetadata, parse_file_entities)
@@ -92,6 +94,11 @@ class BIDSLayout(object):
         An optional BIDSLayoutIndexer instance to use for indexing, or any
         callable that takes a BIDSLayout instance as its only argument. If
         None, a new indexer with default parameters will be implicitly created.
+    is_derivative: bool
+        Index dataset as a derivative dataset. This can be enabled along with
+        validate=False to index derivatives without dataset_description.json. If
+        validate=True, the dataset must have a dataset_description.json with
+        DatasetType=derivative and GeneratedBy
     indexer_kwargs: dict
         Optional keyword arguments to pass onto the newly created
         BIDSLayoutIndexer. Valid keywords are 'ignore', 'force_index',
@@ -102,7 +109,7 @@ class BIDSLayout(object):
     def __init__(self, root=None, validate=True, absolute_paths=True,
                  derivatives=False, config=None, sources=None,
                  regex_search=False, database_path=None, reset_database=False,
-                 indexer=None, **indexer_kwargs):
+                 indexer=None, is_derivative=False, **indexer_kwargs):
 
         if not absolute_paths:
             absolute_path_deprecation_warning()
@@ -126,22 +133,35 @@ class BIDSLayout(object):
 
         # Validate that a valid BIDS project exists at root
         root, description = validate_root(root, validate)
+        if any([
+            is_derivative,
+            description and description.get("DatasetType") == "derivative"
+        ]):
+            try:
+                self.source_pipeline = validate_derivative_path(root)
+            except BIDSValidationError as err: 
+                if validate:
+                    raise err
+                self.source_pipeline = None
+            default_config = ["bids", "derivatives"]
+            self.is_derivative = True
+        else:
+            self.source_pipeline = None
+            default_config = ["bids"]
+            self.is_derivative = False
 
         self._root = root  # type: Path
         self.description = description
         self.absolute_paths = absolute_paths
-        self.derivatives = {}
+        self.derivatives = DerivativeDatasets()
         self.sources = sources
         self.regex_search = regex_search
 
         # Initialize a completely new layout and index the dataset
         if not load_db:
-            # If root dataset is a derivative, set config accordingly
-            if description and description.get("DatasetType") == "derivative":
-                if validate:
-                    validate_derivative_paths([root], self)
-                if not config:
-                    config = ["bids", "derivatives"]
+            # If config supplied from user or loaded from db, use it. Otherwise, fall
+            # back to a default
+            config = listify(config if config else default_config)
 
             init_args = dict(root=root, absolute_paths=absolute_paths,
                              derivatives=derivatives, config=config)
@@ -150,7 +170,9 @@ class BIDSLayout(object):
                 database_path, reset_database, config, init_args)
 
             if indexer is None:
-                indexer = BIDSLayoutIndexer(validate=validate, **indexer_kwargs)
+                indexer = BIDSLayoutIndexer(
+                    validate=validate and not is_derivative, **indexer_kwargs
+                )
             indexer(self)
 
         # Add derivatives if any are found
@@ -235,11 +257,12 @@ class BIDSLayout(object):
 
         # We assume something is a BIDS-derivatives dataset if it either has a
         # defined pipeline name, or is applying the 'derivatives' rules.
-        pl_name = self.description.get("PipelineDescription", {}).get("Name")
-        is_deriv = bool('derivatives' in self.config)
+        pl_name = self.source_pipeline
 
-        return ((not is_deriv and 'raw' in scope) or
-                (is_deriv and ('derivatives' in scope or pl_name in scope)))
+        return any([
+            'raw' in scope and not self.is_derivative,
+            ('derivatives' in scope or pl_name in scope) and self.is_derivative
+        ])
 
     def _get_layouts_in_scope(self, scope):
         """Return all layouts in the passed scope."""
@@ -445,6 +468,18 @@ class BIDSLayout(object):
         return parse_file_entities(filename, entities, config,
                                    include_unmatched)
 
+    def _get_derivative_dirs(self, paths):
+        for path in paths:
+            p = Path(path).absolute()
+            base = p.name
+            if Path.exists(p / "dataset_description.json"):
+                yield (base, p)
+            else:
+                yield from (
+                    (f"{base}/{dd.parent.name}", dd.parent)
+                    for dd in p.glob("*/dataset_description.json")
+                )
+
     def add_derivatives(self, path, parent_database_path=None, **kwargs):
         """Add BIDS-Derivatives datasets to tracking.
 
@@ -472,19 +507,31 @@ class BIDSLayout(object):
         paths = listify(path)
         if parent_database_path:
             parent_database_path = Path(parent_database_path)
-        deriv_paths = validate_derivative_paths(paths, self, **kwargs)
+        deriv_paths = list(self._get_derivative_dirs(paths))
+        if not deriv_paths:
+            warnings.warn("Derivative indexing was requested, but no valid "
+                          "datasets were found in the specified locations "
+                          "({}). Note that all BIDS-Derivatives datasets must"
+                          " meet all the requirements for BIDS-Raw datasets "
+                          "(a common problem is to fail to include a "
+                          "'dataset_description.json' file in derivatives "
+                          "datasets).\n".format(paths) +
+                          "Example contents of 'dataset_description.json':\n%s" %
+                          json.dumps(EXAMPLE_DERIVATIVES_DESCRIPTION))
 
         # Default config and sources values
-        kwargs['config'] = kwargs.get('config') or ['bids', 'derivatives']
         kwargs['sources'] = kwargs.get('sources') or self
 
-        # TODO: Derivatives cannot be validated
-        kwargs.pop("validate", None)
-        for name, deriv in deriv_paths.items():
+        for name, path in deriv_paths:
             if parent_database_path:
                 child_database_path = parent_database_path / name
                 kwargs['database_path'] = child_database_path
-            self.derivatives[name] = BIDSLayout(deriv, validate=False, **kwargs)
+            if name in self.derivatives:
+                raise BIDSDerivativesValidationError(
+                    f"Pipeline name {name} ({path!s}) has already been added to this "
+                    "BIDSLayout. Every added pipeline must have a unique name!"
+                )
+            self.derivatives[name] = BIDSLayout(path, is_derivative=True, **kwargs)
 
     def to_df(self, metadata=False, **filters):
         """Return information for BIDSFiles tracked in Layout as pd.DataFrame.

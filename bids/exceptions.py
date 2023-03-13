@@ -35,3 +35,7 @@ class BIDSDerivativesValidationError(BIDSValidationError):
 
 class BIDSConflictingValuesError(BIDSValidationError):
     """ A value conflict (e.g. in filename and side-car .json) """
+
+
+class BIDSChildDatasetError(ValueError, PyBIDSError):
+    """ An invalid BIDS dataset. """
