@@ -28,7 +28,7 @@ dependencies = [
   "nibabel >=2.1",
   "pandas >=0.23",
   "formulaic >=0.2.4, <0.6",  # Tested on 0.2.4-0.5.2
-  "sqlalchemy <1.4.0.dev0",
+  "sqlalchemy <2.0",
   "bids-validator",
   "num2words",
   "click >=8.0",
