@@ -30,7 +30,7 @@ def matches_entities(obj, entities, strict=False):
 
 def natural_sort(l, field=None):
     '''
-    based on snippet found at http://stackoverflow.com/a/4836734/2445984
+    based on snippet found at https://stackoverflow.com/a/4836734/2445984
     '''
     convert = lambda text: int(text) if text.isdigit() else text.lower()
 

@@ -41,8 +41,8 @@ contrasts.
 .. _nilearn: https://nilearn.github.io
 .. _AfNI: https://afni.nimh.nih.gov
 .. _FSL: https://fsl.fmrib.ox.ac.uk/fsl/fslwiki/
-.. _SPM: http://www.fil.ion.ucl.ac.uk/spm/
-.. _Nipype: http://nipype.readthedocs.io
+.. _SPM: https://www.fil.ion.ucl.ac.uk/spm/
+.. _Nipype: https://nipype.readthedocs.io
 
 .. _quickstart:
 

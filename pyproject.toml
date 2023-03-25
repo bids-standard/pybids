@@ -64,8 +64,8 @@ tests = ["pybids[test]"]
 dev = ["pybids[doc,test,plotting]"]
 
 [project.urls]
-Homepage = "http://github.com/bids-standard/pybids"
-"Bug Tracker" = "http://github.com/bids-standard/pybids/issues"
+Homepage = "https://github.com/bids-standard/pybids"
+"Bug Tracker" = "https://github.com/bids-standard/pybids/issues"
 
 [project.scripts]
 pybids = "bids.cli:cli"
