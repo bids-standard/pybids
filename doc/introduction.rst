@@ -60,5 +60,5 @@ Finding help
       pybids repository.
 
 .. _nilearn: https://nilearn.github.io
-.. _Nipype: http://nipype.readthedocs.io
+.. _Nipype: https://nipype.readthedocs.io
 .. _open an issue: https://github.com/bids-standard/pybids/issues

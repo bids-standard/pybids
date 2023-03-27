@@ -1,9 +1,9 @@
 PyBIDS
 ======
 PyBIDS is a Python module to interface with datasets conforming BIDS.
-See BIDS paper_ and http://bids.neuroimaging.io website for more information.
+See BIDS paper_ and https://bids.neuroimaging.io website for more information.
 
-.. _paper: http://www.nature.com/articles/sdata201644
+.. _paper: https://www.nature.com/articles/sdata201644
 
 License
 =======
