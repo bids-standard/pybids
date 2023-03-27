@@ -680,10 +680,10 @@ class Tag(Base):
             try:
                 value = json.dumps(value)
                 dtype = 'json'
-            except:
+            except TypeError as e:
                 raise ValueError(
-                    "Passed value has an invalid dtype ({}). Must be one of "
-                    "int, float, bool, or 'str.".format(dtype))
+                    f"Passed value has an invalid dtype ({dtype}). Must be one of "
+                    "int, float, bool, or str.") from e
         value = str(value)
         self.file_path = file.path
         self.entity_name = entity.name

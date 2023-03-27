@@ -3,7 +3,6 @@
 import json
 from pathlib import Path
 import os
-from io import open
 import warnings
 
 from .utils import listify

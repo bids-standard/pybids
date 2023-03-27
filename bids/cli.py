@@ -201,7 +201,7 @@ def upgrade_dataset_description(description):
         if val.startswith("1."):
             description["BIDSVersion"] = val
         else:
-            click.echo(f"Expected version to be 1.x, e.g., 1.6.0. Skipping.")
+            click.echo("Expected version to be 1.x, e.g., 1.6.0. Skipping.")
 
     # Always update DatasetType if missing
     if "DatasetType" not in description:
