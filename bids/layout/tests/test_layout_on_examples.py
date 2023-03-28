@@ -51,6 +51,7 @@ def test_layout_on_examples_with_derivatives(dataset, nb_files, bids_examples):
         ("pet005", 14),
         ("qmri_megre", 19),
         ("qmri_tb1tfl", 6),
+        ("motion_dualtask", 510)
     ],
 )
 def test_layout_on_examples_no_derivatives(dataset, nb_files, bids_examples):
