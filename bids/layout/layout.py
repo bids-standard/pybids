@@ -488,7 +488,7 @@ class BIDSLayout(object):
         path : str or list
             One or more paths to BIDS-Derivatives datasets.
             Each path can point to either a derivatives/ directory
-            containing one more more pipeline directories, or to a single
+            containing one or more pipeline directories, or to a single
             pipeline directory (e.g., derivatives/fmriprep).
         parent_database_path : str or Path
             If not None, use the pipeline name from the dataset_description.json
