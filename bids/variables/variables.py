@@ -426,16 +426,19 @@ class SparseRunVariable(SimpleVariable):
             ts[_onset:_offset] = val
             last_ind = onsets[i]
 
+        if sampling_rate is not None and bin_sr != sampling_rate:
+            # Resample the time series to the requested sampling rate
+            num = int(math.ceil(duration * sampling_rate / bin_sr))
+            ts = _resample(ts, sampling_rate, bin_sr, num)
+
         run_info = list(self.run_info)
         dense_var = DenseRunVariable(
             name=self.name,
             values=ts,
             run_info=run_info,
             source=self.source,
-            sampling_rate=bin_sr)
+            sampling_rate=sampling_rate)
 
-        if sampling_rate is not None and bin_sr != sampling_rate:
-            dense_var.resample(sampling_rate, inplace=True)
 
         return dense_var
 
@@ -572,27 +575,16 @@ class DenseRunVariable(BIDSVariable):
         if sampling_rate == self.sampling_rate:
             return
 
-        n = len(self.index)
-
         self.index = self._build_entity_index(self.run_info, sampling_rate, match_vol)
 
-        x = np.arange(n)
-        num = len(self.index)
-
-        if sampling_rate < self.sampling_rate:
-            # Downsampling, so filter the signal
-            from scipy.signal import butter, filtfilt
-            # cutoff = new Nyqist / old Nyquist
-            b, a = butter(5, (sampling_rate / 2.0) / (self.sampling_rate / 2.0),
-                          btype='low', output='ba', analog=False)
-            y = filtfilt(b, a, self.values.values.ravel())
-        else:
-            y = self.values.values.ravel()
-
-        from scipy.interpolate import interp1d
-        f = interp1d(x, y, kind=kind)
-        x_new = np.linspace(0, n - 1, num=num)
-        self.values = pd.DataFrame(f(x_new))
+        self.values = pd.DataFrame(
+            _resample(
+                self.values.values.ravel(),
+                sampling_rate,
+                self.sampling_rate,
+                len(self.index),
+                kind=kind)
+        )
         assert len(self.values) == len(self.index)
 
         self.sampling_rate = sampling_rate
@@ -692,3 +684,21 @@ def merge_variables(variables, **kwargs):
                          "cannot be merged. Sources found: %s" % sources)
 
     return list(classes)[0].merge(variables, **kwargs)
+
+
+def _resample(y, new_sr, old_sr, new_num, kind='linear'):
+    n = len(y)
+    x = np.arange(n)
+    if new_sr < old_sr:
+        # Downsampling, so filter the signal
+        from scipy.signal import butter, filtfilt
+        # cutoff = new Nyqist / old Nyquist
+        b, a = butter(5, (new_sr / 2.0) / (old_sr / 2.0),
+                    btype='low', output='ba', analog=False)
+        y = filtfilt(b, a, y)
+
+    from scipy.interpolate import interp1d
+    f = interp1d(x, y, kind=kind)
+    x_new = np.linspace(0, n - 1, num=new_num)
+
+    return f(x_new)
