@@ -240,12 +240,23 @@ class BIDSVariable(metaclass=ABCMeta):
         {'subject': '01'}; the runs will be excluded as they vary across
         the Variable contents.
         """
-        constant = self.index.apply(lambda x: x.nunique() == 1)
-        if constant.empty:
+        def is_unique(s):
+            a = s.to_numpy()
+            return (a[0] == a).all()
+
+        constant = self.index.apply(is_unique)
+        if (constant == True).sum() == 0:
             return {}
         else:
             keep = self.index.columns[constant]
-            return {k: self.index[k].dropna().iloc[0] for k in keep}
+            res = {}
+            for k in keep:
+                col = self.index[k]
+                v = col.iloc[0]
+                if pd.isna(v): # Only drop NaNs if we get that on first try
+                    v = col.dropna().iloc[0]
+                res[k] = v
+            return res
 
 
 class SimpleVariable(BIDSVariable):
@@ -501,32 +512,37 @@ class DenseRunVariable(BIDSVariable):
 
     def _build_entity_index(self, run_info, sampling_rate, match_vol=False):
         """Build the entity index from run information. """
+        interval = int(round(1000. / sampling_rate))
 
-        index = []
-        _timestamps = []
-        def _create_index_df(vals, col_names, repeats):
-            df = pd.DataFrame(np.zeros((repeats, len(col_names))), columns=col_names)
-            for i, val in enumerate(vals):
-                df[col_names[i]] = val
+        def _create_index(all_keys, all_reps, all_ents):
+            all_keys = np.array(sorted(all_keys))
+            df = pd.DataFrame(np.zeros((sum(all_reps), len(all_keys))), columns=all_keys)
 
-            return df
+            prev_ix = 0
+            for i, reps in enumerate(all_reps):
+                for k, v in all_ents[i].items():
+                    col_ix = np.where(all_keys == k)[0][0]
+                    df.iloc[prev_ix:prev_ix + reps, col_ix] = v
+                prev_ix = reps
 
+            return df            
+
+        all_reps = []
+        all_ents = []
+        all_keys = set()
         for run in run_info:
             if match_vol:
                 # If TR, fix reps to n_vols to ensure match
-                reps = run.n_vols
+                all_reps.append(run.n_vols)
             else:
-                reps = int(math.ceil(run.duration * sampling_rate))
+                all_reps.append(int(math.ceil(run.duration * sampling_rate)))
 
-            interval = int(round(1000. / sampling_rate))
-            ent_vals = list(run.entities.values())
-            # import pdb; pdb.set_trace()
-            df = pd.DataFrame([ent_vals] * reps, columns=list(run.entities.keys()))
-            ts = pd.date_range(0, periods=len(df), freq='%sms' % interval)
-            _timestamps.append(ts.to_series())
-            index.append(df)
-        self.timestamps = pd.concat(_timestamps, axis=0, sort=True)
-        return pd.concat(index, axis=0, sort=True).reset_index(drop=True)
+            all_ents.append(run.entities)
+            all_keys.update(run.entities.keys())
+            
+        self.timestamps = pd.date_range(0, periods=sum(all_reps), freq='%sms' % interval)
+
+        return _create_index(all_keys, all_reps, all_ents)
 
     def resample(self, sampling_rate, inplace=False, kind='linear'):
         """Resample the Variable to the specified sampling rate.
