@@ -245,16 +245,16 @@ class BIDSVariable(metaclass=ABCMeta):
             return (a[0] == a).all()
 
         constant = self.index.apply(is_unique)
-        if (constant == True).sum() == 0:
+        if constant.empty:
             return {}
         else:
             keep = self.index.columns[constant]
+            first_row_ix = self.index.index[0]
             res = {}
             for k in keep:
-                col = self.index[k]
-                v = col.iloc[0]
+                v = self.index.loc[first_row_ix, k]
                 if pd.isna(v): # Only drop NaNs if we get that on first try
-                    v = col.dropna().iloc[0]
+                    v = self.index[k].dropna().iloc[0]
                 res[k] = v
             return res
 
