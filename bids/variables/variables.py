@@ -240,12 +240,23 @@ class BIDSVariable(metaclass=ABCMeta):
         {'subject': '01'}; the runs will be excluded as they vary across
         the Variable contents.
         """
-        constant = self.index.apply(lambda x: x.nunique() == 1)
+        def is_unique(s):
+            a = s.to_numpy()
+            return (a[0] == a).all()
+
+        constant = self.index.apply(is_unique)
         if constant.empty:
             return {}
         else:
             keep = self.index.columns[constant]
-            return {k: self.index[k].dropna().iloc[0] for k in keep}
+            first_row_ix = self.index.index[0]
+            res = {}
+            for k in keep:
+                v = self.index.loc[first_row_ix, k]
+                if pd.isna(v): # Only drop NaNs if we get that on first try
+                    v = self.index[k].dropna().iloc[0]
+                res[k] = v
+            return res
 
 
 class SimpleVariable(BIDSVariable):
@@ -394,6 +405,8 @@ class SparseRunVariable(SimpleVariable):
         # result in a nasty loss of precision in the resampling step.
         if sampling_rate is not None:
             bin_sr = max(bin_sr, sampling_rate)
+        else:
+            sampling_rate = bin_sr
 
         duration = int(math.ceil(bin_sr * self.get_duration()))
         ts = np.zeros(duration, dtype=self.values.dtype)
@@ -415,16 +428,19 @@ class SparseRunVariable(SimpleVariable):
             ts[_onset:_offset] = val
             last_ind = onsets[i]
 
+        if bin_sr != sampling_rate:
+            # Resample the time series to the requested sampling rate
+            num = int(math.ceil(duration * sampling_rate / bin_sr))
+            ts = _resample(ts, sampling_rate, bin_sr, num)
+
         run_info = list(self.run_info)
         dense_var = DenseRunVariable(
             name=self.name,
             values=ts,
             run_info=run_info,
             source=self.source,
-            sampling_rate=bin_sr)
+            sampling_rate=sampling_rate)
 
-        if sampling_rate is not None and bin_sr != sampling_rate:
-            dense_var.resample(sampling_rate, inplace=True)
 
         return dense_var
 
@@ -460,13 +476,16 @@ class DenseRunVariable(BIDSVariable):
     source : {'events', 'physio', 'stim', 'regressors', 'scans', 'sessions', 'participants', 'beh'}
         The type of BIDS variable file the data were extracted from.
     sampling_rate : :obj:`float`
-        Optional sampling rate (in Hz) to use. Must match the sampling rate used
-        to generate the values. If None, the collection's sampling rate will be used.
+        Mandatory sampling rate (in Hz) to use. Must match the sampling rate used
+        to generate the values. 
     """
 
     def __init__(self, name, values, run_info, source, sampling_rate):
 
         values = pd.DataFrame(values)
+
+        if not isinstance(sampling_rate, (float, int)):
+            raise TypeError("sampling_rate must be a float or integer, not %s" % type(sampling_rate))
 
         if hasattr(run_info, 'duration'):
             run_info = [run_info]
@@ -501,24 +520,37 @@ class DenseRunVariable(BIDSVariable):
 
     def _build_entity_index(self, run_info, sampling_rate, match_vol=False):
         """Build the entity index from run information. """
+        interval = int(round(1000. / sampling_rate))
 
-        index = []
-        _timestamps = []
+        def _create_index(all_keys, all_reps, all_ents):
+            all_keys = np.array(sorted(all_keys))
+            df = pd.DataFrame(np.zeros((sum(all_reps), len(all_keys))), columns=all_keys)
+
+            prev_ix = 0
+            for i, reps in enumerate(all_reps):
+                for k, v in all_ents[i].items():
+                    col_ix = np.where(all_keys == k)[0][0]
+                    df.iloc[prev_ix:prev_ix + reps, col_ix] = v
+                prev_ix = reps
+
+            return df            
+
+        all_reps = []
+        all_ents = []
+        all_keys = set()
         for run in run_info:
             if match_vol:
                 # If TR, fix reps to n_vols to ensure match
-                reps = run.n_vols
+                all_reps.append(run.n_vols)
             else:
-                reps = int(math.ceil(run.duration * sampling_rate))
+                all_reps.append(int(math.ceil(run.duration * sampling_rate)))
 
-            interval = int(round(1000. / sampling_rate))
-            ent_vals = list(run.entities.values())
-            df = pd.DataFrame([ent_vals] * reps, columns=list(run.entities.keys()))
-            ts = pd.date_range(0, periods=len(df), freq='%sms' % interval)
-            _timestamps.append(ts.to_series())
-            index.append(df)
-        self.timestamps = pd.concat(_timestamps, axis=0, sort=True)
-        return pd.concat(index, axis=0, sort=True).reset_index(drop=True)
+            all_ents.append(run.entities)
+            all_keys.update(run.entities.keys())
+            
+        self.timestamps = pd.date_range(0, periods=sum(all_reps), freq='%sms' % interval)
+
+        return _create_index(all_keys, all_reps, all_ents)
 
     def resample(self, sampling_rate, inplace=False, kind='linear'):
         """Resample the Variable to the specified sampling rate.
@@ -548,27 +580,16 @@ class DenseRunVariable(BIDSVariable):
         if sampling_rate == self.sampling_rate:
             return
 
-        n = len(self.index)
-
         self.index = self._build_entity_index(self.run_info, sampling_rate, match_vol)
 
-        x = np.arange(n)
-        num = len(self.index)
-
-        if sampling_rate < self.sampling_rate:
-            # Downsampling, so filter the signal
-            from scipy.signal import butter, filtfilt
-            # cutoff = new Nyqist / old Nyquist
-            b, a = butter(5, (sampling_rate / 2.0) / (self.sampling_rate / 2.0),
-                          btype='low', output='ba', analog=False)
-            y = filtfilt(b, a, self.values.values.ravel())
-        else:
-            y = self.values.values.ravel()
-
-        from scipy.interpolate import interp1d
-        f = interp1d(x, y, kind=kind)
-        x_new = np.linspace(0, n - 1, num=num)
-        self.values = pd.DataFrame(f(x_new))
+        self.values = pd.DataFrame(
+            _resample(
+                self.values.values.ravel(),
+                sampling_rate,
+                self.sampling_rate,
+                len(self.index),
+                kind=kind)
+        )
         assert len(self.values) == len(self.index)
 
         self.sampling_rate = sampling_rate
@@ -668,3 +689,21 @@ def merge_variables(variables, **kwargs):
                          "cannot be merged. Sources found: %s" % sources)
 
     return list(classes)[0].merge(variables, **kwargs)
+
+
+def _resample(y, new_sr, old_sr, new_num, kind='linear'):
+    n = len(y)
+    x = np.arange(n)
+    if new_sr < old_sr:
+        # Downsampling, so filter the signal
+        from scipy.signal import butter, filtfilt
+        # cutoff = new Nyqist / old Nyquist
+        b, a = butter(5, (new_sr / 2.0) / (old_sr / 2.0),
+                    btype='low', output='ba', analog=False)
+        y = filtfilt(b, a, y)
+
+    from scipy.interpolate import interp1d
+    f = interp1d(x, y, kind=kind)
+    x_new = np.linspace(0, n - 1, num=new_num)
+
+    return f(x_new)
