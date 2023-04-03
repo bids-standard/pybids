@@ -405,6 +405,8 @@ class SparseRunVariable(SimpleVariable):
         # result in a nasty loss of precision in the resampling step.
         if sampling_rate is not None:
             bin_sr = max(bin_sr, sampling_rate)
+        else:
+            sampling_rate = bin_sr
 
         duration = int(math.ceil(bin_sr * self.get_duration()))
         ts = np.zeros(duration, dtype=self.values.dtype)
@@ -426,7 +428,7 @@ class SparseRunVariable(SimpleVariable):
             ts[_onset:_offset] = val
             last_ind = onsets[i]
 
-        if sampling_rate is not None and bin_sr != sampling_rate:
+        if bin_sr != sampling_rate:
             # Resample the time series to the requested sampling rate
             num = int(math.ceil(duration * sampling_rate / bin_sr))
             ts = _resample(ts, sampling_rate, bin_sr, num)
@@ -474,13 +476,16 @@ class DenseRunVariable(BIDSVariable):
     source : {'events', 'physio', 'stim', 'regressors', 'scans', 'sessions', 'participants', 'beh'}
         The type of BIDS variable file the data were extracted from.
     sampling_rate : :obj:`float`
-        Optional sampling rate (in Hz) to use. Must match the sampling rate used
-        to generate the values. If None, the collection's sampling rate will be used.
+        Mandatory sampling rate (in Hz) to use. Must match the sampling rate used
+        to generate the values. 
     """
 
     def __init__(self, name, values, run_info, source, sampling_rate):
 
         values = pd.DataFrame(values)
+
+        if not isinstance(sampling_rate, (float, int)):
+            raise TypeError("sampling_rate must be a float or integer, not %s" % type(sampling_rate))
 
         if hasattr(run_info, 'duration'):
             run_info = [run_info]
