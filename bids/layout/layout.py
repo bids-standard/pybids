@@ -39,7 +39,7 @@ from .utils import (BIDSMetadata, parse_file_entities)
 __all__ = ['BIDSLayout']
 
 
-class BIDSLayout(object):
+class BIDSLayout:
     """Layout class representing an entire BIDS dataset.
 
     Parameters

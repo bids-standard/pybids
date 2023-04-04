@@ -10,7 +10,7 @@ import collections
 import sys
 
 
-class Reader(object):
+class Reader:
     """A line-based string reader.
 
     """

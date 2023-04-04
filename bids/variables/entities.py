@@ -10,7 +10,7 @@ from bids.utils import matches_entities
 
 BASE_ENTITIES = ['subject', 'session', 'task', 'run']
 
-class Node(object):
+class Node:
     """Base class for objects that represent a single object in the BIDS
     hierarchy.
 
@@ -96,7 +96,7 @@ class RunInfo(RunInfo_):
     pass
 
 
-class NodeIndex(object):
+class NodeIndex:
     """Represents the top level in a BIDS hierarchy. """
 
     def __init__(self):
