@@ -561,8 +561,7 @@ class Entity(Base):
         self.regex = re.compile(self.pattern) if self.pattern is not None else None
 
     def __iter__(self):
-        for i in self.unique():
-            yield i
+        yield from self.unique()
 
     def __deepcopy__(self, memo):
         cls = self.__class__
