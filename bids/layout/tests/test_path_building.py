@@ -49,9 +49,9 @@ def test_insufficient_entities(layout, strict, validate):
 
 
 """
-The following tests that indexes some datasets from bids examples, 
-parses the files for entities and 
-reconstructs the fullpath of each file by relying on pybids config 
+The following tests that indexes some datasets from bids examples,
+parses the files for entities and
+reconstructs the fullpath of each file by relying on pybids config
 and compares it what's actually in the dataset
 """
 

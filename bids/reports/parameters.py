@@ -58,7 +58,7 @@ def describe_duration(files) -> str:
         max_dur = describe_func_duration(max_vols, tr)
         dur_str = "{}-{}".format(min_dur, max_dur)
         n_vols = "{}-{}".format(min_vols, max_vols)
-        
+
     else:
         n_vols = n_vols[0]
         dur_str = describe_func_duration(n_vols, tr)
@@ -353,8 +353,8 @@ def get_size_str(img):
     voxel_dims = np.array(img.header.get_zooms()[:3])
 
     voxel_size = "x".join([num_to_str(s) for s in voxel_dims])
-    
-    
+
+
     fov = [n_x, n_y] * voxel_dims[:2]
     fov = "x".join([num_to_str(s) for s in fov])
 
