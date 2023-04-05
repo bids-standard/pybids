@@ -70,66 +70,59 @@
                 }
             }
         </script>
-        <main class="container">
+        <main class="container-fluid", style="width:70%">
             <div id="summary">
-                <h1>Stats Model Summary</h1>
+                <h3>Stats Model Report</h3>
                 <div class="grid">
                     <div>
-                        <h6>
                             <b>Dataset</b>
                             :
-                        </h6>
                     </div>
                     <div>
-                        <h6>
                             {{ dataset.name }}{% if dataset.doi %} (doi:
                             <a href="https://doi.org/{{ dataset.doi }}">{{ dataset.doi }}</a>
                             ){% endif %}
-                        </h6>
                     </div>
                     <div></div>
                 </div>
                 <div class="grid">
                     <div>
-                        <h6>
                             <b>Model</b>
                             :
-                        </h6>
                     </div>
                     <div>
-                        <h6> {{ model.name }}</h6>
+                        {{ model.name }}
                     </div>
                     <div></div>
                 </div>
                 <div class="grid">
                     <div>
-                        <h6>
                             <b>Participants ({{ subjects|count }})</b>
                             :
-                        </h6>
                     </div>
                     <div>
-                        <h6>{{ subjects|join(', ') }}</h6>
+                        {{ subjects|join(', ') }}
                     </div>
                     <div></div>
                 </div>
+                <br>
 
                 <details>
-                    <summary role="button" class="secondary">Specification</summary>
+                    <summary class="secondary">Specification</summary>
                     <pre>
                         <code class="overflow-scroll">{{ model|tojson(indent=2) }}</code>
                     </pre>
                 </details>
 
                 <details>
-                    <summary role="button" class="secondary">Graph</summary>
+                    <summary class="secondary">Graph</summary>
                     <div id="model-graph">
                     {{ graph_plot }}
                 </div>
                 </details>
             </div>
             <div id="model">
-                <h1 style="margin-top: 3rem">Node Reports</h1>
+                <h3 style="margin-top: 3rem">Node Reports</h3>
                 <div class="grid" style="margin-bottom: 3rem">
                     {% for node in nodes %}
                     <span onclick="handleSelectNode('{{node.name}}')" role="button" id="{{node.name}}_node_button" class="node_button" style="margin-bottom: 10px">{{ node.name }}</span>
@@ -320,7 +313,7 @@
             </div>
 
             <div id="about">
-                <h1 style="margin-top: 3rem" class="sub-report-title">About</h1>
+                <h2 style="margin-top: 3rem" class="sub-report-title">About</h2>
                 <ul>
                     <li>PyBIDS version: {{ version }}</li>
                     <li>Date processed: {{ timestamp }}</li>
