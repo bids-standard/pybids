@@ -86,7 +86,7 @@ class Reader:
         return not ''.join(self._str).strip()
 
 
-class NumpyDocString(collections.Mapping):
+class NumpyDocString(collections.abc.Mapping):
     def __init__(self, docstring, config={}):
         docstring = textwrap.dedent(docstring).split('\n')
 
@@ -544,7 +544,7 @@ class ClassDoc(NumpyDocString):
         return [name for name, func in inspect.getmembers(self._cls)
                 if ((not name.startswith('_')
                      or name in self.extra_public_methods)
-                    and isinstance(func, collections.Callable)
+                    and isinstance(func, collections.abc.Callable)
                     and self._is_show_member(name))]
 
     @property
