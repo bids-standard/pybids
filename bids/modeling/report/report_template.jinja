@@ -160,7 +160,9 @@
                                 <h5>Transformation History</h5>
                                 {% for trans in analysis.trans_hist %}
                                 {% if loop.first %}
-                                <p>Each transformation is applied to the design matrix in the order shown. The final design matrix is used in the model estimation.</p>
+                                <p>Each transformation is applied to the design matrix in the order shown. The final design matrix is used in the model estimation.
+                                Note that each variable is as a separate table.
+                                </p>
                                 <details>
                                     <summary>Original Variables</summary>
                                 {% else %}
