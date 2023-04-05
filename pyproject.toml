@@ -1,2 +1,91 @@
 [build-system]
-requires = ["setuptools >= 30.3.0, != 61.0.0", "wheel"]
+requires = ["setuptools", "versioneer[toml]"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pybids"
+description = "bids: interface with datasets conforming to BIDS"
+readme = "README.md"
+requires-python = ">=3.7"
+license = { file="LICENSE" }
+authors = [
+  { name = "PyBIDS Developers", email = "bids-discussion@googlegroups.com" },
+]
+keywords = ["BIDS", "neuroimaging"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Environment :: Console",
+  "Intended Audience :: Science/Research",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python",
+  "Topic :: Scientific/Engineering",
+]
+dependencies = [
+  "numpy",
+  "numpy <1.25.0.dev0; python_version < '3.9'",
+  "scipy",
+  "nibabel >=2.1",
+  "pandas >=0.23",
+  "formulaic >=0.2.4, <0.6",  # Tested on 0.2.4-0.5.2
+  "sqlalchemy <1.4.0.dev0",
+  "bids-validator",
+  "num2words",
+  "click >=8.0",
+]
+dynamic = ["version"]
+
+[project.optional-dependencies]
+doc = [
+  "sphinx >=2.2, !=5.1.0",
+  "numpydoc",
+  "sphinx_rtd_theme",
+  "myst_nb",
+  "jupytext",
+]
+plotting = ["graphviz"]
+test = [
+  "pytest >=3.3",
+  "pytest-cov",
+  "bsmschema",
+  "coverage[toml]",
+]
+tutorial = [
+  "nbconvert",
+  "jinja2 <3",  # Required until nbconvert handles all deprecations/removals
+  "markupsafe <2.1",  # Required until we can upgrade jinja2
+  "jupyter_client",
+  "ipykernel",
+]
+ci_tests = ["pybids[test]", "codecov", "pytest-xdist"]
+# Aliases
+docs = ["pybids[doc]"]
+tests = ["pybids[test]"]
+dev = ["pybids[doc,test,plotting]"]
+
+[project.urls]
+Homepage = "https://github.com/bids-standard/pybids"
+"Bug Tracker" = "https://github.com/bids-standard/pybids/issues"
+
+[project.scripts]
+pybids = "bids.cli:cli"
+
+[tool.versioneer]
+VCS = "git"
+style = "pep440-pre"
+versionfile_source = "bids/_version.py"
+versionfile_build = "bids/_version.py"
+
+[tool.coverage.run]
+branch = true
+source = ["bids/*"]
+include = ["bids/*"]
+omit = [
+  "*/setup.py",
+  "*/external/*",
+  "*/due.py",
+  "*/*version.py",
+]
+
+[tool.coverage.report]
+include = ["bids/*"]

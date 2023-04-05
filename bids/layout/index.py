@@ -2,6 +2,7 @@
 
 import os
 import json
+import re
 from collections import defaultdict
 from pathlib import Path
 from functools import partial, lru_cache
@@ -13,6 +14,18 @@ from ..exceptions import BIDSConflictingValuesError
 
 from .models import Config, Entity, Tag, FileAssociation
 from .validation import validate_indexing_args
+
+
+def _regexfy(patt, root=None):
+    if hasattr(patt, "search"):
+        return patt
+
+    patt = Path(patt)
+
+    if patt.is_absolute():
+        patt = str(patt.relative_to(root or "/"))
+
+    return re.compile(r"^/" + str(patt) + r".*")
 
 
 def _extract_entities(bidsfile, entities):
@@ -37,49 +50,19 @@ def _check_path_matches_patterns(path, patterns, root=None):
 
     # Path now can be downcast to str
     path = str(path)
+
     for patt in patterns:
-        if hasattr(patt, "search"):
-            if patt.search(path):
-                return True
-            else:
-                continue
-
-        if isinstance(patt, Path):
-            patt = str(
-                patt if root is None
-                else Path("/") / patt.relative_to(root)
-            )
-        if str(patt) in path:
-            return str(patt)
-
+        if patt.search(path):
+            return True
     return False
 
 
-def _validate_path(path, incl_patt=None, excl_patt=None, root=None, default=None):
-    incl_matched = _check_path_matches_patterns(path, incl_patt, root=root)
-    excl_matched = _check_path_matches_patterns(path, excl_patt, root=root)
-
-    if incl_matched is False and excl_matched is False:
-        return default
-
-    # Include: if a inclusion regex pattern matched or a nonregex inclusion pattern matched
-    if incl_matched is True or (incl_matched and not excl_matched):
+def _validate_path(path, incl_patt=None, excl_patt=None, root=None):
+    if _check_path_matches_patterns(path, incl_patt, root=root):
         return True
 
-    if excl_matched is True:
+    if _check_path_matches_patterns(path, excl_patt, root=root):
         return False
-
-    if not incl_matched and excl_matched:
-        return False
-
-    # Both matched: nested pattern
-    if incl_matched not in excl_matched:
-        return True
-
-    if excl_matched not in incl_matched:
-        return False
-
-    return default
 
 
 class BIDSLayoutIndexer:
@@ -91,8 +74,8 @@ class BIDSLayoutIndexer:
         If True, all files are checked for BIDS compliance when first indexed,
         and non-compliant files are ignored. This provides a convenient way to
         restrict file indexing to only those files defined in the "core" BIDS
-        spec, as setting validate=True will lead files in supplementary folders
-        like derivatives/, code/, etc. to be ignored.
+        spec, as setting ``validate=True`` will lead noncompliant files
+        like ``sub-01/nonbidsfile.txt`` to be ignored.
     ignore : str or SRE_Pattern or list
         Path(s) to exclude from indexing. Each path is either a string or a
         SRE_Pattern object (i.e., compiled regular expression). If a string is
@@ -122,16 +105,24 @@ class BIDSLayoutIndexer:
         what files get selected for metadata indexing.
     """
 
-    def __init__(self, validate=True, ignore=None, force_index=None,
-                 index_metadata=True, config_filename='layout_config.json',
-                 **filters):
-        self.validate = validate
+    def __init__(
+        self,
+        validate=False,
+        ignore=None,
+        force_index=None,
+        index_metadata=True,
+        config_filename='layout_config.json',
+        **filters,
+    ):
         self.ignore = ignore
         self.force_index = force_index
         self.index_metadata = index_metadata
         self.config_filename = config_filename
         self.filters = filters
-        self.validator = BIDSValidator(index_associated=True)
+        self.validator = None
+
+        if validate:
+            self.validator = BIDSValidator(index_associated=True)
 
         # Layout-dependent attributes to be set in __call__()
         self._layout = None
@@ -145,8 +136,14 @@ class BIDSLayoutIndexer:
 
         ignore, force = validate_indexing_args(self.ignore, self.force_index,
                                                self._layout._root)
-        self._include_patterns = force
-        self._exclude_patterns = ignore
+
+        # Do not accept string patterns
+        self._include_patterns = [
+            _regexfy(patt, root=self._layout._root) for patt in listify(force)
+        ]
+        self._exclude_patterns = [
+            _regexfy(patt, root=self._layout._root) for patt in listify(ignore)
+        ]
 
         self._index_dir(self._layout._root, self._config)
         if self.index_metadata:
@@ -156,25 +153,18 @@ class BIDSLayoutIndexer:
     def session(self):
         return self._layout.connection_manager.session
 
-    def _validate_file(self, f, default=None):
+    def _validate_file(self, f):
         matched_patt = _validate_path(
             f,
             incl_patt=self._include_patterns,
             excl_patt=self._exclude_patterns,
-            default=default,
             root=self._layout._root
         )
+
         if matched_patt is not None:
             return matched_patt
 
-        # If inclusion/exclusion is inherited from a parent directory, that
-        # takes precedence over the remaining file-level rules
-        if default is not None:
-            return default
-
-        # Derivatives are currently not validated.
-        # TODO: raise warning the first time in a session this is encountered
-        if not self.validate or 'derivatives' in self._layout.config:
+        if self.validator is None:
             return True
 
         # BIDS validator expects absolute paths, but really these are relative
@@ -186,7 +176,7 @@ class BIDSLayoutIndexer:
         to_check = to_check.as_posix()
         return self.validator.is_bids(to_check)
 
-    def _index_dir(self, path, config, default_action=None):
+    def _index_dir(self, path, config, force=None):
 
         abs_path = self._layout._root / path
 
@@ -208,43 +198,35 @@ class BIDSLayoutIndexer:
         for c in config:
             config_entities.update(c.entities)
 
-        # Get a list of first-level subdirectories and files in the path directory
+        # Get lists of 1st-level subdirectories and files in the path directory
         _, dirnames, filenames = next(os.walk(path))
-
-        # Set the default inclusion/exclusion directive
-        default = _validate_path(
-            path,
-            incl_patt=self._include_patterns,
-            excl_patt=self._exclude_patterns,
-            default=default_action,
-            root=self._layout._root,
-        )
 
         # If layout configuration file exists, delete it
         if self.config_filename in filenames:
             filenames.remove(self.config_filename)
 
         for f in filenames:
-            bf = self._index_file(f, path, config_entities,
-                                  default_action=default)
-            if bf is None:
-                continue
+            abs_fn = path / f
+            # Skip files that fail validation, unless forcibly indexing
+            if force or self._validate_file(abs_fn):
+                self._index_file(abs_fn, config_entities)
 
         self.session.commit()
 
         # Recursively index subdirectories
         for d in dirnames:
             d = path / d
-            self._index_dir(d, list(config), default_action=default)
+            force = _validate_path(
+                d,
+                incl_patt=self._include_patterns,
+                excl_patt=self._exclude_patterns,
+                root=self._layout._root,
+            )
+            if force is not False:
+                self._index_dir(d, config, force=force)
 
-    def _index_file(self, f, dirpath, entities, default_action=None):
+    def _index_file(self, abs_fn, entities):
         """Create DB record for file and its tags. """
-        abs_fn = dirpath / f
-
-        # Skip files that fail validation, unless forcibly indexing
-        if not self._validate_file(abs_fn, default=default_action):
-            return None
-
         bf = make_bidsfile(abs_fn)
         self.session.add(bf)
 
@@ -312,8 +294,10 @@ class BIDSLayoutIndexer:
                 try:
                     return json.load(handle)
                 except (UnicodeDecodeError, json.JSONDecodeError) as e:
-                    msg = f"Error occurred while trying to decode JSON from file {path}"
-                    raise IOError(msg) from e
+                    raise IOError(
+                        "Error occurred while trying to decode JSON "
+                        f"from file {path}"
+                    ) from e
 
         for bf in all_files:
             file_ents = bf.entities.copy()
@@ -480,8 +464,7 @@ class BIDSLayoutIndexer:
                             "(value='{}'). Please reconcile this discrepancy."
                         )
                         raise BIDSConflictingValuesError(
-                            msg.format(md_key, bf.path, file_val,
-                            md_val))
+                            msg.format(md_key, bf.path, file_val, md_val))
                     continue
                 if md_key not in all_entities:
                     all_entities[md_key] = Entity(md_key)

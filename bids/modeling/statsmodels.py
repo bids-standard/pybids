@@ -4,7 +4,6 @@ import json
 from collections import namedtuple, OrderedDict, Counter, defaultdict
 import itertools
 from functools import reduce
-from multiprocessing.sharedctypes import Value
 import re
 import fnmatch
 
@@ -165,7 +164,7 @@ class BIDSStatsModelsGraph:
         -------
         A BIDSStatsModelsNode instance.
         """
-        if not name in self.nodes:
+        if name not in self.nodes:
             raise KeyError('There is no node with the name "{}".'.format(name))
         return self.nodes[name]
 

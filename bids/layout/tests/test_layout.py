@@ -13,12 +13,13 @@ import pytest
 
 from bids.layout import BIDSLayout, Query
 from bids.layout.models import Config
-from bids.layout.index import BIDSLayoutIndexer, _check_path_matches_patterns
+from bids.layout.index import BIDSLayoutIndexer, _check_path_matches_patterns, _regexfy
 from bids.layout.utils import PaddedInt
 from bids.tests import get_test_data_path
 from bids.utils import natural_sort
 
 from bids.exceptions import (
+    BIDSChildDatasetError,
     BIDSDerivativesValidationError,
     BIDSValidationError,
     NoMatchError,
@@ -48,9 +49,11 @@ def test_index_metadata(index_metadata, query, result, mock_config):
         indexer=BIDSLayoutIndexer(index_metadata=index_metadata),
         **query
     )
+
     sample_file = layout.get(task='rest', extension='.nii.gz',
-                             acquisition='fullbrain')[0]
-    metadata = sample_file.get_metadata()
+                             acquisition='fullbrain')
+    assert bool(sample_file)
+    metadata = sample_file[0].get_metadata()
     assert metadata.get('RepetitionTime') == result
 
 
@@ -161,6 +164,25 @@ class TestDerivativeAsRoot:
         validated = BIDSLayout(Path(get_test_data_path())/dataset_path)
         assert len(validated.get()) == 1
 
+    def test_derivative_indexing_forced_with_is_derivative(self):
+        dataset_path = Path("ds005_derivs", "format_errs", "no_type_or_description")
+        unvalidated = BIDSLayout(
+            Path(get_test_data_path())/dataset_path,
+            is_derivative=True,
+            validate=False
+        )
+        assert len(unvalidated.get()) == 4
+        assert len(unvalidated.get(desc="preproc")) == 3
+
+    def test_forced_derivative_indexing_fails_validation(self):
+        dataset_path = Path("ds005_derivs", "format_errs", "no_type_or_description")
+        with pytest.raises(BIDSDerivativesValidationError):
+            BIDSLayout(
+                Path(get_test_data_path())/dataset_path,
+                is_derivative=True,
+                validate=True
+            )
+
     def test_dataset_missing_generatedby_fails_validation(self):
         dataset_path = Path("ds005_derivs", "format_errs", "no_pipeline_description")
         with pytest.raises(BIDSDerivativesValidationError):
@@ -169,7 +191,7 @@ class TestDerivativeAsRoot:
 
     def test_correctly_formatted_derivative_loads_as_derivative(self):
         dataset_path = Path("ds005_derivs", "dummy")
-        layout = BIDSLayout(Path(get_test_data_path())/dataset_path)
+        layout = BIDSLayout(Path(get_test_data_path())/dataset_path, validate=False)
         assert len(layout.get()) == 4
         assert len(layout.get(desc="preproc")) == 3
 
@@ -415,7 +437,7 @@ def test_ignore_files(layout_ds005):
 def test_force_index(layout_ds005):
     data_dir = join(get_test_data_path(), 'ds005')
     target = join(data_dir, 'models', 'ds-005_type-test_model.json')
-    indexer = BIDSLayoutIndexer(force_index=['models'])
+    indexer = BIDSLayoutIndexer(force_index=[re.compile('models(/.*)?')])
     model_layout = BIDSLayout(data_dir, validate=True, indexer=indexer)
     assert target not in layout_ds005.files
     assert target in model_layout.files
@@ -429,19 +451,79 @@ def test_nested_include_exclude():
     target1 = join(data_dir, 'models', 'ds-005_type-test_model.json')
     target2 = join(data_dir, 'models', 'extras', 'ds-005_type-test_model.json')
 
-    # Nest a directory inclusion within an exclusion
+    # Excluding a directory will disallow indexing further, even if forced
     layout = BIDSLayout(
         data_dir,
         indexer=BIDSLayoutIndexer(
-            validate=True,
+            validate=False,
             force_index=[os.path.join('models', 'extras')],
             ignore=['models'],
         ),
     )
     assert not layout.get_file(target1)
+    assert not layout.get_file(target2)
+
+    # To nest patterns, we must allow searching within
+    layout = BIDSLayout(
+        data_dir,
+        indexer=BIDSLayoutIndexer(
+            validate=False,
+            force_index=[os.path.join('models', 'extras')],
+            ignore=[re.compile('^/models/.+$')],
+        ),
+    )
+    assert not layout.get_file(target1)
     assert layout.get_file(target2)
 
-    # Nest a directory exclusion within an inclusion
+    # Including a directory will disallow marking ignore subdirectories within
+    layout = BIDSLayout(
+        data_dir,
+        indexer=BIDSLayoutIndexer(
+            validate=False,
+            force_index=['models'],
+            ignore=[os.path.join('models', 'extras')],
+        ),
+    )
+    assert layout.get_file(target1)
+    assert layout.get_file(target2)
+
+    # To nest a directory exclusion within an inclusion, use regex
+    layout = BIDSLayout(
+        data_dir,
+        indexer=BIDSLayoutIndexer(
+            validate=False,
+            force_index=[re.compile('^/models/?$')],
+            ignore=[os.path.join('models', 'extras')],
+        ),
+    )
+    assert layout.get_file(target1)
+    assert not layout.get_file(target2)
+
+    # Force file inclusion despite directory-level exclusion
+    layout = BIDSLayout(
+        data_dir,
+        indexer=BIDSLayoutIndexer(
+            validate=False,
+            force_index=['models', target2],
+            ignore=[os.path.join('models', 'extras')],
+        ),
+    )
+    assert layout.get_file(target1)
+    assert layout.get_file(target2)
+
+    # To nest patterns, we must allow searching within
+    layout = BIDSLayout(
+        data_dir,
+        indexer=BIDSLayoutIndexer(
+            validate=False,
+            force_index=[os.path.join('models', 'extras')],
+            ignore=[re.compile('^/models/.+$')],
+        ),
+    )
+    assert not layout.get_file(target1)
+    assert layout.get_file(target2)
+
+    # With the validator, these paths will not be valid anyways
     layout = BIDSLayout(
         data_dir,
         indexer=BIDSLayoutIndexer(
@@ -451,9 +533,19 @@ def test_nested_include_exclude():
         ),
     )
     assert layout.get_file(target1)
+    assert layout.get_file(target2)
+
+    layout = BIDSLayout(
+        data_dir,
+        indexer=BIDSLayoutIndexer(
+            validate=True,
+            force_index=[re.compile('^/models/?$')],
+            ignore=[os.path.join('models', 'extras')],
+        ),
+    )
+    assert layout.get_file(target1)
     assert not layout.get_file(target2)
 
-    # Force file inclusion despite directory-level exclusion
     layout = BIDSLayout(
         data_dir,
         indexer=BIDSLayoutIndexer(
@@ -468,22 +560,59 @@ def test_nested_include_exclude():
 
 def test_nested_include_exclude_with_regex():
     # ~same as above test, but use regexps instead of strings
-    patt1 = re.compile('.*dels$')
-    patt2 = re.compile('xtra')
+    patt1 = re.compile(r'.*dels/?$')
+    patt2 = re.compile(r'.*xtra.*')
     data_dir = join(get_test_data_path(), 'ds005')
     target1 = join(data_dir, 'models', 'ds-005_type-test_model.json')
     target2 = join(data_dir, 'models', 'extras', 'ds-005_type-test_model.json')
 
     layout = BIDSLayout(
         data_dir,
-        indexer=BIDSLayoutIndexer(ignore=[patt2], force_index=[patt1])
+        indexer=BIDSLayoutIndexer(
+            validate=False,
+            ignore=[patt2],
+            force_index=[patt1],
+        )
     )
     assert layout.get_file(target1)
     assert not layout.get_file(target2)
 
+    # If ignore matches a folder, it won't be indexed
+    patt1 = re.compile(r'.*dels/.+$')
     layout = BIDSLayout(
         data_dir,
-        indexer=BIDSLayoutIndexer(ignore=[patt1], force_index=[patt2])
+        indexer=BIDSLayoutIndexer(
+            validate=False,
+            ignore=[patt1],
+            force_index=[patt2],
+        )
+    )
+    assert not layout.get_file(target1)
+    assert layout.get_file(target2)
+
+    # With valid_only no path should be indexed under models/
+    patt1 = re.compile(r'.*dels/ds-005.*')
+    patt2 = re.compile(r'.*xtra.*')
+    layout = BIDSLayout(
+        data_dir,
+        indexer=BIDSLayoutIndexer(
+            validate=True,
+            ignore=[patt2],
+            force_index=[patt1],
+        )
+    )
+    assert layout.get_file(target1)
+    assert not layout.get_file(target2)
+
+    # If ignore matches a folder, it won't be indexed
+    patt1 = re.compile(r'.*dels/.+$')
+    layout = BIDSLayout(
+        data_dir,
+        indexer=BIDSLayoutIndexer(
+            validate=True,
+            ignore=[patt1],
+            force_index=[patt2],
+        )
     )
     assert not layout.get_file(target1)
     assert layout.get_file(target2)
@@ -503,6 +632,34 @@ def test_layout_with_derivs(layout_ds005_derivs):
     assert 'subject' in deriv.entities
 
 
+def test_accessing_deriv_by_pipeline_name_is_deprecated(layout_ds005_deriv_dummy_vxxx):
+    with pytest.deprecated_call():
+        deriv = layout_ds005_deriv_dummy_vxxx.derivatives['dummy']
+    assert deriv.files
+    assert len(deriv.files) == 4
+
+
+def test_cant_access_nonexistant_deriv_by_key(layout_ds005_deriv_dummy_vxxx):
+    with pytest.raises(KeyError):
+        layout_ds005_deriv_dummy_vxxx.derivatives['foo']
+
+
+def test_accessing_deriv_by_pipeline_name_via_method(layout_ds005_deriv_dummy_vxxx):
+    deriv = layout_ds005_deriv_dummy_vxxx.derivatives.get_pipeline('dummy')
+    assert deriv.files
+    assert len(deriv.files) == 4
+
+
+def test_cant_get_nonexistant_deriv_via_method(layout_ds005_deriv_dummy_vxxx):
+    with pytest.raises(KeyError):
+        layout_ds005_deriv_dummy_vxxx.derivatives.get_pipeline('foo')
+
+
+def test_cant_get_deriv_with_duplicate_pipeline_via_method(layout_ds005_deriv_both_dummies):
+    with pytest.raises(BIDSChildDatasetError):
+        layout_ds005_deriv_both_dummies.derivatives.get_pipeline('dummy')
+
+
 def test_layout_with_multi_derivs(layout_ds005_multi_derivs):
     assert layout_ds005_multi_derivs.root == join(get_test_data_path(), 'ds005')
     assert isinstance(layout_ds005_multi_derivs.files, dict)
@@ -517,6 +674,15 @@ def test_layout_with_multi_derivs(layout_ds005_multi_derivs):
     assert 'subject' in deriv.entities
     preproc = layout_ds005_multi_derivs.get(desc='preproc')
     assert len(preproc) == 3
+
+
+def test_layout_with_conflicting_deriv_folders():
+    data_dir = join(get_test_data_path(), 'ds005')
+    layout = BIDSLayout(data_dir)
+    deriv_dir1 = join(get_test_data_path(), 'ds005_derivs', 'dummy')
+    deriv_dir2 = join(get_test_data_path(), 'ds005_derivs', 'dummy')
+    with pytest.raises(BIDSDerivativesValidationError):
+        layout.add_derivatives([deriv_dir1, deriv_dir2])
 
 
 def test_query_derivatives(layout_ds005_derivs):
@@ -573,6 +739,9 @@ def test_get_tr(layout_7t_trt):
     assert tr == 3.0
     tr = layout_7t_trt.get_tr(subject=['01', '02'], acquisition="prefrontal")
     assert tr == 4.0
+
+    tr = layout_7t_trt.get_RepetitionTime()
+    assert sum([t in tr for t in [3.0, 4.0]]) == 2
 
 
 def test_to_df(layout_ds117):
@@ -837,6 +1006,9 @@ def test_load_layout_config_not_overwritten(layout_synthetic_nodb, tmpdir):
     with dataset_description.open('r') as f:
         description = json.load(f)
     description["DatasetType"] = "derivative"
+    description["GeneratedBy"] = [
+        { "Name": "foo" }
+    ]
     with dataset_description.open('w') as f:
         json.dump(description, f)
 
@@ -877,8 +1049,14 @@ def test_indexer_patterns(fname):
 
     assert bool(_check_path_matches_patterns(
         path,
-        ["code"],
-        root=None,
+        [_regexfy("code")],
+        root=root,
+    )) is (fname == "code")
+
+    assert bool(_check_path_matches_patterns(
+        path,
+        [_regexfy("code", root=root)],
+        root=root,
     )) is (fname == "code")
 
     assert _check_path_matches_patterns(

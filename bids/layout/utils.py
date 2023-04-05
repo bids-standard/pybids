@@ -81,7 +81,7 @@ class PaddedInt(int):
         """
         try:
             return format(self.sval, format_spec)
-        except:
+        except ValueError:
             return super().__format__(format_spec)
 
     def __hash__(self):

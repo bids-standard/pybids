@@ -1,6 +1,25 @@
 Changelog
 =========
 
+Version 0.15.6 (February 28, 2023)
+----------------------------------
+
+Bug-fix release in 0.15.x series.
+
+* FIX: Exclude non-Hashables from set in .get(return_type='id') (#948)
+* FIX: Broken pattern matching (#936)
+* FIX: Coerce oversampling parameter in convolution to int  (#929)
+* FIX: Allowing custom BIDS configuration files for derivative datasets (#922)
+* FIX: Address change in default pandas grouping behavior (#917)
+* ENH: Speed up BIDSLayout.get(return_type='id', ...) (#942)
+* ENH: Update default anat filename patterns in config  (#933)
+* DOC: Make clear how to ignore folders (#945)
+* DOC: Fix tutorial link in README (#944)
+* DOC: Mention conda installation in README  (#928)
+* MNT: Update git submodules (#946 + #943 + #932)
+* MNT: Move package metadata to pyproject.toml, unvendor versioneer (#907)
+* MNT: Bump formulaic max version constraint to include 0.5.x (#916)
+
 Version 0.15.5 (November 07, 2022)
 ----------------------------------
 

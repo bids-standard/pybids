@@ -1,6 +1,5 @@
 """Tests of functionality in the models module."""
 
-import sys
 import os
 import pytest
 import copy

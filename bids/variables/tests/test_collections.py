@@ -1,4 +1,4 @@
-from os.path import join, dirname, abspath
+from os.path import join
 
 import pytest
 import numpy as np

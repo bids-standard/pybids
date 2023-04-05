@@ -48,7 +48,7 @@ def tmp_bids(tmpdir_factory):
     # Ugly hack
     try:
         shutil.rmtree(join(get_test_data_path(), '7t_trt', 'sub-Bob'))
-    except:
+    except Exception:
         pass
 
 

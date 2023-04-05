@@ -30,6 +30,14 @@ file paths, and allows us to perform simple but relatively powerful queries over
 the file tree. By default, defined BIDS entities include things like "subject",
 "session", "run", and "type".
 
+.. hint::
+
+    To exclude folders from indexing (e.g. only index a subset of subjects to save time),
+    you can pass a list of folder names, or a regex pattern to the ``ignore`` argument. 
+    For example, to ignore all subjects except "25":
+
+        >>> BIDSLayout(bids_dir, ignore=[re.compile(r"(sub-(?!25)\d*/)")])
+
 .. _querying_datasets:
 
 Querying datasets

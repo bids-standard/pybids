@@ -40,6 +40,25 @@ def layout_ds005_derivs():
     return layout
 
 
+@pytest.fixture(scope="module")
+def layout_ds005_deriv_dummy_vxxx():
+    data_dir = join(get_test_data_path(), 'ds005')
+    layout = BIDSLayout(data_dir)
+    deriv_dir = join(get_test_data_path(), 'ds005_derivs', 'dummy-vx.x.x')
+    layout.add_derivatives(deriv_dir)
+    return layout
+
+
+@pytest.fixture(scope="module")
+def layout_ds005_deriv_both_dummies():
+    data_dir = join(get_test_data_path(), 'ds005')
+    layout = BIDSLayout(data_dir)
+    deriv_dir1 = join(get_test_data_path(), 'ds005_derivs', 'dummy-vx.x.x')
+    deriv_dir2 = join(get_test_data_path(), 'ds005_derivs', 'dummy')
+    layout.add_derivatives([deriv_dir1, deriv_dir2])
+    return layout
+
+
 @pytest.fixture(scope="session")
 def db_dir(tmpdir_factory):
     fn = tmpdir_factory.mktemp("data")
@@ -54,6 +73,16 @@ def layout_ds005_multi_derivs(request, db_dir):
 
     layout = BIDSLayout(data_dir,
                         database_path=database_path)
+    deriv_dir1 = join(get_test_data_path(), 'ds005_derivs', 'dummy')
+    deriv_dir2 = join(data_dir, 'derivatives', 'events')
+    layout.add_derivatives([deriv_dir1, deriv_dir2])
+    return layout
+
+@pytest.fixture(scope="module")
+def layout_ds005_deriv_name_collision(request):
+    data_dir = join(get_test_data_path(), 'ds005')
+
+    layout = BIDSLayout(data_dir)
     deriv_dir1 = join(get_test_data_path(), 'ds005_derivs', 'dummy')
     deriv_dir2 = join(data_dir, 'derivatives', 'events')
     layout.add_derivatives([deriv_dir1, deriv_dir2])
