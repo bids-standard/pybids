@@ -2,7 +2,6 @@
 [![DOI](https://joss.theoj.org/papers/10.21105/joss.01294/status.svg)](https://doi.org/10.21105/joss.01294)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.2537312.svg)](https://doi.org/10.5281/zenodo.2537312)
 
-[![Build Status (Linux and OS X)](https://travis-ci.org/bids-standard/pybids.svg?branch=master)](https://travis-ci.org/bids-standard/pybids)<!---[![Build Status (Windows)](https://ci.appveyor.com/api/projects/status/5aa4c6e3m15ew4v7?svg=true)](https://ci.appveyor.com/project/chrisfilo/pybids-ilb80)-->
 [![Binder](https://mybinder.org/badge.svg)](https://mybinder.org/v2/gh/bids-standard/pybids/master)
 [![PyPI version](https://badge.fury.io/py/pybids.svg)](https://badge.fury.io/py/pybids)
 [![Conda version](https://img.shields.io/conda/vn/conda-forge/pybids)](https://anaconda.org/conda-forge/pybids)
