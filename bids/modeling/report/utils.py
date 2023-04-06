@@ -143,7 +143,7 @@ def get_all_contrast_vif(node_output):
         node_output.contrasts, node_output.X.columns)
     for name, weights in con_matrix.iterrows():
         # Transform weights to vector matching X's columns
-        vif_out = get_eff_reg_vif(node_output.X, weights)
+        vif_out = get_eff_reg_vif(node_output.X.fillna(0), weights)
         vif_contrasts['contrast'].append(name)
         vif_contrasts['VIF'].append(vif_out) 
     vif_contrasts = pd.DataFrame(vif_contrasts)
