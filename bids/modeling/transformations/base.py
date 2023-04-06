@@ -426,7 +426,7 @@ class TransformationOutput:
     input_cols: list
     level: str
 
-class TransformerManager(object):
+class TransformerManager:
     """Handles registration and application of transformations to
     BIDSVariableCollections.
 

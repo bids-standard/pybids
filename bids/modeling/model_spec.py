@@ -260,7 +260,7 @@ class MetaAnalysisSpec(GLMMSpec):
     pass
 
 
-class Term(object):
+class Term:
     """Represents a model term.
 
     Parameters
@@ -329,7 +329,7 @@ class VarComp(Term):
         return vec
 
 
-class Prior(object):
+class Prior:
     '''Abstract specification of a term prior.
 
     Parameters

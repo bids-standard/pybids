@@ -73,7 +73,7 @@ def test_manual_intercept(graph_intercept):
     run.model['x'] = ['intercept']
     outputs= run.run(subject="01", run=1)
     assert outputs[0].X.intercept.min() != 1.0
-    
+
 
 def test_first_level_sparse_design_matrix(graph):
     outputs = graph["run"].run(subject=["01"], force_dense=False)
@@ -131,7 +131,7 @@ def test_contrast_dummy_vs_explicit(graph, graph_nodummy):
     # and explicit Contrasts are identical
     outputs = graph["run"].run(subject="01", run=1)
     outputs_nodummy = graph_nodummy["run"].run(subject="01", run=1)
-    
+
     for con in outputs[0].contrasts:
         match = [c for c in outputs_nodummy[0].contrasts if c.name == con.name][0]
 

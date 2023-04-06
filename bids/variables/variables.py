@@ -477,7 +477,7 @@ class DenseRunVariable(BIDSVariable):
         The type of BIDS variable file the data were extracted from.
     sampling_rate : :obj:`float`
         Mandatory sampling rate (in Hz) to use. Must match the sampling rate used
-        to generate the values. 
+        to generate the values.
     """
 
     def __init__(self, name, values, run_info, source, sampling_rate):
@@ -533,7 +533,7 @@ class DenseRunVariable(BIDSVariable):
                     df.iloc[prev_ix:prev_ix + reps, col_ix] = v
                 prev_ix = reps
 
-            return df            
+            return df
 
         all_reps = []
         all_ents = []
@@ -547,7 +547,7 @@ class DenseRunVariable(BIDSVariable):
 
             all_ents.append(run.entities)
             all_keys.update(run.entities.keys())
-            
+
         self.timestamps = pd.date_range(0, periods=sum(all_reps), freq='%sms' % interval)
 
         return _create_index(all_keys, all_reps, all_ents)

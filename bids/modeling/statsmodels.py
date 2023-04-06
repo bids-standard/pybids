@@ -436,8 +436,13 @@ class BIDSStatsModelsNode:
         return groups
 
     def run(self, inputs=None, group_by=None, force_dense=True,
+<<<<<<< HEAD
               sampling_rate='TR', invalid_contrasts='drop', 
               transformation_history=False, node_reports=False, **filters):
+=======
+              sampling_rate='TR', invalid_contrasts='drop',
+              transformation_history=False, **filters):
+>>>>>>> master
         """Execute node with provided inputs.
 
         Parameters
@@ -665,11 +670,11 @@ class BIDSStatsModelsNodeOutput:
             unique_in_contrast = None
 
         # Handle the special 1 construct.
-        # Add column of 1's to the design matrix called "intercept" 
+        # Add column of 1's to the design matrix called "intercept"
         if 1 in var_names:
             if "intercept" in var_names:
                 raise ValueError("Cannot define both '1' and 'intercept' in 'X'")
-                
+
             var_names = ['intercept' if i == 1 else i for i in var_names]
             if 'intercept' not in df.columns:
                 df.insert(0, 'intercept', 1)
@@ -729,7 +734,7 @@ class BIDSStatsModelsNodeOutput:
                 transformer = tm.TransformerManager(
                     transformations['transformer'], keep_history=collection_history)
                 coll = transformer.transform(coll.clone(), transformations['instructions'])
-                
+
                 if hasattr(transformer, 'history_'):
                     trans_hist += transformer.history_
 
@@ -765,7 +770,7 @@ class BIDSStatsModelsNodeOutput:
 
     def _build_contrasts(self, unique_in_contrast=None):
         """Contrast list of ContrastInfo objects based on current state.
-        
+
         Parameters
         ----------
         unique_in_contrast : string
@@ -792,7 +797,7 @@ class BIDSStatsModelsNodeOutput:
                 if col_name == "intercept":
                     col_name = 1
 
-                in_contrasts.insert(0, 
+                in_contrasts.insert(0,
                     {
                         'name': col_name,
                         'condition_list': [col_name],
@@ -801,7 +806,7 @@ class BIDSStatsModelsNodeOutput:
                     }
                 )
 
-        # Process all contrasts, starting with dummy contrasts 
+        # Process all contrasts, starting with dummy contrasts
         # Dummy contrasts are replaced if a contrast is defined with same name
         contrasts = {}
         for con in in_contrasts:
@@ -811,7 +816,7 @@ class BIDSStatsModelsNodeOutput:
             condition_list = ['intercept' if i == 1 else i for i in condition_list]
 
             name = con["name"]
-            
+
             # Rename contrast name
             if name == 1:
                 name = unique_in_contrast or 'intercept'
@@ -819,8 +824,8 @@ class BIDSStatsModelsNodeOutput:
                 # If Node has single contrast input, as is grouped by contrast
                 # Rename contrast to append incoming contrast name
                 if unique_in_contrast:
-                    name = f"{unique_in_contrast}_{name}" 
-                    
+                    name = f"{unique_in_contrast}_{name}"
+
             missing_vars = set(condition_list) - col_names
             if missing_vars:
                 if self.invalid_contrasts == 'error':
