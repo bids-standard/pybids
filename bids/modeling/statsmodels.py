@@ -695,9 +695,7 @@ class BIDSStatsModelsNodeOutput:
         self.model_spec = SpecCls.from_df(self.data, node.model, self.metadata)
         self.contrasts = self._build_contrasts(unique_in_contrast)
 
-        if node_reports:
-            for k, v in node_report(self).items():
-                setattr(self, k, v)
+        self.report_ = node_report(self) if node_reports else None
 
     def _collections_to_dfs(self, collections, *, collection_history=False):
         """Merges collections and converts them to a pandas DataFrame."""
