@@ -59,10 +59,10 @@ def _build_node_dict(node, all_entities):
         analysis_dict['X'] = out.X
 
         # If reports were run-level
-        if hasattr(out, 'design_matrix_plot'):
-            analysis_dict['design_matrix_plot'] = out.design_matrix_plot.to_json()
-            analysis_dict['design_matrix_corrplot'] = out.design_matrix_corrplot.to_json()
-            analysis_dict['VIF'] = out.VIF
+        if out.report_ is not None:
+            analysis_dict['design_matrix_plot'] = out.report_['design_matrix_plot'].to_json()
+            analysis_dict['design_matrix_corrplot'] = out.report_['design_matrix_corrplot'].to_json()
+            analysis_dict['VIF'] = out.report_['VIF']
             analysis_dict['trans_hist'] = out.trans_hist
             
         analysis_dict['contrast_matrix'] = generate_contrast_matrix(out.contrasts, out.X.columns)
