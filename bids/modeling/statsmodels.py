@@ -15,6 +15,7 @@ from bids.utils import matches_entities, convert_JSON, listify
 from bids.variables import (BIDSVariableCollection, merge_collections)
 from bids.modeling import transformations as tm
 from .model_spec import GLMMSpec, MetaAnalysisSpec
+from .report.utils import node_report
 import warnings
 
 
@@ -201,7 +202,7 @@ class BIDSStatsModelsGraph:
                                                       **node_kwargs)
             node.add_collections(collections)
 
-    def write_graph(self, dotfilename='graph.dot', format='png'):
+    def write_graph(self, dotfilename='graph.dot', format='png', pipe=False):
         """Generates a graphviz dot file and a png file
 
         Parameters
@@ -218,7 +219,7 @@ class BIDSStatsModelsGraph:
                 filename=dotfilename,
                 node_attr={'shape': 'record'},
                 comment=self.model['name'],
-                format=format
+                format=format, 
             )
 
         for node, nobj in self.nodes.items():
@@ -227,10 +228,47 @@ class BIDSStatsModelsGraph:
         for edge in self.edges:
             dot.edge(edge['source'], edge['destination'])
 
-        dot.render()
+        if pipe:
+            dot = dot.pipe(encoding='utf-8')
+        else:
+            dot.render()
 
         return dot
 
+    def run_graph(self, entities=None, **kwargs):
+        """Run the entire graph recursively.
+
+        Parameters
+        ----------
+        entities : dict (optional)
+            Optional dictionary of BIDS entities to use when loading collections.
+        kwargs : dict
+            Optional dictionary of keyword arguments to pass to
+            BIDSStatsModelsNode.run()
+        """
+        if entities is None:
+            entities = {}
+        
+        _run_node_recursive(self.root_node, filters=entities, **kwargs)
+
+def _run_node_recursive(node, inputs=None, filters=None, **kwargs):
+    """
+    Run a node recursively, storing outputs in place as
+    BIDSStatsModelsNode.outputs_.
+
+    """
+    if filters == None:
+        filters = {}
+        
+    # Run node
+    run_kwargs = {**filters, **kwargs}
+    node.outputs_ =  node.run(inputs, group_by=node.group_by, **run_kwargs)
+
+    # Inputs to next node
+    contrasts = list(itertools.chain(*[s.contrasts for s in node.outputs_]))
+
+    for edge in node.children:
+        _run_node_recursive(edge.destination, contrasts, filters=edge.filter, **kwargs)
 
 class BIDSStatsModelsNode:
     """Represents a single node in a BIDS-StatsModel graph.
@@ -398,8 +436,8 @@ class BIDSStatsModelsNode:
         return groups
 
     def run(self, inputs=None, group_by=None, force_dense=True,
-              sampling_rate='TR', invalid_contrasts='drop',
-              transformation_history=False, **filters):
+              sampling_rate='TR', invalid_contrasts='drop', 
+              transformation_history=False, node_reports=False, **filters):
         """Execute node with provided inputs.
 
         Parameters
@@ -439,6 +477,8 @@ class BIDSStatsModelsNode:
         transformation_history: bool
             If True, the returned ModelSpec instances will include a history of
             variable collections after each transformation.
+        node_reports: bool
+            If True, report measures and plots will be included in the output
         filters: dict
             Optional keyword arguments used to constrain the subset of the data
             that's processed. E.g., passing subject='01' will process and
@@ -478,7 +518,7 @@ class BIDSStatsModelsNode:
                 node=self, entities=dict(grp_ents), collections=grp_colls,
                 inputs=grp_inputs, force_dense=force_dense,
                 sampling_rate=sampling_rate, invalid_contrasts=invalid_contrasts,
-                transformation_history=transformation_history)
+                transformation_history=transformation_history, node_reports=node_reports)
             results.append(node_output)
 
         return results
@@ -582,10 +622,12 @@ class BIDSStatsModelsNodeOutput:
     transformation_history: bool
         If True, the returned ModelSpec instances will include a history of
         variable collections after each transformation.
+    node_reports: bool
+        If True, a report will be generated for each node output.
     """
     def __init__(self, node, entities={}, collections=None, inputs=None,
                  force_dense=True, sampling_rate='TR', invalid_contrasts='drop',
-                 *, transformation_history=False):
+                 *, transformation_history=False, node_reports=False):
         """Initialize a new BIDSStatsModelsNodeOutput instance.
         Applies the node's model to the specified collections and inputs, including
         applying transformations and generating final model specs and design matrices (X).
@@ -652,6 +694,8 @@ class BIDSStatsModelsNodeOutput:
         }[kind]
         self.model_spec = SpecCls.from_df(self.data, node.model, self.metadata)
         self.contrasts = self._build_contrasts(unique_in_contrast)
+
+        self.report_ = node_report(self) if node_reports else None
 
     def _collections_to_dfs(self, collections, *, collection_history=False):
         """Merges collections and converts them to a pandas DataFrame."""
@@ -802,4 +846,4 @@ class BIDSStatsModelsNodeOutput:
         return self.model_spec.X
 
     def __repr__(self):
-        return f"<{self.__class__.__name__}(level={self.node.name}, entities={self.entities})>"
+        return f"<{self.__class__.__name__}(name={self.node.name}, entities={self.entities})>"

@@ -50,6 +50,11 @@ test = [
   "pytest-cov",
   "bsmschema",
   "coverage[toml]",
+  "altair"
+]
+model_reports = [
+  "jinja2",
+  "altair"
 ]
 tutorial = [
   "nbconvert",
