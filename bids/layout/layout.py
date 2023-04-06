@@ -39,7 +39,7 @@ from .utils import (BIDSMetadata, parse_file_entities)
 __all__ = ['BIDSLayout']
 
 
-class BIDSLayout(object):
+class BIDSLayout:
     """Layout class representing an entire BIDS dataset.
 
     Parameters
@@ -139,7 +139,7 @@ class BIDSLayout(object):
         ]):
             try:
                 self.source_pipeline = validate_derivative_path(root)
-            except BIDSValidationError as err: 
+            except BIDSValidationError as err:
                 if validate:
                     raise err
                 self.source_pipeline = None

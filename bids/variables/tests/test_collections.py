@@ -315,7 +315,7 @@ def test_match_variables(run_coll):
 
 def test_n_variables(run_coll_derivs):
     # Test that variables are ingested into correct collection
-    # non_steady_state_outlier00 should only exist for sub-01 run-01 
+    # non_steady_state_outlier00 should only exist for sub-01 run-01
     match = [c for c in run_coll_derivs if c.entities.get('subject', None) == '01' and c.entities['run'] == 1]
     assert 'non_steady_state_outlier00' in match[0].variables.keys()
 

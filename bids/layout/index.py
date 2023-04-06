@@ -294,7 +294,7 @@ class BIDSLayoutIndexer:
                 try:
                     return json.load(handle)
                 except (UnicodeDecodeError, json.JSONDecodeError) as e:
-                    raise IOError(
+                    raise OSError(
                         "Error occurred while trying to decode JSON "
                         f"from file {path}"
                     ) from e

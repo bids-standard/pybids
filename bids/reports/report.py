@@ -6,7 +6,7 @@ from collections import Counter
 from bids.reports import parsing, utils
 
 
-class BIDSReport(object):
+class BIDSReport:
     """Generate publication-quality data acquisition section from BIDS dataset.
 
     Parameters
