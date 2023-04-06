@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import re
 from scipy.linalg import null_space
-from .viz import plot_design_matrix, plot_corr_matrix
+import warnings
 
 def node_report(node_output):
     """
@@ -13,11 +13,20 @@ def node_report(node_output):
         return {}
 
     _report = {
-        'design_matrix_plot': plot_design_matrix(
-            node_output.X, timecourse=True),
-        'design_matrix_corrplot': plot_corr_matrix(node_output.X),
         'VIF': get_all_contrast_vif(node_output),
     }
+    try:
+        from .viz import plot_design_matrix, plot_corr_matrix
+
+        _report['design_matrix_plot'] = plot_design_matrix(
+            node_output.X, timecourse=True),
+
+        _report['design_matrix_corrplot'] = plot_corr_matrix(node_output.X)
+
+    except ImportError:
+        warnings.warn(
+            'altair failed to import, and is required for StatsModel report plots.', 
+            ImportWarning)
 
     return _report
 

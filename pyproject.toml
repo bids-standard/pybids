@@ -48,7 +48,11 @@ test = [
   "pytest >=3.3",
   "pytest-cov",
   "bsmschema",
-  "coverage[toml]",
+  "coverage[toml]"
+]
+model_reports = [
+  "jinja2",
+  "altair"
 ]
 tutorial = [
   "nbconvert",

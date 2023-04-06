@@ -1,4 +1,3 @@
-import jinja2
 import os
 import datetime
 from pathlib import Path
@@ -99,6 +98,14 @@ def _build_report_dict(graph):
 
 
 def _write_report(report_dict, out_dir, template_path=None):
+    try:
+        import jinja2
+    except ImportError:
+        raise ImportError(
+            "Jinja2 must be installed to generate reports. "
+            "You can install it with pip install jinja2."
+        )   
+
     if template_path is None:
         searchpath = pkgr.resource_filename('bids', '/')
         template_file = 'modeling/report/report_template.jinja'
