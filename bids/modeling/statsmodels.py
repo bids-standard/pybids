@@ -436,13 +436,8 @@ class BIDSStatsModelsNode:
         return groups
 
     def run(self, inputs=None, group_by=None, force_dense=True,
-<<<<<<< HEAD
               sampling_rate='TR', invalid_contrasts='drop', 
               transformation_history=False, node_reports=False, **filters):
-=======
-              sampling_rate='TR', invalid_contrasts='drop',
-              transformation_history=False, **filters):
->>>>>>> master
         """Execute node with provided inputs.
 
         Parameters
