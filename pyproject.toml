@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "pybids"
 description = "bids: interface with datasets conforming to BIDS"
 readme = "README.md"
-requires-python = ">=3.7"
+requires-python = ">=3.8"
 license = { file="LICENSE" }
 authors = [
   { name = "PyBIDS Developers", email = "bids-discussion@googlegroups.com" },
