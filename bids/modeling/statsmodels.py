@@ -436,7 +436,7 @@ class BIDSStatsModelsNode:
         return groups
 
     def run(self, inputs=None, group_by=None, force_dense=True,
-              sampling_rate='TR', invalid_contrasts='drop', 
+              sampling_rate='TR', invalid_contrasts='drop', missing_values='fill',
               transformation_history=False, node_reports=False, **filters):
         """Execute node with provided inputs.
 
@@ -473,6 +473,11 @@ class BIDSStatsModelsNode:
             Valid values:
                 * 'drop' (default): Drop invalid contrasts, retain the rest.
                 * 'ignore': Keep invalid contrasts despite the missing variables.
+                * 'error': Raise an error.
+        missing_values: str
+            Indicates how to handle missing values in the data. Valid values:
+                * 'fill' (default): Fill missing values with 0.
+                * 'ignore': Keep missing values.
                 * 'error': Raise an error.
         transformation_history: bool
             If True, the returned ModelSpec instances will include a history of
@@ -518,6 +523,7 @@ class BIDSStatsModelsNode:
                 node=self, entities=dict(grp_ents), collections=grp_colls,
                 inputs=grp_inputs, force_dense=force_dense,
                 sampling_rate=sampling_rate, invalid_contrasts=invalid_contrasts,
+                missing_values=missing_values,
                 transformation_history=transformation_history, node_reports=node_reports)
             results.append(node_output)
 
@@ -697,7 +703,7 @@ class BIDSStatsModelsNodeOutput:
             missing_cols = self.data.columns[self.data.isnull().any()]
             if len(missing_cols) > 0:
                 base_message = f"NaNs detected in columns: {missing_cols}"
-                
+
                 if missing_values == 'fill':
                     self.data.fillna(0, inplace=True)
                     base_message += " were replaced with 0.  Consider "\
