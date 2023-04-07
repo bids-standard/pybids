@@ -292,7 +292,7 @@ def test_missing_value_fill():
     # Check that missing values are filled in
     # Assert that a warnings is raised
     with pytest.warns(UserWarning):
-        graph.run_graph(missing_values='fill')
+        graph.run_graph()
 
     # Assert that there are no missing values
     outputs = graph.nodes['run'].outputs_
