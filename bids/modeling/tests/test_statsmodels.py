@@ -6,6 +6,8 @@ from nibabel.optpkg import optional_package
 graphviz, has_graphviz, _ = optional_package("graphviz")
 
 import pytest
+import numpy as np 
+import json 
 
 from bids.modeling import BIDSStatsModelsGraph
 from bids.modeling.statsmodels import ContrastInfo, expand_wildcards
@@ -274,3 +276,34 @@ def test_interceptonly_runlevel_error():
     json_file = join(layout_path, "models", "ds-005_type-interceptonlyrunlevel_model.json")
     with pytest.raises(NotImplementedError):
         graph = BIDSStatsModelsGraph(layout, json_file)
+
+def test_missing_value_fill():
+    layout_path = join(get_test_data_path(), "ds005")
+    layout = BIDSLayout(layout_path, derivatives=join(layout_path, 'derivatives', 'fmriprep'))
+    json_file = join(layout_path, "models", "ds-005_type-test_model.json")
+
+    model = json.load(open(json_file))
+    # Add 'global_signal_derivative1' to the model
+    model['Nodes'][0]['Model'] = {'X': ['RT', 'gain', 'global_signal_derivative1']}
+
+    graph = BIDSStatsModelsGraph(layout, model)
+    graph.load_collections(scan_length=480, subject=["01", "02"])
+
+    # Check that missing values are filled in
+    # Assert that a warnings is raised
+    with pytest.warns(UserWarning):
+        graph.run_graph(missing_values='fill')
+
+    # Assert that there are no missing values
+    outputs = graph.nodes['run'].outputs_
+    assert not np.isnan(outputs[0].model_spec.X).any().any()
+
+    # Check that missing_values='error' raises an error
+    with pytest.raises(ValueError):
+        graph.run_graph(missing_values='error')
+
+    # Check that missing_values='ignore' passes through missing values
+    graph.run_graph(missing_values='ignore')
+
+    outputs = graph.nodes['run'].outputs_
+    assert np.isnan(outputs[0].model_spec.X).any().any()
