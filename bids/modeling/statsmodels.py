@@ -706,7 +706,7 @@ class BIDSStatsModelsNodeOutput:
             if len(missing_cols) > 0:
                 base_message = f"NaNs detected in columns: {missing_cols}"
 
-                if missing_values is ['fill', None]:
+                if missing_values in ['fill', None]:
                     self.data.fillna(0, inplace=True)
                     if missing_values is None:
                         base_message += " were replaced with 0.  Consider "\
