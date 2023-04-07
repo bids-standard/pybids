@@ -619,6 +619,11 @@ class BIDSStatsModelsNodeOutput:
             * 'drop' (default): Drop invalid contrasts, retain the rest.
             * 'ignore': Keep invalid contrasts despite the missing variables.
             * 'error': Raise an error.
+    missing_values: str
+        Indicates how to handle missing values in the data. Valid values:
+            * 'fill' (default): Fill missing values with 0.
+            * 'ignore': Keep missing values.
+            * 'error': Raise an error.
     transformation_history: bool
         If True, the returned ModelSpec instances will include a history of
         variable collections after each transformation.
@@ -685,6 +690,23 @@ class BIDSStatsModelsNodeOutput:
         # separate the design columns from the entity columns
         self.data = df.loc[:, var_names]
         self.metadata = df.loc[:, df.columns.difference(var_names)]
+
+        # replace missing values with 0 and warn user which columns had missing values
+        if missing_values == 'fill':
+            missing_cols = self.data.columns[self.data.isnull().any()]
+            if len(missing_cols) > 0:
+                warnings.warn("The following columns had missing values and "
+                              f"were filled with 0: {missing_cols}."
+                                "Consider explicitly handling missing values "
+                                "using transformations.")
+        
+            self.data = self.data.fillna(0)
+        elif missing_values == 'error':
+            if self.data.isnull().values.any():
+                raise ValueError("Missing values found in data matrix. "
+                                 "Set missing_values='fill' to fill missing "
+                                 "values with 0, or missing_values='ignore' "
+                                 "to ignore missing values.")
 
         # create ModelSpec and build contrasts
         kind = node.model.get('type', 'glm').lower()
