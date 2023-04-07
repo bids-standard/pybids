@@ -436,7 +436,7 @@ class BIDSStatsModelsNode:
         return groups
 
     def run(self, inputs=None, group_by=None, force_dense=True,
-              sampling_rate='TR', invalid_contrasts='drop', missing_values='fill',
+              sampling_rate='TR', invalid_contrasts='drop', missing_values=None,
               transformation_history=False, node_reports=False, **filters):
         """Execute node with provided inputs.
 
@@ -479,6 +479,7 @@ class BIDSStatsModelsNode:
                 * 'fill' (default): Fill missing values with 0.
                 * 'ignore': Keep missing values.
                 * 'error': Raise an error.
+            Defaults to 'fill' if None, but raises warning if not explicitly set.
         transformation_history: bool
             If True, the returned ModelSpec instances will include a history of
             variable collections after each transformation.
@@ -630,6 +631,7 @@ class BIDSStatsModelsNodeOutput:
             * 'fill' (default): Fill missing values with 0.
             * 'ignore': Keep missing values.
             * 'error': Raise an error.
+        Defaults to 'fill' if None, but raises warning if not explicitly set.
     transformation_history: bool
         If True, the returned ModelSpec instances will include a history of
         variable collections after each transformation.
@@ -638,7 +640,7 @@ class BIDSStatsModelsNodeOutput:
     """
     def __init__(self, node, entities={}, collections=None, inputs=None,
                  force_dense=True, sampling_rate='TR', invalid_contrasts='drop',
-                 missing_values='fill', *, transformation_history=False,
+                 missing_values=None, *, transformation_history=False,
                  node_reports=False):
         """Initialize a new BIDSStatsModelsNodeOutput instance.
         Applies the node's model to the specified collections and inputs, including
@@ -704,11 +706,12 @@ class BIDSStatsModelsNodeOutput:
             if len(missing_cols) > 0:
                 base_message = f"NaNs detected in columns: {missing_cols}"
 
-                if missing_values == 'fill':
+                if missing_values is ['fill', None]:
                     self.data.fillna(0, inplace=True)
-                    base_message += " were replaced with 0.  Consider "\
-                        " handling missing values using transformations."
-                    warnings.warn(base_message)
+                    if missing_values is None:
+                        base_message += " were replaced with 0.  Consider "\
+                            " handling missing values using transformations."
+                        warnings.warn(base_message)
                 elif missing_values == 'error':
                     base_message += ". Explicitly replace missing values using transformations."
                     raise ValueError(base_message)
