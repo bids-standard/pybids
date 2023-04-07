@@ -632,7 +632,8 @@ class BIDSStatsModelsNodeOutput:
     """
     def __init__(self, node, entities={}, collections=None, inputs=None,
                  force_dense=True, sampling_rate='TR', invalid_contrasts='drop',
-                 *, transformation_history=False, node_reports=False):
+                 missing_values='fill', *, transformation_history=False,
+                 node_reports=False):
         """Initialize a new BIDSStatsModelsNodeOutput instance.
         Applies the node's model to the specified collections and inputs, including
         applying transformations and generating final model specs and design matrices (X).
@@ -692,21 +693,19 @@ class BIDSStatsModelsNodeOutput:
         self.metadata = df.loc[:, df.columns.difference(var_names)]
 
         # replace missing values with 0 and warn user which columns had missing values
-        if missing_values == 'fill':
+        if missing_values != 'ignore':
             missing_cols = self.data.columns[self.data.isnull().any()]
             if len(missing_cols) > 0:
-                warnings.warn("The following columns had missing values and "
-                              f"were filled with 0: {missing_cols}."
-                                "Consider explicitly handling missing values "
-                                "using transformations.")
-        
-            self.data = self.data.fillna(0)
-        elif missing_values == 'error':
-            if self.data.isnull().values.any():
-                raise ValueError("Missing values found in data matrix. "
-                                 "Set missing_values='fill' to fill missing "
-                                 "values with 0, or missing_values='ignore' "
-                                 "to ignore missing values.")
+                base_message = f"NaNs detected in columns: {missing_cols}"
+                
+                if missing_values == 'fill':
+                    self.data.fillna(0, inplace=True)
+                    base_message += " were replaced with 0.  Consider "\
+                        " handling missing values using transformations."
+                    warnings.warn(base_message)
+                elif missing_values == 'error':
+                    base_message += ". Explicitly replace missing values using transformations."
+                    raise ValueError(base_message)
 
         # create ModelSpec and build contrasts
         kind = node.model.get('type', 'glm').lower()
