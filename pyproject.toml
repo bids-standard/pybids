@@ -63,7 +63,7 @@ tutorial = [
   "jupyter_client",
   "ipykernel",
 ]
-ci_tests = ["pybids[test]", "codecov", "pytest-xdist"]
+ci_tests = ["pybids[test]", "pytest-xdist"]
 # Aliases
 docs = ["pybids[doc]"]
 tests = ["pybids[test]"]
