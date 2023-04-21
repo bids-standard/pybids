@@ -48,7 +48,7 @@ plotting = ["graphviz"]
 test = [
   "pytest >=3.3",
   "pytest-cov",
-  "bsmschema",
+  "bsmschema @ git+https://github.com/effigies/stats-models.git@fix/pydantic2#subdirectory=bsmschema",
   "coverage[toml]",
   "altair"
 ]
