@@ -58,8 +58,8 @@ model_reports = [
 ]
 tutorial = [
   "nbconvert",
-  "jinja2 <3",  # Required until nbconvert handles all deprecations/removals
-  "markupsafe <2.1",  # Required until we can upgrade jinja2
+  "jinja2",
+  "markupsafe",
   "jupyter_client",
   "ipykernel",
 ]
