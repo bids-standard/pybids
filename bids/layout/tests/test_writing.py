@@ -37,7 +37,7 @@ def writable_file(tmpdir):
 
     session.add_all(list(ents.values()) + tags + [bf])
     session.commit()
-    return bf
+    yield bf
 
 
 @pytest.fixture(scope='module')

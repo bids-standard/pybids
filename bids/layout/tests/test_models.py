@@ -178,7 +178,8 @@ def test_load_existing_config():
     session.commit()
 
     from sqlalchemy.orm.exc import FlushError
-    with pytest.raises(FlushError):
+    from sqlalchemy.exc import DBAPIError
+    with pytest.raises((FlushError, DBAPIError)):
         second = Config.load({"name": "dummy"})
         session.add(second)
         session.commit()

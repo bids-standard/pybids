@@ -29,7 +29,7 @@ dependencies = [
   "nibabel >=2.1",
   "pandas >=0.23",
   "formulaic >=0.2.4, <0.6",  # Tested on 0.2.4-0.5.2
-  "sqlalchemy <1.4.0.dev0",
+  "sqlalchemy",
   "bids-validator",
   "num2words",
   "click >=8.0",
@@ -41,7 +41,7 @@ doc = [
   "sphinx >=2.2, !=5.1.0",
   "numpydoc",
   "sphinx_rtd_theme",
-  "myst_nb!=0.17.2",  # Avoids pulling in jupyter_cache 0.6.0 which relies on sqlalchemy>=1.4.0
+  "myst_nb",
   "jupytext",
 ]
 plotting = ["graphviz"]

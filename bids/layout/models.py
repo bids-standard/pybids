@@ -10,11 +10,15 @@ from itertools import chain
 from functools import lru_cache
 from collections import UserDict
 
-from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.orm.collections import attribute_mapped_collection
-from sqlalchemy import (Column, String, Boolean, ForeignKey, Table)
+from sqlalchemy import Column, String, Boolean, ForeignKey, Table
 from sqlalchemy.orm import reconstructor, relationship, backref, object_session
+
+try:
+    from sqlalchemy.orm import declarative_base
+except ImportError:  # sqlalchemy < 1.4
+    from sqlalchemy.ext.declarative import declarative_base
 
 from ..utils import listify
 from .writing import build_path, write_to_file
