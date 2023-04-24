@@ -567,7 +567,7 @@ class BIDSLayout:
         query = self.session.query(Tag).filter(Tag.file_path.in_(file_paths))
 
         if not metadata:
-            query = query.join(Entity).filter(Tag.is_metadata == False)
+            query = query.join(Entity).filter(Tag.is_metadata == False)  # noqa: E712
 
         tags = query.all()
 
@@ -949,7 +949,7 @@ class BIDSLayout:
                      .filter(BIDSFile.path == str(path)))
 
             if not include_entities:
-                query = query.join(Entity).filter(Tag.is_metadata == True)
+                query = query.join(Entity).filter(Tag.is_metadata == True)  # noqa: E712
 
             results = query.all()
             if results:
