@@ -35,11 +35,14 @@ jobs:
         install: ['pip']
         check: ['ci_tests']
         pip-flags: ['PRE_PIP_FLAGS']
+        requirements: ['']
+      fail-fast: false
     env:
       INSTALL_TYPE: ${{ matrix.install }}
       CHECK_TYPE: ${{ matrix.check }}
       EXTRA_PIP_FLAGS: ${{ matrix.pip-flags }}
       OS_TYPE: ${{ matrix.os }}
+      REQUIREMENTS: ${{ matrix.requirements }}
 
     steps:
       - uses: actions/checkout@v3
