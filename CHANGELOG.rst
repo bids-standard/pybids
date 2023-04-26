@@ -1,7 +1,7 @@
 Changelog
 =========
 
-Version 0.16.0 (April 25, 2023)
+Version 0.16.0 (April 26, 2023)
 -------------------------------
 
 New feature release in the 0.16.x series.
