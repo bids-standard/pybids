@@ -980,19 +980,32 @@ def test_get_with_query_constants_in_match_list(layout_ds005):
     assert set(get1_and_any) == set(get1) | set(get_any)
     assert set(get_none_and_any) == set(get_none) | set(get_any)
 
+
 def test_get_non_run_entity_with_query_constants_in_match_list(layout_ds005):
     l = layout_ds005
-    get1 = l.get(subject='01', acquisition="MPRAGE", suffix='bold')
-    get_none = l.get(subject='01', acquisition=None, suffix='bold')
-    get_any = l.get(subject='01', acquisition=Query.ANY, suffix='bold')
-    get1_and_none = l.get(subject='01', acquisition=[None, "MPRAGE"], suffix='bold')
-    get1_and_any = l.get(subject='01', acquisition=[Query.ANY, "MPRAGE"], suffix='bold')
+    get1 = l.get(subject='01', acquisition="MPRAGE", suffix='T1w')
+    get_none = l.get(subject='01', acquisition=None, suffix='T1w')
+    get_any = l.get(subject='01', acquisition=Query.ANY, suffix='T1w')
+    get1_and_none = l.get(subject='01', acquisition=[None, "MPRAGE"], suffix='T1w')
+    get1_and_any = l.get(subject='01', acquisition=[Query.ANY, "MPRAGE"], suffix='T1w')
     get_none_and_any = l.get(
-        subject='01', acquisition=[Query.ANY, Query.NONE], suffix='bold'
+        subject='01', acquisition=[Query.ANY, Query.NONE], suffix='T1w'
     )
     assert set(get1_and_none) == set(get1) | set(get_none)
     assert set(get1_and_any) == set(get1) | set(get_any)
     assert set(get_none_and_any) == set(get_none) | set(get_any)
+
+
+def test_query_constants_work_on_extension(layout_ds005_no_validate):
+    l = layout_ds005_no_validate
+    get_both = l.get(subject='11', datatype='dwi', extension=Query.OPTIONAL)
+    get_ext = l.get(subject='11', datatype='dwi', extension=Query.REQUIRED)
+    get_no_ext = l.get(subject='11', datatype='dwi', extension=Query.NONE)
+    assert len(get_both) == 2
+    assert len(get_ext) == 1
+    assert len(get_no_ext) == 1
+    assert 'extension' in get_ext[0].get_entities()
+    assert 'extension' not in get_no_ext[0].get_entities()
 
 
 def test_load_layout(layout_synthetic_nodb, db_dir):

@@ -26,6 +26,12 @@ def layout_ds005():
 
 
 @pytest.fixture(scope="module")
+def layout_ds005_no_validate():
+    data_dir = join(get_test_data_path(), 'ds005')
+    return BIDSLayout(data_dir, validate=False)
+
+
+@pytest.fixture(scope="module")
 def layout_ds117():
     data_dir = join(get_test_data_path(), 'ds000117')
     return BIDSLayout(data_dir)
