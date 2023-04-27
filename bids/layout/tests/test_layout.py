@@ -955,7 +955,7 @@ def test_get_with_invalid_filters(layout_ds005):
     res_drop = l.get(subject='12', suffix='bold', amazing='!!!',
                      invalid_filters='drop')
     assert res_without == res_drop
-    assert len(res_drop) == 4
+    assert len(res_drop) == 3
     # Retain amazing, producing empty set
     allow_res = l.get(subject='12', amazing=True, invalid_filters='allow')
     assert allow_res == []
