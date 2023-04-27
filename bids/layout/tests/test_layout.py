@@ -955,7 +955,7 @@ def test_get_with_invalid_filters(layout_ds005):
     res_drop = l.get(subject='12', suffix='bold', amazing='!!!',
                      invalid_filters='drop')
     assert res_without == res_drop
-    assert len(res_drop) == 3
+    assert len(res_drop) == 4
     # Retain amazing, producing empty set
     allow_res = l.get(subject='12', amazing=True, invalid_filters='allow')
     assert allow_res == []
@@ -976,6 +976,20 @@ def test_get_with_query_constants_in_match_list(layout_ds005):
     get1_and_none = l.get(subject='12', run=[None, 1], suffix='bold')
     get1_and_any = l.get(subject='12', run=[Query.ANY, 1], suffix='bold')
     get_none_and_any = l.get(subject='12', run=[Query.ANY, Query.NONE], suffix='bold')
+    assert set(get1_and_none) == set(get1) | set(get_none)
+    assert set(get1_and_any) == set(get1) | set(get_any)
+    assert set(get_none_and_any) == set(get_none) | set(get_any)
+
+def test_get_non_run_entity_with_query_constants_in_match_list(layout_ds005):
+    l = layout_ds005
+    get1 = l.get(subject='01', acquisition="MPRAGE", suffix='bold')
+    get_none = l.get(subject='01', acquisition=None, suffix='bold')
+    get_any = l.get(subject='01', acquisition=Query.ANY, suffix='bold')
+    get1_and_none = l.get(subject='01', acquisition=[None, "MPRAGE"], suffix='bold')
+    get1_and_any = l.get(subject='01', acquisition=[Query.ANY, "MPRAGE"], suffix='bold')
+    get_none_and_any = l.get(
+        subject='01', acquisition=[Query.ANY, Query.NONE], suffix='bold'
+    )
     assert set(get1_and_none) == set(get1) | set(get_none)
     assert set(get1_and_any) == set(get1) | set(get_any)
     assert set(get_none_and_any) == set(get_none) | set(get_any)
