@@ -294,7 +294,7 @@ class BIDSLayout:
             try:
                 if isinstance(val, (list, tuple)):
                     entities[name] = [
-                        v if isinstance(v, enum.Enum) else ents[name]._astype(v)
+                        v if isinstance(v, Query) else ents[name]._astype(v)
                         for v in val
                     ]
                 else:
