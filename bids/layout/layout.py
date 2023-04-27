@@ -293,7 +293,10 @@ class BIDSLayout:
                 continue
             try:
                 if isinstance(val, (list, tuple)):
-                    entities[name] = [ents[name]._astype(v) for v in val]
+                    entities[name] = [
+                        v if isinstance(v, Query) else ents[name]._astype(v)
+                        for v in val
+                    ]
                 else:
                     entities[name] = ents[name]._astype(val)
             except Exception:
