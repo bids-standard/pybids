@@ -38,19 +38,19 @@ jobs:
         include:
           # Build docs
           - os: ubuntu-latest
-            python-version: 3.8
+            python-version: 3.11
             install: pip
             check: doc
             pip-flags: ''
           # Check all installation methods
           - os: ubuntu-latest
-            python-version: 3.8
+            python-version: 3.11
             install: wheel
             check: ci_tests
             pip-flags: ''
             requirements: ''
           - os: ubuntu-latest
-            python-version: 3.8
+            python-version: 3.11
             install: sdist
             check: ci_tests
             pip-flags: ''
