@@ -95,7 +95,7 @@
         },
         {
             "name": "suffix",
-            "pattern": "[._]*([a-zA-Z0-9]*?)\\.[^/\\\\]+$"
+            "pattern": "(?:^|[_/\\\\])([a-zA-Z0-9]+)\\.[^/\\\\]+$"
         },
         {
             "name": "scans",
@@ -111,7 +111,7 @@
         },
         {
             "name": "extension",
-            "pattern": "[._]*[a-zA-Z0-9]*?(\\.[^/\\\\]+)$"
+            "pattern": "[^./\\\\](\\.[^/\\\\]+)$"
         }
     ],
     "default_path_patterns": [
