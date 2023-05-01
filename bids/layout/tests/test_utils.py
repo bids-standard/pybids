@@ -48,6 +48,19 @@ def test_parse_file_entities(mock_config):
     assert target == parse_file_entities(filename, entities=entities)
 
 
+@pytest.mark.parametrize(
+    "filename, target",
+    [
+        ('/path/to/sub-01.ext', {'subject': '01', 'extension': '.ext'}),
+        ('/path/to/stub.ext', {'suffix': 'stub', 'extension': '.ext'}),
+        ('/path/to/.dotfile', {}),
+        ('/path/to/stub', {}),
+    ]
+)
+def test_parse_degenerate_files(mock_config, filename, target):
+    assert parse_file_entities(filename, config='bids') == target
+
+
 def test_add_config_paths():
     bids_dir = os.path.dirname(bids.__file__)
     bids_json = os.path.join(bids_dir, 'layout', 'config', 'bids.json')
