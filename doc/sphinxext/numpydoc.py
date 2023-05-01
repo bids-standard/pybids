@@ -16,7 +16,6 @@ It will:
 .. [1] https://github.com/numpy/numpy/blob/master/doc/HOWTO_DOCUMENT.rst.txt
 
 """
-import sys
 import re
 import pydoc
 import sphinx
@@ -27,7 +26,6 @@ if sphinx.__version__ < '1.0.1':
     raise RuntimeError("Sphinx 1.0.1 or newer is required")
 
 from docscrape_sphinx import get_doc_object, SphinxDocString
-from sphinx.util.compat import Directive
 
 
 def mangle_docstrings(app, what, name, obj, options, lines,

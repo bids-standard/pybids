@@ -7,7 +7,6 @@ import re
 import pydoc
 from warnings import warn
 import collections
-import sys
 
 
 class Reader:
