@@ -17,7 +17,6 @@ def decommify(name):
 blacklist = {
     'Cecile Madjar',
     'Matthew Wardrop',
-    'Peter Van Dyken',
     'github-actions[bot]',
     'dependabot[bot]',
 }

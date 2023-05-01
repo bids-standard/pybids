@@ -1,6 +1,17 @@
 Changelog
 =========
 
+Version 0.16.1 (May 01, 2023)
+-----------------------------
+
+Bug-fix release in the 0.16.x series.
+
+* FIX: Improve parsing of suffix/extension in non-BIDS files (#997)
+* FIX: Support use of Query enums in filter lists (#994)
+* MNT: Clean up imports in documentation scripts (#980)
+* MNT: update zenodo  (#995)
+* CI: Update Python version for doc/sdist/wheel tests (#996)
+
 Version 0.16.0 (April 26, 2023)
 -------------------------------
 

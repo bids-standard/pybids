@@ -33,6 +33,11 @@
       "orcid": "0000-0003-3456-2493"
     },
     {
+      "affiliation": "CEA",
+      "name": "Papadopoulos Orfanos, Dimitri",
+      "orcid": "0000-0002-1242-8990"
+    },
+    {
       "affiliation": "Department of Psychology, Stanford University",
       "name": "Esteban, Oscar",
       "orcid": "0000-0001-8435-6191"
@@ -41,11 +46,6 @@
       "affiliation": "Université catholique de Louvain",
       "name": "Gau, Remi",
       "orcid": "0000-0002-1535-9767"
-    },
-    {
-      "affiliation": "CEA",
-      "name": "Papadopoulos Orfanos, Dimitri",
-      "orcid": "0000-0002-1242-8990"
     },
     {
       "affiliation": "University of Texas at Austin",
@@ -93,6 +93,11 @@
       "affiliation": "Center for Adaptive Rationality, Max Planck Institute for Human Development, Berlin, Germany",
       "name": "Appelhoff, Stefan",
       "orcid": "0000-0001-8002-0877"
+    },
+    {
+      "affiliation": "Western University, London, ON, CA",
+      "name": "Van Dyken, Peter",
+      "orcid": "0000-0001-7357-5815"
     },
     {
       "affiliation": "Department of Psychology, Stanford University",
