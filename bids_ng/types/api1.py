@@ -30,11 +30,16 @@ class File(Protocol[SchemaT]):
     """
 
     path: Path
-    relative_path: Path
     dataset: Optional["BIDSDataset[SchemaT]"]
 
     def __fspath__(self) -> str:
-        ...
+        return str(self.path)
+
+    @property
+    def relative_path(self) -> Path:
+        if self.dataset is None:
+            raise ValueError("No dataset root to construct relative path from")
+        return self.path.relative_to(self.dataset.root)
 
 
 class BIDSFile(File[SchemaT], Protocol):
