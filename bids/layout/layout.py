@@ -184,7 +184,7 @@ class BIDSLayout:
                 validate=validate, absolute_paths=absolute_paths,
                 derivatives=None, sources=self, config=None,
                 regex_search=regex_search, reset_database=reset_database,
-                **indexer_kwargs)
+                indexer=indexer, **indexer_kwargs)
 
     @property
     def root(self):
