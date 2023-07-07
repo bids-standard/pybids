@@ -169,11 +169,12 @@ class BIDSLayout:
             self.connection_manager = ConnectionManager(
                 database_path, reset_database, config, init_args)
 
-            if indexer is None:
-                indexer = BIDSLayoutIndexer(
-                    validate=validate and not is_derivative, **indexer_kwargs
-                )
-            indexer(self)
+            # Do not overwrite indexer variable, so the same configuration is passed to
+            # add_derivatives() below
+            _indexer = indexer or BIDSLayoutIndexer(
+                validate=validate and not is_derivative, **indexer_kwargs
+            )
+            _indexer(self)
 
         # Add derivatives if any are found
         if derivatives:
