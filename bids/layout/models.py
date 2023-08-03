@@ -675,27 +675,13 @@ class Tag(Base):
         "tags", collection_class=attribute_mapped_collection("file_path")))
 
     def __init__(self, file, entity, value, dtype=None, is_metadata=False):
-        if dtype is None:
-            dtype = type(value)
+        data = _create_tag_dict(file, entity, value, dtype, is_metadata)
 
-        self.is_metadata = is_metadata
-
-        if not isinstance(dtype, str):
-            dtype = dtype.__name__
-
-        if dtype in ['list', 'dict']:
-            self._dtype = 'json'
-            self._value = json.dumps(value)
-        else:
-            self._dtype = dtype
-            self._value = str(value)
-        if self._dtype not in ('str', 'float', 'int', 'bool', 'json'):
-            raise ValueError(
-                f"Passed value has an invalid dtype ({dtype}). Must be one of "
-                "int, float, bool, or str.")
-
-        self.file_path = file.path
-        self.entity_name = entity.name
+        self.file_path = data['file_path']
+        self.entity_name = data['entity_name']
+        self._dtype = data['_dtype']
+        self._value = data['_value']
+        self.is_metadata = data['is_metadata']
 
         self.dtype = type_map[self._dtype]
         if self._dtype != 'json':
@@ -710,11 +696,38 @@ class Tag(Base):
     @reconstructor
     def _init_on_load(self):
         if self._dtype == 'json':
-            self.value = json.loads(self._value)
+            self.value = eval(self._value)
             self.dtype = 'json'
         else:
             self.dtype = type_map[self._dtype]
             self.value = self.dtype(self._value)
+
+def _create_tag_dict(file, entity, value, dtype=None, is_metadata=False):
+        data = {}
+        if dtype is None:
+            dtype = type(value)
+
+        if not isinstance(dtype, str):
+            dtype = dtype.__name__
+
+        if dtype in ['list', 'dict']:
+            _dtype = 'json'
+            _value = str(value)
+        else:
+            _dtype = dtype
+            _value = str(value)
+        if _dtype not in ('str', 'float', 'int', 'bool', 'json'):
+            raise ValueError(
+                f"Passed value has an invalid dtype ({dtype}). Must be one of "
+                "int, float, bool, or str.")
+
+        data['is_metadata'] = is_metadata
+        data['file_path'] = file.path
+        data['entity_name'] = entity.name
+        data['_dtype'] = _dtype
+        data['_value'] = _value
+
+        return data
 
 
 class FileAssociation(Base):

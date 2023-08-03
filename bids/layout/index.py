@@ -12,7 +12,7 @@ from bids_validator import BIDSValidator
 from ..utils import listify, make_bidsfile
 from ..exceptions import BIDSConflictingValuesError
 
-from .models import Config, Entity, Tag, FileAssociation
+from .models import Config, Entity, Tag, FileAssociation, _create_tag_dict
 from .validation import validate_indexing_args
 
 def _regexfy(patt, root=None):
@@ -343,6 +343,7 @@ class BIDSLayoutIndexer:
             return objs
 
         all_objs = []
+        all_tag_dicts = []
         for bf in filenames:
             file_ents = bf.entities.copy()
             suffix = file_ents.pop('suffix', None)
@@ -479,8 +480,9 @@ class BIDSLayoutIndexer:
                 if md_key not in all_entities:
                     all_entities[md_key] = Entity(md_key)
                     self.session.add(all_entities[md_key])
-                tag = Tag(bf, all_entities[md_key], md_val, is_metadata=True)
-                all_objs.append(tag)
+                tag = _create_tag_dict(bf, all_entities[md_key], md_val, is_metadata=True)
+                all_tag_dicts.append(tag)
                 
         self.session.bulk_save_objects(all_objs)
+        self.session.bulk_insert_mappings(Tag, all_tag_dicts)
         self.session.commit()
