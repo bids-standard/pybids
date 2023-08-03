@@ -186,7 +186,7 @@ class BIDSLayoutIndexer:
 
         # Derivative directories must always be added separately
         if self._layout._root.joinpath('derivatives') in abs_path.parents:
-            return None, None
+            return [], []
 
         config = list(config)  # Shallow copy
 
@@ -230,9 +230,8 @@ class BIDSLayoutIndexer:
             )
             if force is not False:
                 dir_bfs, dir_tag_dicts = self._index_dir(d, config, force=force)
-                if dir_bfs:
-                    all_bfs += dir_bfs
-                    all_tag_dicts += dir_tag_dicts
+                all_bfs += dir_bfs
+                all_tag_dicts += dir_tag_dicts
 
         return all_bfs, all_tag_dicts
 
