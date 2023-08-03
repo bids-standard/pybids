@@ -705,7 +705,7 @@ class Tag(Base):
     @reconstructor
     def _init_on_load(self):
         if self._dtype == 'json':
-            self.value = self._value
+            self.value = json.loads(self._value)
             self.dtype = 'json'
         else:
             self.dtype = type_map[self._dtype]
