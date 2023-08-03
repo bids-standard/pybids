@@ -635,7 +635,8 @@ type_map = {
     'str': str,
     'int': PaddedInt,
     'float': float,
-    'bool': bool
+    'bool': bool,
+    'json': 'json',
 }
 class Tag(Base):
     """Represents an association between a File and an Entity.
@@ -677,15 +678,18 @@ class Tag(Base):
         if dtype is None:
             dtype = type(value)
 
-        self.value = value
         self.is_metadata = is_metadata
 
         if not isinstance(dtype, str):
             dtype = dtype.__name__
 
         if dtype in ['list', 'dict']:
-            dtype = 'json'
-        if dtype not in ('str', 'float', 'int', 'bool', 'json'):
+            self._dtype = 'json'
+            self._value = json.dumps(value)
+        else:
+            self._dtype = dtype
+            self._value = str(value)
+        if self._dtype not in ('str', 'float', 'int', 'bool', 'json'):
             raise ValueError(
                 f"Passed value has an invalid dtype ({dtype}). Must be one of "
                 "int, float, bool, or str.")
@@ -693,10 +697,11 @@ class Tag(Base):
         self.file_path = file.path
         self.entity_name = entity.name
 
-        self._value = str(value)
-        self._dtype = dtype
-
-        self._init_on_load()
+        self.dtype = type_map[self._dtype]
+        if self._dtype != 'json':
+            self.value = self.dtype(value)
+        else:
+            self.value = value
 
     def __repr__(self):
         msg = "<Tag file:{!r} entity:{!r} value:{!r}>"
