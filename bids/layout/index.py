@@ -15,7 +15,6 @@ from ..exceptions import BIDSConflictingValuesError
 from .models import Config, Entity, Tag, FileAssociation
 from .validation import validate_indexing_args
 
-
 def _regexfy(patt, root=None):
     if hasattr(patt, "search"):
         return patt
@@ -145,7 +144,11 @@ class BIDSLayoutIndexer:
             _regexfy(patt, root=self._layout._root) for patt in listify(ignore)
         ]
 
-        self._index_dir(self._layout._root, self._config)
+        all_file_objs = self._index_dir(self._layout._root, self._config)
+
+        self.session.bulk_save_objects(all_file_objs)
+        self.session.commit()
+
         if self.index_metadata:
             self._index_metadata()
 
@@ -205,13 +208,13 @@ class BIDSLayoutIndexer:
         if self.config_filename in filenames:
             filenames.remove(self.config_filename)
 
+        all_file_objs = []
         for f in filenames:
             abs_fn = path / f
             # Skip files that fail validation, unless forcibly indexing
             if force or self._validate_file(abs_fn):
-                self._index_file(abs_fn, config_entities)
-
-        self.session.commit()
+                bf, file_objs = self._index_file(abs_fn, config_entities)
+                all_file_objs += file_objs
 
         # Recursively index subdirectories
         for d in dirnames:
@@ -223,7 +226,11 @@ class BIDSLayoutIndexer:
                 root=self._layout._root,
             )
             if force is not False:
-                self._index_dir(d, config, force=force)
+                dir_fo = self._index_dir(d, config, force=force)
+                if dir_fo:
+                    all_file_objs += dir_fo
+
+        return all_file_objs
 
     def _index_file(self, abs_fn, entities):
         """Create DB record for file and its tags. """
@@ -240,12 +247,13 @@ class BIDSLayoutIndexer:
                 match_vals[e.name] = (e, m)
 
         # Create Entity <=> BIDSFile mappings
+        file_objs = []
         if match_vals:
             for _, (ent, val) in match_vals.items():
                 tag = Tag(bf, ent, str(val), ent._dtype)
-                self.session.add(tag)
+                file_objs.append(tag)
 
-        return bf
+        return bf, file_objs
 
     def _index_metadata(self):
         """Index metadata for all files in the BIDS dataset.
@@ -255,8 +263,7 @@ class BIDSLayoutIndexer:
         if filters:
             # ensure we are returning objects
             filters['return_type'] = 'object'
-            # until 0.11.0, user can specify extension or extensions
-            ext_key = 'extensions' if 'extensions' in filters else 'extension'
+
             if filters.get(ext_key):
                 filters[ext_key] = listify(filters[ext_key])
                 # ensure json files are being indexed
@@ -299,12 +306,12 @@ class BIDSLayoutIndexer:
                         f"from file {path}"
                     ) from e
 
+        filenames = []
         for bf in all_files:
-            file_ents = bf.entities.copy()
-            suffix = file_ents.pop('suffix', None)
-            ext = file_ents.pop('extension', None)
-
-            if suffix is not None and ext is not None:
+            if 'suffix' in bf.entities and 'extension' in bf.entities:
+                file_ents = bf.entities.copy()
+                suffix = file_ents.pop('suffix')
+                ext = file_ents.pop('extension')
                 key = "{}/{}".format(ext, suffix)
                 if key not in file_data:
                     file_data[key] = defaultdict(list)
@@ -312,10 +319,12 @@ class BIDSLayoutIndexer:
                 payload = None
                 if ext == '.json':
                     payload = partial(load_json, bf.path)
+                else:
+                    filenames.append(bf)
 
                 to_store = (file_ents, payload, bf.path)
                 file_data[key][bf._dirname].append(to_store)
-
+                
         # To avoid integrity errors, track primary keys we've seen
         seen_assocs = set()
 
@@ -330,9 +339,7 @@ class BIDSLayoutIndexer:
                 self.session.add(FileAssociation(src=dst, dst=src, kind=kind2))
                 seen_assocs.add(pk2)
 
-        # TODO: Efficiency of everything in this loop could be improved
-        filenames = [bf for bf in all_files if not bf.path.endswith('.json')]
-
+        all_objs = []
         for bf in filenames:
             file_ents = bf.entities.copy()
             suffix = file_ents.pop('suffix', None)
@@ -470,9 +477,7 @@ class BIDSLayoutIndexer:
                     all_entities[md_key] = Entity(md_key)
                     self.session.add(all_entities[md_key])
                 tag = Tag(bf, all_entities[md_key], md_val, is_metadata=True)
-                self.session.add(tag)
-
-            if len(self.session.new) >= 1000:
-                self.session.commit()
-
+                all_objs.append(tag)
+                
+        self.session.bulk_save_objects(all_objs)
         self.session.commit()

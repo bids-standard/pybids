@@ -631,7 +631,12 @@ class Entity(Base):
             val = self.dtype(val)
         return val
 
-
+type_map = {
+    'str': str,
+    'int': PaddedInt,
+    'float': float,
+    'bool': bool
+}
 class Tag(Base):
     """Represents an association between a File and an Entity.
 
@@ -669,7 +674,6 @@ class Tag(Base):
         "tags", collection_class=attribute_mapped_collection("file_path")))
 
     def __init__(self, file, entity, value, dtype=None, is_metadata=False):
-
         if dtype is None:
             dtype = type(value)
 
@@ -678,20 +682,18 @@ class Tag(Base):
 
         if not isinstance(dtype, str):
             dtype = dtype.__name__
-        if dtype not in ('str', 'float', 'int', 'bool'):
-            # Try serializing to JSON first
-            try:
-                value = json.dumps(value)
-                dtype = 'json'
-            except TypeError as e:
-                raise ValueError(
-                    f"Passed value has an invalid dtype ({dtype}). Must be one of "
-                    "int, float, bool, or str.") from e
-        value = str(value)
+
+        if dtype in ['list', 'dict']:
+            dtype = 'json'
+        if dtype not in ('str', 'float', 'int', 'bool', 'json'):
+            raise ValueError(
+                f"Passed value has an invalid dtype ({dtype}). Must be one of "
+                "int, float, bool, or str.")
+
         self.file_path = file.path
         self.entity_name = entity.name
 
-        self._value = value
+        self._value = str(value)
         self._dtype = dtype
 
         self._init_on_load()
@@ -702,17 +704,11 @@ class Tag(Base):
 
     @reconstructor
     def _init_on_load(self):
-        if self._dtype not in ('str', 'float', 'int', 'bool', 'json'):
-            raise ValueError("Invalid dtype '{}'. Must be one of 'int', "
-                             "'float', 'bool', 'str', or 'json'.".format(self._dtype))
         if self._dtype == 'json':
-            self.value = json.loads(self._value)
+            self.value = self._value
             self.dtype = 'json'
-        elif self._dtype == 'int':
-            self.dtype = PaddedInt
-            self.value = self.dtype(self._value)
         else:
-            self.dtype = eval(self._dtype)
+            self.dtype = type_map[self._dtype]
             self.value = self.dtype(self._value)
 
 
