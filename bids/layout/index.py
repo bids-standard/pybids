@@ -329,15 +329,18 @@ class BIDSLayoutIndexer:
         seen_assocs = set()
 
         def create_association_pair(src, dst, kind, kind2=None):
+            objs = []
             kind2 = kind2 or kind
             pk1 = '#'.join([src, dst, kind])
             if pk1 not in seen_assocs:
-                self.session.add(FileAssociation(src=src, dst=dst, kind=kind))
+                objs.append(FileAssociation(src=src, dst=dst, kind=kind))
                 seen_assocs.add(pk1)
             pk2 = '#'.join([dst, src, kind2])
             if pk2 not in seen_assocs:
-                self.session.add(FileAssociation(src=dst, dst=src, kind=kind2))
+                objs.append((FileAssociation(src=dst, dst=src, kind=kind2)))
                 seen_assocs.add(pk2)
+
+            return objs
 
         all_objs = []
         for bf in filenames:
@@ -401,7 +404,7 @@ class BIDSLayoutIndexer:
 
             # Create DB records for metadata associations
             js_file = payloads[0][1]
-            create_association_pair(js_file, bf.path, 'Metadata')
+            all_objs += create_association_pair(js_file, bf.path, 'Metadata')
 
             # Consolidate metadata by looping over inherited JSON files
             file_md = {}
@@ -421,14 +424,14 @@ class BIDSLayoutIndexer:
             for i, (pl, js_file) in enumerate(payloads):
                 if (i + 1) < n_pl:
                     other = payloads[i + 1][1]
-                    create_association_pair(js_file, other, 'Child', 'Parent')
+                    all_objs += create_association_pair(js_file, other, 'Child', 'Parent')
 
             # Inheritance for current file
             n_pl = len(ancestors)
             for i, src in enumerate(ancestors):
                 if (i + 1) < n_pl:
                     dst = ancestors[i + 1]
-                    create_association_pair(src, dst, 'Child', 'Parent')
+                    all_objs += create_association_pair(src, dst, 'Child', 'Parent')
 
             # Files with IntendedFor field always get mapped to targets
             intended = listify(file_md.get('IntendedFor', []))
@@ -437,7 +440,7 @@ class BIDSLayoutIndexer:
                 target = self._layout._root.joinpath(
                     'sub-{}'.format(bf.entities['subject']),
                     target)
-                create_association_pair(bf.path, str(target), 'IntendedFor',
+                all_objs += create_association_pair(bf.path, str(target), 'IntendedFor',
                                         'InformedBy')
 
             # Link files to BOLD runs
@@ -446,7 +449,7 @@ class BIDSLayoutIndexer:
                     extension=['.nii', '.nii.gz'], suffix='bold',
                     return_type='filename', **file_ents)
                 for img in images:
-                    create_association_pair(bf.path, img, 'IntendedFor',
+                    all_objs += create_association_pair(bf.path, img, 'IntendedFor',
                                             'InformedBy')
 
             # Link files to DWI runs
@@ -455,7 +458,7 @@ class BIDSLayoutIndexer:
                     extension=['.nii', '.nii.gz'], suffix='dwi',
                     return_type='filename', **file_ents)
                 for img in images:
-                    create_association_pair(bf.path, img, 'IntendedFor',
+                    all_objs += create_association_pair(bf.path, img, 'IntendedFor',
                                             'InformedBy')
 
             # Create Tag <-> Entity mappings, and any newly discovered Entities
