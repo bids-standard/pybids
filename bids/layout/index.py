@@ -249,11 +249,10 @@ class BIDSLayoutIndexer:
                 match_vals[e.name] = (e, m)
 
         # Create Entity <=> BIDSFile mappings
-        tag_dicts = []
-        if match_vals:
-            for _, (ent, val) in match_vals.items():
-                tag = _create_tag_dict(bf, ent, str(val), ent._dtype)
-                tag_dicts.append(tag)
+        tag_dicts = [
+            _create_tag_dict(bf, ent, val, ent._dtype)
+            for ent, val in match_vals.values()
+        ]
 
         return bf, tag_dicts
 
