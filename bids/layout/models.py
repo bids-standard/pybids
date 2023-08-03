@@ -696,7 +696,7 @@ class Tag(Base):
     @reconstructor
     def _init_on_load(self):
         if self._dtype == 'json':
-            self.value = eval(self._value)
+            self.value = json.loads(self._value)
             self.dtype = 'json'
         else:
             self.dtype = type_map[self._dtype]
@@ -712,7 +712,7 @@ def _create_tag_dict(file, entity, value, dtype=None, is_metadata=False):
 
         if dtype in ['list', 'dict']:
             _dtype = 'json'
-            _value = str(value)
+            _value = json.dumps(value)
         else:
             _dtype = dtype
             _value = str(value)
