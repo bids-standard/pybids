@@ -144,10 +144,14 @@ class BIDSLayoutIndexer:
             _regexfy(patt, root=self._layout._root) for patt in listify(ignore)
         ]
 
-        all_file_objs = self._index_dir(self._layout._root, self._config)
+        all_bfs, all_tag_dicts = self._index_dir(self._layout._root, self._config)
 
-        self.session.bulk_save_objects(all_file_objs)
+        self.session.bulk_save_objects(all_bfs)
         self.session.commit()
+
+        # Use SQLAlchemy Core to make bulk inserts for Tags
+        if all_tag_dicts:
+            self.session.execute(Tag.__table__.insert(), all_tag_dicts)
 
         if self.index_metadata:
             self._index_metadata()
@@ -185,7 +189,7 @@ class BIDSLayoutIndexer:
 
         # Derivative directories must always be added separately
         if self._layout._root.joinpath('derivatives') in abs_path.parents:
-            return
+            return None, None
 
         config = list(config)  # Shallow copy
 
@@ -208,13 +212,15 @@ class BIDSLayoutIndexer:
         if self.config_filename in filenames:
             filenames.remove(self.config_filename)
 
-        all_file_objs = []
+        all_bfs = []
+        all_tag_dicts = []
         for f in filenames:
             abs_fn = path / f
             # Skip files that fail validation, unless forcibly indexing
             if force or self._validate_file(abs_fn):
-                bf, file_objs = self._index_file(abs_fn, config_entities)
-                all_file_objs += file_objs
+                bf, tag_dicts = self._index_file(abs_fn, config_entities)
+                all_tag_dicts += tag_dicts
+                all_bfs.append(bf)
 
         # Recursively index subdirectories
         for d in dirnames:
@@ -226,16 +232,16 @@ class BIDSLayoutIndexer:
                 root=self._layout._root,
             )
             if force is not False:
-                dir_fo = self._index_dir(d, config, force=force)
-                if dir_fo:
-                    all_file_objs += dir_fo
+                dir_bfs, dir_tag_dicts = self._index_dir(d, config, force=force)
+                if dir_bfs:
+                    all_bfs += dir_bfs
+                    all_tag_dicts += dir_tag_dicts
 
-        return all_file_objs
+        return all_bfs, all_tag_dicts
 
     def _index_file(self, abs_fn, entities):
         """Create DB record for file and its tags. """
         bf = make_bidsfile(abs_fn)
-        self.session.add(bf)
 
         # Extract entity values
         match_vals = {}
@@ -247,13 +253,13 @@ class BIDSLayoutIndexer:
                 match_vals[e.name] = (e, m)
 
         # Create Entity <=> BIDSFile mappings
-        file_objs = []
+        tag_dicts = []
         if match_vals:
             for _, (ent, val) in match_vals.items():
-                tag = Tag(bf, ent, str(val), ent._dtype)
-                file_objs.append(tag)
+                tag = _create_tag_dict(bf, ent, str(val), ent._dtype)
+                tag_dicts.append(tag)
 
-        return bf, file_objs
+        return bf, tag_dicts
 
     def _index_metadata(self):
         """Index metadata for all files in the BIDS dataset.
