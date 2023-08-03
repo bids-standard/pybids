@@ -484,5 +484,8 @@ class BIDSLayoutIndexer:
                 all_tag_dicts.append(tag)
                 
         self.session.bulk_save_objects(all_objs)
-        self.session.bulk_insert_mappings(Tag, all_tag_dicts)
         self.session.commit()
+
+        # Use SQLAlchemy Core to make bulk inserts
+        if all_tag_dicts:
+            self.session.execute(Tag.__table__.insert(), all_tag_dicts)
