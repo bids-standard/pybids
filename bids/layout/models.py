@@ -631,7 +631,13 @@ class Entity(Base):
             val = self.dtype(val)
         return val
 
-
+type_map = {
+    'str': str,
+    'int': PaddedInt,
+    'float': float,
+    'bool': bool,
+    'json': 'json',
+}
 class Tag(Base):
     """Represents an association between a File and an Entity.
 
@@ -669,32 +675,19 @@ class Tag(Base):
         "tags", collection_class=attribute_mapped_collection("file_path")))
 
     def __init__(self, file, entity, value, dtype=None, is_metadata=False):
+        data = _create_tag_dict(file, entity, value, dtype, is_metadata)
 
-        if dtype is None:
-            dtype = type(value)
+        self.file_path = data['file_path']
+        self.entity_name = data['entity_name']
+        self._dtype = data['_dtype']
+        self._value = data['_value']
+        self.is_metadata = data['is_metadata']
 
-        self.value = value
-        self.is_metadata = is_metadata
-
-        if not isinstance(dtype, str):
-            dtype = dtype.__name__
-        if dtype not in ('str', 'float', 'int', 'bool'):
-            # Try serializing to JSON first
-            try:
-                value = json.dumps(value)
-                dtype = 'json'
-            except TypeError as e:
-                raise ValueError(
-                    f"Passed value has an invalid dtype ({dtype}). Must be one of "
-                    "int, float, bool, or str.") from e
-        value = str(value)
-        self.file_path = file.path
-        self.entity_name = entity.name
-
-        self._value = value
-        self._dtype = dtype
-
-        self._init_on_load()
+        self.dtype = type_map[self._dtype]
+        if self._dtype != 'json':
+            self.value = self.dtype(value)
+        else:
+            self.value = value
 
     def __repr__(self):
         msg = "<Tag file:{!r} entity:{!r} value:{!r}>"
@@ -702,18 +695,39 @@ class Tag(Base):
 
     @reconstructor
     def _init_on_load(self):
-        if self._dtype not in ('str', 'float', 'int', 'bool', 'json'):
-            raise ValueError("Invalid dtype '{}'. Must be one of 'int', "
-                             "'float', 'bool', 'str', or 'json'.".format(self._dtype))
         if self._dtype == 'json':
             self.value = json.loads(self._value)
             self.dtype = 'json'
-        elif self._dtype == 'int':
-            self.dtype = PaddedInt
-            self.value = self.dtype(self._value)
         else:
-            self.dtype = eval(self._dtype)
+            self.dtype = type_map[self._dtype]
             self.value = self.dtype(self._value)
+
+def _create_tag_dict(file, entity, value, dtype=None, is_metadata=False):
+        data = {}
+        if dtype is None:
+            dtype = type(value)
+
+        if not isinstance(dtype, str):
+            dtype = dtype.__name__
+
+        if dtype in ['list', 'dict']:
+            _dtype = 'json'
+            _value = json.dumps(value)
+        else:
+            _dtype = dtype
+            _value = str(value)
+        if _dtype not in ('str', 'float', 'int', 'bool', 'json'):
+            raise ValueError(
+                f"Passed value has an invalid dtype ({dtype}). Must be one of "
+                "int, float, bool, or str.")
+
+        data['is_metadata'] = is_metadata
+        data['file_path'] = file.path
+        data['entity_name'] = entity.name
+        data['_dtype'] = _dtype
+        data['_value'] = _value
+
+        return data
 
 
 class FileAssociation(Base):
