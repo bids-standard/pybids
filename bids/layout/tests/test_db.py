@@ -1,7 +1,7 @@
 """Test functionality in the db module--mostly related to connection
 management."""
 
-from bids.layout.db import (ConnectionManager, get_database_file)
+from bids.layout.db import get_database_file
 
 
 def test_get_database_file(tmp_path):

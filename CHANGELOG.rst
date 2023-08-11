@@ -1,6 +1,65 @@
 Changelog
 =========
 
+Version 0.16.1 (May 01, 2023)
+-----------------------------
+
+Bug-fix release in the 0.16.x series.
+
+* FIX: Improve parsing of suffix/extension in non-BIDS files (#997)
+* FIX: Support use of Query enums in filter lists (#994)
+* MNT: Clean up imports in documentation scripts (#980)
+* MNT: update zenodo  (#995)
+* CI: Update Python version for doc/sdist/wheel tests (#996)
+
+Version 0.16.0 (April 26, 2023)
+-------------------------------
+
+New feature release in the 0.16.x series.
+
+* FIX: Adapt to SQLAlchemy 1.4+ (#985)
+* FIX: Fill na with zero for VIF (#976)
+* ENH: Only warn if missing values not explicitly set (#977)
+* ENH: Create run reports of whole graph / create HTML reports (#918)
+* ENH: Speed up Sparse to Dense BIDSVariable conversion (#969)
+* ENH: Update config to support motion and nirs modalities (#965)
+* REF: Add derivative subdatasets in a less ad hoc fashion (#954)
+* MNT: Update minimum dependencies, add CI job to test them (#987)
+* MNT: Drop jinja2/markupsafe constraints (#986)
+* MNT: Fix ruff issue E712 (#981)
+* MNT: A few Python3 updates (#971)
+* MNT: Drop Python 3.7 EOL (#974)
+* MNT: Fix repeat-word typo (#968)
+* MNT: Update vendored inflect to 5.6.2 (#961)
+* MNT: Fix flake8 issues found by ruff (#955)
+* MNT: Remove (large) unused PNG from doc directory (#962)
+* MNT: http:// → https:// (#960)
+* MNT: Update git submodules (#964)
+* CI: Drop codecov PyPI package and appveyor config (#979)
+* CI: Add Python 3.11 (#975)
+* CI: Replace custom update_submodules action with dependabot action (#967)
+* CI: fix errors caused by changes in examples (#963)
+* CI: Update parameters to gh-action-pypi-publish (#957)
+
+Version 0.15.6 (February 28, 2023)
+----------------------------------
+
+Bug-fix release in 0.15.x series.
+
+* FIX: Exclude non-Hashables from set in .get(return_type='id') (#948)
+* FIX: Broken pattern matching (#936)
+* FIX: Coerce oversampling parameter in convolution to int  (#929)
+* FIX: Allowing custom BIDS configuration files for derivative datasets (#922)
+* FIX: Address change in default pandas grouping behavior (#917)
+* ENH: Speed up BIDSLayout.get(return_type='id', ...) (#942)
+* ENH: Update default anat filename patterns in config  (#933)
+* DOC: Make clear how to ignore folders (#945)
+* DOC: Fix tutorial link in README (#944)
+* DOC: Mention conda installation in README  (#928)
+* MNT: Update git submodules (#946 + #943 + #932)
+* MNT: Move package metadata to pyproject.toml, unvendor versioneer (#907)
+* MNT: Bump formulaic max version constraint to include 0.5.x (#916)
+
 Version 0.15.5 (November 07, 2022)
 ----------------------------------
 

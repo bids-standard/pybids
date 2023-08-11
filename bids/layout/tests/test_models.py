@@ -1,6 +1,5 @@
 """Tests of functionality in the models module."""
 
-import sys
 import os
 import pytest
 import copy
@@ -49,7 +48,7 @@ def test_layoutinfo_init():
     assert str(exc.value).startswith("Missing mandatory")
     args['config'] = ['bids', 'derivatives']
     info = LayoutInfo(**args)
-    assert info.derivatives == True
+    assert info.derivatives is True
     assert info._derivatives == 'true'
 
 
@@ -66,7 +65,7 @@ def test_entity_init_all_args(subject_entity):
     ent = subject_entity
     assert ent.name == 'subject'
     assert ent.pattern == r"[/\\\\]sub-([a-zA-Z0-9]+)"
-    assert ent.mandatory == False
+    assert ent.mandatory is False
     assert ent.directory == "{subject}"
 
 
@@ -179,7 +178,8 @@ def test_load_existing_config():
     session.commit()
 
     from sqlalchemy.orm.exc import FlushError
-    with pytest.raises(FlushError):
+    from sqlalchemy.exc import DBAPIError
+    with pytest.raises((FlushError, DBAPIError)):
         second = Config.load({"name": "dummy"})
         session.add(second)
         session.commit()

@@ -4,3 +4,4 @@ recursive-include bids/reports/config *.json
 recursive-include bids/tests/data *
 recursive-include bids/layout/tests/data *
 include long_description.rst
+include bids/modeling/report/report_template.jinja

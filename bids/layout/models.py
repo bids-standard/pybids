@@ -8,17 +8,23 @@ import json
 from copy import deepcopy
 from itertools import chain
 from functools import lru_cache
+from collections import UserDict
 
-from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.orm.collections import attribute_mapped_collection
-from sqlalchemy import (Column, String, Boolean, ForeignKey, Table)
+from sqlalchemy import Column, String, Boolean, ForeignKey, Table
 from sqlalchemy.orm import reconstructor, relationship, backref, object_session
+
+try:
+    from sqlalchemy.orm import declarative_base
+except ImportError:  # sqlalchemy < 1.4
+    from sqlalchemy.ext.declarative import declarative_base
 
 from ..utils import listify
 from .writing import build_path, write_to_file
 from ..config import get_option
 from .utils import BIDSMetadata, PaddedInt
+from ..exceptions import BIDSChildDatasetError
 
 Base = declarative_base()
 
@@ -59,8 +65,12 @@ class LayoutInfo(Base):
         if 'root' in kwargs:
             kwargs['root'] = str(Path(kwargs['root']).absolute())
 
-        if isinstance(kwargs.get('config'), os.PathLike):
-            kwargs['config'] = str(Path(kwargs['config']).absolute())
+        if 'config' in kwargs and isinstance(kwargs['config'], list):
+            kwargs['config'] = [
+                str(Path(config).absolute())
+                if isinstance(config, os.PathLike) else config
+                for config in kwargs['config']
+            ]
 
         # Get abspaths
         if kwargs.get('derivatives') not in (None, True, False):
@@ -555,8 +565,7 @@ class Entity(Base):
         self.regex = re.compile(self.pattern) if self.pattern is not None else None
 
     def __iter__(self):
-        for i in self.unique():
-            yield i
+        yield from self.unique()
 
     def __deepcopy__(self, memo):
         cls = self.__class__
@@ -622,7 +631,13 @@ class Entity(Base):
             val = self.dtype(val)
         return val
 
-
+type_map = {
+    'str': str,
+    'int': PaddedInt,
+    'float': float,
+    'bool': bool,
+    'json': 'json',
+}
 class Tag(Base):
     """Represents an association between a File and an Entity.
 
@@ -660,32 +675,19 @@ class Tag(Base):
         "tags", collection_class=attribute_mapped_collection("file_path")))
 
     def __init__(self, file, entity, value, dtype=None, is_metadata=False):
+        data = _create_tag_dict(file, entity, value, dtype, is_metadata)
 
-        if dtype is None:
-            dtype = type(value)
+        self.file_path = data['file_path']
+        self.entity_name = data['entity_name']
+        self._dtype = data['_dtype']
+        self._value = data['_value']
+        self.is_metadata = data['is_metadata']
 
-        self.value = value
-        self.is_metadata = is_metadata
-
-        if not isinstance(dtype, str):
-            dtype = dtype.__name__
-        if dtype not in ('str', 'float', 'int', 'bool'):
-            # Try serializing to JSON first
-            try:
-                value = json.dumps(value)
-                dtype = 'json'
-            except:
-                raise ValueError(
-                    "Passed value has an invalid dtype ({}). Must be one of "
-                    "int, float, bool, or 'str.".format(dtype))
-        value = str(value)
-        self.file_path = file.path
-        self.entity_name = entity.name
-
-        self._value = value
-        self._dtype = dtype
-
-        self._init_on_load()
+        self.dtype = type_map[self._dtype]
+        if self._dtype != 'json':
+            self.value = self.dtype(value)
+        else:
+            self.value = value
 
     def __repr__(self):
         msg = "<Tag file:{!r} entity:{!r} value:{!r}>"
@@ -693,18 +695,39 @@ class Tag(Base):
 
     @reconstructor
     def _init_on_load(self):
-        if self._dtype not in ('str', 'float', 'int', 'bool', 'json'):
-            raise ValueError("Invalid dtype '{}'. Must be one of 'int', "
-                             "'float', 'bool', 'str', or 'json'.".format(self._dtype))
         if self._dtype == 'json':
             self.value = json.loads(self._value)
             self.dtype = 'json'
-        elif self._dtype == 'int':
-            self.dtype = PaddedInt
-            self.value = self.dtype(self._value)
         else:
-            self.dtype = eval(self._dtype)
+            self.dtype = type_map[self._dtype]
             self.value = self.dtype(self._value)
+
+def _create_tag_dict(file, entity, value, dtype=None, is_metadata=False):
+        data = {}
+        if dtype is None:
+            dtype = type(value)
+
+        if not isinstance(dtype, str):
+            dtype = dtype.__name__
+
+        if dtype in ['list', 'dict']:
+            _dtype = 'json'
+            _value = json.dumps(value)
+        else:
+            _dtype = dtype
+            _value = str(value)
+        if _dtype not in ('str', 'float', 'int', 'bool', 'json'):
+            raise ValueError(
+                f"Passed value has an invalid dtype ({dtype}). Must be one of "
+                "int, float, bool, or str.")
+
+        data['is_metadata'] = is_metadata
+        data['file_path'] = file.path
+        data['entity_name'] = entity.name
+        data['_dtype'] = _dtype
+        data['_value'] = _value
+
+        return data
 
 
 class FileAssociation(Base):
@@ -720,3 +743,46 @@ config_to_entity_map = Table('config_to_entity_map', Base.metadata,
                              Column('config', String, ForeignKey('configs.name')),
                              Column('entity', String, ForeignKey('entities.name'))
                              )
+
+
+class DerivativeDatasets(UserDict):
+    def __getitem__(self, key):
+        try:
+            return super().__getitem__(key)
+        except KeyError:
+            pass
+
+        try:
+            result = self.get_pipeline(key)
+            warnings.warn(
+                "Directly selecting derivative datasets using "
+                "pipeline name (i.e. dataset.derivatives[<pipeline_name>] will be "
+                "phased out in an upcoming release. Select instead using the folder "
+                "name of the dataset (i.e. dataset.derivatives[<folder_name>]), or use "
+                "dataset.derivatives.get_pipeline(<pipeline_name>).",
+                DeprecationWarning,
+            )
+            return result
+        except KeyError as err:
+            raise KeyError(
+                f"No datasets found matching {key} either as a pipeline name or as "
+                "a dataset file name."
+            ) from err
+
+
+    def get_pipeline(self, pipeline):
+        matches = {
+            (name, dataset) for name, dataset in self.data.items()
+            if dataset.source_pipeline == pipeline
+        }
+        if len(matches) > 1:
+            datasets = "\n\t- ".join(match[0] for match in matches)
+            raise BIDSChildDatasetError(
+                f"Multiple datasets generated by {pipeline} were found:\n"
+                f"\t- {datasets}\n\n"
+                "Select a specific dataset by using "
+                "dataset.derivatives[<dataset_folder_name>]."
+            )
+        if not matches:
+            raise KeyError(f"No match found for {pipeline}")
+        return next(iter(matches))[1]

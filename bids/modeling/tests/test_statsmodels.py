@@ -5,9 +5,9 @@ from itertools import chain
 from nibabel.optpkg import optional_package
 graphviz, has_graphviz, _ = optional_package("graphviz")
 
-import os
-import numpy as np
 import pytest
+import numpy as np 
+import json 
 
 from bids.modeling import BIDSStatsModelsGraph
 from bids.modeling.statsmodels import ContrastInfo, expand_wildcards
@@ -56,7 +56,7 @@ def test_repr(graph):
     assert graph.__repr__() == "<BIDSStatsModelsGraph[{name='test_model', description='simple test model', ... }]>"
     node = graph.nodes['run']
     assert node.__repr__() == "<BIDSStatsModelsNode(level=run, name=run)>"
-    assert node.run()[0].__repr__() == "<BIDSStatsModelsNodeOutput(level=run, entities={'run': 1, 'subject': '01'})>"
+    assert node.run()[0].__repr__() == "<BIDSStatsModelsNodeOutput(name=run, entities={'run': 1, 'subject': '01'})>"
 
 def test_manual_intercept(graph_intercept):
     # Test that a automatic intercept (1) is correct
@@ -75,7 +75,7 @@ def test_manual_intercept(graph_intercept):
     run.model['x'] = ['intercept']
     outputs= run.run(subject="01", run=1)
     assert outputs[0].X.intercept.min() != 1.0
-    
+
 
 def test_first_level_sparse_design_matrix(graph):
     outputs = graph["run"].run(subject=["01"], force_dense=False)
@@ -133,7 +133,7 @@ def test_contrast_dummy_vs_explicit(graph, graph_nodummy):
     # and explicit Contrasts are identical
     outputs = graph["run"].run(subject="01", run=1)
     outputs_nodummy = graph_nodummy["run"].run(subject="01", run=1)
-    
+
     for con in outputs[0].contrasts:
         match = [c for c in outputs_nodummy[0].contrasts if c.name == con.name][0]
 
@@ -276,3 +276,34 @@ def test_interceptonly_runlevel_error():
     json_file = join(layout_path, "models", "ds-005_type-interceptonlyrunlevel_model.json")
     with pytest.raises(NotImplementedError):
         graph = BIDSStatsModelsGraph(layout, json_file)
+
+def test_missing_value_fill():
+    layout_path = join(get_test_data_path(), "ds005")
+    layout = BIDSLayout(layout_path, derivatives=join(layout_path, 'derivatives', 'fmriprep'))
+    json_file = join(layout_path, "models", "ds-005_type-test_model.json")
+
+    model = json.load(open(json_file))
+    # Add 'global_signal_derivative1' to the model
+    model['Nodes'][0]['Model'] = {'X': ['RT', 'gain', 'global_signal_derivative1']}
+
+    graph = BIDSStatsModelsGraph(layout, model)
+    graph.load_collections(scan_length=480, subject=["01", "02"])
+
+    # Check that missing values are filled in
+    # Assert that a warnings is raised
+    with pytest.warns(UserWarning):
+        graph.run_graph()
+
+    # Assert that there are no missing values
+    outputs = graph.nodes['run'].outputs_
+    assert not np.isnan(outputs[0].model_spec.X).any().any()
+
+    # Check that missing_values='error' raises an error
+    with pytest.raises(ValueError):
+        graph.run_graph(missing_values='error')
+
+    # Check that missing_values='ignore' passes through missing values
+    graph.run_graph(missing_values='ignore')
+
+    outputs = graph.nodes['run'].outputs_
+    assert np.isnan(outputs[0].model_spec.X).any().any()

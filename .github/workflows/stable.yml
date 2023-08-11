@@ -30,39 +30,44 @@ jobs:
     strategy:
       matrix:
         os: ['ubuntu-latest', 'macos-latest']
-        python-version: [3.7, 3.8, 3.9, "3.10"]
+        python-version: [3.8, 3.9, "3.10", "3.11"]
         install: ['pip']
         check: ['ci_tests']
         pip-flags: ['']
+        requirements: ['']
         include:
           # Build docs
           - os: ubuntu-latest
-            python-version: 3.8
+            python-version: 3.11
             install: pip
             check: doc
             pip-flags: ''
-          # Clean install imports only with package-declared dependencies
-          - os: ubuntu-latest
-            python-version: 3.8
-            install: pip
-            check: skiptests
-            pip-flags: ''
           # Check all installation methods
           - os: ubuntu-latest
-            python-version: 3.8
+            python-version: 3.11
             install: wheel
             check: ci_tests
             pip-flags: ''
+            requirements: ''
           - os: ubuntu-latest
-            python-version: 3.8
+            python-version: 3.11
             install: sdist
             check: ci_tests
             pip-flags: ''
+            requirements: ''
+          - os: ubuntu-latest
+            python-version: 3.8
+            install: pip
+            check: ci_tests
+            pip-flags: ''
+            requirements: '-r min-requirements.txt'
+      fail-fast: false
     env:
       INSTALL_TYPE: ${{ matrix.install }}
       CHECK_TYPE: ${{ matrix.check }}
       EXTRA_PIP_FLAGS: ${{ matrix.pip-flags }}
       OS_TYPE: ${{ matrix.os }}
+      REQUIREMENTS: ${{ matrix.requirements }}
 
     steps:
       - uses: actions/checkout@v3

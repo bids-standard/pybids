@@ -21,6 +21,10 @@
             "pattern": "[_/\\\\]+task-([a-zA-Z0-9]+)"
         },
         {
+            "name": "tracksys",
+            "pattern": "[_/\\\\]+tracksys-([a-zA-Z0-9]+)"
+        },
+        {
             "name": "acquisition",
             "pattern": "[_/\\\\]+acq-([a-zA-Z0-9]+)"
         },
@@ -91,7 +95,7 @@
         },
         {
             "name": "suffix",
-            "pattern": "[._]*([a-zA-Z0-9]*?)\\.[^/\\\\]+$"
+            "pattern": "(?:^|[_/\\\\])([a-zA-Z0-9]+)\\.[^/\\\\]+$"
         },
         {
             "name": "scans",
@@ -103,11 +107,11 @@
         },
         {
             "name": "datatype",
-            "pattern": "[/\\\\]+(anat|beh|dwi|eeg|fmap|func|ieeg|meg|micr|perf|pet)[/\\\\]+"
+            "pattern": "[/\\\\]+(anat|beh|dwi|eeg|fmap|func|ieeg|meg|motion|micr|nirs|perf|pet)[/\\\\]+"
         },
         {
             "name": "extension",
-            "pattern": "[._]*[a-zA-Z0-9]*?(\\.[^/\\\\]+)$"
+            "pattern": "[^./\\\\](\\.[^/\\\\]+)$"
         }
     ],
     "default_path_patterns": [
@@ -125,7 +129,13 @@
         "sub-{subject}[/ses-{session}]/{datatype<meg>|meg}/sub-{subject}[_ses-{session}][_acq-{acquisition}]_{suffix<coordsystem>}{extension<.json>|.json}",
         "sub-{subject}[/ses-{session}]/{datatype<meg>|meg}/sub-{subject}[_ses-{session}][_acq-{acquisition}]_{suffix<headshape>}{extension<.pos>|.pos}",
         "sub-{subject}[/ses-{session}]/{datatype<meg>|meg}/sub-{subject}[_ses-{session}]_acq-{acquisition<calibration|crosstalk>}_{suffix<meg>|meg}{extension<.fif|.dat>}",    
+        "sub-{subject}[/ses-{session}]/{datatype<motion>|motion}/sub-{subject}[_ses-{session}]_task-{task}_tracksys-{tracksys}[_acq-{acquisition}][_run-{run}]_{suffix<motion|channels>|motion}{extension<.tsv|.json>|.tsv}",
         "sub-{subject}[/ses-{session}]/{datatype<eeg>|eeg}/sub-{subject}[_ses-{session}]_task-{task}[_acq-{acquisition}][_run-{run}]_{suffix<eeg>}{extension<.edf|.vhdr|.vmrk|.eeg|.set|.fdt|.bdf|.json>}",
+        "sub-{subject}[/ses-{session}]/{datatype<nirs>|nirs}/sub-{subject}[_ses-{session}]_task-{task}[_acq-{acquisition}][_run-{run}]_{suffix<nirs>}{extension<.snirf|.json>}",
+        "sub-{subject}[/ses-{session}]/{datatype<nirs>|nirs}/sub-{subject}[_ses-{session}]_task-{task}[_acq-{acquisition}][_run-{run}]_{suffix<events|channels>}{extension<.tsv|.json>}",
+        "sub-{subject}[/ses-{session}]/{datatype<nirs>|nirs}/sub-{subject}[_ses-{session}]_task-{task}[_acq-{acquisition}][_run-{run}][_recording-{recording}]_{suffix<physio|stim>}{extension<.tsv.gz|.json>}",
+        "sub-{subject}[/ses-{session}]/{datatype<nirs>|nirs}/sub-{subject}[_ses-{session}][_acq-{acquisition}]_{suffix<optodes>}{extension<.tsv|.json>}",
+        "sub-{subject}[/ses-{session}]/{datatype<nirs>|nirs}/sub-{subject}[_ses-{session}][_acq-{acquisition}]_{suffix<coordsystem>}{extension<.json>}",
         "sub-{subject}[/ses-{session}]/{datatype<ieeg>|ieeg}/sub-{subject}[_ses-{session}]_task-{task}[_acq-{acquisition}][_run-{run}]_{suffix<ieeg>}{extension<.mefd/|.json|.edf|.vhdr|.eeg|.vmrk|.set|.fdt|.nwb|.json>}",
         "sub-{subject}[/ses-{session}]/{datatype<eeg|ieeg>}/sub-{subject}[_ses-{session}]_task-{task}[_acq-{acquisition}][_run-{run}]_{suffix<channels|events>}{extension<.tsv|.json>|.tsv}",
         "sub-{subject}[/ses-{session}]/{datatype<eeg|ieeg>}/sub-{subject}[_ses-{session}][_acq-{acquisition}][_space-{space}]_{suffix<coordsystem>}{extension<.json>|.json}",
@@ -156,7 +166,9 @@
         "sub-{subject}[/ses-{session}]/{datatype<perf>|perf}/sub-{subject}[_ses-{session}][_acq-{acquisition}][_rec-{reconstruction}][_dir-{direction}][_run-{run}][_recording{recording}]_{suffix<physio|stim>}{extension<.tsv|.json>}",  
         "[task-{task}_][acq-{acquisition}_][ce-{ceagent}_][rec-{reconstruction}_][run-{run}_]{suffix<T1w|T2w|T2star|T2starw|FLAIR|FLASH|PD|PDw|PDT2|inplaneT[12]|angio>}{extension<.json>|.json}",
         "[task-{task}_][acq-{acquisition}_][ce-{ceagent}_][rec-{reconstruction}_][run-{run}_][mod-{modality}_]{suffix<defacemask>}{extension<.json>|.json}",
+        "task-{task}[_acq-{acquisition}][_run-{run}]_{suffix<nirs>}{extension<.json>}",
         "task-{task}[_acq-{acquisition}][_ce-{ceagent}][_dir-{direction}][_rec-{reconstruction}][_run-{run}][_echo-{echo}]_{suffix<bold|cbv|phase|sbref>}{extension<.json>|.json}",
+        "task-{task}_tracksys-{tracksys}[acq-{acquisition}_][run-{run}_]{suffix<motion>}{extension<.tsv|.json>}",
         "[acq-{acquisition}_]{suffix<dwi>}{extension<.json>|.json}",
         "[acq-{acquisition}_][dir-{direction}_][run-{run}_]{suffix<phasediff|magnitude[1-2]|phase[1-2]|fieldmap>}{extension<.json>|.json}",
         "[acq-{acquisition}_][ce-{ceagent}_]dir-{direction}[_run-{run}]_{suffix<epi|m0scan>}{extension<.json>|.json}",

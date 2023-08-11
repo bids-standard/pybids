@@ -20,7 +20,7 @@ from .variables import (
 from bids.utils import listify
 
 
-class BIDSVariableCollection(object):
+class BIDSVariableCollection:
     """A container for one or more variables extracted from variable files
     at a single level of analysis.
 

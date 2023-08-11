@@ -7,6 +7,7 @@ import click
 from . import __version__
 from .layout import BIDSLayoutIndexer, BIDSLayout
 from .utils import validate_multiple as _validate_multiple
+from .modeling.report.base import generate_report
 
 # alias -h to trigger help message
 CONTEXT_SETTINGS = {'help_option_names': ['-h', '--help']}
@@ -201,7 +202,7 @@ def upgrade_dataset_description(description):
         if val.startswith("1."):
             description["BIDSVersion"] = val
         else:
-            click.echo(f"Expected version to be 1.x, e.g., 1.6.0. Skipping.")
+            click.echo("Expected version to be 1.x, e.g., 1.6.0. Skipping.")
 
     # Always update DatasetType if missing
     if "DatasetType" not in description:
@@ -242,3 +243,31 @@ def upgrade_filenames(root, description):
                 os.rename(bidsfile.path, new_path)
             else:
                 click.echo(f"Not renaming {bidsfile.path}")
+
+
+@cli.command(context_settings=CONTEXT_SETTINGS)
+@click.argument('model', type=click.Path(file_okay=True, exists=True, dir_okay=False))
+@click.argument('root', type=click.Path(file_okay=False, exists=True))
+@click.argument('derivatives', type=click.Path(file_okay=False, exists=True), nargs=-1)
+@click.argument('output_dir', type=click.Path(file_okay=False, exists=False))
+@click.option('--scan_length', type=click.FLOAT)
+@click.option('--sub_label', '-s', multiple=True, 
+    help='The label(s) of the subjects(s) to create report for')
+@click.option('--ses_label', '-ss', multiple=True, 
+    help='The label(s) of the session(s) to create report for')
+@click.option('--task_label', '-t', multiple=True,
+    help='The label(s) of the task(s) to create report for')
+@click.option('--run_label', '-r', multiple=True,
+    help='The label(s) of the run(s) to create report for')
+def model_report(model, root, derivatives, output_dir, scan_length, 
+    sub_label, ses_label, task_label, run_label):
+    """
+    Generate a report of a BIDS StatsModel.
+    """
+    entities = {'subject': sub_label, 'session': ses_label,
+                'task': task_label, 'run': run_label}
+
+    entities = {key:val for key, val in entities.items() if val}
+    generate_report(
+            model, root, derivatives, output_dir, scan_length, **entities
+    )

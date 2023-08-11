@@ -40,7 +40,7 @@ def collection():
             subject=SUBJECTS
         )
     # Always return a clone!
-    return cached_collections['ds005'].clone()
+    yield cached_collections['ds005'].clone()
 
 
 @pytest.fixture
@@ -53,7 +53,7 @@ def sparse_run_variable_with_missing_values():
     run_info = [RunInfo({'subject': '01'}, 20, 2, 'dummy.nii.gz', 10)]
     var = SparseRunVariable(
         name='var', data=data, run_info=run_info, source='events')
-    return BIDSRunVariableCollection([var])
+    yield BIDSRunVariableCollection([var])
 
 
 def test_convolve_multi(collection):
@@ -88,6 +88,11 @@ def test_convolve(collection):
     assert dense_conv.values.shape[0] == \
         collection.variables['rt_dense_derivative'].values.shape[0] == \
         rt.get_duration() * collection.sampling_rate
+
+
+def test_convolve_oversampling(collection):
+    # Prepare a dense version of RT
+    transform.ToDense(collection, ['RT'], output=['rt_dense'])
 
     # Test adaptive oversampling computation
     # Events are 3s duration events every 4s, so resolution demanded by the data is 1Hz
@@ -183,7 +188,7 @@ def test_sum(collection):
 
 def test_scale(collection, sparse_run_variable_with_missing_values):
     transform.Scale(collection, variables=['RT', 'parametric gain'],
-                    output=['RT_Z', 'gain_Z'], groupby=['run', 'subject'], 
+                    output=['RT_Z', 'gain_Z'], groupby=['run', 'subject'],
                     rescale=True)
     groupby = collection['RT'].get_grouper(['run', 'subject'])
     z1 = collection['RT_Z'].values
