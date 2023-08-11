@@ -1,6 +1,20 @@
 Changelog
 =========
 
+Version 0.16.2 (August 11, 2023)
+--------------------------------
+
+Bug-fix and performance release in the 0.16.x series.
+Notably, indexing is now significantly faster (2-2.5x).
+
+* ENH: Speed up indexing by bulk committing to database (#1013)
+* Include indexer in add_derivatives call (#1009)
+* Bump bids-examples from `8550641` to `75968b9` (#1008)
+* Bump bids-examples from `e96b702` to `8550641` (#1007)
+* Bump bids-examples from `d8455af` to `e96b702` (#1005)
+* Bump bids-examples from `bc36231` to `d8455af`  (#1003)
+* CI: Use OIDC publishing instead of tokens  (#1001)
+
 Version 0.16.1 (May 01, 2023)
 -----------------------------
 
