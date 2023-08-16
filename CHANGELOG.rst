@@ -1,6 +1,16 @@
 Changelog
 =========
 
+Version 0.16.3 (August 16, 2023)
+--------------------------------
+
+Bug-fix release in the 0.16.x series.
+
+This release resolves a regression introduced in 0.16.2 when JSON sidecar files
+contain ``null`` values.
+
+* FIX: Drop JSON sidecar fields with null values during metadata indexing (#1016)
+
 Version 0.16.2 (August 11, 2023)
 --------------------------------
 
