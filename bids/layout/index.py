@@ -465,6 +465,10 @@ class BIDSLayoutIndexer:
 
             # Create Tag <-> Entity mappings, and any newly discovered Entities
             for md_key, md_val in file_md.items():
+                # Treat null entries (deserialized to None) as absent
+                # Alternative is to cast None to null in layout.models._create_tag_dict
+                if md_val is None:
+                    continue
                 tag_string = '{}_{}'.format(bf.path, md_key)
                 # Skip pairs that were already found in the filenames
                 if tag_string in all_tags:
