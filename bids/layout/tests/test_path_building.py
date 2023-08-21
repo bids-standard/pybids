@@ -13,6 +13,9 @@ def layout():
     data_dir = join(get_test_data_path(), '7t_trt')
     return BIDSLayout(data_dir)
 
+def test_path_building_pet(layout):
+    """regression test for https://github.com/bids-standard/pybids/issues/1017"""
+    layout.build_path({"subject": "123", "tracer": "18F", "suffix": "pet"})
 
 def test_bold_construction(layout):
     ents = dict(subject='01', run=1, task='rest', suffix='bold')
