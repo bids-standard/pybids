@@ -93,7 +93,8 @@ def validate_root(root, validate):
             if description is None:
                 raise BIDSValidationError(
                     "'dataset_description.json' is not a valid json file."
-                    " There is likely a typo in your 'dataset_description.json'."
+                    " There is likely a typo in your 'dataset_description.json' at "
+                    f"{target.resolve()}. "
                     "\nExample contents of 'dataset_description.json': \n%s" %
                     json.dumps(EXAMPLE_BIDS_DESCRIPTION)
                 ) from err
@@ -102,7 +103,8 @@ def validate_root(root, validate):
                 if k not in description:
                     raise BIDSValidationError(
                         "Mandatory %r field missing from "
-                        "'dataset_description.json'."
+                        "'dataset_description.json' at "
+                        f"{target.resolve()}. "
                         "\nExample: %s" % (k, MANDATORY_BIDS_FIELDS[k])
                     )
 
@@ -130,7 +132,8 @@ def validate_derivative_path(path, **kwargs):
         raise BIDSDerivativesValidationError(
             "Every valid BIDS-derivatives dataset must "
             "have a GeneratedBy.Name field set "
-            "inside 'dataset_description.json'. "
+            "inside 'dataset_description.json', "
+            f"here {dd.resolve()}. "
             f"\nExample: {MANDATORY_DERIVATIVES_FIELDS['GeneratedBy']}"
         )
     return pipeline_name
