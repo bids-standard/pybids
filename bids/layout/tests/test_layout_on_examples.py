@@ -25,7 +25,7 @@ from bids.layout import BIDSLayout
         ("qmri_sa2rage", 10),
         ("qmri_vfa", 19),
         ("qmri_mpm", 126),
-        ("qmri_qsm", 9),
+        ("qmri_qsm", 10),
     ],
 )
 def test_layout_on_examples_with_derivatives(dataset, nb_files, bids_examples):
