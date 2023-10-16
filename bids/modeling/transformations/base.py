@@ -307,7 +307,7 @@ class Transformation(metaclass=ABCMeta):
 
             # Set as a new variable
             else:
-                # Either assign new name in order, or re-use existing one
+                # Either assign new name in order, or reuse existing one
                 if self.output is not None:
                     n_vars = len(self.variables)
                     n_output = len(self.output)
