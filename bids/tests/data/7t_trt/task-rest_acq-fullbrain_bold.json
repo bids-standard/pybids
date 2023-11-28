@@ -2,6 +2,7 @@
     "CogAtlasID": "trm_4c8a834779883",
     "EchoTime": 0.017,
     "EffectiveEchoSpacing": 0.0003333262223739227,
+    "MTState": false,
     "PhaseEncodingDirection": "j-",
     "RepetitionTime": 3.0,
     "SliceEncodingDirection": "k",
