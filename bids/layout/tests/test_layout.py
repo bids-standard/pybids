@@ -245,13 +245,18 @@ def test_get_metadata4(layout_ds005):
     assert result == {}
 
 
-def test_get_metadata5(layout_7t_trt):
+def test_get_metadata_error2(layout_7t_trt):
     """Ensure that False boolean fields are retained as False."""
     target = 'sub-03/ses-2/func/sub-03_ses-2_task-' \
              'rest_acq-fullbrain_run-2_bold.nii.gz'
     target = target.split('/')
+    # Check get_metadata from the BIDSLayout
     result = layout_7t_trt.get_metadata(join(layout_7t_trt.root, *target))
+    assert result['MTState'] is False
 
+    # Check get_metadata from the BIDSFile
+    files = layout_7t_trt.get(task="rest", acquisition="fullbrain", suffix="bold", extension=".nii.gz")
+    result = files[0].get_metadata()
     assert result['MTState'] is False
 
 
