@@ -700,7 +700,10 @@ class Tag(Base):
             self.dtype = 'json'
         else:
             self.dtype = type_map[self._dtype]
-            self.value = self.dtype(self._value)
+            if self.dtype == bool and self._value == "False":
+                self.value = False
+            else:
+                self.value = self.dtype(self._value)
 
 def _create_tag_dict(file, entity, value, dtype=None, is_metadata=False):
         data = {}
