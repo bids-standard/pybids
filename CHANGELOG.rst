@@ -1,6 +1,30 @@
 Changelog
 =========
 
+Version 0.16.4 (November 30, 2023)
+----------------------------------
+
+Bug-fix release in the 0.16.x series.
+
+This release resolves a bug likely introduced in 0.9.0
+(when PyBIDS started using SQL),
+in which boolean metadata fields with values of ``False`` were read in as
+``True``.
+
+* FIX: Ensure values of boolean metadata fields are preserved (#1034)
+* FIX: update config for PET tracer entity (#1018)
+* ENH: Clearer BIDSValidation error message (#1023)
+* STY: pacify codespell (#1029)
+* CI: Build(deps): Bump bids-examples from `064db11` to `b6e5234` (#1031)
+* CI: Build(deps): Bump bids-examples from `d039879` to `064db11` (#1028)
+* CI: Build(deps): Bump bids-examples from `bfcc5c6` to `d039879` (#1027)
+* CI: Bump bids-examples from `502c917` to `bfcc5c6` (#1026)
+* CI: Bump bids-examples from `1c30c6e` to `502c917` (#1025)
+* CI: Bump bids-examples from `e857597` to `1c30c6e` (#1021)
+* CI: Bump bids-examples from `c557d1f` to `e857597` (#1019)
+* CI: Bump bids-examples from `75968b9` to `c557d1f` (#1011)
+* CI: Bump actions/checkout from 3 to 4 (#1024)
+
 Version 0.16.3 (August 16, 2023)
 --------------------------------
 
