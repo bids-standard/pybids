@@ -1,0 +1,35 @@
+﻿bids.reports.parsing
+====================
+
+.. automodule:: bids.reports.parsing
+
+   
+   
+   
+
+   
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      anat_info
+      dwi_info
+      final_paragraph
+      fmap_info
+      func_info
+      general_acquisition_info
+      parse_files
+   
+   
+
+   
+   
+   
+
+   
+   
+   
+
+
+

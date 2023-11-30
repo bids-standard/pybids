@@ -1,0 +1,33 @@
+﻿bids.variables.BIDSRunVariableCollection
+========================================
+
+.. currentmodule:: bids.variables
+
+.. autoclass:: BIDSRunVariableCollection
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~BIDSRunVariableCollection.__init__
+      ~BIDSRunVariableCollection.all_dense
+      ~BIDSRunVariableCollection.all_sparse
+      ~BIDSRunVariableCollection.clone
+      ~BIDSRunVariableCollection.from_df
+      ~BIDSRunVariableCollection.get_dense_variables
+      ~BIDSRunVariableCollection.get_sparse_variables
+      ~BIDSRunVariableCollection.match_variables
+      ~BIDSRunVariableCollection.merge_variables
+      ~BIDSRunVariableCollection.resample
+      ~BIDSRunVariableCollection.to_dense
+      ~BIDSRunVariableCollection.to_df
+   
+   
+
+   
+   
+   

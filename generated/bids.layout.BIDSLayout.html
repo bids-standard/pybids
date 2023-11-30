@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>bids.layout.BIDSLayout &mdash; PyBIDS 0.16.4 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=fa44fd50" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="../_static/mystnb.4510f1fc1dee50b3e5859aac5469c37c29e427902b24a333a5f9fcb2f0b3ac41.css" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/documentation_options.js?v=81998473"></script>
+        <script src="../_static/doctools.js?v=888ff710"></script>
+        <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="bids.layout.BIDSValidator" href="bids.layout.BIDSValidator.html" />
+    <link rel="prev" title="API Reference" href="../api.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            PyBIDS
+          </a>
+              <div class="version">
+                0.16.4
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../user_guide.html">User guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../examples/index.html">Tutorials</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../api.html">API Reference</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../api.html#bids-layout-querying-bids-datasets"><code class="xref py py-mod docutils literal notranslate"><span class="pre">bids.layout</span></code>: Querying BIDS datasets</a><ul class="current">
+<li class="toctree-l3 current"><a class="current reference internal" href="#">bids.layout.BIDSLayout</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#bids.layout.BIDSLayout"><code class="docutils literal notranslate"><span class="pre">BIDSLayout</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="bids.layout.BIDSValidator.html">bids.layout.BIDSValidator</a></li>
+<li class="toctree-l3"><a class="reference internal" href="bids.layout.BIDSFile.html">bids.layout.BIDSFile</a></li>
+<li class="toctree-l3"><a class="reference internal" href="bids.layout.BIDSDataFile.html">bids.layout.BIDSDataFile</a></li>
+<li class="toctree-l3"><a class="reference internal" href="bids.layout.BIDSJSONFile.html">bids.layout.BIDSJSONFile</a></li>
+<li class="toctree-l3"><a class="reference internal" href="bids.layout.Config.html">bids.layout.Config</a></li>
+<li class="toctree-l3"><a class="reference internal" href="bids.layout.Entity.html">bids.layout.Entity</a></li>
+<li class="toctree-l3"><a class="reference internal" href="bids.layout.Tag.html">bids.layout.Tag</a></li>
+<li class="toctree-l3"><a class="reference internal" href="bids.layout.parse_file_entities.html">bids.layout.parse_file_entities</a></li>
+<li class="toctree-l3"><a class="reference internal" href="bids.layout.add_config_paths.html">bids.layout.add_config_paths</a></li>
+<li class="toctree-l3"><a class="reference internal" href="bids.layout.index.BIDSLayoutIndexer.html">bids.layout.index.BIDSLayoutIndexer</a></li>
+<li class="toctree-l3"><a class="reference internal" href="bids.layout.writing.html">bids.layout.writing</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html#bids-modeling-model-specification-for-bids-datasets"><code class="xref py py-mod docutils literal notranslate"><span class="pre">bids.modeling</span></code>: Model specification for BIDS datasets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html#bids-reports-data-acquisition-report-generation"><code class="xref py py-mod docutils literal notranslate"><span class="pre">bids.reports</span></code>: Data acquisition report generation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html#bids-variables-variables"><code class="xref py py-mod docutils literal notranslate"><span class="pre">bids.variables</span></code>: Variables</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html#bids-config-pybids-configuration-utilities"><code class="xref py py-mod docutils literal notranslate"><span class="pre">bids.config</span></code>: PyBIDS Configuration utilities</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html#bids-utils-utility-functions"><code class="xref py py-mod docutils literal notranslate"><span class="pre">bids.utils</span></code>: Utility functions</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../whats_new.html">Changelog</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">PyBIDS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../api.html">API Reference</a></li>
+      <li class="breadcrumb-item active">bids.layout.BIDSLayout</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/generated/bids.layout.BIDSLayout.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="bids-layout-bidslayout">
+<h1>bids.layout.BIDSLayout<a class="headerlink" href="#bids-layout-bidslayout" title="Link to this heading">¶</a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="bids.layout.BIDSLayout">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">BIDSLayout</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">root</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">validate</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">absolute_paths</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">derivatives</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sources</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">regex_search</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">database_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reset_database</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">indexer</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_derivative</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">indexer_kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/bids/layout/layout.html#BIDSLayout"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#bids.layout.BIDSLayout" title="Link to this definition">¶</a></dt>
+<dd><p>Layout class representing an entire BIDS dataset.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>root</strong> (<a class="reference external" href="https://docs.python.org/3.5/library/stdtypes.html#str" title="(in Python v3.5)"><em>str</em></a>) – The root directory of the BIDS dataset.</p></li>
+<li><p><strong>validate</strong> (<a class="reference external" href="https://docs.python.org/3.5/library/functions.html#bool" title="(in Python v3.5)"><em>bool</em></a><em>, </em><em>optional</em>) – If True, all files are checked for BIDS compliance when first indexed,
+and non-compliant files are ignored. This provides a convenient way to
+restrict file indexing to only those files defined in the “core” BIDS
+spec, as setting validate=True will lead files in supplementary folders
+like derivatives/, code/, etc. to be ignored.</p></li>
+<li><p><strong>absolute_paths</strong> (<a class="reference external" href="https://docs.python.org/3.5/library/functions.html#bool" title="(in Python v3.5)"><em>bool</em></a><em>, </em><em>optional</em>) – If True, queries always return absolute paths.
+If False, queries return relative paths (for files and
+directories).</p></li>
+<li><p><strong>derivatives</strong> (<a class="reference external" href="https://docs.python.org/3.5/library/functions.html#bool" title="(in Python v3.5)"><em>bool</em></a><em> or </em><a class="reference external" href="https://docs.python.org/3.5/library/stdtypes.html#str" title="(in Python v3.5)"><em>str</em></a><em> or </em><a class="reference external" href="https://docs.python.org/3.5/library/stdtypes.html#list" title="(in Python v3.5)"><em>list</em></a><em>, </em><em>optional</em>) – Specifies whether and/or which
+derivatives to index. If True, all pipelines found in the
+derivatives/ subdirectory will be indexed. If a str or list, gives
+the paths to one or more derivatives directories to index. If False
+or None, the derivatives/ directory is ignored during indexing, and
+derivatives will have to be added manually via add_derivatives().
+Note: derivatives datasets MUST contain a dataset_description.json
+file in order to be indexed.</p></li>
+<li><p><strong>config</strong> (<a class="reference external" href="https://docs.python.org/3.5/library/stdtypes.html#str" title="(in Python v3.5)"><em>str</em></a><em> or </em><a class="reference external" href="https://docs.python.org/3.5/library/stdtypes.html#list" title="(in Python v3.5)"><em>list</em></a><em> or </em><em>None</em><em>, </em><em>optional</em>) – Optional name(s) of configuration file(s) to use.
+By default (None), uses ‘bids’.</p></li>
+<li><p><strong>sources</strong> (<a class="reference internal" href="#bids.layout.BIDSLayout" title="bids.layout.BIDSLayout"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bids.layout.BIDSLayout</span></code></a> or list or None, optional) – Optional BIDSLayout(s) from which the current BIDSLayout is derived.</p></li>
+<li><p><strong>config_filename</strong> (<a class="reference external" href="https://docs.python.org/3.5/library/stdtypes.html#str" title="(in Python v3.5)"><em>str</em></a>) – Optional name of filename within directories
+that contains configuration information.</p></li>
+<li><p><strong>regex_search</strong> (<a class="reference external" href="https://docs.python.org/3.5/library/functions.html#bool" title="(in Python v3.5)"><em>bool</em></a>) – Whether to require exact matching (True) or regex
+search (False, default) when comparing the query string to each
+entity in .get() calls. This sets a default for the instance, but
+can be overridden in individual .get() requests.</p></li>
+<li><p><strong>database_path</strong> (<a class="reference external" href="https://docs.python.org/3.5/library/stdtypes.html#str" title="(in Python v3.5)"><em>str</em></a>) – Optional path to directory containing SQLite database file index
+for this BIDS dataset. If a value is passed and the folder
+already exists, indexing is skipped. By default (i.e., if None),
+an in-memory SQLite database is used, and the index will not
+persist unless .save() is explicitly called.</p></li>
+<li><p><strong>reset_database</strong> (<a class="reference external" href="https://docs.python.org/3.5/library/functions.html#bool" title="(in Python v3.5)"><em>bool</em></a>) – If True, any existing directory specified in the
+database_path argument is deleted, and the BIDS dataset provided
+in the root argument is reindexed. If False, indexing will be
+skipped and the existing database file will be used. Ignored if
+database_path is not provided.</p></li>
+<li><p><strong>indexer</strong> (<a class="reference internal" href="bids.layout.index.BIDSLayoutIndexer.html#bids.layout.index.BIDSLayoutIndexer" title="bids.layout.index.BIDSLayoutIndexer"><em>BIDSLayoutIndexer</em></a><em> or </em><em>callable</em>) – An optional BIDSLayoutIndexer instance to use for indexing, or any
+callable that takes a BIDSLayout instance as its only argument. If
+None, a new indexer with default parameters will be implicitly created.</p></li>
+<li><p><strong>is_derivative</strong> (<a class="reference external" href="https://docs.python.org/3.5/library/functions.html#bool" title="(in Python v3.5)"><em>bool</em></a>) – Index dataset as a derivative dataset. This can be enabled along with
+validate=False to index derivatives without dataset_description.json. If
+validate=True, the dataset must have a dataset_description.json with
+DatasetType=derivative and GeneratedBy</p></li>
+<li><p><strong>indexer_kwargs</strong> (<a class="reference external" href="https://docs.python.org/3.5/library/stdtypes.html#dict" title="(in Python v3.5)"><em>dict</em></a>) – Optional keyword arguments to pass onto the newly created
+BIDSLayoutIndexer. Valid keywords are ‘ignore’, ‘force_index’,
+‘index_metadata’, and ‘config_filename’. Ignored if indexer is not
+None.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Attributes<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>config</strong></dt><dd></dd>
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">entities</span></code></dt><dd><p>Get the entities.</p>
+</dd>
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">files</span></code></dt><dd><p>Get the files.</p>
+</dd>
+<dt><strong>root</strong></dt><dd></dd>
+<dt><strong>session</strong></dt><dd></dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Methods</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_derivatives</span></code>(path[, parent_database_path])</p></td>
+<td><p>Add BIDS-Derivatives datasets to tracking.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">build_path</span></code>(source[, path_patterns, strict, ...])</p></td>
+<td><p>Construct a target filename for a file or dictionary of entities.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">clone</span></code>()</p></td>
+<td><p>Return a deep copy of the current BIDSLayout.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">copy_files</span></code>([files, path_patterns, ...])</p></td>
+<td><p>Copy BIDSFile(s) to new locations.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get</span></code>([return_type, target, scope, ...])</p></td>
+<td><p>Retrieve files and/or metadata from the current Layout.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_bval</span></code>(path, **kwargs)</p></td>
+<td><p>Get bval file for passed path.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_bvec</span></code>(path, **kwargs)</p></td>
+<td><p>Get bvec file for passed path.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_collections</span></code>(level[, types, variables, ...])</p></td>
+<td><p>Return one or more variable Collections in the BIDS project.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_dataset_description</span></code>([scope, all_])</p></td>
+<td><p>Return contents of dataset_description.json.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_entities</span></code>([scope, metadata])</p></td>
+<td><p>Get entities for all layouts in the specified scope.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_fieldmap</span></code>(path[, return_list])</p></td>
+<td><p>Get fieldmap(s) for specified path.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_file</span></code>(filename[, scope])</p></td>
+<td><p>Return the BIDSFile object with the specified path.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_files</span></code>([scope])</p></td>
+<td><p>Get BIDSFiles for all layouts in the specified scope.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_metadata</span></code>(path[, include_entities, scope])</p></td>
+<td><p>Return metadata found in JSON sidecars for the specified file.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_nearest</span></code>(path[, return_type, strict, ...])</p></td>
+<td><p>Walk up file tree from specified path and return nearest matching file(s).</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_tr</span></code>([derivatives])</p></td>
+<td><p>Return the scanning repetition time (TR) for one or more runs.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">load</span></code>(database_path)</p></td>
+<td><p>Load index from database path.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">parse_file_entities</span></code>(filename[, scope, ...])</p></td>
+<td><p>Parse the passed filename for entity/value pairs.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">save</span></code>(database_path[, replace_connection])</p></td>
+<td><p>Save the current index as a SQLite3 DB at the specified location.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">to_df</span></code>([metadata])</p></td>
+<td><p>Return information for BIDSFiles tracked in Layout as pd.DataFrame.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">write_to_file</span></code>(entities[, path_patterns, ...])</p></td>
+<td><p>Write data to a file defined by the passed entities and patterns.</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py method">
+<dt class="sig sig-object py" id="bids.layout.BIDSLayout.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">root</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">validate</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">absolute_paths</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">derivatives</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sources</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">regex_search</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">database_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reset_database</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">indexer</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_derivative</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">indexer_kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/bids/layout/layout.html#BIDSLayout.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#bids.layout.BIDSLayout.__init__" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<p class="rubric">Methods</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#bids.layout.BIDSLayout.__init__" title="bids.layout.BIDSLayout.__init__"><code class="xref py py-obj docutils literal notranslate"><span class="pre">__init__</span></code></a>([root, validate, absolute_paths, ...])</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_derivatives</span></code>(path[, parent_database_path])</p></td>
+<td><p>Add BIDS-Derivatives datasets to tracking.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">build_path</span></code>(source[, path_patterns, strict, ...])</p></td>
+<td><p>Construct a target filename for a file or dictionary of entities.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">clone</span></code>()</p></td>
+<td><p>Return a deep copy of the current BIDSLayout.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">copy_files</span></code>([files, path_patterns, ...])</p></td>
+<td><p>Copy BIDSFile(s) to new locations.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get</span></code>([return_type, target, scope, ...])</p></td>
+<td><p>Retrieve files and/or metadata from the current Layout.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_bval</span></code>(path, **kwargs)</p></td>
+<td><p>Get bval file for passed path.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_bvec</span></code>(path, **kwargs)</p></td>
+<td><p>Get bvec file for passed path.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_collections</span></code>(level[, types, variables, ...])</p></td>
+<td><p>Return one or more variable Collections in the BIDS project.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_dataset_description</span></code>([scope, all_])</p></td>
+<td><p>Return contents of dataset_description.json.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_entities</span></code>([scope, metadata])</p></td>
+<td><p>Get entities for all layouts in the specified scope.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_fieldmap</span></code>(path[, return_list])</p></td>
+<td><p>Get fieldmap(s) for specified path.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_file</span></code>(filename[, scope])</p></td>
+<td><p>Return the BIDSFile object with the specified path.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_files</span></code>([scope])</p></td>
+<td><p>Get BIDSFiles for all layouts in the specified scope.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_metadata</span></code>(path[, include_entities, scope])</p></td>
+<td><p>Return metadata found in JSON sidecars for the specified file.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_nearest</span></code>(path[, return_type, strict, ...])</p></td>
+<td><p>Walk up file tree from specified path and return nearest matching file(s).</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_tr</span></code>([derivatives])</p></td>
+<td><p>Return the scanning repetition time (TR) for one or more runs.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">load</span></code>(database_path)</p></td>
+<td><p>Load index from database path.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">parse_file_entities</span></code>(filename[, scope, ...])</p></td>
+<td><p>Parse the passed filename for entity/value pairs.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">save</span></code>(database_path[, replace_connection])</p></td>
+<td><p>Save the current index as a SQLite3 DB at the specified location.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">to_df</span></code>([metadata])</p></td>
+<td><p>Return information for BIDSFiles tracked in Layout as pd.DataFrame.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">write_to_file</span></code>(entities[, path_patterns, ...])</p></td>
+<td><p>Write data to a file defined by the passed entities and patterns.</p></td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Attributes</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">config</span></code></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">entities</span></code></p></td>
+<td><p>Get the entities.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">files</span></code></p></td>
+<td><p>Get the files.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">root</span></code></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">session</span></code></p></td>
+<td><p></p></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../api.html" class="btn btn-neutral float-left" title="API Reference" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="bids.layout.BIDSValidator.html" class="btn btn-neutral float-right" title="bids.layout.BIDSValidator" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2015-2023, Developers of PyBIDS.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

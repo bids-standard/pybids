@@ -1,0 +1,916 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>bids.layout.models &mdash; PyBIDS 0.16.4 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=fa44fd50" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/mystnb.4510f1fc1dee50b3e5859aac5469c37c29e427902b24a333a5f9fcb2f0b3ac41.css" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../../_static/documentation_options.js?v=81998473"></script>
+        <script src="../../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            PyBIDS
+          </a>
+              <div class="version">
+                0.16.4
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../user_guide.html">User guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../examples/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api.html">API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../whats_new.html">Changelog</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">PyBIDS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">bids.layout.models</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for bids.layout.models</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot; Model classes used in BIDSLayouts. &quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">from</span> <span class="nn">copy</span> <span class="kn">import</span> <span class="n">deepcopy</span>
+<span class="kn">from</span> <span class="nn">itertools</span> <span class="kn">import</span> <span class="n">chain</span>
+<span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">lru_cache</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">UserDict</span>
+
+<span class="kn">from</span> <span class="nn">sqlalchemy.ext.associationproxy</span> <span class="kn">import</span> <span class="n">association_proxy</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy.orm.collections</span> <span class="kn">import</span> <span class="n">attribute_mapped_collection</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="kn">import</span> <span class="n">Column</span><span class="p">,</span> <span class="n">String</span><span class="p">,</span> <span class="n">Boolean</span><span class="p">,</span> <span class="n">ForeignKey</span><span class="p">,</span> <span class="n">Table</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy.orm</span> <span class="kn">import</span> <span class="n">reconstructor</span><span class="p">,</span> <span class="n">relationship</span><span class="p">,</span> <span class="n">backref</span><span class="p">,</span> <span class="n">object_session</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">sqlalchemy.orm</span> <span class="kn">import</span> <span class="n">declarative_base</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>  <span class="c1"># sqlalchemy &lt; 1.4</span>
+    <span class="kn">from</span> <span class="nn">sqlalchemy.ext.declarative</span> <span class="kn">import</span> <span class="n">declarative_base</span>
+
+<span class="kn">from</span> <span class="nn">..utils</span> <span class="kn">import</span> <span class="n">listify</span>
+<span class="kn">from</span> <span class="nn">.writing</span> <span class="kn">import</span> <span class="n">build_path</span><span class="p">,</span> <span class="n">write_to_file</span>
+<span class="kn">from</span> <span class="nn">..config</span> <span class="kn">import</span> <span class="n">get_option</span>
+<span class="kn">from</span> <span class="nn">.utils</span> <span class="kn">import</span> <span class="n">BIDSMetadata</span><span class="p">,</span> <span class="n">PaddedInt</span>
+<span class="kn">from</span> <span class="nn">..exceptions</span> <span class="kn">import</span> <span class="n">BIDSChildDatasetError</span>
+
+<span class="n">Base</span> <span class="o">=</span> <span class="n">declarative_base</span><span class="p">()</span>
+
+
+<span class="k">class</span> <span class="nc">LayoutInfo</span><span class="p">(</span><span class="n">Base</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot; Contains information about a BIDSLayout&#39;s initialization parameters.&quot;&quot;&quot;</span>
+
+    <span class="n">__tablename__</span> <span class="o">=</span> <span class="s1">&#39;layout_info&#39;</span>
+
+    <span class="n">root</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">String</span><span class="p">,</span> <span class="n">primary_key</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">absolute_paths</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Boolean</span><span class="p">)</span>
+    <span class="n">_derivatives</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">String</span><span class="p">)</span>
+    <span class="n">_config</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">String</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">init_args</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sanitize_init_args</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="n">raw_cols</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;root&#39;</span><span class="p">,</span> <span class="s1">&#39;absolute_paths&#39;</span><span class="p">]</span>
+        <span class="n">json_cols</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;derivatives&#39;</span><span class="p">,</span> <span class="s1">&#39;config&#39;</span><span class="p">]</span>
+        <span class="n">all_cols</span> <span class="o">=</span> <span class="n">raw_cols</span> <span class="o">+</span> <span class="n">json_cols</span>
+        <span class="n">missing_cols</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">all_cols</span><span class="p">)</span> <span class="o">-</span> <span class="nb">set</span><span class="p">(</span><span class="n">init_args</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+        <span class="k">if</span> <span class="n">missing_cols</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Missing mandatory initialization args: </span><span class="si">{}</span><span class="s2">&quot;</span>
+                             <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">missing_cols</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">all_cols</span><span class="p">:</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">col</span><span class="p">,</span> <span class="n">init_args</span><span class="p">[</span><span class="n">col</span><span class="p">])</span>
+            <span class="k">if</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">json_cols</span><span class="p">:</span>
+                <span class="n">json_data</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">init_args</span><span class="p">[</span><span class="n">col</span><span class="p">])</span>
+                <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_&#39;</span> <span class="o">+</span> <span class="n">col</span><span class="p">,</span> <span class="n">json_data</span><span class="p">)</span>
+
+    <span class="nd">@reconstructor</span>
+    <span class="k">def</span> <span class="nf">_init_on_load</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;derivatives&#39;</span><span class="p">,</span> <span class="s1">&#39;config&#39;</span><span class="p">]:</span>
+            <span class="n">db_val</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_&#39;</span> <span class="o">+</span> <span class="n">col</span><span class="p">)</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">col</span><span class="p">,</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">db_val</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">_sanitize_init_args</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Prepare initialization arguments for serialization &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="s1">&#39;root&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;root&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;root&#39;</span><span class="p">])</span><span class="o">.</span><span class="n">absolute</span><span class="p">())</span>
+
+        <span class="k">if</span> <span class="s1">&#39;config&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;config&#39;</span><span class="p">],</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;config&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="nb">str</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="n">config</span><span class="p">)</span><span class="o">.</span><span class="n">absolute</span><span class="p">())</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">PathLike</span><span class="p">)</span> <span class="k">else</span> <span class="n">config</span>
+                <span class="k">for</span> <span class="n">config</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;config&#39;</span><span class="p">]</span>
+            <span class="p">]</span>
+
+        <span class="c1"># Get abspaths</span>
+        <span class="k">if</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;derivatives&#39;</span><span class="p">)</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;derivatives&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="nb">str</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="n">der</span><span class="p">)</span><span class="o">.</span><span class="n">absolute</span><span class="p">())</span>
+                <span class="k">for</span> <span class="n">der</span> <span class="ow">in</span> <span class="n">listify</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;derivatives&#39;</span><span class="p">])</span>
+                <span class="p">]</span>
+
+        <span class="k">return</span> <span class="n">kwargs</span>
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;&lt;LayoutInfo </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">root</span><span class="si">}</span><span class="s2">&gt;&quot;</span>
+
+
+<div class="viewcode-block" id="Config">
+<a class="viewcode-back" href="../../../generated/bids.layout.Config.html#bids.layout.Config">[docs]</a>
+<span class="k">class</span> <span class="nc">Config</span><span class="p">(</span><span class="n">Base</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Container for BIDS configuration information.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    name : str</span>
+<span class="sd">        The name to give the Config (e.g., &#39;bids&#39;).</span>
+<span class="sd">    entities : list</span>
+<span class="sd">        A list of dictionaries containing entity configuration</span>
+<span class="sd">        information.</span>
+<span class="sd">    default_path_patterns : list</span>
+<span class="sd">        Optional list of patterns used to build new paths.</span>
+<span class="sd">    session : :obj:`sqlalchemy.orm.session.Session` or None</span>
+<span class="sd">        An optional SQLAlchemy session. If passed,</span>
+<span class="sd">        the session is used to update the database with any newly created</span>
+<span class="sd">        Entity objects. If None, no database update occurs.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">__tablename__</span> <span class="o">=</span> <span class="s1">&#39;configs&#39;</span>
+
+    <span class="n">name</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">String</span><span class="p">,</span> <span class="n">primary_key</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">_default_path_patterns</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">String</span><span class="p">)</span>
+    <span class="n">entities</span> <span class="o">=</span> <span class="n">relationship</span><span class="p">(</span>
+        <span class="s2">&quot;Entity&quot;</span><span class="p">,</span> <span class="n">secondary</span><span class="o">=</span><span class="s2">&quot;config_to_entity_map&quot;</span><span class="p">,</span>
+        <span class="n">collection_class</span><span class="o">=</span><span class="n">attribute_mapped_collection</span><span class="p">(</span><span class="s1">&#39;name&#39;</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">entities</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">default_path_patterns</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">session</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">default_path_patterns</span> <span class="o">=</span> <span class="n">default_path_patterns</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_default_path_patterns</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">default_path_patterns</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">entities</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">ent</span> <span class="ow">in</span> <span class="n">entities</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">session</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">existing</span> <span class="o">=</span> <span class="p">(</span><span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">Config</span><span class="p">)</span>
+                                <span class="o">.</span><span class="n">filter_by</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">ent</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">])</span><span class="o">.</span><span class="n">first</span><span class="p">())</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">existing</span> <span class="o">=</span> <span class="kc">None</span>
+                <span class="n">ent</span> <span class="o">=</span> <span class="n">existing</span> <span class="ow">or</span> <span class="n">Entity</span><span class="p">(</span><span class="o">**</span><span class="n">ent</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">entities</span><span class="p">[</span><span class="n">ent</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">ent</span>
+                <span class="k">if</span> <span class="n">session</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">session</span><span class="o">.</span><span class="n">add_all</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">entities</span><span class="o">.</span><span class="n">values</span><span class="p">()))</span>
+                    <span class="n">session</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+
+    <span class="nd">@reconstructor</span>
+    <span class="k">def</span> <span class="nf">_init_on_load</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">default_path_patterns</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_default_path_patterns</span><span class="p">)</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="p">,</span> <span class="n">session</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Load a Config instance from the passed configuration data.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        config : str or dict</span>
+<span class="sd">            A string or dict containing configuration information.</span>
+<span class="sd">            Must be one of:</span>
+<span class="sd">            * A string giving the name of a predefined config file</span>
+<span class="sd">                (e.g., &#39;bids&#39; or &#39;derivatives&#39;)</span>
+<span class="sd">            * A path to a JSON file containing config information</span>
+<span class="sd">            * A dictionary containing config information</span>
+<span class="sd">        session : :obj:`sqlalchemy.orm.session.Session` or None</span>
+<span class="sd">            An optional SQLAlchemy Session instance.</span>
+<span class="sd">            If passed, the session is used to check the database for (and</span>
+<span class="sd">            return) an existing Config with name defined in config[&#39;name&#39;].</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        A Config instance.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">)):</span>
+            <span class="n">config_paths</span> <span class="o">=</span> <span class="n">get_option</span><span class="p">(</span><span class="s1">&#39;config_paths&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">config</span> <span class="ow">in</span> <span class="n">config_paths</span><span class="p">:</span>
+                <span class="n">config</span> <span class="o">=</span> <span class="n">config_paths</span><span class="p">[</span><span class="n">config</span><span class="p">]</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">Path</span><span class="p">(</span><span class="n">config</span><span class="p">)</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> is not a valid path.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">config</span><span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                    <span class="n">config</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+
+        <span class="c1"># Return existing Config record if one exists</span>
+        <span class="k">if</span> <span class="n">session</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">Config</span><span class="p">)</span><span class="o">.</span><span class="n">filter_by</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">])</span><span class="o">.</span><span class="n">first</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">result</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">result</span>
+
+        <span class="k">return</span> <span class="n">Config</span><span class="p">(</span><span class="n">session</span><span class="o">=</span><span class="n">session</span><span class="p">,</span> <span class="o">**</span><span class="n">config</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;&lt;Config </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">&gt;&quot;</span></div>
+
+
+
+<div class="viewcode-block" id="BIDSFile">
+<a class="viewcode-back" href="../../../generated/bids.layout.BIDSFile.html#bids.layout.BIDSFile">[docs]</a>
+<span class="k">class</span> <span class="nc">BIDSFile</span><span class="p">(</span><span class="n">Base</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Represents a single file or directory in a BIDS dataset.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    filename : str</span>
+<span class="sd">        The path to the corresponding file.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">__tablename__</span> <span class="o">=</span> <span class="s1">&#39;files&#39;</span>
+
+    <span class="n">path</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">String</span><span class="p">,</span> <span class="n">primary_key</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">filename</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">String</span><span class="p">)</span>
+    <span class="n">dirname</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">String</span><span class="p">)</span>
+    <span class="n">entities</span> <span class="o">=</span> <span class="n">association_proxy</span><span class="p">(</span><span class="s2">&quot;tags&quot;</span><span class="p">,</span> <span class="s2">&quot;value&quot;</span><span class="p">)</span>
+    <span class="n">is_dir</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Boolean</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">class_</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">String</span><span class="p">(</span><span class="mi">20</span><span class="p">))</span>
+
+    <span class="n">_associations</span> <span class="o">=</span> <span class="n">relationship</span><span class="p">(</span><span class="s1">&#39;BIDSFile&#39;</span><span class="p">,</span> <span class="n">secondary</span><span class="o">=</span><span class="s1">&#39;associations&#39;</span><span class="p">,</span>
+                                 <span class="n">primaryjoin</span><span class="o">=</span><span class="s1">&#39;FileAssociation.dst == BIDSFile.path&#39;</span><span class="p">,</span>
+                                 <span class="n">secondaryjoin</span><span class="o">=</span><span class="s1">&#39;FileAssociation.src == BIDSFile.path&#39;</span><span class="p">)</span>
+
+    <span class="n">__mapper_args__</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;polymorphic_on&#39;</span><span class="p">:</span> <span class="n">class_</span><span class="p">,</span>
+        <span class="s1">&#39;polymorphic_identity&#39;</span><span class="p">:</span> <span class="s1">&#39;file&#39;</span>
+    <span class="p">}</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">filename</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_path</span><span class="o">.</span><span class="n">name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dirname</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_path</span><span class="o">.</span><span class="n">parent</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">is_dir</span> <span class="o">=</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">filename</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">_path</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">Path</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">_dirname</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">Path</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dirname</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__getattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr</span><span class="p">):</span>
+        <span class="c1"># Ensures backwards compatibility with old File_ namedtuple, which is</span>
+        <span class="c1"># deprecated as of 0.7.</span>
+        <span class="c1"># _ check first to not mask away access to __setstate__ etc.</span>
+        <span class="c1"># AFAIK None of the entities are allowed to start with _ anyways</span>
+        <span class="c1"># so the check is more generic than __</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">attr</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">attr</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">entities</span><span class="p">:</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;Accessing entities as attributes is deprecated as &quot;</span>
+                          <span class="s2">&quot;of 0.7. Please use the .entities dictionary instead&quot;</span>
+                          <span class="s2">&quot; (i.e., .entities[&#39;</span><span class="si">%s</span><span class="s2">&#39;] instead of .</span><span class="si">%s</span><span class="s2">.&quot;</span>
+                          <span class="o">%</span> <span class="p">(</span><span class="n">attr</span><span class="p">,</span> <span class="n">attr</span><span class="p">))</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">entities</span><span class="p">[</span><span class="n">attr</span><span class="p">]</span>
+        <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2"> object has no attribute named </span><span class="si">%r</span><span class="s2">&quot;</span> <span class="o">%</span>
+                             <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="n">attr</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">&quot;&lt;</span><span class="si">{}</span><span class="s2"> filename=&#39;</span><span class="si">{}</span><span class="s2">&#39;&gt;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__fspath__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">path</span>
+
+    <span class="nd">@property</span>
+    <span class="nd">@lru_cache</span><span class="p">()</span>
+    <span class="k">def</span> <span class="nf">relpath</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return path relative to layout root&quot;&quot;&quot;</span>
+        <span class="n">root</span> <span class="o">=</span> <span class="n">object_session</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">LayoutInfo</span><span class="p">)</span><span class="o">.</span><span class="n">first</span><span class="p">()</span><span class="o">.</span><span class="n">root</span>
+        <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">)</span><span class="o">.</span><span class="n">relative_to</span><span class="p">(</span><span class="n">root</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">get_associations</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kind</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">include_parents</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get associated files, optionally limiting by association kind.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        kind : str</span>
+<span class="sd">            The kind of association to return (e.g., &quot;Child&quot;).</span>
+<span class="sd">            By default, all associations are returned.</span>
+<span class="sd">        include_parents : bool</span>
+<span class="sd">            If True, files related through inheritance</span>
+<span class="sd">            are included in the returned list. If False, only directly</span>
+<span class="sd">            associated files are returned. For example, a file&#39;s JSON</span>
+<span class="sd">            sidecar will always be returned, but other JSON files from</span>
+<span class="sd">            which the sidecar inherits will only be returned if</span>
+<span class="sd">            include_parents=True.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        list</span>
+<span class="sd">            A list of BIDSFile instances.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">kind</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">include_parents</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_associations</span>
+
+        <span class="n">session</span> <span class="o">=</span> <span class="n">object_session</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="n">q</span> <span class="o">=</span> <span class="p">(</span><span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">BIDSFile</span><span class="p">)</span>
+             <span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">FileAssociation</span><span class="p">,</span> <span class="n">BIDSFile</span><span class="o">.</span><span class="n">path</span> <span class="o">==</span> <span class="n">FileAssociation</span><span class="o">.</span><span class="n">dst</span><span class="p">)</span>
+             <span class="o">.</span><span class="n">filter_by</span><span class="p">(</span><span class="n">src</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="n">kind</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">q</span> <span class="o">=</span> <span class="n">q</span><span class="o">.</span><span class="n">filter_by</span><span class="p">(</span><span class="n">kind</span><span class="o">=</span><span class="n">kind</span><span class="p">)</span>
+
+        <span class="n">associations</span> <span class="o">=</span> <span class="n">q</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">include_parents</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">associations</span>
+
+        <span class="k">def</span> <span class="nf">collect_associations</span><span class="p">(</span><span class="n">results</span><span class="p">,</span> <span class="n">bidsfile</span><span class="p">):</span>
+            <span class="n">results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">bidsfile</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">bidsfile</span><span class="o">.</span><span class="n">get_associations</span><span class="p">(</span><span class="s1">&#39;Child&#39;</span><span class="p">):</span>
+                <span class="n">results</span> <span class="o">=</span> <span class="n">collect_associations</span><span class="p">(</span><span class="n">results</span><span class="p">,</span> <span class="n">p</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">results</span>
+
+        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="n">chain</span><span class="p">(</span><span class="o">*</span><span class="p">[</span><span class="n">collect_associations</span><span class="p">([],</span> <span class="n">bf</span><span class="p">)</span> <span class="k">for</span> <span class="n">bf</span> <span class="ow">in</span> <span class="n">associations</span><span class="p">]))</span>
+
+    <span class="k">def</span> <span class="nf">get_metadata</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return all metadata associated with the current file. &quot;&quot;&quot;</span>
+        <span class="n">md</span> <span class="o">=</span> <span class="n">BIDSMetadata</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">)</span>
+        <span class="n">md</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_entities</span><span class="p">(</span><span class="n">metadata</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">md</span>
+
+    <span class="k">def</span> <span class="nf">get_entities</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">metadata</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">values</span><span class="o">=</span><span class="s1">&#39;tags&#39;</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return entity information for the current file.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        metadata : bool or None</span>
+<span class="sd">            If False (default), only entities defined</span>
+<span class="sd">            for filenames (and not those found in the JSON sidecar) are</span>
+<span class="sd">            returned. If True, only entities found in metadata files (and not</span>
+<span class="sd">            defined for filenames) are returned. If None, all available</span>
+<span class="sd">            entities are returned.</span>
+<span class="sd">        values : str</span>
+<span class="sd">            The kind of object to return in the dict&#39;s values.</span>
+<span class="sd">            Must be one of:</span>
+<span class="sd">                * &#39;tags&#39;: Returns only the tagged value--e.g., if the key</span>
+<span class="sd">                is &quot;subject&quot;, the value might be &quot;01&quot;.</span>
+<span class="sd">                * &#39;objects&#39;: Returns the corresponding Entity instance.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        dict</span>
+<span class="sd">            A dict, where keys are entity names and values are Entity</span>
+<span class="sd">            instances.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">metadata</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">values</span> <span class="o">==</span> <span class="s1">&#39;tags&#39;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">entities</span>
+
+        <span class="n">session</span> <span class="o">=</span> <span class="n">object_session</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="n">query</span> <span class="o">=</span> <span class="p">(</span><span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">Tag</span><span class="p">)</span>
+                 <span class="o">.</span><span class="n">filter_by</span><span class="p">(</span><span class="n">file_path</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">)</span>
+                 <span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">Entity</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="n">metadata</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;all&#39;</span><span class="p">):</span>
+            <span class="n">query</span> <span class="o">=</span> <span class="n">query</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">Tag</span><span class="o">.</span><span class="n">is_metadata</span> <span class="o">==</span> <span class="n">metadata</span><span class="p">)</span>
+
+        <span class="n">results</span> <span class="o">=</span> <span class="n">query</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">values</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;obj&#39;</span><span class="p">):</span>
+            <span class="k">return</span> <span class="p">{</span><span class="n">t</span><span class="o">.</span><span class="n">entity_name</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">entity</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">results</span><span class="p">}</span>
+        <span class="k">return</span> <span class="p">{</span><span class="n">t</span><span class="o">.</span><span class="n">entity_name</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">value</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">results</span><span class="p">}</span>
+
+    <span class="k">def</span> <span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path_patterns</span><span class="p">,</span> <span class="n">symbolic_link</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">root</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+             <span class="n">conflicts</span><span class="o">=</span><span class="s1">&#39;fail&#39;</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Copy the contents of a file to a new location.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        path_patterns : list</span>
+<span class="sd">            List of patterns used to construct the new</span>
+<span class="sd">            filename. See :obj:`build_path` documentation for details.</span>
+<span class="sd">        symbolic_link : bool</span>
+<span class="sd">            If True, use a symbolic link to point to the</span>
+<span class="sd">            existing file. If False, creates a new file.</span>
+<span class="sd">        root : str</span>
+<span class="sd">            Optional path to prepend to the constructed filename.</span>
+<span class="sd">        conflicts : str</span>
+<span class="sd">            Defines the desired action when the output path already exists.</span>
+<span class="sd">            Must be one of:</span>
+<span class="sd">                &#39;fail&#39;: raises an exception</span>
+<span class="sd">                &#39;skip&#39; does nothing</span>
+<span class="sd">                &#39;overwrite&#39;: overwrites the existing file</span>
+<span class="sd">                &#39;append&#39;: adds  a suffix to each file copy, starting with 1</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">new_filename</span> <span class="o">=</span> <span class="n">build_path</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">entities</span><span class="p">,</span> <span class="n">path_patterns</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">new_filename</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+        <span class="k">if</span> <span class="n">new_filename</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="n">os</span><span class="o">.</span><span class="n">sep</span><span class="p">:</span>
+            <span class="n">new_filename</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">filename</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_path</span><span class="o">.</span><span class="n">is_absolute</span><span class="p">()</span> <span class="ow">or</span> <span class="n">root</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_path</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">root</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">_path</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Target filename to copy/symlink (</span><span class="si">%s</span><span class="s2">) doesn&#39;t &quot;</span>
+                             <span class="s2">&quot;exist.&quot;</span> <span class="o">%</span> <span class="n">path</span><span class="p">)</span>
+
+        <span class="n">kwargs</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">path</span><span class="o">=</span><span class="n">new_filename</span><span class="p">,</span> <span class="n">root</span><span class="o">=</span><span class="n">root</span><span class="p">,</span> <span class="n">conflicts</span><span class="o">=</span><span class="n">conflicts</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">symbolic_link</span><span class="p">:</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;link_to&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">path</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;copy_from&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">path</span>
+
+        <span class="n">write_to_file</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="BIDSDataFile">
+<a class="viewcode-back" href="../../../generated/bids.layout.BIDSDataFile.html#bids.layout.BIDSDataFile">[docs]</a>
+<span class="k">class</span> <span class="nc">BIDSDataFile</span><span class="p">(</span><span class="n">BIDSFile</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Represents a single data file in a BIDS dataset.</span>
+
+<span class="sd">    Derived from `BIDSFile` and provides additional functionality such as</span>
+<span class="sd">    obtaining pandas DataFrame data representation (via `get_df`).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">__mapper_args__</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;polymorphic_identity&#39;</span><span class="p">:</span> <span class="s1">&#39;data_file&#39;</span>
+    <span class="p">}</span>
+
+    <span class="k">def</span> <span class="nf">get_df</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">include_timing</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">adjust_onset</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+               <span class="n">enforce_dtypes</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">pd_args</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the contents of a tsv file as a pandas DataFrame.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        include_timing : bool</span>
+<span class="sd">            If True, adds an &quot;onset&quot; column to dense</span>
+<span class="sd">            timeseries files (e.g., *_physio.tsv.gz).</span>
+<span class="sd">        adjust_onset : bool</span>
+<span class="sd">            If True, the onset of each sample in a dense</span>
+<span class="sd">            timeseries file is shifted to reflect the &quot;StartTime&quot; value in</span>
+<span class="sd">            the JSON sidecar. If False, the first sample starts at 0 secs.</span>
+<span class="sd">            Ignored if include_timing=False.</span>
+<span class="sd">        enforce_dtypes : bool</span>
+<span class="sd">            If True, enforces the data types defined in</span>
+<span class="sd">            the BIDS spec on core columns (e.g., subject_id and session_id</span>
+<span class="sd">            must be represented as strings).</span>
+<span class="sd">        pd_args : dict</span>
+<span class="sd">            Optional keyword arguments to pass onto pd.read_csv().</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        :obj:`pandas.DataFrame`</span>
+<span class="sd">            A pandas DataFrame.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+        <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+        <span class="k">if</span> <span class="n">enforce_dtypes</span><span class="p">:</span>
+            <span class="n">dtype</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s1">&#39;subject_id&#39;</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                <span class="s1">&#39;session_id&#39;</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                <span class="s1">&#39;participant_id&#39;</span><span class="p">:</span> <span class="nb">str</span>
+            <span class="p">}</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">dtype</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="c1"># TODO: memoize this for efficiency. (Note: caching is insufficient,</span>
+        <span class="c1"># because the dtype enforcement will break if we ignore the value of</span>
+        <span class="c1"># enforce_dtypes).</span>
+        <span class="n">suffix</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">entities</span><span class="p">[</span><span class="s1">&#39;suffix&#39;</span><span class="p">]</span>
+        <span class="n">header</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">suffix</span> <span class="ow">in</span> <span class="p">{</span><span class="s1">&#39;physio&#39;</span><span class="p">,</span> <span class="s1">&#39;stim&#39;</span><span class="p">}</span> <span class="k">else</span> <span class="s1">&#39;infer&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">na_values</span><span class="o">=</span><span class="s1">&#39;n/a&#39;</span><span class="p">,</span>
+                                <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">header</span><span class="o">=</span><span class="n">header</span><span class="p">,</span> <span class="o">**</span><span class="n">pd_args</span><span class="p">)</span>
+
+        <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">entities</span><span class="p">[</span><span class="s1">&#39;extension&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;.tsv.gz&#39;</span><span class="p">:</span>
+            <span class="n">md</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_metadata</span><span class="p">()</span>
+            <span class="c1"># We could potentially include some validation here, but that seems</span>
+            <span class="c1"># like a job for the BIDS Validator.</span>
+            <span class="n">data</span><span class="o">.</span><span class="n">columns</span> <span class="o">=</span> <span class="n">md</span><span class="p">[</span><span class="s1">&#39;Columns&#39;</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">include_timing</span><span class="p">:</span>
+                <span class="n">onsets</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">))</span> <span class="o">/</span> <span class="n">md</span><span class="p">[</span><span class="s1">&#39;SamplingFrequency&#39;</span><span class="p">]</span>
+                <span class="k">if</span> <span class="n">adjust_onset</span><span class="p">:</span>
+                    <span class="n">onsets</span> <span class="o">+=</span> <span class="n">md</span><span class="p">[</span><span class="s1">&#39;StartTime&#39;</span><span class="p">]</span>
+                <span class="n">data</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;onset&#39;</span><span class="p">,</span> <span class="n">onsets</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">data</span></div>
+
+
+
+<span class="k">class</span> <span class="nc">BIDSImageFile</span><span class="p">(</span><span class="n">BIDSFile</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Represents a single neuroimaging data file in a BIDS dataset.</span>
+
+<span class="sd">    Derived from `BIDSFile` and provides additional functionality such as</span>
+<span class="sd">    obtaining nibabel&#39;s image file representation (via `get_image`).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">__mapper_args__</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;polymorphic_identity&#39;</span><span class="p">:</span> <span class="s1">&#39;image_file&#39;</span>
+    <span class="p">}</span>
+
+    <span class="k">def</span> <span class="nf">get_image</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the associated image file (if it exists) as a NiBabel object</span>
+
+<span class="sd">        Any keyword arguments are passed to ``nibabel.load``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="kn">import</span> <span class="nn">nibabel</span> <span class="k">as</span> <span class="nn">nb</span>
+            <span class="k">return</span> <span class="n">nb</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;&#39;</span><span class="si">{}</span><span class="s2">&#39; does not appear to be an image format &quot;</span>
+                             <span class="s2">&quot;NiBabel can read.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">))</span> <span class="kn">from</span> <span class="nn">e</span>
+
+
+<div class="viewcode-block" id="BIDSJSONFile">
+<a class="viewcode-back" href="../../../generated/bids.layout.BIDSJSONFile.html#bids.layout.BIDSJSONFile">[docs]</a>
+<span class="k">class</span> <span class="nc">BIDSJSONFile</span><span class="p">(</span><span class="n">BIDSFile</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Represents a single JSON metadata file in a BIDS dataset.</span>
+
+<span class="sd">    Derived from `BIDSFile` and provides additional functionality for reading</span>
+<span class="sd">    the contents of JSON files as either dicts or strings.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">__mapper_args__</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;polymorphic_identity&#39;</span><span class="p">:</span> <span class="s1">&#39;json_file&#39;</span>
+    <span class="p">}</span>
+
+    <span class="k">def</span> <span class="nf">get_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the contents of the current file as a dictionary. &quot;&quot;&quot;</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_json</span><span class="p">())</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;File </span><span class="si">%s</span><span class="s2"> is a json containing </span><span class="si">%s</span><span class="s2">, not a dict which was expected&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">,</span> <span class="nb">type</span><span class="p">(</span><span class="n">d</span><span class="p">)))</span>
+        <span class="k">return</span> <span class="n">d</span>
+
+    <span class="k">def</span> <span class="nf">get_json</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the contents of the current file as a JSON string. &quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">()</span></div>
+
+
+
+<div class="viewcode-block" id="Entity">
+<a class="viewcode-back" href="../../../generated/bids.layout.Entity.html#bids.layout.Entity">[docs]</a>
+<span class="k">class</span> <span class="nc">Entity</span><span class="p">(</span><span class="n">Base</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Represents a single entity defined in the JSON config.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    name : str</span>
+<span class="sd">        The name of the entity (e.g., &#39;subject&#39;, &#39;run&#39;, etc.)</span>
+<span class="sd">    pattern : str</span>
+<span class="sd">        A regex pattern used to match against file names.</span>
+<span class="sd">        Must define at least one group, and only the first group is</span>
+<span class="sd">        kept as the match.</span>
+<span class="sd">    mandatory : bool</span>
+<span class="sd">        If True, every File _must_ match this entity.</span>
+<span class="sd">    directory : str</span>
+<span class="sd">        Optional pattern defining a directory associated</span>
+<span class="sd">        with the entity.</span>
+<span class="sd">    dtype : str</span>
+<span class="sd">        The optional data type of the Entity values. Must be</span>
+<span class="sd">        one of &#39;int&#39;, &#39;float&#39;, &#39;bool&#39;, or &#39;str&#39;. If None, no type</span>
+<span class="sd">        enforcement will be attempted, which means the dtype of the</span>
+<span class="sd">        value may be unpredictable.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">__tablename__</span> <span class="o">=</span> <span class="s1">&#39;entities&#39;</span>
+
+    <span class="n">name</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">String</span><span class="p">,</span> <span class="n">primary_key</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">mandatory</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Boolean</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">pattern</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">String</span><span class="p">)</span>
+    <span class="n">directory</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">String</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">_dtype</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">String</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s1">&#39;str&#39;</span><span class="p">)</span>
+    <span class="n">files</span> <span class="o">=</span> <span class="n">association_proxy</span><span class="p">(</span><span class="s2">&quot;tags&quot;</span><span class="p">,</span> <span class="s2">&quot;value&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">pattern</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">mandatory</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">directory</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">dtype</span><span class="o">=</span><span class="s1">&#39;str&#39;</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pattern</span> <span class="o">=</span> <span class="n">pattern</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mandatory</span> <span class="o">=</span> <span class="n">mandatory</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">directory</span> <span class="o">=</span> <span class="n">directory</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">dtype</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="n">dtype</span> <span class="o">=</span> <span class="n">dtype</span><span class="o">.</span><span class="vm">__name__</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_dtype</span> <span class="o">=</span> <span class="n">dtype</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_init_on_load</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;&lt;Entity </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> (pattern=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">pattern</span><span class="si">}</span><span class="s2">, dtype=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="si">}</span><span class="s2">)&gt;&quot;</span>
+
+    <span class="nd">@reconstructor</span>
+    <span class="k">def</span> <span class="nf">_init_on_load</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dtype</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;str&#39;</span><span class="p">,</span> <span class="s1">&#39;float&#39;</span><span class="p">,</span> <span class="s1">&#39;int&#39;</span><span class="p">,</span> <span class="s1">&#39;bool&#39;</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Invalid dtype &#39;</span><span class="si">{}</span><span class="s2">&#39;. Must be one of &#39;int&#39;, &quot;</span>
+                             <span class="s2">&quot;&#39;float&#39;, &#39;bool&#39;, or &#39;str&#39;.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_dtype</span><span class="p">))</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dtype</span> <span class="o">==</span> <span class="s2">&quot;int&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="n">PaddedInt</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="nb">eval</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_dtype</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">regex</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pattern</span><span class="p">)</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">pattern</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span>
+
+    <span class="k">def</span> <span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">yield from</span> <span class="bp">self</span><span class="o">.</span><span class="n">unique</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">__deepcopy__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">memo</span><span class="p">):</span>
+        <span class="bp">cls</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="fm">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span>
+
+        <span class="c1"># Directly copy the SQLAlchemy connection before any setattr calls,</span>
+        <span class="c1"># otherwise failures occur sporadically on Python 3.5 when the</span>
+        <span class="c1"># _sa_instance_state attribute (randomly!) disappears.</span>
+        <span class="n">result</span><span class="o">.</span><span class="n">_sa_instance_state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sa_instance_state</span>
+
+        <span class="n">memo</span><span class="p">[</span><span class="nb">id</span><span class="p">(</span><span class="bp">self</span><span class="p">)]</span> <span class="o">=</span> <span class="n">result</span>
+
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">k</span> <span class="o">==</span> <span class="s1">&#39;_sa_instance_state&#39;</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="n">new_val</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">)</span> <span class="k">if</span> <span class="n">k</span> <span class="o">==</span> <span class="s1">&#39;regex&#39;</span> <span class="k">else</span> <span class="n">deepcopy</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">memo</span><span class="p">)</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">new_val</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">result</span>
+
+    <span class="k">def</span> <span class="nf">match_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">f</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Determine whether the passed file matches the Entity.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        f : BIDSFile</span>
+<span class="sd">            The BIDSFile instance to match against.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        the matched value if a match was found, otherwise None.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">regex</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="n">m</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">regex</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">path</span><span class="p">)</span>
+        <span class="n">val</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="k">if</span> <span class="n">m</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_astype</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">unique</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return all unique values/levels for the current entity.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">files</span><span class="o">.</span><span class="n">values</span><span class="p">()))</span>
+
+    <span class="k">def</span> <span class="nf">count</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">files</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return a count of unique values or files.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        files : bool</span>
+<span class="sd">            When True, counts all files mapped to the Entity.</span>
+<span class="sd">            When False, counts all unique values.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        int</span>
+<span class="sd">            Count of unique values or files.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">files</span><span class="p">)</span> <span class="k">if</span> <span class="n">files</span> <span class="k">else</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">unique</span><span class="p">())</span>
+
+    <span class="k">def</span> <span class="nf">_astype</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">val</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">val</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">val</span></div>
+
+
+<span class="n">type_map</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s1">&#39;str&#39;</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="s1">&#39;int&#39;</span><span class="p">:</span> <span class="n">PaddedInt</span><span class="p">,</span>
+    <span class="s1">&#39;float&#39;</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="s1">&#39;bool&#39;</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+    <span class="s1">&#39;json&#39;</span><span class="p">:</span> <span class="s1">&#39;json&#39;</span><span class="p">,</span>
+<span class="p">}</span>
+<div class="viewcode-block" id="Tag">
+<a class="viewcode-back" href="../../../generated/bids.layout.Tag.html#bids.layout.Tag">[docs]</a>
+<span class="k">class</span> <span class="nc">Tag</span><span class="p">(</span><span class="n">Base</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Represents an association between a File and an Entity.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    file : BIDSFile</span>
+<span class="sd">        The associated BIDSFile.</span>
+<span class="sd">    entity : Entity</span>
+<span class="sd">        The associated Entity.</span>
+<span class="sd">    value : json-serializable type</span>
+<span class="sd">        The value to store for this file/entity pair. Must be of type</span>
+<span class="sd">        str, int, float, bool, or any json-serializable structure.</span>
+<span class="sd">    dtype : str</span>
+<span class="sd">        Optional type for the value field. If None, inferred from</span>
+<span class="sd">        value. If passed, must be one of str, int, float, bool, or json.</span>
+<span class="sd">        Any other value will be treated as json (and will fail if the</span>
+<span class="sd">        value can&#39;t be serialized to json).</span>
+<span class="sd">    is_metadata : bool</span>
+<span class="sd">        Indicates whether or not the Entity is derived</span>
+<span class="sd">        from JSON sidecars (True) or is a predefined Entity from a</span>
+<span class="sd">        config (False).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">__tablename__</span> <span class="o">=</span> <span class="s1">&#39;tags&#39;</span>
+
+    <span class="n">file_path</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">String</span><span class="p">,</span> <span class="n">ForeignKey</span><span class="p">(</span><span class="s1">&#39;files.path&#39;</span><span class="p">),</span> <span class="n">primary_key</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">entity_name</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">String</span><span class="p">,</span> <span class="n">ForeignKey</span><span class="p">(</span><span class="s1">&#39;entities.name&#39;</span><span class="p">),</span> <span class="n">primary_key</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">_value</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">String</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">_dtype</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">String</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s1">&#39;str&#39;</span><span class="p">)</span>
+    <span class="n">is_metadata</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Boolean</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+
+    <span class="n">file</span> <span class="o">=</span> <span class="n">relationship</span><span class="p">(</span><span class="s1">&#39;BIDSFile&#39;</span><span class="p">,</span> <span class="n">backref</span><span class="o">=</span><span class="n">backref</span><span class="p">(</span>
+        <span class="s2">&quot;tags&quot;</span><span class="p">,</span> <span class="n">collection_class</span><span class="o">=</span><span class="n">attribute_mapped_collection</span><span class="p">(</span><span class="s2">&quot;entity_name&quot;</span><span class="p">)))</span>
+    <span class="n">entity</span> <span class="o">=</span> <span class="n">relationship</span><span class="p">(</span><span class="s1">&#39;Entity&#39;</span><span class="p">,</span> <span class="n">backref</span><span class="o">=</span><span class="n">backref</span><span class="p">(</span>
+        <span class="s2">&quot;tags&quot;</span><span class="p">,</span> <span class="n">collection_class</span><span class="o">=</span><span class="n">attribute_mapped_collection</span><span class="p">(</span><span class="s2">&quot;file_path&quot;</span><span class="p">)))</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file</span><span class="p">,</span> <span class="n">entity</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">is_metadata</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">_create_tag_dict</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="n">entity</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">is_metadata</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">file_path</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;file_path&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">entity_name</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;entity_name&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_dtype</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;_dtype&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_value</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;_value&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">is_metadata</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;is_metadata&#39;</span><span class="p">]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="n">type_map</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_dtype</span><span class="p">]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dtype</span> <span class="o">!=</span> <span class="s1">&#39;json&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="n">value</span>
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;&lt;Tag file:</span><span class="si">{!r}</span><span class="s2"> entity:</span><span class="si">{!r}</span><span class="s2"> value:</span><span class="si">{!r}</span><span class="s2">&gt;&quot;</span>
+        <span class="k">return</span> <span class="n">msg</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">file_path</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">entity_name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+
+    <span class="nd">@reconstructor</span>
+    <span class="k">def</span> <span class="nf">_init_on_load</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dtype</span> <span class="o">==</span> <span class="s1">&#39;json&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_value</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="s1">&#39;json&#39;</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dtype</span> <span class="o">==</span> <span class="s1">&#39;bool&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_value</span> <span class="o">==</span> <span class="s1">&#39;True&#39;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="nb">bool</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="n">type_map</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_dtype</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_value</span><span class="p">)</span></div>
+
+
+<span class="k">def</span> <span class="nf">_create_tag_dict</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="n">entity</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">is_metadata</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">if</span> <span class="n">dtype</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">dtype</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">dtype</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="n">dtype</span> <span class="o">=</span> <span class="n">dtype</span><span class="o">.</span><span class="vm">__name__</span>
+
+        <span class="k">if</span> <span class="n">dtype</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;list&#39;</span><span class="p">,</span> <span class="s1">&#39;dict&#39;</span><span class="p">]:</span>
+            <span class="n">_dtype</span> <span class="o">=</span> <span class="s1">&#39;json&#39;</span>
+            <span class="n">_value</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">_dtype</span> <span class="o">=</span> <span class="n">dtype</span>
+            <span class="n">_value</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">_dtype</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;str&#39;</span><span class="p">,</span> <span class="s1">&#39;float&#39;</span><span class="p">,</span> <span class="s1">&#39;int&#39;</span><span class="p">,</span> <span class="s1">&#39;bool&#39;</span><span class="p">,</span> <span class="s1">&#39;json&#39;</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Passed value has an invalid dtype (</span><span class="si">{</span><span class="n">dtype</span><span class="si">}</span><span class="s2">). Must be one of &quot;</span>
+                <span class="s2">&quot;int, float, bool, or str.&quot;</span><span class="p">)</span>
+
+        <span class="n">data</span><span class="p">[</span><span class="s1">&#39;is_metadata&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">is_metadata</span>
+        <span class="n">data</span><span class="p">[</span><span class="s1">&#39;file_path&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">file</span><span class="o">.</span><span class="n">path</span>
+        <span class="n">data</span><span class="p">[</span><span class="s1">&#39;entity_name&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">entity</span><span class="o">.</span><span class="n">name</span>
+        <span class="n">data</span><span class="p">[</span><span class="s1">&#39;_dtype&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">_dtype</span>
+        <span class="n">data</span><span class="p">[</span><span class="s1">&#39;_value&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">_value</span>
+
+        <span class="k">return</span> <span class="n">data</span>
+
+
+<span class="k">class</span> <span class="nc">FileAssociation</span><span class="p">(</span><span class="n">Base</span><span class="p">):</span>
+    <span class="n">__tablename__</span> <span class="o">=</span> <span class="s1">&#39;associations&#39;</span>
+
+    <span class="n">src</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">String</span><span class="p">,</span> <span class="n">ForeignKey</span><span class="p">(</span><span class="s1">&#39;files.path&#39;</span><span class="p">),</span> <span class="n">primary_key</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">dst</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">String</span><span class="p">,</span> <span class="n">ForeignKey</span><span class="p">(</span><span class="s1">&#39;files.path&#39;</span><span class="p">),</span> <span class="n">primary_key</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">kind</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">String</span><span class="p">,</span> <span class="n">primary_key</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+
+<span class="c1"># Association objects</span>
+<span class="n">config_to_entity_map</span> <span class="o">=</span> <span class="n">Table</span><span class="p">(</span><span class="s1">&#39;config_to_entity_map&#39;</span><span class="p">,</span> <span class="n">Base</span><span class="o">.</span><span class="n">metadata</span><span class="p">,</span>
+                             <span class="n">Column</span><span class="p">(</span><span class="s1">&#39;config&#39;</span><span class="p">,</span> <span class="n">String</span><span class="p">,</span> <span class="n">ForeignKey</span><span class="p">(</span><span class="s1">&#39;configs.name&#39;</span><span class="p">)),</span>
+                             <span class="n">Column</span><span class="p">(</span><span class="s1">&#39;entity&#39;</span><span class="p">,</span> <span class="n">String</span><span class="p">,</span> <span class="n">ForeignKey</span><span class="p">(</span><span class="s1">&#39;entities.name&#39;</span><span class="p">))</span>
+                             <span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">DerivativeDatasets</span><span class="p">(</span><span class="n">UserDict</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__getitem__</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="k">pass</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_pipeline</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                <span class="s2">&quot;Directly selecting derivative datasets using &quot;</span>
+                <span class="s2">&quot;pipeline name (i.e. dataset.derivatives[&lt;pipeline_name&gt;] will be &quot;</span>
+                <span class="s2">&quot;phased out in an upcoming release. Select instead using the folder &quot;</span>
+                <span class="s2">&quot;name of the dataset (i.e. dataset.derivatives[&lt;folder_name&gt;]), or use &quot;</span>
+                <span class="s2">&quot;dataset.derivatives.get_pipeline(&lt;pipeline_name&gt;).&quot;</span><span class="p">,</span>
+                <span class="ne">DeprecationWarning</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="k">return</span> <span class="n">result</span>
+        <span class="k">except</span> <span class="ne">KeyError</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;No datasets found matching </span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2"> either as a pipeline name or as &quot;</span>
+                <span class="s2">&quot;a dataset file name.&quot;</span>
+            <span class="p">)</span> <span class="kn">from</span> <span class="nn">err</span>
+
+
+    <span class="k">def</span> <span class="nf">get_pipeline</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pipeline</span><span class="p">):</span>
+        <span class="n">matches</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">dataset</span><span class="p">)</span> <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">dataset</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">dataset</span><span class="o">.</span><span class="n">source_pipeline</span> <span class="o">==</span> <span class="n">pipeline</span>
+        <span class="p">}</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">matches</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">datasets</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="se">\n\t</span><span class="s2">- &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">match</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">match</span> <span class="ow">in</span> <span class="n">matches</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="n">BIDSChildDatasetError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Multiple datasets generated by </span><span class="si">{</span><span class="n">pipeline</span><span class="si">}</span><span class="s2"> were found:</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- </span><span class="si">{</span><span class="n">datasets</span><span class="si">}</span><span class="se">\n\n</span><span class="s2">&quot;</span>
+                <span class="s2">&quot;Select a specific dataset by using &quot;</span>
+                <span class="s2">&quot;dataset.derivatives[&lt;dataset_folder_name&gt;].&quot;</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">matches</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;No match found for </span><span class="si">{</span><span class="n">pipeline</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">next</span><span class="p">(</span><span class="nb">iter</span><span class="p">(</span><span class="n">matches</span><span class="p">))[</span><span class="mi">1</span><span class="p">]</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2015-2023, Developers of PyBIDS.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

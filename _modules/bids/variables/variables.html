@@ -1,0 +1,837 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>bids.variables.variables &mdash; PyBIDS 0.16.4 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=fa44fd50" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/mystnb.4510f1fc1dee50b3e5859aac5469c37c29e427902b24a333a5f9fcb2f0b3ac41.css" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../../_static/documentation_options.js?v=81998473"></script>
+        <script src="../../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            PyBIDS
+          </a>
+              <div class="version">
+                0.16.4
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../user_guide.html">User guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../examples/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api.html">API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../whats_new.html">Changelog</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">PyBIDS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">bids.variables.variables</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for bids.variables.variables</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot; Classes for representing BIDS variables. &quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">math</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+<span class="kn">from</span> <span class="nn">copy</span> <span class="kn">import</span> <span class="n">deepcopy</span>
+<span class="kn">from</span> <span class="nn">abc</span> <span class="kn">import</span> <span class="n">abstractmethod</span><span class="p">,</span> <span class="n">ABCMeta</span>
+<span class="kn">from</span> <span class="nn">itertools</span> <span class="kn">import</span> <span class="n">chain</span>
+<span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">reduce</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+
+<span class="kn">from</span> <span class="nn">bids.utils</span> <span class="kn">import</span> <span class="n">listify</span>
+
+<span class="k">class</span> <span class="nc">BIDSVariable</span><span class="p">(</span><span class="n">metaclass</span><span class="o">=</span><span class="n">ABCMeta</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Base representation of a column in a BIDS project. &quot;&quot;&quot;</span>
+
+    <span class="c1"># Columns that define special properties (e.g., onset, duration). These</span>
+    <span class="c1"># will be stored separately from the main data object, and are accessible</span>
+    <span class="c1"># as properties on the BIDSVariable instance.</span>
+    <span class="n">_property_columns</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">values</span><span class="p">,</span> <span class="n">source</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">values</span> <span class="o">=</span> <span class="n">values</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">source</span> <span class="o">=</span> <span class="n">source</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">entities</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_extract_entities</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;&lt;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">(name=&#39;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">&#39;, source=&#39;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">source</span><span class="si">}</span><span class="s2">&#39;)&gt;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">clone</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Clone (deep copy) the current column, optionally replacing its</span>
+<span class="sd">        data and/or any other attributes.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        data : :obj:`pandas.DataFrame` or array_like</span>
+<span class="sd">            Optional new data to substitute into</span>
+<span class="sd">            the cloned column. Must have same dimensionality as the</span>
+<span class="sd">            original.</span>
+<span class="sd">        kwargs : dict</span>
+<span class="sd">            Optional keyword arguments containing new attribute</span>
+<span class="sd">            values to set in the copy. E.g., passing `name=&#39;my_name&#39;`</span>
+<span class="sd">            would set the `.name` attribute on the cloned instance to the</span>
+<span class="sd">            passed value.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">data</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">data</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">shape</span><span class="p">:</span>
+                <span class="c1"># If data can be re-shaped safely, do so</span>
+                <span class="k">if</span> <span class="n">data</span><span class="o">.</span><span class="n">squeeze</span><span class="p">()</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">squeeze</span><span class="p">()</span><span class="o">.</span><span class="n">shape</span><span class="p">:</span>
+                    <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Replacement data has shape </span><span class="si">%s</span><span class="s2">; must have&quot;</span>
+                                     <span class="s2">&quot; same shape as existing data </span><span class="si">%s</span><span class="s2">.&quot;</span> <span class="o">%</span>
+                                     <span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">shape</span><span class="p">))</span>
+            <span class="n">result</span><span class="o">.</span><span class="n">values</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">kwargs</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="nb">setattr</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
+
+        <span class="c1"># Need to update name on Series as well</span>
+        <span class="c1"># result.values.name = kwargs.get(&#39;name&#39;, self.name)</span>
+        <span class="k">return</span> <span class="n">result</span>
+
+    <span class="k">def</span> <span class="nf">filter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filters</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">query</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">strict</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns a copy of the current Variable with only rows that match</span>
+<span class="sd">        the filters retained.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        filters : dict</span>
+<span class="sd">            Dictionary of filters to apply. Keys can be either</span>
+<span class="sd">            &#39;amplitude&#39; or any named entity. Values must be single values</span>
+<span class="sd">            or lists.</span>
+<span class="sd">        query : str</span>
+<span class="sd">            Optional query string to pass to df.query(). Will not</span>
+<span class="sd">            be validated in any way, so must have valid column names. Takes</span>
+<span class="sd">            precedence over filters in the event that both are passed.</span>
+<span class="sd">        strict : bool</span>
+<span class="sd">            By default, keys in &#39;filters&#39; that cannot be found</span>
+<span class="sd">            in the Variable will be silently ignored. If strict=True, None</span>
+<span class="sd">            will be returned in such cases.</span>
+<span class="sd">        inplace : bool</span>
+<span class="sd">            If True, filtering is performed in place. If False,</span>
+<span class="sd">            a filtered copy of the Variable is returned.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        BIDSVariable or None if no rows are left after filtering.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">filters</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">query</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Either the &#39;filters&#39; or the &#39;query&#39; argument &quot;</span>
+                             <span class="s2">&quot;must be provided!&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">filters</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">query</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">query</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">filters</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="k">if</span> <span class="n">name</span> <span class="o">!=</span> <span class="s1">&#39;amplitude&#39;</span> <span class="ow">and</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">strict</span><span class="p">:</span>
+                        <span class="k">return</span> <span class="kc">None</span>
+                    <span class="k">continue</span>
+                <span class="n">oper</span> <span class="o">=</span> <span class="s1">&#39;in&#39;</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">))</span> <span class="k">else</span> <span class="s1">&#39;==&#39;</span>
+                <span class="n">q</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{name}</span><span class="s1"> </span><span class="si">{oper}</span><span class="s1"> </span><span class="si">{val}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">oper</span><span class="o">=</span><span class="n">oper</span><span class="p">,</span>
+                                                 <span class="n">val</span><span class="o">=</span><span class="nb">repr</span><span class="p">(</span><span class="n">val</span><span class="p">))</span>
+                <span class="n">query</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">q</span><span class="p">)</span>
+            <span class="n">query</span> <span class="o">=</span> <span class="s1">&#39; and &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
+
+        <span class="n">var</span> <span class="o">=</span> <span class="bp">self</span> <span class="k">if</span> <span class="n">inplace</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="n">query</span><span class="p">:</span>
+            <span class="n">inds</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">to_df</span><span class="p">()</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">query</span><span class="p">)</span><span class="o">.</span><span class="n">index</span>
+
+            <span class="n">var</span><span class="o">.</span><span class="n">values</span> <span class="o">=</span> <span class="n">var</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">inds</span><span class="p">]</span>
+            <span class="n">var</span><span class="o">.</span><span class="n">index</span> <span class="o">=</span> <span class="n">var</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">inds</span><span class="p">]</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_build_entity_index&#39;</span><span class="p">):</span>
+                <span class="n">var</span><span class="o">.</span><span class="n">_build_entity_index</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">inplace</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">var</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">merge</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">variables</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Merge/concatenate a list of variables along the row axis.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        variables : list</span>
+<span class="sd">            A list of Variables to merge.</span>
+<span class="sd">        name : str</span>
+<span class="sd">            Optional name to assign to the output Variable. By</span>
+<span class="sd">            default, uses the same name as the input variables.</span>
+<span class="sd">        kwargs : dict</span>
+<span class="sd">            Optional keyword arguments to pass onto the class-specific</span>
+<span class="sd">            merge() call. See merge_variables docstring for details.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        A single BIDSVariable of the same class as the input variables.</span>
+
+<span class="sd">        See also</span>
+<span class="sd">        --------</span>
+<span class="sd">        merge_variables</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">variables</span> <span class="o">=</span> <span class="n">listify</span><span class="p">(</span><span class="n">variables</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">variables</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">variables</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="n">var_names</span> <span class="o">=</span> <span class="nb">set</span><span class="p">([</span><span class="n">v</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">variables</span><span class="p">])</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">var_names</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Columns with different names cannot be merged. &quot;</span>
+                             <span class="s2">&quot;Column names provided: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">var_names</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="n">variables</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">name</span>
+
+        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_merge</span><span class="p">(</span><span class="n">variables</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">_merge</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">variables</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">pass</span>
+
+    <span class="k">def</span> <span class="nf">get_grouper</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">groupby</span><span class="o">=</span><span class="s1">&#39;run&#39;</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return a list suitable for use in groupby calls.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        groupby : str or list</span>
+<span class="sd">            Name(s) of column(s) defining the grouper</span>
+<span class="sd">            object. Anything that would be valid inside a .groupby() call</span>
+<span class="sd">            on a pandas structure.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        list</span>
+<span class="sd">            A list defining the groups.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">grouper</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="n">groupby</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">grouper</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="s1">&#39;@@@&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span><span class="o">.</span><span class="n">values</span><span class="p">),</span>
+                             <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">apply</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">func</span><span class="p">,</span> <span class="n">groupby</span><span class="o">=</span><span class="s1">&#39;run&#39;</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Applies the passed function to the groups defined by the groupby</span>
+<span class="sd">        argument. Works identically to the standard pandas df.groupby() call.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        func : callable</span>
+<span class="sd">            The function to apply to each group.</span>
+<span class="sd">        groupby : str or list</span>
+<span class="sd">            Name(s) of column(s) defining the grouping.</span>
+<span class="sd">        args, kwargs : dict</span>
+<span class="sd">            Optional positional and keyword arguments to pass</span>
+<span class="sd">            onto the function call.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">grouper</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_grouper</span><span class="p">(</span><span class="n">groupby</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="n">grouper</span><span class="p">,</span> <span class="n">group_keys</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">to_df</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">condition</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">entities</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Convert to a DataFrame, with columns for name and entities.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        condition : bool</span>
+<span class="sd">            If True, adds a column for condition name, and</span>
+<span class="sd">            names the amplitude column &#39;amplitude&#39;. If False, returns just</span>
+<span class="sd">            onset, duration, and amplitude, and gives the amplitude column</span>
+<span class="sd">            the current column name.</span>
+<span class="sd">        entities : bool</span>
+<span class="sd">            If True, adds extra columns for all entities.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">amp</span> <span class="o">=</span> <span class="s1">&#39;amplitude&#39;</span> <span class="k">if</span> <span class="n">condition</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span><span class="n">amp</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">ravel</span><span class="p">()})</span>
+
+        <span class="k">for</span> <span class="n">sc</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_property_columns</span><span class="p">:</span>
+            <span class="n">data</span><span class="p">[</span><span class="n">sc</span><span class="p">]</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sc</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">condition</span><span class="p">:</span>
+            <span class="n">data</span><span class="p">[</span><span class="s1">&#39;condition&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span>
+
+        <span class="k">if</span> <span class="n">entities</span><span class="p">:</span>
+            <span class="n">ent_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">data</span><span class="p">,</span> <span class="n">ent_data</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">sort</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">data</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_extract_entities</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns a dict of all non-varying entities for the current Variable.</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        Only entity key/value pairs common to all rows in the Variable</span>
+<span class="sd">        are returned. E.g., if a Variable contains events extracted from</span>
+<span class="sd">        runs 1, 2 and 3 from subject &#39;01&#39;, the returned dict will be</span>
+<span class="sd">        {&#39;subject&#39;: &#39;01&#39;}; the runs will be excluded as they vary across</span>
+<span class="sd">        the Variable contents.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">def</span> <span class="nf">is_unique</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
+            <span class="n">a</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">()</span>
+            <span class="k">return</span> <span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">a</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+
+        <span class="n">constant</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">is_unique</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">constant</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">{}</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">keep</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">columns</span><span class="p">[</span><span class="n">constant</span><span class="p">]</span>
+            <span class="n">first_row_ix</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">index</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">res</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">keep</span><span class="p">:</span>
+                <span class="n">v</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">first_row_ix</span><span class="p">,</span> <span class="n">k</span><span class="p">]</span>
+                <span class="k">if</span> <span class="n">pd</span><span class="o">.</span><span class="n">isna</span><span class="p">(</span><span class="n">v</span><span class="p">):</span> <span class="c1"># Only drop NaNs if we get that on first try</span>
+                    <span class="n">v</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">index</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">dropna</span><span class="p">()</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="n">res</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
+            <span class="k">return</span> <span class="n">res</span>
+
+
+<div class="viewcode-block" id="SimpleVariable">
+<a class="viewcode-back" href="../../../generated/bids.variables.SimpleVariable.html#bids.variables.SimpleVariable">[docs]</a>
+<span class="k">class</span> <span class="nc">SimpleVariable</span><span class="p">(</span><span class="n">BIDSVariable</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Represents a simple design matrix column that has no timing</span>
+<span class="sd">    information.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    name : str</span>
+<span class="sd">        Name of the column.</span>
+<span class="sd">    data : :obj:`pandas.DataFrame`</span>
+<span class="sd">        A pandas DataFrame minimally containing a column</span>
+<span class="sd">        named &#39;amplitude&#39; as well as any identifying entities.</span>
+<span class="sd">    source : str</span>
+<span class="sd">        The type of BIDS variable file the data were extracted</span>
+<span class="sd">        from. Must be one of: &#39;events&#39;, &#39;physio&#39;, &#39;stim&#39;, &#39;regressors&#39;,</span>
+<span class="sd">        &#39;scans&#39;, &#39;sessions&#39;, &#39;participants&#39;, or &#39;beh&#39;.</span>
+<span class="sd">    kwargs : dict</span>
+<span class="sd">        Optional keyword arguments passed onto superclass.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">_entity_columns</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;condition&#39;</span><span class="p">,</span> <span class="s1">&#39;amplitude&#39;</span><span class="p">}</span>
+
+<div class="viewcode-block" id="SimpleVariable.__init__">
+<a class="viewcode-back" href="../../../generated/bids.variables.SimpleVariable.html#bids.variables.SimpleVariable.__init__">[docs]</a>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">source</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+
+        <span class="n">ent_cols</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">columns</span><span class="p">)</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">_entity_columns</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">index</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="n">ent_cols</span><span class="p">]</span>
+
+        <span class="n">values</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;amplitude&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">values</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+
+        <span class="nb">super</span><span class="p">(</span><span class="n">SimpleVariable</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">values</span><span class="p">,</span> <span class="n">source</span><span class="p">)</span></div>
+
+
+    <span class="k">def</span> <span class="nf">split</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">grouper</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Split the current SparseRunVariable into multiple columns.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        grouper : :obj:`pandas.DataFrame`</span>
+<span class="sd">            Binary DF specifying the design matrix to use for splitting. Number</span>
+<span class="sd">            of rows must match current ``SparseRunVariable``;</span>
+<span class="sd">            a new ``SparseRunVariable`` will be generated for each column in</span>
+<span class="sd">            the grouper.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        A list of SparseRunVariables, one per column in the grouper DF.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">to_df</span><span class="p">(</span><span class="n">condition</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">entities</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="s1">&#39;condition&#39;</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="n">subsets</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">col_name</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">grouper</span><span class="o">.</span><span class="n">columns</span><span class="p">):</span>
+            <span class="n">col_data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">grouper</span><span class="p">[</span><span class="n">col_name</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">bool</span><span class="p">),</span> <span class="p">:]</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">.</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">col_name</span><span class="p">)</span>
+            <span class="n">col</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">col_data</span><span class="p">,</span> <span class="n">source</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">source</span><span class="p">,</span>
+                                 <span class="n">run_info</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;run_info&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">))</span>
+            <span class="n">subsets</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">col</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">subsets</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">_merge</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">variables</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">dfs</span> <span class="o">=</span> <span class="p">[</span><span class="n">v</span><span class="o">.</span><span class="n">to_df</span><span class="p">()</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">variables</span><span class="p">]</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">dfs</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">sort</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">{</span><span class="n">name</span><span class="p">:</span> <span class="s1">&#39;amplitude&#39;</span><span class="p">})</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">source</span><span class="o">=</span><span class="n">variables</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">source</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">select_rows</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rows</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Truncate internal arrays to keep only the specified rows.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        rows : array_like</span>
+<span class="sd">            An integer or boolean array identifying the indices</span>
+<span class="sd">            of rows to keep.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">values</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">rows</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">index</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">rows</span><span class="p">,</span> <span class="p">:]</span>
+        <span class="k">for</span> <span class="n">prop</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_property_columns</span><span class="p">:</span>
+            <span class="n">vals</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">prop</span><span class="p">)[</span><span class="n">rows</span><span class="p">]</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">prop</span><span class="p">,</span> <span class="n">vals</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="SparseRunVariable">
+<a class="viewcode-back" href="../../../generated/bids.variables.SparseRunVariable.html#bids.variables.SparseRunVariable">[docs]</a>
+<span class="k">class</span> <span class="nc">SparseRunVariable</span><span class="p">(</span><span class="n">SimpleVariable</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;A sparse representation of a single column of events.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    name : str</span>
+<span class="sd">        Name of the column.</span>
+<span class="sd">    data : :obj:`pandas.DataFrame`</span>
+<span class="sd">        A pandas DataFrame minimally containing the columns</span>
+<span class="sd">        &#39;onset&#39;, &#39;duration&#39;, and &#39;amplitude&#39;.</span>
+<span class="sd">    run_info : list</span>
+<span class="sd">        A list of RunInfo objects carrying information about</span>
+<span class="sd">        all runs represented in the Variable.</span>
+<span class="sd">    source : str</span>
+<span class="sd">        The type of BIDS variable file the data were extracted</span>
+<span class="sd">        from. Must be one of: &#39;events&#39;, &#39;physio&#39;, &#39;stim&#39;, &#39;regressors&#39;,</span>
+<span class="sd">        &#39;scans&#39;, &#39;sessions&#39;, &#39;participants&#39;, or &#39;beh&#39;.</span>
+<span class="sd">    kwargs : dict</span>
+<span class="sd">        Optional keyword arguments passed onto superclass.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">_property_columns</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;onset&#39;</span><span class="p">,</span> <span class="s1">&#39;duration&#39;</span><span class="p">}</span>
+
+<div class="viewcode-block" id="SparseRunVariable.__init__">
+<a class="viewcode-back" href="../../../generated/bids.variables.SparseRunVariable.html#bids.variables.SparseRunVariable.__init__">[docs]</a>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">run_info</span><span class="p">,</span> <span class="n">source</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">run_info</span><span class="p">,</span> <span class="s1">&#39;duration&#39;</span><span class="p">):</span>
+            <span class="n">run_info</span> <span class="o">=</span> <span class="p">[</span><span class="n">run_info</span><span class="p">]</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">run_info</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;We expect a list of run_info, got </span><span class="si">%s</span><span class="s2">&quot;</span>
+                            <span class="o">%</span> <span class="nb">repr</span><span class="p">(</span><span class="n">run_info</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">run_info</span> <span class="o">=</span> <span class="n">run_info</span>
+        <span class="k">for</span> <span class="n">sc</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_property_columns</span><span class="p">:</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sc</span><span class="p">,</span> <span class="n">data</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">sc</span><span class="p">)</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">SparseRunVariable</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">source</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+
+    <span class="k">def</span> <span class="nf">get_duration</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the total duration of the Variable&#39;s run(s). &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">sum</span><span class="p">([</span><span class="n">r</span><span class="o">.</span><span class="n">duration</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">run_info</span><span class="p">])</span>
+
+    <span class="k">def</span> <span class="nf">to_dense</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sampling_rate</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Convert the current sparse column to a dense representation.</span>
+
+<span class="sd">        If sampling_rate is not provided, the largest interval able to</span>
+<span class="sd">        faithfully represent all onsets and durations will be determined.</span>
+<span class="sd">        The sampling rate is the reciprocal of that interval.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        sampling_rate : float or None</span>
+<span class="sd">            Sampling rate (in Hz) to use when constructing the DenseRunVariable</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        DenseRunVariable</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Cast onsets and durations to milliseconds</span>
+        <span class="n">onsets</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">onset</span> <span class="o">*</span> <span class="mi">1000</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+        <span class="n">durations</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">duration</span> <span class="o">*</span> <span class="mi">1000</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+        <span class="n">gcd</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">gcd</span><span class="o">.</span><span class="n">reduce</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">r_</span><span class="p">[</span><span class="n">onsets</span><span class="p">,</span> <span class="n">durations</span><span class="p">])</span>
+        <span class="n">bin_sr</span> <span class="o">=</span> <span class="mf">1000.</span> <span class="o">/</span> <span class="n">gcd</span>
+
+        <span class="c1"># never use a computed SR smaller than the requested one, because</span>
+        <span class="c1"># when events are widely-spaced and timing is very regular, this can</span>
+        <span class="c1"># result in a nasty loss of precision in the resampling step.</span>
+        <span class="k">if</span> <span class="n">sampling_rate</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">bin_sr</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">bin_sr</span><span class="p">,</span> <span class="n">sampling_rate</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">sampling_rate</span> <span class="o">=</span> <span class="n">bin_sr</span>
+
+        <span class="n">duration</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">bin_sr</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_duration</span><span class="p">()))</span>
+        <span class="n">ts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">duration</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+
+        <span class="n">onsets</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">onset</span> <span class="o">*</span> <span class="n">bin_sr</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+        <span class="n">durations</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">duration</span> <span class="o">*</span> <span class="n">bin_sr</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+
+        <span class="n">run_i</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">last_ind</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">values</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">onsets</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">last_ind</span><span class="p">:</span>
+                <span class="n">start</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">run_info</span><span class="p">[</span><span class="n">run_i</span><span class="p">]</span><span class="o">.</span><span class="n">duration</span> <span class="o">*</span> <span class="n">bin_sr</span>
+                <span class="n">run_i</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="n">_onset</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">start</span> <span class="o">+</span> <span class="n">onsets</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+            <span class="n">_offset</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">_onset</span> <span class="o">+</span> <span class="n">durations</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+            <span class="k">if</span> <span class="n">_onset</span> <span class="o">&gt;=</span> <span class="n">duration</span><span class="p">:</span>
+                <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;The onset time of a variable seems to exceed &quot;</span>
+                              <span class="s2">&quot;the runs duration, hence runs are incremented &quot;</span>
+                              <span class="s2">&quot;by one internally.&quot;</span><span class="p">)</span>
+            <span class="n">ts</span><span class="p">[</span><span class="n">_onset</span><span class="p">:</span><span class="n">_offset</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
+            <span class="n">last_ind</span> <span class="o">=</span> <span class="n">onsets</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">bin_sr</span> <span class="o">!=</span> <span class="n">sampling_rate</span><span class="p">:</span>
+            <span class="c1"># Resample the time series to the requested sampling rate</span>
+            <span class="n">num</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">duration</span> <span class="o">*</span> <span class="n">sampling_rate</span> <span class="o">/</span> <span class="n">bin_sr</span><span class="p">))</span>
+            <span class="n">ts</span> <span class="o">=</span> <span class="n">_resample</span><span class="p">(</span><span class="n">ts</span><span class="p">,</span> <span class="n">sampling_rate</span><span class="p">,</span> <span class="n">bin_sr</span><span class="p">,</span> <span class="n">num</span><span class="p">)</span>
+
+        <span class="n">run_info</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">run_info</span><span class="p">)</span>
+        <span class="n">dense_var</span> <span class="o">=</span> <span class="n">DenseRunVariable</span><span class="p">(</span>
+            <span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+            <span class="n">values</span><span class="o">=</span><span class="n">ts</span><span class="p">,</span>
+            <span class="n">run_info</span><span class="o">=</span><span class="n">run_info</span><span class="p">,</span>
+            <span class="n">source</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">source</span><span class="p">,</span>
+            <span class="n">sampling_rate</span><span class="o">=</span><span class="n">sampling_rate</span><span class="p">)</span>
+
+
+        <span class="k">return</span> <span class="n">dense_var</span>
+
+    <span class="k">def</span> <span class="nf">_extract_entities</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># Get all entities common to all runs. The super method already does</span>
+        <span class="c1"># this for entities that show up in filenames, so we just add the</span>
+        <span class="c1"># ones that show up in the RunInfo tuples, as those include metadata.</span>
+        <span class="n">ent_items</span> <span class="o">=</span> <span class="p">[</span><span class="n">run</span><span class="o">.</span><span class="n">entities</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">for</span> <span class="n">run</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">run_info</span><span class="p">]</span>
+        <span class="n">entities</span> <span class="o">=</span> <span class="n">reduce</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">x</span> <span class="o">&amp;</span> <span class="n">y</span><span class="p">,</span> <span class="n">ent_items</span><span class="p">,</span> <span class="n">ent_items</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">base_ents</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_extract_entities</span><span class="p">()</span>
+        <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="n">entities</span><span class="p">,</span> <span class="o">**</span><span class="n">base_ents</span><span class="p">)</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">_merge</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">variables</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">run_info</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">chain</span><span class="p">(</span><span class="o">*</span><span class="p">[</span><span class="n">v</span><span class="o">.</span><span class="n">run_info</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">variables</span><span class="p">]))</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">SparseRunVariable</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">_merge</span><span class="p">(</span><span class="n">variables</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span>
+                                                    <span class="n">run_info</span><span class="o">=</span><span class="n">run_info</span><span class="p">,</span>
+                                                    <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="DenseRunVariable">
+<a class="viewcode-back" href="../../../generated/bids.variables.DenseRunVariable.html#bids.variables.DenseRunVariable">[docs]</a>
+<span class="k">class</span> <span class="nc">DenseRunVariable</span><span class="p">(</span><span class="n">BIDSVariable</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;A dense representation of a single column.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    name : :obj:`str`</span>
+<span class="sd">        The name of the column.</span>
+<span class="sd">    values : :obj:`numpy.ndarray`</span>
+<span class="sd">        The values/amplitudes to store.</span>
+<span class="sd">    run_info : :obj:`list`</span>
+<span class="sd">        A list of RunInfo objects carrying information about all runs</span>
+<span class="sd">        represented in the Variable.</span>
+<span class="sd">    source : {&#39;events&#39;, &#39;physio&#39;, &#39;stim&#39;, &#39;regressors&#39;, &#39;scans&#39;, &#39;sessions&#39;, &#39;participants&#39;, &#39;beh&#39;}</span>
+<span class="sd">        The type of BIDS variable file the data were extracted from.</span>
+<span class="sd">    sampling_rate : :obj:`float`</span>
+<span class="sd">        Mandatory sampling rate (in Hz) to use. Must match the sampling rate used</span>
+<span class="sd">        to generate the values.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="DenseRunVariable.__init__">
+<a class="viewcode-back" href="../../../generated/bids.variables.DenseRunVariable.html#bids.variables.DenseRunVariable.__init__">[docs]</a>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">values</span><span class="p">,</span> <span class="n">run_info</span><span class="p">,</span> <span class="n">source</span><span class="p">,</span> <span class="n">sampling_rate</span><span class="p">):</span>
+
+        <span class="n">values</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">values</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">sampling_rate</span><span class="p">,</span> <span class="p">(</span><span class="nb">float</span><span class="p">,</span> <span class="nb">int</span><span class="p">)):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;sampling_rate must be a float or integer, not </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="nb">type</span><span class="p">(</span><span class="n">sampling_rate</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">run_info</span><span class="p">,</span> <span class="s1">&#39;duration&#39;</span><span class="p">):</span>
+            <span class="n">run_info</span> <span class="o">=</span> <span class="p">[</span><span class="n">run_info</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">run_info</span> <span class="o">=</span> <span class="n">run_info</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sampling_rate</span> <span class="o">=</span> <span class="n">sampling_rate</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">index</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_build_entity_index</span><span class="p">(</span><span class="n">run_info</span><span class="p">,</span> <span class="n">sampling_rate</span><span class="p">)</span>
+
+        <span class="nb">super</span><span class="p">(</span><span class="n">DenseRunVariable</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">values</span><span class="p">,</span> <span class="n">source</span><span class="p">)</span></div>
+
+
+    <span class="k">def</span> <span class="nf">split</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">grouper</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Split the current DenseRunVariable into multiple columns.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        grouper : :obj:`pandas.DataFrame`</span>
+<span class="sd">            Binary DF specifying the design matrix to use for splitting. Number</span>
+<span class="sd">            of rows must match current ``DenseRunVariable``; a new ``DenseRunVariable``</span>
+<span class="sd">            will be generated for each column in the grouper.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        A list of DenseRunVariables, one per unique value in the grouper.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">values</span> <span class="o">=</span> <span class="n">grouper</span><span class="o">.</span><span class="n">values</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">values</span>
+        <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="n">grouper</span><span class="o">.</span><span class="n">columns</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">DenseRunVariable</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">.</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">name</span><span class="p">),</span>
+                                 <span class="n">values</span><span class="o">=</span><span class="n">df</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">,</span>
+                                 <span class="n">run_info</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">run_info</span><span class="p">,</span>
+                                 <span class="n">source</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">source</span><span class="p">,</span>
+                                 <span class="n">sampling_rate</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">sampling_rate</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">)]</span>
+
+    <span class="k">def</span> <span class="nf">_build_entity_index</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">run_info</span><span class="p">,</span> <span class="n">sampling_rate</span><span class="p">,</span> <span class="n">match_vol</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Build the entity index from run information. &quot;&quot;&quot;</span>
+        <span class="n">interval</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="mf">1000.</span> <span class="o">/</span> <span class="n">sampling_rate</span><span class="p">))</span>
+
+        <span class="k">def</span> <span class="nf">_create_index</span><span class="p">(</span><span class="n">all_keys</span><span class="p">,</span> <span class="n">all_reps</span><span class="p">,</span> <span class="n">all_ents</span><span class="p">):</span>
+            <span class="n">all_keys</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">all_keys</span><span class="p">))</span>
+            <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">sum</span><span class="p">(</span><span class="n">all_reps</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">all_keys</span><span class="p">))),</span> <span class="n">columns</span><span class="o">=</span><span class="n">all_keys</span><span class="p">)</span>
+
+            <span class="n">prev_ix</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">reps</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">all_reps</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">all_ents</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                    <span class="n">col_ix</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">all_keys</span> <span class="o">==</span> <span class="n">k</span><span class="p">)[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+                    <span class="n">df</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">prev_ix</span><span class="p">:</span><span class="n">prev_ix</span> <span class="o">+</span> <span class="n">reps</span><span class="p">,</span> <span class="n">col_ix</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
+                <span class="n">prev_ix</span> <span class="o">=</span> <span class="n">reps</span>
+
+            <span class="k">return</span> <span class="n">df</span>
+
+        <span class="n">all_reps</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">all_ents</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">all_keys</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">run</span> <span class="ow">in</span> <span class="n">run_info</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">match_vol</span><span class="p">:</span>
+                <span class="c1"># If TR, fix reps to n_vols to ensure match</span>
+                <span class="n">all_reps</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">run</span><span class="o">.</span><span class="n">n_vols</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">all_reps</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">run</span><span class="o">.</span><span class="n">duration</span> <span class="o">*</span> <span class="n">sampling_rate</span><span class="p">)))</span>
+
+            <span class="n">all_ents</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">run</span><span class="o">.</span><span class="n">entities</span><span class="p">)</span>
+            <span class="n">all_keys</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">run</span><span class="o">.</span><span class="n">entities</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">timestamps</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">date_range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">periods</span><span class="o">=</span><span class="nb">sum</span><span class="p">(</span><span class="n">all_reps</span><span class="p">),</span> <span class="n">freq</span><span class="o">=</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">ms&#39;</span> <span class="o">%</span> <span class="n">interval</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">_create_index</span><span class="p">(</span><span class="n">all_keys</span><span class="p">,</span> <span class="n">all_reps</span><span class="p">,</span> <span class="n">all_ents</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">resample</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sampling_rate</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">kind</span><span class="o">=</span><span class="s1">&#39;linear&#39;</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Resample the Variable to the specified sampling rate.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        sampling_rate : :obj:`int`, :obj:`float`</span>
+<span class="sd">            Target sampling rate (in Hz).</span>
+<span class="sd">        inplace : :obj:`bool`, optional</span>
+<span class="sd">            If True, performs resampling in-place. If False, returns a resampled</span>
+<span class="sd">            copy of the current Variable. Default is False.</span>
+<span class="sd">        kind : {&#39;linear&#39;, &#39;nearest&#39;, &#39;zero&#39;, &#39;slinear&#39;, &#39;quadratic&#39;, &#39;cubic&#39;}</span>
+<span class="sd">            Argument to pass to :obj:`scipy.interpolate.interp1d`; indicates</span>
+<span class="sd">            the kind of interpolation approach to use. See interp1d docs for</span>
+<span class="sd">            valid values. Default is &#39;linear&#39;.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">inplace</span><span class="p">:</span>
+            <span class="n">var</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+            <span class="n">var</span><span class="o">.</span><span class="n">resample</span><span class="p">(</span><span class="n">sampling_rate</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="n">kind</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">var</span>
+
+        <span class="n">match_vol</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">if</span> <span class="n">sampling_rate</span> <span class="o">==</span> <span class="s1">&#39;TR&#39;</span><span class="p">:</span>
+            <span class="n">match_vol</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="n">sampling_rate</span> <span class="o">=</span> <span class="mf">1.</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">run_info</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">tr</span>
+
+        <span class="k">if</span> <span class="n">sampling_rate</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">sampling_rate</span><span class="p">:</span>
+            <span class="k">return</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">index</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_build_entity_index</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">run_info</span><span class="p">,</span> <span class="n">sampling_rate</span><span class="p">,</span> <span class="n">match_vol</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">values</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+            <span class="n">_resample</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">ravel</span><span class="p">(),</span>
+                <span class="n">sampling_rate</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">sampling_rate</span><span class="p">,</span>
+                <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">index</span><span class="p">),</span>
+                <span class="n">kind</span><span class="o">=</span><span class="n">kind</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">values</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">index</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">sampling_rate</span> <span class="o">=</span> <span class="n">sampling_rate</span>
+
+    <span class="k">def</span> <span class="nf">to_df</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">condition</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">entities</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">timing</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">sampling_rate</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Convert to a DataFrame, with columns for name and entities.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        condition : :obj:`bool`</span>
+<span class="sd">            If True, adds a column for condition name, and names the amplitude</span>
+<span class="sd">            column &#39;amplitude&#39;. If False, returns just onset, duration, and</span>
+<span class="sd">            amplitude, and gives the amplitude column the current column name.</span>
+<span class="sd">        entities : :obj:`bool`</span>
+<span class="sd">            If True, adds extra columns for all entities.</span>
+<span class="sd">        timing : :obj:`bool`</span>
+<span class="sd">            If True, includes onset and duration columns (even though events are</span>
+<span class="sd">            sampled uniformly). If False, omits them.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">sampling_rate</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">sampling_rate</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">resample</span><span class="p">(</span><span class="n">sampling_rate</span><span class="p">)</span><span class="o">.</span><span class="n">to_df</span><span class="p">(</span><span class="n">condition</span><span class="p">,</span> <span class="n">entities</span><span class="p">)</span>
+
+        <span class="n">df</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">DenseRunVariable</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">to_df</span><span class="p">(</span><span class="n">condition</span><span class="p">,</span> <span class="n">entities</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">timing</span><span class="p">:</span>
+            <span class="n">df</span><span class="p">[</span><span class="s1">&#39;onset&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">timestamps</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span> <span class="o">/</span> <span class="mf">1e+9</span>
+            <span class="n">df</span><span class="p">[</span><span class="s1">&#39;duration&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">sampling_rate</span>
+
+        <span class="k">return</span> <span class="n">df</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">_merge</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">variables</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">sampling_rate</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">sampling_rate</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+            <span class="n">rates</span> <span class="o">=</span> <span class="nb">set</span><span class="p">([</span><span class="n">v</span><span class="o">.</span><span class="n">sampling_rate</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">variables</span><span class="p">])</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">rates</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">sampling_rate</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">rates</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">sampling_rate</span> <span class="o">==</span> <span class="s1">&#39;auto&#39;</span><span class="p">:</span>
+                    <span class="n">sampling_rate</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">rates</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Cannot merge DenseRunVariables (</span><span class="si">%s</span><span class="s2">) with different&quot;</span>
+                           <span class="s2">&quot; sampling rates (</span><span class="si">%s</span><span class="s2">). Either specify an integer &quot;</span>
+                           <span class="s2">&quot;sampling rate to use for all variables, or set &quot;</span>
+                           <span class="s2">&quot;sampling_rate=&#39;highest&#39; to use the highest sampling&quot;</span>
+                           <span class="s2">&quot; rate found.&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">rates</span><span class="p">))</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+        <span class="n">variables</span> <span class="o">=</span> <span class="p">[</span><span class="n">v</span><span class="o">.</span><span class="n">resample</span><span class="p">(</span><span class="n">sampling_rate</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">variables</span><span class="p">]</span>
+        <span class="n">values</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">v</span><span class="o">.</span><span class="n">values</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">variables</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">sort</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">run_info</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">chain</span><span class="p">(</span><span class="o">*</span><span class="p">[</span><span class="n">v</span><span class="o">.</span><span class="n">run_info</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">variables</span><span class="p">]))</span>
+        <span class="n">source</span> <span class="o">=</span> <span class="n">variables</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">source</span>
+        <span class="k">return</span> <span class="n">DenseRunVariable</span><span class="p">(</span>
+            <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
+            <span class="n">values</span><span class="o">=</span><span class="n">values</span><span class="p">,</span>
+            <span class="n">run_info</span><span class="o">=</span><span class="n">run_info</span><span class="p">,</span>
+            <span class="n">source</span><span class="o">=</span><span class="n">source</span><span class="p">,</span>
+            <span class="n">sampling_rate</span><span class="o">=</span><span class="n">sampling_rate</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="merge_variables">
+<a class="viewcode-back" href="../../../generated/bids.variables.merge_variables.html#bids.variables.merge_variables">[docs]</a>
+<span class="k">def</span> <span class="nf">merge_variables</span><span class="p">(</span><span class="n">variables</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Merge/concatenate a list of variables along the row axis.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    variables : :obj:`list`</span>
+<span class="sd">        A list of Variables to merge.</span>
+<span class="sd">    kwargs</span>
+<span class="sd">        Optional keyword arguments to pass onto the class-specific merge() call.</span>
+<span class="sd">        Possible args:</span>
+<span class="sd">            - sampling_rate (int, str): The sampling rate to use if resampling</span>
+<span class="sd">              of DenseRunVariables is necessary for harmonization. If</span>
+<span class="sd">              &#39;highest&#39;, the highest sampling rate found will be used. This</span>
+<span class="sd">              argument is only used when passing DenseRunVariables in the</span>
+<span class="sd">              variables list.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    A single BIDSVariable of the same class as the input variables.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    - Currently, this function only support homogeneously-typed lists. In</span>
+<span class="sd">      future, it may be extended to support implicit conversion.</span>
+<span class="sd">    - Variables in the list must all share the same name (i.e., it is not</span>
+<span class="sd">      possible to merge two different variables into a single variable.)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">classes</span> <span class="o">=</span> <span class="nb">set</span><span class="p">([</span><span class="n">v</span><span class="o">.</span><span class="vm">__class__</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">variables</span><span class="p">])</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">classes</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Variables of different classes cannot be merged. &quot;</span>
+                         <span class="s2">&quot;Variables passed are of classes: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">classes</span><span class="p">)</span>
+
+    <span class="n">sources</span> <span class="o">=</span> <span class="nb">set</span><span class="p">([</span><span class="n">v</span><span class="o">.</span><span class="n">source</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">variables</span><span class="p">])</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">sources</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Variables extracted from different types of files &quot;</span>
+                         <span class="s2">&quot;cannot be merged. Sources found: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">sources</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="n">classes</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">variables</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+
+
+<span class="k">def</span> <span class="nf">_resample</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">new_sr</span><span class="p">,</span> <span class="n">old_sr</span><span class="p">,</span> <span class="n">new_num</span><span class="p">,</span> <span class="n">kind</span><span class="o">=</span><span class="s1">&#39;linear&#39;</span><span class="p">):</span>
+    <span class="n">n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">new_sr</span> <span class="o">&lt;</span> <span class="n">old_sr</span><span class="p">:</span>
+        <span class="c1"># Downsampling, so filter the signal</span>
+        <span class="kn">from</span> <span class="nn">scipy.signal</span> <span class="kn">import</span> <span class="n">butter</span><span class="p">,</span> <span class="n">filtfilt</span>
+        <span class="c1"># cutoff = new Nyqist / old Nyquist</span>
+        <span class="n">b</span><span class="p">,</span> <span class="n">a</span> <span class="o">=</span> <span class="n">butter</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="p">(</span><span class="n">new_sr</span> <span class="o">/</span> <span class="mf">2.0</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">old_sr</span> <span class="o">/</span> <span class="mf">2.0</span><span class="p">),</span>
+                    <span class="n">btype</span><span class="o">=</span><span class="s1">&#39;low&#39;</span><span class="p">,</span> <span class="n">output</span><span class="o">=</span><span class="s1">&#39;ba&#39;</span><span class="p">,</span> <span class="n">analog</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="n">filtfilt</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+
+    <span class="kn">from</span> <span class="nn">scipy.interpolate</span> <span class="kn">import</span> <span class="n">interp1d</span>
+    <span class="n">f</span> <span class="o">=</span> <span class="n">interp1d</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">kind</span><span class="o">=</span><span class="n">kind</span><span class="p">)</span>
+    <span class="n">x_new</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">n</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">num</span><span class="o">=</span><span class="n">new_num</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">f</span><span class="p">(</span><span class="n">x_new</span><span class="p">)</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2015-2023, Developers of PyBIDS.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

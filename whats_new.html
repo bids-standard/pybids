@@ -1,0 +1,919 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Changelog &mdash; PyBIDS 0.16.4 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=fa44fd50" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="_static/mystnb.4510f1fc1dee50b3e5859aac5469c37c29e427902b24a333a5f9fcb2f0b3ac41.css" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="_static/documentation_options.js?v=81998473"></script>
+        <script src="_static/doctools.js?v=888ff710"></script>
+        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="bids.utils.make_bidsfile" href="generated/bids.utils.make_bidsfile.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            PyBIDS
+          </a>
+              <div class="version">
+                0.16.4
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="user_guide.html">User guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="examples/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">API Reference</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Changelog</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#version-0-16-4-november-30-2023">Version 0.16.4 (November 30, 2023)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#version-0-16-3-august-16-2023">Version 0.16.3 (August 16, 2023)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#version-0-16-2-august-11-2023">Version 0.16.2 (August 11, 2023)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#version-0-16-1-may-01-2023">Version 0.16.1 (May 01, 2023)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#version-0-16-0-april-26-2023">Version 0.16.0 (April 26, 2023)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#version-0-15-6-february-28-2023">Version 0.15.6 (February 28, 2023)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#version-0-15-5-november-07-2022">Version 0.15.5 (November 07, 2022)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#version-0-15-4-october-08-2022">Version 0.15.4 (October 08, 2022)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#version-0-15-3-september-12-2022">Version 0.15.3 (September 12, 2022)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#version-0-15-2-july-25-2022">Version 0.15.2 (July 25, 2022)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#version-0-15-1-april-04-2022">Version 0.15.1 (April 04, 2022)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#version-0-15-0-march-28-2022">Version 0.15.0 (March 28, 2022)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#version-0-14-1-march-29-2022">Version 0.14.1 (March 29, 2022)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#version-0-14-0-november-09-2021">Version 0.14.0 (November 09, 2021)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#version-0-13-2-august-20-2021">Version 0.13.2 (August 20, 2021)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#version-0-13-1-may-21-2021">Version 0.13.1 (May 21, 2021)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#version-0-13-april-14-2021">Version 0.13 (April 14, 2021)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#version-0-12-4-november-10-2020">Version 0.12.4 (November 10, 2020)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#version-0-12-3-october-23-2020">Version 0.12.3 (October 23, 2020)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#version-0-12-2-october-09-2020">Version 0.12.2 (October 09, 2020)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#version-0-12-1-september-09-2020">Version 0.12.1 (September 09, 2020)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#version-0-12-0-august-04-2020">Version 0.12.0 (August 04, 2020)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#version-0-11-1-july-02-2020">Version 0.11.1 (July 02, 2020)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#version-0-11-0-june-29-2020">Version 0.11.0 (June 29, 2020)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#version-0-10-2-february-26-2020">Version 0.10.2 (February 26, 2020)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#version-0-10-1-february-10-2020">Version 0.10.1 (February 10, 2020)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#version-0-10-0-december-03-2019">Version 0.10.0 (December 03, 2019)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#version-0-9-5-november-6-2019">Version 0.9.5 (November 6, 2019)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#version-0-9-4-september-20-2019">Version 0.9.4 (September 20, 2019)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#version-0-9-3-august-7-2019">Version 0.9.3 (August 7, 2019)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#version-0-9-2-july-12-2019">Version 0.9.2 (July 12, 2019)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#version-0-9-1-may-24-2019">Version 0.9.1 (May 24, 2019)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#version-0-9-0-may-21-2019">Version 0.9.0 (May 21, 2019)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#version-0-8-0-february-15-2019">Version 0.8.0 (February 15, 2019)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#version-0-7-1-february-01-2019">Version 0.7.1 (February 01, 2019)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#version-0-7-0-january-10-2019">Version 0.7.0 (January 10, 2019)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#version-0-6-5-august-21-2018">Version 0.6.5 (August 21, 2018)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#version-0-5-1-march-9-2018">Version 0.5.1 (March 9, 2018)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#version-0-5-0-march-6-2018">Version 0.5.0 (March 6, 2018)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#version-0-4-2-november-16-2017">Version 0.4.2 (November 16, 2017)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#version-0-4-1-november-3-2017">Version 0.4.1 (November 3, 2017)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#version-0-4-0-november-1-2017">Version 0.4.0 (November 1, 2017)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#version-0-3-0-august-11-2017">Version 0.3.0 (August 11, 2017)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#version-0-2-1-june-8-2017">Version 0.2.1 (June 8, 2017)</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">PyBIDS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Changelog</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/whats_new.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="changelog">
+<h1>Changelog<a class="headerlink" href="#changelog" title="Link to this heading">¶</a></h1>
+<section id="version-0-16-4-november-30-2023">
+<h2>Version 0.16.4 (November 30, 2023)<a class="headerlink" href="#version-0-16-4-november-30-2023" title="Link to this heading">¶</a></h2>
+<p>Bug-fix release in the 0.16.x series.</p>
+<p>This release resolves a bug likely introduced in 0.9.0
+(when PyBIDS started using SQL),
+in which boolean metadata fields with values of <code class="docutils literal notranslate"><span class="pre">False</span></code> were read in as
+<code class="docutils literal notranslate"><span class="pre">True</span></code>.</p>
+<ul class="simple">
+<li><p>FIX: Ensure values of boolean metadata fields are preserved (#1034)</p></li>
+<li><p>FIX: update config for PET tracer entity (#1018)</p></li>
+<li><p>ENH: Clearer BIDSValidation error message (#1023)</p></li>
+<li><p>STY: pacify codespell (#1029)</p></li>
+<li><p>CI: Build(deps): Bump bids-examples from <cite>064db11</cite> to <cite>b6e5234</cite> (#1031)</p></li>
+<li><p>CI: Build(deps): Bump bids-examples from <cite>d039879</cite> to <cite>064db11</cite> (#1028)</p></li>
+<li><p>CI: Build(deps): Bump bids-examples from <cite>bfcc5c6</cite> to <cite>d039879</cite> (#1027)</p></li>
+<li><p>CI: Bump bids-examples from <cite>502c917</cite> to <cite>bfcc5c6</cite> (#1026)</p></li>
+<li><p>CI: Bump bids-examples from <cite>1c30c6e</cite> to <cite>502c917</cite> (#1025)</p></li>
+<li><p>CI: Bump bids-examples from <cite>e857597</cite> to <cite>1c30c6e</cite> (#1021)</p></li>
+<li><p>CI: Bump bids-examples from <cite>c557d1f</cite> to <cite>e857597</cite> (#1019)</p></li>
+<li><p>CI: Bump bids-examples from <cite>75968b9</cite> to <cite>c557d1f</cite> (#1011)</p></li>
+<li><p>CI: Bump actions/checkout from 3 to 4 (#1024)</p></li>
+</ul>
+</section>
+<section id="version-0-16-3-august-16-2023">
+<h2>Version 0.16.3 (August 16, 2023)<a class="headerlink" href="#version-0-16-3-august-16-2023" title="Link to this heading">¶</a></h2>
+<p>Bug-fix release in the 0.16.x series.</p>
+<p>This release resolves a regression introduced in 0.16.2 when JSON sidecar files
+contain <code class="docutils literal notranslate"><span class="pre">null</span></code> values.</p>
+<ul class="simple">
+<li><p>FIX: Drop JSON sidecar fields with null values during metadata indexing (#1016)</p></li>
+</ul>
+</section>
+<section id="version-0-16-2-august-11-2023">
+<h2>Version 0.16.2 (August 11, 2023)<a class="headerlink" href="#version-0-16-2-august-11-2023" title="Link to this heading">¶</a></h2>
+<p>Bug-fix and performance release in the 0.16.x series.
+Notably, indexing is now significantly faster (2-2.5x).</p>
+<ul class="simple">
+<li><p>ENH: Speed up indexing by bulk committing to database (#1013)</p></li>
+<li><p>Include indexer in add_derivatives call (#1009)</p></li>
+<li><p>Bump bids-examples from <cite>8550641</cite> to <cite>75968b9</cite> (#1008)</p></li>
+<li><p>Bump bids-examples from <cite>e96b702</cite> to <cite>8550641</cite> (#1007)</p></li>
+<li><p>Bump bids-examples from <cite>d8455af</cite> to <cite>e96b702</cite> (#1005)</p></li>
+<li><p>Bump bids-examples from <cite>bc36231</cite> to <cite>d8455af</cite>  (#1003)</p></li>
+<li><p>CI: Use OIDC publishing instead of tokens  (#1001)</p></li>
+</ul>
+</section>
+<section id="version-0-16-1-may-01-2023">
+<h2>Version 0.16.1 (May 01, 2023)<a class="headerlink" href="#version-0-16-1-may-01-2023" title="Link to this heading">¶</a></h2>
+<p>Bug-fix release in the 0.16.x series.</p>
+<ul class="simple">
+<li><p>FIX: Improve parsing of suffix/extension in non-BIDS files (#997)</p></li>
+<li><p>FIX: Support use of Query enums in filter lists (#994)</p></li>
+<li><p>MNT: Clean up imports in documentation scripts (#980)</p></li>
+<li><p>MNT: update zenodo  (#995)</p></li>
+<li><p>CI: Update Python version for doc/sdist/wheel tests (#996)</p></li>
+</ul>
+</section>
+<section id="version-0-16-0-april-26-2023">
+<h2>Version 0.16.0 (April 26, 2023)<a class="headerlink" href="#version-0-16-0-april-26-2023" title="Link to this heading">¶</a></h2>
+<p>New feature release in the 0.16.x series.</p>
+<ul class="simple">
+<li><p>FIX: Adapt to SQLAlchemy 1.4+ (#985)</p></li>
+<li><p>FIX: Fill na with zero for VIF (#976)</p></li>
+<li><p>ENH: Only warn if missing values not explicitly set (#977)</p></li>
+<li><p>ENH: Create run reports of whole graph / create HTML reports (#918)</p></li>
+<li><p>ENH: Speed up Sparse to Dense BIDSVariable conversion (#969)</p></li>
+<li><p>ENH: Update config to support motion and nirs modalities (#965)</p></li>
+<li><p>REF: Add derivative subdatasets in a less ad hoc fashion (#954)</p></li>
+<li><p>MNT: Update minimum dependencies, add CI job to test them (#987)</p></li>
+<li><p>MNT: Drop jinja2/markupsafe constraints (#986)</p></li>
+<li><p>MNT: Fix ruff issue E712 (#981)</p></li>
+<li><p>MNT: A few Python3 updates (#971)</p></li>
+<li><p>MNT: Drop Python 3.7 EOL (#974)</p></li>
+<li><p>MNT: Fix repeat-word typo (#968)</p></li>
+<li><p>MNT: Update vendored inflect to 5.6.2 (#961)</p></li>
+<li><p>MNT: Fix flake8 issues found by ruff (#955)</p></li>
+<li><p>MNT: Remove (large) unused PNG from doc directory (#962)</p></li>
+<li><p>MNT: <a class="reference external" href="http://">http://</a> → <a class="reference external" href="https://">https://</a> (#960)</p></li>
+<li><p>MNT: Update git submodules (#964)</p></li>
+<li><p>CI: Drop codecov PyPI package and appveyor config (#979)</p></li>
+<li><p>CI: Add Python 3.11 (#975)</p></li>
+<li><p>CI: Replace custom update_submodules action with dependabot action (#967)</p></li>
+<li><p>CI: fix errors caused by changes in examples (#963)</p></li>
+<li><p>CI: Update parameters to gh-action-pypi-publish (#957)</p></li>
+</ul>
+</section>
+<section id="version-0-15-6-february-28-2023">
+<h2>Version 0.15.6 (February 28, 2023)<a class="headerlink" href="#version-0-15-6-february-28-2023" title="Link to this heading">¶</a></h2>
+<p>Bug-fix release in 0.15.x series.</p>
+<ul class="simple">
+<li><p>FIX: Exclude non-Hashables from set in .get(return_type=’id’) (#948)</p></li>
+<li><p>FIX: Broken pattern matching (#936)</p></li>
+<li><p>FIX: Coerce oversampling parameter in convolution to int  (#929)</p></li>
+<li><p>FIX: Allowing custom BIDS configuration files for derivative datasets (#922)</p></li>
+<li><p>FIX: Address change in default pandas grouping behavior (#917)</p></li>
+<li><p>ENH: Speed up BIDSLayout.get(return_type=’id’, …) (#942)</p></li>
+<li><p>ENH: Update default anat filename patterns in config  (#933)</p></li>
+<li><p>DOC: Make clear how to ignore folders (#945)</p></li>
+<li><p>DOC: Fix tutorial link in README (#944)</p></li>
+<li><p>DOC: Mention conda installation in README  (#928)</p></li>
+<li><p>MNT: Update git submodules (#946 + #943 + #932)</p></li>
+<li><p>MNT: Move package metadata to pyproject.toml, unvendor versioneer (#907)</p></li>
+<li><p>MNT: Bump formulaic max version constraint to include 0.5.x (#916)</p></li>
+</ul>
+</section>
+<section id="version-0-15-5-november-07-2022">
+<h2>Version 0.15.5 (November 07, 2022)<a class="headerlink" href="#version-0-15-5-november-07-2022" title="Link to this heading">¶</a></h2>
+<p>Bug-fix release in 0.15.x series.</p>
+<ul class="simple">
+<li><p>FIX: Use kwargs for DataFrame.pivot() (#913)</p></li>
+<li><p>ENH: Add transformation history to <code class="docutils literal notranslate"><span class="pre">BIDSStatsModelsNodeOutput</span></code> (#905)</p></li>
+<li><p>ENH: Update examples, add to sphinx, and convert to .md (#908)</p></li>
+<li><p>ENH: More helpful __repr__ in modeling (#906)</p></li>
+<li><p>MNT: Update git submodules (#911)</p></li>
+<li><p>MNT: Bump peter-evans/create-pull-request from 3 to 4 (#904)</p></li>
+<li><p>CI: Automatically update GitHub Actions in the future (#903)</p></li>
+</ul>
+</section>
+<section id="version-0-15-4-october-08-2022">
+<h2>Version 0.15.4 (October 08, 2022)<a class="headerlink" href="#version-0-15-4-october-08-2022" title="Link to this heading">¶</a></h2>
+<p>Bug-fix release in 0.15.x series.</p>
+<ul class="simple">
+<li><p>FIX: Use ‘contrasts’ in DummyContrasts, not ‘condition_list’ (#902)</p></li>
+<li><p>FIX: Transformations: sync_kwargs, for non-list arguments, listify by variable length (#901)</p></li>
+<li><p>CI: Update actions versions (#899)</p></li>
+</ul>
+</section>
+<section id="version-0-15-3-september-12-2022">
+<h2>Version 0.15.3 (September 12, 2022)<a class="headerlink" href="#version-0-15-3-september-12-2022" title="Link to this heading">¶</a></h2>
+<p>Bug-fix release in 0.15.x series.</p>
+<ul class="simple">
+<li><p>FIX: Test and update sync_kwargs class variable on transformations (#891)</p></li>
+<li><p>FIX: Filtering of DM columns (#892)</p></li>
+<li><p>ENH: Enable using participants.tsv, scans.tsv &amp; session.tsv values as grouping variables (#894)</p></li>
+<li><p>REF: Rename incoming single contrast column to intercept (#886)</p></li>
+<li><p>DOC: Update references to nistats with references to nilearn in docs (#882)</p></li>
+<li><p>TST: some sort of QA for derivatives’ default_path_patterns (#879)</p></li>
+<li><p>MNT: Update git submodules (#887)</p></li>
+<li><p>MNT: Codespell errors (#885)</p></li>
+<li><p>MNT: Update git submodules (#884)</p></li>
+<li><p>MNT: Update git submodules (#883)</p></li>
+<li><p>CI: Update actions versions (#897)</p></li>
+</ul>
+</section>
+<section id="version-0-15-2-july-25-2022">
+<h2>Version 0.15.2 (July 25, 2022)<a class="headerlink" href="#version-0-15-2-july-25-2022" title="Link to this heading">¶</a></h2>
+<p>Bug-fix release in 0.15.x series.</p>
+<ul class="simple">
+<li><p>FIX: Synchronize kwargs in transformations, e.g., in Assign (#836)</p></li>
+<li><p>FIX: Add HRF derivatives to variable collection when created (#838)</p></li>
+<li><p>FIX: Interpolate derivative pipeline name in error message (#847)</p></li>
+<li><p>FIX: Match only within relative path when indexer is validating (#859)</p></li>
+<li><p>FIX: Rename intercept in DummyContrast (#866)</p></li>
+<li><p>FIX: Add variables to correct Node in load_tsv_variables (#872)</p></li>
+<li><p>FIX: Repair variable IO so scans.tsv is found (#869)</p></li>
+<li><p>FIX: Restore automodel functionality (#853)</p></li>
+<li><p>FIX: Allow <code class="docutils literal notranslate"><span class="pre">pybids</span> <span class="pre">layout</span> <span class="pre">--derivatives</span></code> to be a boolean flag or accept a path (#848)</p></li>
+<li><p>ENH: Add default path patterns to derivatives.json (#605)</p></li>
+<li><p>ENH: Rename statsmodels contrasts if they cannot be uniquely identified downstream (#861)</p></li>
+<li><p>ENH: Make intercept-only first level models throw a NotImplementedError (#854)</p></li>
+<li><p>ENH: Update config to support microscopy, qMRI, PET, ASL (#840)</p></li>
+<li><p>TEST: Add bids-examples submodule and bids_examples pytest fixture (#842)</p></li>
+<li><p>TEST: Add tests for default path patterns (#846)</p></li>
+<li><p>TEST: Update bids-examples and remove expected failing tests (#845)</p></li>
+<li><p>MNT: Update git submodules (#874)</p></li>
+<li><p>MNT: Add workflow top automatically update submodule (#870)</p></li>
+<li><p>MNT: Remove deprecated no dot config (#841)</p></li>
+<li><p>CI: Upgrade several GitHub actions to v3 (#867)</p></li>
+<li><p>CI: Add cron jobs to avoid sneaky failures during low activity periods (#860)</p></li>
+</ul>
+</section>
+<section id="version-0-15-1-april-04-2022">
+<h2>Version 0.15.1 (April 04, 2022)<a class="headerlink" href="#version-0-15-1-april-04-2022" title="Link to this heading">¶</a></h2>
+<p>Bug-fix release in the 0.15.x series.</p>
+<ul class="simple">
+<li><p>RF/FIX: Decompose filter construction for special queries and lists (#826)</p></li>
+<li><p>ENH: Relax group_by rules, allowing any entity to be used (#829)</p></li>
+<li><p>MNT: Replace deprecated DataFrame.append call (#833)</p></li>
+<li><p>DOC: Fresh rerun of entire pybids_tutorial.ipynb (#832)</p></li>
+</ul>
+</section>
+<section id="version-0-15-0-march-28-2022">
+<h2>Version 0.15.0 (March 28, 2022)<a class="headerlink" href="#version-0-15-0-march-28-2022" title="Link to this heading">¶</a></h2>
+<p>New feature release in the 0.15.x series.</p>
+<p>Downstream tools should be aware of a potentially breaking, albeit
+long-demanded, change introduced in #819. Run indices are now stored
+so that the integers that come out retain any zero-padding that was
+found during parsing.</p>
+<p>This release also introduces the <code class="docutils literal notranslate"><span class="pre">bids.ext</span></code> namespace package that
+allows independent packages to install modules in this namespace.
+This is an infrastructural change that will allow some components to
+be separately managed and follow a different development pace.</p>
+<ul class="simple">
+<li><p>FIX: Allow grouping by run and session when entities are undefined (#822)</p></li>
+<li><p>FIX: Clarify exception message (#806)</p></li>
+<li><p>FIX: Catch UnicodeDecodeErrors along with JSONDecodeErrors for better reporting (#796)</p></li>
+<li><p>FIX: Accept paths/strings for layout configuration files (#799)</p></li>
+<li><p>FIX: Small typo: repeated word in docstring (#793)</p></li>
+<li><p>ENH: Retain zero-padding in run entities while preserving integer queries and comparisons (#819)</p></li>
+<li><p>ENH: Add bids.ext namespace package for subpackages (#820)</p></li>
+<li><p>ENH: Handle wildcards in model X (#810)</p></li>
+<li><p>ENH: Implement automatic detection of derivative data (#805)</p></li>
+<li><p>ENH: Add new <code class="docutils literal notranslate"><span class="pre">Query</span></code> for optional entities (#809)</p></li>
+<li><p>ENH: Add __main__ to allow <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">bids</span></code> to run CLI (#794)</p></li>
+<li><p>REF: Improve modularization of bids.reports (#617)</p></li>
+<li><p>DOC: Link from sphinx documentation to notebook tutorials. (#797)</p></li>
+<li><p>MNT: Test on Python 3.10, various CI updates (#824)</p></li>
+<li><p>MNT: Avoid jinja2 v3 until nbconvert handles breakages (#823)</p></li>
+</ul>
+</section>
+<section id="version-0-14-1-march-29-2022">
+<h2>Version 0.14.1 (March 29, 2022)<a class="headerlink" href="#version-0-14-1-march-29-2022" title="Link to this heading">¶</a></h2>
+<p>Bug-fix release in the 0.14.x series.</p>
+<ul class="simple">
+<li><p>RF/FIX: Decompose filter construction for special queries and lists (#826)</p></li>
+</ul>
+<p>Includes the following back-ports from 0.15.0:</p>
+<ul class="simple">
+<li><p>FIX: Clarify exception message (#806)</p></li>
+<li><p>FIX: Catch UnicodeDecodeErrors along with JSONDecodeErrors for better reporting (#796)</p></li>
+<li><p>FIX: Accept paths/strings for layout configuration files (#799)</p></li>
+<li><p>ENH: Add __main__ to allow <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">bids</span></code> to run CLI (#794)</p></li>
+</ul>
+</section>
+<section id="version-0-14-0-november-09-2021">
+<h2>Version 0.14.0 (November 09, 2021)<a class="headerlink" href="#version-0-14-0-november-09-2021" title="Link to this heading">¶</a></h2>
+<p>New feature release in the 0.14.x series.</p>
+<p>This release includes a significant refactor of BIDS Statistical Models,
+replacing the <code class="docutils literal notranslate"><span class="pre">bids.analysis</span></code> module with <code class="docutils literal notranslate"><span class="pre">bids.modeling</span></code>.</p>
+<p>Changes to <code class="docutils literal notranslate"><span class="pre">bids.layout</span></code> are minimal, and we do not anticipate API breakage.</p>
+<ul class="simple">
+<li><p>FIX: LGTM.com warning: Implicit string concatenation in a list (#785)</p></li>
+<li><p>FIX: Take the intersection of variables and Model.X,
+ignoring missing variables (usually contrasts) (#764)</p></li>
+<li><p>FIX: Associate “is_metadata” with Tag, not Entity; and only return
+non-metadata entries for core Entities in <code class="docutils literal notranslate"><span class="pre">get(return_type='id')</span></code> (#749)</p></li>
+<li><p>FIX: Only include regressors if they are TSV (#752)</p></li>
+<li><p>FIX: ensure force_dense=True runs to_dense only on sparse variables (#745)</p></li>
+<li><p>FIX: get unique, with conflicting meta-data (#748)</p></li>
+<li><p>FIX: Clean up some deprecation and syntax warnings (#738)</p></li>
+<li><p>ENH: Add <code class="docutils literal notranslate"><span class="pre">pybids</span> <span class="pre">upgrade</span></code> command (#654)</p></li>
+<li><p>ENH: Add Lag transformation (#759)</p></li>
+<li><p>ENH: Use indirect transformations structure (#737)</p></li>
+<li><p>ENH: Add visualization for statsmodel graph (#742)</p></li>
+<li><p>ENH: Permit explicit intercept (1) in Contrasts and DummyContrasts (#743)</p></li>
+<li><p>ENH: Add meta-analysis model type (#731)</p></li>
+<li><p>ENH: Contrast type is now test (#733)</p></li>
+<li><p>REF: Use pathlib.Path internally when possible (#746)</p></li>
+<li><p>REF: Remove group_by from edges and add filter (#734)</p></li>
+<li><p>REF: Improved/refactored StatsModels module (#722)</p></li>
+<li><p>MNT: Make sure codespell skips .git when run locally (#787)</p></li>
+<li><p>MNT: LGTM.com recommendations (#786)</p></li>
+<li><p>MNT: Better codespell configuration (#782)</p></li>
+<li><p>MNT: Constrain formulaic version to 0.2.x . (#784)</p></li>
+<li><p>MNT: Update versioneer: 0.18 → 0.20 (#778)</p></li>
+<li><p>MNT: Add “codespell” tool to CI checks to catch typos sooner (#776)</p></li>
+<li><p>MNT: Disable bids-nodot mode (#769)</p></li>
+<li><p>MNT: Send codecov reports again (#766)</p></li>
+<li><p>MNT: Set minimum version to Python 3.6 (#739)</p></li>
+</ul>
+</section>
+<section id="version-0-13-2-august-20-2021">
+<h2>Version 0.13.2 (August 20, 2021)<a class="headerlink" href="#version-0-13-2-august-20-2021" title="Link to this heading">¶</a></h2>
+<p>Bug-fix release in the 0.13 series.</p>
+<ul class="simple">
+<li><p>FIX/TEST: gunzip regressors.tsv.gz, allow timeseries.tsv as well (#767)</p></li>
+<li><p>FIX: run is required (#762)</p></li>
+<li><p>MNT: Patch 0.13.x maint branch (#763)</p></li>
+</ul>
+</section>
+<section id="version-0-13-1-may-21-2021">
+<h2>Version 0.13.1 (May 21, 2021)<a class="headerlink" href="#version-0-13-1-may-21-2021" title="Link to this heading">¶</a></h2>
+<p>Bug-fix release in the 0.13 series.</p>
+<ul class="simple">
+<li><p>ENH: Improve <cite>get</cite> performance (#723)</p></li>
+<li><p>STY: Fix typos identified by codespell (#720)</p></li>
+<li><p>TEST: dataset-level model spec retrieval (#693)</p></li>
+</ul>
+</section>
+<section id="version-0-13-april-14-2021">
+<h2>Version 0.13 (April 14, 2021)<a class="headerlink" href="#version-0-13-april-14-2021" title="Link to this heading">¶</a></h2>
+<p>New feature release in the 0.13 series.</p>
+<ul class="simple">
+<li><p>FIX: Resample to n_vols for sampling_rate == ‘TR’ (#713)</p></li>
+<li><p>FIX: Lazily load metadata, skip when missing data files are missing sidecars (#711)</p></li>
+<li><p>FIX: Ensure indicator matrix is boolean when indexing in Split transformation (#710)</p></li>
+<li><p>FIX: Correctly pair metadata file when creating association records (#699)</p></li>
+<li><p>FIX: Resolve side-effects of new testfile in #682 (#695)</p></li>
+<li><p>FIX: BIDSLayout – TypeError: unhashable type: ‘dict’ (#682)</p></li>
+<li><p>ENH: Add res/den entities to derivatives.json (#709)</p></li>
+<li><p>ENH: Update datatypes (#708)</p></li>
+<li><p>ENH: add more informative validation error message for dataset_description.json (#705)</p></li>
+<li><p>ENH: Add flip, inv, mt, and part entities (#688)</p></li>
+<li><p>CI: Run packaging tests on main repository only (#696)</p></li>
+<li><p>CI: Migrate to GH actions (#691)</p></li>
+</ul>
+</section>
+<section id="version-0-12-4-november-10-2020">
+<h2>Version 0.12.4 (November 10, 2020)<a class="headerlink" href="#version-0-12-4-november-10-2020" title="Link to this heading">¶</a></h2>
+<p>Bug-fix release in the 0.12.x series.</p>
+<ul class="simple">
+<li><p>FIX: Do not error when popping missing <code class="docutils literal notranslate"><span class="pre">scan_length</span></code> (#679)</p></li>
+</ul>
+</section>
+<section id="version-0-12-3-october-23-2020">
+<h2>Version 0.12.3 (October 23, 2020)<a class="headerlink" href="#version-0-12-3-october-23-2020" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>FIX: Require aligned input for logical operations (#649)</p></li>
+<li><p>ENH: Incremental variable loading in Step setup (#672)</p></li>
+</ul>
+</section>
+<section id="version-0-12-2-october-09-2020">
+<h2>Version 0.12.2 (October 09, 2020)<a class="headerlink" href="#version-0-12-2-october-09-2020" title="Link to this heading">¶</a></h2>
+<p>Bug-fix release in 0.12.x series.</p>
+<ul class="simple">
+<li><p>FIX: Support nibabel &lt; 3 when calculating time series length (#669)</p></li>
+<li><p>FIX: Sanitize single derivative Path passed to BIDSLayout (#665)</p></li>
+<li><p>FIX: Force UTF-8 encoding in _index_metadata (#663)</p></li>
+<li><p>FIX: Explicitly convert to HTML when testing tutorial (nbconvert 6.0 breakage) (#664)</p></li>
+</ul>
+</section>
+<section id="version-0-12-1-september-09-2020">
+<h2>Version 0.12.1 (September 09, 2020)<a class="headerlink" href="#version-0-12-1-september-09-2020" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>FIX: drop obsolete test (#652)</p></li>
+<li><p>FIX: Convolve zero-duration (impulse) events when variable contains multiple events (#645)</p></li>
+<li><p>ENH: Add CLI to PyBIDS (#650)</p></li>
+<li><p>ENH: Add relpath attribute to BIDSFile and associated refactoring (#647)</p></li>
+<li><p>DOC: Add example for using parse_file_entities from bids.layout (#639)</p></li>
+<li><p>MNT: Remove deprecated database_file argument to BIDSLayout (#644)</p></li>
+</ul>
+</section>
+<section id="version-0-12-0-august-04-2020">
+<h2>Version 0.12.0 (August 04, 2020)<a class="headerlink" href="#version-0-12-0-august-04-2020" title="Link to this heading">¶</a></h2>
+<p>New feature release for the 0.12.x series.</p>
+<p>This release includes significant speedups for <code class="docutils literal notranslate"><span class="pre">BIDSLayout</span></code> creation and improves
+handling of GIFTI and CIFTI-2 derivative files.</p>
+<ul class="simple">
+<li><p>FIX: Remove need to eager load associations (#642)</p></li>
+<li><p>ENH: Fetch number of time points from NIfTI, GIFTI or CIFTI-2 (#637)</p></li>
+<li><p>ENH: Catch any NIfTI/GIFTI (incl. CIFTI-2) files as BIDSImageFiles (#638)</p></li>
+</ul>
+</section>
+<section id="version-0-11-1-july-02-2020">
+<h2>Version 0.11.1 (July 02, 2020)<a class="headerlink" href="#version-0-11-1-july-02-2020" title="Link to this heading">¶</a></h2>
+<p>Bug-fix release in the 0.11.x series</p>
+<p>With thanks to Mathias Goncalves for finding and fixing the issue.</p>
+<ul class="simple">
+<li><p>FIX: Preserve <code class="docutils literal notranslate"><span class="pre">get</span></code> logic when using custom config (#636)</p></li>
+</ul>
+</section>
+<section id="version-0-11-0-june-29-2020">
+<h2>Version 0.11.0 (June 29, 2020)<a class="headerlink" href="#version-0-11-0-june-29-2020" title="Link to this heading">¶</a></h2>
+<p>New feature release in the 0.11.x series.</p>
+<p>One significant change in this PR is to add the configuration option <code class="docutils literal notranslate"><span class="pre">extension_initial_dot</span></code>.
+Setting to <code class="docutils literal notranslate"><span class="pre">True</span></code> will adopt the future default behavior of returning <code class="docutils literal notranslate"><span class="pre">extension</span></code> entities with
+an initial dot (<code class="docutils literal notranslate"><span class="pre">.</span></code>).</p>
+<p>Other notable changes include a significant refactoring of the Analysis module, and a number of
+small improvements to error reporting that should add up to simpler debugging for users and
+developers.</p>
+<ul class="simple">
+<li><p>FIX: Post-fix And and Or transformations with underscore (#628)</p></li>
+<li><p>FIX: made _validate_file work on Windows (#627)</p></li>
+<li><p>FIX: Scale transformation fails if passed constant input. (#614)</p></li>
+<li><p>FIX: Certain queries involving multiple layouts are very slow (#616)</p></li>
+<li><p>FIX: Bug in get() when passing enums as extensions (#612)</p></li>
+<li><p>FIX: Bug in BIDSDataFile.get_df() (#611)</p></li>
+<li><p>FIX: Make entity assertions Python 3.5-safe (#606)</p></li>
+<li><p>FIX: BIDSLayout.build_path to respect absolute_paths. (#580)</p></li>
+<li><p>ENH: Adds OS-level file copying instead of reading/writing via Python (#613)</p></li>
+<li><p>ENH: Add explicit warning message when users pass in filters as a dictionary keyword (#623)</p></li>
+<li><p>ENH: Introduce PyBIDS exceptions (#615)</p></li>
+<li><p>ENH: Add example bids and derivatives dataset_description.json strings to error messages (#620)</p></li>
+<li><p>ENH: Improved handling of invalid filters (#610)</p></li>
+<li><p>ENH: Add method to generate report from list of files (#607)</p></li>
+<li><p>ENH: Pass kwargs from BIDSImageFile.get_image() to nibabel.load (#601)</p></li>
+<li><p>ENH: Model spec module and associated utilities (#548)</p></li>
+<li><p>ENH: Add BIDSMetadata dictionary to report file with missing metadata (#593)</p></li>
+<li><p>RF: Add <code class="docutils literal notranslate"><span class="pre">extension_initial_dot</span></code> config option to transition to extension entity with initial dot (#629)</p></li>
+<li><p>MNT: Automatically deploy docs (#598)</p></li>
+<li><p>CI: Drop –pre check for Python 3.5 (#621)</p></li>
+<li><p>CI: Test on Python 3.8 (#594)</p></li>
+</ul>
+</section>
+<section id="version-0-10-2-february-26-2020">
+<h2>Version 0.10.2 (February 26, 2020)<a class="headerlink" href="#version-0-10-2-february-26-2020" title="Link to this heading">¶</a></h2>
+<p>Bug fix release in the 0.10.x series.</p>
+<ul class="simple">
+<li><p>FIX: Add Replace as exception to recursive JSON conversion (#589)</p></li>
+</ul>
+</section>
+<section id="version-0-10-1-february-10-2020">
+<h2>Version 0.10.1 (February 10, 2020)<a class="headerlink" href="#version-0-10-1-february-10-2020" title="Link to this heading">¶</a></h2>
+<p>Bug fix release in the 0.10.x series.</p>
+<p>This release just makes available some of the latest minor fixes and improvements.</p>
+<ul class="simple">
+<li><p>FIX: Replace <code class="docutils literal notranslate"><span class="pre">os.path.sep</span></code> with <code class="docutils literal notranslate"><span class="pre">fwdslash</span></code> because bids validator hardcodes fwd (#582)</p></li>
+<li><p>FIX: Refactor of <code class="docutils literal notranslate"><span class="pre">build_path</span></code> and inner machinery (#574)</p></li>
+<li><p>FIX: Domain entity, and slow <code class="docutils literal notranslate"><span class="pre">__repr__</span></code> (#569)</p></li>
+<li><p>FIX: “strict” helptext in <code class="docutils literal notranslate"><span class="pre">BIDSLayout.write_contents_to_file</span></code> (#566)</p></li>
+<li><p>FIX: typos in helpstrings and comments (#564)</p></li>
+<li><p>FIX: Correct term “caret” to “angle bracket” in helpstrings (#565)</p></li>
+<li><p>ENH: Extend <code class="docutils literal notranslate"><span class="pre">build_path</span></code> to generate lists of files (#576)</p></li>
+<li><p>ENH: Add one parametric test of <code class="docutils literal notranslate"><span class="pre">BIDSLayout.build_path</span></code> (#577)</p></li>
+<li><p>ENH: Enable partial metadata indexing (#560)</p></li>
+<li><p>ENH: Upscale to collection sampling rate prior to resampling (#568)</p></li>
+<li><p>ENH: Calculate default sampling rate for <code class="docutils literal notranslate"><span class="pre">SparseRunVariable.to_dense</span></code> (#571)</p></li>
+<li><p>MNT: Add <code class="docutils literal notranslate"><span class="pre">.vscode</span></code> (for Visual Studio Code) to <code class="docutils literal notranslate"><span class="pre">.gitignore</span></code> (#562)</p></li>
+<li><p>MNT: Ignore pip-wheel-metadata (#581)</p></li>
+<li><p>DOC: Remove Python 2 support statement, now that v0.10.0 has dropped it (#561)</p></li>
+</ul>
+</section>
+<section id="version-0-10-0-december-03-2019">
+<h2>Version 0.10.0 (December 03, 2019)<a class="headerlink" href="#version-0-10-0-december-03-2019" title="Link to this heading">¶</a></h2>
+<p>New feature release in the 0.10.x series.</p>
+<p>This release removes Python 2 support.</p>
+<ul class="simple">
+<li><p>ENH: Helpful error for db argument mismatch, and add classmethod load_from_db (#547)</p></li>
+<li><p>ENH: Add Resample transformation (#373)</p></li>
+<li><p>ENH: Save BIDSLayout + Derivatives to folder (with init arguments) (#540)</p></li>
+<li><p>ENH: Adds support for NONE and ANY query Enums (#542)</p></li>
+<li><p>ENH: Transformation-related improvements (#541)</p></li>
+<li><p>ENH: FEMA contrasts (#520)</p></li>
+<li><p>STY: Minor PEP8 Fixes (#545)</p></li>
+<li><p>MNT: Various (#543)</p></li>
+<li><p>MNT: Remove Python 2.7 support (#524)</p></li>
+<li><p>CI: Configure Circle Artifact Redirector (#544)</p></li>
+</ul>
+</section>
+<section id="version-0-9-5-november-6-2019">
+<h2>Version 0.9.5 (November 6, 2019)<a class="headerlink" href="#version-0-9-5-november-6-2019" title="Link to this heading">¶</a></h2>
+<p>Bug fix release in the 0.9.x series.</p>
+<p>Final planned release with Python 2 support.</p>
+<ul class="simple">
+<li><p>FIX: Filter before downsampling (#529)</p></li>
+<li><p>FIX: Copy input dict in <code class="docutils literal notranslate"><span class="pre">replace_entities</span></code>; Typos in <code class="docutils literal notranslate"><span class="pre">default_path_patterns</span></code> (#517)</p></li>
+<li><p>FIX: Use string dtype for all entities when using regex search (#511)</p></li>
+<li><p>FIX: Update Sphinx docs for 2.2 (#507)</p></li>
+<li><p>ENH: Enable automatic derivative database caching (#523)</p></li>
+<li><p>ENH: Raise ValueError if BIDSLayout.build_path fails to match any pattern (#508)</p></li>
+<li><p>RF: Subclass analysis Node from object (#528)</p></li>
+<li><p>DOC: Unify docstring format (#499)</p></li>
+<li><p>DOC: Auto-generate stubs (#513)</p></li>
+<li><p>STY: .sql is a misleading extension to sqlite files (#531)</p></li>
+<li><p>STY: General cleanups (#526, #527)</p></li>
+</ul>
+</section>
+<section id="version-0-9-4-september-20-2019">
+<h2>Version 0.9.4 (September 20, 2019)<a class="headerlink" href="#version-0-9-4-september-20-2019" title="Link to this heading">¶</a></h2>
+<p>Bug fix release in the 0.9.x series.</p>
+<ul class="simple">
+<li><p>FIX: Ignore <code class="docutils literal notranslate"><span class="pre">default_ignore</span></code> paths by default (#495)</p></li>
+<li><p>FIX: Filter and sort on scalar metadata in <code class="docutils literal notranslate"><span class="pre">get_nodes()</span></code> (#488)</p></li>
+<li><p>FIX: Automatically sanitize dtype of <code class="docutils literal notranslate"><span class="pre">get()</span></code> arguments (#492)</p></li>
+<li><p>FIX: Check that <code class="docutils literal notranslate"><span class="pre">default_path_patterns</span></code> is not <code class="docutils literal notranslate"><span class="pre">None</span></code> before using in <code class="docutils literal notranslate"><span class="pre">build_path</span></code> (#485)</p></li>
+<li><p>FIX: Add CBV and phase modalities to func datatype path pattern (#479)</p></li>
+<li><p>FIX: Drop bold suffix constraint from echo entity (#477)</p></li>
+<li><p>ENH: Enforce dtypes on spec-defined columns when reading in DFs (#494)</p></li>
+<li><p>ENH: Validate built paths (#496)</p></li>
+<li><p>ENH: Update contrast enhancing agent query name (ceagent) (#497)</p></li>
+<li><p>DOC: Add citation information to README (#493)</p></li>
+<li><p>DOC: Improve wording in Python notebook example comment (#484)</p></li>
+<li><p>DOC: Finish sentence in Python Notebook example documentation (#483)</p></li>
+<li><p>DOC: Add JOSS Badge (#472)</p></li>
+<li><p>STY: Apply syntax highlight to Python notebook example doc (#482)</p></li>
+<li><p>MAINT: Move setup configuration to setup.cfg (#448)</p></li>
+<li><p>MAINT: Additional Zenodo metadata (#470)</p></li>
+<li><p>MAINT/CI: Use <code class="docutils literal notranslate"><span class="pre">extras_require</span></code> to declare dependencies for tests  (#471)</p></li>
+</ul>
+</section>
+<section id="version-0-9-3-august-7-2019">
+<h2>Version 0.9.3 (August 7, 2019)<a class="headerlink" href="#version-0-9-3-august-7-2019" title="Link to this heading">¶</a></h2>
+<p>This version includes a number of minor fixes and improvements, one of which
+breaks the existing API (by renaming two entities; see #464). Changes
+include:</p>
+<ul class="simple">
+<li><p>FIX: Avoid DB collisions for redundant entities (#468)</p></li>
+<li><p>FIX: Minor changes to entity names in core spec (#464)</p></li>
+<li><p>FIX: Make bids.reports work properly with .nii images (#463)</p></li>
+<li><p>CI: Execute notebook in Travis (#461)</p></li>
+<li><p>ENH: More sensible <strong>repr</strong> for Tag model (#467)</p></li>
+</ul>
+</section>
+<section id="version-0-9-2-july-12-2019">
+<h2>Version 0.9.2 (July 12, 2019)<a class="headerlink" href="#version-0-9-2-july-12-2019" title="Link to this heading">¶</a></h2>
+<p>This version includes a number of minor fixes and improvements.
+EEG files are better handled, and <code class="docutils literal notranslate"><span class="pre">BIDSLayout</span></code> and <code class="docutils literal notranslate"><span class="pre">BIDSFile</span></code> play more
+nicely with <code class="docutils literal notranslate"><span class="pre">Path</span></code>-like objects.</p>
+<p>With thanks to new contributor Cecile Madjar.</p>
+<ul class="simple">
+<li><p>FIX: Instantiate <code class="docutils literal notranslate"><span class="pre">ignore</span></code>/<code class="docutils literal notranslate"><span class="pre">force_index</span></code> after root validation (#457)</p></li>
+<li><p>FIX: Restore <code class="docutils literal notranslate"><span class="pre">&lt;entity&gt;=None</span></code> query returning files lacking the entity (#458)</p></li>
+<li><p>ENH: Add <code class="docutils literal notranslate"><span class="pre">BIDSJSONFile</span></code> (#444)</p></li>
+<li><p>ENH: Add <code class="docutils literal notranslate"><span class="pre">BIDSFile.__fspath__</span></code> to work with pathlib (#449)</p></li>
+<li><p>ENH: Add <code class="docutils literal notranslate"><span class="pre">eeg</span></code> datatype to layout config (#455)</p></li>
+<li><p>RF: Remove unused kwargs to BIDSFile (#443)</p></li>
+<li><p>DOC: Improve docstring consistency, style (#443)</p></li>
+<li><p>DOC: Address final JOSS review (#453)</p></li>
+<li><p>STY: PEP8 Fixes (#456)</p></li>
+<li><p>MAINT: Set name explicitly in setup.py (#450)</p></li>
+</ul>
+</section>
+<section id="version-0-9-1-may-24-2019">
+<h2>Version 0.9.1 (May 24, 2019)<a class="headerlink" href="#version-0-9-1-may-24-2019" title="Link to this heading">¶</a></h2>
+<p>Hotfix release:</p>
+<ul class="simple">
+<li><p>Fixed package deployment issues (#446)</p></li>
+<li><p>Updated author list (#447)</p></li>
+</ul>
+<p>Thanks to new contributors Erin Dickie, Chadwick Boulay and Johannes Wennberg.</p>
+</section>
+<section id="version-0-9-0-may-21-2019">
+<h2>Version 0.9.0 (May 21, 2019)<a class="headerlink" href="#version-0-9-0-may-21-2019" title="Link to this heading">¶</a></h2>
+<p>Version 0.9 replaces the native Python backend with a SQLite database managed
+via SQLAlchemy. The layout module has been refactored (again), but API changes
+are minimal. This release also adds many new features and closes a number of
+open issues.</p>
+<p>API CHANGES/DEPRECATIONS:</p>
+<ul class="simple">
+<li><p>The <code class="docutils literal notranslate"><span class="pre">extensions</span></code> argument has now been banished forever; instead, use
+<code class="docutils literal notranslate"><span class="pre">extension</span></code>, which is now defined as a first-class entity. The former will
+continue to work until at least the 0.11 release (closes #404).</p></li>
+<li><p>Relatedly, values for <code class="docutils literal notranslate"><span class="pre">extension</span></code> should no longer include a leading <code class="docutils literal notranslate"><span class="pre">.</span></code>,
+though this should also continue to work for the time being.</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">BIDSLayout</span></code> init argument <code class="docutils literal notranslate"><span class="pre">index_associated</span></code> has been removed as the
+various other filtering/indexing options mean there is longer a good reason for
+users to manipulate this.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">bids.layout.MetadataIndex</span></code> no longer exists. It’s unlikely that anyone will
+notice this.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">BIDSLayout.get_metadata()</span></code> no longer takes additional entities as optional
+keyword arguments (they weren’t necessary for anything).</p></li>
+<li><p>Direct access to most <code class="docutils literal notranslate"><span class="pre">BIDSFile</span></code> properties is discouraged, and in one case
+is broken in 0.9 (for <code class="docutils literal notranslate"><span class="pre">.metadata</span></code>, which was unavoidable, because it’s reserved
+by SQLAlchemy). Instead, users should use getters (<code class="docutils literal notranslate"><span class="pre">get_metadata</span></code>, <code class="docutils literal notranslate"><span class="pre">get_image</span></code>,
+<code class="docutils literal notranslate"><span class="pre">get_df</span></code>, etc.) whenever possible.</p></li>
+</ul>
+<p>NEW FUNCTIONALITY:</p>
+<ul class="simple">
+<li><p>All file and metadata indexing and querying is now supported by a
+relational (SQLite) database (see #422). While this has few API implications,
+the efficiency of many operations is improved, and complex user-generated
+queries can now be performed via the SQLAlchemy <code class="docutils literal notranslate"><span class="pre">.session</span></code> stored in each
+<code class="docutils literal notranslate"><span class="pre">BIDSLayout</span></code>.</p></li>
+<li><p>Adds <code class="docutils literal notranslate"><span class="pre">.save()</span></code> method to the <code class="docutils literal notranslate"><span class="pre">BIDSLayout</span></code> that saves the current SQLite DB
+to the specified location. Conversely, passing a filename as <code class="docutils literal notranslate"><span class="pre">database_file</span></code> at
+init will use the specified store instead of re-indexing all files. This
+eliminates the need for a pickling strategy (#435).</p></li>
+<li><p>Related to the above, the <code class="docutils literal notranslate"><span class="pre">BIDSLayout</span></code> init adds a <code class="docutils literal notranslate"><span class="pre">reset_database</span></code> argument
+that forces reindexing even if a <code class="docutils literal notranslate"><span class="pre">database_file</span></code> is specified.</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">BIDSLayout</span></code> has a new <code class="docutils literal notranslate"><span class="pre">index_metadata</span></code> flag that controls whether or
+not the contents of JSON metadata files are indexed.</p></li>
+<li><p>Added <code class="docutils literal notranslate"><span class="pre">metadata</span></code> flag to <code class="docutils literal notranslate"><span class="pre">BIDSLayout.to_df()</span></code> that controls whether or not
+metadata columns are included in the returned pandas <code class="docutils literal notranslate"><span class="pre">DataFrame</span></code> (#232).</p></li>
+<li><p>Added <code class="docutils literal notranslate"><span class="pre">get_entities()</span></code> method to <code class="docutils literal notranslate"><span class="pre">BIDSLayout</span></code> that allows retrieval of all
+<code class="docutils literal notranslate"><span class="pre">Entity</span></code> instances available within a specified scope (#346).</p></li>
+<li><p>Adds <code class="docutils literal notranslate"><span class="pre">drop_invalid_filters</span></code> argument to <code class="docutils literal notranslate"><span class="pre">BIDSLayout.get()</span></code>, enabling users to
+(optionally) ensure that invalid filters don’t clobber all search results
+(#402).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">BIDSFile</span></code> instances now have a <code class="docutils literal notranslate"><span class="pre">get_associations()</span></code> method that returns
+associated files (see #431).</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">BIDSFile</span></code> class has been split into a hierarchy, with <code class="docutils literal notranslate"><span class="pre">BIDSImageFile</span></code>
+and <code class="docutils literal notranslate"><span class="pre">BIDSDataFile</span></code> subclasses. The former adds a <code class="docutils literal notranslate"><span class="pre">get_image()</span></code> method (returns
+a NiBabel image); the latter adds a <code class="docutils literal notranslate"><span class="pre">get_df()</span></code> method (returns a pandas DF).
+All <code class="docutils literal notranslate"><span class="pre">BIDSFile</span></code> instances now also have a <code class="docutils literal notranslate"><span class="pre">get_entities()</span></code> method.</p></li>
+</ul>
+<p>BUG FIXES AND OTHER MINOR CHANGES:</p>
+<ul class="simple">
+<li><p>Metadata key/value pairs and file entities are now treated identically,
+eliminating a source of ambiguity in search (see #398).</p></li>
+<li><p>Metadata no longer bleeds between raw and derivatives directories unless
+explicitly specified (see #383).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">BIDSLayout.get_collections()</span></code> no longer drops user-added columns (#273).</p></li>
+<li><p>Various minor fixes/improvements/changes to tests.</p></li>
+<li><p>The tutorial Jupyter notebook has been fixed and updated to reflect the
+latest changes.</p></li>
+</ul>
+</section>
+<section id="version-0-8-0-february-15-2019">
+<h2>Version 0.8.0 (February 15, 2019)<a class="headerlink" href="#version-0-8-0-february-15-2019" title="Link to this heading">¶</a></h2>
+<p>Version 0.8 refactors much of the layout module. It drops the grabbit
+dependency, overhauls the file indexing process, and features a number of other
+improvements. However, changes to the public API are very minimal, and in the
+vast majority of cases, 0.8 should be a drop-in replacement for 0.7.*.</p>
+<p>API-BREAKING CHANGES:</p>
+<ul>
+<li><p>Changes to (rarely-used) BIDSLayout initialization arguments:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">include</span></code> and <code class="docutils literal notranslate"><span class="pre">exclude</span></code> have been replaced with <code class="docutils literal notranslate"><span class="pre">ignore</span></code> and
+<code class="docutils literal notranslate"><span class="pre">force_index</span></code>. Paths passed to <code class="docutils literal notranslate"><span class="pre">ignore</span></code> will be ignored from indexing;
+paths passed to <code class="docutils literal notranslate"><span class="pre">force_index</span></code> will be forcibly indexed even if they are
+otherwise BIDS-non-compliant. <code class="docutils literal notranslate"><span class="pre">force_index</span></code> takes precedence over <code class="docutils literal notranslate"><span class="pre">ignore</span></code>.</p></li>
+</ul>
+</div></blockquote>
+</li>
+<li><p>Most querying/selection methods add a new <code class="docutils literal notranslate"><span class="pre">scope</span></code> argument that controls
+scope of querying (e.g., <code class="docutils literal notranslate"><span class="pre">'raw'</span></code>, <code class="docutils literal notranslate"><span class="pre">'derivatives'</span></code>, <code class="docutils literal notranslate"><span class="pre">'all'</span></code>, etc.). In some
+cases this replaces the more limited <code class="docutils literal notranslate"><span class="pre">derivatives</span></code> argument.</p></li>
+<li><p>No more <code class="docutils literal notranslate"><span class="pre">domains</span></code>: with the grabbit removal (see below), the notion of a
+<code class="docutils literal notranslate"><span class="pre">'domain'</span></code> has been removed. This should impact few users, but those who need
+to restrict indexing or querying to specific parts of a BIDS project should be
+able to use the <code class="docutils literal notranslate"><span class="pre">scope</span></code> argument more effectively.</p></li>
+</ul>
+<p>OTHER CHANGES:</p>
+<ul class="simple">
+<li><p>FIX: Path indexing issues in <code class="docutils literal notranslate"><span class="pre">get_file()</span></code> (#379)</p></li>
+<li><p>FIX: Duplicate file returns under certain conditions (#350)</p></li>
+<li><p>FIX: Pass new variable args as kwargs in split() (#386) &#64;effigies</p></li>
+<li><p>TEST: Update naming conventions for synthetic dataset (#385) &#64;effigies</p></li>
+<li><p>REF: The grabbit package is no longer a dependency; as a result, much of the
+functionality from grabbit has been ported over to pybids.</p></li>
+<li><p>REF: Required functionality from six and inflect is now bundled with pybids
+in <code class="docutils literal notranslate"><span class="pre">bids.external</span></code>, minimizing external dependencies.</p></li>
+<li><p>REF: Core modules have been reorganized. Key data structures and containers
+(e.g., <code class="docutils literal notranslate"><span class="pre">BIDSFile</span></code>, <code class="docutils literal notranslate"><span class="pre">Entity</span></code>, etc.) are now in a new <code class="docutils literal notranslate"><span class="pre">bids.layout.core</span></code> module.</p></li>
+<li><p>REF: A new <code class="docutils literal notranslate"><span class="pre">Config</span></code> class has been introduced to house the information
+found in <code class="docutils literal notranslate"><span class="pre">bids.json</span></code> and other layout configuration files.</p></li>
+<li><p>REF: The file-indexing process has been completely refactored. A new
+hierarchy of <code class="docutils literal notranslate"><span class="pre">BIDSNode</span></code> objects has been introduced. While this has no real
+impact on the public API, and isn’t really intended for public consumption yet,
+it will in future make it easier for users to work with BIDS projects in a
+tree-like way, while also laying the basis for a more sensible approach to
+reading and accessing associated BIDS data (e.g., .tsv files).</p></li>
+<li><p>MNT: All invocations of <code class="docutils literal notranslate"><span class="pre">pd.read_table</span></code> have been replaced with <code class="docutils literal notranslate"><span class="pre">read_csv</span></code>.</p></li>
+</ul>
+</section>
+<section id="version-0-7-1-february-01-2019">
+<h2>Version 0.7.1 (February 01, 2019)<a class="headerlink" href="#version-0-7-1-february-01-2019" title="Link to this heading">¶</a></h2>
+<p>This is a bug fix release in the 0.7 series. The primary API change is improved
+handling of <code class="docutils literal notranslate"><span class="pre">Path</span></code> objects.</p>
+<ul class="simple">
+<li><p>FIX: Path validation (#342)</p></li>
+<li><p>FIX: Ensure consistent entities at all levels (#326)</p></li>
+<li><p>FIX: Edge case where a resampled column was too-long-by-one (#365)</p></li>
+<li><p>FIX: Use BIDS metadata for TR over nii header (#357)</p></li>
+<li><p>FIX: Add check for <code class="docutils literal notranslate"><span class="pre">run_info</span></code> to be a list, pass <code class="docutils literal notranslate"><span class="pre">run_info</span></code> in correct position. (#353)</p></li>
+<li><p>FIX: If <code class="docutils literal notranslate"><span class="pre">sampling_rate</span></code> is <code class="docutils literal notranslate"><span class="pre">'auto'</span></code>, set to first rate of <code class="docutils literal notranslate"><span class="pre">DenseRunVariables</span></code> (#351)</p></li>
+<li><p>FIX: Get the absolute path of the test data directory (#347)</p></li>
+<li><p>FIX: Update reports to be 0.7-compatible (#341)</p></li>
+<li><p>ENH: Rename <code class="docutils literal notranslate"><span class="pre">sr</span></code> variable to more intuitive <code class="docutils literal notranslate"><span class="pre">interval</span></code> (#366)</p></li>
+<li><p>ENH: Support <code class="docutils literal notranslate"><span class="pre">pathlib.Path</span></code> and other <code class="docutils literal notranslate"><span class="pre">str</span></code>-castable types (#307)</p></li>
+<li><p>MNT: Updates link to derivative config file in notebook (#344)</p></li>
+<li><p>MNT: Add bids-validator dependency (#363)</p></li>
+<li><p>MNT: Require pandas &gt;= 0.23.0 (#348)</p></li>
+<li><p>MNT: Bump grabbit version (#338)</p></li>
+<li><p>CI: Ignore OSX Python 3.5 failures (#372)</p></li>
+<li><p>CI: Build with Python 3.7 on Travis, deploy on 3.6 (#337)</p></li>
+</ul>
+</section>
+<section id="version-0-7-0-january-10-2019">
+<h2>Version 0.7.0 (January 10, 2019)<a class="headerlink" href="#version-0-7-0-january-10-2019" title="Link to this heading">¶</a></h2>
+<p>This is a major, API-breaking release. It introduces a large number of new features, bug fixes, and improvements.</p>
+<p>API-BREAKING CHANGES:</p>
+<ul class="simple">
+<li><p>A number of entities (or keywords) have been renamed to align more closely with the BIDS specification documents:
+* ‘type’ becomes ‘suffix’
+* ‘modality’ becomes ‘datatype’
+* ‘acq’ is removed (use ‘acquisition’)
+* ‘mod’ becomes ‘modality’</p></li>
+<li><p>The following directories are no longer indexed by default: derivatives/, code/, stimuli/, models/, sourcedata/. They must be explicitly included using the ‘include’ initialization argument.</p></li>
+<li><p>The grabbids module has been renamed to layout and BIDSLayout.py and BIDSvalidator.py are now layout.py and validation.py, respectively.</p></li>
+<li><p>The BIDS validator is now enabled by default at layout initialization (i.e., <code class="docutils literal notranslate"><span class="pre">validate=True</span></code>)</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">exclude</span></code> initialization argument has been removed.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">BIDSLayout.parse_entities</span></code> utility has been removed (use the more flexible <code class="docutils literal notranslate"><span class="pre">parse_file_entities</span></code>).</p></li>
+<li><p>Calls to <code class="docutils literal notranslate"><span class="pre">.get()</span></code> now return <code class="docutils literal notranslate"><span class="pre">BIDSFile</span></code> objects, rather than namedtuples, by default (#281). The <code class="docutils literal notranslate"><span class="pre">BIDSFile</span></code> API has been tweaked to ensure backwards incompatibility in nearly all cases.</p></li>
+<li><p>Naming conventions throughout the codebase have been updated to ensure consistency with the BIDS specs. This is most salient in the <code class="docutils literal notranslate"><span class="pre">analysis</span></code> module, where snake_case has been replaced with CamelCase throughout.</p></li>
+</ul>
+<p>NEW FEATURES:</p>
+<ul class="simple">
+<li><p>File metadata (i.e., in JSON sidecars) is now searchable by default, and behaves just like native BIDS entities (e.g., metadata keys can be passed as arguments to <code class="docutils literal notranslate"><span class="pre">.get()</span></code> calls)</p></li>
+<li><p>A new BIDSFile wrapper provides easy access to <code class="docutils literal notranslate"><span class="pre">.metadata</span></code> and <code class="docutils literal notranslate"><span class="pre">.image</span></code></p></li>
+<li><p>HRF convolution is now supported via bundling of nistats’ hemodynamic_models module; convolution is handled via the <code class="docutils literal notranslate"><span class="pre">convolve_HRF</span></code> transformation.</p></li>
+<li><p>Named config paths that customize how projects are processed can be added at run-time (#313)</p></li>
+<li><p>Preliminary support for BIDS-Derivatives RC1 (mainly core keywords)</p></li>
+</ul>
+<p>MINOR IMPROVEMENTS AND BUG FIXES:</p>
+<ul class="simple">
+<li><p>Specifying ‘derivatives’ in a path specification now automatically includes ‘bids’ (#246)</p></li>
+<li><p>Zenodo DOIs are now minted with new releases (#308)</p></li>
+<li><p>Variable loading via load_variables can now be done incrementally</p></li>
+<li><p>Expanded and improved path-building via <code class="docutils literal notranslate"><span class="pre">layout.build_path()</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">get_collections</span></code> no longer breaks when <code class="docutils literal notranslate"><span class="pre">merge=True</span></code> and the list is empty (#202)</p></li>
+<li><p>Layout initialization no longer fails when <code class="docutils literal notranslate"><span class="pre">validate=True</span></code> (#222)</p></li>
+<li><p>The auto_contrasts field in the modeling tools now complies with the BIDS-Model spec (#234)</p></li>
+<li><p>Printing a <code class="docutils literal notranslate"><span class="pre">BIDSFile</span></code> now provides more useful information, including path (#298)</p></li>
+<li><p>Resample design matrix to 1/TR by default (#309)</p></li>
+<li><p>Fix the Sum transformation</p></li>
+<li><p>Ensure that resampling works properly when a sampling rate is passed to <code class="docutils literal notranslate"><span class="pre">get_design_matrix</span></code> (#297)</p></li>
+<li><p>Propagate derivative entities into top-level dynamic getters (#306)</p></li>
+<li><p>Deprecated <code class="docutils literal notranslate"><span class="pre">get_header</span></code> call in nibabel removed (#300)</p></li>
+<li><p>Fix bug in entity indexing for <code class="docutils literal notranslate"><span class="pre">BIDSVariableCollection</span></code> (#319)</p></li>
+<li><p>Exclude modules with heavy dependencies from root namespace for performance reasons (#321)</p></li>
+<li><p>Fix bug that caused in-place updating of input selectors in <code class="docutils literal notranslate"><span class="pre">Analysis</span></code> objects (#323)</p></li>
+<li><p>Add a DropNA transformation (#325)</p></li>
+<li><p>Add a <code class="docutils literal notranslate"><span class="pre">get_tr()</span></code> method to <code class="docutils literal notranslate"><span class="pre">BIDSLayout</span></code> (#327)</p></li>
+<li><p>Add entity hints when calling <code class="docutils literal notranslate"><span class="pre">get()</span></code> with a <code class="docutils literal notranslate"><span class="pre">target</span></code> argument (#328)</p></li>
+<li><p>Improved test coverage</p></li>
+</ul>
+</section>
+<section id="version-0-6-5-august-21-2018">
+<h2>Version 0.6.5 (August 21, 2018)<a class="headerlink" href="#version-0-6-5-august-21-2018" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>FIX: Do not drop rows of NaNs (#217) &#64;adelavega</p></li>
+<li><p>FIX: Declare run as having integer type (#236) &#64;effigies</p></li>
+<li><p>ENH: MEG support (#229) &#64;jasmainak</p></li>
+<li><p>REF: rename grabbids to layout, closes #228 (#230) &#64;ltirrell</p></li>
+<li><p>DOC: add .get_collection examples to tutorial (#219) &#64;Shotgunosine</p></li>
+<li><p>DOC: Fix link in README to point to documentation (#223) &#64;KirstieJane</p></li>
+<li><p>DOC: Add binder link for tutorial (#225) &#64;KirstieJane</p></li>
+<li><p>MAINT: Restore “analysis” installation extra (#218) &#64;yarikoptic</p></li>
+<li><p>MAINT: Do not import tests in __init__.py (#226) &#64;tyarkoni</p></li>
+</ul>
+</section>
+<section id="version-0-5-1-march-9-2018">
+<h2>Version 0.5.1 (March 9, 2018)<a class="headerlink" href="#version-0-5-1-march-9-2018" title="Link to this heading">¶</a></h2>
+<p>Hotfix release:</p>
+<ul class="simple">
+<li><p>Includes data files omitted from 0.5.0 release.</p></li>
+<li><p>Improves testing of installation.</p></li>
+</ul>
+</section>
+<section id="version-0-5-0-march-6-2018">
+<h2>Version 0.5.0 (March 6, 2018)<a class="headerlink" href="#version-0-5-0-march-6-2018" title="Link to this heading">¶</a></h2>
+<p>This is a major release that introduces the following features:</p>
+<ul class="simple">
+<li><p>A new <code class="docutils literal notranslate"><span class="pre">bids.variables</span></code> module that adds the following submodules:
+* <code class="docutils literal notranslate"><span class="pre">bids.variables.entities.py</span></code>: Classes for representing BIDS hierarchies as a graph-like structure.
+* <code class="docutils literal notranslate"><span class="pre">bids.variables.variables.py</span></code>: Classes and functions for representing and manipulating non-imaging data read from BIDS projects (e.g., fMRI events, densely-sampled physiological measures, etc.).
+* <code class="docutils literal notranslate"><span class="pre">bids.variables.io.py</span></code>: Tools for loading variable data from BIDS projects.
+* <code class="docutils literal notranslate"><span class="pre">bids.variables.collections</span></code>: Containers that facilitate aggregation and manipulation of <code class="docutils literal notranslate"><span class="pre">Variable</span></code> classes.</p></li>
+<li><p>Extensions to the <code class="docutils literal notranslate"><span class="pre">BIDSLayout</span></code> class that make it easy to retrieve data/variables from the project (i.e., <code class="docutils literal notranslate"><span class="pre">Layout.get_collections</span></code>)</p></li>
+<li><p>A new <code class="docutils literal notranslate"><span class="pre">auto_model</span></code> utility that generates simple BIDS-Model specifications from BIDS projects (thanks to &#64;Shotgunosine)</p></li>
+<li><p>A new <code class="docutils literal notranslate"><span class="pre">reports</span></code> module that generates methods sections from metadata in BIDS projects (thanks to &#64;tsalo)</p></li>
+<li><p>Experimental support for copying/writing out files in a BIDS-compliant way</p></li>
+<li><p>Expand <code class="docutils literal notranslate"><span class="pre">bids.json</span></code> config file to include missing entity definitions</p></li>
+<li><p>Ability to parse files without updating the Layout index</p></li>
+<li><p>Updated grabbids module to reflect grabbit changes that now allow many-to-many mapping of configurations to folders</p></li>
+<li><p>Too many other minor improvements and bug fixes to list (when you’re very lazy, even a small amount of work is too much)</p></li>
+</ul>
+</section>
+<section id="version-0-4-2-november-16-2017">
+<h2>Version 0.4.2 (November 16, 2017)<a class="headerlink" href="#version-0-4-2-november-16-2017" title="Link to this heading">¶</a></h2>
+<p>We did some minor stuff, but we were drunk again and couldn’t read our handwriting on the napkin the next morning.</p>
+</section>
+<section id="version-0-4-1-november-3-2017">
+<h2>Version 0.4.1 (November 3, 2017)<a class="headerlink" href="#version-0-4-1-november-3-2017" title="Link to this heading">¶</a></h2>
+<p>We did some minor stuff, and we didn’t think it was important enough to document.</p>
+</section>
+<section id="version-0-4-0-november-1-2017">
+<h2>Version 0.4.0 (November 1, 2017)<a class="headerlink" href="#version-0-4-0-november-1-2017" title="Link to this heading">¶</a></h2>
+<p>We did some stuff, but other stuff was happening in the news, and we were too distracted to write things down.</p>
+</section>
+<section id="version-0-3-0-august-11-2017">
+<h2>Version 0.3.0 (August 11, 2017)<a class="headerlink" href="#version-0-3-0-august-11-2017" title="Link to this heading">¶</a></h2>
+<p>We did some stuff, but we were drunk and forgot to write it down.</p>
+</section>
+<section id="version-0-2-1-june-8-2017">
+<h2>Version 0.2.1 (June 8, 2017)<a class="headerlink" href="#version-0-2-1-june-8-2017" title="Link to this heading">¶</a></h2>
+<p>History as we know it begins here.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="generated/bids.utils.make_bidsfile.html" class="btn btn-neutral float-left" title="bids.utils.make_bidsfile" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2015-2023, Developers of PyBIDS.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>bids.utils &mdash; PyBIDS 0.16.4 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=fa44fd50" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="../../_static/mystnb.4510f1fc1dee50b3e5859aac5469c37c29e427902b24a333a5f9fcb2f0b3ac41.css" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../_static/documentation_options.js?v=81998473"></script>
+        <script src="../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            PyBIDS
+          </a>
+              <div class="version">
+                0.16.4
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../user_guide.html">User guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../examples/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api.html">API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../whats_new.html">Changelog</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">PyBIDS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">bids.utils</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for bids.utils</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot; Utility functions. &quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
+
+
+<div class="viewcode-block" id="listify">
+<a class="viewcode-back" href="../../generated/bids.utils.listify.html#bids.utils.listify">[docs]</a>
+<span class="k">def</span> <span class="nf">listify</span><span class="p">(</span><span class="n">obj</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&#39;&#39;&#39; Wraps all non-list or tuple objects in a list; provides a simple way</span>
+<span class="sd">    to accept flexible arguments. &#39;&#39;&#39;</span>
+    <span class="k">return</span> <span class="n">obj</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">,</span> <span class="nb">type</span><span class="p">(</span><span class="kc">None</span><span class="p">)))</span> <span class="k">else</span> <span class="p">[</span><span class="n">obj</span><span class="p">]</span></div>
+
+
+
+<div class="viewcode-block" id="matches_entities">
+<a class="viewcode-back" href="../../generated/bids.utils.matches_entities.html#bids.utils.matches_entities">[docs]</a>
+<span class="k">def</span> <span class="nf">matches_entities</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">entities</span><span class="p">,</span> <span class="n">strict</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&#39;&#39;&#39; Checks whether an object&#39;s entities match the input. &#39;&#39;&#39;</span>
+    <span class="k">if</span> <span class="n">strict</span> <span class="ow">and</span> <span class="nb">set</span><span class="p">(</span><span class="n">obj</span><span class="o">.</span><span class="n">entities</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span> <span class="o">!=</span> <span class="nb">set</span><span class="p">(</span><span class="n">entities</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
+        <span class="k">return</span> <span class="kc">False</span>
+
+    <span class="n">comm_ents</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">obj</span><span class="o">.</span><span class="n">entities</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span> <span class="o">&amp;</span> <span class="nb">set</span><span class="p">(</span><span class="n">entities</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span>
+    <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">comm_ents</span><span class="p">:</span>
+        <span class="n">current</span> <span class="o">=</span> <span class="n">obj</span><span class="o">.</span><span class="n">entities</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+        <span class="n">target</span> <span class="o">=</span> <span class="n">entities</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+            <span class="k">if</span> <span class="n">current</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">target</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">elif</span> <span class="n">current</span> <span class="o">!=</span> <span class="n">target</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+    <span class="k">return</span> <span class="kc">True</span></div>
+
+
+
+<span class="k">def</span> <span class="nf">natural_sort</span><span class="p">(</span><span class="n">l</span><span class="p">,</span> <span class="n">field</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    based on snippet found at https://stackoverflow.com/a/4836734/2445984</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="n">convert</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">text</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">text</span><span class="p">)</span> <span class="k">if</span> <span class="n">text</span><span class="o">.</span><span class="n">isdigit</span><span class="p">()</span> <span class="k">else</span> <span class="n">text</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">alphanum_key</span><span class="p">(</span><span class="n">key</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">field</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">key</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">field</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="n">key</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">convert</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">re</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;([0-9]+)&#39;</span><span class="p">,</span> <span class="n">key</span><span class="p">)]</span>
+    <span class="k">return</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">l</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="n">alphanum_key</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="convert_JSON">
+<a class="viewcode-back" href="../../generated/bids.utils.convert_JSON.html#bids.utils.convert_JSON">[docs]</a>
+<span class="k">def</span> <span class="nf">convert_JSON</span><span class="p">(</span><span class="n">j</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot; Recursively convert CamelCase keys to snake_case.</span>
+<span class="sd">    From: https://stackoverflow.com/questions/17156078/</span>
+<span class="sd">    converting-identifier-naming-between-camelcase-and-</span>
+<span class="sd">    underscores-during-json-seria</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">camel_to_snake</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
+        <span class="n">a</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="s1">&#39;((?&lt;=[a-z0-9])[A-Z]|(?!^)[A-Z](?=[a-z]))&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">a</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;_\1&#39;</span><span class="p">,</span> <span class="n">s</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">convertArray</span><span class="p">(</span><span class="n">a</span><span class="p">):</span>
+        <span class="n">newArr</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">a</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+                <span class="n">newArr</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">convertArray</span><span class="p">(</span><span class="n">i</span><span class="p">))</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+                <span class="n">newArr</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">convert_JSON</span><span class="p">(</span><span class="n">i</span><span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">newArr</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">newArr</span>
+
+    <span class="n">out</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">j</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="n">newK</span> <span class="o">=</span> <span class="n">camel_to_snake</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+
+        <span class="c1"># Replace transformation uses a dict, so skip lower-casing</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="ow">and</span> <span class="n">k</span> <span class="o">!=</span> <span class="s1">&#39;Replace&#39;</span><span class="p">:</span>
+            <span class="n">out</span><span class="p">[</span><span class="n">newK</span><span class="p">]</span> <span class="o">=</span> <span class="n">convert_JSON</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="n">out</span><span class="p">[</span><span class="n">newK</span><span class="p">]</span> <span class="o">=</span> <span class="n">convertArray</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">out</span><span class="p">[</span><span class="n">newK</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+
+    <span class="k">return</span> <span class="n">out</span></div>
+
+
+
+<span class="k">def</span> <span class="nf">splitext</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;splitext for paths with directories that may contain dots.</span>
+<span class="sd">    From https://stackoverflow.com/questions/5930036/separating-file-extensions-using-python-os-path-module&quot;&quot;&quot;</span>
+    <span class="n">li</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">path_without_extensions</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">path</span><span class="p">),</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">path</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">extsep</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">extensions</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">path</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">extsep</span><span class="p">)[</span><span class="mi">1</span><span class="p">:]</span>
+    <span class="n">li</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">path_without_extensions</span><span class="p">)</span>
+    <span class="c1"># li.append(extensions) if you want extensions in another list inside the list that is returned.</span>
+    <span class="n">li</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">extensions</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">li</span>
+
+
+<div class="viewcode-block" id="make_bidsfile">
+<a class="viewcode-back" href="../../generated/bids.utils.make_bidsfile.html#bids.utils.make_bidsfile">[docs]</a>
+<span class="k">def</span> <span class="nf">make_bidsfile</span><span class="p">(</span><span class="n">filename</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Create a BIDSFile instance of the appropriate class. &quot;&quot;&quot;</span>
+    <span class="kn">from</span> <span class="nn">.layout</span> <span class="kn">import</span> <span class="n">models</span>
+
+    <span class="c1"># Extract all extensions from filename (a.tar.gz -&gt; .tar.gz, not just .gz)</span>
+    <span class="n">ext</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span><span class="o">.</span><span class="n">suffixes</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">ext</span><span class="o">.</span><span class="n">endswith</span><span class="p">((</span><span class="s1">&#39;.nii&#39;</span><span class="p">,</span> <span class="s1">&#39;.nii.gz&#39;</span><span class="p">,</span> <span class="s1">&#39;.gii&#39;</span><span class="p">)):</span>
+        <span class="bp">cls</span> <span class="o">=</span> <span class="s1">&#39;BIDSImageFile&#39;</span>
+    <span class="k">elif</span> <span class="n">ext</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;.tsv&#39;</span><span class="p">,</span> <span class="s1">&#39;.tsv.gz&#39;</span><span class="p">]:</span>
+        <span class="bp">cls</span> <span class="o">=</span> <span class="s1">&#39;BIDSDataFile&#39;</span>
+    <span class="k">elif</span> <span class="n">ext</span> <span class="o">==</span> <span class="s1">&#39;.json&#39;</span><span class="p">:</span>
+        <span class="bp">cls</span> <span class="o">=</span> <span class="s1">&#39;BIDSJSONFile&#39;</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="bp">cls</span> <span class="o">=</span> <span class="s1">&#39;BIDSFile&#39;</span>
+
+    <span class="n">Cls</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">models</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">Cls</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span></div>
+
+
+
+<span class="k">def</span> <span class="nf">collect_associated_files</span><span class="p">(</span><span class="n">layout</span><span class="p">,</span> <span class="n">files</span><span class="p">,</span> <span class="n">extra_entities</span><span class="o">=</span><span class="p">()):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Collect and group BIDSFiles with multiple files per acquisition.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    layout</span>
+<span class="sd">    files : list of BIDSFile</span>
+<span class="sd">    extra_entities</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    collected_files : list of list of BIDSFile</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">MULTICONTRAST_ENTITIES</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;echo&#39;</span><span class="p">,</span> <span class="s1">&#39;part&#39;</span><span class="p">,</span> <span class="s1">&#39;ch&#39;</span><span class="p">,</span> <span class="s1">&#39;direction&#39;</span><span class="p">]</span>
+    <span class="n">MULTICONTRAST_SUFFIXES</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="p">(</span><span class="s1">&#39;bold&#39;</span><span class="p">,</span> <span class="s1">&#39;phase&#39;</span><span class="p">),</span>
+        <span class="p">(</span><span class="s1">&#39;phase1&#39;</span><span class="p">,</span> <span class="s1">&#39;phase2&#39;</span><span class="p">,</span> <span class="s1">&#39;phasediff&#39;</span><span class="p">,</span> <span class="s1">&#39;magnitude1&#39;</span><span class="p">,</span> <span class="s1">&#39;magnitude2&#39;</span><span class="p">),</span>
+    <span class="p">]</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">extra_entities</span><span class="p">):</span>
+        <span class="n">MULTICONTRAST_ENTITIES</span> <span class="o">+=</span> <span class="n">extra_entities</span>
+
+    <span class="n">collected_files</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">files</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">collected_files</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">any</span><span class="p">(</span><span class="n">f</span> <span class="ow">in</span> <span class="n">filegroup</span> <span class="k">for</span> <span class="n">filegroup</span> <span class="ow">in</span> <span class="n">collected_files</span><span class="p">):</span>
+            <span class="k">continue</span>
+        <span class="n">ents</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">get_entities</span><span class="p">()</span>
+        <span class="n">ents</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">ents</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">k</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">MULTICONTRAST_ENTITIES</span><span class="p">}</span>
+
+        <span class="c1"># Group files with differing multi-contrast entity values, but same</span>
+        <span class="c1"># everything else.</span>
+        <span class="n">all_suffixes</span> <span class="o">=</span> <span class="n">ents</span><span class="p">[</span><span class="s1">&#39;suffix&#39;</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">mcs</span> <span class="ow">in</span> <span class="n">MULTICONTRAST_SUFFIXES</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">ents</span><span class="p">[</span><span class="s1">&#39;suffix&#39;</span><span class="p">]</span> <span class="ow">in</span> <span class="n">mcs</span><span class="p">:</span>
+                <span class="n">all_suffixes</span> <span class="o">=</span> <span class="n">mcs</span>
+                <span class="k">break</span>
+        <span class="n">ents</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;suffix&#39;</span><span class="p">)</span>
+        <span class="n">associated_files</span> <span class="o">=</span> <span class="n">layout</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">suffix</span><span class="o">=</span><span class="n">all_suffixes</span><span class="p">,</span> <span class="o">**</span><span class="n">ents</span><span class="p">)</span>
+        <span class="n">collected_files</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">associated_files</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">collected_files</span>
+
+
+<span class="k">def</span> <span class="nf">validate_multiple</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">retval</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Any click.Option with the multiple flag will return an empty tuple if not set.</span>
+
+<span class="sd">    This helper method converts empty tuples to a desired return value (default: None).</span>
+<span class="sd">    This helper method selects the first item in single-item tuples.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">val</span> <span class="o">==</span> <span class="nb">tuple</span><span class="p">():</span>
+        <span class="k">return</span> <span class="n">retval</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">val</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">val</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">val</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2015-2023, Developers of PyBIDS.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

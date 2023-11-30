@@ -1,0 +1,30 @@
+﻿bids.variables.DenseRunVariable
+===============================
+
+.. currentmodule:: bids.variables
+
+.. autoclass:: DenseRunVariable
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~DenseRunVariable.__init__
+      ~DenseRunVariable.apply
+      ~DenseRunVariable.clone
+      ~DenseRunVariable.filter
+      ~DenseRunVariable.get_grouper
+      ~DenseRunVariable.merge
+      ~DenseRunVariable.resample
+      ~DenseRunVariable.split
+      ~DenseRunVariable.to_df
+   
+   
+
+   
+   
+   

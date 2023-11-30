@@ -1,0 +1,36 @@
+﻿bids.variables.collections
+==========================
+
+.. automodule:: bids.variables.collections
+
+   
+   
+   
+
+   
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      merge_collections
+   
+   
+
+   
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      BIDSRunVariableCollection
+      BIDSVariableCollection
+   
+   
+
+   
+   
+   
+
+
+

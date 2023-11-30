@@ -1,0 +1,1525 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Introduction to pybids &mdash; PyBIDS 0.16.4 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=fa44fd50" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="../_static/mystnb.4510f1fc1dee50b3e5859aac5469c37c29e427902b24a333a5f9fcb2f0b3ac41.css" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/documentation_options.js?v=81998473"></script>
+        <script src="../_static/doctools.js?v=888ff710"></script>
+        <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Writing methods reports with pybids.reports" href="reports_tutorial.html" />
+    <link rel="prev" title="Tutorials" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            PyBIDS
+          </a>
+              <div class="version">
+                0.16.4
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../user_guide.html">User guide</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Tutorials</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Introduction to <code class="docutils literal notranslate"><span class="pre">pybids</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#the-bidslayout">The <code class="docutils literal notranslate"><span class="pre">BIDSLayout</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#querying-the-bidslayout">Querying the <code class="docutils literal notranslate"><span class="pre">BIDSLayout</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#filtering-files-by-entities">Filtering files by entities</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#filtering-by-metadata">Filtering by metadata</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#other-return-type-values">Other <code class="docutils literal notranslate"><span class="pre">return_type</span></code> values</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#other-get-options">Other <code class="docutils literal notranslate"><span class="pre">get()</span></code> options</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#the-bidsfile">The <code class="docutils literal notranslate"><span class="pre">BIDSFile</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#other-utilities">Other utilities</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#filename-parsing">Filename parsing</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#path-construction">Path construction</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#loading-derivatives">Loading derivatives</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#exporting-a-bidslayout-to-a-pandas-dataframe">Exporting a <code class="docutils literal notranslate"><span class="pre">BIDSLayout</span></code> to a pandas <code class="docutils literal notranslate"><span class="pre">Dataframe</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#retrieving-bids-variables">Retrieving BIDS variables</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#bidsvalidator">BIDSValidator</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="reports_tutorial.html">Writing methods reports with <code class="docutils literal notranslate"><span class="pre">pybids.reports</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="statsmodels_tutorial.html">Executing and inspecting StatsModels with <code class="docutils literal notranslate"><span class="pre">pybids.modeling</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../api.html">API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../whats_new.html">Changelog</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">PyBIDS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Tutorials</a></li>
+      <li class="breadcrumb-item active">Introduction to <code class="docutils literal notranslate"><span class="pre">pybids</span></code></li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/examples/pybids_tutorial.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="introduction-to-pybids">
+<h1>Introduction to <code class="docutils literal notranslate"><span class="pre">pybids</span></code><a class="headerlink" href="#introduction-to-pybids" title="Link to this heading">¶</a></h1>
+<p><a class="reference external" href="https://github.com/bids-standard/pybids"><code class="docutils literal notranslate"><span class="pre">pybids</span></code></a> is a tool to query, summarize and manipulate data using the BIDS standard.
+In this tutorial we will use a <code class="docutils literal notranslate"><span class="pre">pybids</span></code> test dataset to illustrate some of the functionality of <code class="docutils literal notranslate"><span class="pre">pybids.layout</span></code></p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">bids</span> <span class="kn">import</span> <span class="n">BIDSLayout</span>
+<span class="kn">from</span> <span class="nn">bids.tests</span> <span class="kn">import</span> <span class="n">get_test_data_path</span>
+<span class="kn">import</span> <span class="nn">os</span>
+</pre></div>
+</div>
+</div>
+</div>
+<section id="the-bidslayout">
+<h2>The <code class="docutils literal notranslate"><span class="pre">BIDSLayout</span></code><a class="headerlink" href="#the-bidslayout" title="Link to this heading">¶</a></h2>
+<p>At the core of pybids is the <code class="docutils literal notranslate"><span class="pre">BIDSLayout</span></code> object. A <code class="docutils literal notranslate"><span class="pre">BIDSLayout</span></code> is a lightweight Python class that represents a BIDS project file tree and provides a variety of helpful methods for querying and manipulating BIDS files. While the <code class="docutils literal notranslate"><span class="pre">BIDSLayout</span></code> initializer has a large number of arguments you can use to control the way files are indexed and accessed, you will most commonly initialize a <code class="docutils literal notranslate"><span class="pre">BIDSLayout</span></code> by passing in the BIDS dataset root location as a single argument:</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Here we&#39;re using an example BIDS dataset that&#39;s bundled with the pybids tests</span>
+<span class="n">data_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">get_test_data_path</span><span class="p">(),</span> <span class="s1">&#39;7t_trt&#39;</span><span class="p">)</span>
+
+<span class="c1"># Initialize the layout</span>
+<span class="n">layout</span> <span class="o">=</span> <span class="n">BIDSLayout</span><span class="p">(</span><span class="n">data_path</span><span class="p">)</span>
+
+<span class="c1"># Print some basic information about the layout</span>
+<span class="n">layout</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>BIDS Layout: ...ackages/bids/tests/data/7t_trt | Subjects: 10 | Sessions: 20 | Runs: 20
+</pre></div>
+</div>
+</div>
+</div>
+<section id="querying-the-bidslayout">
+<h3>Querying the <code class="docutils literal notranslate"><span class="pre">BIDSLayout</span></code><a class="headerlink" href="#querying-the-bidslayout" title="Link to this heading">¶</a></h3>
+<p>When we initialize a <code class="docutils literal notranslate"><span class="pre">BIDSLayout</span></code>, all of the files and metadata found under the specified root folder are indexed. This can take a few seconds (or, for very large datasets, a minute or two). Once initialization is complete, we can start querying the <code class="docutils literal notranslate"><span class="pre">BIDSLayout</span></code> in various ways. The workhorse method is <a class="reference external" href="https://bids-standard.github.io/pybids/generated/bids.grabbids.BIDSLayout.html#bids.grabbids.BIDSLayout.get"><code class="docutils literal notranslate"><span class="pre">.get()</span></code></a>. If we call <code class="docutils literal notranslate"><span class="pre">.get()</span></code> with no additional arguments, we get back a list of all the BIDS files in our dataset:</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">all_files</span> <span class="o">=</span> <span class="n">layout</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;There are </span><span class="si">{}</span><span class="s2"> files in the layout.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">all_files</span><span class="p">)))</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">The first 10 files are:&quot;</span><span class="p">)</span>
+<span class="n">all_files</span><span class="p">[:</span><span class="mi">10</span><span class="p">]</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>There are 339 files in the layout.
+
+The first 10 files are:
+</pre></div>
+</div>
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>[&lt;BIDSJSONFile filename=&#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/7t_trt/dataset_description.json&#39;&gt;,
+ &lt;BIDSDataFile filename=&#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/7t_trt/participants.tsv&#39;&gt;,
+ &lt;BIDSFile filename=&#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/7t_trt/README&#39;&gt;,
+ &lt;BIDSImageFile filename=&#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/7t_trt/sub-01/ses-1/anat/sub-01_ses-1_T1map.nii.gz&#39;&gt;,
+ &lt;BIDSImageFile filename=&#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/7t_trt/sub-01/ses-1/anat/sub-01_ses-1_T1w.nii.gz&#39;&gt;,
+ &lt;BIDSImageFile filename=&#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/7t_trt/sub-01/ses-1/fmap/sub-01_ses-1_run-1_magnitude1.nii.gz&#39;&gt;,
+ &lt;BIDSImageFile filename=&#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/7t_trt/sub-01/ses-1/fmap/sub-01_ses-1_run-1_magnitude2.nii.gz&#39;&gt;,
+ &lt;BIDSJSONFile filename=&#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/7t_trt/sub-01/ses-1/fmap/sub-01_ses-1_run-1_phasediff.json&#39;&gt;,
+ &lt;BIDSImageFile filename=&#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/7t_trt/sub-01/ses-1/fmap/sub-01_ses-1_run-1_phasediff.nii.gz&#39;&gt;,
+ &lt;BIDSImageFile filename=&#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/7t_trt/sub-01/ses-1/fmap/sub-01_ses-1_run-2_magnitude1.nii.gz&#39;&gt;]
+</pre></div>
+</div>
+</div>
+</div>
+<p>The returned object is a Python list. By default, each element in the list is a <code class="docutils literal notranslate"><span class="pre">BIDSFile</span></code> object. We discuss the <code class="docutils literal notranslate"><span class="pre">BIDSFile</span></code> object in much more detail below. For now, let’s simplify things and work with just filenames:</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">layout</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">return_type</span><span class="o">=</span><span class="s1">&#39;filename&#39;</span><span class="p">)[:</span><span class="mi">10</span><span class="p">]</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>[&#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/7t_trt/dataset_description.json&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/7t_trt/participants.tsv&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/7t_trt/README&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/7t_trt/sub-01/ses-1/anat/sub-01_ses-1_T1map.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/7t_trt/sub-01/ses-1/anat/sub-01_ses-1_T1w.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/7t_trt/sub-01/ses-1/fmap/sub-01_ses-1_run-1_magnitude1.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/7t_trt/sub-01/ses-1/fmap/sub-01_ses-1_run-1_magnitude2.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/7t_trt/sub-01/ses-1/fmap/sub-01_ses-1_run-1_phasediff.json&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/7t_trt/sub-01/ses-1/fmap/sub-01_ses-1_run-1_phasediff.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/7t_trt/sub-01/ses-1/fmap/sub-01_ses-1_run-2_magnitude1.nii.gz&#39;]
+</pre></div>
+</div>
+</div>
+</div>
+<p>This time, we get back only the names of the files.</p>
+</section>
+<section id="filtering-files-by-entities">
+<h3>Filtering files by entities<a class="headerlink" href="#filtering-files-by-entities" title="Link to this heading">¶</a></h3>
+<p>The utility of the <code class="docutils literal notranslate"><span class="pre">BIDSLayout</span></code> would be pretty limited if all we could do was retrieve a list of all files in the dataset. Fortunately, the <code class="docutils literal notranslate"><span class="pre">.get()</span></code> method accepts all kinds of arguments that allow us to filter the result set based on specified criteria. In fact, we can pass <em>any</em> BIDS-defined keywords (or, as they’re called in PyBIDS, <em>entities</em>) as constraints. For example, here’s how we would retrieve all BOLD runs with <code class="docutils literal notranslate"><span class="pre">.nii.gz</span></code> extensions for subject <code class="docutils literal notranslate"><span class="pre">'01'</span></code>:</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Retrieve filenames of all BOLD runs for subject 01</span>
+<span class="n">layout</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">subject</span><span class="o">=</span><span class="s1">&#39;01&#39;</span><span class="p">,</span> <span class="n">extension</span><span class="o">=</span><span class="s1">&#39;nii.gz&#39;</span><span class="p">,</span> <span class="n">suffix</span><span class="o">=</span><span class="s1">&#39;bold&#39;</span><span class="p">,</span> <span class="n">return_type</span><span class="o">=</span><span class="s1">&#39;filename&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>[&#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/7t_trt/sub-01/ses-1/func/sub-01_ses-1_task-rest_acq-fullbrain_run-1_bold.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/7t_trt/sub-01/ses-1/func/sub-01_ses-1_task-rest_acq-fullbrain_run-2_bold.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/7t_trt/sub-01/ses-1/func/sub-01_ses-1_task-rest_acq-prefrontal_bold.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/7t_trt/sub-01/ses-2/func/sub-01_ses-2_task-rest_acq-fullbrain_run-1_bold.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/7t_trt/sub-01/ses-2/func/sub-01_ses-2_task-rest_acq-fullbrain_run-2_bold.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/7t_trt/sub-01/ses-2/func/sub-01_ses-2_task-rest_acq-prefrontal_bold.nii.gz&#39;]
+</pre></div>
+</div>
+</div>
+</div>
+<p>If you’re wondering what entities you can pass in as filtering arguments, the answer is contained in the <code class="docutils literal notranslate"><span class="pre">.json</span></code> configuration files <a class="reference external" href="https://github.com/bids-standard/pybids/tree/master/bids/layout/config">housed here</a>. To save you the trouble, here are a few of the most common entities:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">suffix</span></code>: The part of a BIDS filename just before the extension (e.g., <code class="docutils literal notranslate"><span class="pre">'bold'</span></code>, <code class="docutils literal notranslate"><span class="pre">'events'</span></code>, <code class="docutils literal notranslate"><span class="pre">'physio'</span></code>, etc.).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">subject</span></code>: The subject label</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">session</span></code>: The session label</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">run</span></code>: The run index</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">task</span></code>: The task name</p></li>
+</ul>
+<p>New entities are continually being defined as the spec grows, and in principle (though not always in practice), PyBIDS should be aware of all entities that are defined in the BIDS specification.</p>
+</section>
+<section id="filtering-by-metadata">
+<h3>Filtering by metadata<a class="headerlink" href="#filtering-by-metadata" title="Link to this heading">¶</a></h3>
+<p>All of the entities listed above are found in the names of BIDS files. But sometimes we want to search for files based not just on their names, but also based on metadata defined (per the BIDS spec) in JSON files. Fortunately for us, when we initialize a <code class="docutils literal notranslate"><span class="pre">BIDSLayout</span></code>, all metadata files associated with BIDS files are automatically indexed. This means we can pass any key that occurs in any JSON file in our project as an argument to <code class="docutils literal notranslate"><span class="pre">.get()</span></code>. We can combine these with any number of core BIDS entities (like <code class="docutils literal notranslate"><span class="pre">subject</span></code>, <code class="docutils literal notranslate"><span class="pre">run</span></code>, etc.).</p>
+<p>For example, say we want to retrieve all files where (a) the value of <code class="docutils literal notranslate"><span class="pre">SamplingFrequency</span></code> (a metadata key) is <code class="docutils literal notranslate"><span class="pre">100</span></code>, (b) the <code class="docutils literal notranslate"><span class="pre">acquisition</span></code> type is <code class="docutils literal notranslate"><span class="pre">'prefrontal'</span></code>, and (c) the subject is <code class="docutils literal notranslate"><span class="pre">'01'</span></code> or <code class="docutils literal notranslate"><span class="pre">'02'</span></code>. Here’s how we can do that:</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Retrieve all files where SamplingFrequency (a metadata key) = 100</span>
+<span class="c1"># and acquisition = prefrontal, for the first two subjects</span>
+<span class="n">layout</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">subject</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;01&#39;</span><span class="p">,</span> <span class="s1">&#39;02&#39;</span><span class="p">],</span> <span class="n">SamplingFrequency</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">acquisition</span><span class="o">=</span><span class="s2">&quot;prefrontal&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>[&lt;BIDSDataFile filename=&#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/7t_trt/sub-01/ses-1/func/sub-01_ses-1_task-rest_acq-prefrontal_physio.tsv.gz&#39;&gt;,
+ &lt;BIDSDataFile filename=&#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/7t_trt/sub-01/ses-2/func/sub-01_ses-2_task-rest_acq-prefrontal_physio.tsv.gz&#39;&gt;,
+ &lt;BIDSDataFile filename=&#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/7t_trt/sub-02/ses-1/func/sub-02_ses-1_task-rest_acq-prefrontal_physio.tsv.gz&#39;&gt;,
+ &lt;BIDSDataFile filename=&#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/7t_trt/sub-02/ses-2/func/sub-02_ses-2_task-rest_acq-prefrontal_physio.tsv.gz&#39;&gt;]
+</pre></div>
+</div>
+</div>
+</div>
+<p>Notice that we passed a list in for <code class="docutils literal notranslate"><span class="pre">subject</span></code> rather than just a string. This principle applies to all filters: you can always pass in a list instead of a single value, and this will be interpreted as a logical disjunction (i.e., a file must match any one of the provided values).</p>
+</section>
+<section id="other-return-type-values">
+<h3>Other <code class="docutils literal notranslate"><span class="pre">return_type</span></code> values<a class="headerlink" href="#other-return-type-values" title="Link to this heading">¶</a></h3>
+<p>While we’ll typically want to work with either <code class="docutils literal notranslate"><span class="pre">BIDSFile</span></code> objects or filenames, we can also ask <code class="docutils literal notranslate"><span class="pre">get()</span></code> to return unique values (or ids) of particular entities. For example, say we want to know which subjects have at least one <code class="docutils literal notranslate"><span class="pre">T1w</span></code> file. We can request that information by setting <code class="docutils literal notranslate"><span class="pre">return_type='id'</span></code>. When using this option, we also need to specify a target entity (or metadata keyword) called <code class="docutils literal notranslate"><span class="pre">target</span></code>. This combination tells the <code class="docutils literal notranslate"><span class="pre">BIDSLayout</span></code> to return the unique values for the specified <code class="docutils literal notranslate"><span class="pre">target</span></code> entity. For example, in the next example, we ask for all of the unique subject IDs that have at least one file with a <code class="docutils literal notranslate"><span class="pre">T1w</span></code> suffix:</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Ask get() to return the ids of subjects that have T1w files</span>
+<span class="n">layout</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">return_type</span><span class="o">=</span><span class="s1">&#39;id&#39;</span><span class="p">,</span> <span class="n">target</span><span class="o">=</span><span class="s1">&#39;subject&#39;</span><span class="p">,</span> <span class="n">suffix</span><span class="o">=</span><span class="s1">&#39;T1w&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>[&#39;01&#39;, &#39;02&#39;, &#39;03&#39;, &#39;04&#39;, &#39;05&#39;, &#39;06&#39;, &#39;07&#39;, &#39;08&#39;, &#39;09&#39;, &#39;10&#39;]
+</pre></div>
+</div>
+</div>
+</div>
+<p>If our <code class="docutils literal notranslate"><span class="pre">target</span></code> is a BIDS entity that corresponds to a particular directory in the BIDS spec (e.g., <code class="docutils literal notranslate"><span class="pre">subject</span></code> or <code class="docutils literal notranslate"><span class="pre">session</span></code>) we can also use <code class="docutils literal notranslate"><span class="pre">return_type='dir'</span></code> to get all matching subdirectories:</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">layout</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">return_type</span><span class="o">=</span><span class="s1">&#39;dir&#39;</span><span class="p">,</span> <span class="n">target</span><span class="o">=</span><span class="s1">&#39;subject&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>[&#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/7t_trt/sub-01&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/7t_trt/sub-02&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/7t_trt/sub-03&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/7t_trt/sub-04&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/7t_trt/sub-05&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/7t_trt/sub-06&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/7t_trt/sub-07&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/7t_trt/sub-08&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/7t_trt/sub-09&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/7t_trt/sub-10&#39;]
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+<section id="other-get-options">
+<h3>Other <code class="docutils literal notranslate"><span class="pre">get()</span></code> options<a class="headerlink" href="#other-get-options" title="Link to this heading">¶</a></h3>
+<p>The <code class="docutils literal notranslate"><span class="pre">.get()</span></code> method has a number of other useful arguments that control its behavior. We won’t discuss these in detail here, but briefly, here are a couple worth knowing about:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">regex_search</span></code>: If you set this to <code class="docutils literal notranslate"><span class="pre">True</span></code>, string filter argument values will be interpreted as regular expressions.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">scope</span></code>: If your BIDS dataset contains BIDS-derivatives sub-datasets, you can specify the scope (e.g., <code class="docutils literal notranslate"><span class="pre">derivatives</span></code>, or a BIDS-Derivatives pipeline name) of the search space.</p></li>
+</ul>
+</section>
+</section>
+<section id="the-bidsfile">
+<h2>The <code class="docutils literal notranslate"><span class="pre">BIDSFile</span></code><a class="headerlink" href="#the-bidsfile" title="Link to this heading">¶</a></h2>
+<p>When you call <code class="docutils literal notranslate"><span class="pre">.get()</span></code> on a <code class="docutils literal notranslate"><span class="pre">BIDSLayout</span></code>, the default returned values are objects of class <code class="docutils literal notranslate"><span class="pre">BIDSFile</span></code>. A <code class="docutils literal notranslate"><span class="pre">BIDSFile</span></code> is a lightweight container for individual files in a BIDS dataset. It provides easy access to a variety of useful attributes and methods. Let’s take a closer look. First, let’s pick a random file from our existing <code class="docutils literal notranslate"><span class="pre">layout</span></code>.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Pick the 15th file in the dataset</span>
+<span class="n">bf</span> <span class="o">=</span> <span class="n">layout</span><span class="o">.</span><span class="n">get</span><span class="p">()[</span><span class="mi">15</span><span class="p">]</span>
+
+<span class="c1"># Print it</span>
+<span class="n">bf</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>&lt;BIDSDataFile filename=&#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/7t_trt/sub-01/ses-1/func/sub-01_ses-1_task-rest_acq-fullbrain_run-1_physio.tsv.gz&#39;&gt;
+</pre></div>
+</div>
+</div>
+</div>
+<p>Here are some of the attributes and methods available to us in a <code class="docutils literal notranslate"><span class="pre">BIDSFile</span></code> (note that some of these are only available for certain subclasses of <code class="docutils literal notranslate"><span class="pre">BIDSFile</span></code>; e.g., you can’t call <code class="docutils literal notranslate"><span class="pre">get_image()</span></code> on a <code class="docutils literal notranslate"><span class="pre">BIDSFile</span></code> that doesn’t correspond to an image file!):</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">.path</span></code>: The full path of the associated file</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">.filename</span></code>: The associated file’s filename (without directory)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">.dirname</span></code>: The directory containing the file</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">.get_entities()</span></code>: Returns information about entities associated with this <code class="docutils literal notranslate"><span class="pre">BIDSFile</span></code> (optionally including metadata)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">.get_image()</span></code>: Returns the file contents as a nibabel image (only works for image files)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">.get_df()</span></code>: Get file contents as a pandas DataFrame (only works for TSV files)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">.get_metadata()</span></code>: Returns a dictionary of all metadata found in associated JSON files</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">.get_associations()</span></code>: Returns a list of all files associated with this one in some way</p></li>
+</ul>
+<p>Let’s see some of these in action.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Print all the entities associated with this file, and their values</span>
+<span class="n">bf</span><span class="o">.</span><span class="n">get_entities</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>{&#39;acquisition&#39;: &#39;fullbrain&#39;,
+ &#39;datatype&#39;: &#39;func&#39;,
+ &#39;extension&#39;: &#39;.tsv.gz&#39;,
+ &#39;run&#39;: 1,
+ &#39;session&#39;: &#39;1&#39;,
+ &#39;subject&#39;: &#39;01&#39;,
+ &#39;suffix&#39;: &#39;physio&#39;,
+ &#39;task&#39;: &#39;rest&#39;}
+</pre></div>
+</div>
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Print all the metadata associated with this file</span>
+<span class="n">bf</span><span class="o">.</span><span class="n">get_metadata</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>{&#39;Columns&#39;: [&#39;cardiac&#39;, &#39;respiratory&#39;, &#39;trigger&#39;, &#39;oxygen saturation&#39;],
+ &#39;SamplingFrequency&#39;: 100,
+ &#39;StartTime&#39;: 0}
+</pre></div>
+</div>
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># We can the union of both of the above in one shot like this</span>
+<span class="n">bf</span><span class="o">.</span><span class="n">get_entities</span><span class="p">(</span><span class="n">metadata</span><span class="o">=</span><span class="s1">&#39;all&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>{&#39;Columns&#39;: [&#39;cardiac&#39;, &#39;respiratory&#39;, &#39;trigger&#39;, &#39;oxygen saturation&#39;],
+ &#39;SamplingFrequency&#39;: 100,
+ &#39;StartTime&#39;: 0,
+ &#39;acquisition&#39;: &#39;fullbrain&#39;,
+ &#39;datatype&#39;: &#39;func&#39;,
+ &#39;extension&#39;: &#39;.tsv.gz&#39;,
+ &#39;run&#39;: 1,
+ &#39;session&#39;: &#39;1&#39;,
+ &#39;subject&#39;: &#39;01&#39;,
+ &#39;suffix&#39;: &#39;physio&#39;,
+ &#39;task&#39;: &#39;rest&#39;}
+</pre></div>
+</div>
+</div>
+</div>
+<p>Here are all the files associated with our target file in some way. Notice how we get back both the JSON sidecar for our target file, and the BOLD run that our target file contains physiological recordings for.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">bf</span><span class="o">.</span><span class="n">get_associations</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>[&lt;BIDSJSONFile filename=&#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/7t_trt/task-rest_acq-fullbrain_run-1_physio.json&#39;&gt;,
+ &lt;BIDSImageFile filename=&#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/7t_trt/sub-01/ses-1/func/sub-01_ses-1_task-rest_acq-fullbrain_run-1_bold.nii.gz&#39;&gt;]
+</pre></div>
+</div>
+</div>
+</div>
+<p>In cases where a file has a <code class="docutils literal notranslate"><span class="pre">.tsv.gz</span></code> or <code class="docutils literal notranslate"><span class="pre">.tsv</span></code> extension, it will automatically be created as a <code class="docutils literal notranslate"><span class="pre">BIDSDataFile</span></code>, and we can easily grab the contents as a pandas <code class="docutils literal notranslate"><span class="pre">DataFrame</span></code>:</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Use a different test dataset--one that contains physio recording files</span>
+<span class="n">data_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">get_test_data_path</span><span class="p">(),</span> <span class="s1">&#39;synthetic&#39;</span><span class="p">)</span>
+<span class="n">layout2</span> <span class="o">=</span> <span class="n">BIDSLayout</span><span class="p">(</span><span class="n">data_path</span><span class="p">)</span>
+
+<span class="c1"># Get the first physiological recording file</span>
+<span class="n">recfile</span> <span class="o">=</span> <span class="n">layout2</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">suffix</span><span class="o">=</span><span class="s1">&#39;physio&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+
+<span class="c1"># Get contents as a DataFrame and show the first few rows</span>
+<span class="n">df</span> <span class="o">=</span> <span class="n">recfile</span><span class="o">.</span><span class="n">get_df</span><span class="p">()</span>
+<span class="n">df</span><span class="o">.</span><span class="n">head</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_html"><div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>onset</th>
+      <th>respiratory</th>
+      <th>cardiac</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>0.0</td>
+      <td>-0.714844</td>
+      <td>-0.262109</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>0.1</td>
+      <td>-0.757342</td>
+      <td>0.048933</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>0.2</td>
+      <td>-0.796851</td>
+      <td>0.355185</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>0.3</td>
+      <td>-0.833215</td>
+      <td>0.626669</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>0.4</td>
+      <td>-0.866291</td>
+      <td>0.836810</td>
+    </tr>
+  </tbody>
+</table>
+</div></div></div>
+</div>
+<p>While it would have been easy enough to read the contents of the file ourselves with pandas’ <code class="docutils literal notranslate"><span class="pre">read_csv()</span></code> method, notice that in the above example, <code class="docutils literal notranslate"><span class="pre">get_df()</span></code> saved us the trouble of having to read the physiological recording file’s metadata, pull out the column names and sampling rate, and add timing information.</p>
+<p>Mind you, if we don’t <em>want</em> the timing information, we can ignore it:</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">recfile</span><span class="o">.</span><span class="n">get_df</span><span class="p">(</span><span class="n">include_timing</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="o">.</span><span class="n">head</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_html"><div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>respiratory</th>
+      <th>cardiac</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>-0.714844</td>
+      <td>-0.262109</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>-0.757342</td>
+      <td>0.048933</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>-0.796851</td>
+      <td>0.355185</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>-0.833215</td>
+      <td>0.626669</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>-0.866291</td>
+      <td>0.836810</td>
+    </tr>
+  </tbody>
+</table>
+</div></div></div>
+</div>
+</section>
+<section id="other-utilities">
+<h2>Other utilities<a class="headerlink" href="#other-utilities" title="Link to this heading">¶</a></h2>
+<section id="filename-parsing">
+<h3>Filename parsing<a class="headerlink" href="#filename-parsing" title="Link to this heading">¶</a></h3>
+<p>Say you have a filename, and you want to manually extract BIDS entities from it. The <code class="docutils literal notranslate"><span class="pre">parse_file_entities</span></code> method provides the facility:</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">path</span> <span class="o">=</span> <span class="s2">&quot;/a/fake/path/to/a/BIDS/file/sub-01_run-1_T2w.nii.gz&quot;</span>
+<span class="n">layout</span><span class="o">.</span><span class="n">parse_file_entities</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>{&#39;subject&#39;: &#39;01&#39;, &#39;run&#39;: 1, &#39;suffix&#39;: &#39;T2w&#39;, &#39;extension&#39;: &#39;.nii.gz&#39;}
+</pre></div>
+</div>
+</div>
+</div>
+<p>A version of this utility independent of a specific layout is available at <code class="docutils literal notranslate"><span class="pre">bids.layout</span></code> (<a class="reference external" href="https://bids-standard.github.io/pybids/generated/bids.layout.parse_file_entities.html#bids.layout.parse_file_entities">doc</a>) -</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">bids.layout</span> <span class="kn">import</span> <span class="n">parse_file_entities</span>
+
+<span class="n">path</span> <span class="o">=</span> <span class="s2">&quot;/a/fake/path/to/a/BIDS/file/sub-01_run-1_T2w.nii.gz&quot;</span>
+<span class="n">parse_file_entities</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>{&#39;subject&#39;: &#39;01&#39;, &#39;run&#39;: 1, &#39;suffix&#39;: &#39;T2w&#39;, &#39;extension&#39;: &#39;.nii.gz&#39;}
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+<section id="path-construction">
+<h3>Path construction<a class="headerlink" href="#path-construction" title="Link to this heading">¶</a></h3>
+<p>You may want to create valid BIDS filenames for files that are new or hypothetical that would sit within your BIDS project. This is useful when you know what entity values you need to write out to, but don’t want to deal with looking up the precise BIDS file-naming syntax. In the example below, imagine we’ve created a new file containing stimulus presentation information, and we want to save it to a <code class="docutils literal notranslate"><span class="pre">.tsv.gz</span></code> file, per the BIDS naming conventions. All we need to do is define a dictionary with the name components, and <code class="docutils literal notranslate"><span class="pre">build_path</span></code> takes care of the rest (including injecting sub-directories!):</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">entities</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s1">&#39;subject&#39;</span><span class="p">:</span> <span class="s1">&#39;01&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;run&#39;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>
+    <span class="s1">&#39;task&#39;</span><span class="p">:</span> <span class="s1">&#39;nback&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;suffix&#39;</span><span class="p">:</span> <span class="s1">&#39;bold&#39;</span>
+<span class="p">}</span>
+
+<span class="n">layout</span><span class="o">.</span><span class="n">build_path</span><span class="p">(</span><span class="n">entities</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>&#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/7t_trt/sub-01/func/sub-01_task-nback_run-2_bold.nii.gz&#39;
+</pre></div>
+</div>
+</div>
+</div>
+<p>You can also use <code class="docutils literal notranslate"><span class="pre">build_path</span></code> in more sophisticated ways—for example, by defining your own set of matching templates that cover cases not supported by BIDS out of the box. For example, suppose you want to create a template for naming a new z-stat file. You could do something like:</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Define the pattern to build out of the components passed in the dictionary</span>
+<span class="n">pattern</span> <span class="o">=</span> <span class="s2">&quot;sub-</span><span class="si">{subject}</span><span class="s2">[_ses-</span><span class="si">{session}</span><span class="s2">]_task-</span><span class="si">{task}</span><span class="s2">[_acq-</span><span class="si">{acquisition}</span><span class="s2">][_rec-</span><span class="si">{reconstruction}</span><span class="s2">][_run-</span><span class="si">{run}</span><span class="s2">][_echo-</span><span class="si">{echo}</span><span class="s2">]_{suffix&lt;z&gt;}.nii.gz&quot;</span><span class="p">,</span>
+
+<span class="n">entities</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s1">&#39;subject&#39;</span><span class="p">:</span> <span class="s1">&#39;01&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;run&#39;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>
+    <span class="s1">&#39;task&#39;</span><span class="p">:</span> <span class="s1">&#39;nback&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;suffix&#39;</span><span class="p">:</span> <span class="s1">&#39;z&#39;</span>
+<span class="p">}</span>
+
+<span class="c1"># Notice we pass the new pattern as the second argument</span>
+<span class="n">layout</span><span class="o">.</span><span class="n">build_path</span><span class="p">(</span><span class="n">entities</span><span class="p">,</span> <span class="n">pattern</span><span class="p">,</span> <span class="n">validate</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>&#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/7t_trt/sub-01_task-nback_run-2_z.nii.gz&#39;
+</pre></div>
+</div>
+</div>
+</div>
+<p>Note that in the above example, we set <code class="docutils literal notranslate"><span class="pre">validate=False</span></code> to ensure that the standard BIDS file validator doesn’t run (because the pattern we defined isn’t actually compliant with the BIDS specification).</p>
+</section>
+<section id="loading-derivatives">
+<h3>Loading derivatives<a class="headerlink" href="#loading-derivatives" title="Link to this heading">¶</a></h3>
+<p>By default, <code class="docutils literal notranslate"><span class="pre">BIDSLayout</span></code> objects are initialized without scanning contained <code class="docutils literal notranslate"><span class="pre">derivatives/</span></code> directories. But you can easily ensure that all derivatives files are loaded and endowed with the extra structure specified in the <a class="reference external" href="https://github.com/bids-standard/pybids/blob/master/bids/layout/config/derivatives.json">derivatives config file</a>:</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Define paths to root and derivatives folders</span>
+<span class="n">root</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">get_test_data_path</span><span class="p">(),</span> <span class="s1">&#39;synthetic&#39;</span><span class="p">)</span>
+<span class="n">layout2</span> <span class="o">=</span> <span class="n">BIDSLayout</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="n">derivatives</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">layout2</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/layout/validation.py:124: UserWarning: The PipelineDescription field was superseded by GeneratedBy in BIDS 1.4.0. You can use ``pybids upgrade`` to update your derivative dataset.
+  warnings.warn(&quot;The PipelineDescription field was superseded &quot;
+</pre></div>
+</div>
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>BIDS Layout: ...ages/bids/tests/data/synthetic | Subjects: 5 | Sessions: 10 | Runs: 10
+</pre></div>
+</div>
+</div>
+</div>
+<p>The <code class="docutils literal notranslate"><span class="pre">scope</span></code> argument to <code class="docutils literal notranslate"><span class="pre">get()</span></code> specifies which part of the project to look in. By default, valid values are <code class="docutils literal notranslate"><span class="pre">'bids'</span></code> (for the “raw” BIDS project that excludes derivatives) and <code class="docutils literal notranslate"><span class="pre">'derivatives'</span></code> (for all BIDS-derivatives files). You can also pass the names of individual derivatives pipelines (e.g., passing <code class="docutils literal notranslate"><span class="pre">'fmriprep'</span></code> would search only in a <code class="docutils literal notranslate"><span class="pre">/derivatives/fmriprep</span></code> folder). Either a string or a list of strings can be passed.</p>
+<p>The following call returns the filenames of all derivatives files.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Get all files in derivatives</span>
+<span class="n">layout2</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">scope</span><span class="o">=</span><span class="s1">&#39;derivatives&#39;</span><span class="p">,</span> <span class="n">return_type</span><span class="o">=</span><span class="s1">&#39;file&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>[&#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/dataset_description.json&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-01/ses-01/func/sub-01_ses-01_task-nback_run-01_desc-confounds_regressors.tsv&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-01/ses-01/func/sub-01_ses-01_task-nback_run-01_space-MNI152NLin2009cAsym_desc-brain_mask.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-01/ses-01/func/sub-01_ses-01_task-nback_run-01_space-MNI152NLin2009cAsym_desc-brain_mask.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-01/ses-01/func/sub-01_ses-01_task-nback_run-01_space-MNI152NLin2009cAsym_desc-preproc_bold.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-01/ses-01/func/sub-01_ses-01_task-nback_run-01_space-MNI152NLin2009cAsym_desc-preproc_bold.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-01/ses-01/func/sub-01_ses-01_task-nback_run-01_space-T1w_desc-brain_mask.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-01/ses-01/func/sub-01_ses-01_task-nback_run-01_space-T1w_desc-brain_mask.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-01/ses-01/func/sub-01_ses-01_task-nback_run-01_space-T1w_desc-preproc_bold.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-01/ses-01/func/sub-01_ses-01_task-nback_run-01_space-T1w_desc-preproc_bold.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-01/ses-01/func/sub-01_ses-01_task-nback_run-02_desc-confounds_regressors.tsv&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-01/ses-01/func/sub-01_ses-01_task-nback_run-02_space-MNI152NLin2009cAsym_desc-brain_mask.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-01/ses-01/func/sub-01_ses-01_task-nback_run-02_space-MNI152NLin2009cAsym_desc-brain_mask.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-01/ses-01/func/sub-01_ses-01_task-nback_run-02_space-MNI152NLin2009cAsym_desc-preproc_bold.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-01/ses-01/func/sub-01_ses-01_task-nback_run-02_space-MNI152NLin2009cAsym_desc-preproc_bold.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-01/ses-01/func/sub-01_ses-01_task-nback_run-02_space-T1w_desc-brain_mask.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-01/ses-01/func/sub-01_ses-01_task-nback_run-02_space-T1w_desc-brain_mask.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-01/ses-01/func/sub-01_ses-01_task-nback_run-02_space-T1w_desc-preproc_bold.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-01/ses-01/func/sub-01_ses-01_task-nback_run-02_space-T1w_desc-preproc_bold.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-01/ses-01/func/sub-01_ses-01_task-rest_desc-confounds_regressors.tsv&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-01/ses-01/func/sub-01_ses-01_task-rest_space-MNI152NLin2009cAsym_desc-brain_mask.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-01/ses-01/func/sub-01_ses-01_task-rest_space-MNI152NLin2009cAsym_desc-brain_mask.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-01/ses-01/func/sub-01_ses-01_task-rest_space-MNI152NLin2009cAsym_desc-preproc_bold.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-01/ses-01/func/sub-01_ses-01_task-rest_space-MNI152NLin2009cAsym_desc-preproc_bold.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-01/ses-01/func/sub-01_ses-01_task-rest_space-T1w_desc-brain_mask.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-01/ses-01/func/sub-01_ses-01_task-rest_space-T1w_desc-brain_mask.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-01/ses-01/func/sub-01_ses-01_task-rest_space-T1w_desc-preproc_bold.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-01/ses-01/func/sub-01_ses-01_task-rest_space-T1w_desc-preproc_bold.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-01/ses-02/func/sub-01_ses-02_task-nback_run-01_desc-confounds_regressors.tsv&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-01/ses-02/func/sub-01_ses-02_task-nback_run-01_space-MNI152NLin2009cAsym_desc-brain_mask.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-01/ses-02/func/sub-01_ses-02_task-nback_run-01_space-MNI152NLin2009cAsym_desc-brain_mask.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-01/ses-02/func/sub-01_ses-02_task-nback_run-01_space-MNI152NLin2009cAsym_desc-preproc_bold.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-01/ses-02/func/sub-01_ses-02_task-nback_run-01_space-MNI152NLin2009cAsym_desc-preproc_bold.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-01/ses-02/func/sub-01_ses-02_task-nback_run-01_space-T1w_desc-brain_mask.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-01/ses-02/func/sub-01_ses-02_task-nback_run-01_space-T1w_desc-brain_mask.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-01/ses-02/func/sub-01_ses-02_task-nback_run-01_space-T1w_desc-preproc_bold.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-01/ses-02/func/sub-01_ses-02_task-nback_run-01_space-T1w_desc-preproc_bold.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-01/ses-02/func/sub-01_ses-02_task-nback_run-02_desc-confounds_regressors.tsv&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-01/ses-02/func/sub-01_ses-02_task-nback_run-02_space-MNI152NLin2009cAsym_desc-brain_mask.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-01/ses-02/func/sub-01_ses-02_task-nback_run-02_space-MNI152NLin2009cAsym_desc-brain_mask.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-01/ses-02/func/sub-01_ses-02_task-nback_run-02_space-MNI152NLin2009cAsym_desc-preproc_bold.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-01/ses-02/func/sub-01_ses-02_task-nback_run-02_space-MNI152NLin2009cAsym_desc-preproc_bold.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-01/ses-02/func/sub-01_ses-02_task-nback_run-02_space-T1w_desc-brain_mask.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-01/ses-02/func/sub-01_ses-02_task-nback_run-02_space-T1w_desc-brain_mask.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-01/ses-02/func/sub-01_ses-02_task-nback_run-02_space-T1w_desc-preproc_bold.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-01/ses-02/func/sub-01_ses-02_task-nback_run-02_space-T1w_desc-preproc_bold.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-01/ses-02/func/sub-01_ses-02_task-rest_desc-confounds_regressors.tsv&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-01/ses-02/func/sub-01_ses-02_task-rest_space-MNI152NLin2009cAsym_desc-brain_mask.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-01/ses-02/func/sub-01_ses-02_task-rest_space-MNI152NLin2009cAsym_desc-brain_mask.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-01/ses-02/func/sub-01_ses-02_task-rest_space-MNI152NLin2009cAsym_desc-preproc_bold.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-01/ses-02/func/sub-01_ses-02_task-rest_space-MNI152NLin2009cAsym_desc-preproc_bold.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-01/ses-02/func/sub-01_ses-02_task-rest_space-T1w_desc-brain_mask.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-01/ses-02/func/sub-01_ses-02_task-rest_space-T1w_desc-brain_mask.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-01/ses-02/func/sub-01_ses-02_task-rest_space-T1w_desc-preproc_bold.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-01/ses-02/func/sub-01_ses-02_task-rest_space-T1w_desc-preproc_bold.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-02/ses-01/func/sub-02_ses-01_task-nback_run-01_desc-confounds_regressors.tsv&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-02/ses-01/func/sub-02_ses-01_task-nback_run-01_space-MNI152NLin2009cAsym_desc-brain_mask.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-02/ses-01/func/sub-02_ses-01_task-nback_run-01_space-MNI152NLin2009cAsym_desc-brain_mask.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-02/ses-01/func/sub-02_ses-01_task-nback_run-01_space-MNI152NLin2009cAsym_desc-preproc_bold.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-02/ses-01/func/sub-02_ses-01_task-nback_run-01_space-MNI152NLin2009cAsym_desc-preproc_bold.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-02/ses-01/func/sub-02_ses-01_task-nback_run-01_space-T1w_desc-brain_mask.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-02/ses-01/func/sub-02_ses-01_task-nback_run-01_space-T1w_desc-brain_mask.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-02/ses-01/func/sub-02_ses-01_task-nback_run-01_space-T1w_desc-preproc_bold.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-02/ses-01/func/sub-02_ses-01_task-nback_run-01_space-T1w_desc-preproc_bold.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-02/ses-01/func/sub-02_ses-01_task-nback_run-02_desc-confounds_regressors.tsv&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-02/ses-01/func/sub-02_ses-01_task-nback_run-02_space-MNI152NLin2009cAsym_desc-brain_mask.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-02/ses-01/func/sub-02_ses-01_task-nback_run-02_space-MNI152NLin2009cAsym_desc-brain_mask.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-02/ses-01/func/sub-02_ses-01_task-nback_run-02_space-MNI152NLin2009cAsym_desc-preproc_bold.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-02/ses-01/func/sub-02_ses-01_task-nback_run-02_space-MNI152NLin2009cAsym_desc-preproc_bold.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-02/ses-01/func/sub-02_ses-01_task-nback_run-02_space-T1w_desc-brain_mask.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-02/ses-01/func/sub-02_ses-01_task-nback_run-02_space-T1w_desc-brain_mask.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-02/ses-01/func/sub-02_ses-01_task-nback_run-02_space-T1w_desc-preproc_bold.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-02/ses-01/func/sub-02_ses-01_task-nback_run-02_space-T1w_desc-preproc_bold.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-02/ses-01/func/sub-02_ses-01_task-rest_desc-confounds_regressors.tsv&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-02/ses-01/func/sub-02_ses-01_task-rest_space-MNI152NLin2009cAsym_desc-brain_mask.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-02/ses-01/func/sub-02_ses-01_task-rest_space-MNI152NLin2009cAsym_desc-brain_mask.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-02/ses-01/func/sub-02_ses-01_task-rest_space-MNI152NLin2009cAsym_desc-preproc_bold.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-02/ses-01/func/sub-02_ses-01_task-rest_space-MNI152NLin2009cAsym_desc-preproc_bold.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-02/ses-01/func/sub-02_ses-01_task-rest_space-T1w_desc-brain_mask.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-02/ses-01/func/sub-02_ses-01_task-rest_space-T1w_desc-brain_mask.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-02/ses-01/func/sub-02_ses-01_task-rest_space-T1w_desc-preproc_bold.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-02/ses-01/func/sub-02_ses-01_task-rest_space-T1w_desc-preproc_bold.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-02/ses-02/func/sub-02_ses-02_task-nback_run-01_desc-confounds_regressors.tsv&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-02/ses-02/func/sub-02_ses-02_task-nback_run-01_space-MNI152NLin2009cAsym_desc-brain_mask.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-02/ses-02/func/sub-02_ses-02_task-nback_run-01_space-MNI152NLin2009cAsym_desc-brain_mask.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-02/ses-02/func/sub-02_ses-02_task-nback_run-01_space-MNI152NLin2009cAsym_desc-preproc_bold.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-02/ses-02/func/sub-02_ses-02_task-nback_run-01_space-MNI152NLin2009cAsym_desc-preproc_bold.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-02/ses-02/func/sub-02_ses-02_task-nback_run-01_space-T1w_desc-brain_mask.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-02/ses-02/func/sub-02_ses-02_task-nback_run-01_space-T1w_desc-brain_mask.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-02/ses-02/func/sub-02_ses-02_task-nback_run-01_space-T1w_desc-preproc_bold.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-02/ses-02/func/sub-02_ses-02_task-nback_run-01_space-T1w_desc-preproc_bold.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-02/ses-02/func/sub-02_ses-02_task-nback_run-02_desc-confounds_regressors.tsv&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-02/ses-02/func/sub-02_ses-02_task-nback_run-02_space-MNI152NLin2009cAsym_desc-brain_mask.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-02/ses-02/func/sub-02_ses-02_task-nback_run-02_space-MNI152NLin2009cAsym_desc-brain_mask.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-02/ses-02/func/sub-02_ses-02_task-nback_run-02_space-MNI152NLin2009cAsym_desc-preproc_bold.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-02/ses-02/func/sub-02_ses-02_task-nback_run-02_space-MNI152NLin2009cAsym_desc-preproc_bold.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-02/ses-02/func/sub-02_ses-02_task-nback_run-02_space-T1w_desc-brain_mask.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-02/ses-02/func/sub-02_ses-02_task-nback_run-02_space-T1w_desc-brain_mask.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-02/ses-02/func/sub-02_ses-02_task-nback_run-02_space-T1w_desc-preproc_bold.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-02/ses-02/func/sub-02_ses-02_task-nback_run-02_space-T1w_desc-preproc_bold.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-02/ses-02/func/sub-02_ses-02_task-rest_desc-confounds_regressors.tsv&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-02/ses-02/func/sub-02_ses-02_task-rest_space-MNI152NLin2009cAsym_desc-brain_mask.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-02/ses-02/func/sub-02_ses-02_task-rest_space-MNI152NLin2009cAsym_desc-brain_mask.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-02/ses-02/func/sub-02_ses-02_task-rest_space-MNI152NLin2009cAsym_desc-preproc_bold.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-02/ses-02/func/sub-02_ses-02_task-rest_space-MNI152NLin2009cAsym_desc-preproc_bold.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-02/ses-02/func/sub-02_ses-02_task-rest_space-T1w_desc-brain_mask.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-02/ses-02/func/sub-02_ses-02_task-rest_space-T1w_desc-brain_mask.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-02/ses-02/func/sub-02_ses-02_task-rest_space-T1w_desc-preproc_bold.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-02/ses-02/func/sub-02_ses-02_task-rest_space-T1w_desc-preproc_bold.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-03/ses-01/func/sub-03_ses-01_task-nback_run-01_desc-confounds_regressors.tsv&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-03/ses-01/func/sub-03_ses-01_task-nback_run-01_space-MNI152NLin2009cAsym_desc-brain_mask.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-03/ses-01/func/sub-03_ses-01_task-nback_run-01_space-MNI152NLin2009cAsym_desc-brain_mask.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-03/ses-01/func/sub-03_ses-01_task-nback_run-01_space-MNI152NLin2009cAsym_desc-preproc_bold.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-03/ses-01/func/sub-03_ses-01_task-nback_run-01_space-MNI152NLin2009cAsym_desc-preproc_bold.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-03/ses-01/func/sub-03_ses-01_task-nback_run-01_space-T1w_desc-brain_mask.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-03/ses-01/func/sub-03_ses-01_task-nback_run-01_space-T1w_desc-brain_mask.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-03/ses-01/func/sub-03_ses-01_task-nback_run-01_space-T1w_desc-preproc_bold.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-03/ses-01/func/sub-03_ses-01_task-nback_run-01_space-T1w_desc-preproc_bold.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-03/ses-01/func/sub-03_ses-01_task-nback_run-02_desc-confounds_regressors.tsv&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-03/ses-01/func/sub-03_ses-01_task-nback_run-02_space-MNI152NLin2009cAsym_desc-brain_mask.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-03/ses-01/func/sub-03_ses-01_task-nback_run-02_space-MNI152NLin2009cAsym_desc-brain_mask.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-03/ses-01/func/sub-03_ses-01_task-nback_run-02_space-MNI152NLin2009cAsym_desc-preproc_bold.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-03/ses-01/func/sub-03_ses-01_task-nback_run-02_space-MNI152NLin2009cAsym_desc-preproc_bold.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-03/ses-01/func/sub-03_ses-01_task-nback_run-02_space-T1w_desc-brain_mask.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-03/ses-01/func/sub-03_ses-01_task-nback_run-02_space-T1w_desc-brain_mask.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-03/ses-01/func/sub-03_ses-01_task-nback_run-02_space-T1w_desc-preproc_bold.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-03/ses-01/func/sub-03_ses-01_task-nback_run-02_space-T1w_desc-preproc_bold.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-03/ses-01/func/sub-03_ses-01_task-rest_desc-confounds_regressors.tsv&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-03/ses-01/func/sub-03_ses-01_task-rest_space-MNI152NLin2009cAsym_desc-brain_mask.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-03/ses-01/func/sub-03_ses-01_task-rest_space-MNI152NLin2009cAsym_desc-brain_mask.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-03/ses-01/func/sub-03_ses-01_task-rest_space-MNI152NLin2009cAsym_desc-preproc_bold.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-03/ses-01/func/sub-03_ses-01_task-rest_space-MNI152NLin2009cAsym_desc-preproc_bold.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-03/ses-01/func/sub-03_ses-01_task-rest_space-T1w_desc-brain_mask.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-03/ses-01/func/sub-03_ses-01_task-rest_space-T1w_desc-brain_mask.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-03/ses-01/func/sub-03_ses-01_task-rest_space-T1w_desc-preproc_bold.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-03/ses-01/func/sub-03_ses-01_task-rest_space-T1w_desc-preproc_bold.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-03/ses-02/func/sub-03_ses-02_task-nback_run-01_desc-confounds_regressors.tsv&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-03/ses-02/func/sub-03_ses-02_task-nback_run-01_space-MNI152NLin2009cAsym_desc-brain_mask.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-03/ses-02/func/sub-03_ses-02_task-nback_run-01_space-MNI152NLin2009cAsym_desc-brain_mask.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-03/ses-02/func/sub-03_ses-02_task-nback_run-01_space-MNI152NLin2009cAsym_desc-preproc_bold.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-03/ses-02/func/sub-03_ses-02_task-nback_run-01_space-MNI152NLin2009cAsym_desc-preproc_bold.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-03/ses-02/func/sub-03_ses-02_task-nback_run-01_space-T1w_desc-brain_mask.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-03/ses-02/func/sub-03_ses-02_task-nback_run-01_space-T1w_desc-brain_mask.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-03/ses-02/func/sub-03_ses-02_task-nback_run-01_space-T1w_desc-preproc_bold.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-03/ses-02/func/sub-03_ses-02_task-nback_run-01_space-T1w_desc-preproc_bold.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-03/ses-02/func/sub-03_ses-02_task-nback_run-02_desc-confounds_regressors.tsv&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-03/ses-02/func/sub-03_ses-02_task-nback_run-02_space-MNI152NLin2009cAsym_desc-brain_mask.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-03/ses-02/func/sub-03_ses-02_task-nback_run-02_space-MNI152NLin2009cAsym_desc-brain_mask.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-03/ses-02/func/sub-03_ses-02_task-nback_run-02_space-MNI152NLin2009cAsym_desc-preproc_bold.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-03/ses-02/func/sub-03_ses-02_task-nback_run-02_space-MNI152NLin2009cAsym_desc-preproc_bold.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-03/ses-02/func/sub-03_ses-02_task-nback_run-02_space-T1w_desc-brain_mask.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-03/ses-02/func/sub-03_ses-02_task-nback_run-02_space-T1w_desc-brain_mask.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-03/ses-02/func/sub-03_ses-02_task-nback_run-02_space-T1w_desc-preproc_bold.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-03/ses-02/func/sub-03_ses-02_task-nback_run-02_space-T1w_desc-preproc_bold.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-03/ses-02/func/sub-03_ses-02_task-rest_desc-confounds_regressors.tsv&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-03/ses-02/func/sub-03_ses-02_task-rest_space-MNI152NLin2009cAsym_desc-brain_mask.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-03/ses-02/func/sub-03_ses-02_task-rest_space-MNI152NLin2009cAsym_desc-brain_mask.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-03/ses-02/func/sub-03_ses-02_task-rest_space-MNI152NLin2009cAsym_desc-preproc_bold.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-03/ses-02/func/sub-03_ses-02_task-rest_space-MNI152NLin2009cAsym_desc-preproc_bold.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-03/ses-02/func/sub-03_ses-02_task-rest_space-T1w_desc-brain_mask.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-03/ses-02/func/sub-03_ses-02_task-rest_space-T1w_desc-brain_mask.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-03/ses-02/func/sub-03_ses-02_task-rest_space-T1w_desc-preproc_bold.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-03/ses-02/func/sub-03_ses-02_task-rest_space-T1w_desc-preproc_bold.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-04/ses-01/func/sub-04_ses-01_task-nback_run-01_desc-confounds_regressors.tsv&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-04/ses-01/func/sub-04_ses-01_task-nback_run-01_space-MNI152NLin2009cAsym_desc-brain_mask.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-04/ses-01/func/sub-04_ses-01_task-nback_run-01_space-MNI152NLin2009cAsym_desc-brain_mask.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-04/ses-01/func/sub-04_ses-01_task-nback_run-01_space-MNI152NLin2009cAsym_desc-preproc_bold.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-04/ses-01/func/sub-04_ses-01_task-nback_run-01_space-MNI152NLin2009cAsym_desc-preproc_bold.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-04/ses-01/func/sub-04_ses-01_task-nback_run-01_space-T1w_desc-brain_mask.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-04/ses-01/func/sub-04_ses-01_task-nback_run-01_space-T1w_desc-brain_mask.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-04/ses-01/func/sub-04_ses-01_task-nback_run-01_space-T1w_desc-preproc_bold.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-04/ses-01/func/sub-04_ses-01_task-nback_run-01_space-T1w_desc-preproc_bold.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-04/ses-01/func/sub-04_ses-01_task-nback_run-02_desc-confounds_regressors.tsv&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-04/ses-01/func/sub-04_ses-01_task-nback_run-02_space-MNI152NLin2009cAsym_desc-brain_mask.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-04/ses-01/func/sub-04_ses-01_task-nback_run-02_space-MNI152NLin2009cAsym_desc-brain_mask.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-04/ses-01/func/sub-04_ses-01_task-nback_run-02_space-MNI152NLin2009cAsym_desc-preproc_bold.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-04/ses-01/func/sub-04_ses-01_task-nback_run-02_space-MNI152NLin2009cAsym_desc-preproc_bold.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-04/ses-01/func/sub-04_ses-01_task-nback_run-02_space-T1w_desc-brain_mask.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-04/ses-01/func/sub-04_ses-01_task-nback_run-02_space-T1w_desc-brain_mask.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-04/ses-01/func/sub-04_ses-01_task-nback_run-02_space-T1w_desc-preproc_bold.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-04/ses-01/func/sub-04_ses-01_task-nback_run-02_space-T1w_desc-preproc_bold.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-04/ses-01/func/sub-04_ses-01_task-rest_desc-confounds_regressors.tsv&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-04/ses-01/func/sub-04_ses-01_task-rest_space-MNI152NLin2009cAsym_desc-brain_mask.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-04/ses-01/func/sub-04_ses-01_task-rest_space-MNI152NLin2009cAsym_desc-brain_mask.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-04/ses-01/func/sub-04_ses-01_task-rest_space-MNI152NLin2009cAsym_desc-preproc_bold.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-04/ses-01/func/sub-04_ses-01_task-rest_space-MNI152NLin2009cAsym_desc-preproc_bold.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-04/ses-01/func/sub-04_ses-01_task-rest_space-T1w_desc-brain_mask.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-04/ses-01/func/sub-04_ses-01_task-rest_space-T1w_desc-brain_mask.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-04/ses-01/func/sub-04_ses-01_task-rest_space-T1w_desc-preproc_bold.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-04/ses-01/func/sub-04_ses-01_task-rest_space-T1w_desc-preproc_bold.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-04/ses-02/func/sub-04_ses-02_task-nback_run-01_desc-confounds_regressors.tsv&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-04/ses-02/func/sub-04_ses-02_task-nback_run-01_space-MNI152NLin2009cAsym_desc-brain_mask.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-04/ses-02/func/sub-04_ses-02_task-nback_run-01_space-MNI152NLin2009cAsym_desc-brain_mask.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-04/ses-02/func/sub-04_ses-02_task-nback_run-01_space-MNI152NLin2009cAsym_desc-preproc_bold.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-04/ses-02/func/sub-04_ses-02_task-nback_run-01_space-MNI152NLin2009cAsym_desc-preproc_bold.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-04/ses-02/func/sub-04_ses-02_task-nback_run-01_space-T1w_desc-brain_mask.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-04/ses-02/func/sub-04_ses-02_task-nback_run-01_space-T1w_desc-brain_mask.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-04/ses-02/func/sub-04_ses-02_task-nback_run-01_space-T1w_desc-preproc_bold.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-04/ses-02/func/sub-04_ses-02_task-nback_run-01_space-T1w_desc-preproc_bold.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-04/ses-02/func/sub-04_ses-02_task-nback_run-02_desc-confounds_regressors.tsv&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-04/ses-02/func/sub-04_ses-02_task-nback_run-02_space-MNI152NLin2009cAsym_desc-brain_mask.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-04/ses-02/func/sub-04_ses-02_task-nback_run-02_space-MNI152NLin2009cAsym_desc-brain_mask.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-04/ses-02/func/sub-04_ses-02_task-nback_run-02_space-MNI152NLin2009cAsym_desc-preproc_bold.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-04/ses-02/func/sub-04_ses-02_task-nback_run-02_space-MNI152NLin2009cAsym_desc-preproc_bold.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-04/ses-02/func/sub-04_ses-02_task-nback_run-02_space-T1w_desc-brain_mask.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-04/ses-02/func/sub-04_ses-02_task-nback_run-02_space-T1w_desc-brain_mask.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-04/ses-02/func/sub-04_ses-02_task-nback_run-02_space-T1w_desc-preproc_bold.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-04/ses-02/func/sub-04_ses-02_task-nback_run-02_space-T1w_desc-preproc_bold.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-04/ses-02/func/sub-04_ses-02_task-rest_desc-confounds_regressors.tsv&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-04/ses-02/func/sub-04_ses-02_task-rest_space-MNI152NLin2009cAsym_desc-brain_mask.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-04/ses-02/func/sub-04_ses-02_task-rest_space-MNI152NLin2009cAsym_desc-brain_mask.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-04/ses-02/func/sub-04_ses-02_task-rest_space-MNI152NLin2009cAsym_desc-preproc_bold.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-04/ses-02/func/sub-04_ses-02_task-rest_space-MNI152NLin2009cAsym_desc-preproc_bold.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-04/ses-02/func/sub-04_ses-02_task-rest_space-T1w_desc-brain_mask.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-04/ses-02/func/sub-04_ses-02_task-rest_space-T1w_desc-brain_mask.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-04/ses-02/func/sub-04_ses-02_task-rest_space-T1w_desc-preproc_bold.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-04/ses-02/func/sub-04_ses-02_task-rest_space-T1w_desc-preproc_bold.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-05/ses-01/func/sub-05_ses-01_task-nback_run-01_desc-confounds_regressors.tsv&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-05/ses-01/func/sub-05_ses-01_task-nback_run-01_space-MNI152NLin2009cAsym_desc-brain_mask.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-05/ses-01/func/sub-05_ses-01_task-nback_run-01_space-MNI152NLin2009cAsym_desc-brain_mask.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-05/ses-01/func/sub-05_ses-01_task-nback_run-01_space-MNI152NLin2009cAsym_desc-preproc_bold.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-05/ses-01/func/sub-05_ses-01_task-nback_run-01_space-MNI152NLin2009cAsym_desc-preproc_bold.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-05/ses-01/func/sub-05_ses-01_task-nback_run-01_space-T1w_desc-brain_mask.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-05/ses-01/func/sub-05_ses-01_task-nback_run-01_space-T1w_desc-brain_mask.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-05/ses-01/func/sub-05_ses-01_task-nback_run-01_space-T1w_desc-preproc_bold.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-05/ses-01/func/sub-05_ses-01_task-nback_run-01_space-T1w_desc-preproc_bold.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-05/ses-01/func/sub-05_ses-01_task-nback_run-02_desc-confounds_regressors.tsv&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-05/ses-01/func/sub-05_ses-01_task-nback_run-02_space-MNI152NLin2009cAsym_desc-brain_mask.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-05/ses-01/func/sub-05_ses-01_task-nback_run-02_space-MNI152NLin2009cAsym_desc-brain_mask.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-05/ses-01/func/sub-05_ses-01_task-nback_run-02_space-MNI152NLin2009cAsym_desc-preproc_bold.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-05/ses-01/func/sub-05_ses-01_task-nback_run-02_space-MNI152NLin2009cAsym_desc-preproc_bold.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-05/ses-01/func/sub-05_ses-01_task-nback_run-02_space-T1w_desc-brain_mask.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-05/ses-01/func/sub-05_ses-01_task-nback_run-02_space-T1w_desc-brain_mask.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-05/ses-01/func/sub-05_ses-01_task-nback_run-02_space-T1w_desc-preproc_bold.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-05/ses-01/func/sub-05_ses-01_task-nback_run-02_space-T1w_desc-preproc_bold.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-05/ses-01/func/sub-05_ses-01_task-rest_desc-confounds_regressors.tsv&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-05/ses-01/func/sub-05_ses-01_task-rest_space-MNI152NLin2009cAsym_desc-brain_mask.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-05/ses-01/func/sub-05_ses-01_task-rest_space-MNI152NLin2009cAsym_desc-brain_mask.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-05/ses-01/func/sub-05_ses-01_task-rest_space-MNI152NLin2009cAsym_desc-preproc_bold.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-05/ses-01/func/sub-05_ses-01_task-rest_space-MNI152NLin2009cAsym_desc-preproc_bold.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-05/ses-01/func/sub-05_ses-01_task-rest_space-T1w_desc-brain_mask.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-05/ses-01/func/sub-05_ses-01_task-rest_space-T1w_desc-brain_mask.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-05/ses-01/func/sub-05_ses-01_task-rest_space-T1w_desc-preproc_bold.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-05/ses-01/func/sub-05_ses-01_task-rest_space-T1w_desc-preproc_bold.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-05/ses-02/func/sub-05_ses-02_task-nback_run-01_desc-confounds_regressors.tsv&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-05/ses-02/func/sub-05_ses-02_task-nback_run-01_space-MNI152NLin2009cAsym_desc-brain_mask.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-05/ses-02/func/sub-05_ses-02_task-nback_run-01_space-MNI152NLin2009cAsym_desc-brain_mask.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-05/ses-02/func/sub-05_ses-02_task-nback_run-01_space-MNI152NLin2009cAsym_desc-preproc_bold.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-05/ses-02/func/sub-05_ses-02_task-nback_run-01_space-MNI152NLin2009cAsym_desc-preproc_bold.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-05/ses-02/func/sub-05_ses-02_task-nback_run-01_space-T1w_desc-brain_mask.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-05/ses-02/func/sub-05_ses-02_task-nback_run-01_space-T1w_desc-brain_mask.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-05/ses-02/func/sub-05_ses-02_task-nback_run-01_space-T1w_desc-preproc_bold.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-05/ses-02/func/sub-05_ses-02_task-nback_run-01_space-T1w_desc-preproc_bold.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-05/ses-02/func/sub-05_ses-02_task-nback_run-02_desc-confounds_regressors.tsv&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-05/ses-02/func/sub-05_ses-02_task-nback_run-02_space-MNI152NLin2009cAsym_desc-brain_mask.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-05/ses-02/func/sub-05_ses-02_task-nback_run-02_space-MNI152NLin2009cAsym_desc-brain_mask.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-05/ses-02/func/sub-05_ses-02_task-nback_run-02_space-MNI152NLin2009cAsym_desc-preproc_bold.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-05/ses-02/func/sub-05_ses-02_task-nback_run-02_space-MNI152NLin2009cAsym_desc-preproc_bold.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-05/ses-02/func/sub-05_ses-02_task-nback_run-02_space-T1w_desc-brain_mask.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-05/ses-02/func/sub-05_ses-02_task-nback_run-02_space-T1w_desc-brain_mask.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-05/ses-02/func/sub-05_ses-02_task-nback_run-02_space-T1w_desc-preproc_bold.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-05/ses-02/func/sub-05_ses-02_task-nback_run-02_space-T1w_desc-preproc_bold.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-05/ses-02/func/sub-05_ses-02_task-rest_desc-confounds_regressors.tsv&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-05/ses-02/func/sub-05_ses-02_task-rest_space-MNI152NLin2009cAsym_desc-brain_mask.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-05/ses-02/func/sub-05_ses-02_task-rest_space-MNI152NLin2009cAsym_desc-brain_mask.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-05/ses-02/func/sub-05_ses-02_task-rest_space-MNI152NLin2009cAsym_desc-preproc_bold.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-05/ses-02/func/sub-05_ses-02_task-rest_space-MNI152NLin2009cAsym_desc-preproc_bold.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-05/ses-02/func/sub-05_ses-02_task-rest_space-T1w_desc-brain_mask.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-05/ses-02/func/sub-05_ses-02_task-rest_space-T1w_desc-brain_mask.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-05/ses-02/func/sub-05_ses-02_task-rest_space-T1w_desc-preproc_bold.nii&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/sub-05/ses-02/func/sub-05_ses-02_task-rest_space-T1w_desc-preproc_bold.nii.gz&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/task-nback_bold.json&#39;,
+ &#39;/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/tests/data/synthetic/derivatives/fmriprep/task-rest_bold.json&#39;]
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+<section id="exporting-a-bidslayout-to-a-pandas-dataframe">
+<h3>Exporting a <code class="docutils literal notranslate"><span class="pre">BIDSLayout</span></code> to a pandas <code class="docutils literal notranslate"><span class="pre">Dataframe</span></code><a class="headerlink" href="#exporting-a-bidslayout-to-a-pandas-dataframe" title="Link to this heading">¶</a></h3>
+<p>If you want a summary of all the files in your <code class="docutils literal notranslate"><span class="pre">BIDSLayout</span></code>, but don’t want to have to iterate <code class="docutils literal notranslate"><span class="pre">BIDSFile</span></code> objects and extract their entities, you can get a nice bird’s-eye view of your dataset using the <code class="docutils literal notranslate"><span class="pre">to_df()</span></code> method.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Convert the layout to a pandas dataframe</span>
+<span class="n">df</span> <span class="o">=</span> <span class="n">layout</span><span class="o">.</span><span class="n">to_df</span><span class="p">()</span>
+<span class="n">df</span><span class="o">.</span><span class="n">head</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_html"><div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th>entity</th>
+      <th>path</th>
+      <th>acquisition</th>
+      <th>datatype</th>
+      <th>extension</th>
+      <th>fmap</th>
+      <th>run</th>
+      <th>scans</th>
+      <th>session</th>
+      <th>subject</th>
+      <th>suffix</th>
+      <th>task</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>/opt/hostedtoolcache/Python/3.9.18/x64/lib/pyt...</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>.json</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>description</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>/opt/hostedtoolcache/Python/3.9.18/x64/lib/pyt...</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>.tsv</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>participants</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>/opt/hostedtoolcache/Python/3.9.18/x64/lib/pyt...</td>
+      <td>NaN</td>
+      <td>anat</td>
+      <td>.nii.gz</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>1</td>
+      <td>01</td>
+      <td>T1map</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>/opt/hostedtoolcache/Python/3.9.18/x64/lib/pyt...</td>
+      <td>NaN</td>
+      <td>anat</td>
+      <td>.nii.gz</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>1</td>
+      <td>01</td>
+      <td>T1w</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>/opt/hostedtoolcache/Python/3.9.18/x64/lib/pyt...</td>
+      <td>NaN</td>
+      <td>fmap</td>
+      <td>.nii.gz</td>
+      <td>magnitude1</td>
+      <td>1</td>
+      <td>NaN</td>
+      <td>1</td>
+      <td>01</td>
+      <td>magnitude1</td>
+      <td>NaN</td>
+    </tr>
+  </tbody>
+</table>
+</div></div></div>
+</div>
+<p>We can also include metadata in the result if we like (which may blow up our <code class="docutils literal notranslate"><span class="pre">DataFrame</span></code> if we have a large dataset). Note that in this case, most of our cells will have missing values.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">layout</span><span class="o">.</span><span class="n">to_df</span><span class="p">(</span><span class="n">metadata</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">head</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_html"><div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th>entity</th>
+      <th>path</th>
+      <th>CogAtlasID</th>
+      <th>Columns</th>
+      <th>EchoTime</th>
+      <th>EchoTime1</th>
+      <th>EchoTime2</th>
+      <th>EffectiveEchoSpacing</th>
+      <th>IntendedFor</th>
+      <th>MTState</th>
+      <th>PhaseEncodingDirection</th>
+      <th>...</th>
+      <th>acquisition</th>
+      <th>datatype</th>
+      <th>extension</th>
+      <th>fmap</th>
+      <th>run</th>
+      <th>scans</th>
+      <th>session</th>
+      <th>subject</th>
+      <th>suffix</th>
+      <th>task</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>/opt/hostedtoolcache/Python/3.9.18/x64/lib/pyt...</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>...</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>.json</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>description</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>/opt/hostedtoolcache/Python/3.9.18/x64/lib/pyt...</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>...</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>.tsv</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>participants</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>/opt/hostedtoolcache/Python/3.9.18/x64/lib/pyt...</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>...</td>
+      <td>NaN</td>
+      <td>anat</td>
+      <td>.nii.gz</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>1</td>
+      <td>01</td>
+      <td>T1map</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>/opt/hostedtoolcache/Python/3.9.18/x64/lib/pyt...</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>...</td>
+      <td>NaN</td>
+      <td>anat</td>
+      <td>.nii.gz</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>1</td>
+      <td>01</td>
+      <td>T1w</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>/opt/hostedtoolcache/Python/3.9.18/x64/lib/pyt...</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>...</td>
+      <td>NaN</td>
+      <td>fmap</td>
+      <td>.nii.gz</td>
+      <td>magnitude1</td>
+      <td>1</td>
+      <td>NaN</td>
+      <td>1</td>
+      <td>01</td>
+      <td>magnitude1</td>
+      <td>NaN</td>
+    </tr>
+  </tbody>
+</table>
+<p>5 rows × 26 columns</p>
+</div></div></div>
+</div>
+</section>
+</section>
+<section id="retrieving-bids-variables">
+<h2>Retrieving BIDS variables<a class="headerlink" href="#retrieving-bids-variables" title="Link to this heading">¶</a></h2>
+<p>BIDS variables are stored in .tsv files at the run, session, subject, or dataset level. You can retrieve these variables with <code class="docutils literal notranslate"><span class="pre">layout.get_collections()</span></code>. The resulting objects can be converted to dataframes and merged with the layout to associate the variables with corresponding scans.</p>
+<p>In the following example, we request all subject-level variable data available anywhere in the BIDS project, and merge the results into a single <code class="docutils literal notranslate"><span class="pre">DataFrame</span></code> (by default, we’ll get back a single <code class="docutils literal notranslate"><span class="pre">BIDSVariableCollection</span></code> object for each subject).</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Get subject variables as a dataframe and merge them back in with the layout</span>
+<span class="n">subj_df</span> <span class="o">=</span> <span class="n">layout</span><span class="o">.</span><span class="n">get_collections</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="s1">&#39;subject&#39;</span><span class="p">,</span> <span class="n">merge</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">to_df</span><span class="p">()</span>
+<span class="n">subj_df</span><span class="o">.</span><span class="n">head</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_html"><div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>subject</th>
+      <th>session</th>
+      <th>CCPT_FN_count</th>
+      <th>CCPT_FP_count</th>
+      <th>CCPT_avg_FN_RT</th>
+      <th>CCPT_avg_FP_RT</th>
+      <th>CCPT_avg_succ_RT</th>
+      <th>CCPT_succ_count</th>
+      <th>caffeine_daily</th>
+      <th>diastolic_blood_pressure_left</th>
+      <th>...</th>
+      <th>specific_vague</th>
+      <th>subject_id</th>
+      <th>surroundings</th>
+      <th>systolic_blood_pressure_left</th>
+      <th>systolic_blood_pressure_right</th>
+      <th>thirst</th>
+      <th>vigilance</th>
+      <th>vigilance_nyc-q</th>
+      <th>words</th>
+      <th>suffix</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>01</td>
+      <td>1</td>
+      <td>0.0</td>
+      <td>1.0</td>
+      <td>NaN</td>
+      <td>507.0</td>
+      <td>500.770833</td>
+      <td>96.0</td>
+      <td>0.5</td>
+      <td>64</td>
+      <td>...</td>
+      <td>95</td>
+      <td>1</td>
+      <td>0</td>
+      <td>108</td>
+      <td>109</td>
+      <td>9</td>
+      <td>9</td>
+      <td>100</td>
+      <td>100</td>
+      <td>sessions</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>01</td>
+      <td>2</td>
+      <td>0.0</td>
+      <td>1.0</td>
+      <td>NaN</td>
+      <td>595.0</td>
+      <td>503.333333</td>
+      <td>96.0</td>
+      <td>2.0</td>
+      <td>66</td>
+      <td>...</td>
+      <td>100</td>
+      <td>1</td>
+      <td>20</td>
+      <td>101</td>
+      <td>101</td>
+      <td>9</td>
+      <td>7</td>
+      <td>100</td>
+      <td>100</td>
+      <td>sessions</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>02</td>
+      <td>1</td>
+      <td>0.0</td>
+      <td>5.0</td>
+      <td>NaN</td>
+      <td>297.6</td>
+      <td>351.729167</td>
+      <td>96.0</td>
+      <td>0.0</td>
+      <td>65</td>
+      <td>...</td>
+      <td>100</td>
+      <td>2</td>
+      <td>70</td>
+      <td>99</td>
+      <td>100</td>
+      <td>2</td>
+      <td>7</td>
+      <td>100</td>
+      <td>100</td>
+      <td>sessions</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>02</td>
+      <td>2</td>
+      <td>1.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>NaN</td>
+      <td>366.315789</td>
+      <td>95.0</td>
+      <td>0.0</td>
+      <td>75</td>
+      <td>...</td>
+      <td>60</td>
+      <td>2</td>
+      <td>60</td>
+      <td>108</td>
+      <td>106</td>
+      <td>4</td>
+      <td>3</td>
+      <td>100</td>
+      <td>80</td>
+      <td>sessions</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>03</td>
+      <td>1</td>
+      <td>0.0</td>
+      <td>1.0</td>
+      <td>NaN</td>
+      <td>441.0</td>
+      <td>426.718750</td>
+      <td>96.0</td>
+      <td>1.0</td>
+      <td>69</td>
+      <td>...</td>
+      <td>100</td>
+      <td>3</td>
+      <td>10</td>
+      <td>122</td>
+      <td>128</td>
+      <td>3</td>
+      <td>8</td>
+      <td>100</td>
+      <td>0</td>
+      <td>sessions</td>
+    </tr>
+  </tbody>
+</table>
+<p>5 rows × 97 columns</p>
+</div></div></div>
+</div>
+</section>
+<section id="bidsvalidator">
+<h2>BIDSValidator<a class="headerlink" href="#bidsvalidator" title="Link to this heading">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">pybids</span></code> implicitly imports a <code class="docutils literal notranslate"><span class="pre">BIDSValidator</span></code> class from the separate <a class="reference external" href="https://github.com/bids-standard/bids-validator"><code class="docutils literal notranslate"><span class="pre">bids-validator</span></code></a> package. You can use the <code class="docutils literal notranslate"><span class="pre">BIDSValidator</span></code> to determine whether a filepath is a valid BIDS filepath, as well as answering questions about what kind of data it represents. Note, however, that this implementation of the BIDS validator is <em>not</em> necessarily up-to-date with the JavaScript version available online. Moreover, the Python validator only tests individual files, and is currently unable to validate entire BIDS datasets. For that, you should use the <a class="reference external" href="https://bids-standard.github.io/bids-validator/">online BIDS validator</a>.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">bids</span> <span class="kn">import</span> <span class="n">BIDSValidator</span>
+
+<span class="c1"># Note that when using the bids validator, the filepath MUST be relative to the top level bids directory</span>
+<span class="n">validator</span> <span class="o">=</span> <span class="n">BIDSValidator</span><span class="p">()</span>
+<span class="n">validator</span><span class="o">.</span><span class="n">is_bids</span><span class="p">(</span><span class="s1">&#39;/sub-02/ses-01/anat/sub-02_ses-01_T2w.nii.gz&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>True
+</pre></div>
+</div>
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Can decide if a filepath represents a file part of the specification</span>
+<span class="n">validator</span><span class="o">.</span><span class="n">is_file</span><span class="p">(</span><span class="s1">&#39;/sub-02/ses-01/anat/sub-02_ses-01_T2w.json&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>True
+</pre></div>
+</div>
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Can check if a file is at the top level of the dataset</span>
+<span class="n">validator</span><span class="o">.</span><span class="n">is_top_level</span><span class="p">(</span><span class="s1">&#39;/dataset_description.json&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>True
+</pre></div>
+</div>
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># or subject (or session) level</span>
+<span class="n">validator</span><span class="o">.</span><span class="n">is_subject_level</span><span class="p">(</span><span class="s1">&#39;/dataset_description.json&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>False
+</pre></div>
+</div>
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">validator</span><span class="o">.</span><span class="n">is_session_level</span><span class="p">(</span><span class="s1">&#39;/sub-02/ses-01/sub-02_ses-01_scans.json&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>True
+</pre></div>
+</div>
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Can decide if a filepath represents phenotypic data</span>
+<span class="n">validator</span><span class="o">.</span><span class="n">is_phenotypic</span><span class="p">(</span><span class="s1">&#39;/sub-02/ses-01/anat/sub-02_ses-01_T2w.nii.gz&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>False
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="Tutorials" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="reports_tutorial.html" class="btn btn-neutral float-right" title="Writing methods reports with pybids.reports" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2015-2023, Developers of PyBIDS.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

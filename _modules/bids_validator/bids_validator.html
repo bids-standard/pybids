@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>bids_validator.bids_validator &mdash; PyBIDS 0.16.4 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=fa44fd50" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="../../_static/mystnb.4510f1fc1dee50b3e5859aac5469c37c29e427902b24a333a5f9fcb2f0b3ac41.css" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../_static/documentation_options.js?v=81998473"></script>
+        <script src="../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            PyBIDS
+          </a>
+              <div class="version">
+                0.16.4
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../user_guide.html">User guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../examples/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api.html">API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../whats_new.html">Changelog</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">PyBIDS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">bids_validator.bids_validator</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for bids_validator.bids_validator</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Validation class for BIDS projects.&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">json</span>
+
+
+<div class="viewcode-block" id="BIDSValidator">
+<a class="viewcode-back" href="../../generated/bids.layout.BIDSValidator.html#bids.layout.BIDSValidator">[docs]</a>
+<span class="k">class</span> <span class="nc">BIDSValidator</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Object for BIDS (Brain Imaging Data Structure) verification.</span>
+
+<span class="sd">    The main method of this class is `is_bids()`. You should use it for</span>
+<span class="sd">    checking whether a file path is compatible with BIDS.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="BIDSValidator.__init__">
+<a class="viewcode-back" href="../../generated/bids.layout.BIDSValidator.html#bids.layout.BIDSValidator.__init__">[docs]</a>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index_associated</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize BIDSValidator object.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        index_associated : bool</span>
+<span class="sd">            Specifies if an associated data should be checked. If it is true</span>
+<span class="sd">            then any file paths in directories `code/`, `derivatives/`,</span>
+<span class="sd">            `sourcedata/` and `stimuli/` will pass the validation, else they</span>
+<span class="sd">            won&#39;t. Defaults to True.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dir_rules</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="vm">__file__</span><span class="p">))</span> <span class="o">+</span> <span class="s2">&quot;/rules/&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">index_associated</span> <span class="o">=</span> <span class="n">index_associated</span></div>
+
+
+    <span class="k">def</span> <span class="nf">is_bids</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Check if file path adheres to BIDS.</span>
+
+<span class="sd">        Main method of the validator. uses other class methods for checking</span>
+<span class="sd">        different aspects of the file path.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        path : str</span>
+<span class="sd">            Path of a file to be checked. Must be relative to root of a BIDS</span>
+<span class="sd">            dataset.</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        When you test a file path, make sure that the path is relative to the</span>
+<span class="sd">        root of the BIDS dataset the file is part of. That is, as soon as the</span>
+<span class="sd">        file path contains parts outside of the BIDS dataset, the validation</span>
+<span class="sd">        will fail. For example &quot;home/username/my_dataset/participants.tsv&quot; will</span>
+<span class="sd">        fail, although &quot;participants.tsv&quot; is a valid BIDS file.</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+<span class="sd">        &gt;&gt;&gt; from bids_validator import BIDSValidator</span>
+<span class="sd">        &gt;&gt;&gt; validator = BIDSValidator()</span>
+<span class="sd">        &gt;&gt;&gt; filepaths = [&quot;/sub-01/anat/sub-01_rec-CSD_T1w.nii.gz&quot;,</span>
+<span class="sd">        ... &quot;/sub-01/anat/sub-01_acq-23_rec-CSD_T1w.exe&quot;, # wrong extension</span>
+<span class="sd">        ... &quot;home/username/my_dataset/participants.tsv&quot;, # not relative to root</span>
+<span class="sd">        ... &quot;/participants.tsv&quot;]</span>
+<span class="sd">        &gt;&gt;&gt; for filepath in filepaths:</span>
+<span class="sd">        ...     print(validator.is_bids(filepath))</span>
+<span class="sd">        True</span>
+<span class="sd">        False</span>
+<span class="sd">        False</span>
+<span class="sd">        True</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">conditions</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="n">conditions</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">is_top_level</span><span class="p">(</span><span class="n">path</span><span class="p">))</span>
+        <span class="n">conditions</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">is_associated_data</span><span class="p">(</span><span class="n">path</span><span class="p">))</span>
+        <span class="n">conditions</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">is_session_level</span><span class="p">(</span><span class="n">path</span><span class="p">))</span>
+        <span class="n">conditions</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">is_subject_level</span><span class="p">(</span><span class="n">path</span><span class="p">))</span>
+        <span class="n">conditions</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">is_phenotypic</span><span class="p">(</span><span class="n">path</span><span class="p">))</span>
+        <span class="n">conditions</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">is_file</span><span class="p">(</span><span class="n">path</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="p">(</span><span class="nb">any</span><span class="p">(</span><span class="n">conditions</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">is_top_level</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Check if the file has appropriate name for a top-level file.&quot;&quot;&quot;</span>
+        <span class="n">regexps</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_regular_expressions</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dir_rules</span> <span class="o">+</span>
+                                               <span class="s1">&#39;top_level_rules.json&#39;</span><span class="p">)</span>
+
+        <span class="n">conditions</span> <span class="o">=</span> <span class="p">[</span><span class="kc">False</span> <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">True</span> <span class="k">for</span>
+                      <span class="n">x</span> <span class="ow">in</span> <span class="n">regexps</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="p">(</span><span class="nb">any</span><span class="p">(</span><span class="n">conditions</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">is_associated_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Check if file is appropriate associated data.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">index_associated</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="n">regexps</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_regular_expressions</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dir_rules</span> <span class="o">+</span>
+                                               <span class="s1">&#39;associated_data_rules.json&#39;</span><span class="p">)</span>
+
+        <span class="n">conditions</span> <span class="o">=</span> <span class="p">[(</span><span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span> <span class="k">for</span>
+                      <span class="n">x</span> <span class="ow">in</span> <span class="n">regexps</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="nb">any</span><span class="p">(</span><span class="n">conditions</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">is_session_level</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Check if the file has appropriate name for a session level.&quot;&quot;&quot;</span>
+        <span class="n">regexps</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_regular_expressions</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dir_rules</span> <span class="o">+</span>
+                                               <span class="s1">&#39;session_level_rules.json&#39;</span><span class="p">)</span>
+
+        <span class="n">conditions</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">conditional_match</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">regexps</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="p">(</span><span class="nb">any</span><span class="p">(</span><span class="n">conditions</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">is_subject_level</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Check if the file has appropriate name for a subject level.&quot;&quot;&quot;</span>
+        <span class="n">regexps</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_regular_expressions</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dir_rules</span> <span class="o">+</span>
+                                               <span class="s1">&#39;subject_level_rules.json&#39;</span><span class="p">)</span>
+
+        <span class="n">conditions</span> <span class="o">=</span> <span class="p">[(</span><span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span> <span class="k">for</span>
+                      <span class="n">x</span> <span class="ow">in</span> <span class="n">regexps</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="p">(</span><span class="nb">any</span><span class="p">(</span><span class="n">conditions</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">is_phenotypic</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Check if file is phenotypic data.&quot;&quot;&quot;</span>
+        <span class="n">regexps</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_regular_expressions</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dir_rules</span> <span class="o">+</span>
+                                               <span class="s1">&#39;phenotypic_rules.json&#39;</span><span class="p">)</span>
+
+        <span class="n">conditions</span> <span class="o">=</span> <span class="p">[(</span><span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span> <span class="k">for</span>
+                      <span class="n">x</span> <span class="ow">in</span> <span class="n">regexps</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="p">(</span><span class="nb">any</span><span class="p">(</span><span class="n">conditions</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">is_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Check if file is phenotypic data.&quot;&quot;&quot;</span>
+        <span class="n">regexps</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_regular_expressions</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dir_rules</span> <span class="o">+</span>
+                                               <span class="s1">&#39;file_level_rules.json&#39;</span><span class="p">)</span>
+
+        <span class="n">conditions</span> <span class="o">=</span> <span class="p">[(</span><span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span> <span class="k">for</span>
+                      <span class="n">x</span> <span class="ow">in</span> <span class="n">regexps</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="p">(</span><span class="nb">any</span><span class="p">(</span><span class="n">conditions</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">get_regular_expressions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file_name</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Read regular expressions from a file.&quot;&quot;&quot;</span>
+        <span class="n">regexps</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">file_name</span><span class="p">)</span> <span class="k">as</span> <span class="n">fin</span><span class="p">:</span>
+            <span class="n">rules</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">fin</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">rules</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
+            <span class="n">rule</span> <span class="o">=</span> <span class="n">rules</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+
+            <span class="n">regexp</span> <span class="o">=</span> <span class="n">rule</span><span class="p">[</span><span class="s2">&quot;regexp&quot;</span><span class="p">]</span>
+
+            <span class="k">if</span> <span class="s2">&quot;tokens&quot;</span> <span class="ow">in</span> <span class="n">rule</span><span class="p">:</span>
+                <span class="n">tokens</span> <span class="o">=</span> <span class="n">rule</span><span class="p">[</span><span class="s2">&quot;tokens&quot;</span><span class="p">]</span>
+
+                <span class="k">for</span> <span class="n">token</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">tokens</span><span class="p">):</span>
+                    <span class="n">regexp</span> <span class="o">=</span> <span class="n">regexp</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">token</span><span class="p">,</span> <span class="s2">&quot;|&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">tokens</span><span class="p">[</span><span class="n">token</span><span class="p">]))</span>
+
+            <span class="n">regexps</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">regexp</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">regexps</span>
+
+    <span class="k">def</span> <span class="nf">conditional_match</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">expression</span><span class="p">,</span> <span class="n">path</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Find conditional match.&quot;&quot;&quot;</span>
+        <span class="n">match</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">expression</span><span class="p">)</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+        <span class="n">match</span> <span class="o">=</span> <span class="n">match</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">match</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">1</span> <span class="k">else</span> <span class="kc">False</span>
+        <span class="c1"># adapted from JS code and JS does not support conditional groups</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">match</span><span class="p">):</span>
+            <span class="k">if</span> <span class="p">((</span><span class="n">match</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="n">match</span><span class="p">[</span><span class="mi">2</span><span class="p">][</span><span class="mi">1</span><span class="p">:])</span> <span class="o">|</span> <span class="p">(</span><span class="ow">not</span> <span class="n">match</span><span class="p">[</span><span class="mi">1</span><span class="p">])):</span>
+                <span class="k">return</span> <span class="kc">True</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2015-2023, Developers of PyBIDS.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

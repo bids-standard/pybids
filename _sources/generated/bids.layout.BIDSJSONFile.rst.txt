@@ -1,0 +1,43 @@
+﻿bids.layout.BIDSJSONFile
+========================
+
+.. currentmodule:: bids.layout
+
+.. autoclass:: BIDSJSONFile
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~BIDSJSONFile.__init__
+      ~BIDSJSONFile.copy
+      ~BIDSJSONFile.get_associations
+      ~BIDSJSONFile.get_dict
+      ~BIDSJSONFile.get_entities
+      ~BIDSJSONFile.get_json
+      ~BIDSJSONFile.get_metadata
+   
+   
+
+   
+   
+   .. rubric:: Attributes
+
+   .. autosummary::
+   
+      ~BIDSJSONFile.class_
+      ~BIDSJSONFile.dirname
+      ~BIDSJSONFile.entities
+      ~BIDSJSONFile.filename
+      ~BIDSJSONFile.is_dir
+      ~BIDSJSONFile.metadata
+      ~BIDSJSONFile.path
+      ~BIDSJSONFile.registry
+      ~BIDSJSONFile.relpath
+      ~BIDSJSONFile.tags
+   
+   

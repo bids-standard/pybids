@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>4. reports: Data acquisition report generation &mdash; PyBIDS 0.16.4 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=fa44fd50" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="../_static/mystnb.4510f1fc1dee50b3e5859aac5469c37c29e427902b24a333a5f9fcb2f0b3ac41.css" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/documentation_options.js?v=81998473"></script>
+        <script src="../_static/doctools.js?v=888ff710"></script>
+        <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Tutorials" href="../examples/index.html" />
+    <link rel="prev" title="3. analysis: Model specification for BIDS datasets" href="../analysis/index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            PyBIDS
+          </a>
+              <div class="version">
+                0.16.4
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../user_guide.html">User guide</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../introduction.html">1. Introduction: What is pybids?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../layout/index.html">2. <code class="docutils literal notranslate"><span class="pre">layout</span></code>: Querying BIDS datasets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../analysis/index.html">3. <code class="docutils literal notranslate"><span class="pre">analysis</span></code>: Model specification for BIDS datasets</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">4. <code class="docutils literal notranslate"><span class="pre">reports</span></code>: Data acquisition report generation</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#initializing-reports">4.1. Initializing reports</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#generating-reports">4.2. Generating reports</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#generating-reports-on-subsets-of-the-data">4.2.1. Generating reports on subsets of the data</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../examples/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api.html">API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../whats_new.html">Changelog</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">PyBIDS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../user_guide.html">User guide</a></li>
+      <li class="breadcrumb-item active"><span class="section-number">4. </span><code class="docutils literal notranslate"><span class="pre">reports</span></code>: Data acquisition report generation</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/reports/index.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="reports-data-acquisition-report-generation">
+<span id="reports"></span><h1><span class="section-number">4. </span><code class="docutils literal notranslate"><span class="pre">reports</span></code>: Data acquisition report generation<a class="headerlink" href="#reports-data-acquisition-report-generation" title="Link to this heading">¶</a></h1>
+<nav class="contents local" id="contents">
+<p class="topic-title"><strong>Contents</strong></p>
+<ul class="simple">
+<li><p><a class="reference internal" href="#initializing-reports" id="id3">Initializing reports</a></p></li>
+<li><p><a class="reference internal" href="#generating-reports" id="id4">Generating reports</a></p></li>
+</ul>
+</nav>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<section id="initializing-reports">
+<span id="id1"></span><h2><a class="toc-backref" href="#id3" role="doc-backlink"><span class="section-number">4.1. </span>Initializing reports</a><a class="headerlink" href="#initializing-reports" title="Link to this heading">¶</a></h2>
+<p>The <a class="reference internal" href="../generated/bids.reports.BIDSReport.html#bids.reports.BIDSReport" title="bids.reports.BIDSReport"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bids.reports.BIDSReport</span></code></a> class requires a <code class="xref py py-obj docutils literal notranslate"><span class="pre">bids.BIDSLayout</span></code> object as an argument:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">os.path</span> <span class="kn">import</span> <span class="n">join</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">bids</span> <span class="kn">import</span> <span class="n">BIDSLayout</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">bids.reports</span> <span class="kn">import</span> <span class="n">BIDSReport</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">bids.tests</span> <span class="kn">import</span> <span class="n">get_test_data_path</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">layout</span> <span class="o">=</span> <span class="n">BIDSLayout</span><span class="p">(</span><span class="n">join</span><span class="p">(</span><span class="n">get_test_data_path</span><span class="p">(),</span> <span class="s1">&#39;synthetic&#39;</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">report</span> <span class="o">=</span> <span class="n">BIDSReport</span><span class="p">(</span><span class="n">layout</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="generating-reports">
+<span id="id2"></span><h2><a class="toc-backref" href="#id4" role="doc-backlink"><span class="section-number">4.2. </span>Generating reports</a><a class="headerlink" href="#generating-reports" title="Link to this heading">¶</a></h2>
+<p>Pybids reports are then generated with the <code class="docutils literal notranslate"><span class="pre">generate</span></code> method, which returns a
+<a class="reference external" href="https://docs.python.org/3.5/library/collections.html#collections.Counter" title="(in Python v3.5)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">collections.Counter</span></code></a> of reports:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">counter</span> <span class="o">=</span> <span class="n">report</span><span class="o">.</span><span class="n">generate</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">main_report</span> <span class="o">=</span> <span class="n">counter</span><span class="o">.</span><span class="n">most_common</span><span class="p">()[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">main_report</span><span class="p">)</span>
+<span class="go">r&quot;&quot;&quot;</span>
+<span class="go">For session 01:</span>
+<span class="go">    MR data were acquired using a UNKNOWN-Tesla MANUFACTURER MODEL MRI scanner.</span>
+<span class="go">    Ten runs of N-Back UNKNOWN-echo fMRI data were collected (64 slices; repetition time, TR=2500ms;</span>
+<span class="go">echo time, TE=UNKNOWNms; flip angle, FA=UNKNOWN&lt;deg&gt;; field of view, FOV=128x128mm;</span>
+<span class="go">matrix size=64x64; voxel size=2x2x2mm). Each run was 2:40 minutes in length, during</span>
+<span class="go">which 64 functional volumes were acquired.</span>
+<span class="go">    Five runs of Rest UNKNOWN-echo fMRI data were collected (64 slices; repetition time, TR=2500ms;</span>
+<span class="go">echo time, TE=UNKNOWNms; flip angle, FA=UNKNOWN&lt;deg&gt;; field of view, FOV=128x128mm;</span>
+<span class="go">matrix size=64x64; voxel size=2x2x2mm). Each run was 2:40 minutes in length, during</span>
+<span class="go">which 64 functional volumes were acquired.</span>
+
+<span class="go">For session 02:</span>
+<span class="go">    MR data were acquired using a UNKNOWN-Tesla MANUFACTURER MODEL MRI scanner.</span>
+<span class="go">    Ten runs of N-Back UNKNOWN-echo fMRI data were collected (64 slices; repetition time, TR=2500ms;</span>
+<span class="go">echo time, TE=UNKNOWNms; flip angle, FA=UNKNOWN&lt;deg&gt;; field of view, FOV=128x128mm;</span>
+<span class="go">matrix size=64x64; voxel size=2x2x2mm). Each run was 2:40 minutes in length, during</span>
+<span class="go">which 64 functional volumes were acquired.</span>
+<span class="go">    Five runs of Rest UNKNOWN-echo fMRI data were collected (64 slices; repetition time, TR=2500ms;</span>
+<span class="go">echo time, TE=UNKNOWNms; flip angle, FA=UNKNOWN&lt;deg&gt;; field of view, FOV=128x128mm;</span>
+<span class="go">matrix size=64x64; voxel size=2x2x2mm). Each run was 2:40 minutes in length, during</span>
+<span class="go">which 64 functional volumes were acquired.</span>
+
+<span class="go">Dicoms were converted to NIfTI-1 format. This section was (in part) generated</span>
+<span class="go">automatically using pybids (0.5).&quot;&quot;&quot;</span>
+</pre></div>
+</div>
+<section id="generating-reports-on-subsets-of-the-data">
+<span id="generating-subreports"></span><h3><span class="section-number">4.2.1. </span>Generating reports on subsets of the data<a class="headerlink" href="#generating-reports-on-subsets-of-the-data" title="Link to this heading">¶</a></h3>
+<p>The <code class="docutils literal notranslate"><span class="pre">generate</span></code> method allows for keyword restrictions, just like
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">bids.BIDSLayout</span></code>’s <code class="docutils literal notranslate"><span class="pre">get</span></code> method. For example, to
+generate a report only for <code class="docutils literal notranslate"><span class="pre">nback</span></code> task data in session <code class="docutils literal notranslate"><span class="pre">01</span></code>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">counter</span> <span class="o">=</span> <span class="n">report</span><span class="o">.</span><span class="n">generate</span><span class="p">(</span><span class="n">session</span><span class="o">=</span><span class="s1">&#39;01&#39;</span><span class="p">,</span> <span class="n">task</span><span class="o">=</span><span class="s1">&#39;nback&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">main_report</span> <span class="o">=</span> <span class="n">counter</span><span class="o">.</span><span class="n">most_common</span><span class="p">()[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">main_report</span><span class="p">)</span>
+<span class="go">r&quot;&quot;&quot;</span>
+<span class="go">For session 01:</span>
+<span class="go">  MR data were acquired using a UNKNOWN-Tesla MANUFACTURER MODEL MRI scanner.</span>
+<span class="go">  Ten runs of N-Back fMRI data were collected (64 slices; repetition time,</span>
+<span class="go">TR=2500ms; echo time, TE=UNKNOWNms; flip angle, FA=UNKNOWN&lt;deg&gt;; field of</span>
+<span class="go">view, FOV=128x128mm; matrix size=64x64; voxel size=2x2x2mm). Each run was</span>
+<span class="go">2:40 minutes in length, during which 64 functional volumes were acquired.</span>
+
+<span class="go">Dicoms were converted to NIfTI-1 format. This section was (in part)</span>
+<span class="go">generated automatically using pybids (0.5).&quot;&quot;&quot;</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>For a more detailed set of examples, please refer to the  Tutorial: <a class="reference internal" href="../examples/reports_tutorial.html"><span class="doc">Writing methods reports with pybids.reports</span></a>.</p>
+</div>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../analysis/index.html" class="btn btn-neutral float-left" title="3. analysis: Model specification for BIDS datasets" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../examples/index.html" class="btn btn-neutral float-right" title="Tutorials" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2015-2023, Developers of PyBIDS.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

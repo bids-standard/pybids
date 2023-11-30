@@ -1,0 +1,30 @@
+﻿bids.layout.writing
+===================
+
+.. automodule:: bids.layout.writing
+
+   
+   
+   
+
+   
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      build_path
+      write_to_file
+   
+   
+
+   
+   
+   
+
+   
+   
+   
+
+
+

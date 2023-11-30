@@ -1,0 +1,1310 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Executing and inspecting StatsModels with pybids.modeling &mdash; PyBIDS 0.16.4 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=fa44fd50" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="../_static/mystnb.4510f1fc1dee50b3e5859aac5469c37c29e427902b24a333a5f9fcb2f0b3ac41.css" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/documentation_options.js?v=81998473"></script>
+        <script src="../_static/doctools.js?v=888ff710"></script>
+        <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="API Reference" href="../api.html" />
+    <link rel="prev" title="Writing methods reports with pybids.reports" href="reports_tutorial.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            PyBIDS
+          </a>
+              <div class="version">
+                0.16.4
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../user_guide.html">User guide</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Tutorials</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="pybids_tutorial.html">Introduction to <code class="docutils literal notranslate"><span class="pre">pybids</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="reports_tutorial.html">Writing methods reports with <code class="docutils literal notranslate"><span class="pre">pybids.reports</span></code></a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Executing and inspecting StatsModels with <code class="docutils literal notranslate"><span class="pre">pybids.modeling</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#load-bidslayout">Load BIDSLayout</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#initialize-the-graph">Initialize the graph</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#load-variables-from-bids-dataset">Load variables from BIDS dataset</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#access-specific-nodes">Access specific nodes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#inspect-bidsvariablecollection">Inspect <code class="docutils literal notranslate"><span class="pre">BIDSVariableCollection</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#executing-a-node">Executing a node</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#node-outputs">Node outputs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#transformation-history">Transformation History</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#traversing-the-graph">Traversing the graph</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#passing-in-inputs">Passing in inputs</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../api.html">API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../whats_new.html">Changelog</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">PyBIDS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Tutorials</a></li>
+      <li class="breadcrumb-item active">Executing and inspecting StatsModels with <code class="docutils literal notranslate"><span class="pre">pybids.modeling</span></code></li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/examples/statsmodels_tutorial.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="executing-and-inspecting-statsmodels-with-pybids-modeling">
+<h1>Executing and inspecting StatsModels with <code class="docutils literal notranslate"><span class="pre">pybids.modeling</span></code><a class="headerlink" href="#executing-and-inspecting-statsmodels-with-pybids-modeling" title="Link to this heading">¶</a></h1>
+<p>A minimalistic tutorial illustrating usage of the tools in the <code class="docutils literal notranslate"><span class="pre">bids.modeling</span></code> module—most notably, <code class="docutils literal notranslate"><span class="pre">BIDSStatsModelsGraph</span></code> and its various components.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="o">%</span><span class="k">load_ext</span> autoreload
+<span class="o">%</span><span class="k">autoreload</span> 2
+
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">bids.modeling</span> <span class="kn">import</span> <span class="n">BIDSStatsModelsGraph</span>
+<span class="kn">from</span> <span class="nn">bids.layout</span> <span class="kn">import</span> <span class="n">BIDSLayout</span>
+<span class="kn">from</span> <span class="nn">bids.tests</span> <span class="kn">import</span> <span class="n">get_test_data_path</span>
+<span class="kn">from</span> <span class="nn">os.path</span> <span class="kn">import</span> <span class="n">join</span>
+<span class="kn">import</span> <span class="nn">json</span>
+</pre></div>
+</div>
+</div>
+</div>
+<section id="load-bidslayout">
+<h2>Load BIDSLayout<a class="headerlink" href="#load-bidslayout" title="Link to this heading">¶</a></h2>
+<p>Standard stuff: load the <code class="docutils literal notranslate"><span class="pre">BIDSLayout</span></code> object (we’ll use the ds005 dataset bundled with PyBIDS tests) and read in one of the included model files (<code class="docutils literal notranslate"><span class="pre">ds005/models/ds-005_type-test_model.json</span></code>).</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">layout_path</span> <span class="o">=</span> <span class="n">join</span><span class="p">(</span><span class="n">get_test_data_path</span><span class="p">(),</span> <span class="s1">&#39;ds005&#39;</span><span class="p">)</span>
+<span class="n">layout</span> <span class="o">=</span> <span class="n">BIDSLayout</span><span class="p">(</span><span class="n">layout_path</span><span class="p">)</span>
+<span class="n">json_file</span> <span class="o">=</span> <span class="n">join</span><span class="p">(</span><span class="n">layout_path</span><span class="p">,</span> <span class="s1">&#39;models&#39;</span><span class="p">,</span> <span class="s1">&#39;ds-005_type-test_model.json&#39;</span><span class="p">)</span>
+<span class="n">spec</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="nb">open</span><span class="p">(</span><span class="n">json_file</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+<section id="initialize-the-graph">
+<h2>Initialize the graph<a class="headerlink" href="#initialize-the-graph" title="Link to this heading">¶</a></h2>
+<p>The <code class="docutils literal notranslate"><span class="pre">BIDSStatsModelsGraph</span></code> is the primary interface to design data, model constructions, etc. We build it from a <code class="docutils literal notranslate"><span class="pre">BIDSLayout</span></code> and the contents of a JSON model file.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">graph</span> <span class="o">=</span> <span class="n">BIDSStatsModelsGraph</span><span class="p">(</span><span class="n">layout</span><span class="p">,</span> <span class="n">spec</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/modeling/statsmodels.py:63: UserWarning: [Node run]:Transformations reformatted to {&#39;transformer&#39;: &#39;pybids-transforms-v1&#39;, &#39;instructions&#39;: [{&#39;name&#39;: &#39;Factor&#39;, &#39;input&#39;: &#39;trial_type&#39;}, {&#39;name&#39;: &#39;Rename&#39;, &#39;input&#39;: &#39;trial_type.parametric gain&#39;, &#39;output&#39;: &#39;gain&#39;}]}
+  warnings.warn(f&quot;[Node {node[&#39;name&#39;]}]:&quot;
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+<section id="load-variables-from-bids-dataset">
+<h2>Load variables from BIDS dataset<a class="headerlink" href="#load-variables-from-bids-dataset" title="Link to this heading">¶</a></h2>
+<p>We will typically want to load variables into BIDS “collections” from the BIDS project. The <code class="docutils literal notranslate"><span class="pre">scan_length</span></code> argument is only necessary here because the test dataset doesn’t actually include nifti image headers, so duration of scans can’t be inferred. In typical use, you can call this without arguments.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">graph</span><span class="o">.</span><span class="n">load_collections</span><span class="p">(</span><span class="n">scan_length</span><span class="o">=</span><span class="mi">480</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+<section id="access-specific-nodes">
+<h2>Access specific nodes<a class="headerlink" href="#access-specific-nodes" title="Link to this heading">¶</a></h2>
+<p>Now that the graph is loaded, we can start interacting with its nodes. We’ll typically start with the root node, which will usually contain the run-level model information. We can either access the <code class="docutils literal notranslate"><span class="pre">.root_node</span></code>, or use <code class="docutils literal notranslate"><span class="pre">get_node()</span></code> to get the node by its unique name (defined in the JSON file).</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Equivalent to calling graph.get_node(&#39;run&#39;) in this case.</span>
+<span class="n">root_node</span> <span class="o">=</span> <span class="n">graph</span><span class="o">.</span><span class="n">root_node</span>
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+<section id="inspect-bidsvariablecollection">
+<h2>Inspect <code class="docutils literal notranslate"><span class="pre">BIDSVariableCollection</span></code><a class="headerlink" href="#inspect-bidsvariablecollection" title="Link to this heading">¶</a></h2>
+<p>We can take a look at the original variables available for each node prior to running the node (i.e. applying any transformations)</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">colls</span> <span class="o">=</span> <span class="n">root_node</span><span class="o">.</span><span class="n">get_collections</span><span class="p">()</span>
+<span class="n">first_sub</span> <span class="o">=</span> <span class="n">colls</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="c1"># Collection for the first subject / run </span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">first_sub</span><span class="o">.</span><span class="n">to_df</span><span class="p">(</span><span class="n">entities</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_html"><div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>onset</th>
+      <th>duration</th>
+      <th>PTval</th>
+      <th>RT</th>
+      <th>distance from indifference</th>
+      <th>gain</th>
+      <th>loss</th>
+      <th>parametric gain</th>
+      <th>parametric loss</th>
+      <th>respcat</th>
+      <th>respnum</th>
+      <th>trial_type</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>0</td>
+      <td>3</td>
+      <td>5.15</td>
+      <td>0.000</td>
+      <td>NaN</td>
+      <td>20</td>
+      <td>15</td>
+      <td>-0.139</td>
+      <td>NaN</td>
+      <td>-1</td>
+      <td>0</td>
+      <td>parametric gain</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>4</td>
+      <td>3</td>
+      <td>6.12</td>
+      <td>1.793</td>
+      <td>NaN</td>
+      <td>18</td>
+      <td>12</td>
+      <td>-0.189</td>
+      <td>NaN</td>
+      <td>1</td>
+      <td>2</td>
+      <td>parametric gain</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>8</td>
+      <td>3</td>
+      <td>-4.85</td>
+      <td>1.637</td>
+      <td>NaN</td>
+      <td>10</td>
+      <td>15</td>
+      <td>-0.389</td>
+      <td>NaN</td>
+      <td>0</td>
+      <td>3</td>
+      <td>parametric gain</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>18</td>
+      <td>3</td>
+      <td>18.16</td>
+      <td>1.316</td>
+      <td>NaN</td>
+      <td>34</td>
+      <td>16</td>
+      <td>0.211</td>
+      <td>NaN</td>
+      <td>1</td>
+      <td>1</td>
+      <td>parametric gain</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>24</td>
+      <td>3</td>
+      <td>13.05</td>
+      <td>1.670</td>
+      <td>NaN</td>
+      <td>18</td>
+      <td>5</td>
+      <td>-0.189</td>
+      <td>NaN</td>
+      <td>1</td>
+      <td>1</td>
+      <td>parametric gain</td>
+    </tr>
+    <tr>
+      <th>...</th>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+    </tr>
+    <tr>
+      <th>81</th>
+      <td>458</td>
+      <td>3</td>
+      <td>-1.82</td>
+      <td>1.785</td>
+      <td>NaN</td>
+      <td>16</td>
+      <td>18</td>
+      <td>-0.239</td>
+      <td>NaN</td>
+      <td>0</td>
+      <td>4</td>
+      <td>parametric gain</td>
+    </tr>
+    <tr>
+      <th>82</th>
+      <td>462</td>
+      <td>3</td>
+      <td>24.12</td>
+      <td>1.280</td>
+      <td>NaN</td>
+      <td>36</td>
+      <td>12</td>
+      <td>0.261</td>
+      <td>NaN</td>
+      <td>1</td>
+      <td>2</td>
+      <td>parametric gain</td>
+    </tr>
+    <tr>
+      <th>83</th>
+      <td>466</td>
+      <td>3</td>
+      <td>17.09</td>
+      <td>1.394</td>
+      <td>NaN</td>
+      <td>26</td>
+      <td>9</td>
+      <td>0.011</td>
+      <td>NaN</td>
+      <td>1</td>
+      <td>1</td>
+      <td>parametric gain</td>
+    </tr>
+    <tr>
+      <th>84</th>
+      <td>470</td>
+      <td>3</td>
+      <td>8.12</td>
+      <td>1.249</td>
+      <td>NaN</td>
+      <td>20</td>
+      <td>12</td>
+      <td>-0.139</td>
+      <td>NaN</td>
+      <td>1</td>
+      <td>2</td>
+      <td>parametric gain</td>
+    </tr>
+    <tr>
+      <th>85</th>
+      <td>474</td>
+      <td>3</td>
+      <td>10.14</td>
+      <td>1.266</td>
+      <td>NaN</td>
+      <td>24</td>
+      <td>14</td>
+      <td>-0.039</td>
+      <td>NaN</td>
+      <td>1</td>
+      <td>2</td>
+      <td>parametric gain</td>
+    </tr>
+  </tbody>
+</table>
+<p>86 rows × 12 columns</p>
+</div></div></div>
+</div>
+<p>Note that by default <code class="docutils literal notranslate"><span class="pre">to_df</span></code> combines both sparse and dense variables.</p>
+<p>We can take a look at the individual variable objects as well:</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">first_sub</span><span class="o">.</span><span class="n">variables</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>{&#39;trial_type&#39;: &lt;SparseRunVariable(name=&#39;trial_type&#39;, source=&#39;events&#39;)&gt;,
+ &#39;loss&#39;: &lt;SparseRunVariable(name=&#39;loss&#39;, source=&#39;events&#39;)&gt;,
+ &#39;RT&#39;: &lt;SparseRunVariable(name=&#39;RT&#39;, source=&#39;events&#39;)&gt;,
+ &#39;distance from indifference&#39;: &lt;SparseRunVariable(name=&#39;distance from indifference&#39;, source=&#39;events&#39;)&gt;,
+ &#39;respcat&#39;: &lt;SparseRunVariable(name=&#39;respcat&#39;, source=&#39;events&#39;)&gt;,
+ &#39;parametric loss&#39;: &lt;SparseRunVariable(name=&#39;parametric loss&#39;, source=&#39;events&#39;)&gt;,
+ &#39;gain&#39;: &lt;SparseRunVariable(name=&#39;gain&#39;, source=&#39;events&#39;)&gt;,
+ &#39;PTval&#39;: &lt;SparseRunVariable(name=&#39;PTval&#39;, source=&#39;events&#39;)&gt;,
+ &#39;respnum&#39;: &lt;SparseRunVariable(name=&#39;respnum&#39;, source=&#39;events&#39;)&gt;,
+ &#39;parametric gain&#39;: &lt;SparseRunVariable(name=&#39;parametric gain&#39;, source=&#39;events&#39;)&gt;}
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+<section id="executing-a-node">
+<h2>Executing a node<a class="headerlink" href="#executing-a-node" title="Link to this heading">¶</a></h2>
+<p>We can “run” each node to produce design matrices for each unique combination of entities/inputs we want. This is determined by the grouping structure. When working with the API directly, this is indicated via the <code class="docutils literal notranslate"><span class="pre">group_by</span></code> argument to a <code class="docutils literal notranslate"><span class="pre">.run()</span></code> method. In this case, we’re indicating that the design information should be set up separately for every unique combination of <code class="docutils literal notranslate"><span class="pre">run</span></code> and <code class="docutils literal notranslate"><span class="pre">subject</span></code>.</p>
+<p>Note that we need to include <code class="docutils literal notranslate"><span class="pre">subject</span></code> even though this is a strictly run-level model, because if we only pass <code class="docutils literal notranslate"><span class="pre">['run']</span></code>, there will only be 3 separate analyses conducted: one for run 1, one for run 2, and one for run 3. Whereas what we actually want is for the procedure to be done separately for each unique combination of the 3 runs and 16 subjects (i.e., 48 times).</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># force_dense controls whether the output for run-level design matrices</span>
+<span class="c1"># will be resampled to a uniform &quot;dense&quot; representation, or left alone</span>
+<span class="c1"># as a sparse representation if possible.</span>
+<span class="n">outputs</span> <span class="o">=</span> <span class="n">root_node</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">group_by</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;run&#39;</span><span class="p">,</span> <span class="s1">&#39;subject&#39;</span><span class="p">],</span> <span class="n">force_dense</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">transformation_history</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+<section id="node-outputs">
+<h2>Node outputs<a class="headerlink" href="#node-outputs" title="Link to this heading">¶</a></h2>
+<p>The result is a list of objects of type <code class="docutils literal notranslate"><span class="pre">BIDSStatsModelsNodeOutput</span></code>. This is a lightweight container that stores design information and various other useful pieces of information. There should one element in the list for each unique combination of the grouping variables (in this case, run and subject):</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nb">len</span><span class="p">(</span><span class="n">outputs</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>48
+</pre></div>
+</div>
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># The first 10 `BIDSStatsModelsNodeOutput` objects</span>
+<span class="n">outputs</span><span class="p">[:</span><span class="mi">10</span><span class="p">]</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>[&lt;BIDSStatsModelsNodeOutput(name=run, entities={&#39;run&#39;: 1, &#39;subject&#39;: &#39;01&#39;})&gt;,
+ &lt;BIDSStatsModelsNodeOutput(name=run, entities={&#39;run&#39;: 2, &#39;subject&#39;: &#39;01&#39;})&gt;,
+ &lt;BIDSStatsModelsNodeOutput(name=run, entities={&#39;run&#39;: 3, &#39;subject&#39;: &#39;01&#39;})&gt;,
+ &lt;BIDSStatsModelsNodeOutput(name=run, entities={&#39;run&#39;: 1, &#39;subject&#39;: &#39;02&#39;})&gt;,
+ &lt;BIDSStatsModelsNodeOutput(name=run, entities={&#39;run&#39;: 2, &#39;subject&#39;: &#39;02&#39;})&gt;,
+ &lt;BIDSStatsModelsNodeOutput(name=run, entities={&#39;run&#39;: 3, &#39;subject&#39;: &#39;02&#39;})&gt;,
+ &lt;BIDSStatsModelsNodeOutput(name=run, entities={&#39;run&#39;: 1, &#39;subject&#39;: &#39;03&#39;})&gt;,
+ &lt;BIDSStatsModelsNodeOutput(name=run, entities={&#39;run&#39;: 2, &#39;subject&#39;: &#39;03&#39;})&gt;,
+ &lt;BIDSStatsModelsNodeOutput(name=run, entities={&#39;run&#39;: 3, &#39;subject&#39;: &#39;03&#39;})&gt;,
+ &lt;BIDSStatsModelsNodeOutput(name=run, entities={&#39;run&#39;: 1, &#39;subject&#39;: &#39;04&#39;})&gt;]
+</pre></div>
+</div>
+</div>
+</div>
+<p>Let’s take a closer look at the <code class="docutils literal notranslate"><span class="pre">BIDSStatsModelsNodeOutput</span></code>. First, we have an <code class="docutils literal notranslate"><span class="pre">.entities</span></code> attribute that tells us what levels of the grouping variables this output corresponds to:</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">outputs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">entities</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>{&#39;run&#39;: 1, &#39;subject&#39;: &#39;01&#39;}
+</pre></div>
+</div>
+</div>
+</div>
+<p>Next, we can get the design matrix itself via the <code class="docutils literal notranslate"><span class="pre">.X</span></code> attribute:</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">outputs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">X</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_html"><div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>RT</th>
+      <th>gain</th>
+      <th>RT:gain</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>0.000</td>
+      <td>1.0</td>
+      <td>0.000</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>1.793</td>
+      <td>1.0</td>
+      <td>1.793</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>1.637</td>
+      <td>1.0</td>
+      <td>1.637</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>1.316</td>
+      <td>1.0</td>
+      <td>1.316</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>1.670</td>
+      <td>1.0</td>
+      <td>1.670</td>
+    </tr>
+    <tr>
+      <th>...</th>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+    </tr>
+    <tr>
+      <th>81</th>
+      <td>1.785</td>
+      <td>1.0</td>
+      <td>1.785</td>
+    </tr>
+    <tr>
+      <th>82</th>
+      <td>1.280</td>
+      <td>1.0</td>
+      <td>1.280</td>
+    </tr>
+    <tr>
+      <th>83</th>
+      <td>1.394</td>
+      <td>1.0</td>
+      <td>1.394</td>
+    </tr>
+    <tr>
+      <th>84</th>
+      <td>1.249</td>
+      <td>1.0</td>
+      <td>1.249</td>
+    </tr>
+    <tr>
+      <th>85</th>
+      <td>1.266</td>
+      <td>1.0</td>
+      <td>1.266</td>
+    </tr>
+  </tbody>
+</table>
+<p>86 rows × 3 columns</p>
+</div></div></div>
+</div>
+<p>Here we have a column for each of the contrasts specified in the model (with the same name as the contrast). We can access the contrasts too, via—you guessed it—<code class="docutils literal notranslate"><span class="pre">.contrasts</span></code>:</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">outputs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">contrasts</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>[ContrastInfo(name=&#39;RT:gain&#39;, conditions=[&#39;RT:gain&#39;], weights=[1], test=&#39;t&#39;, entities={&#39;run&#39;: 1, &#39;subject&#39;: &#39;01&#39;, &#39;contrast&#39;: &#39;RT:gain&#39;}),
+ ContrastInfo(name=&#39;gain&#39;, conditions=[&#39;gain&#39;], weights=[1], test=&#39;t&#39;, entities={&#39;run&#39;: 1, &#39;subject&#39;: &#39;01&#39;, &#39;contrast&#39;: &#39;gain&#39;}),
+ ContrastInfo(name=&#39;RT&#39;, conditions=[&#39;RT&#39;], weights=[1], test=&#39;t&#39;, entities={&#39;run&#39;: 1, &#39;subject&#39;: &#39;01&#39;, &#39;contrast&#39;: &#39;RT&#39;})]
+</pre></div>
+</div>
+</div>
+</div>
+<p>Each <code class="docutils literal notranslate"><span class="pre">ContrastInfo</span></code> is a named tuple with fields that map directly on the definition of contrasts in the BIDS-StatsModels specification. The only addition is the inclusion of an <code class="docutils literal notranslate"><span class="pre">.entities</span></code> field that stores a dictionary of the entities that identify what subset of our data the contrast applies to.</p>
+<p>One thing you might be puzzled by, looking at the output of the <code class="docutils literal notranslate"><span class="pre">.X</span></code> call above, is the absence of any timing information. <code class="docutils literal notranslate"><span class="pre">.X</span></code> is supposed to give us a design matrix, but how come the output only has the actual values for each column, and no information about event timing? How are we supposed to know what the onsets, durations, etc. of each event are?</p>
+<p>The answer is that <code class="docutils literal notranslate"><span class="pre">.X</span></code> contains <em>only</em> the actual values that go into the design matrix, and not any metadata—no matter how important. Fortunately, that metadata is available to us. It’s conveniently stored in a <code class="docutils literal notranslate"><span class="pre">.metadata</span></code> attribute on the <code class="docutils literal notranslate"><span class="pre">BIDSStatsModelsNodeOutput</span></code> object.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">outputs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">metadata</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_html"><div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>datatype</th>
+      <th>duration</th>
+      <th>onset</th>
+      <th>run</th>
+      <th>subject</th>
+      <th>suffix</th>
+      <th>task</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>func</td>
+      <td>3</td>
+      <td>0</td>
+      <td>1</td>
+      <td>01</td>
+      <td>bold</td>
+      <td>mixedgamblestask</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>func</td>
+      <td>3</td>
+      <td>4</td>
+      <td>1</td>
+      <td>01</td>
+      <td>bold</td>
+      <td>mixedgamblestask</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>func</td>
+      <td>3</td>
+      <td>8</td>
+      <td>1</td>
+      <td>01</td>
+      <td>bold</td>
+      <td>mixedgamblestask</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>func</td>
+      <td>3</td>
+      <td>18</td>
+      <td>1</td>
+      <td>01</td>
+      <td>bold</td>
+      <td>mixedgamblestask</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>func</td>
+      <td>3</td>
+      <td>24</td>
+      <td>1</td>
+      <td>01</td>
+      <td>bold</td>
+      <td>mixedgamblestask</td>
+    </tr>
+    <tr>
+      <th>...</th>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+    </tr>
+    <tr>
+      <th>81</th>
+      <td>func</td>
+      <td>3</td>
+      <td>458</td>
+      <td>1</td>
+      <td>01</td>
+      <td>bold</td>
+      <td>mixedgamblestask</td>
+    </tr>
+    <tr>
+      <th>82</th>
+      <td>func</td>
+      <td>3</td>
+      <td>462</td>
+      <td>1</td>
+      <td>01</td>
+      <td>bold</td>
+      <td>mixedgamblestask</td>
+    </tr>
+    <tr>
+      <th>83</th>
+      <td>func</td>
+      <td>3</td>
+      <td>466</td>
+      <td>1</td>
+      <td>01</td>
+      <td>bold</td>
+      <td>mixedgamblestask</td>
+    </tr>
+    <tr>
+      <th>84</th>
+      <td>func</td>
+      <td>3</td>
+      <td>470</td>
+      <td>1</td>
+      <td>01</td>
+      <td>bold</td>
+      <td>mixedgamblestask</td>
+    </tr>
+    <tr>
+      <th>85</th>
+      <td>func</td>
+      <td>3</td>
+      <td>474</td>
+      <td>1</td>
+      <td>01</td>
+      <td>bold</td>
+      <td>mixedgamblestask</td>
+    </tr>
+  </tbody>
+</table>
+<p>86 rows × 7 columns</p>
+</div></div></div>
+</div>
+<p>There’s a 1-to-1 mapping from rows in <code class="docutils literal notranslate"><span class="pre">.X</span></code> to rows in <code class="docutils literal notranslate"><span class="pre">.metadata</span></code>. This means you can, if you like, simply concatenate the two along the column axis to get one big DataFrame with everything. But by maintaining a default separation, it’s made very clear to us which columns are properly a part of the design, and which contain additional metadata.</p>
+</section>
+<section id="transformation-history">
+<h2>Transformation History<a class="headerlink" href="#transformation-history" title="Link to this heading">¶</a></h2>
+<p>To generate the final design matrix, pybids applies all transformations specified in the model for that given run.</p>
+<p>However, it’s often useful to look at the intermediary outputs from each transformation to perform sanity checks, such as previewing the variable prior to convolution.</p>
+<p>Optionally, you can run the <code class="docutils literal notranslate"><span class="pre">Node</span></code> with <code class="docutils literal notranslate"><span class="pre">transformation_history=True</span></code>, and the <code class="docutils literal notranslate"><span class="pre">BIDSStatsModelsNodeOutput</span></code> object will have a <code class="docutils literal notranslate"><span class="pre">trans_hist</span></code> attribute which is a list of intermediary outputs after every transformation</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">ts</span> <span class="o">=</span> <span class="n">outputs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">trans_hist</span>
+<span class="n">ts</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>[TransformationOutput(index=0, output=&lt;BIDSRunVariableCollection[&#39;PTval&#39;, &#39;RT&#39;, &#39;distance from indifference&#39;, &#39;gain&#39;, &#39;loss&#39;, &#39;parametric gain&#39;, &#39;parametric loss&#39;, &#39;respcat&#39;, &#39;respnum&#39;, &#39;trial_type&#39;]&gt;, transformation_name=None, transformation_kwargs=None, input_cols=None, level=None),
+ TransformationOutput(index=1, output=&lt;BIDSRunVariableCollection[&#39;PTval&#39;, &#39;RT&#39;, &#39;distance from indifference&#39;, &#39;gain&#39;, &#39;loss&#39;, &#39;parametric gain&#39;, &#39;parametric loss&#39;, &#39;respcat&#39;, &#39;respnum&#39;, &#39;trial_type.parametric gain&#39;]&gt;, transformation_name=&#39;Factor&#39;, transformation_kwargs={}, input_cols=&#39;trial_type&#39;, level=&#39;run&#39;),
+ TransformationOutput(index=2, output=&lt;BIDSRunVariableCollection[&#39;PTval&#39;, &#39;RT&#39;, &#39;distance from indifference&#39;, &#39;gain&#39;, &#39;loss&#39;, &#39;parametric gain&#39;, &#39;parametric loss&#39;, &#39;respcat&#39;, &#39;respnum&#39;]&gt;, transformation_name=&#39;Rename&#39;, transformation_kwargs={&#39;output&#39;: &#39;gain&#39;}, input_cols=&#39;trial_type.parametric gain&#39;, level=&#39;run&#39;)]
+</pre></div>
+</div>
+</div>
+</div>
+<p>The first item (index=0), is the original collection. We can access the <code class="docutils literal notranslate"><span class="pre">BIDSRunVariableCollection</span></code> using the output attribute:</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">ts</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">output</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>&lt;BIDSRunVariableCollection[&#39;PTval&#39;, &#39;RT&#39;, &#39;distance from indifference&#39;, &#39;gain&#39;, &#39;loss&#39;, &#39;parametric gain&#39;, &#39;parametric loss&#39;, &#39;respcat&#39;, &#39;respnum&#39;, &#39;trial_type&#39;]&gt;
+</pre></div>
+</div>
+</div>
+</div>
+<p>We can examine the full collection at each step using either a combined dataframe:</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">ts</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">output</span><span class="o">.</span><span class="n">to_df</span><span class="p">(</span><span class="n">entities</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_html"><div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>onset</th>
+      <th>duration</th>
+      <th>PTval</th>
+      <th>RT</th>
+      <th>distance from indifference</th>
+      <th>gain</th>
+      <th>loss</th>
+      <th>parametric gain</th>
+      <th>parametric loss</th>
+      <th>respcat</th>
+      <th>respnum</th>
+      <th>trial_type.parametric gain</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>0</td>
+      <td>3</td>
+      <td>5.15</td>
+      <td>0.000</td>
+      <td>NaN</td>
+      <td>20.0</td>
+      <td>15.0</td>
+      <td>-0.139</td>
+      <td>NaN</td>
+      <td>-1.0</td>
+      <td>0.0</td>
+      <td>1.0</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>4</td>
+      <td>3</td>
+      <td>6.12</td>
+      <td>1.793</td>
+      <td>NaN</td>
+      <td>18.0</td>
+      <td>12.0</td>
+      <td>-0.189</td>
+      <td>NaN</td>
+      <td>1.0</td>
+      <td>2.0</td>
+      <td>1.0</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>8</td>
+      <td>3</td>
+      <td>-4.85</td>
+      <td>1.637</td>
+      <td>NaN</td>
+      <td>10.0</td>
+      <td>15.0</td>
+      <td>-0.389</td>
+      <td>NaN</td>
+      <td>0.0</td>
+      <td>3.0</td>
+      <td>1.0</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>18</td>
+      <td>3</td>
+      <td>18.16</td>
+      <td>1.316</td>
+      <td>NaN</td>
+      <td>34.0</td>
+      <td>16.0</td>
+      <td>0.211</td>
+      <td>NaN</td>
+      <td>1.0</td>
+      <td>1.0</td>
+      <td>1.0</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>24</td>
+      <td>3</td>
+      <td>13.05</td>
+      <td>1.670</td>
+      <td>NaN</td>
+      <td>18.0</td>
+      <td>5.0</td>
+      <td>-0.189</td>
+      <td>NaN</td>
+      <td>1.0</td>
+      <td>1.0</td>
+      <td>1.0</td>
+    </tr>
+    <tr>
+      <th>...</th>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+    </tr>
+    <tr>
+      <th>81</th>
+      <td>458</td>
+      <td>3</td>
+      <td>-1.82</td>
+      <td>1.785</td>
+      <td>NaN</td>
+      <td>16.0</td>
+      <td>18.0</td>
+      <td>-0.239</td>
+      <td>NaN</td>
+      <td>0.0</td>
+      <td>4.0</td>
+      <td>1.0</td>
+    </tr>
+    <tr>
+      <th>82</th>
+      <td>462</td>
+      <td>3</td>
+      <td>24.12</td>
+      <td>1.280</td>
+      <td>NaN</td>
+      <td>36.0</td>
+      <td>12.0</td>
+      <td>0.261</td>
+      <td>NaN</td>
+      <td>1.0</td>
+      <td>2.0</td>
+      <td>1.0</td>
+    </tr>
+    <tr>
+      <th>83</th>
+      <td>466</td>
+      <td>3</td>
+      <td>17.09</td>
+      <td>1.394</td>
+      <td>NaN</td>
+      <td>26.0</td>
+      <td>9.0</td>
+      <td>0.011</td>
+      <td>NaN</td>
+      <td>1.0</td>
+      <td>1.0</td>
+      <td>1.0</td>
+    </tr>
+    <tr>
+      <th>84</th>
+      <td>470</td>
+      <td>3</td>
+      <td>8.12</td>
+      <td>1.249</td>
+      <td>NaN</td>
+      <td>20.0</td>
+      <td>12.0</td>
+      <td>-0.139</td>
+      <td>NaN</td>
+      <td>1.0</td>
+      <td>2.0</td>
+      <td>1.0</td>
+    </tr>
+    <tr>
+      <th>85</th>
+      <td>474</td>
+      <td>3</td>
+      <td>10.14</td>
+      <td>1.266</td>
+      <td>NaN</td>
+      <td>24.0</td>
+      <td>14.0</td>
+      <td>-0.039</td>
+      <td>NaN</td>
+      <td>1.0</td>
+      <td>2.0</td>
+      <td>1.0</td>
+    </tr>
+  </tbody>
+</table>
+<p>86 rows × 12 columns</p>
+</div></div></div>
+</div>
+<p>Or examine individual variables in their native representation (e.g. <code class="docutils literal notranslate"><span class="pre">SparseRunVariable</span></code> or <code class="docutils literal notranslate"><span class="pre">DenseRunVariable</span></code>)</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">ts</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">output</span><span class="o">.</span><span class="n">variables</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>{&#39;loss&#39;: &lt;SparseRunVariable(name=&#39;loss&#39;, source=&#39;events&#39;)&gt;,
+ &#39;RT&#39;: &lt;SparseRunVariable(name=&#39;RT&#39;, source=&#39;events&#39;)&gt;,
+ &#39;distance from indifference&#39;: &lt;SparseRunVariable(name=&#39;distance from indifference&#39;, source=&#39;events&#39;)&gt;,
+ &#39;respcat&#39;: &lt;SparseRunVariable(name=&#39;respcat&#39;, source=&#39;events&#39;)&gt;,
+ &#39;parametric loss&#39;: &lt;SparseRunVariable(name=&#39;parametric loss&#39;, source=&#39;events&#39;)&gt;,
+ &#39;gain&#39;: &lt;SparseRunVariable(name=&#39;gain&#39;, source=&#39;events&#39;)&gt;,
+ &#39;PTval&#39;: &lt;SparseRunVariable(name=&#39;PTval&#39;, source=&#39;events&#39;)&gt;,
+ &#39;respnum&#39;: &lt;SparseRunVariable(name=&#39;respnum&#39;, source=&#39;events&#39;)&gt;,
+ &#39;parametric gain&#39;: &lt;SparseRunVariable(name=&#39;parametric gain&#39;, source=&#39;events&#39;)&gt;,
+ &#39;trial_type.parametric gain&#39;: &lt;SparseRunVariable(name=&#39;trial_type.parametric gain&#39;, source=&#39;events&#39;)&gt;}
+</pre></div>
+</div>
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">ts</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">output</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="s1">&#39;RT&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">to_df</span><span class="p">(</span><span class="n">entities</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_html"><div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>amplitude</th>
+      <th>onset</th>
+      <th>duration</th>
+      <th>condition</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>0.000</td>
+      <td>0</td>
+      <td>3</td>
+      <td>RT</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>1.793</td>
+      <td>4</td>
+      <td>3</td>
+      <td>RT</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>1.637</td>
+      <td>8</td>
+      <td>3</td>
+      <td>RT</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>1.316</td>
+      <td>18</td>
+      <td>3</td>
+      <td>RT</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>1.670</td>
+      <td>24</td>
+      <td>3</td>
+      <td>RT</td>
+    </tr>
+    <tr>
+      <th>...</th>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+    </tr>
+    <tr>
+      <th>81</th>
+      <td>1.785</td>
+      <td>458</td>
+      <td>3</td>
+      <td>RT</td>
+    </tr>
+    <tr>
+      <th>82</th>
+      <td>1.280</td>
+      <td>462</td>
+      <td>3</td>
+      <td>RT</td>
+    </tr>
+    <tr>
+      <th>83</th>
+      <td>1.394</td>
+      <td>466</td>
+      <td>3</td>
+      <td>RT</td>
+    </tr>
+    <tr>
+      <th>84</th>
+      <td>1.249</td>
+      <td>470</td>
+      <td>3</td>
+      <td>RT</td>
+    </tr>
+    <tr>
+      <th>85</th>
+      <td>1.266</td>
+      <td>474</td>
+      <td>3</td>
+      <td>RT</td>
+    </tr>
+  </tbody>
+</table>
+<p>86 rows × 4 columns</p>
+</div></div></div>
+</div>
+</section>
+<section id="traversing-the-graph">
+<h2>Traversing the graph<a class="headerlink" href="#traversing-the-graph" title="Link to this heading">¶</a></h2>
+<p>So far we’ve executed the root node, which by definition required no inputs from any previous node. But in typical workflows, we’ll be passing outputs from one node in as inputs to another. For example, we often want to take the run-level parameter estimates and pass them to a subject-level model that does nothing but average over runs within each subject. This requires us to somehow traverse the graph based on the edges specified in the BIDS-StatsModel document. We can do that by taking advantage of each node’s <code class="docutils literal notranslate"><span class="pre">.children</span></code> attribute, which contains a list of <code class="docutils literal notranslate"><span class="pre">BIDSStatsModelsEdge</span></code> named tuples that specify an edge between two nodes.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">root_node</span><span class="o">.</span><span class="n">children</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>[BIDSStatsModelsEdge(source=&lt;BIDSStatsModelsNode(level=run, name=run)&gt;, destination=&lt;BIDSStatsModelsNode(level=subject, name=participant)&gt;, filter={})]
+</pre></div>
+</div>
+</div>
+</div>
+<p>In this case the root node connects to only one other node. We can directly access that node by following the <code class="docutils literal notranslate"><span class="pre">.destination</span></code> property of the edge:</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">next_node</span> <span class="o">=</span> <span class="n">root_node</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">destination</span>
+<span class="n">next_node</span><span class="o">.</span><span class="n">level</span><span class="p">,</span> <span class="n">next_node</span><span class="o">.</span><span class="n">name</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>(&#39;subject&#39;, &#39;participant&#39;)
+</pre></div>
+</div>
+</div>
+</div>
+<p>We assign the first connected node to <code class="docutils literal notranslate"><span class="pre">next_node</span></code>, and print out its <code class="docutils literal notranslate"><span class="pre">level</span></code> and <code class="docutils literal notranslate"><span class="pre">name</span></code> for inspection (both are session).</p>
+</section>
+<section id="passing-in-inputs">
+<h2>Passing in inputs<a class="headerlink" href="#passing-in-inputs" title="Link to this heading">¶</a></h2>
+<p>Armed with that, we can run the session node and proceed and before. However, there’s a twist: whereas the root node only needs to know about variables loaded directly from the <code class="docutils literal notranslate"><span class="pre">BIDSLayout</span></code> (which we achieved with that <code class="docutils literal notranslate"><span class="pre">.load_collections()</span></code> call earlier), the session node can’t get the inputs it needs from the <code class="docutils literal notranslate"><span class="pre">BIDSLayout</span></code>, because there aren’t any (at least in this particular dataset). What we want to do at the session level is average over our run-level estimates within-session. But to do that, we need to actually pass in information about those runs!</p>
+<p>The way we do this is to pass, as the first argument to <code class="docutils literal notranslate"><span class="pre">.run()</span></code>, a list of <code class="docutils literal notranslate"><span class="pre">ContrastInfo</span></code> objects informing our node about what inputs it should use to construct its design matrices. The typical use pattern is to pass one concatenated list containing <em>all</em> of the outputs from the previous level that we want to pass on. Note that we may not want to pass <em>all</em> of the outputs forward. For example, suppose that 2 out of 48 run-level models failed during the estimation process. We might not want to keep passing information about those 2 runs forward, as we can’t compute them. So we can always filter the list of <code class="docutils literal notranslate"><span class="pre">ContrastInfo</span></code> objects we received from the previous node before we pass them on to the next node. (We could also do other things, like rename each <code class="docutils literal notranslate"><span class="pre">ContrastInfo</span></code> to use whatever naming scheme our software prefers; modifying the entities; and so on. But we won’t do any of that here.)</p>
+<p>Let’s concatenate the 48 outputs we got from the previous level and drop the last 2, in preparation for passing them forward to our <code class="docutils literal notranslate"><span class="pre">next_node</span></code>:</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">itertools</span> <span class="kn">import</span> <span class="n">chain</span>
+<span class="n">contrasts</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">chain</span><span class="p">(</span><span class="o">*</span><span class="p">[</span><span class="n">s</span><span class="o">.</span><span class="n">contrasts</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">outputs</span><span class="p">[:</span><span class="o">-</span><span class="mi">2</span><span class="p">]]))</span>
+<span class="nb">len</span><span class="p">(</span><span class="n">contrasts</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>138
+</pre></div>
+</div>
+</div>
+</div>
+<p>Notice that we’re left we’re 138 individual <code class="docutils literal notranslate"><span class="pre">ContrastInfo</span></code> objects. Why 138? Because we have ((3 runs x 16 subjects) - 2) * 3 contrasts. Recall that we’re dropping the last two of the 48 outputs from the previous level. But each of those lists contains <em>three</em> <code class="docutils literal notranslate"><span class="pre">ContrastInfo</span></code> objects (one per contrast—<code class="docutils literal notranslate"><span class="pre">RT</span></code>, <code class="docutils literal notranslate"><span class="pre">gain</span></code>, and the <code class="docutils literal notranslate"><span class="pre">RT:gain</span></code> interaction). Hence, 138.</p>
+<p>Now we can call <code class="docutils literal notranslate"><span class="pre">.run()</span></code> on our session-level node, passing in the contrasts as inputs. We want the model specification (i.e., the part in the <code class="docutils literal notranslate"><span class="pre">&quot;Model&quot;</span></code> section of the node) to be applied separately to each unique combination of <code class="docutils literal notranslate"><span class="pre">contrast</span></code>, <code class="docutils literal notranslate"><span class="pre">session</span></code>, and <code class="docutils literal notranslate"><span class="pre">subject</span></code>.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">sess_outputs</span> <span class="o">=</span> <span class="n">next_node</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">contrasts</span><span class="p">,</span> <span class="n">group_by</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;subject&#39;</span><span class="p">,</span> <span class="s1">&#39;contrast&#39;</span><span class="p">])</span>
+<span class="nb">len</span><span class="p">(</span><span class="n">sess_outputs</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>48
+</pre></div>
+</div>
+</div>
+</div>
+<p>Again we get back a list of <code class="docutils literal notranslate"><span class="pre">BIDSStatsModelsNodeOutput</span></code> objects. And again we have 48 of them. It might seem odd that we have the same number of outputs from a subject-level node as we had from the run-level node, but there’s actually a difference. In the run-level case, our 48 results reflected 16 subjects x 3 runs. In the subject-level case, we <em>have</em> successfully aggregated over runs within each subject, but we now have 3 sets of contrasts producing outputs (i.e., 16 subjects x 3 contrasts).</p>
+<p>This becomes clearer if we inspect the same attributes we looked at earlier:</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">sess_outputs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">contrasts</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>[ContrastInfo(name=&#39;RT:gain&#39;, conditions=[&#39;intercept&#39;], weights=[1], test=&#39;FEMA&#39;, entities={&#39;contrast&#39;: &#39;RT:gain&#39;, &#39;subject&#39;: &#39;01&#39;}),
+ ContrastInfo(name=&#39;RT:gain_neg&#39;, conditions=[&#39;intercept&#39;], weights=[-1], test=&#39;FEMA&#39;, entities={&#39;contrast&#39;: &#39;RT:gain_neg&#39;, &#39;subject&#39;: &#39;01&#39;})]
+</pre></div>
+</div>
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Concatenate the X and metadata DFs for easy reading.</span>
+<span class="c1"># Note that only the first column is actually part of the</span>
+<span class="c1"># design matrix; the others are just metadata.</span>
+<span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">sess_outputs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">X</span><span class="p">,</span> <span class="n">sess_outputs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">metadata</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_html"><div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>intercept</th>
+      <th>contrast</th>
+      <th>run</th>
+      <th>subject</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>1</td>
+      <td>RT:gain</td>
+      <td>1</td>
+      <td>01</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>1</td>
+      <td>RT:gain</td>
+      <td>2</td>
+      <td>01</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>1</td>
+      <td>RT:gain</td>
+      <td>3</td>
+      <td>01</td>
+    </tr>
+  </tbody>
+</table>
+</div></div></div>
+</div>
+<p>Notice how the entities differ: the run-level node grouped on <code class="docutils literal notranslate"><span class="pre">run</span></code> and <code class="docutils literal notranslate"><span class="pre">subject</span></code>; the subject-level node groups on <code class="docutils literal notranslate"><span class="pre">subject</span></code> and <code class="docutils literal notranslate"><span class="pre">contrast</span></code>. The number of outputs is identical in both cases, but this is just an (un)happy accident, not a general principle. You can verify this for yourself by re-running the subject-level node with a different grouping (e.g., only <code class="docutils literal notranslate"><span class="pre">['subject']</span></code>).</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="reports_tutorial.html" class="btn btn-neutral float-left" title="Writing methods reports with pybids.reports" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../api.html" class="btn btn-neutral float-right" title="API Reference" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2015-2023, Developers of PyBIDS.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

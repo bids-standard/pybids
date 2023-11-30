@@ -1,0 +1,42 @@
+﻿bids.layout.BIDSDataFile
+========================
+
+.. currentmodule:: bids.layout
+
+.. autoclass:: BIDSDataFile
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~BIDSDataFile.__init__
+      ~BIDSDataFile.copy
+      ~BIDSDataFile.get_associations
+      ~BIDSDataFile.get_df
+      ~BIDSDataFile.get_entities
+      ~BIDSDataFile.get_metadata
+   
+   
+
+   
+   
+   .. rubric:: Attributes
+
+   .. autosummary::
+   
+      ~BIDSDataFile.class_
+      ~BIDSDataFile.dirname
+      ~BIDSDataFile.entities
+      ~BIDSDataFile.filename
+      ~BIDSDataFile.is_dir
+      ~BIDSDataFile.metadata
+      ~BIDSDataFile.path
+      ~BIDSDataFile.registry
+      ~BIDSDataFile.relpath
+      ~BIDSDataFile.tags
+   
+   

@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>bids.reports.report &mdash; PyBIDS 0.16.4 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=fa44fd50" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/mystnb.4510f1fc1dee50b3e5859aac5469c37c29e427902b24a333a5f9fcb2f0b3ac41.css" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../../_static/documentation_options.js?v=81998473"></script>
+        <script src="../../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            PyBIDS
+          </a>
+              <div class="version">
+                0.16.4
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../user_guide.html">User guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../examples/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api.html">API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../whats_new.html">Changelog</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">PyBIDS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">bids.reports.report</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for bids.reports.report</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Generate publication-quality data acquisition methods section from BIDS dataset.&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">os.path</span> <span class="k">as</span> <span class="nn">op</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">Counter</span>
+
+<span class="kn">from</span> <span class="nn">bids.reports</span> <span class="kn">import</span> <span class="n">parsing</span><span class="p">,</span> <span class="n">utils</span>
+
+
+<div class="viewcode-block" id="BIDSReport">
+<a class="viewcode-back" href="../../../generated/bids.reports.BIDSReport.html#bids.reports.BIDSReport">[docs]</a>
+<span class="k">class</span> <span class="nc">BIDSReport</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Generate publication-quality data acquisition section from BIDS dataset.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    layout : :obj:`bids.layout.BIDSLayout`</span>
+<span class="sd">        Layout object for a BIDS dataset.</span>
+<span class="sd">    config : :obj:`str` or :obj:`dict`, optional</span>
+<span class="sd">        Configuration info for methods generation. Can be a path to a file</span>
+<span class="sd">        (str), a dictionary, or None. If None, loads and uses default</span>
+<span class="sd">        configuration information.</span>
+<span class="sd">        Keys in the dictionary include:</span>
+<span class="sd">            &#39;dir&#39;:      a dictionary for converting encoding direction strings</span>
+<span class="sd">                        (e.g., j-) to descriptions (e.g., anterior to</span>
+<span class="sd">                        posterior)</span>
+<span class="sd">            &#39;seq&#39;:      a dictionary of sequence abbreviations (e.g., EP) and</span>
+<span class="sd">                        corresponding names (e.g., echo planar)</span>
+<span class="sd">            &#39;seqvar&#39;:   a dictionary of sequence variant abbreviations</span>
+<span class="sd">                        (e.g., SP) and corresponding names (e.g., spoiled)</span>
+
+<span class="sd">    Warning</span>
+<span class="sd">    -------</span>
+<span class="sd">    pybids&#39; automatic report generation is experimental and currently under</span>
+<span class="sd">    active development, and as such should be used with caution.</span>
+<span class="sd">    Please remember to verify any generated report before putting it to use.</span>
+
+<span class="sd">    Additionally, only MRI datatypes (func, anat, fmap, and dwi) are currently</span>
+<span class="sd">    supported.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="BIDSReport.__init__">
+<a class="viewcode-back" href="../../../generated/bids.reports.BIDSReport.html#bids.reports.BIDSReport.__init__">[docs]</a>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">layout</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">layout</span> <span class="o">=</span> <span class="n">layout</span>
+        <span class="k">if</span> <span class="n">config</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">config</span> <span class="o">=</span> <span class="n">op</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                <span class="n">op</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">op</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)),</span>
+                <span class="s2">&quot;config&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;converters.json&quot;</span><span class="p">,</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">config</span><span class="p">)</span> <span class="k">as</span> <span class="n">fobj</span><span class="p">:</span>
+                <span class="n">config</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">fobj</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;Input config must be None, dict, or path to &quot;</span>
+                <span class="s2">&quot;json file containing dict.&quot;</span>
+            <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">config</span> <span class="o">=</span> <span class="n">config</span></div>
+
+
+    <span class="k">def</span> <span class="nf">generate_from_files</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">files</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Generate a methods section from a list of files.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        files : list of BIDSImageFile objects</span>
+<span class="sd">            List of files from which to generate methods description.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        counter : :obj:`collections.Counter`</span>
+<span class="sd">            A dictionary of unique descriptions across subjects in the file list,</span>
+<span class="sd">            along with the number of times each pattern occurred. In cases</span>
+<span class="sd">            where all subjects underwent the same protocol, the most common</span>
+<span class="sd">            pattern is most likely the most complete. In cases where the</span>
+<span class="sd">            file list contains multiple protocols, each pattern will need to be</span>
+<span class="sd">            inspected manually.</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+<span class="sd">        &gt;&gt;&gt; from os.path import join</span>
+<span class="sd">        &gt;&gt;&gt; from bids.layout import BIDSLayout</span>
+<span class="sd">        &gt;&gt;&gt; from bids.reports import BIDSReport</span>
+<span class="sd">        &gt;&gt;&gt; from bids.tests import get_test_data_path</span>
+<span class="sd">        &gt;&gt;&gt; layout = BIDSLayout(join(get_test_data_path(), &#39;synthetic&#39;))</span>
+<span class="sd">        &gt;&gt;&gt; report = BIDSReport(layout)</span>
+<span class="sd">        &gt;&gt;&gt; files = layout.get(session=&#39;01&#39;, extension=[&#39;.nii.gz&#39;, &#39;.nii&#39;])</span>
+<span class="sd">        &gt;&gt;&gt; counter = report.generate_from_files(files)</span>
+<span class="sd">        Number of patterns detected: 1</span>
+<span class="sd">        Remember to double-check everything and to replace &lt;deg&gt; with a degree symbol.</span>
+
+<span class="sd">        &gt;&gt;&gt; counter.most_common()[0][0]  # doctest: +ELLIPSIS</span>
+<span class="sd">        &#39;In session 01, MR data were...&#39;</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">descriptions</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="n">subjects</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">([</span><span class="n">f</span><span class="o">.</span><span class="n">get_entities</span><span class="p">()</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;subject&quot;</span><span class="p">)</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">files</span><span class="p">])))</span>
+        <span class="n">sessions</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">([</span><span class="n">f</span><span class="o">.</span><span class="n">get_entities</span><span class="p">()</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;session&quot;</span><span class="p">)</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">files</span><span class="p">])))</span>
+        <span class="k">for</span> <span class="n">sub</span> <span class="ow">in</span> <span class="n">subjects</span><span class="p">:</span>
+            <span class="n">subject_files</span> <span class="o">=</span> <span class="p">[</span><span class="n">f</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">files</span> <span class="k">if</span> <span class="n">f</span><span class="o">.</span><span class="n">get_entities</span><span class="p">()</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;subject&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="n">sub</span><span class="p">]</span>
+            <span class="n">description_list</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">ses</span> <span class="ow">in</span> <span class="n">sessions</span><span class="p">:</span>
+                <span class="n">data_files</span> <span class="o">=</span> <span class="p">[</span>
+                    <span class="n">f</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">subject_files</span> <span class="k">if</span> <span class="n">f</span><span class="o">.</span><span class="n">get_entities</span><span class="p">()</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;session&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="n">ses</span>
+                <span class="p">]</span>
+
+                <span class="k">if</span> <span class="n">data_files</span><span class="p">:</span>
+                    <span class="n">ses_description</span> <span class="o">=</span> <span class="n">parsing</span><span class="o">.</span><span class="n">parse_files</span><span class="p">(</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">layout</span><span class="p">,</span>
+                        <span class="n">data_files</span><span class="p">,</span>
+                        <span class="n">sub</span><span class="p">,</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">,</span>
+                    <span class="p">)</span>
+                    <span class="n">ses_description</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;In session </span><span class="si">{0}</span><span class="s2">, &quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ses</span><span class="p">)</span> <span class="o">+</span> <span class="n">ses_description</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                    <span class="n">description_list</span> <span class="o">+=</span> <span class="n">ses_description</span>
+                    <span class="n">metadata</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">layout</span><span class="o">.</span><span class="n">get_metadata</span><span class="p">(</span><span class="n">data_files</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">path</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;No imaging files for subject </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">sub</span><span class="p">))</span>
+
+            <span class="c1"># Assume all data were converted the same way and use the last nifti</span>
+            <span class="c1"># file&#39;s json for conversion information.</span>
+            <span class="k">if</span> <span class="s2">&quot;metadata&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="nb">vars</span><span class="p">():</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span>
+                    <span class="s2">&quot;No valid jsons found. Cannot generate final paragraph.&quot;</span>
+                <span class="p">)</span>
+
+            <span class="n">description</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="se">\n\t</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">description_list</span><span class="p">)</span>
+            <span class="n">description</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n\n</span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">parsing</span><span class="o">.</span><span class="n">final_paragraph</span><span class="p">(</span><span class="n">metadata</span><span class="p">))</span>
+            <span class="n">descriptions</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">description</span><span class="p">)</span>
+        <span class="n">counter</span> <span class="o">=</span> <span class="n">Counter</span><span class="p">(</span><span class="n">descriptions</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Number of patterns detected: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">counter</span><span class="o">.</span><span class="n">keys</span><span class="p">())))</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">utils</span><span class="o">.</span><span class="n">reminder</span><span class="p">())</span>
+        <span class="k">return</span> <span class="n">counter</span>
+
+    <span class="k">def</span> <span class="nf">generate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Generate the methods section.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        kwargs : dict</span>
+<span class="sd">            Keyword arguments passed to BIDSLayout to select subsets of the</span>
+<span class="sd">            dataset.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        counter : :obj:`collections.Counter`</span>
+<span class="sd">            A dictionary of unique descriptions across subjects in the dataset,</span>
+<span class="sd">            along with the number of times each pattern occurred. In cases</span>
+<span class="sd">            where all subjects underwent the same protocol, the most common</span>
+<span class="sd">            pattern is most likely the most complete. In cases where the</span>
+<span class="sd">            dataset contains multiple protocols, each pattern will need to be</span>
+<span class="sd">            inspected manually.</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+<span class="sd">        &gt;&gt;&gt; from os.path import join</span>
+<span class="sd">        &gt;&gt;&gt; from bids.layout import BIDSLayout</span>
+<span class="sd">        &gt;&gt;&gt; from bids.reports import BIDSReport</span>
+<span class="sd">        &gt;&gt;&gt; from bids.tests import get_test_data_path</span>
+<span class="sd">        &gt;&gt;&gt; layout = BIDSLayout(join(get_test_data_path(), &#39;synthetic&#39;))</span>
+<span class="sd">        &gt;&gt;&gt; report = BIDSReport(layout)</span>
+<span class="sd">        &gt;&gt;&gt; counter = report.generate(session=&#39;01&#39;)</span>
+<span class="sd">        Number of patterns detected: 1</span>
+<span class="sd">        Remember to double-check everything and to replace &lt;deg&gt; with a degree symbol.</span>
+
+<span class="sd">        &gt;&gt;&gt; counter.most_common()[0][0]  # doctest: +ELLIPSIS</span>
+<span class="sd">        &#39;In session 01, MR data were...&#39;</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">descriptions</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="n">subjects</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">layout</span><span class="o">.</span><span class="n">get_subjects</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="n">kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">k</span> <span class="o">!=</span> <span class="s2">&quot;subject&quot;</span><span class="p">}</span>
+        <span class="k">for</span> <span class="n">sub</span> <span class="ow">in</span> <span class="n">subjects</span><span class="p">:</span>
+            <span class="n">descriptions</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_report_subject</span><span class="p">(</span><span class="n">subject</span><span class="o">=</span><span class="n">sub</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">))</span>
+        <span class="n">counter</span> <span class="o">=</span> <span class="n">Counter</span><span class="p">(</span><span class="n">descriptions</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Number of patterns detected: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">counter</span><span class="o">.</span><span class="n">keys</span><span class="p">())))</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">utils</span><span class="o">.</span><span class="n">reminder</span><span class="p">())</span>
+        <span class="k">return</span> <span class="n">counter</span>
+
+    <span class="k">def</span> <span class="nf">_report_subject</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">subject</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Write a report for a single subject.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        subject : :obj:`str`</span>
+<span class="sd">            Subject ID.</span>
+
+<span class="sd">        Attributes</span>
+<span class="sd">        ----------</span>
+<span class="sd">        layout : :obj:`bids.layout.BIDSLayout`</span>
+<span class="sd">            Layout object for a BIDS dataset.</span>
+<span class="sd">        config : :obj:`dict`</span>
+<span class="sd">            Configuration info for methods generation.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        description : :obj:`str`</span>
+<span class="sd">            A publication-ready report of the dataset&#39;s data acquisition</span>
+<span class="sd">            information. Each scan type is given its own paragraph.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">description_list</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="c1"># Remove session from kwargs if provided, else set session as all available</span>
+        <span class="n">sessions</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span>
+            <span class="s2">&quot;session&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">layout</span><span class="o">.</span><span class="n">get_sessions</span><span class="p">(</span><span class="n">subject</span><span class="o">=</span><span class="n">subject</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">sessions</span><span class="p">:</span>
+            <span class="n">sessions</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">sessions</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="n">sessions</span> <span class="o">=</span> <span class="p">[</span><span class="n">sessions</span><span class="p">]</span>
+
+        <span class="k">for</span> <span class="n">ses</span> <span class="ow">in</span> <span class="n">sessions</span><span class="p">:</span>
+            <span class="n">data_files</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">layout</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+                <span class="n">subject</span><span class="o">=</span><span class="n">subject</span><span class="p">,</span>
+                <span class="n">extension</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;.nii&quot;</span><span class="p">,</span> <span class="s2">&quot;.nii.gz&quot;</span><span class="p">],</span>
+                <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+            <span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">data_files</span><span class="p">:</span>
+                <span class="n">ses_description</span> <span class="o">=</span> <span class="n">parsing</span><span class="o">.</span><span class="n">parse_files</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">layout</span><span class="p">,</span>
+                    <span class="n">data_files</span><span class="p">,</span>
+                    <span class="n">subject</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="n">ses_description</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;In session </span><span class="si">{0}</span><span class="s2">, &quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ses</span><span class="p">)</span> <span class="o">+</span> <span class="n">ses_description</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="n">description_list</span> <span class="o">+=</span> <span class="n">ses_description</span>
+                <span class="n">metadata</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">layout</span><span class="o">.</span><span class="n">get_metadata</span><span class="p">(</span><span class="n">data_files</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">path</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;No imaging files for subject </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">subject</span><span class="p">))</span>
+
+        <span class="c1"># Assume all data were converted the same way and use the first nifti</span>
+        <span class="c1"># file&#39;s json for conversion information.</span>
+        <span class="n">description</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="se">\n\t</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">description_list</span><span class="p">)</span>
+        <span class="n">description</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n\n</span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">parsing</span><span class="o">.</span><span class="n">final_paragraph</span><span class="p">(</span><span class="n">metadata</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">description</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2015-2023, Developers of PyBIDS.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

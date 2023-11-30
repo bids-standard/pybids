@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Writing methods reports with pybids.reports &mdash; PyBIDS 0.16.4 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=fa44fd50" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="../_static/mystnb.4510f1fc1dee50b3e5859aac5469c37c29e427902b24a333a5f9fcb2f0b3ac41.css" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/documentation_options.js?v=81998473"></script>
+        <script src="../_static/doctools.js?v=888ff710"></script>
+        <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Executing and inspecting StatsModels with pybids.modeling" href="statsmodels_tutorial.html" />
+    <link rel="prev" title="Introduction to pybids" href="pybids_tutorial.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            PyBIDS
+          </a>
+              <div class="version">
+                0.16.4
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../user_guide.html">User guide</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Tutorials</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="pybids_tutorial.html">Introduction to <code class="docutils literal notranslate"><span class="pre">pybids</span></code></a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Writing methods reports with <code class="docutils literal notranslate"><span class="pre">pybids.reports</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="statsmodels_tutorial.html">Executing and inspecting StatsModels with <code class="docutils literal notranslate"><span class="pre">pybids.modeling</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../api.html">API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../whats_new.html">Changelog</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">PyBIDS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Tutorials</a></li>
+      <li class="breadcrumb-item active">Writing methods reports with <code class="docutils literal notranslate"><span class="pre">pybids.reports</span></code></li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/examples/reports_tutorial.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="writing-methods-reports-with-pybids-reports">
+<h1>Writing methods reports with <code class="docutils literal notranslate"><span class="pre">pybids.reports</span></code><a class="headerlink" href="#writing-methods-reports-with-pybids-reports" title="Link to this heading">¶</a></h1>
+<p>This tutorial</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="o">%</span><span class="k">load_ext</span> autoreload
+<span class="o">%</span><span class="k">autoreload</span> 2
+
+<span class="kn">from</span> <span class="nn">bids</span> <span class="kn">import</span> <span class="n">BIDSLayout</span>
+<span class="kn">from</span> <span class="nn">bids.reports</span> <span class="kn">import</span> <span class="n">BIDSReport</span>
+<span class="kn">from</span> <span class="nn">bids.tests</span> <span class="kn">import</span> <span class="n">get_test_data_path</span>
+<span class="kn">import</span> <span class="nn">os</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">dataset</span> <span class="o">=</span> <span class="s2">&quot;synthetic&quot;</span>
+
+<span class="c1"># Here we&#39;re using an example BIDS dataset that&#39;s bundled with the pybids tests</span>
+<span class="n">data_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">get_test_data_path</span><span class="p">(),</span> <span class="n">dataset</span><span class="p">)</span>
+
+<span class="c1"># Load the BIDS dataset</span>
+<span class="n">layout</span> <span class="o">=</span> <span class="n">BIDSLayout</span><span class="p">(</span><span class="n">data_path</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Initialize a report for the dataset</span>
+<span class="n">report</span> <span class="o">=</span> <span class="n">BIDSReport</span><span class="p">(</span><span class="n">layout</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Method generate returns a Counter of unique descriptions across subjects</span>
+<span class="n">descriptions</span> <span class="o">=</span> <span class="n">report</span><span class="o">.</span><span class="n">generate</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/reports/parsing.py:386: UserWarning: sub-01_ses-01_magnitude1.nii.gz not yet supported.
+  warnings.warn(group[0].filename + &quot; not yet supported.&quot;)
+/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/reports/parsing.py:386: UserWarning: sub-01_ses-01_magnitude2.nii.gz not yet supported.
+  warnings.warn(group[0].filename + &quot; not yet supported.&quot;)
+/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/layout/models.py:229: UserWarning: Accessing entities as attributes is deprecated as of 0.7. Please use the .entities dictionary instead (i.e., .entities[&#39;run&#39;] instead of .run.
+  warnings.warn(&quot;Accessing entities as attributes is deprecated as &quot;
+</pre></div>
+</div>
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/reports/parsing.py:386: UserWarning: sub-02_ses-01_magnitude1.nii.gz not yet supported.
+  warnings.warn(group[0].filename + &quot; not yet supported.&quot;)
+/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/reports/parsing.py:386: UserWarning: sub-02_ses-01_magnitude2.nii.gz not yet supported.
+  warnings.warn(group[0].filename + &quot; not yet supported.&quot;)
+</pre></div>
+</div>
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/reports/parsing.py:386: UserWarning: sub-03_ses-01_magnitude1.nii.gz not yet supported.
+  warnings.warn(group[0].filename + &quot; not yet supported.&quot;)
+/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/reports/parsing.py:386: UserWarning: sub-03_ses-01_magnitude2.nii.gz not yet supported.
+  warnings.warn(group[0].filename + &quot; not yet supported.&quot;)
+</pre></div>
+</div>
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/reports/parsing.py:386: UserWarning: sub-04_ses-01_magnitude1.nii.gz not yet supported.
+  warnings.warn(group[0].filename + &quot; not yet supported.&quot;)
+/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/reports/parsing.py:386: UserWarning: sub-04_ses-01_magnitude2.nii.gz not yet supported.
+  warnings.warn(group[0].filename + &quot; not yet supported.&quot;)
+</pre></div>
+</div>
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/reports/parsing.py:386: UserWarning: sub-05_ses-01_magnitude1.nii.gz not yet supported.
+  warnings.warn(group[0].filename + &quot; not yet supported.&quot;)
+/opt/hostedtoolcache/Python/3.9.18/x64/lib/python3.9/site-packages/bids/reports/parsing.py:386: UserWarning: sub-05_ses-01_magnitude2.nii.gz not yet supported.
+  warnings.warn(group[0].filename + &quot; not yet supported.&quot;)
+</pre></div>
+</div>
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>Number of patterns detected: 1
+Remember to double-check everything and to replace &lt;deg&gt; with a degree symbol.
+</pre></div>
+</div>
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># For datasets containing a single study design, all but the most common</span>
+<span class="c1"># description most likely reflect random missing data.</span>
+<span class="n">pub_description</span> <span class="o">=</span> <span class="n">descriptions</span><span class="o">.</span><span class="n">most_common</span><span class="p">()[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">pub_description</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>In session 01, MR data were acquired using a UNKNOWN-Tesla MANUFACTURER MODEL MRI scanner.
+	One run of T1-weighted   single-echo structural MRI data were collected (256 slices; repetition time, TR=2500ms; echo time, TE=2.9ms; flip angle, FA=8&lt;deg&gt;; field of view, FOV=256x256mm; matrix size=256x256; voxel size=1x1x1mm).
+	One run of T1-weighted   single-echo structural MRI data were collected (256 slices; repetition time, TR=2500ms; echo time, TE=2.9ms; flip angle, FA=8&lt;deg&gt;; field of view, FOV=256x256mm; matrix size=256x256; voxel size=1x1x1mm).
+	One run of   diffusion-weighted (dMRI) data were collected (repetition time, TR=8400ms; echo time, TE=90ms; flip angle, FA=90&lt;deg&gt;; field of view, FOV=128x128mm; voxel size=2x2x2mm; matrix size=64x64; b-values of 0 and 1000 acquired; 64 diffusion directions).
+	A   field map (phase encoding: anterior to posterior; 256 slices; repetition time, TR=400ms; echo time 1 / 2, TE1/2=5190007.65ms; flip angle, FA=60.0&lt;deg&gt;; field of view, FOV=256x256mm; matrix size=256x256; voxel size=1x1x1mm) was acquired for the first and second runs of the N-Back BOLD scan.
+	Two runs of N-Back   single-echo fMRI data were collected (64 slices; repetition time, TR=2500ms; echo time, TE=30ms; flip angle, FA=UNKNOWN&lt;deg&gt;; field of view, FOV=128x128mm; matrix size=64x64; voxel size=2x2x2mm). Run duration was 2:40 minutes, during which 64 volumes were acquired.
+	Two runs of N-Back   single-echo fMRI data were collected (64 slices; repetition time, TR=2500ms; echo time, TE=30ms; flip angle, FA=UNKNOWN&lt;deg&gt;; field of view, FOV=128x128mm; matrix size=64x64; voxel size=2x2x2mm). Run duration was 2:40 minutes, during which 64 volumes were acquired.
+	One run of Rest   single-echo fMRI data were collected (64 slices; repetition time, TR=2500ms; echo time, TE=30ms; flip angle, FA=UNKNOWN&lt;deg&gt;; field of view, FOV=128x128mm; matrix size=64x64; voxel size=2x2x2mm). Run duration was 2:40 minutes, during which 64 volumes were acquired.
+	One run of Rest   single-echo fMRI data were collected (64 slices; repetition time, TR=2500ms; echo time, TE=30ms; flip angle, FA=UNKNOWN&lt;deg&gt;; field of view, FOV=128x128mm; matrix size=64x64; voxel size=2x2x2mm). Run duration was 2:40 minutes, during which 64 volumes were acquired.
+	One run of T1-weighted   single-echo structural MRI data were collected (256 slices; repetition time, TR=2500ms; echo time, TE=2.9ms; flip angle, FA=8&lt;deg&gt;; field of view, FOV=256x256mm; matrix size=256x256; voxel size=1x1x1mm).
+	One run of T1-weighted   single-echo structural MRI data were collected (256 slices; repetition time, TR=2500ms; echo time, TE=2.9ms; flip angle, FA=8&lt;deg&gt;; field of view, FOV=256x256mm; matrix size=256x256; voxel size=1x1x1mm).
+	Two runs of N-Back   single-echo fMRI data were collected (64 slices; repetition time, TR=2500ms; echo time, TE=30ms; flip angle, FA=UNKNOWN&lt;deg&gt;; field of view, FOV=128x128mm; matrix size=64x64; voxel size=2x2x2mm). Run duration was 2:40 minutes, during which 64 volumes were acquired.
+	Two runs of N-Back   single-echo fMRI data were collected (64 slices; repetition time, TR=2500ms; echo time, TE=30ms; flip angle, FA=UNKNOWN&lt;deg&gt;; field of view, FOV=128x128mm; matrix size=64x64; voxel size=2x2x2mm). Run duration was 2:40 minutes, during which 64 volumes were acquired.
+	One run of Rest   single-echo fMRI data were collected (64 slices; repetition time, TR=2500ms; echo time, TE=30ms; flip angle, FA=UNKNOWN&lt;deg&gt;; field of view, FOV=128x128mm; matrix size=64x64; voxel size=2x2x2mm). Run duration was 2:40 minutes, during which 64 volumes were acquired.
+	One run of Rest   single-echo fMRI data were collected (64 slices; repetition time, TR=2500ms; echo time, TE=30ms; flip angle, FA=UNKNOWN&lt;deg&gt;; field of view, FOV=128x128mm; matrix size=64x64; voxel size=2x2x2mm). Run duration was 2:40 minutes, during which 64 volumes were acquired.
+	In session 02, MR data were acquired using a UNKNOWN-Tesla MANUFACTURER MODEL MRI scanner.
+	One run of T1-weighted   single-echo structural MRI data were collected (256 slices; repetition time, TR=2500ms; echo time, TE=2.9ms; flip angle, FA=8&lt;deg&gt;; field of view, FOV=256x256mm; matrix size=256x256; voxel size=1x1x1mm).
+	One run of T1-weighted   single-echo structural MRI data were collected (256 slices; repetition time, TR=2500ms; echo time, TE=2.9ms; flip angle, FA=8&lt;deg&gt;; field of view, FOV=256x256mm; matrix size=256x256; voxel size=1x1x1mm).
+	One run of   diffusion-weighted (dMRI) data were collected (repetition time, TR=8400ms; echo time, TE=90ms; flip angle, FA=90&lt;deg&gt;; field of view, FOV=128x128mm; voxel size=2x2x2mm; matrix size=64x64; b-values of 0 and 1000 acquired; 64 diffusion directions).
+	A   field map (phase encoding: anterior to posterior; 256 slices; repetition time, TR=400ms; echo time 1 / 2, TE1/2=5190007.65ms; flip angle, FA=60.0&lt;deg&gt;; field of view, FOV=256x256mm; matrix size=256x256; voxel size=1x1x1mm) was acquired for the first and second runs of the N-Back BOLD scan.
+	Two runs of N-Back   single-echo fMRI data were collected (64 slices; repetition time, TR=2500ms; echo time, TE=30ms; flip angle, FA=UNKNOWN&lt;deg&gt;; field of view, FOV=128x128mm; matrix size=64x64; voxel size=2x2x2mm). Run duration was 2:40 minutes, during which 64 volumes were acquired.
+	Two runs of N-Back   single-echo fMRI data were collected (64 slices; repetition time, TR=2500ms; echo time, TE=30ms; flip angle, FA=UNKNOWN&lt;deg&gt;; field of view, FOV=128x128mm; matrix size=64x64; voxel size=2x2x2mm). Run duration was 2:40 minutes, during which 64 volumes were acquired.
+	One run of Rest   single-echo fMRI data were collected (64 slices; repetition time, TR=2500ms; echo time, TE=30ms; flip angle, FA=UNKNOWN&lt;deg&gt;; field of view, FOV=128x128mm; matrix size=64x64; voxel size=2x2x2mm). Run duration was 2:40 minutes, during which 64 volumes were acquired.
+	One run of Rest   single-echo fMRI data were collected (64 slices; repetition time, TR=2500ms; echo time, TE=30ms; flip angle, FA=UNKNOWN&lt;deg&gt;; field of view, FOV=128x128mm; matrix size=64x64; voxel size=2x2x2mm). Run duration was 2:40 minutes, during which 64 volumes were acquired.
+	One run of T1-weighted   single-echo structural MRI data were collected (256 slices; repetition time, TR=2500ms; echo time, TE=2.9ms; flip angle, FA=8&lt;deg&gt;; field of view, FOV=256x256mm; matrix size=256x256; voxel size=1x1x1mm).
+	One run of T1-weighted   single-echo structural MRI data were collected (256 slices; repetition time, TR=2500ms; echo time, TE=2.9ms; flip angle, FA=8&lt;deg&gt;; field of view, FOV=256x256mm; matrix size=256x256; voxel size=1x1x1mm).
+	Two runs of N-Back   single-echo fMRI data were collected (64 slices; repetition time, TR=2500ms; echo time, TE=30ms; flip angle, FA=UNKNOWN&lt;deg&gt;; field of view, FOV=128x128mm; matrix size=64x64; voxel size=2x2x2mm). Run duration was 2:40 minutes, during which 64 volumes were acquired.
+	Two runs of N-Back   single-echo fMRI data were collected (64 slices; repetition time, TR=2500ms; echo time, TE=30ms; flip angle, FA=UNKNOWN&lt;deg&gt;; field of view, FOV=128x128mm; matrix size=64x64; voxel size=2x2x2mm). Run duration was 2:40 minutes, during which 64 volumes were acquired.
+	One run of Rest   single-echo fMRI data were collected (64 slices; repetition time, TR=2500ms; echo time, TE=30ms; flip angle, FA=UNKNOWN&lt;deg&gt;; field of view, FOV=128x128mm; matrix size=64x64; voxel size=2x2x2mm). Run duration was 2:40 minutes, during which 64 volumes were acquired.
+	One run of Rest   single-echo fMRI data were collected (64 slices; repetition time, TR=2500ms; echo time, TE=30ms; flip angle, FA=UNKNOWN&lt;deg&gt;; field of view, FOV=128x128mm; matrix size=64x64; voxel size=2x2x2mm). Run duration was 2:40 minutes, during which 64 volumes were acquired.
+
+Dicoms were converted to NIfTI-1 format. This section was (in part) generated automatically using pybids (0.16.4).
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="pybids_tutorial.html" class="btn btn-neutral float-left" title="Introduction to pybids" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="statsmodels_tutorial.html" class="btn btn-neutral float-right" title="Executing and inspecting StatsModels with pybids.modeling" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2015-2023, Developers of PyBIDS.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

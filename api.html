@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>API Reference &mdash; PyBIDS 0.16.4 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=fa44fd50" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="_static/mystnb.4510f1fc1dee50b3e5859aac5469c37c29e427902b24a333a5f9fcb2f0b3ac41.css" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="_static/documentation_options.js?v=81998473"></script>
+        <script src="_static/doctools.js?v=888ff710"></script>
+        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="bids.layout.BIDSLayout" href="generated/bids.layout.BIDSLayout.html" />
+    <link rel="prev" title="Executing and inspecting StatsModels with pybids.modeling" href="examples/statsmodels_tutorial.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            PyBIDS
+          </a>
+              <div class="version">
+                0.16.4
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="user_guide.html">User guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="examples/index.html">Tutorials</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">API Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#bids-layout-querying-bids-datasets"><code class="xref py py-mod docutils literal notranslate"><span class="pre">bids.layout</span></code>: Querying BIDS datasets</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="generated/bids.layout.BIDSLayout.html">bids.layout.BIDSLayout</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/bids.layout.BIDSValidator.html">bids.layout.BIDSValidator</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/bids.layout.BIDSFile.html">bids.layout.BIDSFile</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/bids.layout.BIDSDataFile.html">bids.layout.BIDSDataFile</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/bids.layout.BIDSJSONFile.html">bids.layout.BIDSJSONFile</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/bids.layout.Config.html">bids.layout.Config</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/bids.layout.Entity.html">bids.layout.Entity</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/bids.layout.Tag.html">bids.layout.Tag</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/bids.layout.parse_file_entities.html">bids.layout.parse_file_entities</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/bids.layout.add_config_paths.html">bids.layout.add_config_paths</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/bids.layout.index.BIDSLayoutIndexer.html">bids.layout.index.BIDSLayoutIndexer</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/bids.layout.writing.html">bids.layout.writing</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#bids-modeling-model-specification-for-bids-datasets"><code class="xref py py-mod docutils literal notranslate"><span class="pre">bids.modeling</span></code>: Model specification for BIDS datasets</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="generated/bids.modeling.statsmodels.html">bids.modeling.statsmodels</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/bids.modeling.auto_model.html">bids.modeling.auto_model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/bids.modeling.statsmodels.BIDSStatsModelsGraph.html">bids.modeling.statsmodels.BIDSStatsModelsGraph</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/bids.modeling.statsmodels.BIDSStatsModelsNode.html">bids.modeling.statsmodels.BIDSStatsModelsNode</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#bids-reports-data-acquisition-report-generation"><code class="xref py py-mod docutils literal notranslate"><span class="pre">bids.reports</span></code>: Data acquisition report generation</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="generated/bids.reports.BIDSReport.html">bids.reports.BIDSReport</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/bids.reports.parsing.html">bids.reports.parsing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/bids.reports.parameters.html">bids.reports.parameters</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/bids.reports.utils.html">bids.reports.utils</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#bids-variables-variables"><code class="xref py py-mod docutils literal notranslate"><span class="pre">bids.variables</span></code>: Variables</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="generated/bids.variables.SimpleVariable.html">bids.variables.SimpleVariable</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/bids.variables.SparseRunVariable.html">bids.variables.SparseRunVariable</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/bids.variables.DenseRunVariable.html">bids.variables.DenseRunVariable</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/bids.variables.BIDSVariableCollection.html">bids.variables.BIDSVariableCollection</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/bids.variables.BIDSRunVariableCollection.html">bids.variables.BIDSRunVariableCollection</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/bids.variables.merge_collections.html">bids.variables.merge_collections</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/bids.variables.load_variables.html">bids.variables.load_variables</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/bids.variables.merge_variables.html">bids.variables.merge_variables</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/bids.variables.io.html">bids.variables.io</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/bids.variables.entities.html">bids.variables.entities</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/bids.variables.collections.html">bids.variables.collections</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/bids.variables.variables.html">bids.variables.variables</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#bids-config-pybids-configuration-utilities"><code class="xref py py-mod docutils literal notranslate"><span class="pre">bids.config</span></code>: PyBIDS Configuration utilities</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="generated/bids.config.set_option.html">bids.config.set_option</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/bids.config.set_options.html">bids.config.set_options</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/bids.config.get_option.html">bids.config.get_option</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/bids.config.from_file.html">bids.config.from_file</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/bids.config.reset_options.html">bids.config.reset_options</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#bids-utils-utility-functions"><code class="xref py py-mod docutils literal notranslate"><span class="pre">bids.utils</span></code>: Utility functions</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="generated/bids.utils.listify.html">bids.utils.listify</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/bids.utils.matches_entities.html">bids.utils.matches_entities</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/bids.utils.convert_JSON.html">bids.utils.convert_JSON</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/bids.utils.make_bidsfile.html">bids.utils.make_bidsfile</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="whats_new.html">Changelog</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">PyBIDS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">API Reference</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/api.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="api-reference">
+<h1>API Reference<a class="headerlink" href="#api-reference" title="Link to this heading">¶</a></h1>
+<section id="bids-layout-querying-bids-datasets">
+<span id="base-ref"></span><h2><code class="xref py py-mod docutils literal notranslate"><span class="pre">bids.layout</span></code>: Querying BIDS datasets<a class="headerlink" href="#bids-layout-querying-bids-datasets" title="Link to this heading">¶</a></h2>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">bids.layout</span></code></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/bids.layout.BIDSLayout.html#bids.layout.BIDSLayout" title="bids.layout.BIDSLayout"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bids.layout.BIDSLayout</span></code></a>([root, validate, ...])</p></td>
+<td><p>Layout class representing an entire BIDS dataset.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/bids.layout.BIDSValidator.html#bids.layout.BIDSValidator" title="bids.layout.BIDSValidator"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bids.layout.BIDSValidator</span></code></a>([index_associated])</p></td>
+<td><p>Object for BIDS (Brain Imaging Data Structure) verification.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/bids.layout.BIDSFile.html#bids.layout.BIDSFile" title="bids.layout.BIDSFile"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bids.layout.BIDSFile</span></code></a>(filename)</p></td>
+<td><p>Represents a single file or directory in a BIDS dataset.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/bids.layout.BIDSDataFile.html#bids.layout.BIDSDataFile" title="bids.layout.BIDSDataFile"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bids.layout.BIDSDataFile</span></code></a>(filename)</p></td>
+<td><p>Represents a single data file in a BIDS dataset.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/bids.layout.BIDSJSONFile.html#bids.layout.BIDSJSONFile" title="bids.layout.BIDSJSONFile"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bids.layout.BIDSJSONFile</span></code></a>(filename)</p></td>
+<td><p>Represents a single JSON metadata file in a BIDS dataset.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/bids.layout.Config.html#bids.layout.Config" title="bids.layout.Config"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bids.layout.Config</span></code></a>(name[, entities, ...])</p></td>
+<td><p>Container for BIDS configuration information.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/bids.layout.Entity.html#bids.layout.Entity" title="bids.layout.Entity"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bids.layout.Entity</span></code></a>(name[, pattern, ...])</p></td>
+<td><p>Represents a single entity defined in the JSON config.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/bids.layout.Tag.html#bids.layout.Tag" title="bids.layout.Tag"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bids.layout.Tag</span></code></a>(file, entity, value[, ...])</p></td>
+<td><p>Represents an association between a File and an Entity.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/bids.layout.parse_file_entities.html#bids.layout.parse_file_entities" title="bids.layout.parse_file_entities"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bids.layout.parse_file_entities</span></code></a>(filename[, ...])</p></td>
+<td><p>Parse the passed filename for entity/value pairs.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/bids.layout.add_config_paths.html#bids.layout.add_config_paths" title="bids.layout.add_config_paths"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bids.layout.add_config_paths</span></code></a>(**kwargs)</p></td>
+<td><p>Add to the pool of available configuration files for BIDSLayout.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/bids.layout.index.BIDSLayoutIndexer.html#bids.layout.index.BIDSLayoutIndexer" title="bids.layout.index.BIDSLayoutIndexer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bids.layout.index.BIDSLayoutIndexer</span></code></a>([...])</p></td>
+<td><p>Indexer class for BIDSLayout.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/bids.layout.writing.html#module-bids.layout.writing" title="bids.layout.writing"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bids.layout.writing</span></code></a></p></td>
+<td><p>Contains helper functions that involve writing operations.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="bids-modeling-model-specification-for-bids-datasets">
+<span id="calibration-ref"></span><h2><code class="xref py py-mod docutils literal notranslate"><span class="pre">bids.modeling</span></code>: Model specification for BIDS datasets<a class="headerlink" href="#bids-modeling-model-specification-for-bids-datasets" title="Link to this heading">¶</a></h2>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">bids.modeling</span></code></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/bids.modeling.statsmodels.html#module-bids.modeling.statsmodels" title="bids.modeling.statsmodels"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bids.modeling.statsmodels</span></code></a></p></td>
+<td><p>BIDS-StatsModels functionality.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/bids.modeling.auto_model.html#bids.modeling.auto_model" title="bids.modeling.auto_model"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bids.modeling.auto_model</span></code></a>(layout[, ...])</p></td>
+<td><p>Create a simple default model for each of the tasks in a BIDSLayout.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/bids.modeling.statsmodels.BIDSStatsModelsGraph.html#bids.modeling.statsmodels.BIDSStatsModelsGraph" title="bids.modeling.statsmodels.BIDSStatsModelsGraph"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bids.modeling.statsmodels.BIDSStatsModelsGraph</span></code></a>(...)</p></td>
+<td><p>Rooted graph structure representing the contents of a BIDS-StatsModel file.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/bids.modeling.statsmodels.BIDSStatsModelsNode.html#bids.modeling.statsmodels.BIDSStatsModelsNode" title="bids.modeling.statsmodels.BIDSStatsModelsNode"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bids.modeling.statsmodels.BIDSStatsModelsNode</span></code></a>(...)</p></td>
+<td><p>Represents a single node in a BIDS-StatsModel graph.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="bids-reports-data-acquisition-report-generation">
+<span id="id1"></span><h2><code class="xref py py-mod docutils literal notranslate"><span class="pre">bids.reports</span></code>: Data acquisition report generation<a class="headerlink" href="#bids-reports-data-acquisition-report-generation" title="Link to this heading">¶</a></h2>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">bids.reports</span></code></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/bids.reports.BIDSReport.html#bids.reports.BIDSReport" title="bids.reports.BIDSReport"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bids.reports.BIDSReport</span></code></a>(layout[, config])</p></td>
+<td><p>Generate publication-quality data acquisition section from BIDS dataset.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/bids.reports.parsing.html#module-bids.reports.parsing" title="bids.reports.parsing"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bids.reports.parsing</span></code></a></p></td>
+<td><p>Parsing functions for generating BIDSReports.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/bids.reports.parameters.html#module-bids.reports.parameters" title="bids.reports.parameters"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bids.reports.parameters</span></code></a></p></td>
+<td><p>Functions for building strings for individual parameters.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/bids.reports.utils.html#module-bids.reports.utils" title="bids.reports.utils"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bids.reports.utils</span></code></a></p></td>
+<td><p>Generate publication-quality data acquisition methods section from BIDS dataset.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="bids-variables-variables">
+<span id="id2"></span><h2><code class="xref py py-mod docutils literal notranslate"><span class="pre">bids.variables</span></code>: Variables<a class="headerlink" href="#bids-variables-variables" title="Link to this heading">¶</a></h2>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">bids.variables</span></code></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/bids.variables.SimpleVariable.html#bids.variables.SimpleVariable" title="bids.variables.SimpleVariable"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bids.variables.SimpleVariable</span></code></a>(name, data, ...)</p></td>
+<td><p>Represents a simple design matrix column that has no timing information.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/bids.variables.SparseRunVariable.html#bids.variables.SparseRunVariable" title="bids.variables.SparseRunVariable"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bids.variables.SparseRunVariable</span></code></a>(name, data, ...)</p></td>
+<td><p>A sparse representation of a single column of events.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/bids.variables.DenseRunVariable.html#bids.variables.DenseRunVariable" title="bids.variables.DenseRunVariable"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bids.variables.DenseRunVariable</span></code></a>(name, ...)</p></td>
+<td><p>A dense representation of a single column.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/bids.variables.BIDSVariableCollection.html#bids.variables.BIDSVariableCollection" title="bids.variables.BIDSVariableCollection"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bids.variables.BIDSVariableCollection</span></code></a>(variables)</p></td>
+<td><p>A container for one or more variables extracted from variable files at a single level of analysis.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/bids.variables.BIDSRunVariableCollection.html#bids.variables.BIDSRunVariableCollection" title="bids.variables.BIDSRunVariableCollection"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bids.variables.BIDSRunVariableCollection</span></code></a>(...)</p></td>
+<td><p>A container for one or more RunVariables--i.e., Variables that have a temporal dimension.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/bids.variables.merge_collections.html#bids.variables.merge_collections" title="bids.variables.merge_collections"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bids.variables.merge_collections</span></code></a>(collections)</p></td>
+<td><p>Merge two or more collections at the same level of analysis.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/bids.variables.load_variables.html#bids.variables.load_variables" title="bids.variables.load_variables"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bids.variables.load_variables</span></code></a>(layout[, ...])</p></td>
+<td><p>A convenience wrapper for one or more load_*_variables() calls.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/bids.variables.merge_variables.html#bids.variables.merge_variables" title="bids.variables.merge_variables"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bids.variables.merge_variables</span></code></a>(variables, ...)</p></td>
+<td><p>Merge/concatenate a list of variables along the row axis.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/bids.variables.io.html#module-bids.variables.io" title="bids.variables.io"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bids.variables.io</span></code></a></p></td>
+<td><p>Tools for reading/writing BIDS data files.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/bids.variables.entities.html#module-bids.variables.entities" title="bids.variables.entities"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bids.variables.entities</span></code></a></p></td>
+<td><p>Data classes for internal BIDS data hierarchy.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/bids.variables.collections.html#module-bids.variables.collections" title="bids.variables.collections"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bids.variables.collections</span></code></a></p></td>
+<td><p>Classes and functions related to the management of sets of BIDSVariables.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/bids.variables.variables.html#module-bids.variables.variables" title="bids.variables.variables"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bids.variables.variables</span></code></a></p></td>
+<td><p>Classes for representing BIDS variables.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="bids-config-pybids-configuration-utilities">
+<span id="id3"></span><h2><code class="xref py py-mod docutils literal notranslate"><span class="pre">bids.config</span></code>: PyBIDS Configuration utilities<a class="headerlink" href="#bids-config-pybids-configuration-utilities" title="Link to this heading">¶</a></h2>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">bids.config</span></code></p></td>
+<td><p>Utilities for manipulating package-level settings.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/bids.config.set_option.html#bids.config.set_option" title="bids.config.set_option"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bids.config.set_option</span></code></a>(key, value)</p></td>
+<td><p>Set a package-wide option.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/bids.config.set_options.html#bids.config.set_options" title="bids.config.set_options"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bids.config.set_options</span></code></a>(**kwargs)</p></td>
+<td><p>Set multiple package-wide options.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/bids.config.get_option.html#bids.config.get_option" title="bids.config.get_option"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bids.config.get_option</span></code></a>(key)</p></td>
+<td><p>Retrieve the current value of a package-wide option.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/bids.config.from_file.html#bids.config.from_file" title="bids.config.from_file"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bids.config.from_file</span></code></a>(filenames[, ...])</p></td>
+<td><p>Load package-wide settings from specified file(s).</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/bids.config.reset_options.html#bids.config.reset_options" title="bids.config.reset_options"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bids.config.reset_options</span></code></a>([update_from_file])</p></td>
+<td><p>Reset all options to the package defaults.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="bids-utils-utility-functions">
+<span id="id4"></span><h2><code class="xref py py-mod docutils literal notranslate"><span class="pre">bids.utils</span></code>: Utility functions<a class="headerlink" href="#bids-utils-utility-functions" title="Link to this heading">¶</a></h2>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">bids.utils</span></code></p></td>
+<td><p>Utility functions.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/bids.utils.listify.html#bids.utils.listify" title="bids.utils.listify"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bids.utils.listify</span></code></a>(obj)</p></td>
+<td><p>Wraps all non-list or tuple objects in a list; provides a simple way to accept flexible arguments.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/bids.utils.matches_entities.html#bids.utils.matches_entities" title="bids.utils.matches_entities"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bids.utils.matches_entities</span></code></a>(obj, entities[, ...])</p></td>
+<td><p>Checks whether an object's entities match the input.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/bids.utils.convert_JSON.html#bids.utils.convert_JSON" title="bids.utils.convert_JSON"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bids.utils.convert_JSON</span></code></a>(j)</p></td>
+<td><p>Recursively convert CamelCase keys to snake_case.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/bids.utils.make_bidsfile.html#bids.utils.make_bidsfile" title="bids.utils.make_bidsfile"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bids.utils.make_bidsfile</span></code></a>(filename)</p></td>
+<td><p>Create a BIDSFile instance of the appropriate class.</p></td>
+</tr>
+</tbody>
+</table>
+<span class="target" id="id5"></span></section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="examples/statsmodels_tutorial.html" class="btn btn-neutral float-left" title="Executing and inspecting StatsModels with pybids.modeling" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="generated/bids.layout.BIDSLayout.html" class="btn btn-neutral float-right" title="bids.layout.BIDSLayout" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2015-2023, Developers of PyBIDS.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,33 @@
+﻿bids.variables.entities
+=======================
+
+.. automodule:: bids.variables.entities
+
+   
+   
+   
+
+   
+   
+   
+
+   
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      Node
+      NodeIndex
+      RunInfo
+      RunInfo_
+      RunNode
+   
+   
+
+   
+   
+   
+
+
+

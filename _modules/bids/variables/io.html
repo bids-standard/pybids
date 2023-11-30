@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>bids.variables.io &mdash; PyBIDS 0.16.4 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=fa44fd50" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/mystnb.4510f1fc1dee50b3e5859aac5469c37c29e427902b24a333a5f9fcb2f0b3ac41.css" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../../_static/documentation_options.js?v=81998473"></script>
+        <script src="../../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            PyBIDS
+          </a>
+              <div class="version">
+                0.16.4
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../user_guide.html">User guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../examples/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api.html">API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../whats_new.html">Changelog</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">PyBIDS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">bids.variables.io</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for bids.variables.io</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot; Tools for reading/writing BIDS data files. &quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">warnings</span>
+<span class="kn">import</span> <span class="nn">json</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+
+<span class="kn">from</span> <span class="nn">bids.utils</span> <span class="kn">import</span> <span class="n">listify</span>
+<span class="kn">from</span> <span class="nn">.entities</span> <span class="kn">import</span> <span class="n">NodeIndex</span>
+<span class="kn">from</span> <span class="nn">.variables</span> <span class="kn">import</span> <span class="n">SparseRunVariable</span><span class="p">,</span> <span class="n">DenseRunVariable</span><span class="p">,</span> <span class="n">SimpleVariable</span>
+
+
+<span class="n">BASE_ENTITIES</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;subject&#39;</span><span class="p">,</span> <span class="s1">&#39;session&#39;</span><span class="p">,</span> <span class="s1">&#39;task&#39;</span><span class="p">,</span> <span class="s1">&#39;run&#39;</span><span class="p">]</span>
+<span class="n">ALL_ENTITIES</span> <span class="o">=</span> <span class="n">BASE_ENTITIES</span> <span class="o">+</span> <span class="p">[</span><span class="s1">&#39;datatype&#39;</span><span class="p">,</span> <span class="s1">&#39;suffix&#39;</span><span class="p">,</span> <span class="s1">&#39;acquisition&#39;</span><span class="p">]</span>
+
+
+<div class="viewcode-block" id="load_variables">
+<a class="viewcode-back" href="../../../generated/bids.variables.load_variables.html#bids.variables.load_variables">[docs]</a>
+<span class="k">def</span> <span class="nf">load_variables</span><span class="p">(</span><span class="n">layout</span><span class="p">,</span> <span class="n">types</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">levels</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">skip_empty</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                   <span class="n">dataset</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">scope</span><span class="o">=</span><span class="s1">&#39;all&#39;</span><span class="p">,</span> <span class="n">regex_search</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                   <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;A convenience wrapper for one or more load_*_variables() calls.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    layout : :obj:`bids.layout.BIDSLayout`</span>
+<span class="sd">        BIDSLayout containing variable files.</span>
+<span class="sd">    types : str or list</span>
+<span class="sd">        Types of variables to retrieve. All valid values</span>
+<span class="sd">        reflect the filename stipulated in the BIDS spec for each kind of</span>
+<span class="sd">        variable. Valid values include: &#39;events&#39;, &#39;physio&#39;, &#39;stim&#39;,</span>
+<span class="sd">        &#39;scans&#39;, &#39;participants&#39;, &#39;sessions&#39;, and &#39;regressors&#39;.</span>
+<span class="sd">    levels : str or list</span>
+<span class="sd">        Optional level(s) of variables to load. Valid</span>
+<span class="sd">        values are &#39;run&#39;, &#39;session&#39;, &#39;subject&#39;, or &#39;dataset&#39;. This is</span>
+<span class="sd">        simply a shorthand way to specify types--e.g., &#39;run&#39; will be</span>
+<span class="sd">        converted to types=[&#39;events&#39;, &#39;physio&#39;, &#39;stim&#39;, &#39;regressors&#39;].</span>
+<span class="sd">    skip_empty : bool</span>
+<span class="sd">        Whether or not to skip empty Variables (i.e.,</span>
+<span class="sd">        where there are no rows/records in a file after applying any</span>
+<span class="sd">        filtering operations like dropping NaNs).</span>
+<span class="sd">    dataset : NodeIndex</span>
+<span class="sd">        An existing NodeIndex container to store the</span>
+<span class="sd">        loaded data in. Can be used to iteratively construct a dataset</span>
+<span class="sd">        that contains otherwise heterogeneous sets of variables. If None,</span>
+<span class="sd">        a new NodeIndex is used.</span>
+<span class="sd">    scope : str or list</span>
+<span class="sd">        The scope of the space to search for variables. See</span>
+<span class="sd">        docstring for BIDSLayout for details and valid predefined values.</span>
+<span class="sd">    kwargs : dict</span>
+<span class="sd">        Optional keyword arguments to pass onto the individual</span>
+<span class="sd">        load_*_variables() calls.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    A NodeIndex instance.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    &gt;&gt;&gt; load_variables(layout, [&#39;events&#39;, &#39;physio&#39;], subject=&#39;01&#39;)  # doctest: +SKIP</span>
+<span class="sd">    # returns all variables stored in _events.tsv and _physio.tsv.gz files</span>
+<span class="sd">    # for runs that belong to subject with id &#39;01&#39;.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">TYPES</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;events&#39;</span><span class="p">,</span> <span class="s1">&#39;physio&#39;</span><span class="p">,</span> <span class="s1">&#39;stim&#39;</span><span class="p">,</span> <span class="s1">&#39;scans&#39;</span><span class="p">,</span> <span class="s1">&#39;participants&#39;</span><span class="p">,</span> <span class="s1">&#39;sessions&#39;</span><span class="p">,</span>
+             <span class="s1">&#39;regressors&#39;</span><span class="p">]</span>
+
+    <span class="n">types</span> <span class="o">=</span> <span class="n">listify</span><span class="p">(</span><span class="n">types</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">types</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">levels</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">types</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">lev_map</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s1">&#39;run&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;events&#39;</span><span class="p">,</span> <span class="s1">&#39;physio&#39;</span><span class="p">,</span> <span class="s1">&#39;stim&#39;</span><span class="p">,</span> <span class="s1">&#39;regressors&#39;</span><span class="p">],</span>
+                <span class="s1">&#39;session&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;scans&#39;</span><span class="p">],</span>
+                <span class="s1">&#39;subject&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;sessions&#39;</span><span class="p">,</span> <span class="s1">&#39;scans&#39;</span><span class="p">],</span>
+                <span class="s1">&#39;dataset&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;participants&#39;</span><span class="p">]</span>
+            <span class="p">}</span>
+            <span class="p">[</span><span class="n">types</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">lev_map</span><span class="p">[</span><span class="n">l</span><span class="o">.</span><span class="n">lower</span><span class="p">()])</span> <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">listify</span><span class="p">(</span><span class="n">levels</span><span class="p">)]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">types</span> <span class="o">=</span> <span class="n">TYPES</span>
+
+    <span class="n">bad_types</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">types</span><span class="p">)</span> <span class="o">-</span> <span class="nb">set</span><span class="p">(</span><span class="n">TYPES</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">bad_types</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Invalid variable types: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">bad_types</span><span class="p">)</span>
+
+    <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span> <span class="ow">or</span> <span class="n">NodeIndex</span><span class="p">()</span>
+
+    <span class="n">run_types</span> <span class="o">=</span> <span class="nb">list</span><span class="p">({</span><span class="s1">&#39;events&#39;</span><span class="p">,</span> <span class="s1">&#39;physio&#39;</span><span class="p">,</span> <span class="s1">&#39;stim&#39;</span><span class="p">,</span> <span class="s1">&#39;regressors&#39;</span><span class="p">}</span> <span class="o">-</span> <span class="nb">set</span><span class="p">(</span><span class="n">types</span><span class="p">))</span>
+    <span class="n">type_flags</span> <span class="o">=</span> <span class="p">{</span><span class="n">t</span><span class="p">:</span> <span class="kc">False</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">run_types</span><span class="p">}</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">type_flags</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">4</span><span class="p">:</span>
+        <span class="n">_kwargs</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">_kwargs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">type_flags</span><span class="p">)</span>
+        <span class="n">dataset</span> <span class="o">=</span> <span class="n">_load_time_variables</span><span class="p">(</span><span class="n">layout</span><span class="p">,</span> <span class="n">dataset</span><span class="p">,</span> <span class="n">scope</span><span class="o">=</span><span class="n">scope</span><span class="p">,</span> <span class="o">**</span><span class="n">_kwargs</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="p">({</span><span class="s1">&#39;scans&#39;</span><span class="p">,</span> <span class="s1">&#39;sessions&#39;</span><span class="p">,</span> <span class="s1">&#39;participants&#39;</span><span class="p">}</span> <span class="o">&amp;</span> <span class="nb">set</span><span class="p">(</span><span class="n">types</span><span class="p">)):</span>
+        <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;suffix&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="c1"># suffix is always one of values above</span>
+        <span class="n">dataset</span> <span class="o">=</span> <span class="n">_load_tsv_variables</span><span class="p">(</span><span class="n">layout</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">dataset</span><span class="p">,</span> <span class="n">scope</span><span class="o">=</span><span class="n">scope</span><span class="p">,</span>
+                                      <span class="n">regex_search</span><span class="o">=</span><span class="n">regex_search</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">dataset</span></div>
+
+
+
+<span class="k">def</span> <span class="nf">_get_nvols</span><span class="p">(</span><span class="n">img_f</span><span class="p">):</span>
+    <span class="kn">import</span> <span class="nn">nibabel</span> <span class="k">as</span> <span class="nn">nb</span>
+    <span class="n">img</span> <span class="o">=</span> <span class="n">nb</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">img_f</span><span class="p">)</span>
+    <span class="n">nvols</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">nb</span><span class="o">.</span><span class="n">Nifti1Pair</span><span class="p">):</span>
+        <span class="n">nvols</span> <span class="o">=</span> <span class="n">img</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">nb</span><span class="o">.</span><span class="n">Cifti2Image</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">ax</span> <span class="ow">in</span> <span class="nb">map</span><span class="p">(</span><span class="n">img</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">get_axis</span><span class="p">,</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">img</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">matrix</span><span class="p">))):</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ax</span><span class="p">,</span> <span class="n">nb</span><span class="o">.</span><span class="n">cifti2</span><span class="o">.</span><span class="n">SeriesAxis</span><span class="p">):</span>
+                <span class="n">nvols</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">size</span>
+                <span class="k">break</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;No series axis found in </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">img_f</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">nb</span><span class="o">.</span><span class="n">GiftiImage</span><span class="p">):</span>
+        <span class="n">nvols</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">img</span><span class="o">.</span><span class="n">get_arrays_from_intent</span><span class="p">(</span><span class="s1">&#39;time series&#39;</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Unknown image type </span><span class="si">%s</span><span class="s2">: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">img</span><span class="o">.</span><span class="vm">__class__</span><span class="p">,</span> <span class="n">img_f</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">nvols</span>
+
+
+<span class="k">def</span> <span class="nf">_load_time_variables</span><span class="p">(</span><span class="n">layout</span><span class="p">,</span> <span class="n">dataset</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">scan_length</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                         <span class="n">drop_na</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">events</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">physio</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">stim</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                         <span class="n">regressors</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">skip_empty</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">scope</span><span class="o">=</span><span class="s1">&#39;all&#39;</span><span class="p">,</span>
+                         <span class="o">**</span><span class="n">selectors</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Loads all variables found in *_events.tsv files and returns them as a</span>
+<span class="sd">    BIDSVariableCollection.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    layout : :obj:`bids.layout.BIDSLayout`</span>
+<span class="sd">        A BIDSLayout to scan.</span>
+<span class="sd">    dataset : NodeIndex</span>
+<span class="sd">        A BIDS NodeIndex container. If None, a new one is</span>
+<span class="sd">        initialized.</span>
+<span class="sd">    columns : list</span>
+<span class="sd">        Optional list of names specifying which columns in the</span>
+<span class="sd">        event files to read. By default, reads all columns found.</span>
+<span class="sd">    scan_length : float</span>
+<span class="sd">        Optional duration of runs (in seconds). By</span>
+<span class="sd">        default, this will be extracted from the BOLD image. However, in</span>
+<span class="sd">        cases where the user doesn&#39;t have access to the images (e.g.,</span>
+<span class="sd">        because only file handles are locally available), a fixed duration</span>
+<span class="sd">        can be manually specified as a fallback.</span>
+<span class="sd">    drop_na : bool</span>
+<span class="sd">        If True, removes all events where amplitude is n/a. If</span>
+<span class="sd">        False, leaves n/a values intact. Note that in the latter case,</span>
+<span class="sd">        transformations that requires numeric values may fail.</span>
+<span class="sd">    events : bool</span>
+<span class="sd">        If True, extracts variables from events.tsv files.</span>
+<span class="sd">    physio : bool</span>
+<span class="sd">        If True, extracts variables from _physio files.</span>
+<span class="sd">    stim : bool</span>
+<span class="sd">        If True, extracts variables from _stim files.</span>
+<span class="sd">    skip_empty : bool</span>
+<span class="sd">        Whether or not to skip empty Variables (i.e.,</span>
+<span class="sd">        where there are no rows/records in a file, or all onsets,</span>
+<span class="sd">        durations, and amplitudes are 0).</span>
+<span class="sd">    scope : str or list</span>
+<span class="sd">        The scope of the space to search for variables. See</span>
+<span class="sd">        docstring for BIDSLayout for details and valid predefined values.</span>
+<span class="sd">    selectors : dict</span>
+<span class="sd">        Optional keyword arguments passed on to the</span>
+<span class="sd">        BIDSLayout instance&#39;s get() method; can be used to constrain</span>
+<span class="sd">        which data are loaded.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    A NodeIndex instance.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># Extract any non-keyword arguments</span>
+    <span class="n">selectors</span> <span class="o">=</span> <span class="n">selectors</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">dataset</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">dataset</span> <span class="o">=</span> <span class="n">NodeIndex</span><span class="p">()</span>
+
+    <span class="n">selectors</span><span class="p">[</span><span class="s1">&#39;datatype&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;func&#39;</span>
+    <span class="n">selectors</span><span class="p">[</span><span class="s1">&#39;suffix&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;bold&#39;</span>
+    <span class="n">exts</span> <span class="o">=</span> <span class="n">selectors</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;extension&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;.nii&#39;</span><span class="p">,</span> <span class="s1">&#39;.nii.gz&#39;</span><span class="p">,</span> <span class="s1">&#39;.func.gii&#39;</span><span class="p">,</span> <span class="s1">&#39;.dtseries.nii&#39;</span><span class="p">])</span>
+    <span class="n">images</span> <span class="o">=</span> <span class="n">layout</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">return_type</span><span class="o">=</span><span class="s1">&#39;object&#39;</span><span class="p">,</span> <span class="n">scope</span><span class="o">=</span><span class="n">scope</span><span class="p">,</span> <span class="n">extension</span><span class="o">=</span><span class="n">exts</span><span class="p">,</span> <span class="o">**</span><span class="n">selectors</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">images</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;No functional images that match criteria found.&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Main loop over images</span>
+    <span class="k">for</span> <span class="n">img_obj</span> <span class="ow">in</span> <span class="n">images</span><span class="p">:</span>
+
+        <span class="n">entities</span> <span class="o">=</span> <span class="n">img_obj</span><span class="o">.</span><span class="n">entities</span>
+        <span class="n">img_f</span> <span class="o">=</span> <span class="n">img_obj</span><span class="o">.</span><span class="n">path</span>
+
+        <span class="c1"># Run is not mandatory, but we need a default for proper indexing</span>
+        <span class="k">if</span> <span class="s1">&#39;run&#39;</span> <span class="ow">in</span> <span class="n">entities</span><span class="p">:</span>
+            <span class="n">entities</span><span class="p">[</span><span class="s1">&#39;run&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">entities</span><span class="p">[</span><span class="s1">&#39;run&#39;</span><span class="p">])</span>
+
+        <span class="n">tr</span> <span class="o">=</span> <span class="n">img_obj</span><span class="o">.</span><span class="n">get_metadata</span><span class="p">()[</span><span class="s2">&quot;RepetitionTime&quot;</span><span class="p">]</span>
+
+        <span class="c1"># Get duration of run: first try to get it directly from the image</span>
+        <span class="c1"># header; if that fails, look for a scan_length argument.</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">nvols</span> <span class="o">=</span> <span class="n">_get_nvols</span><span class="p">(</span><span class="n">img_f</span><span class="p">)</span>
+            <span class="n">duration</span> <span class="o">=</span> <span class="n">nvols</span> <span class="o">*</span> <span class="n">tr</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">scan_length</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">duration</span> <span class="o">=</span> <span class="n">scan_length</span>
+                <span class="n">nvols</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">rint</span><span class="p">(</span><span class="n">scan_length</span> <span class="o">/</span> <span class="n">tr</span><span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Unable to extract scan duration from one or more &quot;</span>
+                       <span class="s2">&quot;BOLD runs, and no scan_length argument was provided &quot;</span>
+                       <span class="s2">&quot;as a fallback. Please check that the image files are &quot;</span>
+                       <span class="s2">&quot;available, or manually specify the scan duration.&quot;</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span> <span class="kn">from</span> <span class="nn">e</span>
+
+        <span class="c1"># We don&#39;t want to pass all the image file&#39;s entities onto get_node(),</span>
+        <span class="c1"># as there can be unhashable nested slice timing values, and this also</span>
+        <span class="c1"># slows down querying unnecessarily. Instead, pick out files only based</span>
+        <span class="c1"># on the core BIDS entities and any entities explicitly passed as</span>
+        <span class="c1"># selectors.</span>
+        <span class="c1"># TODO: one downside of this approach is the stripped entities also</span>
+        <span class="c1"># won&#39;t be returned in the resulting node due to the way things are</span>
+        <span class="c1"># implemented. Consider adding a flag to control this.</span>
+        <span class="n">select_on</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span> <span class="ow">in</span> <span class="n">entities</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+                     <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">BASE_ENTITIES</span> <span class="ow">or</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">selectors</span><span class="p">}</span>
+
+        <span class="c1"># If a matching node already exists, return it</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">get_nodes</span><span class="p">(</span><span class="s1">&#39;run&#39;</span><span class="p">,</span> <span class="n">select_on</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">result</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">result</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;More than one existing Node matches the &quot;</span>
+                                 <span class="s2">&quot;specified entities! You may need to pass &quot;</span>
+                                 <span class="s2">&quot;additional selectors to narrow the search.&quot;</span><span class="p">)</span>
+            <span class="n">run</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Otherwise create a new node and use that.</span>
+            <span class="c1"># We first convert any entity values that are currently collections to</span>
+            <span class="c1"># JSON strings to prevent nasty hashing problems downstream. Note that</span>
+            <span class="c1"># isinstance() isn&#39;t as foolproof as actually trying to hash the</span>
+            <span class="c1"># value, but the latter is likely to be slower, and since values are</span>
+            <span class="c1"># coming from JSON or filenames, there&#39;s no real chance of encountering</span>
+            <span class="c1"># anything but a list or dict.</span>
+            <span class="n">entities</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="n">k</span><span class="p">:</span> <span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">dict</span><span class="p">))</span> <span class="k">else</span> <span class="n">v</span><span class="p">)</span>
+                <span class="k">for</span> <span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span> <span class="ow">in</span> <span class="n">entities</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+            <span class="p">}</span>
+
+            <span class="n">run</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">create_node</span><span class="p">(</span><span class="s1">&#39;run&#39;</span><span class="p">,</span> <span class="n">entities</span><span class="p">,</span> <span class="n">image_file</span><span class="o">=</span><span class="n">img_f</span><span class="p">,</span>
+                                      <span class="n">duration</span><span class="o">=</span><span class="n">duration</span><span class="p">,</span> <span class="n">repetition_time</span><span class="o">=</span><span class="n">tr</span><span class="p">,</span>
+                                      <span class="n">n_vols</span><span class="o">=</span><span class="n">nvols</span><span class="p">)</span>
+        <span class="n">run_info</span> <span class="o">=</span> <span class="n">run</span><span class="o">.</span><span class="n">get_info</span><span class="p">()</span>
+
+        <span class="c1"># Process event files</span>
+        <span class="k">if</span> <span class="n">events</span><span class="p">:</span>
+            <span class="n">dfs</span> <span class="o">=</span> <span class="n">layout</span><span class="o">.</span><span class="n">get_nearest</span><span class="p">(</span>
+                <span class="n">img_f</span><span class="p">,</span> <span class="n">extension</span><span class="o">=</span><span class="s1">&#39;.tsv&#39;</span><span class="p">,</span> <span class="n">suffix</span><span class="o">=</span><span class="s1">&#39;events&#39;</span><span class="p">,</span> <span class="n">all_</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="n">full_search</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">ignore_strict_entities</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;suffix&#39;</span><span class="p">,</span> <span class="s1">&#39;extension&#39;</span><span class="p">])</span>
+            <span class="k">for</span> <span class="n">_data</span> <span class="ow">in</span> <span class="n">dfs</span><span class="p">:</span>
+                <span class="n">_data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">_data</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1">&#39;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="s1">&#39;amplitude&#39;</span> <span class="ow">in</span> <span class="n">_data</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="p">(</span><span class="n">_data</span><span class="p">[</span><span class="s1">&#39;amplitude&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()</span> <span class="ow">and</span> \
+                            <span class="s1">&#39;trial_type&#39;</span> <span class="ow">in</span> <span class="n">_data</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+                        <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Column &#39;amplitude&#39; with constant value 1 &quot;</span>
+                               <span class="s2">&quot;is unnecessary in event files; ignoring it.&quot;</span><span class="p">)</span>
+                        <span class="n">_data</span> <span class="o">=</span> <span class="n">_data</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="s1">&#39;amplitude&#39;</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Column name &#39;amplitude&#39; is reserved; &quot;</span>
+                               <span class="s2">&quot;renaming it to &#39;amplitude_&#39;.&quot;</span><span class="p">)</span>
+                        <span class="n">_data</span> <span class="o">=</span> <span class="n">_data</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span>
+                            <span class="n">columns</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;amplitude&#39;</span><span class="p">:</span> <span class="s1">&#39;amplitude_&#39;</span><span class="p">})</span>
+                    <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+                <span class="n">_data</span> <span class="o">=</span> <span class="n">_data</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;n/a&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>  <span class="c1"># Replace BIDS&#39; n/a</span>
+                <span class="n">_data</span> <span class="o">=</span> <span class="n">_data</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">to_numeric</span><span class="p">,</span> <span class="n">errors</span><span class="o">=</span><span class="s1">&#39;ignore&#39;</span><span class="p">)</span>
+
+                <span class="n">_cols</span> <span class="o">=</span> <span class="n">columns</span> <span class="ow">or</span> <span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">_data</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">tolist</span><span class="p">())</span> <span class="o">-</span>
+                                        <span class="p">{</span><span class="s1">&#39;onset&#39;</span><span class="p">,</span> <span class="s1">&#39;duration&#39;</span><span class="p">})</span>
+
+                <span class="c1"># Construct a DataFrame for each extra column</span>
+                <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">_cols</span><span class="p">:</span>
+                    <span class="n">df</span> <span class="o">=</span> <span class="n">_data</span><span class="p">[[</span><span class="s1">&#39;onset&#39;</span><span class="p">,</span> <span class="s1">&#39;duration&#39;</span><span class="p">]]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+                    <span class="n">df</span><span class="p">[</span><span class="s1">&#39;amplitude&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">_data</span><span class="p">[</span><span class="n">col</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
+
+                    <span class="c1"># Add in all of the run&#39;s entities as new columns for</span>
+                    <span class="c1"># index</span>
+                    <span class="k">for</span> <span class="n">entity</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">entities</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                        <span class="k">if</span> <span class="n">entity</span> <span class="ow">in</span> <span class="n">ALL_ENTITIES</span><span class="p">:</span>
+                            <span class="n">df</span><span class="p">[</span><span class="n">entity</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+
+                    <span class="k">if</span> <span class="n">drop_na</span><span class="p">:</span>
+                        <span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">dropna</span><span class="p">(</span><span class="n">subset</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;amplitude&#39;</span><span class="p">])</span>
+
+                    <span class="k">if</span> <span class="n">df</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
+                        <span class="k">continue</span>
+
+                    <span class="n">var</span> <span class="o">=</span> <span class="n">SparseRunVariable</span><span class="p">(</span>
+                        <span class="n">name</span><span class="o">=</span><span class="n">col</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">df</span><span class="p">,</span> <span class="n">run_info</span><span class="o">=</span><span class="n">run_info</span><span class="p">,</span> <span class="n">source</span><span class="o">=</span><span class="s1">&#39;events&#39;</span><span class="p">)</span>
+                    <span class="n">run</span><span class="o">.</span><span class="n">add_variable</span><span class="p">(</span><span class="n">var</span><span class="p">)</span>
+
+        <span class="c1"># Process confound files</span>
+        <span class="k">if</span> <span class="n">regressors</span><span class="p">:</span>
+            <span class="n">sub_ents</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">entities</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+                        <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">BASE_ENTITIES</span><span class="p">}</span>
+            <span class="n">confound_files</span> <span class="o">=</span> <span class="n">layout</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">suffix</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;regressors&#39;</span><span class="p">,</span> <span class="s1">&#39;timeseries&#39;</span><span class="p">],</span>
+                                        <span class="n">scope</span><span class="o">=</span><span class="n">scope</span><span class="p">,</span> <span class="n">extension</span><span class="o">=</span><span class="s1">&#39;.tsv&#39;</span><span class="p">,</span>
+                                        <span class="o">**</span><span class="n">sub_ents</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">cf</span> <span class="ow">in</span> <span class="n">confound_files</span><span class="p">:</span>
+                <span class="n">_data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">cf</span><span class="o">.</span><span class="n">path</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">na_values</span><span class="o">=</span><span class="s1">&#39;n/a&#39;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">columns</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">conf_cols</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">_data</span><span class="o">.</span><span class="n">columns</span><span class="p">)</span> <span class="o">&amp;</span> <span class="nb">set</span><span class="p">(</span><span class="n">columns</span><span class="p">))</span>
+                    <span class="n">_data</span> <span class="o">=</span> <span class="n">_data</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="n">conf_cols</span><span class="p">]</span>
+                <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">_data</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+                    <span class="n">sr</span> <span class="o">=</span> <span class="mf">1.</span> <span class="o">/</span> <span class="n">run</span><span class="o">.</span><span class="n">repetition_time</span>
+                    <span class="n">var</span> <span class="o">=</span> <span class="n">DenseRunVariable</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">col</span><span class="p">,</span> <span class="n">values</span><span class="o">=</span><span class="n">_data</span><span class="p">[[</span><span class="n">col</span><span class="p">]],</span>
+                                           <span class="n">run_info</span><span class="o">=</span><span class="n">run_info</span><span class="p">,</span> <span class="n">source</span><span class="o">=</span><span class="s1">&#39;regressors&#39;</span><span class="p">,</span>
+                                           <span class="n">sampling_rate</span><span class="o">=</span><span class="n">sr</span><span class="p">)</span>
+                    <span class="n">run</span><span class="o">.</span><span class="n">add_variable</span><span class="p">(</span><span class="n">var</span><span class="p">)</span>
+
+        <span class="c1"># Process recordinging files</span>
+        <span class="n">rec_types</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="n">physio</span><span class="p">:</span>
+            <span class="n">rec_types</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;physio&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">stim</span><span class="p">:</span>
+            <span class="n">rec_types</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;stim&#39;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">rec_types</span><span class="p">:</span>
+            <span class="n">rec_files</span> <span class="o">=</span> <span class="n">layout</span><span class="o">.</span><span class="n">get_nearest</span><span class="p">(</span>
+                <span class="n">img_f</span><span class="p">,</span> <span class="n">extension</span><span class="o">=</span><span class="s1">&#39;.tsv.gz&#39;</span><span class="p">,</span> <span class="n">all_</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">suffix</span><span class="o">=</span><span class="n">rec_types</span><span class="p">,</span>
+                <span class="n">ignore_strict_entities</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;suffix&#39;</span><span class="p">,</span> <span class="s1">&#39;extension&#39;</span><span class="p">],</span> <span class="n">full_search</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">rf</span> <span class="ow">in</span> <span class="n">rec_files</span><span class="p">:</span>
+                <span class="n">metadata</span> <span class="o">=</span> <span class="n">layout</span><span class="o">.</span><span class="n">get_metadata</span><span class="p">(</span><span class="n">rf</span><span class="p">)</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">metadata</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;No .json sidecar found for &#39;</span><span class="si">%s</span><span class="s2">&#39;.&quot;</span> <span class="o">%</span> <span class="n">rf</span><span class="p">)</span>
+                <span class="n">data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">rf</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1">&#39;</span><span class="p">)</span>
+                <span class="n">freq</span> <span class="o">=</span> <span class="n">metadata</span><span class="p">[</span><span class="s1">&#39;SamplingFrequency&#39;</span><span class="p">]</span>
+                <span class="n">st</span> <span class="o">=</span> <span class="n">metadata</span><span class="p">[</span><span class="s1">&#39;StartTime&#39;</span><span class="p">]</span>
+                <span class="n">rf_cols</span> <span class="o">=</span> <span class="n">metadata</span><span class="p">[</span><span class="s1">&#39;Columns&#39;</span><span class="p">]</span>
+                <span class="n">data</span><span class="o">.</span><span class="n">columns</span> <span class="o">=</span> <span class="n">rf_cols</span>
+
+                <span class="c1"># Filter columns if user passed names</span>
+                <span class="k">if</span> <span class="n">columns</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">rf_cols</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">rf_cols</span><span class="p">)</span> <span class="o">&amp;</span> <span class="nb">set</span><span class="p">(</span><span class="n">columns</span><span class="p">))</span>
+                    <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="n">rf_cols</span><span class="p">]</span>
+
+                <span class="n">n_cols</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">rf_cols</span><span class="p">)</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">n_cols</span><span class="p">:</span>
+                    <span class="k">continue</span>
+
+                <span class="c1"># Keep only in-scan samples</span>
+                <span class="k">if</span> <span class="n">st</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">start_ind</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="o">-</span><span class="n">st</span> <span class="o">*</span> <span class="n">freq</span><span class="p">)</span>
+                    <span class="n">values</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">values</span><span class="p">[</span><span class="n">start_ind</span><span class="p">:,</span> <span class="p">:]</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">values</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">values</span>
+
+                <span class="k">if</span> <span class="n">st</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">n_pad</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">freq</span> <span class="o">*</span> <span class="n">st</span><span class="p">)</span>
+                    <span class="n">pad</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n_pad</span><span class="p">,</span> <span class="n">n_cols</span><span class="p">))</span>
+                    <span class="n">values</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">r_</span><span class="p">[</span><span class="n">pad</span><span class="p">,</span> <span class="n">values</span><span class="p">]</span>
+
+                <span class="n">n_rows</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">run</span><span class="o">.</span><span class="n">duration</span> <span class="o">*</span> <span class="n">freq</span><span class="p">)</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">values</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">n_rows</span><span class="p">:</span>
+                    <span class="n">values</span> <span class="o">=</span> <span class="n">values</span><span class="p">[:</span><span class="n">n_rows</span><span class="p">,</span> <span class="p">:]</span>
+                <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">values</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">n_rows</span><span class="p">:</span>
+                    <span class="n">pad</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n_rows</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">values</span><span class="p">),</span> <span class="n">n_cols</span><span class="p">))</span>
+                    <span class="n">values</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">r_</span><span class="p">[</span><span class="n">values</span><span class="p">,</span> <span class="n">pad</span><span class="p">]</span>
+
+                <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="n">rf_cols</span><span class="p">)</span>
+                <span class="n">source</span> <span class="o">=</span> <span class="s1">&#39;physio&#39;</span> <span class="k">if</span> <span class="s1">&#39;_physio.tsv&#39;</span> <span class="ow">in</span> <span class="n">rf</span> <span class="k">else</span> <span class="s1">&#39;stim&#39;</span>
+                <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+                    <span class="n">var</span> <span class="o">=</span> <span class="n">DenseRunVariable</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">col</span><span class="p">,</span> <span class="n">values</span><span class="o">=</span><span class="n">df</span><span class="p">[[</span><span class="n">col</span><span class="p">]],</span> <span class="n">run_info</span><span class="o">=</span><span class="n">run_info</span><span class="p">,</span>
+                                           <span class="n">source</span><span class="o">=</span><span class="n">source</span><span class="p">,</span> <span class="n">sampling_rate</span><span class="o">=</span><span class="n">freq</span><span class="p">)</span>
+                    <span class="n">run</span><span class="o">.</span><span class="n">add_variable</span><span class="p">(</span><span class="n">var</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">dataset</span>
+
+
+<span class="k">def</span> <span class="nf">_load_tsv_variables</span><span class="p">(</span><span class="n">layout</span><span class="p">,</span> <span class="n">suffix</span><span class="p">,</span> <span class="n">dataset</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                        <span class="n">prepend_type</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">scope</span><span class="o">=</span><span class="s1">&#39;all&#39;</span><span class="p">,</span> <span class="n">regex_search</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                        <span class="o">**</span><span class="n">selectors</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Reads variables from scans.tsv, sessions.tsv, and participants.tsv.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    layout : :obj:`bids.layout.BIDSLayout`</span>
+<span class="sd">        The BIDSLayout to use.</span>
+<span class="sd">    suffix : str</span>
+<span class="sd">        The suffix of file to read from. Must be one of &#39;scans&#39;,</span>
+<span class="sd">        &#39;sessions&#39;, or &#39;participants&#39;.</span>
+<span class="sd">    dataset : NodeIndex</span>
+<span class="sd">        A BIDS NodeIndex container. If None, a new one is</span>
+<span class="sd">        initialized.</span>
+<span class="sd">    columns : list</span>
+<span class="sd">        Optional list of names specifying which columns in the</span>
+<span class="sd">        files to return. If None, all columns are returned.</span>
+<span class="sd">    prepend_type : bool</span>
+<span class="sd">        If True, variable names are prepended with the</span>
+<span class="sd">        type name (e.g., &#39;age&#39; becomes &#39;participants.age&#39;).</span>
+<span class="sd">    scope : str or list</span>
+<span class="sd">        The scope of the space to search for variables. See</span>
+<span class="sd">        docstring for BIDSLayout for details and valid predefined values.</span>
+<span class="sd">    selectors : dict</span>
+<span class="sd">        Optional keyword arguments passed onto the</span>
+<span class="sd">        BIDSLayout instance&#39;s get() method; can be used to constrain</span>
+<span class="sd">        which data are loaded.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    A NodeIndex instance.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">regex_search</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">regex_search</span> <span class="o">=</span> <span class="n">layout</span><span class="o">.</span><span class="n">regex_search</span>
+
+    <span class="c1"># Sanitize the selectors: only keep entities at current level or above</span>
+    <span class="n">valid_entities_map</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;scans&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;subject&#39;</span><span class="p">,</span> <span class="s1">&#39;session&#39;</span><span class="p">],</span>
+        <span class="s1">&#39;sessions&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;subject&#39;</span><span class="p">],</span>
+        <span class="s1">&#39;participants&#39;</span><span class="p">:</span> <span class="p">[]</span>
+    <span class="p">}</span>
+    <span class="n">valid_entities</span> <span class="o">=</span> <span class="n">valid_entities_map</span><span class="p">[</span><span class="n">suffix</span><span class="p">]</span>
+    <span class="n">layout_kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">selectors</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">valid_entities</span><span class="p">}</span>
+
+    <span class="k">if</span> <span class="n">dataset</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">dataset</span> <span class="o">=</span> <span class="n">NodeIndex</span><span class="p">()</span>
+
+    <span class="n">files</span> <span class="o">=</span> <span class="n">layout</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">extension</span><span class="o">=</span><span class="s1">&#39;.tsv&#39;</span><span class="p">,</span> <span class="n">suffix</span><span class="o">=</span><span class="n">suffix</span><span class="p">,</span> <span class="n">scope</span><span class="o">=</span><span class="n">scope</span><span class="p">,</span>
+                       <span class="o">**</span><span class="n">layout_kwargs</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">files</span><span class="p">:</span>
+
+        <span class="n">_data</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">get_df</span><span class="p">(</span><span class="n">include_timing</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+        <span class="c1"># Entities can be defined either within the first column of the .tsv</span>
+        <span class="c1"># file (for entities that vary by row), or from the full file path</span>
+        <span class="c1"># (for entities constant over all rows in the file). We extract both</span>
+        <span class="c1"># and store them in the main DataFrame alongside other variables (as</span>
+        <span class="c1"># they&#39;ll be extracted when the BIDSVariable is initialized anyway).</span>
+        <span class="k">for</span> <span class="n">ent_name</span><span class="p">,</span> <span class="n">ent_val</span> <span class="ow">in</span> <span class="n">f</span><span class="o">.</span><span class="n">entities</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">ent_name</span> <span class="ow">in</span> <span class="n">ALL_ENTITIES</span><span class="p">:</span>
+                <span class="n">_data</span><span class="p">[</span><span class="n">ent_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">ent_val</span>
+
+        <span class="c1"># Handling is a bit more convoluted for scans.tsv, because the first</span>
+        <span class="c1"># column contains the run filename, which we also need to parse.</span>
+        <span class="k">if</span> <span class="n">suffix</span> <span class="o">==</span> <span class="s1">&#39;scans&#39;</span><span class="p">:</span>
+
+            <span class="c1"># Suffix is guaranteed to be present in each filename, so drop the</span>
+            <span class="c1"># constant column with value &#39;scans&#39; to make way for it and prevent</span>
+            <span class="c1"># two &#39;suffix&#39; columns.</span>
+            <span class="n">_data</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;suffix&#39;</span><span class="p">],</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+            <span class="n">image</span> <span class="o">=</span> <span class="n">_data</span><span class="p">[</span><span class="s1">&#39;filename&#39;</span><span class="p">]</span>
+            <span class="n">_data</span> <span class="o">=</span> <span class="n">_data</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="s1">&#39;filename&#39;</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">dn</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">_dirname</span>
+            <span class="n">paths</span> <span class="o">=</span> <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">dn</span> <span class="o">/</span> <span class="n">p</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">image</span><span class="o">.</span><span class="n">values</span><span class="p">]</span>
+            <span class="n">ent_recs</span> <span class="o">=</span> <span class="p">[</span><span class="nb">dict</span><span class="p">(</span><span class="n">layout</span><span class="o">.</span><span class="n">files</span><span class="p">[</span><span class="n">p</span><span class="p">]</span><span class="o">.</span><span class="n">entities</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">paths</span>
+                        <span class="k">if</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">layout</span><span class="o">.</span><span class="n">files</span><span class="p">]</span>
+            <span class="n">ent_cols</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="o">.</span><span class="n">from_records</span><span class="p">(</span><span class="n">ent_recs</span><span class="p">)</span>
+
+            <span class="c1"># Remove entity columns found in both DFs</span>
+            <span class="n">dupes</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">ent_cols</span><span class="o">.</span><span class="n">columns</span><span class="p">)</span> <span class="o">&amp;</span> <span class="nb">set</span><span class="p">(</span><span class="n">_data</span><span class="o">.</span><span class="n">columns</span><span class="p">))</span>
+            <span class="n">to_drop</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;extension&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="n">dupes</span>
+            <span class="n">ent_cols</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="n">to_drop</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+            <span class="n">_data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">_data</span><span class="p">,</span> <span class="n">ent_cols</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">sort</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="c1"># The BIDS spec requires ID columns to be named &#39;session_id&#39;, &#39;run_id&#39;,</span>
+        <span class="c1"># etc., and IDs begin with entity prefixes (e.g., &#39;sub-01&#39;). To ensure</span>
+        <span class="c1"># consistent internal handling, we strip these suffixes and prefixes.</span>
+        <span class="k">elif</span> <span class="n">suffix</span> <span class="o">==</span> <span class="s1">&#39;sessions&#39;</span><span class="p">:</span>
+            <span class="n">_data</span> <span class="o">=</span> <span class="n">_data</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;session_id&#39;</span><span class="p">:</span> <span class="s1">&#39;session&#39;</span><span class="p">})</span>
+            <span class="n">_data</span><span class="p">[</span><span class="s1">&#39;session&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">_data</span><span class="p">[</span><span class="s1">&#39;session&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;ses-&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">suffix</span> <span class="o">==</span> <span class="s1">&#39;participants&#39;</span><span class="p">:</span>
+            <span class="n">_data</span> <span class="o">=</span> <span class="n">_data</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;participant_id&#39;</span><span class="p">:</span> <span class="s1">&#39;subject&#39;</span><span class="p">})</span>
+            <span class="n">_data</span><span class="p">[</span><span class="s1">&#39;subject&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">_data</span><span class="p">[</span><span class="s1">&#39;subject&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;sub-&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">make_patt</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">regex_search</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+            <span class="n">patt</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">x</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">)):</span>
+                <span class="c1"># allow for leading zeros if a number was specified</span>
+                <span class="c1"># regardless of regex_search</span>
+                <span class="n">patt</span> <span class="o">=</span> <span class="s1">&#39;0*&#39;</span> <span class="o">+</span> <span class="n">patt</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">regex_search</span><span class="p">:</span>
+                <span class="n">patt</span> <span class="o">=</span> <span class="s1">&#39;^</span><span class="si">%s</span><span class="s1">$&#39;</span> <span class="o">%</span> <span class="n">patt</span>
+            <span class="k">return</span> <span class="n">patt</span>
+
+        <span class="c1"># Filter rows on all selectors</span>
+        <span class="n">comm_cols</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">_data</span><span class="o">.</span><span class="n">columns</span><span class="p">)</span> <span class="o">&amp;</span> <span class="nb">set</span><span class="p">(</span><span class="n">selectors</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span>
+        <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">comm_cols</span><span class="p">:</span>
+            <span class="n">vals</span> <span class="o">=</span> <span class="n">listify</span><span class="p">(</span><span class="n">selectors</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">col</span><span class="p">))</span>
+            <span class="k">if</span> <span class="n">regex_search</span> <span class="ow">and</span> <span class="nb">any</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="k">for</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">vals</span><span class="p">):</span>
+                <span class="n">patt</span> <span class="o">=</span> <span class="s1">&#39;|&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">make_patt</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">regex_search</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">vals</span><span class="p">)</span>
+                <span class="n">_data</span> <span class="o">=</span> <span class="n">_data</span><span class="p">[</span><span class="n">_data</span><span class="p">[</span><span class="n">col</span><span class="p">]</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">contains</span><span class="p">(</span><span class="n">patt</span><span class="p">)]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">_data</span> <span class="o">=</span> <span class="n">_data</span><span class="p">[</span><span class="n">_data</span><span class="p">[</span><span class="n">col</span><span class="p">]</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">vals</span><span class="p">)]</span>
+
+        <span class="n">level</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;scans&#39;</span><span class="p">:</span> <span class="s1">&#39;session&#39;</span><span class="p">,</span> <span class="s1">&#39;sessions&#39;</span><span class="p">:</span> <span class="s1">&#39;subject&#39;</span><span class="p">,</span>
+                 <span class="s1">&#39;participants&#39;</span><span class="p">:</span> <span class="s1">&#39;dataset&#39;</span><span class="p">}[</span><span class="n">suffix</span><span class="p">]</span>
+
+        <span class="n">node</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">get_or_create_node</span><span class="p">(</span><span class="n">level</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">entities</span><span class="p">)</span>
+
+        <span class="n">ent_cols</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">ALL_ENTITIES</span><span class="p">)</span> <span class="o">&amp;</span> <span class="nb">set</span><span class="p">(</span><span class="n">_data</span><span class="o">.</span><span class="n">columns</span><span class="p">))</span>
+        <span class="n">amp_cols</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">_data</span><span class="o">.</span><span class="n">columns</span><span class="p">)</span> <span class="o">-</span> <span class="nb">set</span><span class="p">(</span><span class="n">ent_cols</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="n">columns</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">amp_cols</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">amp_cols</span><span class="p">)</span> <span class="o">&amp;</span> <span class="nb">set</span><span class="p">(</span><span class="n">columns</span><span class="p">))</span>
+
+        <span class="k">for</span> <span class="n">col_name</span> <span class="ow">in</span> <span class="n">amp_cols</span><span class="p">:</span>
+
+            <span class="c1"># Rename columns: values must be in &#39;amplitude&#39;</span>
+            <span class="n">df</span> <span class="o">=</span> <span class="n">_data</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="p">[</span><span class="n">col_name</span><span class="p">]</span> <span class="o">+</span> <span class="n">ent_cols</span><span class="p">]</span>
+            <span class="n">df</span><span class="o">.</span><span class="n">columns</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;amplitude&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="n">ent_cols</span>
+
+            <span class="k">if</span> <span class="n">prepend_type</span><span class="p">:</span>
+                <span class="n">col_name</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">.</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">suffix</span><span class="p">,</span> <span class="n">col_name</span><span class="p">)</span>
+
+            <span class="n">node</span><span class="o">.</span><span class="n">add_variable</span><span class="p">(</span><span class="n">SimpleVariable</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">col_name</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">df</span><span class="p">,</span> <span class="n">source</span><span class="o">=</span><span class="n">suffix</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">dataset</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2015-2023, Developers of PyBIDS.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

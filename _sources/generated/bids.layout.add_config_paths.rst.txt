@@ -1,0 +1,6 @@
+﻿bids.layout.add\_config\_paths
+==============================
+
+.. currentmodule:: bids.layout
+
+.. autofunction:: add_config_paths

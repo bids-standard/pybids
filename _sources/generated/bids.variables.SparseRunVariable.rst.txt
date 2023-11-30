@@ -1,0 +1,32 @@
+﻿bids.variables.SparseRunVariable
+================================
+
+.. currentmodule:: bids.variables
+
+.. autoclass:: SparseRunVariable
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~SparseRunVariable.__init__
+      ~SparseRunVariable.apply
+      ~SparseRunVariable.clone
+      ~SparseRunVariable.filter
+      ~SparseRunVariable.get_duration
+      ~SparseRunVariable.get_grouper
+      ~SparseRunVariable.merge
+      ~SparseRunVariable.select_rows
+      ~SparseRunVariable.split
+      ~SparseRunVariable.to_dense
+      ~SparseRunVariable.to_df
+   
+   
+
+   
+   
+   

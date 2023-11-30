@@ -1,0 +1,6 @@
+﻿bids.config.from\_file
+======================
+
+.. currentmodule:: bids.config
+
+.. autofunction:: from_file

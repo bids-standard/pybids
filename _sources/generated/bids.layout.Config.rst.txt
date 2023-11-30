@@ -1,0 +1,32 @@
+﻿bids.layout.Config
+==================
+
+.. currentmodule:: bids.layout
+
+.. autoclass:: Config
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~Config.__init__
+      ~Config.load
+   
+   
+
+   
+   
+   .. rubric:: Attributes
+
+   .. autosummary::
+   
+      ~Config.entities
+      ~Config.metadata
+      ~Config.name
+      ~Config.registry
+   
+   

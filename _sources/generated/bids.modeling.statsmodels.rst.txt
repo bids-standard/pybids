@@ -1,0 +1,40 @@
+﻿bids.modeling.statsmodels
+=========================
+
+.. automodule:: bids.modeling.statsmodels
+
+   
+   
+   
+
+   
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      expand_wildcards
+      validate_model
+   
+   
+
+   
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      BIDSStatsModelsEdge
+      BIDSStatsModelsGraph
+      BIDSStatsModelsNode
+      BIDSStatsModelsNodeOutput
+      ContrastInfo
+   
+   
+
+   
+   
+   
+
+
+

@@ -1,0 +1,998 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>bids.modeling.statsmodels &mdash; PyBIDS 0.16.4 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=fa44fd50" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/mystnb.4510f1fc1dee50b3e5859aac5469c37c29e427902b24a333a5f9fcb2f0b3ac41.css" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../../_static/documentation_options.js?v=81998473"></script>
+        <script src="../../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            PyBIDS
+          </a>
+              <div class="version">
+                0.16.4
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../user_guide.html">User guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../examples/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api.html">API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../whats_new.html">Changelog</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">PyBIDS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">bids.modeling.statsmodels</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for bids.modeling.statsmodels</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;BIDS-StatsModels functionality.&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">namedtuple</span><span class="p">,</span> <span class="n">OrderedDict</span><span class="p">,</span> <span class="n">Counter</span><span class="p">,</span> <span class="n">defaultdict</span>
+<span class="kn">import</span> <span class="nn">itertools</span>
+<span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">reduce</span>
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">import</span> <span class="nn">fnmatch</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+
+<span class="kn">from</span> <span class="nn">bids.layout</span> <span class="kn">import</span> <span class="n">BIDSLayout</span>
+<span class="kn">from</span> <span class="nn">bids.utils</span> <span class="kn">import</span> <span class="n">matches_entities</span><span class="p">,</span> <span class="n">convert_JSON</span><span class="p">,</span> <span class="n">listify</span>
+<span class="kn">from</span> <span class="nn">bids.variables</span> <span class="kn">import</span> <span class="p">(</span><span class="n">BIDSVariableCollection</span><span class="p">,</span> <span class="n">merge_collections</span><span class="p">)</span>
+<span class="kn">from</span> <span class="nn">bids.modeling</span> <span class="kn">import</span> <span class="n">transformations</span> <span class="k">as</span> <span class="n">tm</span>
+<span class="kn">from</span> <span class="nn">.model_spec</span> <span class="kn">import</span> <span class="n">GLMMSpec</span><span class="p">,</span> <span class="n">MetaAnalysisSpec</span>
+<span class="kn">from</span> <span class="nn">.report.utils</span> <span class="kn">import</span> <span class="n">node_report</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+
+
+<span class="k">def</span> <span class="nf">validate_model</span><span class="p">(</span><span class="n">model</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Validate a BIDS-StatsModel structure.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    model : dict</span>
+<span class="sd">        A full BIDS-StatsModels specification document loaded from JSON.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    True if the model passes validation. Raises an exception otherwise.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Identify non-unique names</span>
+    <span class="n">names</span> <span class="o">=</span> <span class="n">Counter</span><span class="p">([</span><span class="n">n</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">model</span><span class="p">[</span><span class="s1">&#39;nodes&#39;</span><span class="p">]])</span>
+    <span class="n">duplicates</span> <span class="o">=</span> <span class="p">[</span><span class="n">n</span> <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">count</span> <span class="ow">in</span> <span class="n">names</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">count</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">duplicates</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Non-unique node names found: &#39;</span><span class="si">{}</span><span class="s2">&#39;. Please ensure&quot;</span>
+                            <span class="s2">&quot; all nodes in the model have unique names.&quot;</span>
+                            <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">duplicates</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="s1">&#39;edges&#39;</span> <span class="ow">in</span> <span class="n">model</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">edge</span> <span class="ow">in</span> <span class="n">model</span><span class="p">[</span><span class="s1">&#39;edges&#39;</span><span class="p">]:</span>
+            <span class="k">if</span> <span class="n">edge</span><span class="p">[</span><span class="s1">&#39;source&#39;</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">names</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Missing source node: &#39;</span><span class="si">{}</span><span class="s2">&#39;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">edge</span><span class="p">[</span><span class="s1">&#39;source&#39;</span><span class="p">]))</span>
+            <span class="k">if</span> <span class="n">edge</span><span class="p">[</span><span class="s1">&#39;destination&#39;</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">names</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Missing destination node: &#39;</span><span class="si">{}</span><span class="s2">&#39;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="n">edge</span><span class="p">[</span><span class="s1">&#39;destination&#39;</span><span class="p">]))</span>
+
+    <span class="c1"># XXX: May 2021: Helping old models to work. This shouldn&#39;t last more than 2 years.</span>
+    <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">model</span><span class="p">[</span><span class="s2">&quot;nodes&quot;</span><span class="p">]:</span>
+        <span class="k">if</span> <span class="s2">&quot;type&quot;</span> <span class="ow">in</span> <span class="n">node</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;dummy_contrasts&quot;</span><span class="p">,</span> <span class="p">{}):</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[Node </span><span class="si">{</span><span class="n">node</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">]: Contrast &#39;Type&#39; is now &#39;Test&#39;.&quot;</span><span class="p">)</span>
+            <span class="n">node</span><span class="p">[</span><span class="s2">&quot;dummy_contrasts&quot;</span><span class="p">][</span><span class="s2">&quot;test&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">node</span><span class="p">[</span><span class="s2">&quot;dummy_contrasts&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;type&quot;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">contrast</span> <span class="ow">in</span> <span class="n">node</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;contrasts&quot;</span><span class="p">,</span> <span class="p">[]):</span>
+            <span class="k">if</span> <span class="s2">&quot;type&quot;</span> <span class="ow">in</span> <span class="n">contrast</span><span class="p">:</span>
+                <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[Node </span><span class="si">{</span><span class="n">node</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">; Contrast </span><span class="si">{</span><span class="n">contrast</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">]:&quot;</span>
+                              <span class="s2">&quot;Contrast &#39;Type&#39; is now &#39;Test&#39;.&quot;</span><span class="p">)</span>
+                <span class="n">contrast</span><span class="p">[</span><span class="s2">&quot;test&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">contrast</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;type&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">node</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;transformations&quot;</span><span class="p">),</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="n">transformations</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;transformer&quot;</span><span class="p">:</span> <span class="s2">&quot;pybids-transforms-v1&quot;</span><span class="p">,</span>
+                               <span class="s2">&quot;instructions&quot;</span><span class="p">:</span> <span class="n">node</span><span class="p">[</span><span class="s2">&quot;transformations&quot;</span><span class="p">]}</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[Node </span><span class="si">{</span><span class="n">node</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">]:&quot;</span>
+                          <span class="sa">f</span><span class="s2">&quot;Transformations reformatted to </span><span class="si">{</span><span class="n">transformations</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">node</span><span class="p">[</span><span class="s2">&quot;transformations&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">transformations</span>
+    <span class="k">return</span> <span class="kc">True</span>
+
+
+<span class="n">BIDSStatsModelsEdge</span> <span class="o">=</span> <span class="n">namedtuple</span><span class="p">(</span><span class="s1">&#39;BIDSStatsModelsEdge&#39;</span><span class="p">,</span>
+                                 <span class="p">(</span><span class="s1">&#39;source&#39;</span><span class="p">,</span> <span class="s1">&#39;destination&#39;</span><span class="p">,</span> <span class="s1">&#39;filter&#39;</span><span class="p">))</span>
+
+
+<span class="n">ContrastInfo</span> <span class="o">=</span> <span class="n">namedtuple</span><span class="p">(</span><span class="s1">&#39;ContrastInfo&#39;</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;name&#39;</span><span class="p">,</span> <span class="s1">&#39;conditions&#39;</span><span class="p">,</span> <span class="s1">&#39;weights&#39;</span><span class="p">,</span>
+                                           <span class="s1">&#39;test&#39;</span><span class="p">,</span> <span class="s1">&#39;entities&#39;</span><span class="p">))</span>
+
+
+<div class="viewcode-block" id="BIDSStatsModelsGraph">
+<a class="viewcode-back" href="../../../generated/bids.modeling.statsmodels.BIDSStatsModelsGraph.html#bids.modeling.statsmodels.BIDSStatsModelsGraph">[docs]</a>
+<span class="k">class</span> <span class="nc">BIDSStatsModelsGraph</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Rooted graph structure representing the contents of a BIDS-StatsModel file.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    layout : :obj:`bids.layout.BIDSLayout` or str</span>
+<span class="sd">        A BIDSLayout instance or path to pass on</span>
+<span class="sd">        to the BIDSLayout initializer.</span>
+<span class="sd">    model : str or dict</span>
+<span class="sd">        A BIDS model specification. Can either be a</span>
+<span class="sd">        string giving the path of the JSON model spec, or an already-loaded</span>
+<span class="sd">        dict containing the model info.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="BIDSStatsModelsGraph.__init__">
+<a class="viewcode-back" href="../../../generated/bids.modeling.statsmodels.BIDSStatsModelsGraph.html#bids.modeling.statsmodels.BIDSStatsModelsGraph.__init__">[docs]</a>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">layout</span><span class="p">,</span> <span class="n">model</span><span class="p">):</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">layout</span><span class="p">,</span> <span class="n">BIDSLayout</span><span class="p">):</span>
+            <span class="n">layout</span> <span class="o">=</span> <span class="n">BIDSLayout</span><span class="p">(</span><span class="n">layout</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">layout</span> <span class="o">=</span> <span class="n">layout</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_load_model</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nodes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_load_nodes</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">edges</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_load_edges</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nodes</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_root_node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;root&#39;</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nodes</span><span class="o">.</span><span class="n">values</span><span class="p">())[</span><span class="mi">0</span><span class="p">])</span></div>
+
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;&lt;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">[</span><span class="se">{{</span><span class="s2">name=&#39;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&#39;, description=&#39;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">[</span><span class="s1">&#39;description&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&#39;, ... </span><span class="se">}}</span><span class="s2">]&gt;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&#39;&#39;&#39;Alias for get_node(key).&#39;&#39;&#39;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_node</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">root_node</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns the graph&#39;s root node.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_root_node</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_load_model</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">validate</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="c1"># Load model info from JSON and do some validation</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fobj</span><span class="p">:</span>
+                <span class="n">model</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">fobj</span><span class="p">)</span>
+        <span class="c1"># Convert JSON from CamelCase to snake_case keys</span>
+        <span class="n">model</span> <span class="o">=</span> <span class="n">convert_JSON</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">validate</span><span class="p">:</span>
+            <span class="n">validate_model</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">model</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_load_nodes</span><span class="p">(</span><span class="n">model</span><span class="p">):</span>
+        <span class="n">nodes</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">node_args</span> <span class="ow">in</span> <span class="n">model</span><span class="p">[</span><span class="s1">&#39;nodes&#39;</span><span class="p">]:</span>
+            <span class="n">node</span> <span class="o">=</span> <span class="n">BIDSStatsModelsNode</span><span class="p">(</span><span class="o">**</span><span class="n">node_args</span><span class="p">)</span>
+            <span class="n">nodes</span><span class="p">[</span><span class="n">node</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">node</span>
+        <span class="k">return</span> <span class="n">nodes</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_load_edges</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">nodes</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Build edges between nodes.&quot;&quot;&quot;</span>
+        <span class="n">edges</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;edges&#39;</span><span class="p">,</span> <span class="p">[])</span>
+        <span class="c1"># assume we have an optional top-level &#39;Pipeline&#39; field</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">edges</span> <span class="ow">or</span> <span class="n">model</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;pipeline&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
+            <span class="n">node_vals</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">nodes</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">node_vals</span><span class="p">)):</span>
+                <span class="n">edges</span><span class="o">.</span><span class="n">append</span><span class="p">({</span>
+                    <span class="s1">&#39;source&#39;</span><span class="p">:</span> <span class="n">node_vals</span><span class="p">[</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                    <span class="s1">&#39;destination&#39;</span><span class="p">:</span> <span class="n">node_vals</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                <span class="p">})</span>
+
+        <span class="k">for</span> <span class="n">edge</span> <span class="ow">in</span> <span class="n">edges</span><span class="p">:</span>
+            <span class="n">src_node</span><span class="p">,</span> <span class="n">dst_node</span> <span class="o">=</span> <span class="n">nodes</span><span class="p">[</span><span class="n">edge</span><span class="p">[</span><span class="s1">&#39;source&#39;</span><span class="p">]],</span> <span class="n">nodes</span><span class="p">[</span><span class="n">edge</span><span class="p">[</span><span class="s1">&#39;destination&#39;</span><span class="p">]]</span>
+            <span class="n">edge</span> <span class="o">=</span> <span class="n">BIDSStatsModelsEdge</span><span class="p">(</span><span class="n">src_node</span><span class="p">,</span> <span class="n">dst_node</span><span class="p">,</span> <span class="n">edge</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;filter&#39;</span><span class="p">,</span> <span class="p">{}))</span>
+            <span class="n">src_node</span><span class="o">.</span><span class="n">add_child</span><span class="p">(</span><span class="n">edge</span><span class="p">)</span>
+            <span class="n">dst_node</span><span class="o">.</span><span class="n">add_parent</span><span class="p">(</span><span class="n">edge</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">edges</span>
+
+    <span class="k">def</span> <span class="nf">get_node</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the named node.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        name : str</span>
+<span class="sd">            The name of the node to retrieve (as defined in the BIDS-StatsModel</span>
+<span class="sd">            document).</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        A BIDSStatsModelsNode instance.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">nodes</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="s1">&#39;There is no node with the name &quot;</span><span class="si">{}</span><span class="s1">&quot;.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="p">))</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">load_collections</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nodes</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">drop_na</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Load collections in all nodes.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        nodes : list</span>
+<span class="sd">            Optional list of nodes to set up. Each element must be a string</span>
+<span class="sd">            giving the (unique) name of the node, Nodes that do not match</span>
+<span class="sd">            will be silently skipped.</span>
+<span class="sd">        drop_na : bool</span>
+<span class="sd">            Boolean indicating whether or not to automatically</span>
+<span class="sd">            drop events that have a n/a amplitude when reading in data</span>
+<span class="sd">            from event files.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Use inputs from BIDS-StatsModel document, and update with kwargs</span>
+        <span class="n">selectors</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;input&#39;</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">selectors</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">nodes</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+
+            <span class="c1"># Skip any nodes whose names don&#39;t match list</span>
+            <span class="k">if</span> <span class="n">nodes</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">node</span><span class="o">.</span><span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">nodes</span><span class="p">:</span>
+                <span class="k">continue</span>
+
+            <span class="c1"># Currently allowing scan_length to be passed as a hack; remove for</span>
+            <span class="c1"># levels above run.</span>
+            <span class="n">node_kwargs</span> <span class="o">=</span> <span class="n">selectors</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">node</span><span class="o">.</span><span class="n">level</span> <span class="o">!=</span> <span class="s1">&#39;run&#39;</span><span class="p">:</span>
+                <span class="n">node_kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;scan_length&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+            <span class="n">collections</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">layout</span><span class="o">.</span><span class="n">get_collections</span><span class="p">(</span><span class="n">node</span><span class="o">.</span><span class="n">level</span><span class="p">,</span> <span class="n">drop_na</span><span class="o">=</span><span class="n">drop_na</span><span class="p">,</span>
+                                                      <span class="o">**</span><span class="n">node_kwargs</span><span class="p">)</span>
+            <span class="n">node</span><span class="o">.</span><span class="n">add_collections</span><span class="p">(</span><span class="n">collections</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">write_graph</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dotfilename</span><span class="o">=</span><span class="s1">&#39;graph.dot&#39;</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;png&#39;</span><span class="p">,</span> <span class="n">pipe</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Generates a graphviz dot file and a png file</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+
+<span class="sd">        format: &#39;png&#39;, &#39;svg&#39;</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="kn">from</span> <span class="nn">graphviz</span> <span class="kn">import</span> <span class="n">Digraph</span>
+
+        <span class="n">dot</span> <span class="o">=</span> <span class="n">Digraph</span><span class="p">(</span>
+                <span class="s1">&#39;structs&#39;</span><span class="p">,</span>
+                <span class="n">filename</span><span class="o">=</span><span class="n">dotfilename</span><span class="p">,</span>
+                <span class="n">node_attr</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;shape&#39;</span><span class="p">:</span> <span class="s1">&#39;record&#39;</span><span class="p">},</span>
+                <span class="n">comment</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">],</span>
+                <span class="nb">format</span><span class="o">=</span><span class="nb">format</span><span class="p">,</span> 
+            <span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">node</span><span class="p">,</span> <span class="n">nobj</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">nodes</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">dot</span><span class="o">.</span><span class="n">node</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;&lt;f0&gt; name: </span><span class="si">{</span><span class="n">nobj</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">|&lt;f1&gt; level: </span><span class="si">{</span><span class="n">nobj</span><span class="o">.</span><span class="n">level</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">edge</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">edges</span><span class="p">:</span>
+            <span class="n">dot</span><span class="o">.</span><span class="n">edge</span><span class="p">(</span><span class="n">edge</span><span class="p">[</span><span class="s1">&#39;source&#39;</span><span class="p">],</span> <span class="n">edge</span><span class="p">[</span><span class="s1">&#39;destination&#39;</span><span class="p">])</span>
+
+        <span class="k">if</span> <span class="n">pipe</span><span class="p">:</span>
+            <span class="n">dot</span> <span class="o">=</span> <span class="n">dot</span><span class="o">.</span><span class="n">pipe</span><span class="p">(</span><span class="n">encoding</span><span class="o">=</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">dot</span><span class="o">.</span><span class="n">render</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="n">dot</span>
+
+    <span class="k">def</span> <span class="nf">run_graph</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">entities</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Run the entire graph recursively.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        entities : dict (optional)</span>
+<span class="sd">            Optional dictionary of BIDS entities to use when loading collections.</span>
+<span class="sd">        kwargs : dict</span>
+<span class="sd">            Optional dictionary of keyword arguments to pass to</span>
+<span class="sd">            BIDSStatsModelsNode.run()</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">entities</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">entities</span> <span class="o">=</span> <span class="p">{}</span>
+        
+        <span class="n">_run_node_recursive</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">root_node</span><span class="p">,</span> <span class="n">filters</span><span class="o">=</span><span class="n">entities</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+
+<span class="k">def</span> <span class="nf">_run_node_recursive</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="n">inputs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">filters</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Run a node recursively, storing outputs in place as</span>
+<span class="sd">    BIDSStatsModelsNode.outputs_.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">filters</span> <span class="o">==</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">filters</span> <span class="o">=</span> <span class="p">{}</span>
+        
+    <span class="c1"># Run node</span>
+    <span class="n">run_kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="o">**</span><span class="n">filters</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">}</span>
+    <span class="n">node</span><span class="o">.</span><span class="n">outputs_</span> <span class="o">=</span>  <span class="n">node</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">group_by</span><span class="o">=</span><span class="n">node</span><span class="o">.</span><span class="n">group_by</span><span class="p">,</span> <span class="o">**</span><span class="n">run_kwargs</span><span class="p">)</span>
+
+    <span class="c1"># Inputs to next node</span>
+    <span class="n">contrasts</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">itertools</span><span class="o">.</span><span class="n">chain</span><span class="p">(</span><span class="o">*</span><span class="p">[</span><span class="n">s</span><span class="o">.</span><span class="n">contrasts</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">node</span><span class="o">.</span><span class="n">outputs_</span><span class="p">]))</span>
+
+    <span class="k">for</span> <span class="n">edge</span> <span class="ow">in</span> <span class="n">node</span><span class="o">.</span><span class="n">children</span><span class="p">:</span>
+        <span class="n">_run_node_recursive</span><span class="p">(</span><span class="n">edge</span><span class="o">.</span><span class="n">destination</span><span class="p">,</span> <span class="n">contrasts</span><span class="p">,</span> <span class="n">filters</span><span class="o">=</span><span class="n">edge</span><span class="o">.</span><span class="n">filter</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+<div class="viewcode-block" id="BIDSStatsModelsNode">
+<a class="viewcode-back" href="../../../generated/bids.modeling.statsmodels.BIDSStatsModelsNode.html#bids.modeling.statsmodels.BIDSStatsModelsNode">[docs]</a>
+<span class="k">class</span> <span class="nc">BIDSStatsModelsNode</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Represents a single node in a BIDS-StatsModel graph.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    level : str</span>
+<span class="sd">        The BIDS keyword to use as the grouping variable; must be one of</span>
+<span class="sd">        [&#39;run&#39;, &#39;session&#39;, &#39;subject&#39;, or &#39;dataset&#39;].</span>
+<span class="sd">    name : str</span>
+<span class="sd">        Name to assign to the node.</span>
+<span class="sd">    model : dict</span>
+<span class="sd">        The &#39;model&#39; part of the BIDS-StatsModels specification.</span>
+<span class="sd">    transformations : dict</span>
+<span class="sd">        Optional dictionary specifying transformations to apply. Dictionary</span>
+<span class="sd">        must include &quot;transformer&quot; and &quot;instructions&quot; keys. &quot;transformer&quot;</span>
+<span class="sd">        indicates the specification to follow. &quot;instructions&quot; is a list of</span>
+<span class="sd">        instructions matching that specification.</span>
+<span class="sd">    contrasts : list</span>
+<span class="sd">        List of contrasts to apply to the parameter estimates generated when</span>
+<span class="sd">        the model is fit.</span>
+<span class="sd">    dummy_contrasts : dict</span>
+<span class="sd">        Optional dictionary specifying which conditions to create indicator</span>
+<span class="sd">        contrasts for. Dictionary may include a &quot;test&quot; key (&#39;t&#39;),</span>
+<span class="sd">        and optionally a subset of &quot;conditions&quot;.</span>
+<span class="sd">    group_by: [str]</span>
+<span class="sd">        Optional list of strings giving the names of entities that define the</span>
+<span class="sd">        grouping structure for all variables. The current node will be executed</span>
+<span class="sd">        separately for each unique combination of levels specified in group_by.</span>
+<span class="sd">        For example, if group_by=[&#39;contrast&#39;, &#39;subject&#39;], and there are 2</span>
+<span class="sd">        contrasts and 3 subjects, then there will be 6 separate iterations, and</span>
+<span class="sd">        the returned list will have 6 elements. Any value passed here will be</span>
+<span class="sd">        overridden if one is passed when run() is called on a node.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="BIDSStatsModelsNode.__init__">
+<a class="viewcode-back" href="../../../generated/bids.modeling.statsmodels.BIDSStatsModelsNode.html#bids.modeling.statsmodels.BIDSStatsModelsNode.__init__">[docs]</a>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">level</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">group_by</span><span class="p">,</span> <span class="n">transformations</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">contrasts</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dummy_contrasts</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">level</span> <span class="o">=</span> <span class="n">level</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">model</span>
+        <span class="k">if</span> <span class="n">transformations</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">transformations</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;transformer&quot;</span><span class="p">:</span> <span class="s2">&quot;pybids-transforms-v1&quot;</span><span class="p">,</span>
+                               <span class="s2">&quot;instructions&quot;</span><span class="p">:</span> <span class="p">[]}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">transformations</span> <span class="o">=</span> <span class="n">transformations</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">contrasts</span> <span class="o">=</span> <span class="n">contrasts</span> <span class="ow">or</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dummy_contrasts</span> <span class="o">=</span> <span class="n">dummy_contrasts</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_collections</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_group_data</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">children</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parents</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="n">group_by</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;group_by is not defined for Node: </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">group_by</span> <span class="o">=</span> <span class="n">group_by</span>
+
+        <span class="c1"># Check for intercept only run level model and throw an error</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">level</span> <span class="o">==</span> <span class="s1">&#39;run&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">[</span><span class="s1">&#39;x&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="p">[</span><span class="mi">1</span><span class="p">]):</span>
+                <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;Run level intercept only models are not currently supported.&quot;</span>
+                                          <span class="s2">&quot;If this is a feature you need, please leave a comment at&quot;</span>
+                                          <span class="s2">&quot;https://github.com/bids-standard/pybids/issues/852.&quot;</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="c1"># We talked about X being required, I don&#39;t know if we want to throw an error over that requirement here</span>
+            <span class="c1"># though.</span>
+            <span class="k">pass</span></div>
+
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;&lt;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">(level=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">level</span><span class="si">}</span><span class="s2">, name=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">)&gt;&quot;</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_build_groups</span><span class="p">(</span><span class="n">objects</span><span class="p">,</span> <span class="n">group_by</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Group list of objects into bins defined by specified entities.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        objects : list</span>
+<span class="sd">            List of objects containing an .entities dictionary as an attribute.</span>
+<span class="sd">        group_by : list of str</span>
+<span class="sd">            List of strings indicating which entities to group on.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        A dictionary, where the keys are tuples of tuples and the values are lists</span>
+<span class="sd">        containing subsets of the original object list. Each outer tuple of the keys</span>
+<span class="sd">        represents a particular entity/value combination; each inner tuple has two</span>
+<span class="sd">        elements, where the first is the name of the entity and the second is the value.</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        * The passed objects can be of any type, but alll elements in the list must</span>
+<span class="sd">        have an implemented .entities dictionary.</span>
+<span class="sd">        * Objects that do not have defined values for all of the requested</span>
+<span class="sd">        `entities` will be silently ignored.</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+<span class="sd">        &gt;&gt;&gt; bidsfile = namedtuple(&#39;bidsfile&#39;, (&#39;entities&#39;,))</span>
+<span class="sd">        &gt;&gt;&gt; bidsfile1 = bidsfile(entities={&#39;subject&#39;: &#39;01&#39;})</span>
+<span class="sd">        &gt;&gt;&gt; bidsfile2 = bidsfile(entities={&#39;subject&#39;: &#39;02&#39;})</span>
+<span class="sd">        &gt;&gt;&gt; groups = {((&#39;subject&#39;, &#39;01&#39;),): [bidsfile1],</span>
+<span class="sd">        ...           ((&#39;subject&#39;, &#39;02&#39;),): [bidsfile2]}</span>
+<span class="sd">        &gt;&gt;&gt; BIDSStatsModelsNode._build_groups(</span>
+<span class="sd">        ...     [bidsfile1, bidsfile2],</span>
+<span class="sd">        ...     [&#39;subject&#39;]) == groups</span>
+<span class="sd">        True</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">group_by</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">{():</span> <span class="n">objects</span><span class="p">}</span>
+
+        <span class="n">groups</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>
+
+        <span class="c1"># Get unique values in each grouping variable and construct indexing DF</span>
+        <span class="n">entities</span> <span class="o">=</span> <span class="p">[</span><span class="n">obj</span><span class="o">.</span><span class="n">entities</span> <span class="k">for</span> <span class="n">obj</span> <span class="ow">in</span> <span class="n">objects</span><span class="p">]</span>
+        <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="o">.</span><span class="n">from_records</span><span class="p">(</span><span class="n">entities</span><span class="p">)</span>
+
+        <span class="c1"># Separate BIDSVariableCollections</span>
+        <span class="n">collections</span> <span class="o">=</span> <span class="p">[</span><span class="n">obj</span><span class="o">.</span><span class="n">to_df</span><span class="p">()</span> <span class="k">for</span> <span class="n">obj</span> <span class="ow">in</span> <span class="n">objects</span> <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span> <span class="o">==</span> <span class="n">BIDSVariableCollection</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">collections</span><span class="p">:</span>
+            <span class="n">metadata_vars</span> <span class="o">=</span> <span class="n">reduce</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="o">.</span><span class="n">merge</span><span class="p">,</span> <span class="n">collections</span><span class="p">)</span>
+            <span class="n">on_vars</span> <span class="o">=</span> <span class="nb">list</span><span class="p">({</span><span class="s1">&#39;subject&#39;</span><span class="p">,</span> <span class="s1">&#39;session&#39;</span><span class="p">,</span> <span class="s1">&#39;run&#39;</span><span class="p">}</span> <span class="o">&amp;</span> <span class="nb">set</span><span class="p">(</span><span class="n">metadata_vars</span><span class="o">.</span><span class="n">columns</span><span class="p">))</span>
+            <span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">metadata_vars</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s1">&#39;left&#39;</span><span class="p">,</span> <span class="n">on</span><span class="o">=</span><span class="n">on_vars</span><span class="p">)</span>
+
+        <span class="c1"># Single-run tasks and single-session subjects may not have entities</span>
+        <span class="n">dummy_groups</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;run&quot;</span><span class="p">,</span> <span class="s2">&quot;session&quot;</span><span class="p">}</span> <span class="o">-</span> <span class="nb">set</span><span class="p">(</span><span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">)</span>
+        <span class="n">group_by</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">group_by</span><span class="p">)</span> <span class="o">-</span> <span class="n">dummy_groups</span>
+
+        <span class="c1"># Verify all columns in group_by exist and raise sensible error if not</span>
+        <span class="n">missing_vars</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">group_by</span> <span class="o">-</span> <span class="nb">set</span><span class="p">(</span><span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">missing_vars</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;group_by contains variable(s) </span><span class="si">{}</span><span class="s2"> that could not &quot;</span>
+                             <span class="s2">&quot;be found in the entity index.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">missing_vars</span><span class="p">)</span> <span class="p">)</span>
+
+        <span class="c1"># Restrict DF to only grouping columns</span>
+        <span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="nb">list</span><span class="p">(</span><span class="n">group_by</span><span class="p">)]</span>
+
+        <span class="n">unique_vals</span> <span class="o">=</span> <span class="p">{</span><span class="n">col</span><span class="p">:</span> <span class="n">df</span><span class="p">[</span><span class="n">col</span><span class="p">]</span><span class="o">.</span><span class="n">dropna</span><span class="p">()</span><span class="o">.</span><span class="n">unique</span><span class="p">()</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span> <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">group_by</span><span class="p">}</span>
+
+        <span class="c1"># Note: we can&#39;t just naively bucket objects based on the values of the</span>
+        <span class="c1"># grouping entities, because an object may have undefined values for</span>
+        <span class="c1"># one or more grouping variables. So we &quot;fill in&quot; the missing values by</span>
+        <span class="c1"># Looping over objects. For each one, identify all grouping variables</span>
+        <span class="c1"># with missing values. Loop over the cartesian product of the unique</span>
+        <span class="c1"># values of the missing entities, combining the permutation values with</span>
+        <span class="c1"># the base (present) grouping entities. Sort on this to produce the</span>
+        <span class="c1"># group key.</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">iterrows</span><span class="p">():</span>
+
+            <span class="n">defined</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">[</span><span class="n">df</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">notnull</span><span class="p">()]</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+            <span class="n">base_ents</span> <span class="o">=</span> <span class="p">[(</span><span class="n">k</span><span class="p">,</span> <span class="n">row</span><span class="p">[</span><span class="n">k</span><span class="p">])</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">defined</span><span class="p">]</span>
+            <span class="n">missing</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">[</span><span class="n">df</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">isnull</span><span class="p">()]</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+
+            <span class="n">records</span> <span class="o">=</span> <span class="p">[]</span>
+
+            <span class="k">if</span> <span class="n">missing</span><span class="p">:</span>
+                <span class="n">product</span> <span class="o">=</span> <span class="n">itertools</span><span class="o">.</span><span class="n">product</span><span class="p">(</span><span class="o">*</span><span class="p">[</span><span class="n">unique_vals</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">missing</span><span class="p">])</span>
+                <span class="k">for</span> <span class="n">perm</span> <span class="ow">in</span> <span class="n">product</span><span class="p">:</span>
+                    <span class="n">fill_ents</span> <span class="o">=</span> <span class="p">[(</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">missing</span><span class="p">,</span> <span class="n">perm</span><span class="p">))</span><span class="o">.</span><span class="n">items</span><span class="p">()]</span>
+                    <span class="n">records</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">base_ents</span> <span class="o">+</span> <span class="n">fill_ents</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">records</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">base_ents</span><span class="p">)</span>
+
+            <span class="k">for</span> <span class="n">rec</span> <span class="ow">in</span> <span class="n">records</span><span class="p">:</span>
+                <span class="n">grp_key</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">rec</span><span class="p">))</span>
+                <span class="n">groups</span><span class="p">[</span><span class="n">grp_key</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">objects</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+
+        <span class="k">return</span> <span class="n">groups</span>
+
+    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">group_by</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">force_dense</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+              <span class="n">sampling_rate</span><span class="o">=</span><span class="s1">&#39;TR&#39;</span><span class="p">,</span> <span class="n">invalid_contrasts</span><span class="o">=</span><span class="s1">&#39;drop&#39;</span><span class="p">,</span> <span class="n">missing_values</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+              <span class="n">transformation_history</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">node_reports</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">filters</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Execute node with provided inputs.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        inputs: [[ContrastInfo]]</span>
+<span class="sd">            List of list of ContrastInfo tuples passed from the previous node.</span>
+<span class="sd">            Each element in the outer list maps to the output of a unit at the</span>
+<span class="sd">            previous level; each element in the inner list is a ContrastInfo</span>
+<span class="sd">            tuple. E.g., if contrast information is being passed from run-level</span>
+<span class="sd">            to subject-level, each outer element is a run.</span>
+<span class="sd">        group_by: [str]</span>
+<span class="sd">            Optional list of strings giving the names of entities that define</span>
+<span class="sd">            the grouping structure for all variables. The current node will be</span>
+<span class="sd">            executed separately for each unique combination of levels specified</span>
+<span class="sd">            in group_by. For example, if group_by=[&#39;contrast&#39;, &#39;subject&#39;], and</span>
+<span class="sd">            there are 2 contrasts and 3 subjects, then there will be 6 separate</span>
+<span class="sd">            iterations, and the returned list will have 6 elements. If None is</span>
+<span class="sd">            passed, the value set at node initialization (if any) will be used.</span>
+<span class="sd">        force_dense: bool</span>
+<span class="sd">            If True, the returned design matrices contained in ModelSpec</span>
+<span class="sd">            instances will represent time in a dense (i.e., uniform temporal</span>
+<span class="sd">            sampling) format. If False, the returned format will be sparse if</span>
+<span class="sd">            all available variables are sparse, and dense otherwise. Ignored</span>
+<span class="sd">            if none of the variables at this node are run-level.</span>
+<span class="sd">        sampling_rate: str, float</span>
+<span class="sd">            The sampling rate to use for timeseries resampling when working</span>
+<span class="sd">            with run-level variables and returning dense output. Ignored if</span>
+<span class="sd">            there are no run-level variables, or if force_dense is False and</span>
+<span class="sd">            all available variables are sparse.</span>
+<span class="sd">        invalid_contrasts: str</span>
+<span class="sd">            Indicates how to handle invalid contrasts--i.e., ones where the</span>
+<span class="sd">            specification contains variables that aren&#39;t found at run-time.</span>
+<span class="sd">            Valid values:</span>
+<span class="sd">                * &#39;drop&#39; (default): Drop invalid contrasts, retain the rest.</span>
+<span class="sd">                * &#39;ignore&#39;: Keep invalid contrasts despite the missing variables.</span>
+<span class="sd">                * &#39;error&#39;: Raise an error.</span>
+<span class="sd">        missing_values: str</span>
+<span class="sd">            Indicates how to handle missing values in the data. Valid values:</span>
+<span class="sd">                * &#39;fill&#39; (default): Fill missing values with 0.</span>
+<span class="sd">                * &#39;ignore&#39;: Keep missing values.</span>
+<span class="sd">                * &#39;error&#39;: Raise an error.</span>
+<span class="sd">            Defaults to &#39;fill&#39; if None, but raises warning if not explicitly set.</span>
+<span class="sd">        transformation_history: bool</span>
+<span class="sd">            If True, the returned ModelSpec instances will include a history of</span>
+<span class="sd">            variable collections after each transformation.</span>
+<span class="sd">        node_reports: bool</span>
+<span class="sd">            If True, report measures and plots will be included in the output</span>
+<span class="sd">        filters: dict</span>
+<span class="sd">            Optional keyword arguments used to constrain the subset of the data</span>
+<span class="sd">            that&#39;s processed. E.g., passing subject=&#39;01&#39; will process and</span>
+<span class="sd">            return data only for files associated with subject &#39;01&#39;.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        A list of BIDSStatsModelsNodeOutput instances.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">inputs</span> <span class="o">=</span> <span class="n">inputs</span> <span class="ow">or</span> <span class="p">[]</span>
+        <span class="n">collections</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_collections</span>
+        <span class="n">group_by</span> <span class="o">=</span> <span class="n">listify</span><span class="p">(</span><span class="n">group_by</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">group_by</span><span class="p">)</span>
+
+        <span class="c1"># Filter inputs and collections if needed</span>
+        <span class="k">if</span> <span class="n">filters</span><span class="p">:</span>
+            <span class="n">inputs</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">inputs</span> <span class="k">if</span> <span class="n">matches_entities</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">filters</span><span class="p">)]</span>
+            <span class="n">collections</span> <span class="o">=</span> <span class="p">[</span><span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">collections</span> <span class="k">if</span> <span class="n">matches_entities</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">filters</span><span class="p">)]</span>
+
+        <span class="c1"># group all collections and inputs</span>
+        <span class="n">all_objects</span> <span class="o">=</span> <span class="n">inputs</span> <span class="o">+</span> <span class="n">collections</span>
+        <span class="n">groups</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_build_groups</span><span class="p">(</span><span class="n">all_objects</span><span class="p">,</span> <span class="n">group_by</span><span class="p">)</span>
+
+        <span class="n">results</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">for</span> <span class="n">grp_ents</span><span class="p">,</span> <span class="n">grp_objs</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">groups</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
+
+            <span class="c1"># split group&#39;s objects into inputs and collections</span>
+            <span class="n">grp_inputs</span><span class="p">,</span> <span class="n">grp_colls</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">obj</span> <span class="ow">in</span> <span class="n">grp_objs</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">BIDSVariableCollection</span><span class="p">):</span>
+                    <span class="n">grp_colls</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">grp_inputs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
+
+            <span class="n">node_output</span> <span class="o">=</span> <span class="n">BIDSStatsModelsNodeOutput</span><span class="p">(</span>
+                <span class="n">node</span><span class="o">=</span><span class="bp">self</span><span class="p">,</span> <span class="n">entities</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">grp_ents</span><span class="p">),</span> <span class="n">collections</span><span class="o">=</span><span class="n">grp_colls</span><span class="p">,</span>
+                <span class="n">inputs</span><span class="o">=</span><span class="n">grp_inputs</span><span class="p">,</span> <span class="n">force_dense</span><span class="o">=</span><span class="n">force_dense</span><span class="p">,</span>
+                <span class="n">sampling_rate</span><span class="o">=</span><span class="n">sampling_rate</span><span class="p">,</span> <span class="n">invalid_contrasts</span><span class="o">=</span><span class="n">invalid_contrasts</span><span class="p">,</span>
+                <span class="n">missing_values</span><span class="o">=</span><span class="n">missing_values</span><span class="p">,</span>
+                <span class="n">transformation_history</span><span class="o">=</span><span class="n">transformation_history</span><span class="p">,</span> <span class="n">node_reports</span><span class="o">=</span><span class="n">node_reports</span><span class="p">)</span>
+            <span class="n">results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">node_output</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">results</span>
+
+    <span class="k">def</span> <span class="nf">add_child</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">edge</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add an edge to a child node.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        edge : BIDSStatsModelsEdge</span>
+<span class="sd">            An edge to add to the list of children.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">edge</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">add_parent</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">edge</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add an edge to a parent node.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        edge : BIDSStatsModelsEdge</span>
+<span class="sd">            An edge to add to the list of children.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parents</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">edge</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">add_collections</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">collections</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add BIDSVariableCollections (i.e., predictors) to the current node.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        collections : [BIDSVariableCollection]</span>
+<span class="sd">            List of BIDSVariableCollection objects to add to current node.</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        No checking for redundancy is performed, so if load_collections() is</span>
+<span class="sd">        invoked multiple times with overlapping selectors, redundant predictors</span>
+<span class="sd">        are likely to be stored internally.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_collections</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">collections</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">get_collections</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">filters</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns BIDSVariableCollections at the current node.</span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        filters : dict</span>
+<span class="sd">            Optional keyword filters used to constrain which of the available</span>
+<span class="sd">            collections get returned (e.g., passing subject=[&#39;01&#39;, &#39;02&#39;] will</span>
+<span class="sd">            return collections for only subjects &#39;01&#39; and &#39;02&#39;).</span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        list of BIDSVariableCollection instances</span>
+<span class="sd">            One instance per unit of the current analysis level (e.g., if</span>
+<span class="sd">            level=&#39;run&#39;, each element in the list represents the collection</span>
+<span class="sd">            for a single run).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Keeps only collections that match target entities, and also removes</span>
+        <span class="c1"># those keys from the kwargs dict.</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_collections</span> <span class="k">if</span> <span class="n">matches_entities</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">filters</span><span class="p">)]</span></div>
+
+
+
+<span class="k">def</span> <span class="nf">expand_wildcards</span><span class="p">(</span><span class="n">selectors</span><span class="p">,</span> <span class="n">pool</span><span class="p">):</span>
+    <span class="n">out</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">selectors</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">spec</span> <span class="ow">in</span> <span class="n">selectors</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;[\*\?\[\]]&#39;</span><span class="p">,</span> <span class="n">spec</span><span class="p">):</span>
+            <span class="n">idx</span> <span class="o">=</span> <span class="n">out</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">spec</span><span class="p">)</span>
+            <span class="n">out</span><span class="p">[</span><span class="n">idx</span><span class="p">:</span><span class="n">idx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">fnmatch</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">pool</span><span class="p">,</span> <span class="n">spec</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">out</span>
+
+
+<span class="k">class</span> <span class="nc">BIDSStatsModelsNodeOutput</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Represents a single node in a BIDSStatsModelsGraph.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    node : BIDSStatsModelsNode</span>
+<span class="sd">        The node that generated the current instance.</span>
+<span class="sd">    entities : dict</span>
+<span class="sd">        Dictionary of entities/metadata applicable to the current node output.</span>
+<span class="sd">    collections : [BIDSVariableCollection]</span>
+<span class="sd">        List of BIDSVariableCollection instances needed too generate outputs.</span>
+<span class="sd">    inputs : [ContrastInfo]</span>
+<span class="sd">        List of ContrastInfo instances used to generate outputs.</span>
+<span class="sd">    force_dense: bool</span>
+<span class="sd">        If True, the returned design matrices contained in ModelSpec instances</span>
+<span class="sd">        will represent time in a dense (i.e., uniform temporal sampling) format.</span>
+<span class="sd">        If False, the returned format will be sparse if all available variables</span>
+<span class="sd">        are sparse, and dense otherwise. Ignored if none of the variables at</span>
+<span class="sd">        this node are run-level.</span>
+<span class="sd">    sampling_rate: str, float</span>
+<span class="sd">        The sampling rate to use for timeseries resampling when working with</span>
+<span class="sd">        run-level variables and returning dense output. Ignored if there are no</span>
+<span class="sd">        run-level variables, or if force_dense is False and all available</span>
+<span class="sd">        variables are sparse.</span>
+<span class="sd">    invalid_contrasts: str</span>
+<span class="sd">        Indicates how to handle invalid contrasts--i.e., ones where the</span>
+<span class="sd">        specification contains variables that aren&#39;t found at run-time.</span>
+<span class="sd">        Valid values:</span>
+<span class="sd">            * &#39;drop&#39; (default): Drop invalid contrasts, retain the rest.</span>
+<span class="sd">            * &#39;ignore&#39;: Keep invalid contrasts despite the missing variables.</span>
+<span class="sd">            * &#39;error&#39;: Raise an error.</span>
+<span class="sd">    missing_values: str</span>
+<span class="sd">        Indicates how to handle missing values in the data. Valid values:</span>
+<span class="sd">            * &#39;fill&#39; (default): Fill missing values with 0.</span>
+<span class="sd">            * &#39;ignore&#39;: Keep missing values.</span>
+<span class="sd">            * &#39;error&#39;: Raise an error.</span>
+<span class="sd">        Defaults to &#39;fill&#39; if None, but raises warning if not explicitly set.</span>
+<span class="sd">    transformation_history: bool</span>
+<span class="sd">        If True, the returned ModelSpec instances will include a history of</span>
+<span class="sd">        variable collections after each transformation.</span>
+<span class="sd">    node_reports: bool</span>
+<span class="sd">        If True, a report will be generated for each node output.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="n">entities</span><span class="o">=</span><span class="p">{},</span> <span class="n">collections</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">inputs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">force_dense</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">sampling_rate</span><span class="o">=</span><span class="s1">&#39;TR&#39;</span><span class="p">,</span> <span class="n">invalid_contrasts</span><span class="o">=</span><span class="s1">&#39;drop&#39;</span><span class="p">,</span>
+                 <span class="n">missing_values</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">transformation_history</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                 <span class="n">node_reports</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize a new BIDSStatsModelsNodeOutput instance.</span>
+<span class="sd">        Applies the node&#39;s model to the specified collections and inputs, including</span>
+<span class="sd">        applying transformations and generating final model specs and design matrices (X).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">collections</span> <span class="o">=</span> <span class="n">collections</span> <span class="ow">or</span> <span class="p">[]</span>
+        <span class="n">inputs</span> <span class="o">=</span> <span class="n">inputs</span> <span class="ow">or</span> <span class="p">[]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">node</span> <span class="o">=</span> <span class="n">node</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">entities</span> <span class="o">=</span> <span class="n">entities</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">force_dense</span> <span class="o">=</span> <span class="n">force_dense</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sampling_rate</span> <span class="o">=</span> <span class="n">sampling_rate</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">invalid_contrasts</span> <span class="o">=</span> <span class="n">invalid_contrasts</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">coll_hist</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="c1"># Apply transformations and convert collections to single DF</span>
+        <span class="n">dfs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_collections_to_dfs</span><span class="p">(</span><span class="n">collections</span><span class="p">,</span> <span class="n">collection_history</span><span class="o">=</span><span class="n">transformation_history</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">inputs</span><span class="p">:</span>
+            <span class="n">dfs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_inputs_to_df</span><span class="p">(</span><span class="n">inputs</span><span class="p">))</span>
+
+        <span class="n">df</span> <span class="o">=</span> <span class="n">reduce</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="o">.</span><span class="n">merge</span><span class="p">,</span> <span class="n">dfs</span><span class="p">)</span>
+
+        <span class="c1"># If dummy coded condition columns needed, generate and concat</span>
+        <span class="n">var_names</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">node</span><span class="o">.</span><span class="n">model</span><span class="p">[</span><span class="s1">&#39;x&#39;</span><span class="p">])</span>
+        <span class="k">if</span> <span class="n">inputs</span><span class="p">:</span>
+            <span class="n">dummy_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">get_dummies</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s1">&#39;contrast&#39;</span><span class="p">])</span>
+            <span class="n">dummies_needed</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">var_names</span><span class="p">)</span><span class="o">.</span><span class="n">intersection</span><span class="p">(</span><span class="n">dummy_df</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">dummies_needed</span><span class="p">:</span>
+                <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">df</span><span class="p">,</span> <span class="n">dummy_df</span><span class="p">[</span><span class="nb">list</span><span class="p">(</span><span class="n">dummies_needed</span><span class="p">)]],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="c1"># If a single incoming contrast, keep track of name</span>
+        <span class="k">if</span> <span class="s1">&#39;contrast&#39;</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span> <span class="ow">and</span> <span class="n">df</span><span class="p">[</span><span class="s1">&#39;contrast&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">nunique</span><span class="p">()</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">unique_in_contrast</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s1">&#39;contrast&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">unique</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">unique_in_contrast</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="c1"># Handle the special 1 construct.</span>
+        <span class="c1"># Add column of 1&#39;s to the design matrix called &quot;intercept&quot;</span>
+        <span class="k">if</span> <span class="mi">1</span> <span class="ow">in</span> <span class="n">var_names</span><span class="p">:</span>
+            <span class="k">if</span> <span class="s2">&quot;intercept&quot;</span> <span class="ow">in</span> <span class="n">var_names</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Cannot define both &#39;1&#39; and &#39;intercept&#39; in &#39;X&#39;&quot;</span><span class="p">)</span>
+
+            <span class="n">var_names</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;intercept&#39;</span> <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">else</span> <span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">var_names</span><span class="p">]</span>
+            <span class="k">if</span> <span class="s1">&#39;intercept&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+                <span class="n">df</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;intercept&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+        <span class="n">var_names</span> <span class="o">=</span> <span class="n">expand_wildcards</span><span class="p">(</span><span class="n">var_names</span><span class="p">,</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">)</span>
+
+        <span class="c1"># Verify all X names are actually present</span>
+        <span class="n">missing</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">var_names</span><span class="p">)</span> <span class="o">-</span> <span class="nb">set</span><span class="p">(</span><span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">missing</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;X specification includes variable(s) </span><span class="si">{}</span><span class="s2">, but &quot;</span>
+                             <span class="s2">&quot;these were not found in data matrix.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">missing</span><span class="p">))</span>
+
+        <span class="c1"># separate the design columns from the entity columns</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="n">var_names</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">difference</span><span class="p">(</span><span class="n">var_names</span><span class="p">)]</span>
+
+        <span class="c1"># replace missing values with 0 and warn user which columns had missing values</span>
+        <span class="k">if</span> <span class="n">missing_values</span> <span class="o">!=</span> <span class="s1">&#39;ignore&#39;</span><span class="p">:</span>
+            <span class="n">missing_cols</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">columns</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">isnull</span><span class="p">()</span><span class="o">.</span><span class="n">any</span><span class="p">()]</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">missing_cols</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">base_message</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;NaNs detected in columns: </span><span class="si">{</span><span class="n">missing_cols</span><span class="si">}</span><span class="s2">&quot;</span>
+
+                <span class="k">if</span> <span class="n">missing_values</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;fill&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">]:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">missing_values</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="n">base_message</span> <span class="o">+=</span> <span class="s2">&quot; were replaced with 0.  Consider &quot;</span>\
+                            <span class="s2">&quot; handling missing values using transformations.&quot;</span>
+                        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="n">base_message</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="n">missing_values</span> <span class="o">==</span> <span class="s1">&#39;error&#39;</span><span class="p">:</span>
+                    <span class="n">base_message</span> <span class="o">+=</span> <span class="s2">&quot;. Explicitly replace missing values using transformations.&quot;</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">base_message</span><span class="p">)</span>
+
+        <span class="c1"># create ModelSpec and build contrasts</span>
+        <span class="n">kind</span> <span class="o">=</span> <span class="n">node</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;type&#39;</span><span class="p">,</span> <span class="s1">&#39;glm&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+        <span class="n">SpecCls</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;glm&#39;</span><span class="p">:</span> <span class="n">GLMMSpec</span><span class="p">,</span>
+            <span class="s1">&#39;meta&#39;</span><span class="p">:</span> <span class="n">MetaAnalysisSpec</span><span class="p">,</span>
+        <span class="p">}[</span><span class="n">kind</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model_spec</span> <span class="o">=</span> <span class="n">SpecCls</span><span class="o">.</span><span class="n">from_df</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">node</span><span class="o">.</span><span class="n">model</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">contrasts</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_build_contrasts</span><span class="p">(</span><span class="n">unique_in_contrast</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">report_</span> <span class="o">=</span> <span class="n">node_report</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="k">if</span> <span class="n">node_reports</span> <span class="k">else</span> <span class="kc">None</span>
+
+    <span class="k">def</span> <span class="nf">_collections_to_dfs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">collections</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">collection_history</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Merges collections and converts them to a pandas DataFrame.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">collections</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">[]</span>
+
+        <span class="c1"># group all collections by level</span>
+        <span class="n">coll_levels</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>
+        <span class="p">[</span><span class="n">coll_levels</span><span class="p">[</span><span class="n">coll</span><span class="o">.</span><span class="n">level</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">coll</span><span class="p">)</span> <span class="k">for</span> <span class="n">coll</span> <span class="ow">in</span> <span class="n">collections</span><span class="p">]</span>
+
+        <span class="n">var_names</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">node</span><span class="o">.</span><span class="n">model</span><span class="p">[</span><span class="s1">&#39;x&#39;</span><span class="p">])</span> <span class="o">-</span> <span class="p">{</span><span class="mi">1</span><span class="p">})</span>
+
+        <span class="n">grp_dfs</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">trans_hist</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="c1"># merge all collections at each level and export to a DataFrame</span>
+        <span class="k">for</span> <span class="n">level</span><span class="p">,</span> <span class="n">colls</span> <span class="ow">in</span> <span class="n">coll_levels</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+
+            <span class="c1"># Note: we currently merge _before_ selecting variables. Selecting</span>
+            <span class="c1"># variables first could be done by passing `variables=all_vars` as</span>
+            <span class="c1"># an argument on the next line), but we can&#39;t do this right now</span>
+            <span class="c1"># because we can&#39;t guarantee that all the variables named in `X`</span>
+            <span class="c1"># in the model section already exist; some might be created by the</span>
+            <span class="c1"># transformations.</span>
+            <span class="n">coll</span> <span class="o">=</span> <span class="n">merge_collections</span><span class="p">(</span><span class="n">colls</span><span class="p">)</span>
+
+
+
+            <span class="c1"># apply transformations</span>
+            <span class="n">transformations</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">node</span><span class="o">.</span><span class="n">transformations</span>
+            <span class="k">if</span> <span class="n">transformations</span><span class="p">:</span>
+                <span class="n">transformer</span> <span class="o">=</span> <span class="n">tm</span><span class="o">.</span><span class="n">TransformerManager</span><span class="p">(</span>
+                    <span class="n">transformations</span><span class="p">[</span><span class="s1">&#39;transformer&#39;</span><span class="p">],</span> <span class="n">keep_history</span><span class="o">=</span><span class="n">collection_history</span><span class="p">)</span>
+                <span class="n">coll</span> <span class="o">=</span> <span class="n">transformer</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">coll</span><span class="o">.</span><span class="n">clone</span><span class="p">(),</span> <span class="n">transformations</span><span class="p">[</span><span class="s1">&#39;instructions&#39;</span><span class="p">])</span>
+
+                <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">transformer</span><span class="p">,</span> <span class="s1">&#39;history_&#39;</span><span class="p">):</span>
+                    <span class="n">trans_hist</span> <span class="o">+=</span> <span class="n">transformer</span><span class="o">.</span><span class="n">history_</span>
+
+            <span class="c1"># Take the intersection of variables and Model.X (var_names), ignoring missing</span>
+            <span class="c1"># variables (usually contrasts)</span>
+            <span class="n">coll</span><span class="o">.</span><span class="n">variables</span> <span class="o">=</span> <span class="p">{</span><span class="n">v</span><span class="p">:</span> <span class="n">coll</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="n">v</span><span class="p">]</span>
+                              <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">expand_wildcards</span><span class="p">(</span><span class="n">var_names</span><span class="p">,</span> <span class="n">coll</span><span class="o">.</span><span class="n">variables</span><span class="p">)</span>
+                              <span class="k">if</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">coll</span><span class="o">.</span><span class="n">variables</span><span class="p">}</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">coll</span><span class="o">.</span><span class="n">variables</span><span class="p">:</span>
+                <span class="k">continue</span>
+
+            <span class="c1"># run collections need to be handled separately because to_df()</span>
+            <span class="c1"># takes extra arguments related to handling of time</span>
+            <span class="k">if</span> <span class="n">level</span> <span class="o">==</span> <span class="s1">&#39;run&#39;</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">force_dense</span><span class="p">:</span>
+                    <span class="n">coll</span> <span class="o">=</span> <span class="n">coll</span><span class="o">.</span><span class="n">to_dense</span><span class="p">(</span><span class="n">sampling_rate</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">sampling_rate</span><span class="p">)</span>
+                <span class="n">coll</span> <span class="o">=</span> <span class="n">coll</span><span class="o">.</span><span class="n">to_df</span><span class="p">(</span><span class="n">sampling_rate</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">sampling_rate</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">coll</span> <span class="o">=</span> <span class="n">coll</span><span class="o">.</span><span class="n">to_df</span><span class="p">()</span>
+            <span class="n">grp_dfs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">coll</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">collection_history</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">trans_hist</span> <span class="o">=</span> <span class="n">trans_hist</span>
+
+        <span class="k">return</span> <span class="n">grp_dfs</span>
+
+    <span class="k">def</span> <span class="nf">_inputs_to_df</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
+        <span class="c1"># Convert the inputs to a DataFrame and add to list. Each row is</span>
+        <span class="c1"># an input; each column is an entity</span>
+        <span class="n">rows</span> <span class="o">=</span> <span class="p">[{</span><span class="o">**</span><span class="n">con</span><span class="o">.</span><span class="n">entities</span><span class="p">,</span> <span class="s1">&#39;contrast&#39;</span><span class="p">:</span> <span class="n">con</span><span class="o">.</span><span class="n">name</span><span class="p">}</span> <span class="k">for</span> <span class="n">con</span> <span class="ow">in</span> <span class="n">inputs</span><span class="p">]</span>
+        <span class="n">input_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="o">.</span><span class="n">from_records</span><span class="p">(</span><span class="n">rows</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">input_df</span>
+
+    <span class="k">def</span> <span class="nf">_build_contrasts</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">unique_in_contrast</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Contrast list of ContrastInfo objects based on current state.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        unique_in_contrast : string</span>
+<span class="sd">            Name of unique incoming contrast inputs (i.e. if there is only 1)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">in_contrasts</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">node</span><span class="o">.</span><span class="n">contrasts</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">col_names</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">X</span><span class="o">.</span><span class="n">columns</span><span class="p">)</span>
+
+        <span class="c1"># Create dummy contrasts as regular contrasts</span>
+        <span class="n">dummies</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">node</span><span class="o">.</span><span class="n">dummy_contrasts</span>
+        <span class="k">if</span> <span class="n">dummies</span><span class="p">:</span>
+            <span class="k">if</span> <span class="p">{</span><span class="s1">&#39;conditions&#39;</span><span class="p">,</span> <span class="s1">&#39;condition_list&#39;</span><span class="p">}</span> <span class="o">&amp;</span> <span class="nb">set</span><span class="p">(</span><span class="n">dummies</span><span class="p">):</span>
+                <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                    <span class="s2">&quot;Use &#39;Contrasts&#39; not &#39;Conditions&#39; or &#39;ConditionList&#39; to specify&quot;</span>
+                    <span class="s2">&quot;DummyContrasts. Renaming to &#39;Contrasts&#39; for now.&quot;</span><span class="p">)</span>
+                <span class="n">dummies</span><span class="p">[</span><span class="s1">&#39;contrasts&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">dummies</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;conditions&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">or</span> <span class="n">dummies</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;condition_list&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="s1">&#39;contrasts&#39;</span> <span class="ow">in</span> <span class="n">dummies</span><span class="p">:</span>
+                <span class="n">conditions</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">dummies</span><span class="p">[</span><span class="s1">&#39;contrasts&#39;</span><span class="p">])</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">conditions</span> <span class="o">=</span> <span class="n">col_names</span>
+
+            <span class="k">for</span> <span class="n">col_name</span> <span class="ow">in</span> <span class="n">conditions</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">col_name</span> <span class="o">==</span> <span class="s2">&quot;intercept&quot;</span><span class="p">:</span>
+                    <span class="n">col_name</span> <span class="o">=</span> <span class="mi">1</span>
+
+                <span class="n">in_contrasts</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span>
+                    <span class="p">{</span>
+                        <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="n">col_name</span><span class="p">,</span>
+                        <span class="s1">&#39;condition_list&#39;</span><span class="p">:</span> <span class="p">[</span><span class="n">col_name</span><span class="p">],</span>
+                        <span class="s1">&#39;weights&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                        <span class="s1">&#39;test&#39;</span><span class="p">:</span> <span class="n">dummies</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;test&#39;</span><span class="p">)</span>
+                    <span class="p">}</span>
+                <span class="p">)</span>
+
+        <span class="c1"># Process all contrasts, starting with dummy contrasts</span>
+        <span class="c1"># Dummy contrasts are replaced if a contrast is defined with same name</span>
+        <span class="n">contrasts</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">con</span> <span class="ow">in</span> <span class="n">in_contrasts</span><span class="p">:</span>
+            <span class="n">condition_list</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">con</span><span class="p">[</span><span class="s2">&quot;condition_list&quot;</span><span class="p">])</span>
+
+            <span class="c1"># Rename special 1 construct</span>
+            <span class="n">condition_list</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;intercept&#39;</span> <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">else</span> <span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">condition_list</span><span class="p">]</span>
+
+            <span class="n">name</span> <span class="o">=</span> <span class="n">con</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span>
+
+            <span class="c1"># Rename contrast name</span>
+            <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">name</span> <span class="o">=</span> <span class="n">unique_in_contrast</span> <span class="ow">or</span> <span class="s1">&#39;intercept&#39;</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># If Node has single contrast input, as is grouped by contrast</span>
+                <span class="c1"># Rename contrast to append incoming contrast name</span>
+                <span class="k">if</span> <span class="n">unique_in_contrast</span><span class="p">:</span>
+                    <span class="n">name</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">unique_in_contrast</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span>
+
+            <span class="n">missing_vars</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">condition_list</span><span class="p">)</span> <span class="o">-</span> <span class="n">col_names</span>
+            <span class="k">if</span> <span class="n">missing_vars</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">invalid_contrasts</span> <span class="o">==</span> <span class="s1">&#39;error&#39;</span><span class="p">:</span>
+                    <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Variable(s) &#39;</span><span class="si">{}</span><span class="s2">&#39; specified in condition list for &quot;</span>
+                           <span class="s2">&quot;contrast &#39;</span><span class="si">{}</span><span class="s2">&#39;, but not found in available data.&quot;</span>
+                           <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">missing_vars</span><span class="p">,</span> <span class="n">con</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">]))</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">invalid_contrasts</span> <span class="o">==</span> <span class="s1">&#39;drop&#39;</span><span class="p">:</span>
+                    <span class="k">continue</span>
+            <span class="n">weights</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">atleast_2d</span><span class="p">(</span><span class="n">con</span><span class="p">[</span><span class="s1">&#39;weights&#39;</span><span class="p">])</span>
+
+            <span class="c1"># Add contrast name to entities; can be used in grouping downstream</span>
+            <span class="n">entities</span> <span class="o">=</span> <span class="p">{</span><span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">entities</span><span class="p">,</span> <span class="s1">&#39;contrast&#39;</span><span class="p">:</span> <span class="n">name</span><span class="p">}</span>
+            <span class="n">ci</span> <span class="o">=</span> <span class="n">ContrastInfo</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">condition_list</span><span class="p">,</span>
+                              <span class="n">con</span><span class="p">[</span><span class="s1">&#39;weights&#39;</span><span class="p">],</span> <span class="n">con</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;test&quot;</span><span class="p">),</span> <span class="n">entities</span><span class="p">)</span>
+            <span class="n">contrasts</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">ci</span>
+
+        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="n">contrasts</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">X</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return design matrix via the current ModelSpec.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_spec</span><span class="o">.</span><span class="n">X</span>
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;&lt;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">(name=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">node</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">, entities=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">entities</span><span class="si">}</span><span class="s2">)&gt;&quot;</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2015-2023, Developers of PyBIDS.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

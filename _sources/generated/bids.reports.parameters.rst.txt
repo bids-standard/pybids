@@ -1,0 +1,45 @@
+﻿bids.reports.parameters
+=======================
+
+.. automodule:: bids.reports.parameters
+
+   
+   
+   
+
+   
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      describe_bvals
+      describe_dmri_directions
+      describe_duration
+      describe_echo_times
+      describe_echo_times_fmap
+      describe_flip_angle
+      describe_func_duration
+      describe_image_size
+      describe_inplane_accel
+      describe_intendedfor_targets
+      describe_multiband_factor
+      describe_pe_direction
+      describe_repetition_time
+      describe_sequence
+      describe_slice_timing
+      get_size_str
+      get_slice_info
+   
+   
+
+   
+   
+   
+
+   
+   
+   
+
+
+
