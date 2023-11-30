@@ -210,6 +210,7 @@ class TestDerivativeAsRoot:
         assert len(layout.get()) == 4
         assert len(layout.get(desc="preproc")) == 3
 
+
 def test_get_metadata(layout_7t_trt):
     target = 'sub-03/ses-2/func/sub-03_ses-2_task-' \
              'rest_acq-fullbrain_run-2_bold.nii.gz'
@@ -244,6 +245,21 @@ def test_get_metadata4(layout_ds005):
     assert result == {}
 
 
+def test_get_metadata_error2(layout_7t_trt):
+    """Ensure that False boolean fields are retained as False."""
+    target = 'sub-03/ses-2/func/sub-03_ses-2_task-' \
+             'rest_acq-fullbrain_run-2_bold.nii.gz'
+    target = target.split('/')
+    # Check get_metadata from the BIDSLayout
+    result = layout_7t_trt.get_metadata(join(layout_7t_trt.root, *target))
+    assert result['MTState'] is False
+
+    # Check get_metadata from the BIDSFile
+    files = layout_7t_trt.get(task="rest", acquisition="fullbrain", suffix="bold", extension=".nii.gz")
+    result = files[0].get_metadata()
+    assert result['MTState'] is False
+
+
 def test_get_metadata_meg(layout_ds117):
     funcs = ['get_subjects', 'get_sessions', 'get_tasks', 'get_runs',
              'get_acquisitions', 'get_procs']
@@ -276,6 +292,32 @@ def test_get_metadata_via_bidsfile(layout_7t_trt):
     assert result['EchoTime'] == 0.020
     # include_entities is False when called through a BIDSFile
     assert 'subject' not in result
+
+
+def test_metadata_equivalence(layout_7t_trt):
+    """Ensure that JSON metadata is not corrupted by the layout."""
+    bold = layout_7t_trt.get(
+        subject='02', acquisition='fullbrain', suffix='bold', extension='.nii.gz'
+    )[0]
+    root_metadata_file = layout_7t_trt.get(
+        subject=None, acquisition='fullbrain', suffix='bold', extension='.json'
+    )[0]
+
+    assert bold.get_metadata() == root_metadata_file.get_dict()
+
+    physio = layout_7t_trt.get(
+        subject='02', acquisition='fullbrain', suffix='physio', extension='.tsv.gz'
+    )[0]
+    root_metadata_file = layout_7t_trt.get(
+        subject=None, acquisition='fullbrain', suffix='physio', extension='.json'
+    )[0]
+
+    assert physio.get_metadata() == root_metadata_file.get_dict()
+
+    # Verify that we cover all common metadata types
+    types = {type(val) for val in bold.get_metadata().values()}
+    assert types == {str, float, bool, list}
+    assert isinstance(physio.get_metadata()['StartTime'], int)
 
 
 def test_get_metadata_error(layout_7t_trt):

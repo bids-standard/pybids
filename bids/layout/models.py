@@ -698,6 +698,9 @@ class Tag(Base):
         if self._dtype == 'json':
             self.value = json.loads(self._value)
             self.dtype = 'json'
+        elif self._dtype == 'bool':
+            self.value = self._value == 'True'
+            self.dtype = bool
         else:
             self.dtype = type_map[self._dtype]
             self.value = self.dtype(self._value)
