@@ -23,7 +23,7 @@
       "orcid": "0000-0003-3321-7583"
     },
     {
-      "affiliation": "Florida International University",
+      "affiliation": "University of Pennsylvania",
       "name": "Salo, Taylor",
       "orcid": "0000-0001-9813-3167"
     },
@@ -31,6 +31,11 @@
       "affiliation": "Dartmouth College",
       "name": "Halchenko, Yaroslav O.",
       "orcid": "0000-0003-3456-2493"
+    },
+    {
+      "affiliation": "Université catholique de Louvain",
+      "name": "Gau, Remi",
+      "orcid": "0000-0002-1535-9767"
     },
     {
       "affiliation": "CEA",
@@ -41,11 +46,6 @@
       "affiliation": "Department of Psychology, Stanford University",
       "name": "Esteban, Oscar",
       "orcid": "0000-0001-8435-6191"
-    },
-    {
-      "affiliation": "Université catholique de Louvain",
-      "name": "Gau, Remi",
-      "orcid": "0000-0002-1535-9767"
     },
     {
       "affiliation": "University of Texas at Austin",
@@ -312,6 +312,12 @@
     },
     {
       "name": "Sundaravadivelu, Suganya"
+    },
+    {
+      "name": "Asciutto, Will"
+    },
+    {
+      "name": "pierre-nedelec"
     }
   ],
   "keywords": [
