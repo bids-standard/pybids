@@ -294,6 +294,32 @@ def test_get_metadata_via_bidsfile(layout_7t_trt):
     assert 'subject' not in result
 
 
+def test_metadata_equivalence(layout_7t_trt):
+    """Ensure that JSON metadata is not corrupted by the layout."""
+    bold = layout_7t_trt.get(
+        subject='02', acquisition='fullbrain', suffix='bold', extension='.nii.gz'
+    )[0]
+    root_metadata_file = layout_7t_trt.get(
+        subject=None, acquisition='fullbrain', suffix='bold', extension='.json'
+    )[0]
+
+    assert bold.get_metadata() == root_metadata_file.get_dict()
+
+    physio = layout_7t_trt.get(
+        subject='02', acquisition='fullbrain', suffix='physio', extension='.tsv.gz'
+    )[0]
+    root_metadata_file = layout_7t_trt.get(
+        subject=None, acquisition='fullbrain', suffix='physio', extension='.json'
+    )[0]
+
+    assert physio.get_metadata() == root_metadata_file.get_dict()
+
+    # Verify that we cover all common metadata types
+    types = {type(val) for val in bold.get_metadata().values()}
+    assert types == {str, float, bool, list}
+    assert isinstance(physio.get_metadata()['StartTime'], int)
+
+
 def test_get_metadata_error(layout_7t_trt):
     ''' Same as test_get_metadata5, but called through BIDSFile. '''
     target = 'sub-01/ses-1/func/sub-01_ses-1_task-rest_acq-fullbrain_run-1_bold.nii.gz'
