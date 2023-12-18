@@ -37,7 +37,7 @@ jobs:
       - name: Build documentation
         run: make -C doc html
       - name: Upload docs as artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
             path: doc/_build/html
       - name: Deploy (on tags)
