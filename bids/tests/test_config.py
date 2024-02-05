@@ -2,6 +2,7 @@ import bids
 import tempfile
 import os
 import json
+import warnings
 import pytest
 from bids.config import reset_options
 from bids.tests import get_test_data_path
@@ -66,7 +67,7 @@ def test_extension_initial_dot(mock_config):
         bids.config.set_option('extension_initial_dot', True)
 
     # No warnings on layout construction
-    with pytest.warns(None) as record:
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
         layout = bids.BIDSLayout(ds117)
-    assert len(record) == 0
     assert layout.get(extension='nii.gz')[0].entities['extension'] == '.nii.gz'
