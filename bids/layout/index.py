@@ -205,6 +205,11 @@ class BIDSLayoutIndexer:
         # Get lists of 1st-level subdirectories and files in the path directory
         _, dirnames, filenames = next(os.walk(path))
 
+        # Move any directories suffixed with .zarr to filenames
+        zarrnames = [entry for entry in dirnames if Path(entry).suffix == '.zarr']
+        dirnames = [entry for entry in dirnames if Path(entry).suffix != '.zarr']
+        filenames.extend(zarrnames)
+
         # If layout configuration file exists, delete it
         if self.config_filename in filenames:
             filenames.remove(self.config_filename)
