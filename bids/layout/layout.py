@@ -139,7 +139,7 @@ class BIDSLayout:
         ]):
             try:
                 self.source_pipeline = validate_derivative_path(root)
-            except BIDSValidationError as err:
+            except (BIDSValidationError, FileNotFoundError) as err:
                 if validate:
                     raise err
                 self.source_pipeline = None
