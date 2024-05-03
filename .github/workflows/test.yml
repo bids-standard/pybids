@@ -1,9 +1,8 @@
-name: Stable tests
+name: Python tests
 
 # This file tests the claimed support range of PyBIDS including
 #
 # * Operating systems: Linux, OSX
-# * Installation methods: pip, sdist, wheel
 
 on:
   push:
@@ -33,7 +32,7 @@ permissions:
   contents: read
 
 jobs:
-  stable:
+  test:
     # Check each OS, all supported Python, minimum versions and latest releases
     runs-on: ${{ matrix.os }}
     strategy:
@@ -45,6 +44,12 @@ jobs:
           - os: ubuntu-latest
             python-version: 3.8
             dependencies: min
+        exclude:
+          # Drop pre tests for SPEC-0-unsupported Python versions
+          - python-version: '3.8'
+            dependencies: pre
+          - python-version: '3.9'
+            dependencies: pre
       fail-fast: false
 
     env:
