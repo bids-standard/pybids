@@ -46,6 +46,7 @@ jobs:
             dependencies: min
         exclude:
           # Drop pre tests for SPEC-0-unsupported Python versions
+          # See https://scientific-python.org/specs/spec-0000/
           - python-version: '3.8'
             dependencies: pre
           - python-version: '3.9'
