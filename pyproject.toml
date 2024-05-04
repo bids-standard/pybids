@@ -85,7 +85,6 @@ versionfile_build = "bids/_version.py"
 [tool.coverage.run]
 branch = true
 source = ["bids/*"]
-include = ["bids/*"]
 omit = [
   "*/setup.py",
   "*/external/*",
