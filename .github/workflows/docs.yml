@@ -16,6 +16,17 @@ defaults:
   run:
     shell: bash
 
+# Force tox to use color
+env:
+  FORCE_COLOR: true
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
 jobs:
   docs:
     runs-on: ubuntu-latest
