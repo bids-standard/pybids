@@ -789,15 +789,16 @@ def test_get_tr(layout_7t_trt):
 def test_to_df(layout_ds117):
     # Only filename entities
     df = layout_ds117.to_df()
-    assert df.shape == (115, 12)
-    target = {'datatype', 'fmap', 'run', 'path', 'acquisition', 'scans',
+    n_files = len(layout_ds117.files)
+    assert len(df) == n_files
+    target = {'datatype', 'fmap', 'run', 'path', 'acquisition', 'scans', 'echo',
               'session', 'subject', 'suffix', 'task', 'proc', 'extension'}
     assert set(df.columns) == target
     assert set(df['subject'].dropna().unique()) == {'01', '02', 'emptyroom'}
 
     # Include metadata entities
     df = layout_ds117.to_df(metadata=True)
-    assert df.shape == (115, 56)
+    assert df.shape == (n_files, len(target) + 44)
     assert not ({'InstitutionAddress', 'TriggerChannelCount', 'EchoTime'} -
                 set(df.columns))
 
