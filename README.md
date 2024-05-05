@@ -25,13 +25,37 @@ If you want to live on the bleeding edge, you can install from master:
 
 > pip install git+https://github.com/bids-standard/pybids.git
 
-#### Dependencies
+### Dependencies
 PyBIDS has a number of dependencies. The core querying functionality requires only the `BIDS-Validator` package. However, most other modules require the core Python neuroimaging stack: `numpy`, `scipy`, `pandas`, and `nibabel`. The `reports` module additionally requires `num2words`. By default, all dependencies will be installed with pybids (if they aren't already available).
 
 ## Usage
 Get started by checking out [the documentation](https://bids-standard.github.io/pybids)!
 
 Or you can start at [our tutorial](https://bids-standard.github.io/pybids/examples/pybids_tutorial.html)! You can run it interactively without installing anything via [binder](https://mybinder.org/v2/gh/bids-standard/pybids/master). Click on the link and then navigate to `doc/examples/pybids_tutorial.md` to explore.
+
+## Development and testing
+PyBIDS uses [tox](https://tox.wiki/) to manage testing environments and ensure that the same
+commands can easily be run locally and in CI.
+
+Install tox with:
+
+```
+pip install tox
+```
+
+To run tests with standard, minimal, or pre-release dependencies, use:
+
+```
+tox run -e [full|min|pre]
+```
+
+To run with a specific version, also specify `py3X`:
+
+```
+tox run -e py311-full
+```
+
+See `tox` documentation for more detail.
 
 ## How to cite
 To credit PyBIDS in your work, please cite both the [JOSS paper](https://joss.theoj.org/papers/10.21105/joss.01294) and the [Zenodo archive](https://zenodo.org/record/3363985). The former provides a high level description of the package, and the latter points to a permanent record of all PyBIDS versions (we encourage you to cite the specific version you used). Example citations (for PyBIDS 0.9.3):
