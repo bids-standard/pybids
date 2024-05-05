@@ -49,7 +49,8 @@ test = [
   "pytest-cov",
   "bsmschema",
   "coverage[toml]",
-  "altair"
+  "altair",
+  "pytest-xdist",
 ]
 model_reports = [
   "jinja2",
@@ -62,10 +63,10 @@ tutorial = [
   "jupyter_client",
   "ipykernel",
 ]
-ci_tests = ["pybids[test]", "pytest-xdist"]
 # Aliases
 docs = ["pybids[doc]"]
 tests = ["pybids[test]"]
+ci_tests = ["pybids[test]"]
 dev = ["pybids[doc,test,plotting]"]
 
 [project.urls]
@@ -84,7 +85,6 @@ versionfile_build = "bids/_version.py"
 [tool.coverage.run]
 branch = true
 source = ["bids/*"]
-include = ["bids/*"]
 omit = [
   "*/setup.py",
   "*/external/*",

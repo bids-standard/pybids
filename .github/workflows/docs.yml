@@ -9,10 +9,23 @@ on:
       - docs/*
     tags:
       - '*'
+  pull_request:
+  workflow_dispatch:
 
 defaults:
   run:
     shell: bash
+
+# Force tox to use color
+env:
+  FORCE_COLOR: true
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
 
 jobs:
   docs:
@@ -20,7 +33,7 @@ jobs:
     strategy:
       matrix:
         include:
-          - python-version: 3.9
+          - python-version: '3.11'
     steps:
       - uses: actions/checkout@v4
         with:
@@ -32,17 +45,15 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Display Python version
         run: python -c "import sys; print(sys.version)"
-      - name: Install pybids
-        run: pip install .[doc]
       - name: Build documentation
-        run: make -C doc html
+        run: pipx run tox -e docs
       - name: Upload docs as artifacts
         uses: actions/upload-artifact@v4
         with:
             path: doc/_build/html
       - name: Deploy (on tags)
         if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags')
-        uses: peaceiris/actions-gh-pages@v3
+        uses: peaceiris/actions-gh-pages@v4
         with:
             github_token: ${{ secrets.GITHUB_TOKEN }}
             publish_dir: doc/_build/html

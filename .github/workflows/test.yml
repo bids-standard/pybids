@@ -1,0 +1,83 @@
+name: Python tests
+
+# This file tests the claimed support range of PyBIDS including
+#
+# * Operating systems: Linux, OSX
+
+on:
+  push:
+    branches:
+      - master
+      - maint/*
+  pull_request: {}
+  schedule:
+    # 8am EST / 9am EDT Mondays
+    - cron: '0 13 * * 1'
+  # Allow job to be triggered manually from GitHub interface
+  workflow_dispatch:
+
+defaults:
+  run:
+    shell: bash
+
+# Force tox and pytest to use color
+env:
+  FORCE_COLOR: true
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    # Check each OS, all supported Python, minimum versions and latest releases
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: ['ubuntu-latest', 'macos-latest']
+        python-version: [3.8, 3.9, "3.10", "3.11"]
+        dependencies: ['full', 'pre']
+        include:
+          - os: ubuntu-latest
+            python-version: 3.8
+            dependencies: min
+        exclude:
+          # Drop pre tests for SPEC-0-unsupported Python versions
+          # See https://scientific-python.org/specs/spec-0000/
+          - python-version: '3.8'
+            dependencies: pre
+          - python-version: '3.9'
+            dependencies: pre
+      fail-fast: false
+
+    env:
+      DEPENDS: ${{ matrix.dependencies }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          allow-prereleases: true
+      - name: Display Python version
+        run: python -c "import sys; print(sys.version)"
+      - name: Install tox
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install tox tox-gh-actions
+      - name: Show tox config
+        run: tox c
+      - name: Run tox
+        run: tox -v --exit-and-dump-after 1200
+      - uses: codecov/codecov-action@v4
+        if: ${{ always() }}
+        with:
+          files: cov.xml
+          token: ${{ secrets.CODECOV_TOKEN }}
