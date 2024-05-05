@@ -170,7 +170,7 @@
         "task-{task}[_acq-{acquisition}][_run-{run}]_{suffix<nirs>}{extension<.json>}",
         "task-{task}[_acq-{acquisition}][_ce-{ceagent}][_dir-{direction}][_rec-{reconstruction}][_run-{run}][_echo-{echo}]_{suffix<bold|cbv|phase|sbref>}{extension<.json>|.json}",
         "task-{task}_tracksys-{tracksys}[acq-{acquisition}_][run-{run}_]{suffix<motion>}{extension<.tsv|.json>}",
-        "[acq-{acquisition}_][rec-{reconstruction}_][dir-{direction}_][run-{run}_][part-{part}_][chunk-<index>_]{suffix<dwi>}{extension<.json>|.json}",
+        "[acq-{acquisition}_][rec-{reconstruction}_][dir-{direction}_][run-{run}_][part-{part}_][chunk-<index>_]{suffix<dwi>}{extension<.bval|.bvec|.json>|.json}",
         "[acq-{acquisition}_][rec-{reconstruction}_][dir-{direction}_][run-{run}_][part-{part}_][chunk-<index>_]{suffix<sbref>}{extension<.json>|.json}",
         "[acq-{acquisition}_][dir-{direction}_][run-{run}_]{suffix<phasediff|magnitude[1-2]|phase[1-2]|fieldmap>}{extension<.json>|.json}",
         "[acq-{acquisition}_][ce-{ceagent}_]dir-{direction}[_run-{run}]_{suffix<epi|m0scan>}{extension<.json>|.json}",
