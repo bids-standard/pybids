@@ -33,7 +33,6 @@ def test_layout_on_examples_with_derivatives(dataset, nb_files, bids_examples):
     files = layout.get()
     assert len(files) == nb_files
 
-from rich import print
 
 @pytest.mark.parametrize(
     "dataset, nb_files",
