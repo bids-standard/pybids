@@ -68,6 +68,7 @@ needs_sphinx = '2.2.0'
 autosummary_generate = True
 autodoc_default_flags = ['members', 'inherited-members']
 add_module_names = False
+numpydoc_class_members_toctree = False
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
