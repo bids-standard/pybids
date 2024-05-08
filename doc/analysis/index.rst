@@ -15,7 +15,7 @@
 .. _overview:
 
 An overview of the analysis module
-===========================================
+==================================
 
 .. topic:: **BIDS models**
 
@@ -44,10 +44,9 @@ contrasts.
 .. _SPM: https://www.fil.ion.ucl.ac.uk/spm/
 .. _Nipype: https://nipype.readthedocs.io
 
-.. _quickstart:
 
 Quickstart
-=============
+==========
 A simple example of standard usage follows. We assume that we have a root folder
 containing a BIDS-compliant project in ``/bidsproject``, as well as a BIDS-Models
 JSON specification in ``model.json``.
