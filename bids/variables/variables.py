@@ -659,12 +659,15 @@ def merge_variables(variables, **kwargs):
         A list of Variables to merge.
     kwargs
         Optional keyword arguments to pass onto the class-specific merge() call.
+
         Possible args:
-            - sampling_rate (int, str): The sampling rate to use if resampling
-              of DenseRunVariables is necessary for harmonization. If
-              'highest', the highest sampling rate found will be used. This
-              argument is only used when passing DenseRunVariables in the
-              variables list.
+
+            sampling_rate (int, str): 
+                The sampling rate to use if resampling
+                of DenseRunVariables is necessary for harmonization. If
+                'highest', the highest sampling rate found will be used. This
+                argument is only used when passing DenseRunVariables in the
+                variables list.
 
     Returns
     -------

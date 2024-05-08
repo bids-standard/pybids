@@ -11,7 +11,7 @@ kernelspec:
   name: python3
 ---
 
-## Executing and inspecting StatsModels with `pybids.modeling`
+# Executing and inspecting StatsModels with `pybids.modeling`
 A minimalistic tutorial illustrating usage of the tools in the `bids.modeling` module—most notably, `BIDSStatsModelsGraph` and its various components.
 
 ```{code-cell} ipython3
@@ -27,7 +27,7 @@ from os.path import join
 import json
 ```
 
-### Load BIDSLayout
+## Load BIDSLayout
 Standard stuff: load the `BIDSLayout` object (we'll use the ds005 dataset bundled with PyBIDS tests) and read in one of the included model files (`ds005/models/ds-005_type-test_model.json`).
 
 ```{code-cell} ipython3
@@ -37,21 +37,21 @@ json_file = join(layout_path, 'models', 'ds-005_type-test_model.json')
 spec = json.load(open(json_file, 'r'))
 ```
 
-### Initialize the graph
+## Initialize the graph
 The `BIDSStatsModelsGraph` is the primary interface to design data, model constructions, etc. We build it from a `BIDSLayout` and the contents of a JSON model file.
 
 ```{code-cell} ipython3
 graph = BIDSStatsModelsGraph(layout, spec)
 ```
 
-### Load variables from BIDS dataset
+## Load variables from BIDS dataset
 We will typically want to load variables into BIDS "collections" from the BIDS project. The `scan_length` argument is only necessary here because the test dataset doesn't actually include nifti image headers, so duration of scans can't be inferred. In typical use, you can call this without arguments.
 
 ```{code-cell} ipython3
 graph.load_collections(scan_length=480)
 ```
 
-### Access specific nodes
+## Access specific nodes
 Now that the graph is loaded, we can start interacting with its nodes. We'll typically start with the root node, which will usually contain the run-level model information. We can either access the `.root_node`, or use `get_node()` to get the node by its unique name (defined in the JSON file).
 
 ```{code-cell} ipython3
@@ -59,7 +59,7 @@ Now that the graph is loaded, we can start interacting with its nodes. We'll typ
 root_node = graph.root_node
 ```
 
-### Inspect `BIDSVariableCollection`
+## Inspect `BIDSVariableCollection`
 
 +++
 
@@ -82,7 +82,7 @@ We can take a look at the individual variable objects as well:
 first_sub.variables
 ```
 
-### Executing a node
+## Executing a node
 We can "run" each node to produce design matrices for each unique combination of entities/inputs we want. This is determined by the grouping structure. When working with the API directly, this is indicated via the `group_by` argument to a `.run()` method. In this case, we're indicating that the design information should be set up separately for every unique combination of `run` and `subject`.
 
 Note that we need to include `subject` even though this is a strictly run-level model, because if we only pass `['run']`, there will only be 3 separate analyses conducted: one for run 1, one for run 2, and one for run 3. Whereas what we actually want is for the procedure to be done separately for each unique combination of the 3 runs and 16 subjects (i.e., 48 times).
@@ -94,7 +94,7 @@ Note that we need to include `subject` even though this is a strictly run-level 
 outputs = root_node.run(group_by=['run', 'subject'], force_dense=False, transformation_history=True)
 ```
 
-### Node outputs
+## Node outputs
 
 +++
 
@@ -141,7 +141,7 @@ There's a 1-to-1 mapping from rows in `.X` to rows in `.metadata`. This means yo
 
 +++
 
-### Transformation History
+## Transformation History
 
 +++
 
@@ -178,7 +178,7 @@ ts[1].output.variables
 ts[1].output.variables['RT'].to_df(entities=False)
 ```
 
-### Traversing the graph
+## Traversing the graph
 So far we've executed the root node, which by definition required no inputs from any previous node. But in typical workflows, we'll be passing outputs from one node in as inputs to another. For example, we often want to take the run-level parameter estimates and pass them to a subject-level model that does nothing but average over runs within each subject. This requires us to somehow traverse the graph based on the edges specified in the BIDS-StatsModel document. We can do that by taking advantage of each node's `.children` attribute, which contains a list of `BIDSStatsModelsEdge` named tuples that specify an edge between two nodes.
 
 ```{code-cell} ipython3
@@ -194,7 +194,7 @@ next_node.level, next_node.name
 
 We assign the first connected node to `next_node`, and print out its `level` and `name` for inspection (both are session).
 
-### Passing in inputs
+## Passing in inputs
 Armed with that, we can run the session node and proceed and before. However, there's a twist: whereas the root node only needs to know about variables loaded directly from the `BIDSLayout` (which we achieved with that `.load_collections()` call earlier), the session node can't get the inputs it needs from the `BIDSLayout`, because there aren't any (at least in this particular dataset). What we want to do at the session level is average over our run-level estimates within-session. But to do that, we need to actually pass in information about those runs!
 
 The way we do this is to pass, as the first argument to `.run()`, a list of `ContrastInfo` objects informing our node about what inputs it should use to construct its design matrices. The typical use pattern is to pass one concatenated list containing *all* of the outputs from the previous level that we want to pass on. Note that we may not want to pass *all* of the outputs forward. For example, suppose that 2 out of 48 run-level models failed during the estimation process. We might not want to keep passing information about those 2 runs forward, as we can't compute them. So we can always filter the list of `ContrastInfo` objects we received from the previous node before we pass them on to the next node. (We could also do other things, like rename each `ContrastInfo` to use whatever naming scheme our software prefers; modifying the entities; and so on. But we won't do any of that here.)

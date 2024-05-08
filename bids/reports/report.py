@@ -18,16 +18,20 @@ class BIDSReport:
         (str), a dictionary, or None. If None, loads and uses default
         configuration information.
         Keys in the dictionary include:
-            'dir':      a dictionary for converting encoding direction strings
-                        (e.g., j-) to descriptions (e.g., anterior to
-                        posterior)
-            'seq':      a dictionary of sequence abbreviations (e.g., EP) and
-                        corresponding names (e.g., echo planar)
-            'seqvar':   a dictionary of sequence variant abbreviations
-                        (e.g., SP) and corresponding names (e.g., spoiled)
+        
+            'dir': 
+                a dictionary for converting encoding direction strings
+                (e.g., j-) to descriptions (e.g., anterior to
+                posterior)
+            'seq': 
+                a dictionary of sequence abbreviations (e.g., EP) and
+                corresponding names (e.g., echo planar)
+            'seqvar': 
+                a dictionary of sequence variant abbreviations
+                (e.g., SP) and corresponding names (e.g., spoiled)
 
-    Warning
-    -------
+    Warnings
+    --------
     pybids' automatic report generation is experimental and currently under
     active development, and as such should be used with caution.
     Please remember to verify any generated report before putting it to use.
