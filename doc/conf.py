@@ -49,9 +49,9 @@ extensions = [
 ]
 
 intersphinx_mapping = {
-    'python': ('https://docs.python.org/3.5', None),
-    'numpy' : ('https://docs.scipy.org/doc/numpy', None),
-    'scipy' : ('https://docs.scipy.org/doc/scipy/reference', None),
+    "python": ('https://docs.python.org/3.5', None),
+    "numpy" : ('https://docs.scipy.org/doc/numpy', None),
+    "scipy" : ('https://docs.scipy.org/doc/scipy/reference', None),
     "matplotlib" : ('https://matplotlib.org/', None),
     "scikit-learn" : ('https://scikit-learn.org/0.17', None),
     "nibabel" : ('https://nipy.org/nibabel/', None),
