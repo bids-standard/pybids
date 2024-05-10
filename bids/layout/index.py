@@ -250,6 +250,9 @@ class BIDSLayoutIndexer:
             m = e.match_file(bf)
             if m is None and e.mandatory:
                 break
+            # Skip entities that don't match the filter
+            if self.filters and e.name and e.name in self.filters and m and m not in self.filters[e.name]:
+                continue
             if m is not None:
                 match_vals[e.name] = (e, m)
 
@@ -264,7 +267,7 @@ class BIDSLayoutIndexer:
     def _index_metadata(self):
         """Index metadata for all files in the BIDS dataset.
         """
-        filters = self.filters
+        filters = self.filters.copy() if self.filters else None
 
         if filters:
             # ensure we are returning objects
