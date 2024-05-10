@@ -24,8 +24,6 @@ API Reference
 
 .. currentmodule:: bids
 
-.. _calibration_ref:
-
 
 :mod:`bids.modeling`: Model specification for BIDS datasets
 ------------------------------------------------------------
@@ -56,8 +54,6 @@ API Reference
 
 .. currentmodule:: bids
 
-.. _calibration_ref:
-
 
 :mod:`bids.variables`: Variables
 --------------------------------------------------
@@ -80,8 +76,6 @@ API Reference
 
 .. currentmodule:: bids
 
-.. _calibration_ref:
-
 
 :mod:`bids.config`: PyBIDS Configuration utilities
 --------------------------------------------------
@@ -97,8 +91,6 @@ API Reference
 
 .. currentmodule:: bids
 
-.. _calibration_ref:
-
 
 :mod:`bids.utils`: Utility functions
 --------------------------------------------------
@@ -113,5 +105,3 @@ API Reference
 
 
 .. currentmodule:: bids
-
-.. _calibration_ref:

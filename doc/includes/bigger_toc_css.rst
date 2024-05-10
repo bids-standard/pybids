@@ -2,6 +2,8 @@
     File to ..include in a document with a very big table of content, to
     give it 'style'
 
+:orphan:
+
 .. raw:: html
 
   <style type="text/css">

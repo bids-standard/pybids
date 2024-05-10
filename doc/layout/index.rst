@@ -1,4 +1,4 @@
-.. _reports:
+.. _layout:
 
 =====================================================
 ``layout``: Querying BIDS datasets
