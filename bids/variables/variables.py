@@ -408,7 +408,9 @@ class SparseRunVariable(SimpleVariable):
         else:
             sampling_rate = bin_sr
 
-        duration = int(math.ceil(bin_sr * self.get_duration()))
+        duration = math.ceil(  # Round up to nearest second
+            round(bin_sr * self.get_duration(), 3)  # Cut off at millisecond precision
+        )
         ts = np.zeros(duration, dtype=self.values.dtype)
 
         onsets = np.round(self.onset * bin_sr).astype(int)

@@ -4,7 +4,6 @@ from pathlib import Path
 from bids.layout import BIDSLayout
 from bids.modeling import BIDSStatsModelsGraph
 from bids import __version__ as bids_version
-import pkg_resources as pkgr
 from .utils import deroot, snake_to_camel, displayify, to_alphanum, generate_contrast_matrix
 
 PATH_PATTERNS = [
@@ -107,25 +106,22 @@ def _write_report(report_dict, out_dir, template_path=None):
         )   
 
     if template_path is None:
-        searchpath = pkgr.resource_filename('bids', '/')
-        template_file = 'modeling/report/report_template.jinja'
+        loader = jinja2.PackageLoader('bids', 'modeling/report')
+        template_file = 'report_template.jinja'
     else:
-        searchpath, template_file = os.path.split(template_path)
+        loader = jinja2.FileSystemLoader(os.path.dirname(template_path))
+        template_file = os.path.basename(template_path)
 
-    env = jinja2.Environment(
-        loader=jinja2.FileSystemLoader(searchpath=searchpath))
-    tpl = env.get_template(template_file)
+    tpl = jinja2.Environment(loader=loader).get_template(template_file)
 
     model = snake_to_camel(report_dict['model']['name'])
-    target_file = os.path.join(
-        out_dir, f"{model}_report.html"
-    )
+    out_path = Path(out_dir)
+    out_path.mkdir(parents=True, exist_ok=True)
 
-    report_dict = deroot(report_dict, os.path.dirname(target_file))
+    report_dict = deroot(report_dict, str(out_path))
 
     html = tpl.render(report_dict)
-    Path(target_file).parent.mkdir(parents=True, exist_ok=True)
-    Path(target_file).write_text(html)
+    Path.write_text(out_path / f"{model}_report.html", html)
 
 
 def generate_report(
