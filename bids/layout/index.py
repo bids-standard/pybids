@@ -265,12 +265,11 @@ class BIDSLayoutIndexer:
             # ensure we are returning objects
             filters['return_type'] = 'object'
 
-            ext_key = 'extensions' if 'extensions' in filters else 'extension'
-            if filters.get(ext_key):
-                filters[ext_key] = listify(filters[ext_key])
+            if filters.get('extension'):
+                filters['extension'] = listify(filters['extension'])
                 # ensure json files are being indexed
-                if '.json' not in filters[ext_key]:
-                    filters[ext_key].append('.json')
+                if '.json' not in filters['extension']:
+                    filters['extension'].append('.json')
 
         # Process JSON files first if we're indexing metadata
         all_files = self._layout.get(absolute_paths=True, **filters)
