@@ -267,7 +267,7 @@ class BIDSLayoutIndexer:
     def _index_metadata(self):
         """Index metadata for all files in the BIDS dataset.
         """
-        filters = self.filters.copy() if self.filters else None
+        filters = self.filters.copy()
 
         if filters:
             # ensure we are returning objects
