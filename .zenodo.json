@@ -176,6 +176,11 @@
       "orcid": "0000-0001-8421-365X"
     },
     {
+      "affiliation": "Child Mind Institute",
+      "name": "Erkent, Alp",
+      "orcid": "0000-0002-8820-4782"
+    },
+    {
       "affiliation": "Université de Sherbrooke",
       "name": "Legarreta, Jon Haitz",
       "orcid": "0000-0002-9661-1396"
@@ -224,6 +229,11 @@
       "name": "Thual, Alexis"
     },
     {
+      "affiliation": "University of Montréal, Montréal, Canada",
+      "name": "Pinsard, Basile",
+      "orcid": "0000-0002-4391-3075"
+    },
+    {
       "affiliation": "Berkeley Institute for Data Science; University of California at Berkeley",
       "name": "Holdgraf, Chris",
       "orcid": "0000-0002-2391-0678"
@@ -241,6 +251,10 @@
       "affiliation": "Brigham and Women's Hospital",
       "name": "Drew, William",
       "orcid": "0000-0002-9178-8731"
+    },
+    {
+      "name": "Khan, Ali",
+      "orcid": "0000-0002-0760-8647"
     },
     {
       "affiliation": "University College London",
