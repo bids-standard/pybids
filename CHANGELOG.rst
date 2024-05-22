@@ -1,6 +1,27 @@
 Changelog
 =========
 
+Version 0.16.5 (May 22, 2024)
+-----------------------------
+
+Bug-fix release in the 0.16.x series.
+
+This release includes minor fixes, but reworks the testing
+infrastructure and resolves Python 3.12 incompatibilities.
+
+* FIX: Handle FileNotFoundError in BIDSLayout init when is_derivative=True and validate=False (#1049)
+* FIX: Add dwi root sbref, missing dwi entities to path patterns (#1059)
+* ENH: Update indexer to treat .zarr as files not dirs (#1046)
+* DOC: Deal with several warnings and errors in the doc build (#1061)
+* TST: Add bids-examples tests to cover ieeg, eeg, dwi (#1060)
+* MNT: Add Python 3.12 support (#1057)
+* MNT: Use tox to simplify testing environment setup (#1055)
+* MNT: Bump codecov/codecov-action from 3 to 4 (#1041)
+* MNT: Bump bids-examples from `1a000d6` to `eff47f1` (#1039)
+* MNT: Bump bids-examples from `b6e5234` to `1a000d6` (#1038)
+* MNT: Bump actions/upload-artifact from 3 to 4 (#1037)
+* MNT: Bump actions/setup-python from 4 to 5 (#1036)
+
 Version 0.16.4 (November 30, 2023)
 ----------------------------------
 
