@@ -893,5 +893,5 @@ def test_layout_with_validation():
     assert len(layout1.files) < len(layout2.files)
     # Not a valid BIDS file
     badfile = join(data_dir, 'test.bval')
-    assert(badfile not in layout1.files)
-    assert(badfile in layout2.files)
+    assert badfile not in layout1.files
+    assert badfile in layout2.files

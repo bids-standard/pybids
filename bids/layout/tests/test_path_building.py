@@ -158,4 +158,4 @@ def test_path_building_on_examples_with_derivatives_meg_ds_folder(dataset, scope
     for bf in files:
         entities = bf.get_entities()
         path = layout.build_path(entities)
-        assert(path==bf.path)
+        assert path == bf.path
