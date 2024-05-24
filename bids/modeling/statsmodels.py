@@ -357,7 +357,7 @@ class BIDSStatsModelsNode:
 
         Notes
         -----
-        * The passed objects can be of any type, but alll elements in the list must
+        * The passed objects can be of any type, but all elements in the list must
         have an implemented .entities dictionary.
         * Objects that do not have defined values for all of the requested
         `entities` will be silently ignored.
