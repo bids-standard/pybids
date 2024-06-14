@@ -67,7 +67,8 @@ class BIDSLayout:
         file in order to be indexed.
     config : str or list or None, optional
         Optional name(s) of configuration file(s) to use.
-        By default (None), uses 'bids'.
+        By default (None), uses 'bids'. For derivatives use 
+        `['bids', `derivatives`]
     sources : :obj:`bids.layout.BIDSLayout` or list or None, optional
         Optional BIDSLayout(s) from which the current BIDSLayout is derived.
     config_filename : str
