@@ -1,7 +1,7 @@
 ''' Utilities for manipulating package-level settings. '''
 
 import json
-from pathlib import Path
+from upath import UPath as Path
 import os
 import warnings
 

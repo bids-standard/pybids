@@ -9,7 +9,7 @@ import shutil
 from string import Formatter
 from itertools import product
 from ..utils import listify
-from pathlib import Path
+from upath import UPath as Path
 
 __all__ = ['build_path', 'write_to_file']
 

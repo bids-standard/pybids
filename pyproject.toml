@@ -32,6 +32,9 @@ dependencies = [
   "bids-validator>=1.11",  # Keep up-to-date to ensure support for recent modalities
   "num2words >=0.5.5",
   "click >=8.0",
+  "fsspec==2024.3.1",
+  "universal_pathlib==0.2.2",
+  "gcsfs==2024.3.1",
 ]
 dynamic = ["version"]
 
