@@ -19,7 +19,7 @@ from bids.layout import BIDSLayout
     [
         ("qmri_irt1", 17),
         ("qmri_mese", 74),
-        ("qmri_mp2rage", 16),
+        ("qmri_mp2rage", 18),
         ("qmri_mp2rageme", 29),
         ("qmri_mtsat", 26),
         ("qmri_sa2rage", 10),
