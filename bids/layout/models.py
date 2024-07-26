@@ -3,6 +3,7 @@
 import re
 import os
 from pathlib import Path
+from upath import UPath
 import warnings
 import json
 from copy import deepcopy
@@ -63,11 +64,11 @@ class LayoutInfo(Base):
     def _sanitize_init_args(self, kwargs):
         """ Prepare initialization arguments for serialization """
         if 'root' in kwargs:
-            kwargs['root'] = str(Path(kwargs['root']).absolute())
+            kwargs['root'] = str(UPath(kwargs['root']).absolute())
 
         if 'config' in kwargs and isinstance(kwargs['config'], list):
             kwargs['config'] = [
-                str(Path(config).absolute())
+                str(UPath(config).absolute())
                 if isinstance(config, os.PathLike) else config
                 for config in kwargs['config']
             ]
@@ -75,7 +76,7 @@ class LayoutInfo(Base):
         # Get abspaths
         if kwargs.get('derivatives') not in (None, True, False):
             kwargs['derivatives'] = [
-                str(Path(der).absolute())
+                str(UPath(der).absolute())
                 for der in listify(kwargs['derivatives'])
                 ]
 
@@ -157,11 +158,11 @@ class Config(Base):
         A Config instance.
         """
 
-        if isinstance(config, (str, Path)):
+        if isinstance(config, (str, Path, UPath)):
             config_paths = get_option('config_paths')
             if config in config_paths:
                 config = config_paths[config]
-            if not Path(config).exists():
+            if not UPath(config).exists():
                 raise ValueError("{} is not a valid path.".format(config))
             else:
                 with open(config, 'r') as f:
@@ -213,11 +214,11 @@ class BIDSFile(Base):
 
     @property
     def _path(self):
-        return Path(self.path)
+        return UPath(self.path)
 
     @property
     def _dirname(self):
-        return Path(self.dirname)
+        return UPath(self.dirname)
 
     def __getattr__(self, attr):
         # Ensures backwards compatibility with old File_ namedtuple, which is
@@ -245,7 +246,7 @@ class BIDSFile(Base):
     def relpath(self):
         """Return path relative to layout root"""
         root = object_session(self).query(LayoutInfo).first().root
-        return str(Path(self.path).relative_to(root))
+        return str(UPath(self.path).relative_to(root))
 
     def get_associations(self, kind=None, include_parents=False):
         """Get associated files, optionally limiting by association kind.
@@ -370,7 +371,7 @@ class BIDSFile(Base):
         if self._path.is_absolute() or root is None:
             path = self._path
         else:
-            path = Path(root) / self._path
+            path = UPath(root) / self._path
 
         if not path.exists():
             raise ValueError("Target filename to copy/symlink (%s) doesn't "

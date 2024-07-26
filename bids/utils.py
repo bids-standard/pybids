@@ -2,7 +2,7 @@
 
 import re
 import os
-from pathlib import Path
+from upath import UPath as Path
 
 
 def listify(obj):

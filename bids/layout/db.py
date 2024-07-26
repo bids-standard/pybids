@@ -2,7 +2,7 @@
 Database-related functionality.
 """
 
-from pathlib import Path
+from upath import UPath as Path
 import re
 import sqlite3
 from functools import lru_cache

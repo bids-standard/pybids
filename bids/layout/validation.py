@@ -1,6 +1,6 @@
 """Functionality related to validation of BIDSLayouts and BIDS projects."""
 
-from pathlib import Path
+from upath import UPath as Path
 import json
 import re
 import warnings
@@ -65,7 +65,6 @@ def validate_root(root, validate):
                         "containing the BIDS dataset.")
 
     root = root.absolute()
-
     if not root.exists():
         raise ValueError("BIDS root does not exist: %s" % root)
 
@@ -83,7 +82,7 @@ def validate_root(root, validate):
     else:
         err = None
         try:
-            with open(target, 'r', encoding='utf-8') as desc_fd:
+            with target.fs.open(target.path, 'r', encoding='utf-8') as desc_fd:
                 description = json.load(desc_fd)
         except (UnicodeDecodeError, json.JSONDecodeError) as e:
             description = None

@@ -1,5 +1,5 @@
 """Miscellaneous layout-related utilities."""
-from pathlib import Path
+from upath import UPath as Path
 
 from .. import config as cf
 from ..utils import make_bidsfile, listify

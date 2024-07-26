@@ -7,7 +7,7 @@ import json
 import copy
 import enum
 import difflib
-from pathlib import Path
+from upath import UPath as Path
 import warnings
 from typing import Hashable
 
