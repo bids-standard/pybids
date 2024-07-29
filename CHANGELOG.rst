@@ -1,6 +1,20 @@
 Changelog
 =========
 
+Version 0.17.0 (July 29, 2024)
+------------------------------
+
+Feature release in the 0.17.0 series.
+
+This release includes experimental support for MRS (BEP22) datasets
+and `universal_pathlib <https://github.com/fsspec/universal_pathlib>`__.
+
+* ENH: pathlib -> universal_pathlib to enable cloud (and other filesystem) support (#1074)
+* ENH: Add MRS entities, path patterns (#1075)
+* STY: No parentheses after assert (#1065)
+* MNT: Bump bids-examples from `47c4da1` to `401f4cf` (#1073)
+* MNT: Fix typo newly found by codespell (#1066)
+
 Version 0.16.5 (May 22, 2024)
 -----------------------------
 
