@@ -112,8 +112,8 @@ def test_is_session_level_true(testvalidator):
 
 
 # checks is_session_level() function false cases
-def test_is_session_level_false(testvalidator):
-    target_list = [
+@pytest.mark.parametrize("item", 
+    [
         "/sub-01/ses-ses/sub-01_dwi.bval",  # redundant dir /ses-ses/
         "/sub-01/01_dwi.bvec",  # missed subject suffix
         "/sub-01/sub_dwi.json",  # missed subject id
@@ -138,11 +138,10 @@ def test_is_session_level_false(testvalidator):
         "/sub-01/ses-test/sub-02_ses-test_acq-singleband_run-01_dwi.bval", # wrong sub id in the filename
         "/sub-01/sub-01_ses-test_acq-singleband_run-01_dwi.bvec",  # ses dir missed
         "/ses-test/sub-01_ses-test_acq-singleband_run-01_dwi.json"  # sub id dir missed
-    ]
-
-    for item in target_list:
-        result = testvalidator.is_session_level(item)
-        assert not result
+    ])
+def test_is_session_level_false(testvalidator, item):
+    result = testvalidator.is_session_level(item)
+    assert not result
 
 
 # checks is_subject_level() function true cases

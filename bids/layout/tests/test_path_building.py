@@ -135,23 +135,7 @@ def test_path_building_in_raw_scope(dataset, bids_examples):
         assert path == bf.path
 
 @pytest.mark.parametrize("scope", ["raw"])
-@pytest.mark.parametrize(
-    "dataset",
-    [
-        pytest.param(
-            "ds000247",
-            marks=pytest.mark.xfail(strict=True,
-                reason="meg ds folder"
-            ),
-        ),
-        pytest.param(
-            "ds000246",
-            marks=pytest.mark.xfail(strict=True,
-                reason="meg ds folder"
-            ),
-        ),
-    ],
-)
+@pytest.mark.parametrize("dataset", ["ds000247", "ds000246"])
 def test_path_building_on_examples_with_derivatives_meg_ds_folder(dataset, scope, bids_examples):
     layout = BIDSLayout(bids_examples / dataset, derivatives=True)
     files = layout.get(subject=".*", datatype=".*", regex_search = True, scope=scope)
