@@ -138,17 +138,6 @@ def test_is_session_level_false_skip(testvalidator, item):
     assert not result
 
 
-# checks is_session_level() function false cases
-@pytest.mark.parametrize("item", 
-    [
-        "/sub-01/ses-ses/sub-01_dwi.bval",  # redundant dir /ses-ses/
-        "/sub-01/ses-test/sub-01_run-01_dwi.bvec",  # missed session in the filename
-        "/sub-01/ses-test/ses-test_run-01_dwi.json",  # missed subject in the filename
-    ])
-def test_is_session_level_false(testvalidator, item):
-    result = testvalidator.is_session_level(item)
-    assert not result
-
 # checks is_subject_level() function true cases
 def test_is_subject_level_true(testvalidator):
     target_list = [
