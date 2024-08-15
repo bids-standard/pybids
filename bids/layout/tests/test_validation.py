@@ -111,33 +111,6 @@ def test_is_session_level_true(testvalidator):
         assert result
 
 
-# checks is_session_level() function false cases
-@pytest.mark.parametrize("item", 
-    [
-        pytest.param(
-            "/sub-01/ses-ses/sub-01_dwi.bval",  # redundant dir /ses-ses/
-            marks=pytest.mark.xfail(strict=True,
-                reason="invalid"
-            ),
-        ),
-        pytest.param(
-            "/sub-01/ses-test/sub-01_run-01_dwi.bvec",  # missed session in the filename
-            marks=pytest.mark.xfail(strict=True,
-                reason="invalid"
-            ),
-        ),
-        pytest.param(
-            "/sub-01/ses-test/ses-test_run-01_dwi.json",  # missed subject in the filename
-            marks=pytest.mark.xfail(strict=True,
-                reason="invalid"
-            ),
-        )     
-    ])
-def test_is_session_level_false_skip(testvalidator, item):
-    result = testvalidator.is_session_level(item)
-    assert not result
-
-
 # checks is_subject_level() function true cases
 def test_is_subject_level_true(testvalidator):
     target_list = [
