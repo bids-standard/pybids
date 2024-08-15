@@ -14,6 +14,7 @@ from bids.tests import get_test_data_path
 def testvalidator():
     return BIDSValidator()
 
+
 def test_layout_with_validation():
     data_dir = join(get_test_data_path(), '7t_trt')
     layout1 = BIDSLayout(data_dir, validate=True)
