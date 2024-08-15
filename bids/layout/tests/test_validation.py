@@ -1,47 +1,28 @@
 """Tests of BIDSValidator functionality."""
 
-# # checks is_anat() function true cases
-# def test_is_anat_true(testvalidator):
-#     target_list = [
-#         "/sub-01/anat/sub-01_T1w.json",
-#         "/sub-01/anat/sub-01_T1w.nii.gz",
-#         "/sub-01/anat/sub-01_rec-CSD_T1w.json",
-#         "/sub-01/anat/sub-01_rec-CSD_T1w.nii.gz",
-#         "/sub-01/anat/sub-01_acq-23_T1w.json",
-#         "/sub-01/anat/sub-01_acq-23_T1w.nii.gz",
-#         "/sub-01/anat/sub-01_acq-23_rec-CSD_T1w.json",
-#         "/sub-01/anat/sub-01_acq-23_rec-CSD_T1w.nii.gz",
-#         "/sub-01/anat/sub-01_run-23_T1w.json",
-#         "/sub-01/anat/sub-01_run-23_T1w.nii.gz",
-#         "/sub-01/anat/sub-01_rec-CSD_run-23_T1w.json",
-#         "/sub-01/anat/sub-01_rec-CSD_run-23_T1w.nii.gz",
-#         "/sub-01/anat/sub-01_acq-23_run-23_T1w.json",
-#         "/sub-01/anat/sub-01_acq-23_run-23_T1w.nii.gz",
-#         "/sub-01/anat/sub-01_acq-23_rec-CSD_run-23_T1w.json",
-#         "/sub-01/anat/sub-01_acq-23_rec-CSD_run-23_T1w.nii.gz",
-#         "/sub-01/ses-test/anat/sub-01_ses-test_T1w.json",
-#         "/sub-01/ses-test/anat/sub-01_ses-test_T1w.nii.gz",
-#         "/sub-01/ses-test/anat/sub-01_ses-test_rec-CSD_T1w.json",
-#         "/sub-01/ses-test/anat/sub-01_ses-test_rec-CSD_T1w.nii.gz",
-#         "/sub-01/ses-test/anat/sub-01_ses-test_acq-23_T1w.json",
-#         "/sub-01/ses-test/anat/sub-01_ses-test_acq-23_T1w.nii.gz",
-#         "/sub-01/ses-test/anat/sub-01_ses-test_acq-23_rec-CSD_T1w.json",
-#         "/sub-01/ses-test/anat/sub-01_ses-test_acq-23_rec-CSD_T1w.nii.gz",
-#         "/sub-01/ses-test/anat/sub-01_ses-test_run-23_T1w.json",
-#         "/sub-01/ses-test/anat/sub-01_ses-test_run-23_T1w.nii.gz",
-#         "/sub-01/ses-test/anat/sub-01_ses-test_rec-CSD_run-23_T1w.json",
-#         "/sub-01/ses-test/anat/sub-01_ses-test_rec-CSD_run-23_T1w.nii.gz",
-#         "/sub-01/ses-test/anat/sub-01_ses-test_acq-23_run-23_T1w.json",
-#         "/sub-01/ses-test/anat/sub-01_ses-test_acq-23_run-23_T1w.nii.gz",
-#         "/sub-01/ses-test/anat/sub-01_ses-test_acq-23_rec-CSD_run-23_T1w.json",
-#         "/sub-01/ses-test/anat/sub-01_ses-test_acq-23_rec-CSD_run-23_T1w.nii.gz"]
+from os.path import join
 
-#     for item in target_list:
-#         result = testvalidator.is_anat(item)
-#         assert result
+import pytest
 
-# # checks is_anat() function false cases
+from bids_validator import BIDSValidator
+from bids.layout import BIDSLayout
+from bids.tests import get_test_data_path
 
+
+# Fixture uses in the rest of the tests
+@pytest.fixture
+def testvalidator():
+    return BIDSValidator()
+
+def test_layout_with_validation():
+    data_dir = join(get_test_data_path(), '7t_trt')
+    layout1 = BIDSLayout(data_dir, validate=True)
+    layout2 = BIDSLayout(data_dir, validate=False)
+    assert len(layout1.files) < len(layout2.files)
+    # Not a valid BIDS file
+    badfile = join(data_dir, 'test.bval')
+    assert badfile not in layout1.files
+    assert badfile in layout2.files
 
 # def test_is_anat_false(testvalidator):
 #     target_list = ["/sub-01/anat/sub-1_T1w.json",  # subject inconsistency
@@ -69,49 +50,6 @@
 #     for item in target_list:
 #         result = testvalidator.is_anat(item)
 #         assert not result
-
-
-# # checks is_dwi() function true cases
-# def test_is_dwi_true(testvalidator):
-#     target_list = [
-#         "/sub-01/dwi/sub-01_dwi.nii.gz",
-#         "/sub-01/dwi/sub-01_dwi.bval",
-#         "/sub-01/dwi/sub-01_dwi.bvec",
-#         "/sub-01/dwi/sub-01_dwi.json",
-#         "/sub-01/dwi/sub-01_run-01_dwi.nii.gz",
-#         "/sub-01/dwi/sub-01_run-01_dwi.bval",
-#         "/sub-01/dwi/sub-01_run-01_dwi.bvec",
-#         "/sub-01/dwi/sub-01_run-01_dwi.json",
-#         "/sub-01/dwi/sub-01_acq-singleband_dwi.nii.gz",
-#         "/sub-01/dwi/sub-01_acq-singleband_dwi.bval",
-#         "/sub-01/dwi/sub-01_acq-singleband_dwi.bvec",
-#         "/sub-01/dwi/sub-01_acq-singleband_dwi.json",
-#         "/sub-01/dwi/sub-01_acq-singleband_run-01_dwi.nii.gz",
-#         "/sub-01/dwi/sub-01_acq-singleband_run-01_dwi.bval",
-#         "/sub-01/dwi/sub-01_acq-singleband_run-01_dwi.bvec",
-#         "/sub-01/dwi/sub-01_acq-singleband_run-01_dwi.json",
-#         "/sub-01/ses-test/dwi/sub-01_ses-test_dwi.nii.gz",
-#         "/sub-01/ses-test/dwi/sub-01_ses-test_dwi.bval",
-#         "/sub-01/ses-test/dwi/sub-01_ses-test_dwi.bvec",
-#         "/sub-01/ses-test/dwi/sub-01_ses-test_dwi.json",
-#         "/sub-01/ses-test/dwi/sub-01_ses-test_run-01_dwi.nii.gz",
-#         "/sub-01/ses-test/dwi/sub-01_ses-test_run-01_dwi.bval",
-#         "/sub-01/ses-test/dwi/sub-01_ses-test_run-01_dwi.bvec",
-#         "/sub-01/ses-test/dwi/sub-01_ses-test_run-01_dwi.json",
-#         "/sub-01/ses-test/dwi/sub-01_ses-test_acq-singleband_dwi.nii.gz",
-#         "/sub-01/ses-test/dwi/sub-01_ses-test_acq-singleband_dwi.bval",
-#         "/sub-01/ses-test/dwi/sub-01_ses-test_acq-singleband_dwi.bvec",
-#         "/sub-01/ses-test/dwi/sub-01_ses-test_acq-singleband_dwi.json",
-#         "/sub-01/ses-test/dwi/sub-01_ses-test_acq-singleband_run-01_dwi.nii.gz",
-#         "/sub-01/ses-test/dwi/sub-01_ses-test_acq-singleband_run-01_dwi.bval",
-#         "/sub-01/ses-test/dwi/sub-01_ses-test_acq-singleband_run-01_dwi.bvec",
-#         "/sub-01/ses-test/dwi/sub-01_ses-test_acq-singleband_run-01_dwi.json"]
-
-#     for item in target_list:
-#         result = testvalidator.is_dwi(item)
-#         assert result
-
-# # checks is_dwi() function false cases
 
 
 # def test_is_dwi_false(testvalidator):
@@ -144,120 +82,6 @@
 #         assert not result
 
 
-# # checks is_func() function true cases
-# def test_is_func_true(testvalidator):
-#     target_list = [
-#         "/sub-01/func/sub-01_task-task_bold.nii.gz",
-#         "/sub-01/func/sub-01_task-task_bold.nii",
-#         "/sub-01/func/sub-01_task-task_bold.json",
-#         "/sub-01/func/sub-01_task-task_sbref.nii.gz",
-#         "/sub-01/func/sub-01_task-task_sbref.json",
-#         "/sub-01/func/sub-01_task-task_events.json",
-#         "/sub-01/func/sub-01_task-task_events.tsv",
-#         "/sub-01/func/sub-01_task-task_physio.json",
-#         "/sub-01/func/sub-01_task-task_physio.tsv.gz",
-#         "/sub-01/func/sub-01_task-task_stim.json",
-#         "/sub-01/func/sub-01_task-task_stim.tsv.gz",
-#         "/sub-01/func/sub-01_task-task_defacemask.nii.gz",
-#         "/sub-01/func/sub-01_task-task_defacemask.nii",
-#         "/sub-01/func/sub-01_task-task_run-01_bold.nii.gz",
-#         "/sub-01/func/sub-01_task-task_run-01_bold.nii",
-#         "/sub-01/func/sub-01_task-task_run-01_bold.json",
-#         "/sub-01/func/sub-01_task-task_run-01_sbref.nii.gz",
-#         "/sub-01/func/sub-01_task-task_run-01_sbref.json",
-#         "/sub-01/func/sub-01_task-task_run-01_events.json",
-#         "/sub-01/func/sub-01_task-task_run-01_events.tsv",
-#         "/sub-01/func/sub-01_task-task_run-01_physio.json",
-#         "/sub-01/func/sub-01_task-task_run-01_physio.tsv.gz",
-#         "/sub-01/func/sub-01_task-task_run-01_stim.json",
-#         "/sub-01/func/sub-01_task-task_run-01_stim.tsv.gz",
-#         "/sub-01/func/sub-01_task-task_run-01_defacemask.nii.gz",
-#         "/sub-01/func/sub-01_task-task_run-01_defacemask.nii",
-#         "/sub-01/func/sub-01_task-task_rec-rec_bold.nii.gz",
-#         "/sub-01/func/sub-01_task-task_rec-rec_bold.nii",
-#         "/sub-01/func/sub-01_task-task_rec-rec_bold.json",
-#         "/sub-01/func/sub-01_task-task_rec-rec_sbref.nii.gz",
-#         "/sub-01/func/sub-01_task-task_rec-rec_sbref.json",
-#         "/sub-01/func/sub-01_task-task_rec-rec_events.json",
-#         "/sub-01/func/sub-01_task-task_rec-rec_events.tsv",
-#         "/sub-01/func/sub-01_task-task_rec-rec_physio.json",
-#         "/sub-01/func/sub-01_task-task_rec-rec_physio.tsv.gz",
-#         "/sub-01/func/sub-01_task-task_rec-rec_stim.json",
-#         "/sub-01/func/sub-01_task-task_rec-rec_stim.tsv.gz",
-#         "/sub-01/func/sub-01_task-task_rec-rec_defacemask.nii.gz",
-#         "/sub-01/func/sub-01_task-task_rec-rec_defacemask.nii",
-#         "/sub-01/func/sub-01_task-task_rec-rec_run-01_bold.nii.gz",
-#         "/sub-01/func/sub-01_task-task_rec-rec_run-01_bold.nii",
-#         "/sub-01/func/sub-01_task-task_rec-rec_run-01_bold.json",
-#         "/sub-01/func/sub-01_task-task_rec-rec_run-01_sbref.nii.gz",
-#         "/sub-01/func/sub-01_task-task_rec-rec_run-01_sbref.json",
-#         "/sub-01/func/sub-01_task-task_rec-rec_run-01_events.json",
-#         "/sub-01/func/sub-01_task-task_rec-rec_run-01_events.tsv",
-#         "/sub-01/func/sub-01_task-task_rec-rec_run-01_physio.json",
-#         "/sub-01/func/sub-01_task-task_rec-rec_run-01_physio.tsv.gz",
-#         "/sub-01/func/sub-01_task-task_rec-rec_run-01_stim.json",
-#         "/sub-01/func/sub-01_task-task_rec-rec_run-01_stim.tsv.gz",
-#         "/sub-01/func/sub-01_task-task_rec-rec_run-01_defacemask.nii.gz",
-#         "/sub-01/func/sub-01_task-task_rec-rec_run-01_defacemask.nii",
-#         "/sub-01/ses-test/func/sub-01_ses-test_task-task_bold.nii.gz",
-#         "/sub-01/ses-test/func/sub-01_ses-test_task-task_bold.nii",
-#         "/sub-01/ses-test/func/sub-01_ses-test_task-task_bold.json",
-#         "/sub-01/ses-test/func/sub-01_ses-test_task-task_sbref.nii.gz",
-#         "/sub-01/ses-test/func/sub-01_ses-test_task-task_sbref.json",
-#         "/sub-01/ses-test/func/sub-01_ses-test_task-task_events.json",
-#         "/sub-01/ses-test/func/sub-01_ses-test_task-task_events.tsv",
-#         "/sub-01/ses-test/func/sub-01_ses-test_task-task_physio.json",
-#         "/sub-01/ses-test/func/sub-01_ses-test_task-task_physio.tsv.gz",
-#         "/sub-01/ses-test/func/sub-01_ses-test_task-task_stim.json",
-#         "/sub-01/ses-test/func/sub-01_ses-test_task-task_stim.tsv.gz",
-#         "/sub-01/ses-test/func/sub-01_ses-test_task-task_defacemask.nii.gz",
-#         "/sub-01/ses-test/func/sub-01_ses-test_task-task_defacemask.nii",
-#         "/sub-01/ses-test/func/sub-01_ses-test_task-task_run-01_bold.nii.gz",
-#         "/sub-01/ses-test/func/sub-01_ses-test_task-task_run-01_bold.nii",
-#         "/sub-01/ses-test/func/sub-01_ses-test_task-task_run-01_bold.json",
-#         "/sub-01/ses-test/func/sub-01_ses-test_task-task_run-01_sbref.nii.gz",
-#         "/sub-01/ses-test/func/sub-01_ses-test_task-task_run-01_sbref.json",
-#         "/sub-01/ses-test/func/sub-01_ses-test_task-task_run-01_events.json",
-#         "/sub-01/ses-test/func/sub-01_ses-test_task-task_run-01_events.tsv",
-#         "/sub-01/ses-test/func/sub-01_ses-test_task-task_run-01_physio.json",
-#         "/sub-01/ses-test/func/sub-01_ses-test_task-task_run-01_physio.tsv.gz",
-#         "/sub-01/ses-test/func/sub-01_ses-test_task-task_run-01_stim.json",
-#         "/sub-01/ses-test/func/sub-01_ses-test_task-task_run-01_stim.tsv.gz",
-#         "/sub-01/ses-test/func/sub-01_ses-test_task-task_run-01_defacemask.nii.gz",
-#         "/sub-01/ses-test/func/sub-01_ses-test_task-task_run-01_defacemask.nii",
-#         "/sub-01/ses-test/func/sub-01_ses-test_task-task_rec-rec_bold.nii.gz",
-#         "/sub-01/ses-test/func/sub-01_ses-test_task-task_rec-rec_bold.nii",
-#         "/sub-01/ses-test/func/sub-01_ses-test_task-task_rec-rec_bold.json",
-#         "/sub-01/ses-test/func/sub-01_ses-test_task-task_rec-rec_sbref.nii.gz",
-#         "/sub-01/ses-test/func/sub-01_ses-test_task-task_rec-rec_sbref.json",
-#         "/sub-01/ses-test/func/sub-01_ses-test_task-task_rec-rec_events.json",
-#         "/sub-01/ses-test/func/sub-01_ses-test_task-task_rec-rec_events.tsv",
-#         "/sub-01/ses-test/func/sub-01_ses-test_task-task_rec-rec_physio.json",
-#         "/sub-01/ses-test/func/sub-01_ses-test_task-task_rec-rec_physio.tsv.gz",
-#         "/sub-01/ses-test/func/sub-01_ses-test_task-task_rec-rec_stim.json",
-#         "/sub-01/ses-test/func/sub-01_ses-test_task-task_rec-rec_stim.tsv.gz",
-#         "/sub-01/ses-test/func/sub-01_ses-test_task-task_rec-rec_defacemask.nii.gz",
-#         "/sub-01/ses-test/func/sub-01_ses-test_task-task_rec-rec_defacemask.nii",
-#         "/sub-01/ses-test/func/sub-01_ses-test_task-task_rec-rec_run-01_bold.nii.gz",
-#         "/sub-01/ses-test/func/sub-01_ses-test_task-task_rec-rec_run-01_bold.nii",
-#         "/sub-01/ses-test/func/sub-01_ses-test_task-task_rec-rec_run-01_bold.json",
-#         "/sub-01/ses-test/func/sub-01_ses-test_task-task_rec-rec_run-01_sbref.nii.gz",
-#         "/sub-01/ses-test/func/sub-01_ses-test_task-task_rec-rec_run-01_sbref.json",
-#         "/sub-01/ses-test/func/sub-01_ses-test_task-task_rec-rec_run-01_events.json",
-#         "/sub-01/ses-test/func/sub-01_ses-test_task-task_rec-rec_run-01_events.tsv",
-#         "/sub-01/ses-test/func/sub-01_ses-test_task-task_rec-rec_run-01_physio.json",
-#         "/sub-01/ses-test/func/sub-01_ses-test_task-task_rec-rec_run-01_physio.tsv.gz",
-#         "/sub-01/ses-test/func/sub-01_ses-test_task-task_rec-rec_run-01_stim.json",
-#         "/sub-01/ses-test/func/sub-01_ses-test_task-task_rec-rec_run-01_stim.tsv.gz",
-#         "/sub-01/ses-test/func/sub-01_ses-test_task-task_rec-rec_run-01_defacemask.nii.gz",
-#         "/sub-01/ses-test/func/sub-01_ses-test_task-task_rec-rec_run-01_defacemask.nii"]
-
-#     for item in target_list:
-#         result = testvalidator.is_func(item)
-#         assert result
-
-
-# # checks is_func() function false cases
 # def test_is_func_false(testvalidator):
 #     target_list = [
 #         "/sub-01/ses-test/func/sub--01_ses-test_task-task_rec-rec_stim.tsv.gz",  # wrong --
@@ -282,32 +106,6 @@
 #         assert not result
 
 
-# # checks is_func_bold() true cases
-# def test_is_func_bold_true(testvalidator):
-#     target_list = [
-#         "/sub-01/func/sub-01_task-coding_bold.nii.gz",
-#         "/sub-01/func/sub-01_task-coding_sbref.nii.gz",
-#         "/sub-01/func/sub-01_task-coding_acq-23_bold.nii.gz",
-#         "/sub-01/func/sub-01_task-coding_acq-23_sbref.nii.gz",
-#         "/sub-01/func/sub-01_task-coding_run-23_bold.nii.gz",
-#         "/sub-01/func/sub-01_task-coding_run-23_sbref.nii.gz",
-#         "/sub-01/func/sub-01_task-coding_acq-23_run-23_bold.nii.gz",
-#         "/sub-01/func/sub-01_task-coding_acq-23_run-23_sbref.nii.gz",
-#         "/sub-01/ses-test/func/sub-01_ses-test_task-coding_bold.nii.gz",
-#         "/sub-01/ses-test/func/sub-01_ses-test_task-coding_sbref.nii.gz",
-#         "/sub-01/ses-test/func/sub-01_ses-test_task-coding_acq-23_bold.nii.gz",
-#         "/sub-01/ses-test/func/sub-01_ses-test_task-coding_acq-23_sbref.nii.gz",
-#         "/sub-01/ses-test/func/sub-01_ses-test_task-coding_run-23_bold.nii.gz",
-#         "/sub-01/ses-test/func/sub-01_ses-test_task-coding_run-23_sbref.nii.gz",
-#         "/sub-01/ses-test/func/sub-01_ses-test_task-coding_acq-23_run-23_bold.nii.gz",
-#         "/sub-01/ses-test/func/sub-01_ses-test_task-coding_acq-23_run-23_sbref.nii.gz"]
-
-#     for item in target_list:
-#         result = testvalidator.is_func_bold(item)
-#         assert result
-
-
-# # checks is_func_bold() false cases
 # def test_is_func_bold_false(testvalidator):
 #     target_list = [
 #         # func not bold
@@ -347,31 +145,6 @@
 #         assert not result
 
 
-# # checks is_behavioral() function true cases
-# def test_is_behavioral_true(testvalidator):
-#     target_list = [
-#         "/sub-01/beh/sub-01_task-task_events.tsv",
-#         "/sub-01/beh/sub-01_task-task_events.json",
-#         "/sub-01/beh/sub-01_task-task_beh.json",
-#         "/sub-01/beh/sub-01_task-task_physio.json",
-#         "/sub-01/beh/sub-01_task-task_physio.tsv.gz",
-#         "/sub-01/beh/sub-01_task-task_stim.json",
-#         "/sub-01/beh/sub-01_task-task_stim.tsv.gz",
-#         "/sub-01/ses-test/beh/sub-01_ses-test_task-task_events.tsv",
-#         "/sub-01/ses-test/beh/sub-01_ses-test_task-task_events.json",
-#         "/sub-01/ses-test/beh/sub-01_ses-test_task-task_beh.json",
-#         "/sub-01/ses-test/beh/sub-01_ses-test_task-task_physio.json",
-#         "/sub-01/ses-test/beh/sub-01_ses-test_task-task_physio.tsv.gz",
-#         "/sub-01/ses-test/beh/sub-01_ses-test_task-task_stim.json",
-#         "/sub-01/ses-test/beh/sub-01_ses-test_task-task_stim.tsv.gz",
-#     ]
-
-#     for item in target_list:
-#         result = testvalidator.is_behavioral(item)
-#         assert result
-
-
-# # checks is_behavioral() function false cases
 # def test_is_behavioral_false(testvalidator):
 #     target_list = [
 #         "/sub-01/beeh/sub-01_task-task_events.tsv",  # wrong data type
@@ -395,33 +168,6 @@
 #         assert not result
 
 
-# # checks is_cont() function true cases
-# def test_is_cont_true(testvalidator):
-#     target_list = [
-#         "/sub-01/ses-test/func/sub-01_ses-test_task-nback_physio.tsv.gz",
-#         "/sub-01/ses-test/func/sub-01_ses-test_task-nback_physio.json",
-#         "/sub-01/ses-test/func/sub-01_ses-test_task-nback_stim.tsv.gz",
-#         "/sub-01/ses-test/func/sub-01_ses-test_task-nback_stim.json",
-#         "/sub-01/ses-test/func/sub-01_ses-test_task-nback_recording-saturation_physio.tsv.gz",
-#         "/sub-01/ses-test/func/sub-01_ses-test_task-nback_recording-saturation_physio.json",
-#         "/sub-01/ses-test/func/sub-01_ses-test_task-nback_recording-saturation_stim.tsv.gz",
-#         "/sub-01/ses-test/func/sub-01_ses-test_task-nback_recording-saturation_stim.json",
-#         "/sub-01/ses-test/beh/sub-01_ses-test_task-nback_physio.tsv.gz",
-#         "/sub-01/ses-test/beh/sub-01_ses-test_task-nback_physio.json",
-#         "/sub-01/ses-test/beh/sub-01_ses-test_task-nback_stim.tsv.gz",
-#         "/sub-01/ses-test/beh/sub-01_ses-test_task-nback_stim.json",
-#         "/sub-01/ses-test/beh/sub-01_ses-test_task-nback_recording-saturation_physio.tsv.gz",
-#         "/sub-01/ses-test/beh/sub-01_ses-test_task-nback_recording-saturation_physio.json",
-#         "/sub-01/ses-test/beh/sub-01_ses-test_task-nback_recording-saturation_stim.tsv.gz",
-#         "/sub-01/ses-test/beh/sub-01_ses-test_task-nback_recording-saturation_stim.json",
-#     ]
-
-#     for item in target_list:
-#         result = testvalidator.is_cont(item)
-#         assert result
-
-
-# # checks is_cont() function false cases
 # def test_is_cont_false(testvalidator):
 #     target_list = [
 #         "/sub-01/ses-test/func/sub--01_ses-test_task-nback_physio.tsv.gz",  # wrong --
@@ -446,206 +192,6 @@
 #         result = testvalidator.is_cont(item)
 #         assert not result
 
-
-# # checks is_field_map() function true cases
-# def test_is_field_map_true(testvalidator):
-#     target_list = [
-#         "/sub-01/fmap/sub-01_phasediff.nii.gz",
-#         "/sub-01/fmap/sub-01_phasediff.json",
-#         "/sub-01/fmap/sub-01_phasediff.nii",
-#         "/sub-01/fmap/sub-01_phase1.nii.gz",
-#         "/sub-01/fmap/sub-01_phase1.json",
-#         "/sub-01/fmap/sub-01_phase1.nii",
-#         "/sub-01/fmap/sub-01_phase2.nii.gz",
-#         "/sub-01/fmap/sub-01_phase2.json",
-#         "/sub-01/fmap/sub-01_phase2.nii",
-#         "/sub-01/fmap/sub-01_magnitude.nii.gz",
-#         "/sub-01/fmap/sub-01_magnitude.json",
-#         "/sub-01/fmap/sub-01_magnitude.nii",
-#         "/sub-01/fmap/sub-01_magnitude1.nii.gz",
-#         "/sub-01/fmap/sub-01_magnitude1.json",
-#         "/sub-01/fmap/sub-01_magnitude1.nii",
-#         "/sub-01/fmap/sub-01_magnitude2.nii.gz",
-#         "/sub-01/fmap/sub-01_magnitude2.json",
-#         "/sub-01/fmap/sub-01_magnitude2.nii",
-#         "/sub-01/fmap/sub-01_fieldmap.nii.gz",
-#         "/sub-01/fmap/sub-01_fieldmap.json",
-#         "/sub-01/fmap/sub-01_fieldmap.nii",
-#         "/sub-01/fmap/sub-01_run-01_phasediff.nii.gz",
-#         "/sub-01/fmap/sub-01_run-01_phasediff.json",
-#         "/sub-01/fmap/sub-01_run-01_phasediff.nii",
-#         "/sub-01/fmap/sub-01_run-01_phase1.nii.gz",
-#         "/sub-01/fmap/sub-01_run-01_phase1.json",
-#         "/sub-01/fmap/sub-01_run-01_phase1.nii",
-#         "/sub-01/fmap/sub-01_run-01_phase2.nii.gz",
-#         "/sub-01/fmap/sub-01_run-01_phase2.json",
-#         "/sub-01/fmap/sub-01_run-01_phase2.nii",
-#         "/sub-01/fmap/sub-01_run-01_magnitude.nii.gz",
-#         "/sub-01/fmap/sub-01_run-01_magnitude.json",
-#         "/sub-01/fmap/sub-01_run-01_magnitude.nii",
-#         "/sub-01/fmap/sub-01_run-01_magnitude1.nii.gz",
-#         "/sub-01/fmap/sub-01_run-01_magnitude1.json",
-#         "/sub-01/fmap/sub-01_run-01_magnitude1.nii",
-#         "/sub-01/fmap/sub-01_run-01_magnitude2.nii.gz",
-#         "/sub-01/fmap/sub-01_run-01_magnitude2.json",
-#         "/sub-01/fmap/sub-01_run-01_magnitude2.nii",
-#         "/sub-01/fmap/sub-01_run-01_fieldmap.nii.gz",
-#         "/sub-01/fmap/sub-01_run-01_fieldmap.json",
-#         "/sub-01/fmap/sub-01_run-01_fieldmap.nii",
-#         "/sub-01/fmap/sub-01_dir-dirlabel_epi.nii.gz",
-#         "/sub-01/fmap/sub-01_dir-dirlabel_epi.json",
-#         "/sub-01/fmap/sub-01_dir-dirlabel_epi.nii",
-#         "/sub-01/fmap/sub-01_dir-dirlabel_run-01_epi.nii.gz",
-#         "/sub-01/fmap/sub-01_dir-dirlabel_run-01_epi.json",
-#         "/sub-01/fmap/sub-01_dir-dirlabel_run-01_epi.nii",
-#         "/sub-01/fmap/sub-01_acq-singleband_phasediff.nii.gz",
-#         "/sub-01/fmap/sub-01_acq-singleband_phasediff.json",
-#         "/sub-01/fmap/sub-01_acq-singleband_phasediff.nii",
-#         "/sub-01/fmap/sub-01_acq-singleband_phase1.nii.gz",
-#         "/sub-01/fmap/sub-01_acq-singleband_phase1.json",
-#         "/sub-01/fmap/sub-01_acq-singleband_phase1.nii",
-#         "/sub-01/fmap/sub-01_acq-singleband_phase2.nii.gz",
-#         "/sub-01/fmap/sub-01_acq-singleband_phase2.json",
-#         "/sub-01/fmap/sub-01_acq-singleband_phase2.nii",
-#         "/sub-01/fmap/sub-01_acq-singleband_magnitude.nii.gz",
-#         "/sub-01/fmap/sub-01_acq-singleband_magnitude.json",
-#         "/sub-01/fmap/sub-01_acq-singleband_magnitude.nii",
-#         "/sub-01/fmap/sub-01_acq-singleband_magnitude1.nii.gz",
-#         "/sub-01/fmap/sub-01_acq-singleband_magnitude1.json",
-#         "/sub-01/fmap/sub-01_acq-singleband_magnitude1.nii",
-#         "/sub-01/fmap/sub-01_acq-singleband_magnitude2.nii.gz",
-#         "/sub-01/fmap/sub-01_acq-singleband_magnitude2.json",
-#         "/sub-01/fmap/sub-01_acq-singleband_magnitude2.nii",
-#         "/sub-01/fmap/sub-01_acq-singleband_fieldmap.nii.gz",
-#         "/sub-01/fmap/sub-01_acq-singleband_fieldmap.json",
-#         "/sub-01/fmap/sub-01_acq-singleband_fieldmap.nii",
-#         "/sub-01/fmap/sub-01_acq-singleband_run-01_phasediff.nii.gz",
-#         "/sub-01/fmap/sub-01_acq-singleband_run-01_phasediff.json",
-#         "/sub-01/fmap/sub-01_acq-singleband_run-01_phasediff.nii",
-#         "/sub-01/fmap/sub-01_acq-singleband_run-01_phase1.nii.gz",
-#         "/sub-01/fmap/sub-01_acq-singleband_run-01_phase1.json",
-#         "/sub-01/fmap/sub-01_acq-singleband_run-01_phase1.nii",
-#         "/sub-01/fmap/sub-01_acq-singleband_run-01_phase2.nii.gz",
-#         "/sub-01/fmap/sub-01_acq-singleband_run-01_phase2.json",
-#         "/sub-01/fmap/sub-01_acq-singleband_run-01_phase2.nii",
-#         "/sub-01/fmap/sub-01_acq-singleband_run-01_magnitude.nii.gz",
-#         "/sub-01/fmap/sub-01_acq-singleband_run-01_magnitude.json",
-#         "/sub-01/fmap/sub-01_acq-singleband_run-01_magnitude.nii",
-#         "/sub-01/fmap/sub-01_acq-singleband_run-01_magnitude1.nii.gz",
-#         "/sub-01/fmap/sub-01_acq-singleband_run-01_magnitude1.json",
-#         "/sub-01/fmap/sub-01_acq-singleband_run-01_magnitude1.nii",
-#         "/sub-01/fmap/sub-01_acq-singleband_run-01_magnitude2.nii.gz",
-#         "/sub-01/fmap/sub-01_acq-singleband_run-01_magnitude2.json",
-#         "/sub-01/fmap/sub-01_acq-singleband_run-01_magnitude2.nii",
-#         "/sub-01/fmap/sub-01_acq-singleband_run-01_fieldmap.nii.gz",
-#         "/sub-01/fmap/sub-01_acq-singleband_run-01_fieldmap.json",
-#         "/sub-01/fmap/sub-01_acq-singleband_run-01_fieldmap.nii",
-#         "/sub-01/fmap/sub-01_acq-singleband_dir-dirlabel_epi.nii.gz",
-#         "/sub-01/fmap/sub-01_acq-singleband_dir-dirlabel_epi.json",
-#         "/sub-01/fmap/sub-01_acq-singleband_dir-dirlabel_epi.nii",
-#         "/sub-01/fmap/sub-01_acq-singleband_dir-dirlabel_run-01_epi.nii.gz",
-#         "/sub-01/fmap/sub-01_acq-singleband_dir-dirlabel_run-01_epi.json",
-#         "/sub-01/fmap/sub-01_acq-singleband_dir-dirlabel_run-01_epi.nii",
-#         "/sub-01/ses-test/fmap/sub-01_ses-test_phasediff.nii.gz",
-#         "/sub-01/ses-test/fmap/sub-01_ses-test_phasediff.json",
-#         "/sub-01/ses-test/fmap/sub-01_ses-test_phasediff.nii",
-#         "/sub-01/ses-test/fmap/sub-01_ses-test_phase1.nii.gz",
-#         "/sub-01/ses-test/fmap/sub-01_ses-test_phase1.json",
-#         "/sub-01/ses-test/fmap/sub-01_ses-test_phase1.nii",
-#         "/sub-01/ses-test/fmap/sub-01_ses-test_phase2.nii.gz",
-#         "/sub-01/ses-test/fmap/sub-01_ses-test_phase2.json",
-#         "/sub-01/ses-test/fmap/sub-01_ses-test_phase2.nii",
-#         "/sub-01/ses-test/fmap/sub-01_ses-test_magnitude.nii.gz",
-#         "/sub-01/ses-test/fmap/sub-01_ses-test_magnitude.json",
-#         "/sub-01/ses-test/fmap/sub-01_ses-test_magnitude.nii",
-#         "/sub-01/ses-test/fmap/sub-01_ses-test_magnitude1.nii.gz",
-#         "/sub-01/ses-test/fmap/sub-01_ses-test_magnitude1.json",
-#         "/sub-01/ses-test/fmap/sub-01_ses-test_magnitude1.nii",
-#         "/sub-01/ses-test/fmap/sub-01_ses-test_magnitude2.nii.gz",
-#         "/sub-01/ses-test/fmap/sub-01_ses-test_magnitude2.json",
-#         "/sub-01/ses-test/fmap/sub-01_ses-test_magnitude2.nii",
-#         "/sub-01/ses-test/fmap/sub-01_ses-test_fieldmap.nii.gz",
-#         "/sub-01/ses-test/fmap/sub-01_ses-test_fieldmap.json",
-#         "/sub-01/ses-test/fmap/sub-01_ses-test_fieldmap.nii",
-#         "/sub-01/ses-test/fmap/sub-01_ses-test_run-01_phasediff.nii.gz",
-#         "/sub-01/ses-test/fmap/sub-01_ses-test_run-01_phasediff.json",
-#         "/sub-01/ses-test/fmap/sub-01_ses-test_run-01_phasediff.nii",
-#         "/sub-01/ses-test/fmap/sub-01_ses-test_run-01_phase1.nii.gz",
-#         "/sub-01/ses-test/fmap/sub-01_ses-test_run-01_phase1.json",
-#         "/sub-01/ses-test/fmap/sub-01_ses-test_run-01_phase1.nii",
-#         "/sub-01/ses-test/fmap/sub-01_ses-test_run-01_phase2.nii.gz",
-#         "/sub-01/ses-test/fmap/sub-01_ses-test_run-01_phase2.json",
-#         "/sub-01/ses-test/fmap/sub-01_ses-test_run-01_phase2.nii",
-#         "/sub-01/ses-test/fmap/sub-01_ses-test_run-01_magnitude.nii.gz",
-#         "/sub-01/ses-test/fmap/sub-01_ses-test_run-01_magnitude.json",
-#         "/sub-01/ses-test/fmap/sub-01_ses-test_run-01_magnitude.nii",
-#         "/sub-01/ses-test/fmap/sub-01_ses-test_run-01_magnitude1.nii.gz",
-#         "/sub-01/ses-test/fmap/sub-01_ses-test_run-01_magnitude1.json",
-#         "/sub-01/ses-test/fmap/sub-01_ses-test_run-01_magnitude1.nii",
-#         "/sub-01/ses-test/fmap/sub-01_ses-test_run-01_magnitude2.nii.gz",
-#         "/sub-01/ses-test/fmap/sub-01_ses-test_run-01_magnitude2.json",
-#         "/sub-01/ses-test/fmap/sub-01_ses-test_run-01_magnitude2.nii",
-#         "/sub-01/ses-test/fmap/sub-01_ses-test_run-01_fieldmap.nii.gz",
-#         "/sub-01/ses-test/fmap/sub-01_ses-test_run-01_fieldmap.json",
-#         "/sub-01/ses-test/fmap/sub-01_ses-test_run-01_fieldmap.nii",
-#         "/sub-01/ses-test/fmap/sub-01_ses-test_dir-dirlabel_epi.nii.gz",
-#         "/sub-01/ses-test/fmap/sub-01_ses-test_dir-dirlabel_epi.json",
-#         "/sub-01/ses-test/fmap/sub-01_ses-test_dir-dirlabel_epi.nii",
-#         "/sub-01/ses-test/fmap/sub-01_ses-test_dir-dirlabel_run-01_epi.nii.gz",
-#         "/sub-01/ses-test/fmap/sub-01_ses-test_dir-dirlabel_run-01_epi.json",
-#         "/sub-01/ses-test/fmap/sub-01_ses-test_dir-dirlabel_run-01_epi.nii",
-#         "/sub-01/ses-test/fmap/sub-01_ses-test_acq-singleband_phasediff.nii.gz",
-#         "/sub-01/ses-test/fmap/sub-01_ses-test_acq-singleband_phasediff.json",
-#         "/sub-01/ses-test/fmap/sub-01_ses-test_acq-singleband_phasediff.nii",
-#         "/sub-01/ses-test/fmap/sub-01_ses-test_acq-singleband_phase1.nii.gz",
-#         "/sub-01/ses-test/fmap/sub-01_ses-test_acq-singleband_phase1.json",
-#         "/sub-01/ses-test/fmap/sub-01_ses-test_acq-singleband_phase1.nii",
-#         "/sub-01/ses-test/fmap/sub-01_ses-test_acq-singleband_phase2.nii.gz",
-#         "/sub-01/ses-test/fmap/sub-01_ses-test_acq-singleband_phase2.json",
-#         "/sub-01/ses-test/fmap/sub-01_ses-test_acq-singleband_phase2.nii",
-#         "/sub-01/ses-test/fmap/sub-01_ses-test_acq-singleband_magnitude.nii.gz",
-#         "/sub-01/ses-test/fmap/sub-01_ses-test_acq-singleband_magnitude.json",
-#         "/sub-01/ses-test/fmap/sub-01_ses-test_acq-singleband_magnitude.nii",
-#         "/sub-01/ses-test/fmap/sub-01_ses-test_acq-singleband_magnitude1.nii.gz",
-#         "/sub-01/ses-test/fmap/sub-01_ses-test_acq-singleband_magnitude1.json",
-#         "/sub-01/ses-test/fmap/sub-01_ses-test_acq-singleband_magnitude1.nii",
-#         "/sub-01/ses-test/fmap/sub-01_ses-test_acq-singleband_magnitude2.nii.gz",
-#         "/sub-01/ses-test/fmap/sub-01_ses-test_acq-singleband_magnitude2.json",
-#         "/sub-01/ses-test/fmap/sub-01_ses-test_acq-singleband_magnitude2.nii",
-#         "/sub-01/ses-test/fmap/sub-01_ses-test_acq-singleband_fieldmap.nii.gz",
-#         "/sub-01/ses-test/fmap/sub-01_ses-test_acq-singleband_fieldmap.json",
-#         "/sub-01/ses-test/fmap/sub-01_ses-test_acq-singleband_fieldmap.nii",
-#         "/sub-01/ses-test/fmap/sub-01_ses-test_acq-singleband_run-01_phasediff.nii.gz",
-#         "/sub-01/ses-test/fmap/sub-01_ses-test_acq-singleband_run-01_phasediff.json",
-#         "/sub-01/ses-test/fmap/sub-01_ses-test_acq-singleband_run-01_phasediff.nii",
-#         "/sub-01/ses-test/fmap/sub-01_ses-test_acq-singleband_run-01_phase1.nii.gz",
-#         "/sub-01/ses-test/fmap/sub-01_ses-test_acq-singleband_run-01_phase1.json",
-#         "/sub-01/ses-test/fmap/sub-01_ses-test_acq-singleband_run-01_phase1.nii",
-#         "/sub-01/ses-test/fmap/sub-01_ses-test_acq-singleband_run-01_phase2.nii.gz",
-#         "/sub-01/ses-test/fmap/sub-01_ses-test_acq-singleband_run-01_phase2.json",
-#         "/sub-01/ses-test/fmap/sub-01_ses-test_acq-singleband_run-01_phase2.nii",
-#         "/sub-01/ses-test/fmap/sub-01_ses-test_acq-singleband_run-01_magnitude.nii.gz",
-#         "/sub-01/ses-test/fmap/sub-01_ses-test_acq-singleband_run-01_magnitude.json",
-#         "/sub-01/ses-test/fmap/sub-01_ses-test_acq-singleband_run-01_magnitude.nii",
-#         "/sub-01/ses-test/fmap/sub-01_ses-test_acq-singleband_run-01_magnitude1.nii.gz",
-#         "/sub-01/ses-test/fmap/sub-01_ses-test_acq-singleband_run-01_magnitude1.json",
-#         "/sub-01/ses-test/fmap/sub-01_ses-test_acq-singleband_run-01_magnitude1.nii",
-#         "/sub-01/ses-test/fmap/sub-01_ses-test_acq-singleband_run-01_magnitude2.nii.gz",
-#         "/sub-01/ses-test/fmap/sub-01_ses-test_acq-singleband_run-01_magnitude2.json",
-#         "/sub-01/ses-test/fmap/sub-01_ses-test_acq-singleband_run-01_magnitude2.nii",
-#         "/sub-01/ses-test/fmap/sub-01_ses-test_acq-singleband_run-01_fieldmap.nii.gz",
-#         "/sub-01/ses-test/fmap/sub-01_ses-test_acq-singleband_run-01_fieldmap.json",
-#         "/sub-01/ses-test/fmap/sub-01_ses-test_acq-singleband_run-01_fieldmap.nii",
-#         "/sub-01/ses-test/fmap/sub-01_ses-test_acq-singleband_dir-dirlabel_epi.nii.gz",
-#         "/sub-01/ses-test/fmap/sub-01_ses-test_acq-singleband_dir-dirlabel_epi.json",
-#         "/sub-01/ses-test/fmap/sub-01_ses-test_acq-singleband_dir-dirlabel_epi.nii",
-#         "/sub-01/ses-test/fmap/sub-01_ses-test_acq-singleband_dir-dirlabel_run-01_epi.nii.gz",
-#         "/sub-01/ses-test/fmap/sub-01_ses-test_acq-singleband_dir-dirlabel_run-01_epi.json",
-#         "/sub-01/ses-test/fmap/sub-01_ses-test_acq-singleband_dir-dirlabel_run-01_epi.nii"]
-
-#     for item in target_list:
-#         result = testvalidator.is_field_map(item)
-#         assert result
 
 
 # # checks is_field_map() function false cases
