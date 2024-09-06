@@ -526,7 +526,7 @@ class DenseRunVariable(BIDSVariable):
 
         def _create_index(all_keys, all_reps, all_ents):
             all_keys = np.array(sorted(all_keys))
-            df = pd.DataFrame(np.zeros((sum(all_reps), len(all_keys))), columns=all_keys)
+            df = pd.DataFrame(np.zeros((sum(all_reps), len(all_keys)), dtype=object), columns=all_keys)
 
             prev_ix = 0
             for i, reps in enumerate(all_reps):

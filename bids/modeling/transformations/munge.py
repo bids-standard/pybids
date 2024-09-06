@@ -140,7 +140,7 @@ class Factor(Transformation):
         variableClass = var.__class__
 
         levels = np.sort(data['amplitude'].unique())
-        new_cols = pd.get_dummies(data['amplitude'], drop_first=False)[levels]
+        new_cols = pd.get_dummies(data['amplitude'], drop_first=False, dtype=float)[levels]
 
         if len(levels) > 1 and constraint in ('drop_one', 'mean_zero'):
             if ref_level is None:
@@ -156,7 +156,7 @@ class Factor(Transformation):
                 continue
             name = ''.join([var.name, sep, str(lev)])
             lev_data = data.copy()
-            lev_data['amplitude'] = new_cols[lev].astype(float)
+            lev_data['amplitude'] = new_cols[lev]
             args = [name, lev_data, var.source]
             if hasattr(var, 'run_info'):
                 args.insert(2, var.run_info)
