@@ -158,7 +158,14 @@ class BIDSVariableCollection:
         ent_cols = list(all_cols - {"condition", "amplitude", "onset", "duration"})
 
         if format == "long":
-            df = df.reset_index(drop=True).fillna(fillna)
+            with warnings.catch_warnings():
+                # This change in behavior doesn't affect our usage, so ignore warnings
+                # without setting a global config for Pandas.
+                # Short story: fillna used to downcast object to float64, but if it isn't
+                # already float64, we have non-float objects in the column, so we've never
+                # downcasted.
+                warnings.filterwarnings("ignore", message='no_silent_downcasting', category=FutureWarning)
+                df = df.reset_index(drop=True).fillna(fillna)
         else:
             # Rows in wide format can only be defined by combinations of level entities
             # plus (for run-level variables) onset and duration.
