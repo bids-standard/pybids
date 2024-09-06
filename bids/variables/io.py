@@ -272,8 +272,9 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
                             columns={'amplitude': 'amplitude_'})
                     warnings.warn(msg)
 
-                _data = _data.replace('n/a', np.nan)  # Replace BIDS' n/a
-                _data = _data.apply(pd.to_numeric, errors='ignore')
+                # Pandas already converts 'n/a' to NaN. Leaving this comment
+                # because we used to do it manually here.
+                # We also converted to numeric, but this is now irrelevant.
 
                 _cols = columns or list(set(_data.columns.tolist()) -
                                         {'onset', 'duration'})
