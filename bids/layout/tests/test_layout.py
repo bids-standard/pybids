@@ -1140,3 +1140,22 @@ def test_indexer_patterns(fname):
         [re.compile(r"/\.")],
         root=root,
     ) is (".datalad" in fname)
+
+
+def test_symlinks_in_path(tmp_path):
+
+    src_ds = os.path.abspath(join(get_test_data_path(), '7t_trt'))
+    src_sub = join(src_ds, 'sub-04')
+
+    # This will be a normal directory with symlink contents
+    ds_with_links = Path(tmp_path / '7t_trt').absolute()
+
+    os.makedirs(ds_with_links, exist_ok=False)
+
+    link_ds_description = ds_with_links / 'dataset_description.json'
+    link_sub = ds_with_links / 'sub-04'
+
+    os.symlink(join(src_ds, 'dataset_description.json'), link_ds_description)
+    os.symlink(src_sub, link_sub)
+
+    assert "Subjects: 1 | Sessions: 2 | Runs: 2" in str(BIDSLayout(tmp_path / "7t_trt"))
