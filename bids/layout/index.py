@@ -207,6 +207,21 @@ class BIDSLayoutIndexer:
         # Get lists of 1st-level subdirectories and files in the path directory
         _, dirnames, filenames = next(path.fs.walk(path.path))
 
+        # Symbolic links are returned as filenames even if they point to directories
+        # Temporary list to store symbolic links that need to be removed from filenames
+        links_to_dirs = []
+
+        # Find directories in filenames
+        for possible_link in filenames:
+            full_path = path / possible_link
+            if full_path.is_dir():
+                links_to_dirs.append(possible_link)
+
+        dirnames.extend(links_to_dirs)
+
+        for link in links_to_dirs:
+            filenames.remove(link)
+
         # Move any directories suffixed with .zarr to filenames
         zarrnames = [entry for entry in dirnames if Path(entry).suffix == '.zarr']
         dirnames = [entry for entry in dirnames if Path(entry).suffix != '.zarr']
@@ -332,7 +347,7 @@ class BIDSLayoutIndexer:
 
                 to_store = (file_ents, payload, bf.path)
                 file_data[key][bf._dirname].append(to_store)
-                
+
         # To avoid integrity errors, track primary keys we've seen
         seen_assocs = set()
 
@@ -494,7 +509,7 @@ class BIDSLayoutIndexer:
                     self.session.add(all_entities[md_key])
                 tag = _create_tag_dict(bf, all_entities[md_key], md_val, is_metadata=True)
                 all_tag_dicts.append(tag)
-                
+
         self.session.bulk_save_objects(all_objs)
         self.session.bulk_insert_mappings(Tag, all_tag_dicts)
         self.session.commit()
