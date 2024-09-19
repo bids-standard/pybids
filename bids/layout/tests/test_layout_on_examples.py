@@ -44,7 +44,7 @@ def test_layout_on_examples_with_derivatives(dataset, nb_files, bids_examples):
         ("asl003", 10),
         ("asl004", 12),
         ("asl005", 10),
-        ("ds001", 134), # with anat and func data
+        ("ds001", 135), # with anat and func data
         ("eeg_cbm", 104),
         ("ds000246", 19), # with meg data (excludes all files in .ds folders)
         ("genetics_ukbb", 96), # with dwi data
