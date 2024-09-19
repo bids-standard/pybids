@@ -1,6 +1,13 @@
 Changelog
 =========
 
+Version 0.17.2 (September 19, 2024)
+-----------------------------------
+
+Bug-fix release in the 0.17.x series.
+
+* BUG: symlink dirs treated as files during indexing (#1087)
+
 Version 0.17.1 (September 06, 2024)
 -----------------------------------
 
