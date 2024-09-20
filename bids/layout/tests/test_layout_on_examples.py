@@ -61,7 +61,6 @@ def test_layout_on_examples_with_derivatives(dataset, nb_files, bids_examples):
         ("mrs_fmrs", 169),
         ("mrs_biggaba", 172),
         ("mrs_2dmrsi", 67),
-
     ],
 )
 def test_layout_on_examples_no_derivatives(dataset, nb_files, bids_examples):
