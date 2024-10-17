@@ -3,6 +3,6 @@ from setuptools import setup
 import versioneer
 
 setup(
-    version="0.17.2-dev",
+    version=versioneer.get_version(),
     cmdclass=versioneer.get_cmdclass(),
 )
