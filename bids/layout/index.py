@@ -41,12 +41,17 @@ def _extract_entities(bidsfile, entities):
 
 def _check_path_matches_patterns(path, patterns, root=None):
     """Check if the path matches at least one of the provided patterns. """
+
     if not patterns:
         return False
 
     path = path.absolute()
     if root is not None:
-        path = Path("/") / path.relative_to(root)
+
+        if isinstance(path,Path):
+            path = Path("/") / Path(path.path).relative_to(Path(root.path))
+        else:
+            path = Path("/") / path.relative_to(root)
 
     # Path now can be downcast to str
     path = str(path)
