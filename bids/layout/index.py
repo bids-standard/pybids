@@ -187,11 +187,11 @@ class BIDSLayoutIndexer:
         return self.validator.is_bids(to_check)
 
     def _index_dir(self, path, config, force=None):
-
-        abs_path = self._layout._root / path
+        root_path = Path(self._layout._root.path) # drops the uri prefix if it is there
+        abs_path = root_path / Path(path.path).relative_to(root_path)
 
         # Derivative directories must always be added separately
-        if self._layout._root.joinpath('derivatives') in abs_path.parents:
+        if root_path.joinpath('derivatives') in abs_path.parents:
             return [], []
 
         config = list(config)  # Shallow copy
@@ -211,6 +211,7 @@ class BIDSLayoutIndexer:
 
         # Get lists of 1st-level subdirectories and files in the path directory
         _, dirnames, filenames = next(path.fs.walk(path.path))
+
 
         # Symbolic links are returned as filenames even if they point to directories
         # Temporary list to store symbolic links that need to be removed from filenames
