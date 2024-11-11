@@ -41,12 +41,17 @@ def _extract_entities(bidsfile, entities):
 
 def _check_path_matches_patterns(path, patterns, root=None):
     """Check if the path matches at least one of the provided patterns. """
+
     if not patterns:
         return False
 
     path = path.absolute()
     if root is not None:
-        path = Path("/") / path.relative_to(root)
+
+        if isinstance(path,Path):
+            path = Path("/") / Path(path.path).relative_to(Path(root.path))
+        else:
+            path = Path("/") / path.relative_to(root)
 
     # Path now can be downcast to str
     path = str(path)
@@ -182,11 +187,11 @@ class BIDSLayoutIndexer:
         return self.validator.is_bids(to_check)
 
     def _index_dir(self, path, config, force=None):
-
-        abs_path = self._layout._root / path
+        root_path = Path(self._layout._root.path) # drops the uri prefix if it is there
+        abs_path = root_path / Path(path.path).relative_to(root_path)
 
         # Derivative directories must always be added separately
-        if self._layout._root.joinpath('derivatives') in abs_path.parents:
+        if root_path.joinpath('derivatives') in abs_path.parents:
             return [], []
 
         config = list(config)  # Shallow copy
@@ -206,6 +211,7 @@ class BIDSLayoutIndexer:
 
         # Get lists of 1st-level subdirectories and files in the path directory
         _, dirnames, filenames = next(path.fs.walk(path.path))
+
 
         # Symbolic links are returned as filenames even if they point to directories
         # Temporary list to store symbolic links that need to be removed from filenames

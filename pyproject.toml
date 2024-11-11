@@ -52,6 +52,7 @@ test = [
   "coverage[toml]",
   "altair",
   "pytest-xdist",
+  "s3fs" #for testing remote uri
 ]
 model_reports = [
   "jinja2",
