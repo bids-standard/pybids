@@ -14,7 +14,9 @@ def testlayout(tests_dir):
 
 @pytest.fixture(scope='session')
 def config_file():
-    return files('bids.reports.config') / 'converters.json'
+    # PY39: config isn't a module, so can't be used in files()
+    # This is relaxed in more recent Pythons
+    return files('bids.reports') / 'config' / 'converters.json'
 
 
 @pytest.fixture(scope='session')
