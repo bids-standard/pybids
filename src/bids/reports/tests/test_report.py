@@ -1,19 +1,7 @@
 """Tests for bids.reports.report."""
-import json
 from collections import Counter
-from os.path import abspath, join
 
-import pytest
-from bids.layout import BIDSLayout
 from bids.reports import BIDSReport
-from bids.tests import get_test_data_path
-
-
-@pytest.fixture
-def testlayout():
-    """A BIDSLayout for testing."""
-    data_dir = join(get_test_data_path(), "synthetic")
-    return BIDSLayout(data_dir)
 
 
 def test_report_init(testlayout):
@@ -57,23 +45,15 @@ def test_report_session(testlayout):
     assert "session 02" not in " ".join(descriptions.keys())
 
 
-def test_report_file_config(testlayout):
+def test_report_file_config(testlayout, config_file):
     """Report initialization should take in a config file and use that if provided."""
-    config_file = abspath(
-        join(get_test_data_path(), "../../reports/config/converters.json")
-    )
-    report = BIDSReport(testlayout, config=config_file)
+    report = BIDSReport(testlayout, config=str(config_file))
     descriptions = report.generate()
     assert isinstance(descriptions, Counter)
 
 
-def test_report_dict_config(testlayout):
+def test_report_dict_config(testlayout, testconfig):
     """Report initialization should take in a config dict and use that if provided."""
-    config_file = abspath(
-        join(get_test_data_path(), "../../reports/config/converters.json")
-    )
-    with open(config_file, "r") as fobj:
-        config = json.load(fobj)
-    report = BIDSReport(testlayout, config=config)
+    report = BIDSReport(testlayout, config=testconfig)
     descriptions = report.generate()
     assert isinstance(descriptions, Counter)

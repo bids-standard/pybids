@@ -1,28 +1,6 @@
 """Tests for bids.reports.parsing."""
-import json
-from os.path import abspath, join
-
 import pytest
-from bids.layout import BIDSLayout
 from bids.reports import parsing
-from bids.tests import get_test_data_path
-
-
-@pytest.fixture
-def testlayout():
-    """A BIDSLayout for testing."""
-    data_dir = join(get_test_data_path(), "synthetic")
-    return BIDSLayout(data_dir)
-
-
-@pytest.fixture
-def testconfig():
-    config_file = abspath(
-        join(get_test_data_path(), "../../reports/config/converters.json")
-    )
-    with open(config_file, "r") as fobj:
-        config = json.load(fobj)
-    return config
 
 
 @pytest.fixture
