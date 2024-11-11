@@ -41,7 +41,7 @@ def mock_config(config_paths, extension_initial_dot):
 def bids_examples():
     examples_dir = Path(os.getenv(
         "BIDS_EXAMPLES",
-        Path(__file__).absolute().parent.parent / "bids-examples"
+        Path(__file__).absolute().parent.parent.parent / "bids-examples"
     ))
 
     if not Path.is_dir(examples_dir / "ds001"):
@@ -50,3 +50,17 @@ def bids_examples():
             "Override default location with BIDS_EXAMPLES environment variable."
         )
     return examples_dir
+
+@pytest.fixture(scope='session')
+def tests_dir():
+    test_dir = Path(os.getenv(
+        "PYBIDS_TEST_DATA",
+        Path(__file__).absolute().parent.parent.parent / "tests"
+    ))
+
+    if not Path.is_dir(test_dir / "data"):
+        pytest.skip(
+            f"BIDS examples missing from {test_dir}. "
+            "Override default location with PYBIDS_TEST_DATA environment variable."
+        )
+    return test_dir

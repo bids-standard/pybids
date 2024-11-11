@@ -15,7 +15,6 @@ from bids.layout import BIDSLayout, Query
 from bids.layout.models import Config
 from bids.layout.index import BIDSLayoutIndexer, _check_path_matches_patterns, _regexfy
 from bids.layout.utils import PaddedInt
-from bids.tests import get_test_data_path
 from bids.utils import natural_sort
 
 from bids.exceptions import (
@@ -42,8 +41,8 @@ def test_layout_init(layout_7t_trt):
         (True, {'task': 'rest', 'extension': '.nii.gz'}, 3.0),
         (True, {'task': 'rest', 'extension': ['.nii.gz', '.json'], 'return_type': 'file'}, 3.0),
     ])
-def test_index_metadata(index_metadata, query, result, mock_config):
-    data_dir = join(get_test_data_path(), '7t_trt')
+def test_index_metadata(tests_dir, index_metadata, query, result, mock_config):
+    data_dir = tests_dir / 'data' / '7t_trt'
     layout = BIDSLayout(
         data_dir,
         indexer=BIDSLayoutIndexer(index_metadata=index_metadata),
@@ -59,11 +58,10 @@ def test_index_metadata(index_metadata, query, result, mock_config):
 
 
 @pytest.mark.parametrize('config_type', [str, Path])
-def test_config_filename(config_type):
-    data_path = Path(get_test_data_path())
+def test_config_filename(tests_dir, config_type):
     # Use custom config that replaces session with oligarchy
-    config_path = data_path.parent / 'bids_specs_with_oligarchy.json'
-    layout = BIDSLayout(data_path / "7t_trt", config=config_type(config_path))
+    config_path = tests_dir / 'data' / 'bids_specs_with_oligarchy.json'
+    layout = BIDSLayout(tests_dir / 'data' / "7t_trt", config=config_type(config_path))
     # Validate that we are using the desired configuration
     assert 'oligarchy' in layout.get_entities()
 
@@ -72,8 +70,8 @@ def test_layout_repr(layout_7t_trt):
     assert "Subjects: 10 | Sessions: 20 | Runs: 20" in str(layout_7t_trt)
 
 
-def test_invalid_dataset_description(tmp_path):
-    shutil.copytree(join(get_test_data_path(), '7t_trt'), tmp_path / "7t_dset")
+def test_invalid_dataset_description(tests_dir, tmp_path):
+    shutil.copytree(tests_dir / 'data' / '7t_trt', tmp_path / "7t_dset")
     (tmp_path / "7t_dset" / "dataset_description.json").write_text(
         "I am not a valid json file"
     )
@@ -83,9 +81,9 @@ def test_invalid_dataset_description(tmp_path):
     assert "is not a valid json file" in str(exc.value)
 
 
-def test_layout_repr_overshadow_run(tmp_path):
+def test_layout_repr_overshadow_run(tests_dir, tmp_path):
     """A test creating a layout to replicate #681."""
-    shutil.copytree(join(get_test_data_path(), '7t_trt'), tmp_path / "7t_trt")
+    shutil.copytree(tests_dir / 'data' / '7t_trt', tmp_path / "7t_trt")
     (tmp_path / "7t_trt" / "sub-01" / "ses-1" / "sub-01_ses-1_scans.json").write_text(
         json.dumps({"run": {"Description": "metadata to cause #681"}})
     )
@@ -151,47 +149,40 @@ def test_get_file(layout_ds005_derivs):
 
 
 class TestDerivativeAsRoot:
-    def test_dataset_without_datasettype_parsed_as_raw(self):
-        dataset_path = Path("ds005_derivs", "format_errs", "no_dataset_type")
-        unvalidated = BIDSLayout(
-            Path(get_test_data_path())/dataset_path,
-            validate=False
-        )
+    def test_dataset_without_datasettype_parsed_as_raw(self, tests_dir):
+        ds_root = tests_dir / "data" / "ds005_derivs" / "format_errs" / "no_dataset_type"
+        unvalidated = BIDSLayout(ds_root, validate=False)
         assert len(unvalidated.get()) == 4
         with pytest.raises(ValueError):
             unvalidated.get(desc="preproc")
 
-        validated = BIDSLayout(Path(get_test_data_path())/dataset_path)
+        validated = BIDSLayout(ds_root)
         assert len(validated.get()) == 1
 
-    def test_derivative_indexing_forced_with_is_derivative(self):
-        dataset_path = Path("ds005_derivs", "format_errs", "no_type_or_description")
+    def test_derivative_indexing_forced_with_is_derivative(self, tests_dir):
         unvalidated = BIDSLayout(
-            Path(get_test_data_path())/dataset_path,
+            tests_dir / "data" / "ds005_derivs" / "format_errs" / "no_type_or_description",
             is_derivative=True,
             validate=False
         )
         assert len(unvalidated.get()) == 4
         assert len(unvalidated.get(desc="preproc")) == 3
 
-    def test_forced_derivative_indexing_fails_validation(self):
-        dataset_path = Path("ds005_derivs", "format_errs", "no_type_or_description")
+    def test_forced_derivative_indexing_fails_validation(self, tests_dir):
         with pytest.raises(BIDSDerivativesValidationError):
             BIDSLayout(
-                Path(get_test_data_path())/dataset_path,
+                tests_dir / "data" / "ds005_derivs" / "format_errs" / "no_type_or_description",
                 is_derivative=True,
                 validate=True
             )
 
-    def test_dataset_missing_generatedby_fails_validation(self):
-        dataset_path = Path("ds005_derivs", "format_errs", "no_pipeline_description")
+    def test_dataset_missing_generatedby_fails_validation(self, tests_dir):
         with pytest.raises(BIDSDerivativesValidationError):
-            BIDSLayout(Path(get_test_data_path())/dataset_path)
+            BIDSLayout(tests_dir / "data" / "ds005_derivs" / "format_errs" / "no_pipeline_description")
 
 
-    def test_correctly_formatted_derivative_loads_as_derivative(self):
-        dataset_path = Path("ds005_derivs", "dummy")
-        layout = BIDSLayout(Path(get_test_data_path())/dataset_path, validate=False)
+    def test_correctly_formatted_derivative_loads_as_derivative(self, tests_dir):
+        layout = BIDSLayout(tests_dir / "data" / "ds005_derivs" / "dummy", validate=False)
         assert len(layout.get()) == 4
         assert len(layout.get(desc="preproc")) == 3
 
@@ -202,9 +193,9 @@ class TestDerivativeAsRoot:
             Path("ds005_derivs", "format_errs", "no_pipeline_description")
         ]
     )
-    def test_derivative_datasets_load_with_no_validation(self, dataset_path):
+    def test_derivative_datasets_load_with_no_validation(self, tests_dir, dataset_path):
         layout = BIDSLayout(
-            Path(get_test_data_path())/dataset_path,
+            tests_dir / "data" / dataset_path,
             validate=False
         )
         assert len(layout.get()) == 4
@@ -397,7 +388,7 @@ def test_get_return_type_dir(layout_7t_trt, layout_7t_trt_relpath):
 
     res = layout_7t_trt.get(**query)
     target = [
-        os.path.join(get_test_data_path(), '7t_trt', p)
+        os.path.join(layout_7t_trt.root, p)
         for p in target_relpath
     ]
     assert target == res
@@ -458,8 +449,8 @@ def test_get_return_sorted(layout_7t_trt):
     assert files == paths
 
 
-def test_ignore_files(layout_ds005):
-    data_dir = join(get_test_data_path(), 'ds005')
+def test_ignore_files(tests_dir, layout_ds005):
+    data_dir = tests_dir / 'data' / 'ds005'
     target1 = join(data_dir, 'models', 'ds-005_type-test_model.json')
     target2 = join(data_dir, 'models', 'extras', 'ds-005_type-test_model.json')
     layout1 = BIDSLayout(data_dir, validate=False)
@@ -476,8 +467,8 @@ def test_ignore_files(layout_ds005):
     assert target2 not in layout2.files
 
 
-def test_force_index(layout_ds005):
-    data_dir = join(get_test_data_path(), 'ds005')
+def test_force_index(tests_dir, layout_ds005):
+    data_dir = tests_dir / 'data' / 'ds005'
     target = join(data_dir, 'models', 'ds-005_type-test_model.json')
     indexer = BIDSLayoutIndexer(force_index=[re.compile('models(/.*)?')])
     model_layout = BIDSLayout(data_dir, validate=True, indexer=indexer)
@@ -488,8 +479,8 @@ def test_force_index(layout_ds005):
         assert 'derivatives' not in f.path
 
 
-def test_nested_include_exclude():
-    data_dir = join(get_test_data_path(), 'ds005')
+def test_nested_include_exclude(tests_dir):
+    data_dir = tests_dir / 'data' / 'ds005'
     target1 = join(data_dir, 'models', 'ds-005_type-test_model.json')
     target2 = join(data_dir, 'models', 'extras', 'ds-005_type-test_model.json')
 
@@ -600,11 +591,11 @@ def test_nested_include_exclude():
     assert layout.get_file(target2)
 
 
-def test_nested_include_exclude_with_regex():
+def test_nested_include_exclude_with_regex(tests_dir):
     # ~same as above test, but use regexps instead of strings
     patt1 = re.compile(r'.*dels/?$')
     patt2 = re.compile(r'.*xtra.*')
-    data_dir = join(get_test_data_path(), 'ds005')
+    data_dir = tests_dir / 'data' / 'ds005'
     target1 = join(data_dir, 'models', 'ds-005_type-test_model.json')
     target2 = join(data_dir, 'models', 'extras', 'ds-005_type-test_model.json')
 
@@ -660,8 +651,8 @@ def test_nested_include_exclude_with_regex():
     assert layout.get_file(target2)
 
 
-def test_layout_with_derivs(layout_ds005_derivs):
-    assert layout_ds005_derivs.root == join(get_test_data_path(), 'ds005')
+def test_layout_with_derivs(tests_dir, layout_ds005_derivs):
+    assert layout_ds005_derivs.root == str(tests_dir / 'data' / 'ds005')
     assert isinstance(layout_ds005_derivs.files, dict)
     assert len(layout_ds005_derivs.derivatives) == 1
     deriv = layout_ds005_derivs.derivatives['events']
@@ -702,8 +693,8 @@ def test_cant_get_deriv_with_duplicate_pipeline_via_method(layout_ds005_deriv_bo
         layout_ds005_deriv_both_dummies.derivatives.get_pipeline('dummy')
 
 
-def test_layout_with_multi_derivs(layout_ds005_multi_derivs):
-    assert layout_ds005_multi_derivs.root == join(get_test_data_path(), 'ds005')
+def test_layout_with_multi_derivs(tests_dir, layout_ds005_multi_derivs):
+    assert layout_ds005_multi_derivs.root == str(tests_dir / 'data' / 'ds005')
     assert isinstance(layout_ds005_multi_derivs.files, dict)
     assert len(layout_ds005_multi_derivs.derivatives) == 2
     deriv = layout_ds005_multi_derivs.derivatives['events']
@@ -718,13 +709,12 @@ def test_layout_with_multi_derivs(layout_ds005_multi_derivs):
     assert len(preproc) == 3
 
 
-def test_layout_with_conflicting_deriv_folders():
-    data_dir = join(get_test_data_path(), 'ds005')
+def test_layout_with_conflicting_deriv_folders(tests_dir):
+    data_dir = tests_dir / 'data' / 'ds005'
     layout = BIDSLayout(data_dir)
-    deriv_dir1 = join(get_test_data_path(), 'ds005_derivs', 'dummy')
-    deriv_dir2 = join(get_test_data_path(), 'ds005_derivs', 'dummy')
+    deriv_dir = tests_dir / 'data' / 'ds005_derivs' / 'dummy'
     with pytest.raises(BIDSDerivativesValidationError):
-        layout.add_derivatives([deriv_dir1, deriv_dir2])
+        layout.add_derivatives([deriv_dir, deriv_dir])
 
 
 def test_query_derivatives(layout_ds005_derivs):
@@ -745,8 +735,8 @@ def test_query_derivatives(layout_ds005_derivs):
     assert 'sub-01_task-mixedgamblestask_run-01_desc-extra_events.tsv' in result
 
 
-def test_restricted_words_in_path(tmpdir):
-    orig_path = join(get_test_data_path(), 'synthetic')
+def test_restricted_words_in_path(tests_dir, tmpdir):
+    orig_path = tests_dir / 'data' / 'synthetic'
     parent_dir = str(tmpdir / 'derivatives' / 'pipeline')
     os.makedirs(parent_dir)
     new_path = join(parent_dir, 'sourcedata')
@@ -754,13 +744,13 @@ def test_restricted_words_in_path(tmpdir):
     orig_layout = BIDSLayout(orig_path)
     new_layout = BIDSLayout(new_path)
 
-    orig_files = set(f.replace(orig_path, '') for f in orig_layout.files)
+    orig_files = set(f.replace(str(orig_path), '') for f in orig_layout.files)
     new_files = set(f.replace(new_path, '') for f in new_layout.files)
     assert orig_files == new_files
 
 
-def test_derivative_getters():
-    synth_path = join(get_test_data_path(), 'synthetic')
+def test_derivative_getters(tests_dir):
+    synth_path = tests_dir / 'data' / 'synthetic'
     bare_layout = BIDSLayout(synth_path, derivatives=False)
     full_layout = BIDSLayout(synth_path, derivatives=True)
     assert bare_layout.get_spaces() == []
@@ -829,8 +819,8 @@ def test_parse_file_entities_from_layout(layout_synthetic):
     assert target == layout.parse_file_entities(filename, config='derivatives')
 
 
-def test_deriv_indexing():
-    data_dir = join(get_test_data_path(), 'ds005')
+def test_deriv_indexing(tests_dir):
+    data_dir = tests_dir / 'data' / 'ds005'
     deriv_dir = join(data_dir, 'derivatives', 'bbr')
 
     # missing dataset_description.json
@@ -845,8 +835,8 @@ def test_deriv_indexing():
     assert not layout.get(scope='nonexistent')
 
 
-def test_path_arguments():
-    data_dir = join(get_test_data_path(), 'ds005')
+def test_path_arguments(tests_dir):
+    data_dir = tests_dir / 'data' / 'ds005'
     deriv_dir = join(data_dir, 'derivatives', 'events')
 
     layout = BIDSLayout(Path(data_dir), derivatives=Path(deriv_dir))
@@ -929,18 +919,18 @@ def test_indexed_file_associations(layout_7t_trt):
     assert not js.get_associations('InformedBy')
 
 
-def test_layout_save(tmp_path, layout_7t_trt):
+def test_layout_save(tests_dir, tmp_path, layout_7t_trt):
     layout_7t_trt.save(str(tmp_path / "f.sqlite"),
                        replace_connection=False)
-    data_dir = join(get_test_data_path(), '7t_trt')
+    data_dir = tests_dir / 'data' / '7t_trt'
     layout = BIDSLayout(data_dir, database_path=str(tmp_path / "f.sqlite"))
     oldfies = set(layout_7t_trt.get(suffix='events', return_type='file'))
     newfies = set(layout.get(suffix='events', return_type='file'))
     assert oldfies == newfies
 
 
-def test_indexing_tag_conflict():
-    data_dir = join(get_test_data_path(), 'ds005_conflict')
+def test_indexing_tag_conflict(tests_dir):
+    data_dir = tests_dir / 'data' / 'ds005_conflict'
     with pytest.raises(BIDSValidationError) as exc:
         layout = BIDSLayout(data_dir)
     assert str(exc.value).startswith("Conflicting values found")
@@ -1142,9 +1132,9 @@ def test_indexer_patterns(fname):
     ) is (".datalad" in fname)
 
 
-def test_symlinks_in_path(tmp_path):
+def test_symlinks_in_path(tests_dir, tmp_path):
 
-    src_ds = os.path.abspath(join(get_test_data_path(), '7t_trt'))
+    src_ds = os.path.abspath(tests_dir / 'data' / '7t_trt')
     src_sub = join(src_ds, 'sub-04')
 
     # This will be a normal directory with symlink contents
