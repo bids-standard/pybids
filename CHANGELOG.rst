@@ -1,6 +1,20 @@
 Changelog
 =========
 
+Version 0.18.0 (November 12, 2024)
+----------------------------------
+
+New feature release in the 0.18.x series.
+
+No actual new features, but this version moves test data out of the
+installed distribution and ratchets its dependencies on Python and
+the Scientific Python stack, justifying a minor release.
+
+* FIX: Improve compatibility with cloud paths (#1094)
+* MNT: Transition to src/ layout (#1099)
+* MNT: Update minimum Python (3.9) and dependencies (SPEC 0 + 1yr) (#1092)
+* MNT: Update test for BIDS-MRS (#1089)
+
 Version 0.17.2 (September 19, 2024)
 -----------------------------------
 
