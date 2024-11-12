@@ -1,4 +1,10 @@
 #!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.9"
+# dependencies = [
+#     "gitpython",
+# ]
+# ///
 import git
 import json
 from subprocess import run, PIPE, CalledProcessError
