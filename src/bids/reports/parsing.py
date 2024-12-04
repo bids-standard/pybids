@@ -9,7 +9,6 @@ from .. import __version__
 from ..utils import collect_associated_files
 from . import parameters
 
-logging.basicConfig()
 LOGGER = logging.getLogger("pybids.reports.parsing")
 
 

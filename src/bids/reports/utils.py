@@ -5,7 +5,6 @@ methods section from a BIDS dataset.
 """
 import logging
 
-logging.basicConfig()
 LOGGER = logging.getLogger("pybids.reports.utils")
 
 
