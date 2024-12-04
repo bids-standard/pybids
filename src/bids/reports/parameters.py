@@ -9,7 +9,6 @@ from num2words import num2words
 
 from .utils import list_to_str, num_to_str, remove_duplicates
 
-logging.basicConfig()
 LOGGER = logging.getLogger("pybids.reports.parsing")
 
 
