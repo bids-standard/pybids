@@ -78,6 +78,10 @@ Homepage = "https://github.com/bids-standard/pybids"
 [project.scripts]
 pybids = "bids.cli:cli"
 
+[tool.setuptools.package-data]
+"*" = ["data/*", "data/*/*"]
+"bids.layout.config" = ["*.json"]
+
 [tool.versioneer]
 VCS = "git"
 style = "pep440-pre"
