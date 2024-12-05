@@ -3,3 +3,5 @@ graft tests
 graft doc
 
 include tox.ini
+
+recursive-exclude src README.md
