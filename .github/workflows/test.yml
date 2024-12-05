@@ -32,6 +32,20 @@ permissions:
   contents: read
 
 jobs:
+  build:
+    name: Build & verify package
+    runs-on: ubuntu-latest
+    permissions:
+      attestations: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: hynek/build-and-inspect-python-package@v2
+        with:
+          attest-build-provenance-github: ${{ github.event_name != 'pull_request' }}
+
   test:
     # Check each OS, all supported Python, minimum versions and latest releases
     runs-on: ${{ matrix.os }}
@@ -40,10 +54,16 @@ jobs:
         os: ['ubuntu-latest', 'macos-latest']
         python-version: ['3.9', '3.10', '3.11', '3.12']
         dependencies: ['full', 'pre']
+        source: ['repo']
         include:
           - os: ubuntu-latest
             python-version: '3.9'
             dependencies: min
+            source: 'repo'
+          - os: ubuntu-latest
+            python-version: '3'
+            dependencies: full
+            source: 'sdist'
         exclude:
           # Drop pre tests for SPEC-0-unsupported Python versions
           # See https://scientific-python.org/specs/spec-0000/
@@ -58,9 +78,19 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        if: matrix.source == 'repo'
         with:
           submodules: recursive
           fetch-depth: 0
+      - name: Download packages built by build-and-inspect-python-package
+        if: matrix.source == 'sdist'
+        uses: actions/download-artifact@v4
+        with:
+          name: Packages
+          path: dist
+      - name: Extract sdist
+        if: matrix.source == 'sdist'
+        run: tar --strip-leading-components=1 -xzf dist/*.tar.gz
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
         with:
