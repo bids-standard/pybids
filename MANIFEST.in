@@ -1,0 +1,5 @@
+graft src
+graft tests
+graft doc
+
+include tox.ini
