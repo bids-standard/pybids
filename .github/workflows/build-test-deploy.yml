@@ -54,7 +54,7 @@ jobs:
     strategy:
       matrix:
         os: ['ubuntu-latest', 'macos-latest']
-        python-version: ['3.9', '3.10', '3.11', '3.12']
+        python-version: ['3.9', '3.10', '3.11', '3.12', '3.13']
         dependencies: ['full', 'pre']
         source: ['repo']
         include:
@@ -93,6 +93,8 @@ jobs:
       - name: Extract sdist
         if: matrix.source == 'sdist'
         run: tar --strip-components=1 -xzf dist/*.tar.gz
+      - name: Install the latest version of uv
+        uses: astral-sh/setup-uv@v3
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
         with:
@@ -102,8 +104,7 @@ jobs:
         run: python -c "import sys; print(sys.version)"
       - name: Install tox
         run: |
-          python -m pip install --upgrade pip
-          python -m pip install tox tox-gh-actions
+          uv tool install tox --with=tox-uv --with=tox-gh-actions
       - name: Show tox config
         run: tox c
       - name: Run tox
@@ -111,7 +112,6 @@ jobs:
       - uses: codecov/codecov-action@v5
         if: ${{ always() }}
         with:
-          files: cov.xml
           token: ${{ secrets.CODECOV_TOKEN }}
 
   test-publish:

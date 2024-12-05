@@ -46,13 +46,13 @@ doc = [
 ]
 plotting = ["graphviz"]
 test = [
-  "pytest >=3.3",
-  "pytest-cov",
-  "bsmschema",
-  "coverage[toml]",
-  "altair",
-  "pytest-xdist",
-  "s3fs" #for testing remote uri
+  "pytest >= 6",
+  "pytest-cov >= 2.11",
+  "bsmschema >= 0.1",
+  "coverage[toml] >= 5.2.1",
+  "altair >= 5",
+  "pytest-xdist >= 2.5",
+  "s3fs >= 2024" #for testing remote uri
 ]
 model_reports = [
   "jinja2",
@@ -90,7 +90,7 @@ versionfile_build = "bids/_version.py"
 
 [tool.coverage.run]
 branch = true
-source = ["src/bids/*"]
+source = ["src/", "tests/"]
 omit = [
   "*/setup.py",
   "*/external/*",
@@ -98,5 +98,11 @@ omit = [
   "*/*version.py",
 ]
 
+[tool.coverage.paths]
+source = [
+  "src/bids",
+  "**/site-packages/bids",
+]
+
 [tool.coverage.report]
-include = ["src/bids/*"]
+include = ["src/", "tests/"]
