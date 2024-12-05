@@ -91,7 +91,7 @@ jobs:
           path: dist
       - name: Extract sdist
         if: matrix.source == 'sdist'
-        run: tar --strip-leading-components=1 -xzf dist/*.tar.gz
+        run: tar --strip-components=1 -xzf dist/*.tar.gz
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
         with:
