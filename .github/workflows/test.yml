@@ -9,6 +9,7 @@ on:
     branches:
       - master
       - maint/*
+      - test-pypi-uploads
     tags:
       - '*'
   pull_request: {}
