@@ -49,6 +49,7 @@ jobs:
   test:
     # Check each OS, all supported Python, minimum versions and latest releases
     runs-on: ${{ matrix.os }}
+    needs: [build]
     strategy:
       matrix:
         os: ['ubuntu-latest', 'macos-latest']
