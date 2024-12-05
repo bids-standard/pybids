@@ -1,6 +1,21 @@
 Changelog
 =========
 
+Version 0.18.1 (December 05, 2024)
+----------------------------------
+
+Bug-fix release in the 0.18.x series.
+
+0.18.0 was missing package data, which went unnoticed because the workflow
+to publish to PyPI was also broken. These have been fixed, and we no longer
+alter global logging state.
+
+With thanks to Fede Raimondo for the contribution.
+
+* FIX: Install package data (#1108)
+* FIX: Remove calls to root logger basicConfig (#1106)
+* MNT: Upload attested package to (test) PyPI (#1110)
+
 Version 0.18.0 (November 12, 2024)
 ----------------------------------
 
