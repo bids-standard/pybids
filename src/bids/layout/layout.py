@@ -16,7 +16,7 @@ from sqlalchemy.orm import aliased
 from sqlalchemy.sql.expression import cast
 from bids_validator import BIDSValidator
 
-from ..utils import listify, natural_sort
+from ..utils import listify, natural_sort, hashablefy
 from ..external import inflect
 from ..exceptions import (
     BIDSDerivativesValidationError,
@@ -645,6 +645,13 @@ class BIDSLayout:
             A list of BIDSFiles (default) or strings (see return_type).
         """
 
+        if (
+            not return_type.startswith(("obj", "file"))
+            and return_type not in ("id", "dir")
+        ):
+            raise ValueError(f"Invalid return_type <{return_type}> specified (must be one "
+                             "of 'object', 'file', 'filename', 'id', or 'dir').")
+
         if absolute_paths is False:
             absolute_path_deprecation_warning()
 
@@ -691,6 +698,9 @@ class BIDSLayout:
                 message = "Valid targets are: {}".format(potential)
             raise TargetError(("Unknown target '{}'. " + message)
                              .format(target))
+        elif target is None and return_type in ['id', 'dir']:
+            raise TargetError('If return_type is "id" or "dir", a valid '
+                              'target entity must also be specified.')
 
         results = []
         for l in layouts:
@@ -718,18 +728,22 @@ class BIDSLayout:
 
         if return_type.startswith('file'):
             results = natural_sort([f.path for f in results])
-
         elif return_type in ['id', 'dir']:
             if target is None:
                 raise TargetError('If return_type is "id" or "dir", a valid '
                                  'target entity must also be specified.')
 
-            if return_type == 'id':
-                results = list(dict.fromkeys(
-                    res.entities[target] for res in results
-                    if target in res.entities and isinstance(res.entities[target], Hashable)
-                ))
+            metadata = target not in self.get_entities(metadata=False)
 
+            if return_type == 'id':
+                ent_iter = (
+                    hashablefy(res.get_entities(metadata=metadata))
+                    for res in results if target in res.entities
+                )
+                results = list(dict.fromkeys(
+                    ents[target] for ents in ent_iter if target in ents
+                ))
+                results = natural_sort(list(set(results)))
             elif return_type == 'dir':
                 template = entities[target].directory
                 if template is None:
@@ -752,12 +766,7 @@ class BIDSLayout:
                     for f in results
                     if re.search(template, f._dirname.as_posix())
                 ]
-
                 results = natural_sort(list(set(matches)))
-
-            else:
-                raise ValueError("Invalid return_type specified (must be one "
-                                 "of 'tuple', 'filename', 'id', or 'dir'.")
         else:
             results = natural_sort(results, 'path')
 

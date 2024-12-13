@@ -33,6 +33,7 @@ dependencies = [
   "num2words >=0.5.5",
   "click >=8.0",
   "universal_pathlib >=0.2.2",
+  "frozendict >=2",
 ]
 dynamic = ["version"]
 
