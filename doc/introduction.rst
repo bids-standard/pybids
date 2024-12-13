@@ -29,7 +29,7 @@ What is pybids and why should you use it?
 
   Pybids makes it easier for neuroimagers who utilize the BIDS standard to query,
   summarize, and manipulate their data. A number of Python packages for analyzing
-  neuroimaging data, including `Nipype`_ and `nistats`_, are optimized to
+  neuroimaging data, including `Nipype`_ and `nilearn`_, are optimized to
   work with BIDS datasets.
 
 Installing pybids
@@ -59,6 +59,6 @@ Finding help
     * If you notice a bug in the pybids code, please `open an issue`_ in the
       pybids repository.
 
-.. _nistats: https://nistats.github.io
-.. _Nipype: http://nipype.readthedocs.io
+.. _nilearn: https://nilearn.github.io
+.. _Nipype: https://nipype.readthedocs.io
 .. _open an issue: https://github.com/bids-standard/pybids/issues

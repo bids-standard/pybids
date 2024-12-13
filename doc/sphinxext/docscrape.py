@@ -7,10 +7,9 @@ import re
 import pydoc
 from warnings import warn
 import collections
-import sys
 
 
-class Reader(object):
+class Reader:
     """A line-based string reader.
 
     """
@@ -86,7 +85,7 @@ class Reader(object):
         return not ''.join(self._str).strip()
 
 
-class NumpyDocString(collections.Mapping):
+class NumpyDocString(collections.abc.Mapping):
     def __init__(self, docstring, config={}):
         docstring = textwrap.dedent(docstring).split('\n')
 
@@ -282,7 +281,7 @@ class NumpyDocString(collections.Mapping):
         while True:
             summary = self._doc.read_to_next_empty_line()
             summary_str = " ".join([s.strip() for s in summary]).strip()
-            if re.compile('^([\w., ]+=)?\s*[\w\.]+\(.*\)$').match(summary_str):
+            if re.compile(r'^([\w., ]+=)?\s*[\w\.]+\(.*\)$').match(summary_str):
                 self['Signature'] = summary_str
                 if not self._is_at_section():
                     continue
@@ -459,10 +458,7 @@ class FunctionDoc(NumpyDocString):
             func, func_name = self.get_func()
             try:
                 # try to read signature
-                if sys.version_info[0] >= 3:
-                    argspec = inspect.getfullargspec(func)
-                else:
-                    argspec = inspect.getfullargspec(func)
+                argspec = inspect.getfullargspec(func)
                 argspec = inspect.formatargspec(*argspec)
                 argspec = argspec.replace('*', '\*')
                 signature = '%s%s' % (func_name, argspec)
@@ -547,7 +543,7 @@ class ClassDoc(NumpyDocString):
         return [name for name, func in inspect.getmembers(self._cls)
                 if ((not name.startswith('_')
                      or name in self.extra_public_methods)
-                    and isinstance(func, collections.Callable)
+                    and isinstance(func, collections.abc.Callable)
                     and self._is_show_member(name))]
 
     @property

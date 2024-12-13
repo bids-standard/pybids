@@ -1,6 +1,7 @@
-include versioneer.py
-include bids/_version.py
-recursive-include bids/layout/config *.json
-recursive-include bids/reports/config *.json
-recursive-include bids/tests/data *
-recursive-include bids/layout/tests/data *
+graft src
+graft tests
+graft doc
+
+include tox.ini
+
+recursive-exclude src README.md

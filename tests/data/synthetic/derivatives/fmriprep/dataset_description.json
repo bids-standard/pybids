@@ -1,0 +1,10 @@
+{
+	"PipelineDescription": {
+		"Name": "fmriprep"
+	},
+	"Name": "synthetic",
+	"BIDSVersion": "1.7.1",
+	"License": "PD",
+	"Authors": ["Markiewicz, C. J."],
+	"DatasetType": "derivative"
+}

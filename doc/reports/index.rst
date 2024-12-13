@@ -85,3 +85,8 @@ generate a report only for ``nback`` task data in session ``01``::
 
     Dicoms were converted to NIfTI-1 format. This section was (in part)
     generated automatically using pybids (0.5)."""
+
+
+.. note::
+
+    For a more detailed set of examples, please refer to the  Tutorial: :doc:`/examples/reports_tutorial`.

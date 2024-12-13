@@ -1,2 +1,103 @@
 [build-system]
-requires = ["setuptools >= 30.3.0, != 61.0.0", "wheel"]
+requires = ["setuptools", "versioneer[toml]"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pybids"
+description = "bids: interface with datasets conforming to BIDS"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { file="LICENSE" }
+authors = [
+  { name = "PyBIDS Developers", email = "bids-discussion@googlegroups.com" },
+]
+keywords = ["BIDS", "neuroimaging"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Environment :: Console",
+  "Intended Audience :: Science/Research",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3",
+  "Topic :: Scientific/Engineering",
+]
+dependencies = [
+  "numpy >=1.22",  # SPEC 0 + 1yr (3yr)
+  "scipy >=1.8",   # SPEC 0 + 1yr (3yr)
+  "nibabel >=4.0",  # SPEC 0 + 1yr (3yr)
+  "pandas >=1.4.0",  # SPEC 0 + 1yr (3yr)
+  "formulaic >=0.2.4, <0.6",  # Tested on 0.2.4-0.5.2
+  "sqlalchemy >=1.3.16",
+  "bids-validator>=1.14.7",  # Keep up-to-date to ensure support for recent modalities
+  "num2words >=0.5.5",
+  "click >=8.0",
+  "universal_pathlib >=0.2.2",
+  "frozendict >=2",
+]
+dynamic = ["version"]
+
+[project.optional-dependencies]
+doc = [
+  "sphinx >=6.2",
+  "numpydoc",
+  "sphinx_rtd_theme",
+  "myst_nb",
+  "jupytext",
+]
+plotting = ["graphviz"]
+test = [
+  "pytest >=3.3",
+  "pytest-cov",
+  "bsmschema",
+  "coverage[toml]",
+  "altair",
+  "pytest-xdist",
+  "s3fs" #for testing remote uri
+]
+model_reports = [
+  "jinja2",
+  "altair"
+]
+tutorial = [
+  "nbconvert",
+  "jinja2",
+  "markupsafe",
+  "jupyter_client",
+  "ipykernel",
+]
+# Aliases
+docs = ["pybids[doc]"]
+tests = ["pybids[test]"]
+ci_tests = ["pybids[test]"]
+dev = ["pybids[doc,test,plotting]"]
+
+[project.urls]
+Homepage = "https://github.com/bids-standard/pybids"
+"Bug Tracker" = "https://github.com/bids-standard/pybids/issues"
+
+[project.scripts]
+pybids = "bids.cli:cli"
+
+[tool.setuptools.package-data]
+"*" = ["data/*", "data/*/*"]
+"bids.layout.config" = ["*.json"]
+
+[tool.versioneer]
+VCS = "git"
+style = "pep440-pre"
+versionfile_source = "src/bids/_version.py"
+versionfile_build = "bids/_version.py"
+
+[tool.coverage.run]
+branch = true
+source = ["src/bids/*"]
+omit = [
+  "*/setup.py",
+  "*/external/*",
+  "*/due.py",
+  "*/*version.py",
+]
+
+[tool.coverage.report]
+include = ["src/bids/*"]

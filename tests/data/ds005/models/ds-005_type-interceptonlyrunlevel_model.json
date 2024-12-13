@@ -1,0 +1,60 @@
+{
+  "Name": "ds005_mixedgamblestask",
+  "Description": "An intercept only run level model to test that an error is correctly thrown.",
+  "BIDSModelVersion": "1.0.0",
+  "Input": {
+    "task": [
+      "mixedgamblestask"
+    ]
+  },
+  "Nodes": [
+    {
+      "Level": "Run",
+      "Name": "Run",
+      "GroupBy": [
+        "run",
+        "subject"
+      ],
+      "Transformations": {
+        "Transformer": "pybids-transforms-v1",
+        "Instructions": [
+          {
+            "Name": "Factor",
+            "Input": "trial_type"
+          }
+        ]
+      },
+      "Model": {
+        "Type": "glm",
+        "X": [
+          1
+        ],
+        "HRF": {
+          "Variables": [
+            "trial_type.parametric gain"
+          ],
+          "Model": "DoubleGamma",
+          "Parameters": {
+            "PeakDelay": 3,
+            "PeakDispersion": 6,
+            "UndershootDelay": 10,
+            "UndershootDispersion": 12,
+            "PeakUndershootRatio": 0.2
+          }
+        }
+      },
+      "Contrasts": [
+        {
+          "Name": "run_parametric gain",
+          "ConditionList": [
+            "trial_type.parametric gain"
+          ],
+          "Weights": [
+            1.0
+          ],
+          "Test": "t"
+        }
+      ]
+    }
+  ]
+}

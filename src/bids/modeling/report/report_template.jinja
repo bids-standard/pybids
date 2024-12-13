@@ -1,0 +1,325 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en" data-theme="light">
+
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+        <title>PyBIDS StatsModel Report</title>
+        <style type="text/css">
+        .warning {
+            border: 1px solid #ffaaaa;
+            background: #ffe8e8;
+            padding: 0.8em;
+        }
+        .vega-embed.has-actions {
+            width: 90%;
+        }
+        .overflow-scroll {
+            overflow-x: hidden;
+            overflow-y: auto;
+            max-height: 700px;
+            padding: 1rem;
+        }
+        .card-spacing {
+            padding: 2rem;
+            margin: 2rem 0;
+            box-shadow: 2px 2px 6px 2px lightgrey;
+        }
+    </style>
+        <!-- Import Vega & Vega-Lite -->
+        <script src="https://cdn.jsdelivr.net/npm/vega@5"></script>
+        <script src="https://cdn.jsdelivr.net/npm/vega-lite@4"></script>
+        <!-- Import vega-embed -->
+        <script src="https://cdn.jsdelivr.net/npm/vega-embed@6"></script>
+        <link rel="stylesheet" href="https://unpkg.com/@picocss/pico@latest/css/pico.min.css">
+            <link rel="stylesheet" href="https://cdn.datatables.net/1.13.1/css/jquery.dataTables.min.css">
+                <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.3.2/css/buttons.dataTables.min.css">
+                    <script src="https://code.jquery.com/jquery-3.5.1.js"></script>
+                    <script src="https://cdn.datatables.net/1.13.1/js/jquery.dataTables.min.js"></script>
+                    <script src="https://cdn.datatables.net/buttons/2.3.2/js/dataTables.buttons.min.js"></script>
+                    <script src="https://cdn.datatables.net/buttons/2.3.2/js/buttons.html5.min.js"></script>
+    </head>
+
+    <body onload="handleSelectNode('{{ nodes[0].name }}')">
+        <script>
+            $.extend( $.fn.dataTable.defaults, {
+            searching: false,
+            ordering:  false
+            } );
+        </script>
+        <script>
+            function handleSelectNode(element) {
+                const nodeButtonList = document.getElementsByClassName('node_button');
+                // change styling of button that we have selected, but remove styling if that button is already selected
+                for(let nodeButton of nodeButtonList) {
+                    if (nodeButton.id === `${element}_node_button` && !nodeButton.classList.contains('secondary')) {
+                        nodeButton.classList.add('secondary');
+                    } else {
+                        nodeButton.className = 'node_button';
+                    }
+                }
+
+                // make node report visible for the associated button we have clicked, hide if corresponding button was already selected and then clicked
+                const nodeReportList = document.getElementsByClassName('node_report');
+                for(let nodeReport of nodeReportList) {
+                    if (nodeReport.id === `${element}_node_report` && nodeReport.style.display === 'none') {
+                        nodeReport.style.display = 'initial';
+                    } else {
+                        nodeReport.style.display = 'none';
+                    }
+                }
+            }
+        </script>
+        <main class="container-fluid", style="width:70%">
+            <div id="summary">
+                <h3>Stats Model Report</h3>
+                <div class="grid">
+                    <div>
+                            <b>Dataset</b>
+                            :
+                    </div>
+                    <div>
+                            {{ dataset.name }}{% if dataset.doi %} (doi:
+                            <a href="https://doi.org/{{ dataset.doi }}">{{ dataset.doi }}</a>
+                            ){% endif %}
+                    </div>
+                    <div></div>
+                </div>
+                <div class="grid">
+                    <div>
+                            <b>Model</b>
+                            :
+                    </div>
+                    <div>
+                        {{ model.name }}
+                    </div>
+                    <div></div>
+                </div>
+                <div class="grid">
+                    <div>
+                            <b>Participants ({{ subjects|count }})</b>
+                            :
+                    </div>
+                    <div>
+                        {{ subjects|join(', ') }}
+                    </div>
+                    <div></div>
+                </div>
+                <br>
+
+                <details>
+                    <summary class="secondary">Specification</summary>
+                    <pre>
+                        <code class="overflow-scroll">{{ model|tojson(indent=2) }}</code>
+                    </pre>
+                </details>
+
+                <details>
+                    <summary class="secondary">Graph</summary>
+                    <div id="model-graph">
+                    {{ graph_plot }}
+                </div>
+                </details>
+            </div>
+            <div id="model">
+                <h3 style="margin-top: 3rem">Node Reports</h3>
+                <div class="grid" style="margin-bottom: 3rem">
+                    {% for node in nodes %}
+                    <span onclick="handleSelectNode('{{node.name}}')" role="button" id="{{node.name}}_node_button" class="node_button" style="margin-bottom: 10px">{{ node.name }}</span>
+                    {% endfor %}
+                </div>
+
+                <div>
+                    {% for node in nodes %}
+                    {% set node_loop = loop %}
+                    <div style="display: none" id="{{node.name}}_node_report" class="node_report">
+                        <div>
+                            <div style="margin-bottom: 3rem;">
+                                <div class="grid">
+                                    <div>
+                                        <b>Level</b>
+                                    </div>
+                                    <div>{{ node.level }}</div>
+                                    <div></div>
+                                </div>
+                                <div class="grid">
+                                    <div>
+                                        <b>Group By</b>
+                                    </div>
+                                    <div>{{ node.group_by | join(", ") }}</div>
+                                    <div></div>
+                                </div>
+                                <div class="grid">
+                                    <div>
+                                        <b>Model</b>
+                                    </div>
+                                    <div>X: {{ node.model['x'] | join(", ") }}</div>
+                                    <div></div>
+                                </div>
+                                {% if node.model['type'] %}
+                                <div class="grid">
+                                    <div></div>
+                                    <div>Type: {{ node.model['type'] }}</div>
+                                    <div></div>
+                                </div>
+                                {% endif %}
+                            </div>
+                            {% if loop.first %}
+                            <div style="margin-bottom: 1.5rem; color: #bbbbbb">
+                                <i>A report was generated for each node instance. All but the first are collapsed, but each should be inspected.</i>
+                            </div>
+                            {% endif %}
+
+                            {% for analysis in node.analyses %}
+                            {% set analysis_loop = loop %}
+                            <details {% if loop.first %}open{% endif %}>
+                                <summary role="button" class="secondary">
+                                    <b>{{ analysis.entities.items()|map('join', ': ')|map('capitalize')|join(', ')}}</b>
+                                </summary>
+                                <div class="overflow-scroll">
+                                    <article class="card-spacing">
+                                        <h5>Design Matrix</h5>
+                                        {% if 'design_matrix_plot' in analysis %}
+                                        <div id="{{ node.name }}{{ loop.index }}_dm"></div>
+                                        <script type="text/javascript">
+                                            var spec = {{ analysis.design_matrix_plot }};
+                                            vegaEmbed('#{{ node.name }}{{ loop.index }}_dm', spec).then(function (result) {}).catch(console.error);
+                                        </script>
+                                        <details>
+                                            <summary role="button" class="contrast">Design Matrix Table</summary>
+                                            <div>
+                                        {% endif %}
+                                        <figure>{{ analysis.X.to_html(border=0, bold_rows=True, classes=["display", "compact"], table_id="{}{}_dmraw".format(node.name,loop.index)) | safe }}</figure>
+                                        <script>
+                                            $(document).ready( function () {
+                                                $('#{{ node.name }}{{ loop.index }}_dmraw').DataTable({
+                                                    dom: 'Bfrtip',
+                                                    pageLength : 5,
+                                                    buttons: [
+                                                        {
+                                                            extend: 'csvHtml5',
+                                                            text: 'Download TSV',
+                                                            fieldSeparator: '\t',
+                                                        }
+                                                    ]
+                                                });
+                                            });
+                                        </script>
+                                        {% if 'design_matrix_plot' in analysis %}
+                                        </div>
+                                        </details>
+                                        {% endif %}
+                                    </article>
+                                    {% if 'trans_hist' in analysis %}
+                                    <article class="card-spacing">
+                                        <h5>Transformation History</h5>
+                                        {% for trans in analysis.trans_hist %}
+                                        {% if loop.first %}
+                                        <p>Each transformation is applied to the design matrix in the order shown. The final design matrix is used in the model estimation.</p>
+                                        <details>
+                                            <summary>Original Variables</summary>
+                                            {% else %}
+                                            <details>
+                                                <summary>{{ trans.index }}. {{ trans.transformation_name}}</summary>
+                                                <ul class="elem-desc">
+                                                    <li>
+                                                        <strong>Input Columns:</strong>
+                                                        {{ trans.input_cols|join(', ') }}
+                                                    </li>
+                                                    <li>
+                                                        <strong>Arguments:</strong>
+                                                        {{ trans.transformation_kwargs.items()|map('join', ': ')|map('capitalize')|join(', ')}}
+                                                    </li>
+                                                </ul>
+                                        {% endif %}
+                                        {% for var in trans.output.variables|sort() %}
+                                        <div id="{{ node.name }}{{ analysis_loop.index }}{{ trans.index }}{{ var }}_thdiv">
+                                            {{ trans.output.variables[var].to_df(entities=False, condition=False).to_html(index=False, border=0, classes=["display", "compact"], table_id="{}{}{}{}_thvar".format(node.name, analysis_loop.index, trans.index, var.replace('.', '_')))}}
+                                            <script>
+                                                $(document).ready( function () {
+                                                    $('#{{ node.name }}{{ analysis_loop.index }}{{ trans.index }}{{ var.replace('.', '_') }}_thvar').DataTable({
+                                                        dom: 'Bfrtip',
+                                                        pageLength : 5,
+                                                        buttons: [
+                                                            {
+                                                                extend: 'csvHtml5',
+                                                                text: 'Download TSV',
+                                                                fieldSeparator: '\t',
+                                                            }
+                                                        ]
+                                                    });
+                                                });
+                                            </script>
+                                        </div>
+                                        {% endfor %}
+                                        </details>
+                                        {% endfor %}
+                                    </article>
+                                    {% endif %}
+                                    {% if 'design_matrix_corrplot' in analysis %}
+                                    <article class="card-spacing">
+                                        <h5>Correlation Matrix</h5>
+                                        <div class="grid">
+                                            <div id="{{ node.name }}{{ loop.index }}_corrdm"></div>
+                                            <div>
+                                                {% if node_loop.first %}
+                                                <p>
+                                                    <strong>Pairwise correlation between regressors.</strong>
+                                                    Very high or low correlations among variables of interest or between variables of interest and nuisance regressors can indicate deficiency in the design. High correlations among nuisance regressors will generally have little effect on the model. It is recommended to interpret these correlations in the context of the VIF for each contrast.
+                                                </p>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                        <script type="text/javascript">
+                                            var spec = {{ analysis.design_matrix_corrplot }};
+                                            vegaEmbed('#{{ node.name }}{{ loop.index }}_corrdm', spec).then(function (result) {}).catch(console.error);
+                                        </script>
+                                    </article>
+                                    {% endif %}
+                                    <article class="card-spacing">
+                                        <h4>Contrasts</h4>
+                                        {% if node_loop.first %}
+                                        <i style="color: #bbbbbb">A contrast matrix was generated for each {{ node.name }}. Except in rare cases, these should be identical.</i>
+                                        {% endif %}
+                                        <figure>{{ analysis.contrast_matrix.style.to_html(border=0) | safe }}</figure>
+                                    </article>
+                                    {% if 'VIF' in analysis %}
+                                    <article class="card-spacing">
+                                        <h5>Variance Inflation Factor</h5>
+                                        <div class="grid">
+                                            <div>
+                                                <figure>{{ analysis.VIF.style.hide(axis='index').to_html(border=0) | safe }}</figure>
+                                            </div>
+                                            <div>
+                                                {% if node_loop.first %}
+                                                <p>
+                                                    <strong>Estimated VIF for each contrast. </strong>
+                                                    This is done by extending the effective regressor definition from
+                                                    <em>Smith et al (2007) Meaningful design and contrast estimability (NeuroImage).</em>
+                                                    Regressors involved in the contrast estimate are rotated to span the same space as the original space consisting of the effective regressor and and an orthogonal basis.  The rest of the regressors are unchanged. VIF values below 5 are generally considered acceptable, but values above 10 are problematic. VIF can be used to determine if high pass filter range is appropriate.  If the VIF for a contrast is high, it may be necessary to increase the high pass filter cutoff.  If the VIF for a contrast is low, it may be possible to decrease the high pass filter cutoff.
+                                                </p>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </article>
+                                    {% endif %}
+                                </div>
+                            </details>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div id="about">
+                <h2 style="margin-top: 3rem" class="sub-report-title">About</h2>
+                <ul>
+                    <li>PyBIDS version: {{ version }}</li>
+                    <li>Date processed: {{ timestamp }}</li>
+                </ul>
+            </div>
+        </main>
+    </body>
+
+</html>

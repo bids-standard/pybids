@@ -158,7 +158,7 @@ deliberately designed with adoption in mind; it adheres to a user-focused
 philosophy that prioritizes common use cases and discourages complexity. By
 successfully encouraging a large and ever-growing subset of the community to
 adopt a common standard for naming and organizing files, BIDS has made it much
-easier for researchers to share, re-use, and process their data
+easier for researchers to share, reuse, and process their data
 [@Gorgolewski2017-cz].
 
 The ability to efficiently develop high-quality spec-compliant applications

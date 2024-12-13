@@ -1,0 +1,115 @@
+{
+    "Name": "test_model",
+    "Description": "simple test model",
+    "Nodes": [
+        {
+            "Name": "run",
+            "Level": "Run",
+            "GroupBy": [
+                "run",
+                "subject"
+            ],
+            "Model": {
+                "X": [
+                    "RT",
+                    "gain"
+                ],
+                "Formula": "0 + RT * gain"
+            },
+            "Transformations": [
+                {
+                    "Name": "Factor",
+                    "Input": "trial_type"
+                },
+                {
+                    "Name": "Rename",
+                    "Input": "trial_type.parametric gain",
+                    "Output": "gain"
+                }
+            ],
+            "DummyContrasts": {
+                "Test": "t"
+            }
+        },
+        {
+            "Name": "participant",
+            "Level": "Subject",
+            "GroupBy": [
+                "subject",
+                "contrast"
+            ],
+            "Model": {
+                "X": [
+                    1
+                ]
+            },
+            "Contrasts": [
+                {
+                    "Name": "neg",
+                    "ConditionList": [1],
+                    "Weights": [-1],
+                    "Test": "FEMA"
+                }
+            ],
+            "DummyContrasts": {
+                "Test": "FEMA"
+            }
+        },
+        {
+            "Name": "by-group",
+            "Level": "Dataset",
+            "GroupBy": [
+                "contrast",
+                "sex"
+            ],
+            "Model": {
+                "X": [
+                    1
+                ]
+            },
+            "DummyContrasts": {
+                "Test": "t"
+            }
+        },
+        {
+            "Name": "group-diff",
+            "Level": "Dataset",
+            "GroupBy": ["contrast"],
+            "Model": {
+                "X": [
+                    1,
+                    "sex"
+                ]
+            },
+            "DummyContrasts": {
+                "Test": "t"
+            }
+        },
+        {
+            "Name": "explicit-contrast",
+            "Level": "Dataset",
+            "GroupBy": [],
+            "Model": {"X": ["gain"], "Type": "glm"},
+            "DummyContrasts": {"Test": "t"}
+        }
+    ],
+    "Edges": [
+        {
+            "Source": "run",
+            "Destination": "participant"
+        },
+        {
+            "Source": "participant",
+            "Destination": "by-group"
+        },
+        {
+            "Source": "participant",
+            "Destination": "group-diff"
+        },
+        {
+            "Source": "participant",
+            "Destination": "explicit-contrast",
+            "Filter": {"contrast": ["gain"]}
+        }
+    ]
+}

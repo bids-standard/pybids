@@ -1,4 +1,4 @@
-.. _reports:
+.. _layout:
 
 =====================================================
 ``layout``: Querying BIDS datasets
@@ -29,6 +29,14 @@ BIDS project directory. It automatically detects any BIDS entities found in the
 file paths, and allows us to perform simple but relatively powerful queries over
 the file tree. By default, defined BIDS entities include things like "subject",
 "session", "run", and "type".
+
+.. hint::
+
+    To exclude folders from indexing (e.g. only index a subset of subjects to save time),
+    you can pass a list of folder names, or a regex pattern to the ``ignore`` argument. 
+    For example, to ignore all subjects except "25":
+
+        >>> BIDSLayout(bids_dir, ignore=[re.compile(r"(sub-(?!25)\d*/)")])
 
 .. _querying_datasets:
 
@@ -73,4 +81,4 @@ We can also extract metadata from the json files associated with a scan file::
 
 .. note::
 
-    For a more detailed set of examples, please refer to the `tutorial <https://github.com/bids-standard/pybids/blob/0.14.0/examples/pybids_tutorial.ipynb>`_
+    For a more detailed set of examples, please refer to the  Tutorial: :doc:`/examples/pybids_tutorial`

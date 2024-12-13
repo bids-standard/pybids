@@ -45,28 +45,30 @@ extensions = [
     'sphinx.ext.githubpages',
     'sphinx.ext.napoleon',
     'numpydoc',
+    'myst_nb',
 ]
 
 intersphinx_mapping = {
-    'https://docs.python.org/3.5': None,
-    'https://docs.scipy.org/doc/numpy': None,
-    'https://docs.scipy.org/doc/scipy/reference': None,
-    'https://matplotlib.org/': None,
-    'https://scikit-learn.org/0.17': None,
-    'https://nipy.org/nibabel/': None,
-    'https://pandas.pydata.org/pandas-docs/stable/': None,
-    'https://neurosynth.readthedocs.io/en/latest/': None,
+    "python": ('https://docs.python.org/3.5', None),
+    "numpy" : ('https://docs.scipy.org/doc/numpy', None),
+    "scipy" : ('https://docs.scipy.org/doc/scipy/reference', None),
+    "matplotlib" : ('https://matplotlib.org/', None),
+    "scikit-learn" : ('https://scikit-learn.org/0.17', None),
+    "nibabel" : ('https://nipy.org/nibabel/', None),
+    "pandas" : ('https://pandas.pydata.org/pandas-docs/stable/', None),
+    "neurosynth" : ('https://neurosynth.readthedocs.io/en/latest/', None),
 }
 
 intersphinx_timeout = 5
 
 # If your documentation needs a minimal Sphinx version, state it here.
-needs_sphinx = '2.2.0'
+needs_sphinx = '6.2.0'
 
 # Generate stubs
 autosummary_generate = True
 autodoc_default_flags = ['members', 'inherited-members']
 add_module_names = False
+numpydoc_class_members_toctree = False
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -126,3 +128,7 @@ texinfo_documents = [
 
 # If false, no module index is generated.
 texinfo_domain_indices = False
+
+nb_custom_formats = {
+    ".md": ["jupytext.reads", {"fmt": "mystnb"}],
+}

@@ -24,8 +24,6 @@ API Reference
 
 .. currentmodule:: bids
 
-.. _calibration_ref:
-
 
 :mod:`bids.modeling`: Model specification for BIDS datasets
 ------------------------------------------------------------
@@ -35,8 +33,8 @@ API Reference
 
    bids.modeling.statsmodels
    bids.modeling.auto_model
-   bids.modeling.statsmodels.Step
-   bids.modeling.statsmodels.BIDSStatsModelsGraphNode
+   bids.modeling.statsmodels.BIDSStatsModelsGraph
+   bids.modeling.statsmodels.BIDSStatsModelsNode
 
 .. currentmodule:: bids
 
@@ -55,8 +53,6 @@ API Reference
    bids.reports.utils
 
 .. currentmodule:: bids
-
-.. _calibration_ref:
 
 
 :mod:`bids.variables`: Variables
@@ -80,8 +76,6 @@ API Reference
 
 .. currentmodule:: bids
 
-.. _calibration_ref:
-
 
 :mod:`bids.config`: PyBIDS Configuration utilities
 --------------------------------------------------
@@ -97,8 +91,6 @@ API Reference
 
 .. currentmodule:: bids
 
-.. _calibration_ref:
-
 
 :mod:`bids.utils`: Utility functions
 --------------------------------------------------
@@ -113,5 +105,3 @@ API Reference
 
 
 .. currentmodule:: bids
-
-.. _calibration_ref:
