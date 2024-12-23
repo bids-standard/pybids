@@ -94,7 +94,7 @@ jobs:
         if: matrix.source == 'sdist'
         run: tar --strip-components=1 -xzf dist/*.tar.gz
       - name: Install the latest version of uv
-        uses: astral-sh/setup-uv@v4
+        uses: astral-sh/setup-uv@v5
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
         with:
