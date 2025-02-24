@@ -3,58 +3,58 @@
     "entities": [
         {
             "name": "subject",
-            "pattern": "[/\\\\]+sub-([a-zA-Z0-9]+)",
+            "pattern": "[/\\\\]+sub-([a-zA-Z0-9+]+)",
             "directory": "{subject}"
         },
         {
             "name": "session",
-            "pattern": "[_/\\\\]+ses-([a-zA-Z0-9]+)",
+            "pattern": "[_/\\\\]+ses-([a-zA-Z0-9+]+)",
             "mandatory": false,
             "directory": "{subject}{session}"
         },
         {
             "name": "sample",
-            "pattern": "[_/\\\\]+sample-([a-zA-Z0-9]+)"
+            "pattern": "[_/\\\\]+sample-([a-zA-Z0-9+]+)"
         },
         {
             "name": "task",
-            "pattern": "[_/\\\\]+task-([a-zA-Z0-9]+)"
+            "pattern": "[_/\\\\]+task-([a-zA-Z0-9+]+)"
         },
         {
             "name": "tracksys",
-            "pattern": "[_/\\\\]+tracksys-([a-zA-Z0-9]+)"
+            "pattern": "[_/\\\\]+tracksys-([a-zA-Z0-9+]+)"
         },
         {
             "name": "acquisition",
-            "pattern": "[_/\\\\]+acq-([a-zA-Z0-9]+)"
+            "pattern": "[_/\\\\]+acq-([a-zA-Z0-9+]+)"
         },
         {
             "name": "nucleus",
-            "pattern": "[_/\\\\]+nuc-([a-zA-Z0-9]+)"
+            "pattern": "[_/\\\\]+nuc-([a-zA-Z0-9+]+)"
         },
         {
             "name": "volume",
-            "pattern": "[_/\\\\]+voi-([a-zA-Z0-9]+)"
+            "pattern": "[_/\\\\]+voi-([a-zA-Z0-9+]+)"
         },
         {
             "name": "ceagent",
-            "pattern": "[_/\\\\]+ce-([a-zA-Z0-9]+)"
+            "pattern": "[_/\\\\]+ce-([a-zA-Z0-9+]+)"
         },
         {
             "name": "staining",
-            "pattern": "[_/\\\\]+stain-([a-zA-Z0-9]+)"
+            "pattern": "[_/\\\\]+stain-([a-zA-Z0-9+]+)"
         },
         {
             "name": "tracer",
-            "pattern": "[_/\\\\]+trc-([a-zA-Z0-9]+)"
+            "pattern": "[_/\\\\]+trc-([a-zA-Z0-9+]+)"
         },
         {
             "name": "reconstruction",
-            "pattern": "[_/\\\\]+rec-([a-zA-Z0-9]+)"
+            "pattern": "[_/\\\\]+rec-([a-zA-Z0-9+]+)"
         },
         {
             "name": "direction",
-            "pattern": "[_/\\\\]+dir-([a-zA-Z0-9]+)"
+            "pattern": "[_/\\\\]+dir-([a-zA-Z0-9+]+)"
         },
         {
             "name": "run",
@@ -63,11 +63,11 @@
         },
         {
             "name": "proc",
-            "pattern": "[_/\\\\]+proc-([a-zA-Z0-9]+)"
+            "pattern": "[_/\\\\]+proc-([a-zA-Z0-9+]+)"
         },
         {
             "name": "modality",
-            "pattern": "[_/\\\\]+mod-([a-zA-Z0-9]+)"
+            "pattern": "[_/\\\\]+mod-([a-zA-Z0-9+]+)"
         },
         {
             "name": "echo",
@@ -91,11 +91,11 @@
         },
         {
             "name": "recording",
-            "pattern": "[_/\\\\]+recording-([a-zA-Z0-9]+)"
+            "pattern": "[_/\\\\]+recording-([a-zA-Z0-9+]+)"
         },
         {
             "name": "space",
-            "pattern": "[_/\\\\]+space-([a-zA-Z0-9]+)"
+            "pattern": "[_/\\\\]+space-([a-zA-Z0-9+]+)"
         },
         {
             "name": "chunk",
@@ -103,7 +103,7 @@
         },
         {
             "name": "suffix",
-            "pattern": "(?:^|[_/\\\\])([a-zA-Z0-9]+)\\.[^/\\\\]+$"
+            "pattern": "(?:^|[_/\\\\])([a-zA-Z0-9+]+)\\.[^/\\\\]+$"
         },
         {
             "name": "scans",
