@@ -65,7 +65,13 @@ class PaddedInt(int):
         self.sval = str(val)
 
     def __eq__(self, val):
-        return val == self.sval or super().__eq__(val)
+        try:
+            return val == self.sval or super().__eq__(val)
+        except ValueError:
+            # `or` triggers `__bool__`. If this fails, it is almost
+            # certainly an array type. Do not attempt string comparisons
+            # and allow val to determine the return type
+            return val == self
 
     def __str__(self):
         return self.sval
