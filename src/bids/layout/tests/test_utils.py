@@ -4,6 +4,7 @@ import os
 
 import numpy as np
 import pytest
+import pandas as pd
 import bids
 from bids.exceptions import ConfigError
 
@@ -91,3 +92,14 @@ def test_PaddedInt_array_comparisons():
 
     # Verify that we do get some False results
     assert np.array_equal(np.array([4, 5, 6]) == PaddedInt(5), [False, True, False])
+
+
+def test_PaddedInt_dataframe_behavior():
+    # Verify that pandas dataframes are not more special than numpy arrays,
+    # as far as PaddedInt is concerned
+    df = pd.DataFrame({'a': [5, 5, 5]})
+    pidf = pd.DataFrame({'a': [PaddedInt(5)] * 3})
+    assert np.all(df['a'] == PaddedInt(5))
+    assert np.all(df == pidf)
+
+    assert pidf['a'].dtype is np.dtype('int64')
