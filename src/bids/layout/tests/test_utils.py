@@ -2,12 +2,13 @@
 
 import os
 
+import numpy as np
 import pytest
 import bids
 from bids.exceptions import ConfigError
 
 from ..models import Entity, Config
-from ..utils import BIDSMetadata, parse_file_entities, add_config_paths
+from ..utils import BIDSMetadata, PaddedInt, parse_file_entities, add_config_paths
 
 
 def test_bidsmetadata_class():
@@ -73,3 +74,20 @@ def test_add_config_paths():
     add_config_paths(dummy=bids_json)
     config = Config.load('dummy')
     assert 'subject' in config.entities
+
+
+def test_PaddedInt_array_comparisons():
+    # Array comparisons should work, not raise exceptions
+    arr = np.array([5, 5, 5])
+    assert np.all(arr == PaddedInt(5))
+    assert np.all(arr == PaddedInt("05"))
+    assert np.all(PaddedInt(5) == arr)
+    assert np.all(PaddedInt("05") == arr)
+
+    # If the value gets put into an array, it should be considered an int
+    # We lose the padding, but it's unlikely we would try to recover it
+    # from an array.
+    assert np.array([PaddedInt(5)]).dtype == np.int64
+
+    # Verify that we do get some False results
+    assert np.array_equal(np.array([4, 5, 6]) == PaddedInt(5), [False, True, False])
