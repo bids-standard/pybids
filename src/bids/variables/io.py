@@ -188,10 +188,13 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
     # Main loop over images
     for img_obj in images:
 
-        entities = img_obj.entities
         img_f = img_obj.path
 
-        # Run is not mandatory, but we need a default for proper indexing
+        # Run is not mandatory, but we need it to behave like an int and not
+        # a PaddedInt later when we call `dataset.get_nodes('run', select_on)`
+        # Without this, we would see "run ==02" in the query, which breaks
+        # pandas.
+        entities = img_obj.entities.copy()
         if 'run' in entities:
             entities['run'] = int(entities['run'])
 
