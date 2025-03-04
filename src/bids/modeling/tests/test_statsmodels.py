@@ -12,6 +12,7 @@ import json
 from bids.modeling import BIDSStatsModelsGraph
 from bids.modeling.statsmodels import ContrastInfo, expand_wildcards
 from bids.layout import BIDSLayout
+from bids.layout.utils import PaddedInt
 from bids.tests import get_test_data_path
 from bids.variables import BIDSVariableCollection
 
@@ -42,6 +43,13 @@ def graph_nodummy():
     graph = BIDSStatsModelsGraph(layout, json_file)
     graph.load_collections(scan_length=480, subject=["01", "02"])
     return graph
+
+def test_load_collections_types(graph):
+    # Very narrow regression test that ensures that load_collections does not
+    # modify the types of entities in-place
+    layout = graph.layout
+    bold = layout.get(suffix="bold", extension="nii.gz")[0]
+    assert isinstance(bold.entities["run"], PaddedInt)
 
 @pytest.mark.skipif(not has_graphviz, reason="Test requires graphviz")
 def test_write_graph(graph, tmp_path):
