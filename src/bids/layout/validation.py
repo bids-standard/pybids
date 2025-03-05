@@ -32,8 +32,11 @@ EXAMPLE_DERIVATIVES_DESCRIPTION = {
 
 DEFAULT_LOCATIONS_TO_IGNORE = {
     re.compile(r"^/(code|models|sourcedata|stimuli)"),
-    re.compile(r'/\.'),
 }
+
+ALWAYS_IGNORE = (
+    re.compile(r'/\.'),  # dotfiles should never be indexed
+)
 
 def absolute_path_deprecation_warning():
     warnings.warn("The absolute_paths argument will be removed from PyBIDS "
@@ -156,9 +159,11 @@ def _sort_patterns(patterns, root):
 
 def validate_indexing_args(ignore, force_index, root):
     if ignore is None:
-        ignore = list(
-            DEFAULT_LOCATIONS_TO_IGNORE - set(force_index or [])
-        )
+        ignore = DEFAULT_LOCATIONS_TO_IGNORE - set(force_index or [])
+
+    ignore = list(ignore)
+
+    ignore.extend(ALWAYS_IGNORE)
 
     # root has already been validated to be a directory
     ignore = _sort_patterns(ignore, root)
