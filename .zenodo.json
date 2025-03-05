@@ -219,6 +219,11 @@
       "orcid": "0000-0003-0679-1985"
     },
     {
+      "affiliation": "University of Montréal, Montréal, Canada",
+      "name": "Pinsard, Basile",
+      "orcid": "0000-0002-4391-3075"
+    },
+    {
       "affiliation": "Ottawa Hospital Research Institute",
       "name": "Boulay, Chadwick",
       "orcid": "0000-0003-1747-3931"
@@ -236,11 +241,6 @@
     {
       "affiliation": "CEA, Inria",
       "name": "Thual, Alexis"
-    },
-    {
-      "affiliation": "University of Montréal, Montréal, Canada",
-      "name": "Pinsard, Basile",
-      "orcid": "0000-0002-4391-3075"
     },
     {
       "affiliation": "Berkeley Institute for Data Science; University of California at Berkeley",
