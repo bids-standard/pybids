@@ -1,4 +1,5 @@
 from os.path import join
+import shutil
 
 import pytest
 
@@ -101,3 +102,10 @@ def layout_synthetic(tests_dir, request, db_dir):
 def layout_synthetic_nodb(tests_dir, request, db_dir):
     path = tests_dir / 'data' / 'synthetic'
     return BIDSLayout(path, derivatives=True)
+
+
+@pytest.fixture
+def temporary_dataset(tmp_path, tests_dir):
+    path = tests_dir / 'data' / 'ds005'
+    shutil.copytree(path, tmp_path / 'ds005')
+    return tmp_path / 'ds005'

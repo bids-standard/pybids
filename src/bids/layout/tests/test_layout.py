@@ -1170,3 +1170,28 @@ def test_symlinks_in_path(tests_dir, tmp_path):
     os.symlink(src_sub, link_sub)
 
     assert "Subjects: 1 | Sessions: 2 | Runs: 2" in str(BIDSLayout(tmp_path / "7t_trt"))
+
+
+def test_ignore_dotfiles(temporary_dataset):
+    arbitrary_dotfile = temporary_dataset / '.dotfile'
+    ds_store = temporary_dataset / 'sub-01' / '.DS_Store'
+    osx_companion_file = temporary_dataset / '._task-mixedgamblestask_bold.json'
+
+    arbitrary_dotfile.touch()
+    ds_store.touch()
+    osx_companion_file.touch()
+
+    # Default behavior
+    layout = BIDSLayout(temporary_dataset, validate=False)
+    assert str(temporary_dataset / 'dataset_description.json') in layout.files
+    assert str(arbitrary_dotfile) not in layout.files
+    assert str(ds_store) not in layout.files
+    assert str(osx_companion_file) not in layout.files
+
+    # Explicit ignores do not disable dotfile filtering
+    indexer = BIDSLayoutIndexer(ignore=['some_ignore'])
+    layout = BIDSLayout(temporary_dataset, validate=False, indexer=indexer)
+    assert str(temporary_dataset / 'dataset_description.json') in layout.files
+    assert str(arbitrary_dotfile) not in layout.files
+    assert str(ds_store) not in layout.files
+    assert str(osx_companion_file) not in layout.files
