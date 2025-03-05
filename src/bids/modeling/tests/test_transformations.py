@@ -286,7 +286,7 @@ def test_split(collection):
     assert np.array_equal(rt_pre_values.sort(), rt_post_values.sort())
 
     # Grouping SparseEventVariable by multiple columns
-    transform.Split(collection, variables=['RT_2'], by=['respcat', 'loss'])
+    transform.Split(collection, variables=['RT_2'], by=['loss', 'respcat'])
     assert 'RT_2.loss[13].respcat[-1]' in collection.variables.keys() and \
            'RT_2.loss[13].respcat[1]' in collection.variables.keys()
 
