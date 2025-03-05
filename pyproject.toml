@@ -106,4 +106,4 @@ source = [
 ]
 
 [tool.coverage.report]
-include = ["src/", "tests/"]
+include = ["src/*", "tests/*"]
