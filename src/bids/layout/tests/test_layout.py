@@ -1195,3 +1195,13 @@ def test_ignore_dotfiles(temporary_dataset):
     assert str(arbitrary_dotfile) not in layout.files
     assert str(ds_store) not in layout.files
     assert str(osx_companion_file) not in layout.files
+
+
+def test_empty_directory(temporary_dataset):
+    anat = temporary_dataset / 'sub-01' / 'anat'
+    shutil.rmtree(anat)
+    anat.mkdir()
+
+    layout = BIDSLayout(temporary_dataset)
+
+    assert layout.get(subject='01', datatype='anat') == []
