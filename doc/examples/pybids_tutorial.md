@@ -63,7 +63,7 @@ The utility of the `BIDSLayout` would be pretty limited if all we could do was r
 layout.get(subject='01', extension='nii.gz', suffix='bold', return_type='filename')
 ```
 
-If you're wondering what entities you can pass in as filtering arguments, the answer is contained in the `.json` configuration files [housed here](https://github.com/bids-standard/pybids/tree/master/bids/layout/config). To save you the trouble, here are a few of the most common entities:
+If you're wondering what entities you can pass in as filtering arguments, the answer is contained in the `.json` configuration files [housed here](https://github.com/bids-standard/pybids/tree/master/src/bids/layout/config). To save you the trouble, here are a few of the most common entities:
 
 * `suffix`: The part of a BIDS filename just before the extension (e.g., `'bold'`, `'events'`, `'physio'`, etc.).
 * `subject`: The subject label

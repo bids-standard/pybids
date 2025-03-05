@@ -1,6 +1,30 @@
 Changelog
 =========
 
+Version 0.19.0 (March 05, 2025)
+-------------------------------
+
+New feature release in the 0.19.x series.
+
+This release adds plus signs to labels and suffixes, anticipating the
+release of BIDS 1.10.1 or 1.11.0 (whichever is next).
+Until the BIDS specification is updated and the ``bidsschematools``
+package containing the updated schema is published, files with ``+`` will
+not validate, but can still be indexed with ``BIDSLayout(..., validate=False)``.
+
+Several small fixes resolving issues with BIDS Stats Models are included,
+and complex JSON metadata (lists and objects) will now play more nicely with
+contexts where they need to be hashed.
+
+* FIX: Catch StopIteration on directory walk (#1124)
+* FIX: Ensure dotfiles are always filtered (#1123)
+* FIX: Copy entities dict before modifying run variable type (#1120)
+* FIX: Allow numpy arrays to treat PaddedInt like int (#1119)
+* FIX: Make lists and dicts hashable (#1112)
+* ENH: Allow plus signs in labels (#1117)
+* MNT: Remove formulaic upper bound (#1121)
+* MNT: Use tox-uv to ease lower bound checking, test on Python 3.13 (#1109)
+
 Version 0.18.1 (December 05, 2024)
 ----------------------------------
 
