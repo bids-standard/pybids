@@ -208,10 +208,14 @@ class BIDSLayoutIndexer:
         for c in config:
             config_entities.update(c.entities)
 
-
         # Get lists of 1st-level subdirectories and files in the path directory
-        _, dirnames, filenames = next(path.fs.walk(path.path))
-
+        try:
+            _, dirnames, filenames = next(path.fs.walk(path.path))
+        except StopIteration:
+            # It's unclear when this gets hit, but tests will occasionally fail here.
+            # Hopefully this only occurs when we enter an empty directory,
+            # but even if not, there's nothing else to do in this case.
+            return [], []
 
         # Symbolic links are returned as filenames even if they point to directories
         # Temporary list to store symbolic links that need to be removed from filenames
