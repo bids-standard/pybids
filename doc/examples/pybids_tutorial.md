@@ -232,7 +232,7 @@ Note that in the above example, we set `validate=False` to ensure that the stand
 
 ### Loading derivatives
 
-By default, `BIDSLayout` objects are initialized without scanning contained `derivatives/` directories. But you can easily ensure that all derivatives files are loaded and endowed with the extra structure specified in the [derivatives config file](https://github.com/bids-standard/pybids/blob/master/bids/layout/config/derivatives.json):
+By default, `BIDSLayout` objects are initialized without scanning contained `derivatives/` directories. But you can easily ensure that all derivatives files are loaded and endowed with the extra structure specified in the [derivatives config file](https://github.com/bids-standard/pybids/blob/master/src/bids/layout/config/derivatives.json):
 
 ```{code-cell} ipython3
 # Define paths to root and derivatives folders
