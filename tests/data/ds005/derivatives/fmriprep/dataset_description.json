@@ -2,7 +2,6 @@
     "Name": "fMRIPrep - fMRI PREProcessing workflow",
     "BIDSVersion": "1.4.0",
     "DatasetType": "derivative",
-    "PipelineDescription": {"Name": "ds000003 Pipeline"},
     "GeneratedBy": [
         {
             "Name": "fMRIPrep",
