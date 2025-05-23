@@ -15,8 +15,12 @@ def runner():
 
 def test_cli_entrypoint(runner):
     res = runner.invoke(cli, catch_exceptions=False)
-    assert "Command-line interface for PyBIDS operations" in res.stdout
-    assert runner.invoke(cli, ['-h'], catch_exceptions=False).stdout == res.stdout
+    if res.exit_code == 2:  # click 8.2+
+        help_text = res.stderr
+    elif res.exit_code == 0:
+        help_text = res.stdout
+    assert "Command-line interface for PyBIDS operations" in help_text
+    assert runner.invoke(cli, ['-h'], catch_exceptions=False).stdout == help_text
     # verify versioning
     assert runner.invoke(cli, ['--version'], catch_exceptions=False).stdout.startswith('pybids')
 
