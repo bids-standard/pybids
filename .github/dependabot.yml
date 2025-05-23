@@ -5,7 +5,15 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    groups:
+      actions-infrastructure:
+        patterns:
+          - "actions/*"
   - package-ecosystem: "gitsubmodule"
     directory: "/"
     schedule:
       interval: "weekly"
+  - package-ecosystem: uv
+    directory: "/"
+    schedule:
+      interval: weekly
