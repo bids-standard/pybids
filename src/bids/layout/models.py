@@ -36,13 +36,13 @@ class LayoutInfo(Base):
     __tablename__ = 'layout_info'
 
     root = Column(String, primary_key=True)
-    absolute_paths = Column(Boolean)
+    absolute_paths = Column(Boolean, default=True)  # Removed, but may be in older DBs
     _derivatives = Column(String)
     _config = Column(String)
 
     def __init__(self, **kwargs):
         init_args = self._sanitize_init_args(kwargs)
-        raw_cols = ['root', 'absolute_paths']
+        raw_cols = ['root']
         json_cols = ['derivatives', 'config']
         all_cols = raw_cols + json_cols
         missing_cols = set(all_cols) - set(init_args.keys())
@@ -57,6 +57,12 @@ class LayoutInfo(Base):
 
     @reconstructor
     def _init_on_load(self):
+        if self.absolute_paths is False:
+            warnings.warn(
+                "PyBIDS database loaded with deprecated `absolute_paths` "
+                "option. Returned paths will be absolute.",
+                stacklevel=2,
+            )
         for col in ['derivatives', 'config']:
             db_val = getattr(self, '_' + col)
             setattr(self, col, json.loads(db_val))
@@ -79,6 +85,12 @@ class LayoutInfo(Base):
                 str(UPath(der).absolute())
                 for der in listify(kwargs['derivatives'])
                 ]
+
+        if kwargs.pop('absolute_paths', True) is not True:
+            warnings.warn(
+                "Deprecated `absolute_paths` option passed. "
+                "Value must be True.", stacklevel=3,
+            )
 
         return kwargs
 
@@ -219,21 +231,6 @@ class BIDSFile(Base):
     @property
     def _dirname(self):
         return UPath(self.dirname)
-
-    def __getattr__(self, attr):
-        # Ensures backwards compatibility with old File_ namedtuple, which is
-        # deprecated as of 0.7.
-        # _ check first to not mask away access to __setstate__ etc.
-        # AFAIK None of the entities are allowed to start with _ anyways
-        # so the check is more generic than __
-        if not attr.startswith('_') and attr in self.entities:
-            warnings.warn("Accessing entities as attributes is deprecated as "
-                          "of 0.7. Please use the .entities dictionary instead"
-                          " (i.e., .entities['%s'] instead of .%s."
-                          % (attr, attr))
-            return self.entities[attr]
-        raise AttributeError("%s object has no attribute named %r" %
-                             (self.__class__.__name__, attr))
 
     def __repr__(self):
         return "<{} filename='{}'>".format(self.__class__.__name__, self.path)

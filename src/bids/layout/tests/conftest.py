@@ -13,11 +13,6 @@ def layout_7t_trt(tests_dir):
 
 
 @pytest.fixture(scope="session")
-def layout_7t_trt_relpath(tests_dir):
-    return BIDSLayout(tests_dir / 'data' / '7t_trt', absolute_paths=False)
-
-
-@pytest.fixture(scope="session")
 def layout_ds005(tests_dir):
     return BIDSLayout(tests_dir / 'data' / 'ds005')
 
