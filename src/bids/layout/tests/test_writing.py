@@ -184,7 +184,7 @@ sub-{subject}[/ses-{session}]/anat/sub-{subject}[_ses-{session}][_acq-{acquisiti
         assert build_path(entities, pats, strict=True) == 'sub-01/dwi/sub-01_T1rho.bvec'
 
         # Test multiple paths
-        pats = ['ses-{session<A|B|C>|D}/r-{run}.{extension<json|nii|nii.gz>|nii.gz}']
+        pats = ['ses-{session<A|B|C>}/r-{run}.{extension<json|nii|nii.gz>|nii.gz}']
         assert sorted(
             build_path({
                 'session': ['A', 'B'],
