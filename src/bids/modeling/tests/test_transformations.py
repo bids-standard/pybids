@@ -425,7 +425,7 @@ def test_factor(collection):
                 for t in targets])
     data = pd.concat([coll.variables[t].values for t in targets],
                      axis=1, sort=True)
-    assert (data.sum(1) == 1).all()
+    assert (data.sum(axis=1) == 1).all()
 
     # reduced-rank dummy-coding, multiple values
     coll = collection.clone()
@@ -437,7 +437,7 @@ def test_factor(collection):
                 for t in targets])
     data = pd.concat([coll.variables[t].values for t in targets],
                      axis=1, sort=True)
-    assert set(np.unique(data.sum(1).values.ravel())) == {0., 1.}
+    assert set(np.unique(data.sum(axis=1).values.ravel())) == {0., 1.}
 
     # Effect coding, multiple values
     coll = collection.clone()
@@ -449,7 +449,7 @@ def test_factor(collection):
                 for t in targets])
     data = pd.concat([coll.variables[t].values for t in targets],
                      axis=1, sort=True)
-    assert set(np.unique(data.sum(1).values.ravel())) == {-1., 1.}
+    assert set(np.unique(data.sum(axis=1).values.ravel())) == {-1., 1.}
 
 
 def test_filter(collection):
@@ -572,12 +572,16 @@ def test_resample(collection):
     transform.ToDense(coll, 'parametric gain', output='pg_dense')
     pg = coll.variables['pg_dense']
     old_shape = pg.values.shape
-    old_auc = np.trapz(np.abs(pg.values.values.squeeze()), dx=0.1)
+    try:
+        trapezoid = np.trapezoid
+    except AttributeError:  # NP1.26
+        trapezoid = np.trapz
+    old_auc = trapezoid(np.abs(pg.values.values.squeeze()), dx=0.1)
     transform.Resample(coll, 'pg_dense', 1)
     pg = coll.variables['pg_dense']
     new_shape = pg.values.shape
     # Spacing (dx) is 10* larger when downsampled from 10hz to 1hz
-    new_auc = np.trapz(np.abs(pg.values.values.squeeze()), dx=1)
+    new_auc = trapezoid(np.abs(pg.values.values.squeeze()), dx=1)
 
     # Shape from 10hz to 1hz
     assert new_shape[0] == old_shape[0] / 10
