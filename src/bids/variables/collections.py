@@ -269,10 +269,11 @@ class BIDSVariableCollection:
         # Ensure name matches collection key, but raise warning if needed.
         if obj.name != var:
             warnings.warn(
-                "The provided key to use in the collection ('%s') "
+                f"The provided key to use in the collection ({var!r}) "
                 "does not match the passed Column object's existing "
-                "name ('%s'). The Column name will be set to match "
-                "the provided key." % (var, obj.name)
+                f"name ({obj.name!r}). The Column name will be set to match "
+                "the provided key.",
+                stacklevel=2,
             )
             obj.name = var
         self.variables[var] = obj

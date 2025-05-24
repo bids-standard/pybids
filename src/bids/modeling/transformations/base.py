@@ -371,7 +371,8 @@ class Transformation(metaclass=ABCMeta):
                 if sparse:
                     msg = ("Found a mix of dense and sparse variables. May "
                            "cause problems for some transformations.")
-                    warnings.warn(msg)
+                    # This gets called deep in Transformations.__new__()
+                    warnings.warn(msg, stacklevel=5)
             # If all are sparse, durations, onsets, and index must match
             # perfectly for all
             else:
@@ -390,7 +391,7 @@ class Transformation(metaclass=ABCMeta):
                                "order to ensure proper alignment.")
                         sr = self.collection.sampling_rate
                         variables = [c.to_dense(sr) for c in variables]
-                        warnings.warn(msg)
+                        warnings.warn(msg, stacklevel=5)
                     else:
                         raise ValueError(
                             "Misaligned sparse variables found."
