@@ -212,7 +212,7 @@ def describe_intendedfor_targets(metadata: dict, layout) -> str:
             if_file = [
                 f for f in layout.get(extension=[".nii", ".nii.gz"]) if fn in f.path
             ][0]
-            run_num = int(if_file.run)
+            run_num = int(if_file.entities["run"])
             target_type = if_file.entities["suffix"].upper()
 
             if target_type == "BOLD":
