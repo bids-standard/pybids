@@ -108,7 +108,7 @@ class BIDSReport:
                 ]
 
                 if data_files:
-                    ses_description = parsing.parse_files(
+                    ses_description = parsing._parse_files(
                         self.layout,
                         data_files,
                         sub,
@@ -219,7 +219,7 @@ class BIDSReport:
             )
 
             if data_files:
-                ses_description = parsing.parse_files(
+                ses_description = parsing._parse_files(
                     self.layout,
                     data_files,
                     subject,
