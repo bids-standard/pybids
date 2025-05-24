@@ -371,7 +371,9 @@ class SparseRunVariable(SimpleVariable):
                             % repr(run_info))
         self.run_info = run_info
         for sc in self._property_columns:
-            setattr(self, sc, data.pop(sc).values)
+            arr = data.pop(sc).values
+            arr.flags['WRITEABLE'] = True
+            setattr(self, sc, arr)
         super(SparseRunVariable, self).__init__(name, data, source, **kwargs)
 
     def get_duration(self):
