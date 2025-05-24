@@ -15,7 +15,7 @@ from bids.utils import matches_entities, convert_JSON, listify
 from bids.variables import (BIDSVariableCollection, merge_collections)
 from bids.modeling import transformations as tm
 from .model_spec import GLMMSpec, MetaAnalysisSpec
-from .report.utils import node_report
+from .report.utils import node_report, snake_to_camel
 import warnings
 
 
@@ -39,6 +39,13 @@ def validate_model(model, *, stacklevel=2):
                             " all nodes in the model have unique names."
                             .format(duplicates))
 
+    def capitalize(obj):
+        if isinstance(obj, list):
+            return [capitalize(i) for i in obj]
+        if isinstance(obj, dict):
+            return {snake_to_camel(k).capitalize(): capitalize(v) for k, v in obj.items()}
+        return obj
+
     if 'edges' in model:
         for edge in model['edges']:
             if edge['source'] not in names:
@@ -49,25 +56,34 @@ def validate_model(model, *, stacklevel=2):
 
     # XXX: May 2021: Helping old models to work. This shouldn't last more than 2 years.
     for node in model["nodes"]:
+        messages = []
         if "type" in node.get("dummy_contrasts", {}):
-            warnings.warn(
-                f"[Node {node['name']}]: Contrast 'Type' is now 'Test'.",
-                stacklevel=stacklevel,
-            )
             node["dummy_contrasts"]["test"] = node["dummy_contrasts"].pop("type")
+            messages.append(
+                '"DummyContrasts": Contrast "Type" is now "Test".'
+            )
         for contrast in node.get("contrasts", []):
             if "type" in contrast:
-                warnings.warn(f"[Node {node['name']}; Contrast {contrast['name']}]:"
-                              "Contrast 'Type' is now 'Test'.",
-                              stacklevel=stacklevel)
                 contrast["test"] = contrast.pop("type")
+                messages.append(
+                    'Contrast {contrast["name"]}]: '
+                    'Contrast "Type" is now "Test".'
+                )
         if isinstance(node.get("transformations"), list):
             transformations = {"transformer": "pybids-transforms-v1",
                                "instructions": node["transformations"]}
-            warnings.warn(f"[Node {node['name']}]:"
-                          f"Transformations reformatted to {transformations}",
-                          stacklevel=stacklevel)
             node["transformations"] = transformations
+            messages.append(
+                'Transformations are now a dictionary '
+                'with "Transformer" and "Instructions" keys.'
+            )
+        if messages:
+            new_text = json.dumps(capitalize(node), indent=2)
+            notes = "\n  ".join(messages)
+            warnings.warn(
+                f'[Node "{node["name"]}"] notes:\n  {notes}\n'
+                f'[Node "{node["name"]}"] reformatted:\n{new_text}\n',
+                stacklevel=stacklevel)
     return True
 
 
