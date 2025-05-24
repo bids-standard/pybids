@@ -3,5 +3,7 @@ graft tests
 graft doc
 
 include tox.ini
+# Include uv.lock so that tox can run from sdist
+include uv.lock
 
 recursive-exclude src README.md

@@ -304,7 +304,7 @@ def test_missing_value_fill():
 
     # Assert that there are no missing values
     outputs = graph.nodes['run'].outputs_
-    assert not np.isnan(outputs[0].model_spec.X).any().any()
+    assert not outputs[0].model_spec.X.isna().any().any()
 
     # Check that missing_values='error' raises an error
     with pytest.raises(ValueError):
@@ -314,4 +314,4 @@ def test_missing_value_fill():
     graph.run_graph(missing_values='ignore')
 
     outputs = graph.nodes['run'].outputs_
-    assert np.isnan(outputs[0].model_spec.X).any().any()
+    assert outputs[0].model_spec.X.isna().any().any()

@@ -278,12 +278,12 @@ def test_split(collection):
     rt_post_onsets = np.r_[collection['RT.respcat[0]'].onset,
                            collection['RT.respcat[-1]'].onset,
                            collection['RT.respcat[1]'].onset]
-    assert np.array_equal(rt_pre_onsets.sort(), rt_post_onsets.sort())
+    assert np.array_equal(np.sort(rt_pre_onsets), np.sort(rt_post_onsets))
 
     rt_post_values = np.r_[collection['RT.respcat[0]'].values.values,
                            collection['RT.respcat[-1]'].values.values,
                            collection['RT.respcat[1]'].values.values]
-    assert np.array_equal(rt_pre_values.sort(), rt_post_values.sort())
+    assert np.array_equal(np.sort(rt_pre_values), np.sort(rt_post_values))
 
     # Grouping SparseEventVariable by multiple columns
     transform.Split(collection, variables=['RT_2'], by=['loss', 'respcat'])

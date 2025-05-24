@@ -1,7 +1,7 @@
 {
-	"PipelineDescription": {
+	"GeneratedBy": [{
 		"Name": "fmriprep"
-	},
+	}],
 	"Name": "synthetic",
 	"BIDSVersion": "1.7.1",
 	"License": "PD",
