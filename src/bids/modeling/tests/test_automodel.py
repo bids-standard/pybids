@@ -21,7 +21,7 @@ def test_automodel_valid(model):
         from bsmschema.models import BIDSStatsModel
     except ImportError:
         pytest.skip("Needs bsmschema, available for Python 3.8+")
-    BIDSStatsModel.parse_obj(model)
+    BIDSStatsModel.model_validate(model)
 
 def test_automodel_runs(model):
     layout_path = join(get_test_data_path(), 'ds005')
