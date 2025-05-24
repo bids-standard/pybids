@@ -145,7 +145,7 @@ class Product(Transformation):
 
     def _transform(self, data):
         data = pd.concat(data, axis=1, sort=True)
-        return data.product(1)
+        return data.product(axis=1)
 
 
 class Scale(Transformation):
