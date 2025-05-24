@@ -157,7 +157,8 @@ def build_path(entities, path_patterns, strict=False):
                               for v in _expand_options(val)]
             if valid_expanded and defval and defval not in valid_expanded:
                 warnings.warn(
-                    'Pattern "%s" is inconsistent as it defines an invalid default value.' % fmt
+                    f'Pattern {fmt!r} is inconsistent as it defines an invalid default value.',
+                    stacklevel=2,
                 )
 
             if (
