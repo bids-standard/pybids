@@ -428,7 +428,8 @@ class SparseRunVariable(SimpleVariable):
             if _onset >= duration:
                 warnings.warn("The onset time of a variable seems to exceed "
                               "the runs duration, hence runs are incremented "
-                              "by one internally.")
+                              "by one internally.",
+                              stacklevel=2)
             ts[_onset:_offset] = val
             last_ind = onsets[i]
 

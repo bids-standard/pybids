@@ -19,7 +19,7 @@ from .report.utils import node_report
 import warnings
 
 
-def validate_model(model):
+def validate_model(model, *, stacklevel=2):
     """Validate a BIDS-StatsModel structure.
 
     Parameters
@@ -50,18 +50,23 @@ def validate_model(model):
     # XXX: May 2021: Helping old models to work. This shouldn't last more than 2 years.
     for node in model["nodes"]:
         if "type" in node.get("dummy_contrasts", {}):
-            warnings.warn(f"[Node {node['name']}]: Contrast 'Type' is now 'Test'.")
+            warnings.warn(
+                f"[Node {node['name']}]: Contrast 'Type' is now 'Test'.",
+                stacklevel=stacklevel,
+            )
             node["dummy_contrasts"]["test"] = node["dummy_contrasts"].pop("type")
         for contrast in node.get("contrasts", []):
             if "type" in contrast:
                 warnings.warn(f"[Node {node['name']}; Contrast {contrast['name']}]:"
-                              "Contrast 'Type' is now 'Test'.")
+                              "Contrast 'Type' is now 'Test'.",
+                              stacklevel=stacklevel)
                 contrast["test"] = contrast.pop("type")
         if isinstance(node.get("transformations"), list):
             transformations = {"transformer": "pybids-transforms-v1",
                                "instructions": node["transformations"]}
             warnings.warn(f"[Node {node['name']}]:"
-                          f"Transformations reformatted to {transformations}")
+                          f"Transformations reformatted to {transformations}",
+                          stacklevel=stacklevel)
             node["transformations"] = transformations
     return True
 
@@ -119,7 +124,7 @@ class BIDSStatsModelsGraph:
         # Convert JSON from CamelCase to snake_case keys
         model = convert_JSON(model)
         if validate:
-            validate_model(model)
+            validate_model(model, stacklevel=4)  # Warn the caller of __init__
         return model
 
     @staticmethod
@@ -711,7 +716,8 @@ class BIDSStatsModelsNodeOutput:
                     if missing_values is None:
                         base_message += " were replaced with 0.  Consider "\
                             " handling missing values using transformations."
-                        warnings.warn(base_message)
+                        # warn caller of BIDSStatsModelsNode.run()
+                        warnings.warn(base_message, stacklevel=3)
                 elif missing_values == 'error':
                     base_message += ". Explicitly replace missing values using transformations."
                     raise ValueError(base_message)
@@ -808,9 +814,11 @@ class BIDSStatsModelsNodeOutput:
         dummies = self.node.dummy_contrasts
         if dummies:
             if {'conditions', 'condition_list'} & set(dummies):
+                # warn caller of BIDSStatsModelsNode.run()
                 warnings.warn(
                     "Use 'Contrasts' not 'Conditions' or 'ConditionList' to specify"
-                    "DummyContrasts. Renaming to 'Contrasts' for now.")
+                    "DummyContrasts. Renaming to 'Contrasts' for now.",
+                    stacklevel=4)
                 dummies['contrasts'] = dummies.pop('conditions', None) or dummies.pop('condition_list', None)
 
             if 'contrasts' in dummies:
