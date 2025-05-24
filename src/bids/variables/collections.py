@@ -3,6 +3,7 @@ from copy import copy
 import warnings
 import re
 from collections import OrderedDict
+from functools import cache
 from itertools import chain
 import fnmatch
 
@@ -18,6 +19,41 @@ from .variables import (
     BIDSVariable,
 )
 from bids.utils import listify
+
+
+def _pandas_3_0():
+    """Silence pandas warnings and opt in to future behavior.
+
+    This sets pandas behavior to 3.0+ defaults.
+    Prior to pandas 3.0, the fillna() and replace() methods would convert
+    object columns to float64 if the resulting series was all float64.
+    In 3.0+, you need to use infer_objects() to do this.
+
+    This also opts-in to copy-on-write, which previously required `copy=False`
+    to be set.
+    """
+    if (args := _pandas_3_0_options()):
+        return pd.option_context(*args)
+
+    import contextlib
+    return contextlib.nullcontext()
+
+
+@cache
+def _pandas_3_0_options():
+    options = [
+        ('future.no_silent_downcasting', True),
+        ('mode.copy_on_write', True),
+    ]
+
+    args = []
+    for option in options:
+        try:
+            pd.get_option(option[0])
+        except KeyError:
+            continue
+        args.extend(option)
+    return args
 
 
 class BIDSVariableCollection:
@@ -158,21 +194,16 @@ class BIDSVariableCollection:
         ent_cols = list(all_cols - {"condition", "amplitude", "onset", "duration"})
 
         if format == "long":
-            with warnings.catch_warnings():
-                # This change in behavior doesn't affect our usage, so ignore warnings
-                # without setting a global config for Pandas.
-                # Short story: fillna used to downcast object to float64, but if it isn't
-                # already float64, we have non-float objects in the column, so we've never
-                # downcasted.
-                warnings.filterwarnings("ignore", message='no_silent_downcasting', category=FutureWarning)
-                df = df.reset_index(drop=True).fillna(fillna)
+            with _pandas_3_0():
+                df = df.reset_index(drop=True).fillna(fillna).infer_objects()
         else:
             # Rows in wide format can only be defined by combinations of level entities
             # plus (for run-level variables) onset and duration.
             valid_vars = {"run", "session", "subject", "dataset", "onset", "duration"}
             idx_cols = list(valid_vars & all_cols)
 
-            df["amplitude"] = df["amplitude"].fillna("n/a")
+            with _pandas_3_0():
+                df["amplitude"] = df["amplitude"].fillna("n/a")
             wide_df = df.pivot_table(
                 index=idx_cols, columns="condition", values="amplitude", aggfunc="first"
             )
@@ -185,7 +216,8 @@ class BIDSVariableCollection:
             else:
                 df = wide_df
 
-            df = df.reset_index().replace("n/a", fillna)
+            with _pandas_3_0():
+                df = df.reset_index().replace("n/a", fillna).infer_objects()
             df.columns.name = None
 
         # Drop any columns we don't want
