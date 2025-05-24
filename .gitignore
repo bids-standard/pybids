@@ -22,7 +22,7 @@ lib64/
 parts/
 sdist/
 var/
-*.egg-info/*
+**/*.egg-info
 .installed.cfg
 *.egg
 pip-wheel-metadata/
