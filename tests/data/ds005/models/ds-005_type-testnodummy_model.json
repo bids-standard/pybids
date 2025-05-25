@@ -16,22 +16,52 @@
                 ],
                 "Formula": "0 + RT * gain"
             },
-            "Transformations": [
+            "Transformations": {
+                "Transformer": "pybids-transforms-v1",
+                "Instructions": [
+                    {
+                        "Name": "Factor",
+                        "Input": "trial_type"
+                    },
+                    {
+                        "Name": "Rename",
+                        "Input": "trial_type.parametric gain",
+                        "Output": "gain"
+                    }
+                ]
+            },
+            "Contrasts": [
                 {
-                    "Name": "Factor",
-                    "Input": "trial_type"
+                    "Name": "RT",
+                    "Condition_list": [
+                        "RT"
+                    ],
+                    "Weights": [
+                        1
+                    ],
+                    "Test": "t"
                 },
                 {
-                    "Name": "Rename",
-                    "Input": "trial_type.parametric gain",
-                    "Output": "gain"
+                    "Name": "gain",
+                    "Condition_list": [
+                        "gain"
+                    ],
+                    "Weights": [
+                        1
+                    ],
+                    "Test": "t"
+                },
+                {
+                    "Name": "RT:gain",
+                    "Condition_list": [
+                        "RT:gain"
+                    ],
+                    "Weights": [
+                        1
+                    ],
+                    "Test": "t"
                 }
-            ],
-            "Contrasts": [
-                {"Name": "RT", "ConditionList": ["RT"], "Weights": [1], "Test": "t"},
-                {"Name": "gain", "ConditionList": ["gain"], "Weights": [1], "Test": "t"},
-                {"Name": "RT:gain", "ConditionList": ["RT:gain"], "Weights": [1], "Test": "t"}
-              ]
+            ]
         },
         {
             "Name": "participant",

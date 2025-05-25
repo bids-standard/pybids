@@ -15,11 +15,11 @@ from bids.utils import matches_entities, convert_JSON, listify
 from bids.variables import (BIDSVariableCollection, merge_collections)
 from bids.modeling import transformations as tm
 from .model_spec import GLMMSpec, MetaAnalysisSpec
-from .report.utils import node_report
+from .report.utils import node_report, snake_to_camel
 import warnings
 
 
-def validate_model(model):
+def validate_model(model, *, stacklevel=2):
     """Validate a BIDS-StatsModel structure.
 
     Parameters
@@ -39,6 +39,13 @@ def validate_model(model):
                             " all nodes in the model have unique names."
                             .format(duplicates))
 
+    def capitalize(obj):
+        if isinstance(obj, list):
+            return [capitalize(i) for i in obj]
+        if isinstance(obj, dict):
+            return {snake_to_camel(k).capitalize(): capitalize(v) for k, v in obj.items()}
+        return obj
+
     if 'edges' in model:
         for edge in model['edges']:
             if edge['source'] not in names:
@@ -49,20 +56,34 @@ def validate_model(model):
 
     # XXX: May 2021: Helping old models to work. This shouldn't last more than 2 years.
     for node in model["nodes"]:
+        messages = []
         if "type" in node.get("dummy_contrasts", {}):
-            warnings.warn(f"[Node {node['name']}]: Contrast 'Type' is now 'Test'.")
             node["dummy_contrasts"]["test"] = node["dummy_contrasts"].pop("type")
+            messages.append(
+                '"DummyContrasts": Contrast "Type" is now "Test".'
+            )
         for contrast in node.get("contrasts", []):
             if "type" in contrast:
-                warnings.warn(f"[Node {node['name']}; Contrast {contrast['name']}]:"
-                              "Contrast 'Type' is now 'Test'.")
                 contrast["test"] = contrast.pop("type")
+                messages.append(
+                    'Contrast {contrast["name"]}]: '
+                    'Contrast "Type" is now "Test".'
+                )
         if isinstance(node.get("transformations"), list):
             transformations = {"transformer": "pybids-transforms-v1",
                                "instructions": node["transformations"]}
-            warnings.warn(f"[Node {node['name']}]:"
-                          f"Transformations reformatted to {transformations}")
             node["transformations"] = transformations
+            messages.append(
+                'Transformations are now a dictionary '
+                'with "Transformer" and "Instructions" keys.'
+            )
+        if messages:
+            new_text = json.dumps(capitalize(node), indent=2)
+            notes = "\n  ".join(messages)
+            warnings.warn(
+                f'[Node "{node["name"]}"] notes:\n  {notes}\n'
+                f'[Node "{node["name"]}"] reformatted:\n{new_text}\n',
+                stacklevel=stacklevel)
     return True
 
 
@@ -119,7 +140,7 @@ class BIDSStatsModelsGraph:
         # Convert JSON from CamelCase to snake_case keys
         model = convert_JSON(model)
         if validate:
-            validate_model(model)
+            validate_model(model, stacklevel=4)  # Warn the caller of __init__
         return model
 
     @staticmethod
@@ -711,7 +732,8 @@ class BIDSStatsModelsNodeOutput:
                     if missing_values is None:
                         base_message += " were replaced with 0.  Consider "\
                             " handling missing values using transformations."
-                        warnings.warn(base_message)
+                        # warn caller of BIDSStatsModelsNode.run()
+                        warnings.warn(base_message, stacklevel=3)
                 elif missing_values == 'error':
                     base_message += ". Explicitly replace missing values using transformations."
                     raise ValueError(base_message)
@@ -808,9 +830,11 @@ class BIDSStatsModelsNodeOutput:
         dummies = self.node.dummy_contrasts
         if dummies:
             if {'conditions', 'condition_list'} & set(dummies):
+                # warn caller of BIDSStatsModelsNode.run()
                 warnings.warn(
                     "Use 'Contrasts' not 'Conditions' or 'ConditionList' to specify"
-                    "DummyContrasts. Renaming to 'Contrasts' for now.")
+                    "DummyContrasts. Renaming to 'Contrasts' for now.",
+                    stacklevel=4)
                 dummies['contrasts'] = dummies.pop('conditions', None) or dummies.pop('condition_list', None)
 
             if 'contrasts' in dummies:

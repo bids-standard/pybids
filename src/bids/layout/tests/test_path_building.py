@@ -75,7 +75,6 @@ and compares it what's actually in the dataset
         ("qmri_sa2rage"),
         ("qmri_vfa"),
         ("synthetic"),
-        ("ds000001-fmriprep"),
     ],
 )
 def test_path_building_on_derivative_examples(dataset, bids_examples):
@@ -136,8 +135,8 @@ def test_path_building_in_raw_scope(dataset, bids_examples):
 
 @pytest.mark.parametrize("scope", ["raw"])
 @pytest.mark.parametrize("dataset", ["ds000247", "ds000246"])
-def test_path_building_on_examples_with_derivatives_meg_ds_folder(dataset, scope, bids_examples):
-    layout = BIDSLayout(bids_examples / dataset, derivatives=True)
+def test_path_building_on_examples_with_meg_ds_folder(dataset, scope, bids_examples):
+    layout = BIDSLayout(bids_examples / dataset)
     files = layout.get(subject=".*", datatype=".*", regex_search = True, scope=scope)
     for bf in files:
         entities = bf.get_entities()

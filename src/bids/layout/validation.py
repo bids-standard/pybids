@@ -38,24 +38,6 @@ ALWAYS_IGNORE = (
     re.compile(r'/\.'),  # dotfiles should never be indexed
 )
 
-def absolute_path_deprecation_warning():
-    warnings.warn("The absolute_paths argument will be removed from PyBIDS "
-                  "in 0.14. You can easily access the relative path of "
-                  "BIDSFile objects via the .relpath attribute (instead of "
-                  ".path). Switching to this pattern is strongly encouraged, "
-                  "as the current implementation of relative path handling "
-                  "is known to produce query failures in certain edge cases.")
-
-
-def indexer_arg_deprecation_warning():
-    warnings.warn("The ability to pass arguments to BIDSLayout that control "
-                  "indexing is likely to be removed in future; possibly as "
-                  "early as PyBIDS 0.14. This includes the `config_filename`, "
-                  "`ignore`, `force_index`, and `index_metadata` arguments. "
-                  "The recommended usage pattern is to initialize a new "
-                  "BIDSLayoutIndexer with these arguments, and pass it to "
-                  "the BIDSLayout via the `indexer` argument.")
-
 
 def validate_root(root, validate):
     # Validate root argument and make sure it contains mandatory info

@@ -1,4 +1,5 @@
 import json
+import warnings
 from importlib.resources import files
 
 import pytest
@@ -22,3 +23,15 @@ def config_file():
 @pytest.fixture(scope='session')
 def testconfig(config_file):
     return json.loads(config_file.read_text())
+
+
+@pytest.fixture(autouse=True)
+def _unsupported_files():
+    with warnings.catch_warnings():
+        warnings.filterwarnings(
+            "ignore",
+            message=r'.*magnitude.* not yet supported.*',
+            category=UserWarning,
+            append=True,
+        )
+        yield

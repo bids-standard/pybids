@@ -142,7 +142,7 @@ def test_convolve_impulse():
         'duration': [0, 0],
         'amplitude': [1, 1]
     })
-    run_info = [RunInfo({'subject': '01'}, 20, 2, 'dummy.nii.gz', 10)]
+    run_info = [RunInfo({'subject': '01'}, 25, 2, 'dummy.nii.gz', 10)]
     var = SparseRunVariable(
         name='var', data=data, run_info=run_info, source='events')
     coll = BIDSRunVariableCollection([var])
@@ -224,8 +224,9 @@ def test_orthogonalize_dense(collection):
     rt = collection['RT'].to_dense(sampling_rate)
 
     # Orthogonalize and store result
-    transform.Orthogonalize(collection, variables='trial_type/parametric gain',
-                            other='RT', dense=True, groupby=['run', 'subject'])
+    with pytest.warns(UserWarning, match='Found a mix of dense and sparse.*'):
+        transform.Orthogonalize(collection, variables='trial_type/parametric gain',
+                                other='RT', dense=True, groupby=['run', 'subject'])
     pg_post = collection['trial_type/parametric gain']
 
     # Verify that the to_dense() calls result in identical indexing
@@ -327,17 +328,17 @@ def test_threshold(collection):
     old_pg = collection['parametric gain']
     orig_vals = old_pg.values
 
-    collection['pg'] = old_pg.clone()
+    collection['pg'] = old_pg.clone(name='pg')
     transform.Threshold(collection, 'pg', threshold=0.2, binarize=True)
     assert collection.variables['pg'].values.sum() == (orig_vals >= 0.2).sum()
 
-    collection['pg'] = old_pg.clone()
+    collection['pg'] = old_pg.clone(name='pg')
     transform.Threshold(collection, 'pg', threshold=0.2, binarize=False)
     assert collection.variables['pg'].values.sum() != (orig_vals >= 0.2).sum()
     coll_sum = (collection.variables['pg'].values >= 0.2).sum()
     assert coll_sum == (orig_vals >= 0.2).sum()
 
-    collection['pg'] = old_pg.clone()
+    collection['pg'] = old_pg.clone(name='pg')
     transform.Threshold(collection, 'pg', threshold=-0.1, binarize=True,
                         signed=False, above=False)
     n = np.logical_and(orig_vals <= 0.1, orig_vals >= -0.1).sum()
@@ -425,7 +426,7 @@ def test_factor(collection):
                 for t in targets])
     data = pd.concat([coll.variables[t].values for t in targets],
                      axis=1, sort=True)
-    assert (data.sum(1) == 1).all()
+    assert (data.sum(axis=1) == 1).all()
 
     # reduced-rank dummy-coding, multiple values
     coll = collection.clone()
@@ -437,7 +438,7 @@ def test_factor(collection):
                 for t in targets])
     data = pd.concat([coll.variables[t].values for t in targets],
                      axis=1, sort=True)
-    assert set(np.unique(data.sum(1).values.ravel())) == {0., 1.}
+    assert set(np.unique(data.sum(axis=1).values.ravel())) == {0., 1.}
 
     # Effect coding, multiple values
     coll = collection.clone()
@@ -449,7 +450,7 @@ def test_factor(collection):
                 for t in targets])
     data = pd.concat([coll.variables[t].values for t in targets],
                      axis=1, sort=True)
-    assert set(np.unique(data.sum(1).values.ravel())) == {-1., 1.}
+    assert set(np.unique(data.sum(axis=1).values.ravel())) == {-1., 1.}
 
 
 def test_filter(collection):
@@ -461,7 +462,8 @@ def test_filter(collection):
 
     orig = collection['RT'].clone()
     q = 'parametric gain > 0.1'
-    transform.Filter(collection, 'RT', query=q, by='parametric gain')
+    with pytest.warns(UserWarning, match='Forcing all sparse variables to dense.*'):
+        transform.Filter(collection, 'RT', query=q, by='parametric gain')
     assert len(orig.values) != len(collection['RT'].values)
     assert len(collection['RT'].values) == 96 * len(SUBJECTS)
 
@@ -522,7 +524,7 @@ def test_or(collection):
     transform.Or(coll, names, output='disjunction')
     assert (coll.variables['disjunction'].values == 1).all()
 
-    coll['copy'] = coll.variables['respnum.0'].clone()
+    coll['copy'] = coll.variables['respnum.0'].clone(name='copy')
     transform.Or(coll, ['respnum.0', 'copy'], output='or')
     assert coll.variables['or'].values.astype(float).equals(
         coll.variables['respnum.0'].values)
@@ -572,12 +574,16 @@ def test_resample(collection):
     transform.ToDense(coll, 'parametric gain', output='pg_dense')
     pg = coll.variables['pg_dense']
     old_shape = pg.values.shape
-    old_auc = np.trapz(np.abs(pg.values.values.squeeze()), dx=0.1)
+    try:
+        trapezoid = np.trapezoid
+    except AttributeError:  # NP1.26
+        trapezoid = np.trapz
+    old_auc = trapezoid(np.abs(pg.values.values.squeeze()), dx=0.1)
     transform.Resample(coll, 'pg_dense', 1)
     pg = coll.variables['pg_dense']
     new_shape = pg.values.shape
     # Spacing (dx) is 10* larger when downsampled from 10hz to 1hz
-    new_auc = np.trapz(np.abs(pg.values.values.squeeze()), dx=1)
+    new_auc = trapezoid(np.abs(pg.values.values.squeeze()), dx=1)
 
     # Shape from 10hz to 1hz
     assert new_shape[0] == old_shape[0] / 10

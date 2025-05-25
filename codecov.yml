@@ -24,4 +24,3 @@ coverage:
           - "smoketests"
   ignore:          # files and folders that will be removed during processing
     - "doc"
-    - "**/tests"

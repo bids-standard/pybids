@@ -304,7 +304,7 @@ class BIDSLayoutIndexer:
                     filters['extension'].append('.json')
 
         # Process JSON files first if we're indexing metadata
-        all_files = self._layout.get(absolute_paths=True, **filters)
+        all_files = self._layout.get(**filters)
 
         # Track ALL entities we've seen in file names or metadatas
         all_entities = {}

@@ -27,8 +27,6 @@ from ..exceptions import (
 )
 
 from .validation import (validate_root, validate_derivative_path,
-                         absolute_path_deprecation_warning,
-                         indexer_arg_deprecation_warning,
                          EXAMPLE_DERIVATIVES_DESCRIPTION)
 from .writing import build_path, write_to_file
 from .models import (Config, BIDSFile, DerivativeDatasets, Entity, Tag)
@@ -36,7 +34,22 @@ from .index import BIDSLayoutIndexer
 from .db import ConnectionManager
 from .utils import (BIDSMetadata, parse_file_entities)
 
+try:
+    from operator import call
+except ImportError:  # PY310
+    def call(func, *args, **kwargs):
+        return func(*args, **kwargs)
+
 __all__ = ['BIDSLayout']
+
+
+class Sentinel:
+    def __repr__(self):
+        return self.__class__.__name__
+
+
+@call
+class RemovedOption(Sentinel): pass
 
 
 class BIDSLayout:
@@ -52,10 +65,6 @@ class BIDSLayout:
         restrict file indexing to only those files defined in the "core" BIDS
         spec, as setting validate=True will lead files in supplementary folders
         like derivatives/, code/, etc. to be ignored.
-    absolute_paths : bool, optional
-        If True, queries always return absolute paths.
-        If False, queries return relative paths (for files and
-        directories).
     derivatives : bool or str or list, optional
         Specifies whether and/or which
         derivatives to index. If True, all pipelines found in the
@@ -99,24 +108,28 @@ class BIDSLayout:
         validate=False to index derivatives without dataset_description.json. If
         validate=True, the dataset must have a dataset_description.json with
         DatasetType=derivative and GeneratedBy
-    indexer_kwargs: dict
-        Optional keyword arguments to pass onto the newly created
-        BIDSLayoutIndexer. Valid keywords are 'ignore', 'force_index',
-        'index_metadata', and 'config_filename'. Ignored if indexer is not
-        None.
     """
 
-    def __init__(self, root=None, validate=True, absolute_paths=True,
+    def __init__(self, root=None, validate=True, absolute_paths=RemovedOption,
                  derivatives=False, config=None, sources=None,
                  regex_search=False, database_path=None, reset_database=False,
                  indexer=None, is_derivative=False, **indexer_kwargs):
 
-        if not absolute_paths:
-            absolute_path_deprecation_warning()
+        if absolute_paths is not RemovedOption:
+            msg = (
+                "The absolute_paths argument is no longer supported. Use the "
+                "`.path` attribute of returned BIDSFile objects for absolute "
+                "paths, and the `.relpath` attribute for relative paths."
+            )
+            raise TypeError(msg)
 
-        ind_args = {'force_index', 'ignore', 'index_metadata', 'config_filename'}
-        if ind_args & set(indexer_kwargs.keys()):
-            indexer_arg_deprecation_warning()
+        if indexer_kwargs:
+            args = ', '.join(f'{key}={val}' for key, val in indexer_kwargs.items())
+            msg = (
+                "Passing kwargs to the BIDSLayoutIndexer is no longer supported. "
+                f"Pass `indexer=BIDSLayoutIndexer({args})` instead."
+            )
+            raise TypeError(msg)
 
         # Load from existing database file
         load_db = (database_path is not None and reset_database is False and
@@ -127,7 +140,6 @@ class BIDSLayout:
             info = self.connection_manager.layout_info
             # Overwrite init args with values in DB
             root = info.root
-            absolute_paths = info.absolute_paths
             derivatives = info.derivatives
             config = info.config
 
@@ -152,7 +164,6 @@ class BIDSLayout:
 
         self._root = root  # type: Path
         self.description = description
-        self.absolute_paths = absolute_paths
         self.derivatives = DerivativeDatasets()
         self.sources = sources
         self.regex_search = regex_search
@@ -163,8 +174,7 @@ class BIDSLayout:
             # back to a default
             config = listify(config if config else default_config)
 
-            init_args = dict(root=root, absolute_paths=absolute_paths,
-                             derivatives=derivatives, config=config)
+            init_args = dict(root=root, derivatives=derivatives, config=config)
 
             self.connection_manager = ConnectionManager(
                 database_path, reset_database, config, init_args)
@@ -172,7 +182,7 @@ class BIDSLayout:
             # Do not overwrite indexer variable, so the same configuration is passed to
             # add_derivatives() below
             _indexer = indexer or BIDSLayoutIndexer(
-                validate=validate and not is_derivative, **indexer_kwargs
+                validate=validate and not is_derivative,
             )
             _indexer(self)
 
@@ -182,10 +192,10 @@ class BIDSLayout:
                 derivatives = root / 'derivatives'
             self.add_derivatives(
                 derivatives, parent_database_path=database_path,
-                validate=validate, absolute_paths=absolute_paths,
+                validate=validate,
                 derivatives=None, sources=self, config=None,
                 regex_search=regex_search, reset_database=reset_database,
-                indexer=indexer, **indexer_kwargs)
+                indexer=indexer)
 
     @property
     def root(self):
@@ -585,8 +595,9 @@ class BIDSLayout:
             data.loc[o] = pd.Series(dtype=float)
 
         return data.reset_index()
+
     def get(self, return_type='object', target=None, scope='all',
-            regex_search=False, absolute_paths=None, invalid_filters='error',
+            regex_search=False, absolute_paths=RemovedOption, invalid_filters='error',
             **filters):
         """Retrieve files and/or metadata from the current Layout.
 
@@ -615,11 +626,6 @@ class BIDSLayout:
             Whether to require exact matching
             (False) or regex search (True) when comparing the query string
             to each entity.
-        absolute_paths : bool, optional
-            Optionally override the instance-wide option
-            to report either absolute or relative (to the top of the
-            dataset) paths. If None, will fall back on the value specified
-            at BIDSLayout initialization.
         invalid_filters (str): Controls behavior when named filters are
             encountered that don't exist in the database (e.g., in the case of
             a typo like subbject='0.1'). Valid values:
@@ -652,8 +658,13 @@ class BIDSLayout:
             raise ValueError(f"Invalid return_type <{return_type}> specified (must be one "
                              "of 'object', 'file', 'filename', 'id', or 'dir').")
 
-        if absolute_paths is False:
-            absolute_path_deprecation_warning()
+        if absolute_paths is not RemovedOption:
+            msg = (
+                "The absolute_paths argument is no longer supported. Use the "
+                "`.path` attribute of returned BIDSFile objects for absolute "
+                "paths, and the `.relpath` attribute for relative paths."
+            )
+            raise TypeError(msg)
 
         layouts = self._get_layouts_in_scope(scope)
 
@@ -716,16 +727,6 @@ class BIDSLayout:
             #                       .joinedload(Tag.entity))
             results.extend(query.all())
 
-        # Convert to relative paths if needed
-        if absolute_paths is None:  # can be overloaded as option to .get
-            absolute_paths = self.absolute_paths
-
-        if not absolute_paths:
-            for i, fi in enumerate(results):
-                fi = copy.copy(fi)
-                fi.path = str(fi._path.relative_to(self._root))
-                results[i] = fi
-
         if return_type.startswith('file'):
             results = natural_sort([f.path for f in results])
         elif return_type in ['id', 'dir']:
@@ -762,7 +763,7 @@ class BIDSLayout:
                 # as path separator.
                 template += r'[^/]*$'
                 matches = [
-                    f.dirname if absolute_paths else str(f._dirname.relative_to(self._root))  # noqa: E501
+                    f.dirname
                     for f in results
                     if re.search(template, f._dirname.as_posix())
                 ]
@@ -1217,7 +1218,7 @@ class BIDSLayout:
         return all_trs.pop()
 
     def build_path(self, source, path_patterns=None, strict=False,
-                   scope='all', validate=True, absolute_paths=None):
+                   scope='all', validate=True, absolute_paths=True):
         """Construct a target filename for a file or dictionary of entities.
 
         Parameters
@@ -1260,10 +1261,8 @@ class BIDSLayout:
             False, no validation is attempted, and an invalid path may be
             returned (e.g., if an entity value contains a hyphen).
         absolute_paths : bool, optional
-            Optionally override the instance-wide option
-            to report either absolute or relative (to the top of the
-            dataset) paths. If None, will fall back on the value specified
-            at BIDSLayout initialization.
+            Report either absolute or relative (to the top of the
+            dataset) paths.
         """
         # 'is_file' is a crude check for Path objects
         if isinstance(source, str) or hasattr(source, 'is_file'):
@@ -1299,10 +1298,6 @@ class BIDSLayout:
                              "Built path {} is not a valid BIDS filename. "
                              "Please make sure all provided entity values are "
                              "spec-compliant.".format(built))
-
-        # Convert to absolute paths if needed
-        if absolute_paths is None:
-            absolute_paths = self.absolute_paths
 
         if absolute_paths:
             built = self._root / built  # type: pathlib.Path
