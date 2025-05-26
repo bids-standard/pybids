@@ -341,14 +341,14 @@ wheels = [
 
 [[package]]
 name = "bsmschema"
-version = "0.1.0"
+version = "0.1.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "pydantic" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/0e/c5/44d31ce25c22b1d30048da77f3c75b6292f2b7a36618ea7f7d66f334c53d/bsmschema-0.1.0.tar.gz", hash = "sha256:bf011937282e651235ce787f29891c99bbc251078c1d077e301d40d5c170a34f", size = 13268, upload-time = "2023-04-21T15:59:17.498Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/04/08/17692c6c8cfd385b58effe902e7416e3f6bba23ff3267e9352ee31db8280/bsmschema-0.1.1.tar.gz", hash = "sha256:e28878d0f85d3b1d2b1c1b1b3797267d6853a37b13713913f11984056b365ce7", size = 14630, upload-time = "2025-05-24T21:25:35.873Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/a2/8d/9ae8638a4eebbfcaa2b3c7cd27045eb7a22ee3a2f0017e047931b3716e91/bsmschema-0.1.0-py3-none-any.whl", hash = "sha256:0663e333a65e84b888cb9e3c3219cf3d447de99c19aea488623ad33cde96f246", size = 17496, upload-time = "2023-04-21T15:59:15.924Z" },
+    { url = "https://files.pythonhosted.org/packages/2b/3b/95230f3ee90a753551713aafba28009f06415597e488f47b03fea3693838/bsmschema-0.1.1-py3-none-any.whl", hash = "sha256:49fcd74355a1c15ab0cb69e3bb590b1816e9f7e55e2134baa53a922db9f6c91d", size = 17559, upload-time = "2025-05-24T21:25:34.647Z" },
 ]
 
 [[package]]
