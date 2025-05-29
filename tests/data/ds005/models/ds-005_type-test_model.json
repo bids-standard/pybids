@@ -16,17 +16,20 @@
                 ],
                 "Formula": "0 + RT * gain"
             },
-            "Transformations": [
-                {
-                    "Name": "Factor",
-                    "Input": "trial_type"
-                },
-                {
-                    "Name": "Rename",
-                    "Input": "trial_type.parametric gain",
-                    "Output": "gain"
-                }
-            ],
+            "Transformations": {
+                "Transformer": "pybids-transforms-v1",
+                "Instructions": [
+                    {
+                        "Name": "Factor",
+                        "Input": "trial_type"
+                    },
+                    {
+                        "Name": "Rename",
+                        "Input": "trial_type.parametric gain",
+                        "Output": "gain"
+                    }
+                ]
+            },
             "DummyContrasts": {
                 "Test": "t"
             }

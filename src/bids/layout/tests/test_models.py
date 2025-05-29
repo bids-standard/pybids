@@ -4,6 +4,7 @@ import os
 import pytest
 import copy
 import json
+import warnings
 from pathlib import Path
 
 from sqlalchemy import create_engine
@@ -40,7 +41,7 @@ def subject_entity():
 
 def test_layoutinfo_init():
     args = dict(root='/made/up/path', validate=True,
-                absolute_paths=True, index_metadata=False,
+                index_metadata=False,
                 derivatives=True, ignore=['code/', 'blergh/'],
                 force_index=None)
     with pytest.raises(ValueError) as exc:
@@ -182,7 +183,9 @@ def test_load_existing_config():
     with pytest.raises((FlushError, DBAPIError)):
         second = Config.load({"name": "dummy"})
         session.add(second)
-        session.commit()
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            session.commit()
 
 
 def test_bidsfile_get_df_from_tsv_gz(layout_synthetic):

@@ -31,7 +31,7 @@ def test_layout_init(layout_7t_trt):
 
 
 @pytest.mark.parametrize(
-    'index_metadata,query,result',
+    'index_metadata,filters,result',
     [
         (True, {}, 3.0),
         (False, {}, None),
@@ -41,12 +41,11 @@ def test_layout_init(layout_7t_trt):
         (True, {'task': 'rest', 'extension': '.nii.gz'}, 3.0),
         (True, {'task': 'rest', 'extension': ['.nii.gz', '.json'], 'return_type': 'file'}, 3.0),
     ])
-def test_index_metadata(tests_dir, index_metadata, query, result, mock_config):
+def test_index_metadata(tests_dir, index_metadata, filters, result, mock_config):
     data_dir = tests_dir / 'data' / '7t_trt'
     layout = BIDSLayout(
         data_dir,
-        indexer=BIDSLayoutIndexer(index_metadata=index_metadata),
-        **query
+        indexer=BIDSLayoutIndexer(index_metadata=index_metadata, **filters),
     )
 
     sample_file = layout.get(task='rest', extension='.nii.gz',
@@ -378,26 +377,13 @@ def test_bids_json(layout_7t_trt):
     assert set(res) == {'1', '2'}
 
 
-def test_get_return_type_dir(layout_7t_trt, layout_7t_trt_relpath):
-    query = dict(target='subject', return_type='dir')
-    # In case of relative paths
-    res_relpath = layout_7t_trt_relpath.get(**query)
+def test_get_return_type_dir(layout_7t_trt):
+    res = layout_7t_trt.get(target='subject', return_type='dir')
+
     # returned directories should be in sorted order so we can match exactly
-    target_relpath = ["sub-{:02d}".format(i) for i in range(1, 11)]
-    assert target_relpath == res_relpath
+    target = [os.path.join(layout_7t_trt.root, f"sub-{i:02d}") for i in range(1, 11)]
 
-    res = layout_7t_trt.get(**query)
-    target = [
-        os.path.join(layout_7t_trt.root, p)
-        for p in target_relpath
-    ]
     assert target == res
-
-    # and we can overload the value for absolute_path in .get call
-    res_relpath2 = layout_7t_trt.get(absolute_paths=False, **query)
-    assert target_relpath == res_relpath2
-    res2 = layout_7t_trt_relpath.get(absolute_paths=True, **query)
-    assert target == res2
 
 
 @pytest.mark.parametrize("acq", [None, Query.NONE])
@@ -1070,7 +1056,7 @@ def test_load_layout(layout_synthetic_nodb, db_dir):
         sorted(reloaded.get(return_type='file'))
     cm1 = layout_synthetic_nodb.connection_manager
     cm2 = reloaded.connection_manager
-    for attr in ['root', 'absolute_paths', 'config', 'derivatives']:
+    for attr in ['root', 'config', 'derivatives']:
         assert getattr(cm1.layout_info, attr) == getattr(cm2.layout_info, attr)
 
 
@@ -1098,7 +1084,7 @@ def test_load_layout_config_not_overwritten(layout_synthetic_nodb, tmpdir):
     fresh_layout = BIDSLayout(modified_dataset_path, validate=False)
     cm1 = db_layout.connection_manager
     cm2 = fresh_layout.connection_manager
-    for attr in ['root', 'absolute_paths', 'derivatives']:
+    for attr in ['root', 'derivatives']:
         assert getattr(cm1.layout_info, attr) == getattr(cm2.layout_info, attr)
 
     assert cm1.layout_info.config != cm2.layout_info.config

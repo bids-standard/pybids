@@ -350,10 +350,13 @@ def parse_files(layout, data_files, sub, config):
     config : :obj:`dict`
         Configuration info for methods generation.
     """
+    return _parse_files(layout, data_files, sub, config)
+
+
+# Indirection to allow warnings to be raised in user-written code
+def _parse_files(layout, data_files, sub, config, *, stacklevel=3):
     # Group files into individual runs
     data_files = collect_associated_files(layout, data_files, extra_entities=["run"])
-
-    # print(data_files)
 
     description_list = []
     # Assume all data have same basic info
@@ -378,11 +381,13 @@ def parse_files(layout, data_files, sub, config):
             group_description = fmap_info(layout, group, config)
 
         elif group[0].entities["datatype"] in ["eeg", "meg", "beh", "perf"]:
-            warnings.warn(group[0].entities["datatype"] + " not yet supported.")
+            warnings.warn(group[0].entities["datatype"] + " not yet supported.",
+                          stacklevel=stacklevel)
             continue
 
         else:
-            warnings.warn(group[0].filename + " not yet supported.")
+            warnings.warn(group[0].filename + " not yet supported.",
+                          stacklevel=stacklevel)
             continue
 
         description_list.append(group_description)
