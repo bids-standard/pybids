@@ -58,12 +58,15 @@ class TestSchemaConfig:
         assert len(version_part) > 0
     
     def test_schema_version_parameter(self):
-        """Test loading specific schema version (future feature)."""
-        # This should work but use the default schema for now
+        """Test loading specific schema version."""
+        # Test loading BIDS v1.9.0 schema
         config = Config.load({'schema_version': '1.9.0'})
         
         assert config.name.startswith('bids-schema-')
         assert len(config.entities) > 0
+        # Should include the version in the name
+        assert '1.9.0' in config.name
+    
     
     
     def test_entity_generation(self):
@@ -113,4 +116,5 @@ if __name__ == '__main__':
     test_instance.test_load_bids_schema_basic()
     test_instance.test_schema_entity_patterns()
     test_instance.test_schema_version_tracking()
+    test_instance.test_schema_version_parameter()
     print("Basic tests passed!")

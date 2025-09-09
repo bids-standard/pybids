@@ -165,7 +165,8 @@ class Config(Base):
             * A path to a JSON file containing config information
             * A dictionary containing config information
             * 'bids-schema' to load from the official BIDS schema
-            * dict with 'schema_version' key to load specific schema version
+            * dict with 'schema_version' key to load specific BIDS version
+                (e.g., {'schema_version': '1.9.0'})
         session : :obj:`sqlalchemy.orm.session.Session` or None
             An optional SQLAlchemy Session instance.
             If passed, the session is used to check the database for (and
@@ -206,10 +207,39 @@ class Config(Base):
 
     @classmethod
     def _from_schema(cls, schema_version=None, session=None):
-        """Load config from BIDS schema - store patterns directly."""
-        from bidsschematools import rules, schema as bidsschema
+        """Load config from BIDS schema.
         
-        bids_schema = bidsschema.load_schema()
+        Parameters
+        ----------
+        schema_version : str, optional
+            Specific BIDS specification version to load (e.g., "1.9.0", "1.8.0").
+            If None, uses the schema version bundled with bidsschematools.
+        session : :obj:`sqlalchemy.orm.session.Session` or None
+            An optional SQLAlchemy Session instance.
+            
+        Returns
+        -------
+        Config
+            A Config instance populated with entities and patterns
+            extracted from the BIDS schema.
+        """
+        from bidsschematools import rules, schema as bidsschema
+        from upath import UPath
+        
+        # Load schema - either default or specific version
+        if schema_version is None:
+            bids_schema = bidsschema.load_schema()
+        else:
+            # Load specific schema version from versioned URL
+            schema_url = UPath(f"https://bids-specification.readthedocs.io/en/v{schema_version}/schema.json")
+            try:
+                bids_schema = bidsschema.load_schema(schema_url)
+            except Exception as e:
+                raise ValueError(
+                    f"Failed to load BIDS schema version {schema_version}. "
+                    f"Check that the version exists at {schema_url}. "
+                    f"Error: {e}"
+                )
         
         # Collect ALL patterns from bidsschematools (keep existing collection logic)
         all_patterns = []
