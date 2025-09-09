@@ -422,9 +422,6 @@ class BIDSLayout:
         
         # Load schema directory rules
         bids_schema = bst_schema.load_schema()
-        if not hasattr(bids_schema.rules, 'directories') or not hasattr(bids_schema.rules.directories, 'raw'):
-            # Fallback to simple approach if no schema rules
-            return [f.dirname for f in results if entity_name in f.entities]
         
         directory_rules = bids_schema.rules.directories.raw
         directories = set()
@@ -438,9 +435,6 @@ class BIDSLayout:
                     # Convert to full directory path
                     directory_path = os.path.join(self.root, *path_components)
                     directories.add(directory_path)
-                else:
-                    # Fallback to actual path if schema reconstruction fails
-                    directories.add(f.dirname)
         
         return list(directories)
     
