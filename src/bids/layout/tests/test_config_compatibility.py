@@ -45,37 +45,6 @@ class TestConfigCompatibility:
         
         assert len(missing_from_new) == 0, f"Schema missing valid entities: {missing_from_new}"
     
-    def test_suffix_coverage_matches(self):
-        """Test that suffix patterns cover the same suffixes."""
-        #pytest.skip("Old config uses generic catch-all pattern while new config uses explicit schema suffixes. "
-        #            "Cannot meaningfully compare pattern extraction. See test_new_suffixes_compatible_with_old_pattern instead.")
-        
-        # Original implementation preserved for reference
-        old_config = Config.load('bids')
-        new_config = Config.load('bids-schema')
-        
-        # Extract suffixes from patterns
-        old_suffixes = self._extract_suffixes_from_pattern(old_config.entities['suffix'].pattern)
-        new_suffixes = self._extract_suffixes_from_pattern(new_config.entities['suffix'].pattern)
-        
-        missing = old_suffixes - new_suffixes
-        extra = new_suffixes - old_suffixes
-        
-        error_msg = []
-        if missing:
-            error_msg.append(f"Missing suffixes: {sorted(missing)}")
-        if extra:
-            error_msg.append(f"Extra suffixes: {sorted(extra)}")
-        
-        # Core BIDS suffixes should be preserved
-        core_suffixes = {'bold', 'T1w', 'T2w', 'dwi', 'events'}
-        assert core_suffixes.issubset(new_suffixes), f"Missing core suffixes; {'; '.join(error_msg)}"
-        
-        # Report coverage for analysis
-        coverage = len(old_suffixes & new_suffixes) / len(old_suffixes) if old_suffixes else 0
-        if coverage < 1.0 or missing or extra:
-            pytest.fail(f"Suffix coverage: {coverage:.1%}; {'; '.join(error_msg)}")
-    
     def test_new_suffixes_compatible_with_old_pattern(self):
         """Test that all new schema suffixes would be accepted by old generic pattern."""
         old_config = Config.load('bids')
@@ -93,37 +62,6 @@ class TestConfigCompatibility:
                 incompatible_suffixes.append(suffix)
         
         assert len(incompatible_suffixes) == 0, f"Old pattern would reject these valid schema suffixes: {incompatible_suffixes}"
-    
-    def test_extension_coverage_matches(self):
-        """Test that extension patterns cover the same extensions."""
-        #pytest.skip("Old config uses generic catch-all pattern while new config uses explicit schema extensions. "
-        #            "Cannot meaningfully compare pattern extraction. See test_new_extensions_compatible_with_old_pattern instead.")
-        
-        # Original implementation preserved for reference
-        old_config = Config.load('bids')
-        new_config = Config.load('bids-schema')
-        
-        # Extract extensions from patterns
-        old_extensions = self._extract_extensions_from_pattern(old_config.entities['extension'].pattern)
-        new_extensions = self._extract_extensions_from_pattern(new_config.entities['extension'].pattern)
-        
-        missing = old_extensions - new_extensions
-        extra = new_extensions - old_extensions
-        
-        error_msg = []
-        if missing:
-            error_msg.append(f"Missing extensions: {sorted(missing)}")
-        if extra:
-            error_msg.append(f"Extra extensions: {sorted(extra)}")
-        
-        # Core extensions should be preserved
-        core_extensions = {'.nii.gz', '.nii', '.tsv', '.json'}
-        assert core_extensions.issubset(new_extensions), f"Missing core extensions; {'; '.join(error_msg)}"
-        
-        # Report coverage for analysis
-        coverage = len(old_extensions & new_extensions) / len(old_extensions) if old_extensions else 0
-        if coverage < 1.0 or missing or extra:
-            pytest.fail(f"Extension coverage: {coverage:.1%}; {'; '.join(error_msg)}")
     
     def test_new_extensions_compatible_with_old_pattern(self):
         """Test that all new schema extensions would be accepted by old generic pattern."""
