@@ -264,7 +264,7 @@ class Config(Base):
         # Store patterns directly - NO PARSING EVER
         config_name = f'bids-schema-{bids_schema.bids_version}'
         
-        # Extract entities directly from schema rules - no regex parsing!
+        # Extract entities directly from schema rules
         entity_names = cls._extract_entity_names_from_rules(bids_schema)
         
         # Extract actual values for key entities from schema rules directly
@@ -279,7 +279,7 @@ class Config(Base):
     
     @classmethod
     def _extract_entity_names_from_rules(cls, bids_schema):
-        """Extract entity names directly from schema rules - no regex parsing!"""
+        """Extract entity names directly from schema rules"""
         
         # Get entity names from all rule sections
         entity_names = set()
@@ -333,14 +333,6 @@ class Config(Base):
                         pattern = fr'/({values})/'  # Datatypes are directory names  
                     else:  # suffix
                         pattern = fr'[_/\\\\]({values})\.?'  # Before extension, with optional dot
-                else:
-                    # Fallback for special entities without values
-                    if entity_name == 'extension':
-                        pattern = fr'(\.[^/\\\\]+)\Z'
-                    elif entity_name == 'datatype':
-                        pattern = fr'/([a-z]+)/'
-                    else:  # suffix
-                        pattern = fr'[_/\\\\]([a-zA-Z0-9]+)\.?'
             else:
                 # Regular BIDS entities - use schema format patterns directly
                 bids_prefix = entity_spec.get('name', entity_name)
@@ -372,7 +364,7 @@ class Config(Base):
     
     @classmethod
     def _extract_entity_values_from_rules(cls, bids_schema, entity_names):
-        """Extract entity values directly from schema rules - no regex parsing!"""
+        """Extract entity values directly from schema rules"""
         
         entity_values = {name: set() for name in entity_names}
         file_sections = {
@@ -408,7 +400,7 @@ class Config(Base):
         """Get entity separator pattern directly from schema definition.
         
         Uses schema entity definitions and directory rules to determine
-        the correct separator pattern without regex parsing.
+        the correct separator pattern.
         """
         # Handle special entities that don't have BIDS prefixes
         special_entities = {'suffix', 'extension', 'datatype'}
