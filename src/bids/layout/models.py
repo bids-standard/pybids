@@ -16,6 +16,10 @@ from sqlalchemy.orm.collections import attribute_mapped_collection
 from sqlalchemy import Column, String, Boolean, ForeignKey, Table
 from sqlalchemy.orm import reconstructor, relationship, backref, object_session
 
+from bidsschematools import schema as bst_schema
+from bidsschematools import rules
+import re
+
 try:
     from sqlalchemy.orm import declarative_base
 except ImportError:  # sqlalchemy < 1.4
@@ -148,7 +152,7 @@ class Config(Base):
         self.default_path_patterns = json.loads(self._default_path_patterns)
 
     @classmethod
-    def load(self, config, session=None):
+    def load(cls, config, session=None):
         """Load a Config instance from the passed configuration data.
 
         Parameters
@@ -160,6 +164,8 @@ class Config(Base):
                 (e.g., 'bids' or 'derivatives')
             * A path to a JSON file containing config information
             * A dictionary containing config information
+            * 'bids-schema' to load from the official BIDS schema
+            * dict with 'schema_version' key to load specific schema version
         session : :obj:`sqlalchemy.orm.session.Session` or None
             An optional SQLAlchemy Session instance.
             If passed, the session is used to check the database for (and
@@ -170,6 +176,16 @@ class Config(Base):
         A Config instance.
         """
 
+        # Handle schema-based config loading
+        if config == 'bids-schema':
+            return cls._from_schema(session=session)
+        elif isinstance(config, dict) and 'schema_version' in config:
+            return cls._from_schema(
+                schema_version=config['schema_version'],
+                session=session
+            )
+
+        # Existing JSON/file-based loading
         if isinstance(config, (str, Path, UPath)):
             config_paths = get_option('config_paths')
             if config in config_paths:
@@ -187,6 +203,356 @@ class Config(Base):
                 return result
 
         return Config(session=session, **config)
+
+    @classmethod
+    def _from_schema(cls, schema_version=None, session=None):
+        """Load config from BIDS schema - store patterns directly."""
+        from bidsschematools import rules, schema as bidsschema
+        
+        bids_schema = bidsschema.load_schema()
+        
+        # Collect ALL patterns from bidsschematools (keep existing collection logic)
+        all_patterns = []
+        file_sections = {
+            'raw': bids_schema.rules.files.raw,
+            'deriv': bids_schema.rules.files.deriv,  
+            'common': bids_schema.rules.files.common
+        }
+        
+        for section_type, sections in file_sections.items():
+            if section_type == 'raw':
+                for datatype_name in sections.keys():
+                    datatype_rules = getattr(sections, datatype_name)
+                    regex_rules = rules.regexify_filename_rules(datatype_rules, bids_schema, level=1)
+                    all_patterns.extend(regex_rules)
+            else:
+                for subsection_name in sections.keys():
+                    subsection_rules = getattr(sections, subsection_name)
+                    regex_rules = rules.regexify_filename_rules(subsection_rules, bids_schema, level=1)
+                    all_patterns.extend(regex_rules)
+        
+        # Store patterns directly - NO PARSING EVER
+        config_name = f'bids-schema-{bids_schema.bids_version}'
+        
+        # Extract entities directly from schema rules - no regex parsing!
+        entity_names = cls._extract_entity_names_from_rules(bids_schema)
+        
+        # Extract actual values for key entities from schema rules directly
+        entity_values = cls._extract_entity_values_from_rules(bids_schema, entity_names)
+        
+        # Create Entity objects
+        entities = cls._create_entities_from_schema(entity_names, entity_values, bids_schema)
+        
+        config = cls(name=config_name, entities=entities, session=session)
+        
+        return config
+    
+    @classmethod
+    def _extract_entity_names_from_rules(cls, bids_schema):
+        """Extract entity names directly from schema rules - no regex parsing!"""
+        
+        # Get entity names from all rule sections
+        entity_names = set()
+        file_sections = {
+            'raw': bids_schema.rules.files.raw,
+            'deriv': bids_schema.rules.files.deriv,  
+            'common': bids_schema.rules.files.common
+        }
+        
+        for section_type, sections in file_sections.items():
+            for section_name in sections.keys():
+                section_rules = getattr(sections, section_name)
+                for rule_name in section_rules.keys():
+                    rule = getattr(section_rules, rule_name)
+                    rule_dict = dict(rule)
+                    if 'entities' in rule_dict:
+                        entity_names.update(rule_dict['entities'].keys())
+        
+        # Add special constructs that appear in patterns but aren't "entities"
+        entity_names.update(['suffix', 'extension', 'datatype'])
+        
+        return entity_names
+    
+    @classmethod
+    def _create_entities_from_schema(cls, entity_names, entity_values, bids_schema):
+        """Create Entity objects from schema information."""
+        entities = []
+        
+        for entity_name in sorted(entity_names):
+            # Get entity info from schema if available
+            entity_spec = bids_schema.objects.entities.get(entity_name, {})
+            
+            # Handle special entities that don't have BIDS prefixes
+            special_entities = {'suffix', 'extension', 'datatype'}
+            
+            if entity_name in special_entities:
+                # These entities don't have prefixes - they appear directly
+                if entity_name in entity_values and entity_values[entity_name]:
+                    # Filter out problematic values for extension entity
+                    if entity_name == 'extension':
+                        # Remove empty string and wildcard patterns that would match everything
+                        filtered_values = {v for v in entity_values[entity_name] 
+                                         if v and v not in ('.*', '**', '*')}
+                        values = '|'.join(sorted(filtered_values))
+                    else:
+                        values = '|'.join(sorted(entity_values[entity_name]))
+                    
+                    if entity_name == 'extension':
+                        pattern = fr'({values})\Z'  # Extensions are at the end
+                    elif entity_name == 'datatype':
+                        pattern = fr'/({values})/'  # Datatypes are directory names  
+                    else:  # suffix
+                        pattern = fr'[_/\\\\]({values})\.?'  # Before extension, with optional dot
+            else:
+                # Regular entities - use schema format patterns directly!
+                bids_prefix = entity_spec.get('name', entity_name)
+                format_type = entity_spec.get('format', 'label')
+                
+                # Get the official value pattern from schema formats
+                if format_type in bids_schema.objects.formats:
+                    format_obj = dict(bids_schema.objects.formats[format_type])
+                    value_pattern = format_obj['pattern']  # [0-9a-zA-Z]+, [0-9]+, etc.
+                
+                # Combine prefix + schema format pattern
+                if entity_name in ['subject', 'session']:
+                    pattern = fr'[/\\\\]+{bids_prefix}-({value_pattern})'
+                else:
+                    pattern = fr'[_/\\\\]+{bids_prefix}-({value_pattern})'
+            
+            entity_config = {
+                'name': entity_name,
+                'pattern': pattern,
+                'dtype': 'int' if entity_spec.get('format') == 'index' else 'str'
+            }
+            
+            entities.append(entity_config)
+        
+        return entities
+    
+    @classmethod
+    def _extract_entity_values_from_rules(cls, bids_schema, entity_names):
+        """Extract entity values directly from schema rules - no regex parsing!"""
+        
+        entity_values = {name: set() for name in entity_names}
+        file_sections = {
+            'raw': bids_schema.rules.files.raw,
+            'deriv': bids_schema.rules.files.deriv,  
+            'common': bids_schema.rules.files.common
+        }
+        
+        for section_type, sections in file_sections.items():
+            for section_name in sections.keys():
+                section_rules = getattr(sections, section_name)
+                for rule_name in section_rules.keys():
+                    rule = getattr(section_rules, rule_name)
+                    rule_dict = dict(rule)
+                    
+                    # Get values for special entities directly from rules
+                    if 'suffixes' in rule_dict:
+                        entity_values['suffix'].update(rule_dict['suffixes'])
+                    if 'extensions' in rule_dict:
+                        entity_values['extension'].update(rule_dict['extensions'])
+                    if 'datatypes' in rule_dict:
+                        entity_values['datatype'].update(rule_dict['datatypes'])
+                    
+                    # For regular entities, we don't extract specific values
+                    # They use generic patterns like [0-9a-zA-Z]+ 
+        
+        return entity_values
+    
+    
+    
+    @staticmethod 
+    def _extract_separator_from_context(entity_name, before_context, after_context, full_pattern, schema):
+        """Extract separator pattern from schema context.
+        
+        Analyzes the actual schema pattern context to determine what
+        separators are used for this entity by examining the schema regex
+        and entity classification.
+        """
+        # Find the entity in the full pattern and extract its actual context
+        entity_match = re.search(rf'(\S*?)(\(\?P<{entity_name}>[^)]+\))', full_pattern)
+        if not entity_match:
+            return f"[_/\\\\]+{entity_name}-"  # Fallback
+        
+        prefix_context = entity_match.group(1)
+        
+        # Determine entity type from schema - is it a real entity or special construct?
+        is_real_entity = entity_name in schema.objects.entities
+        
+        if not is_real_entity:
+            # This is a schema construct (extension/suffix/datatype capturing group)
+            # Analyze the pattern context to determine positioning rules
+            
+            # Analyze from the actual pattern context
+            if '/' in before_context and '/' in after_context:
+                # Appears between directory separators (like datatype)
+                return "[/\\\\]+"
+            elif before_context.endswith(')'):
+                # Comes directly after another capturing group (like extension after suffix)
+                return ""
+            elif '_)?' in before_context or 'chunk)_)?' in before_context:
+                # Comes after underscore separators from entities (like suffix)
+                return "[_/\\\\]+"
+            else:
+                # Analyze position in full pattern to determine context
+                entity_pos = full_pattern.find(f'(?P<{entity_name}>')
+                pattern_before = full_pattern[:entity_pos]
+                
+                # Count directory structure elements before this construct
+                slash_count = pattern_before.count('/')
+                
+                if slash_count <= 2:
+                    # In directory part - use slash separators
+                    return "[/\\\\]+"
+                else:
+                    # In filename part - analyze further
+                    if ')(?P<' in pattern_before[-20:]:
+                        # Directly after another construct
+                        return ""
+                    else:
+                        # After separator
+                        return "[_/\\\\]+"
+        
+        # Extract the actual prefix used in the schema pattern  
+        # Look for patterns like 'sub-(?P<subject>' or '_task-(?P<task>'
+        prefix_pattern = re.search(rf'([/_]?)([a-zA-Z]+)-\(\?P<{entity_name}>', full_pattern)
+        if prefix_pattern:
+            separator_char = prefix_pattern.group(1)
+            prefix = prefix_pattern.group(2)
+            
+            if separator_char == '/':
+                return f"[/\\\\]+{prefix}-"
+            elif separator_char == '_':
+                return f"[_/\\\\]+{prefix}-" 
+            else:  # Direct prefix (no separator before)
+                # Check position to determine separator type
+                entity_pos = full_pattern.find(f'(?P<{entity_name}>')
+                pattern_before = full_pattern[:entity_pos]
+                slash_count = pattern_before.count('/')
+                
+                if slash_count <= 2:  # Directory part
+                    return f"[/\\\\]+{prefix}-"
+                else:  # Filename part  
+                    return f"[_/\\\\]+{prefix}-"
+        
+        # Try to extract any entity prefix from before_context
+        prefix_match = re.search(r'([a-zA-Z]+)-$', before_context)
+        if prefix_match:
+            prefix = prefix_match.group(1)
+            # Verify this is a real entity prefix from schema
+            for entity in schema.objects.entities.values():
+                if entity.get('name') == prefix:
+                    if '/' in before_context:
+                        return f"[/\\\\]+{prefix}-"
+                    else:
+                        return f"[_/\\\\]+{prefix}-"
+        
+        # For entities with prefixes, extract from schema pattern
+        broad_match = re.search(rf'([a-zA-Z]+)-\(\?P<{entity_name}>', full_pattern)
+        if broad_match:
+            prefix = broad_match.group(1)
+            
+            # Determine separator type from position in pattern
+            entity_pos = full_pattern.find(f'(?P<{entity_name}>')
+            pattern_before_entity = full_pattern[:entity_pos]
+            slash_count = pattern_before_entity.count('/')
+            
+            if slash_count <= 2:  # Directory part
+                return f"[/\\\\]+{prefix}-"
+            else:  # Filename part
+                return f"[_/\\\\]+{prefix}-"
+        
+        # If no prefix pattern found, this entity shouldn't have a prefix
+        # This handles cases where entities appear directly without prefix-
+        return f"[_/\\\\]+{entity_name}-"  # Final fallback
+    
+    @staticmethod
+    def _extract_directory_config(entity_name, pattern, schema):
+        """Extract directory configuration from schema directory rules."""
+        
+        # Get directory rules from schema
+        if not hasattr(schema.rules, 'directories') or not hasattr(schema.rules.directories, 'raw'):
+            return None
+            
+        dir_rules = schema.rules.directories.raw
+        
+        # Check if this entity has a directory rule
+        for rule_name, rule in dir_rules.items():
+            rule_dict = dict(rule)
+            if rule_dict.get('entity') == entity_name:
+                # This entity creates directories
+                
+                # Build directory template based on schema hierarchy
+                # Find parent entities by checking what directories can contain this entity
+                parent_entities = []
+                
+                # Check all directory rules to see which ones list this entity in subdirs
+                for parent_rule_name, parent_rule in dir_rules.items():
+                    parent_rule_dict = dict(parent_rule)
+                    subdirs = parent_rule_dict.get('subdirs', [])
+                    
+                    # Check if this entity is in parent's subdirs
+                    for subdir in subdirs:
+                        if isinstance(subdir, dict) and 'oneOf' in subdir:
+                            if entity_name in subdir['oneOf']:
+                                if parent_rule_dict.get('entity'):
+                                    parent_entities.append(parent_rule_dict['entity'])
+                        elif subdir == entity_name:
+                            if parent_rule_dict.get('entity'):
+                                parent_entities.append(parent_rule_dict['entity'])
+                
+                # Build template with parent hierarchy
+                template_parts = []
+                template_parts.extend([f'{{{parent}}}' for parent in parent_entities])
+                template_parts.append(f'{{{entity_name}}}')
+                
+                return ''.join(template_parts)
+        
+        return None
+
+    @staticmethod
+    def _entity_appears_in_all_modalities(entity_name, schema):
+        """Check if an entity appears in ALL modalities in the schema.
+        
+        Entities that appear in all modalities (like suffix, extension) should have
+        their values combined across all modalities to ensure complete coverage.
+        
+        Parameters
+        ----------
+        entity_name : str
+            The entity name to check
+        schema : object
+            The BIDS schema object
+            
+        Returns
+        -------
+        bool
+            True if entity appears in all modalities, False otherwise
+        """
+        # Get all modalities
+        all_modalities = list(schema.rules.files.raw.keys())
+        if not all_modalities:
+            return False
+            
+        modalities_with_entity = set()
+        
+        # Check each modality for this entity
+        for modality in all_modalities:
+            datatype_rules = getattr(schema.rules.files.raw, modality)
+            patterns = rules.regexify_filename_rules(datatype_rules, schema, level=1)
+            
+            # Check if entity appears in any pattern for this modality
+            for pattern in patterns:
+                entities_in_pattern = re.findall(r'\(\?P<([^>]+)>', pattern['regex'])
+                if entity_name in entities_in_pattern:
+                    modalities_with_entity.add(modality)
+                    break  # Found in this modality, move to next
+        
+        # Return True if entity appears in ALL modalities
+        return len(modalities_with_entity) == len(all_modalities)
+
+
 
     def __repr__(self):
         return f"<Config {self.name}>"
