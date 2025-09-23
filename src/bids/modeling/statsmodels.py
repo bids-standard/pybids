@@ -457,8 +457,9 @@ class BIDSStatsModelsNode:
         return groups
 
     def run(self, inputs=None, group_by=None, force_dense=True,
-              sampling_rate='TR', invalid_contrasts='drop', missing_values=None,
-              transformation_history=False, node_reports=False, **filters):
+              sampling_rate='TR', invalid_inputs='error', invalid_contrasts='drop',
+              missing_values=None, transformation_history=False, node_reports=False,
+              **filters):
         """Execute node with provided inputs.
 
         Parameters
@@ -488,6 +489,12 @@ class BIDSStatsModelsNode:
             with run-level variables and returning dense output. Ignored if
             there are no run-level variables, or if force_dense is False and
             all available variables are sparse.
+        invalid_inputs: str
+            Indicates how to handle invalid inputs--i.e., ones where the `X`
+            specification contains variables that aren't found at run-time.
+            Valid values:
+                * 'drop': Drop invalid contrasts, retain the rest.
+                * 'error' (default): Raise an error.
         invalid_contrasts: str
             Indicates how to handle invalid contrasts--i.e., ones where the
             specification contains variables that aren't found at run-time.
@@ -544,8 +551,8 @@ class BIDSStatsModelsNode:
             node_output = BIDSStatsModelsNodeOutput(
                 node=self, entities=dict(grp_ents), collections=grp_colls,
                 inputs=grp_inputs, force_dense=force_dense,
-                sampling_rate=sampling_rate, invalid_contrasts=invalid_contrasts,
-                missing_values=missing_values,
+                sampling_rate=sampling_rate, invalid_inputs=invalid_inputs,
+                invalid_contrasts=invalid_contrasts, missing_values=missing_values,
                 transformation_history=transformation_history, node_reports=node_reports)
             results.append(node_output)
 
@@ -640,6 +647,12 @@ class BIDSStatsModelsNodeOutput:
         run-level variables and returning dense output. Ignored if there are no
         run-level variables, or if force_dense is False and all available
         variables are sparse.
+    invalid_inputs: str
+        Indicates how to handle invalid inputs--i.e., ones where the `X`
+        specification contains variables that aren't found at run-time.
+        Valid values:
+            * 'drop': Drop invalid contrasts, retain the rest.
+            * 'error' (default): Raise an error.
     invalid_contrasts: str
         Indicates how to handle invalid contrasts--i.e., ones where the
         specification contains variables that aren't found at run-time.
@@ -660,9 +673,9 @@ class BIDSStatsModelsNodeOutput:
         If True, a report will be generated for each node output.
     """
     def __init__(self, node, entities={}, collections=None, inputs=None,
-                 force_dense=True, sampling_rate='TR', invalid_contrasts='drop',
-                 missing_values=None, *, transformation_history=False,
-                 node_reports=False):
+                 force_dense=True, sampling_rate='TR', invalid_inputs='error',
+                 invalid_contrasts='drop', missing_values=None, *,
+                 transformation_history=False, node_reports=False):
         """Initialize a new BIDSStatsModelsNodeOutput instance.
         Applies the node's model to the specified collections and inputs, including
         applying transformations and generating final model specs and design matrices (X).
@@ -674,6 +687,7 @@ class BIDSStatsModelsNodeOutput:
         self.entities = entities
         self.force_dense = force_dense
         self.sampling_rate = sampling_rate
+        self.invalid_inputs = invalid_inputs
         self.invalid_contrasts = invalid_contrasts
         self.coll_hist = None
 
@@ -714,8 +728,18 @@ class BIDSStatsModelsNodeOutput:
         # Verify all X names are actually present
         missing = list(set(var_names) - set(df.columns))
         if missing:
-            raise ValueError("X specification includes variable(s) {}, but "
-                             "these were not found in data matrix.".format(missing))
+            if self.invalid_inputs == 'drop':
+                # warn caller of BIDSStatsModelsNode.run()
+                warnings.warn("X specification includes variable(s) {}, "
+                              "but these were not found in data matrix. "
+                              "These will be dropped.".format(missing), stacklevel=3)
+                var_names = [v for v in var_names if v not in missing]
+            elif self.invalid_inputs == 'error':
+                raise ValueError("X specification includes variable(s) {}, but "
+                                 "these were not found in data matrix.".format(missing))
+            else:
+                raise ValueError("invalid_inputs must be one of ['drop', 'error'], "
+                                 "got {}".format(self.invalid_inputs))
 
         # separate the design columns from the entity columns
         self.data = df.loc[:, var_names]
