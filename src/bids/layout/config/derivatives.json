@@ -34,7 +34,7 @@
             "pattern": "hemi-(L|R)"
         },
         {
-            "name": "seg",
+            "name": "segmentation",
             "pattern": "seg-([a-zA-Z0-9+]+)"
         },
         {
