@@ -413,7 +413,7 @@ class SparseRunVariable(SimpleVariable):
         duration = math.ceil(  # Round up to nearest second
             round(bin_sr * self.get_duration(), 3)  # Cut off at millisecond precision
         )
-        ts = np.zeros(duration, dtype=self.values.dtype)
+        ts = pd.Series(0, index=np.arange(duration), dtype=self.values.dtype)
 
         onsets = np.round(self.onset * bin_sr).astype(int)
         durations = np.round(self.duration * bin_sr).astype(int)
@@ -445,7 +445,6 @@ class SparseRunVariable(SimpleVariable):
             run_info=run_info,
             source=self.source,
             sampling_rate=sampling_rate)
-
 
         return dense_var
 
