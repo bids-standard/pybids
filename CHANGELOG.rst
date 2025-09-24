@@ -1,6 +1,29 @@
 Changelog
 =========
 
+Version 0.20.0 (September 24, 2025)
+-----------------------------------
+
+New feature release in the 0.20.x series.
+
+This release finalizes some deprecations that were started in the 0.7 and 0.14 series.
+In particular, passing indexer arguments to ``BIDSLayout`` and disabling
+``absolute_paths`` mode in ``BIDSLayout()`` or ``BIDSLayout.get()`` will now error.
+To adjust indexing behavior, create an explicit ``BIDSLayoutIndexer()`` and pass
+``BIDSLayout(..., indexer=indexer)``.
+To access relative paths, use the ``BIDSFile.relative_path`` property on
+``BIDSLayout.get()`` return values.
+
+* FIX: Check for attribute that can be absent before assigning (#1165)
+* FIX: Accommodate deprecations in the upcoming Pandas 3 release (#1173)
+* FIX: Repaired convolution issue that arises when onset values are repeated (#1133)
+* ENH: StatsModels: Add `invalid_inputs` parameter to allow dropping of missing data columns to run nodes (#1145)
+* ENH: Add missing root-level path patterns (#1169)
+* ENH: Parse ``seg-`` entities from dseg or probseg files (#1172)
+* DOC: Update link to derivatives config file (#1132)
+* MNT: Address warnings produced by pybids and dependencies (#1136)
+* MNT: Lock test environment, update with dependabot (#1134)
+
 Version 0.19.0 (March 05, 2025)
 -------------------------------
 
