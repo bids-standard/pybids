@@ -1,6 +1,7 @@
 # This file tests the claimed support range of PyBIDS including
 #
 # * Operating systems: Linux, OSX
+name: Build-test-deploy
 
 on:
   push:
@@ -54,7 +55,7 @@ jobs:
     strategy:
       matrix:
         os: ['ubuntu-latest', 'macos-latest']
-        python-version: ['3.9', '3.10', '3.11', '3.12', '3.13']
+        python-version: ['3.9', '3.10', '3.11', '3.12', '3.13', '3.14']
         dependencies: ['full', 'pre']
         source: ['repo']
         include:
