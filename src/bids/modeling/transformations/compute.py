@@ -92,10 +92,12 @@ class Convolve(Transformation):
         # convert fir_delays from scans (BOLD sampling rate) to resample_frames sampling rate
         if fir_delays is not None:
             tr = var.run_info[0].tr
-            # Assumes constant spacing
             dt = resample_frames[1] - resample_frames[0]
             fir_delays_resample_adjusted = np.round(np.array(fir_delays) * tr / dt).astype(int)
             adjusted_to_original_mapping = dict(zip(fir_delays_resample_adjusted, fir_delays))
+        else:
+            fir_delays_resample_adjusted = None
+            adjusted_to_original_mapping = {}
 
         convolved = hrf.compute_regressor(
             vals, model, resample_frames, fir_delays=fir_delays_resample_adjusted, min_onset=0,
@@ -105,7 +107,7 @@ class Convolve(Transformation):
         arr, names = convolved
 
         # If FIR model, rename columns to original delays
-        if model == 'fir':
+        if model == 'fir' and adjusted_to_original_mapping:
             names = [
                 f"{name.rsplit('_', 1)[0]}_{adjusted_to_original_mapping[int(name.rsplit('_', 1)[1])]}"
                 for name in names
