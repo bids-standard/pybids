@@ -470,10 +470,9 @@ class BIDSLayoutIndexer:
             # Files with IntendedFor field always get mapped to targets
             intended = listify(file_md.get('IntendedFor', []))
             for target in intended:
-                # Per spec, IntendedFor paths are relative to sub dir.
-                target = self._layout._root.joinpath(
-                    'sub-{}'.format(bf.entities['subject']),
-                    target)
+                # IntendedFor paths should use BIDS URIs
+                # Previously (now deprecated), paths may be relative to participant sub-dir
+                target = _resolve_intent(target, self._layout._root, bf.entities['subject'])
                 all_objs += create_association_pair(bf.path, str(target), 'IntendedFor',
                                         'InformedBy')
 
@@ -524,3 +523,11 @@ class BIDSLayoutIndexer:
         self.session.bulk_insert_mappings(Tag, all_tag_dicts)
         self.session.commit()
 
+
+def _resolve_intent(intent: str, root: Path, subject: str) -> str:
+    """Resolve IntendedFor paths to absolute paths or BIDS URIs."""
+    if intent.startswith('bids::'):
+        return str(root / intent[6:])
+    if not intent.startswith('bids:'):
+        return str(root / f'sub-{subject}' / intent)
+    return intent.split(':', 1)[-1]
