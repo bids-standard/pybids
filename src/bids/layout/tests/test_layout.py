@@ -1191,3 +1191,26 @@ def test_empty_directory(temporary_dataset):
     layout = BIDSLayout(temporary_dataset)
 
     assert layout.get(subject='01', datatype='anat') == []
+
+
+@pytest.mark.parametrize("intent", [
+    "bids::sub-01/func/sub-01_task-mixedgamblestask_run-01_bold.nii.gz",
+    "bids:mydataset:sub-01/func/sub-01_task-mixedgamblestask_run-01_bold.nii.gz",
+    "func/sub-01_task-mixedgamblestask_run-01_bold.nii.gz",
+    [
+        "bids::sub-01/func/sub-01_task-mixedgamblestask_run-01_bold.nii.gz",
+        "bids::sub-01/func/sub-01_task-mixedgamblestask_run-02_bold.nii.gz",
+    ],
+])
+def test_intended_for(temporary_dataset, intent):
+    fmap_dir = temporary_dataset / 'sub-01' / 'fmap'
+    fmap_dir.mkdir()
+
+    # Create a fieldmap + populate IntendedFor
+    fmap = fmap_dir / 'sub-01_fieldmap.nii.gz'
+    fmap.touch()
+    fmap_metadata = fmap.parent / fmap.name.replace('.nii.gz', '.json')
+    fmap_metadata.write_text(json.dumps({'IntendedFor': intent}))
+
+    layout = BIDSLayout(temporary_dataset)
+    assert layout.get_IntendedFor(subject='01')
