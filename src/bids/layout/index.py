@@ -472,6 +472,9 @@ class BIDSLayoutIndexer:
                 # IntendedFor paths should use BIDS URIs
                 # Previously (now deprecated), paths may be relative to participant sub-dir
                 target = _resolve_intent(target, self._layout._root, bf.entities['subject'])
+                if target is None:
+                    warnings.warn(f'Skipping association for {target}', stacklevel=2)
+                    continue
                 all_objs += create_association_pair(bf.path, str(target), 'IntendedFor',
                                         'InformedBy')
 
@@ -523,7 +526,7 @@ class BIDSLayoutIndexer:
         self.session.commit()
 
 
-def _resolve_intent(intent: str, root: Path, subject: str) -> str:
+def _resolve_intent(intent: str, root: Path, subject: str) -> str | None:
     """
     Resolve IntendedFor paths as absolute paths.
 
@@ -534,17 +537,12 @@ def _resolve_intent(intent: str, root: Path, subject: str) -> str:
     --------
     >>> _resolve_intent('bids::sub-01/anat/sub-01_T1w.nii.gz', Path(), '01')
     'sub-01/anat/sub-01_T1w.nii.gz'
-    >>> _resolve_intent('bids:named_dataset:sub-01/anat/sub-01_T1w.nii.gz', Path(), '01')
-    'sub-01/anat/sub-01_T1w.nii.gz'
     >>> _resolve_intent('anat/sub-01_T1w.nii.gz', Path(), '01')
     'sub-01/anat/sub-01_T1w.nii.gz'
+    >>> _resolve_intent('bids:named_dataset:sub-01/anat/sub-01_T1w.nii.gz', Path(), '01')
+
     """
     if not intent.startswith('bids:'):
-        # Deprecated - warn?
         return str(root / f'sub-{subject}' / intent)
     if intent.startswith('bids::'):
         return str(root / intent[6:])
-    # Dataset name is specified, assume it is this one but warn
-    isplit = intent.split(':', 2)
-    warnings.warn(f'Named dataset :{isplit[1]}: will resolve to {root}', stacklevel=2)
-    return str(root / isplit[2])
