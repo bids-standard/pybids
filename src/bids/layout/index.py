@@ -1,12 +1,11 @@
 """File-indexing functionality. """
 
-import os
 import json
 import re
-import fsspec
 from collections import defaultdict
 from upath import UPath as Path
 from functools import partial, lru_cache
+import warnings
 
 from bids_validator import BIDSValidator
 
@@ -525,9 +524,27 @@ class BIDSLayoutIndexer:
 
 
 def _resolve_intent(intent: str, root: Path, subject: str) -> str:
-    """Resolve IntendedFor paths to absolute paths or BIDS URIs."""
+    """
+    Resolve IntendedFor paths as absolute paths.
+
+    Path may be either a BIDS URI (prefix bids:: or bids:<name>:) or
+    a relative path from subject directory.
+
+    Examples
+    --------
+    >>> _resolve_intent('bids::sub-01/anat/sub-01_T1w.nii.gz', Path(), '01')
+    'sub-01/anat/sub-01_T1w.nii.gz'
+    >>> _resolve_intent('bids:named_dataset:sub-01/anat/sub-01_T1w.nii.gz', Path(), '01')
+    'sub-01/anat/sub-01_T1w.nii.gz'
+    >>> _resolve_intent('anat/sub-01_T1w.nii.gz', Path(), '01')
+    'sub-01/anat/sub-01_T1w.nii.gz'
+    """
+    if not intent.startswith('bids:'):
+        # Deprecated - warn?
+        return str(root / f'sub-{subject}' / intent)
     if intent.startswith('bids::'):
         return str(root / intent[6:])
-    if not intent.startswith('bids:'):
-        return str(root / f'sub-{subject}' / intent)
-    return intent.split(':', 1)[-1]
+    # Dataset name is specified, assume it is this one but warn
+    isplit = intent.split(':', 2)
+    warnings.warn(f'Named dataset :{isplit[1]}: will resolve to {root}', stacklevel=2)
+    return str(root / isplit[2])
