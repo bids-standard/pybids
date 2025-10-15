@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "pybids"
 description = "bids: interface with datasets conforming to BIDS"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 license = { file="LICENSE" }
 authors = [
   { name = "PyBIDS Developers", email = "bids-discussion@googlegroups.com" },
@@ -23,10 +23,10 @@ classifiers = [
   "Topic :: Scientific/Engineering",
 ]
 dependencies = [
-  "numpy >=1.23",  # SPEC 0 + 1yr (3yr)
-  "scipy >=1.9",   # SPEC 0 + 1yr (3yr)
-  "nibabel >=4.0",  # SPEC 0 + 1yr (3yr)
-  "pandas >=1.5",  # SPEC 0 + 1yr (3yr)
+  "numpy >=1.24",  # SPEC 0 + 1yr (3yr)
+  "scipy >=1.10",   # SPEC 0 + 1yr (3yr)
+  "nibabel >=5.0",  # SPEC 0 + 1yr (3yr)
+  "pandas >=2.0",  # SPEC 0 + 1yr (3yr)
   "formulaic >=0.3",
   "sqlalchemy >=1.4.31",
   "bids-validator>=1.14.7",  # Keep up-to-date to ensure support for recent modalities
@@ -47,13 +47,13 @@ doc = [
 ]
 plotting = ["graphviz"]
 test = [
-  "pytest >= 6",
-  "pytest-cov >= 2.11",
+  "pytest >= 8",
+  "pytest-cov >= 7",
   "bsmschema >= 0.1",
-  "coverage[toml] >= 5.2.1",
+  "coverage[toml] >= 7",
   "altair >= 5",
-  "pytest-xdist >= 2.5",
-  "s3fs >= 2024" #for testing remote uri
+  "pytest-xdist >= 3.8",
+  "s3fs >= 2025" #for testing remote uri
 ]
 model_reports = [
   "jinja2",
