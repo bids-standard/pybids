@@ -1,6 +1,25 @@
 Changelog
 =========
 
+Version 0.21.0 (October 16, 2025)
+---------------------------------
+
+New feature release in the 0.21.x series.
+
+This release fixes compatibility with ``univeral_pathlib`` 0.3.
+The following dependencies have been updated to new minimum versions:
+
+* Python 3.10
+* NumPy 1.24
+* SciPy 1.10
+* NiBabel 5.0
+* Pandas 2.0
+
+Merged pull requests:
+
+* FIX: UPath protocol mismatch (#1183)
+* MNT: Drop Python 3.9 support (#1184)
+
 Version 0.20.0 (September 24, 2025)
 -----------------------------------
 
