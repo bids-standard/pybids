@@ -74,7 +74,9 @@ jobs:
           - python-version: '3.11'
             dependencies: pre
       fail-fast: false
-    continue-on-error: ${{ matrix.dependencies == 'pre' }}
+
+    permissions:
+      actions: write
 
     env:
       DEPENDS: ${{ matrix.dependencies }}
@@ -110,10 +112,26 @@ jobs:
         run: tox c
       - name: Run tox
         run: tox -v --exit-and-dump-after 1200
+      - name: Test cancellation
+        if: matrix.dependencies == 'pre'
+        run: exit 1
+      - name: Cancel pre-release checks on failure
+        if: failure() && matrix.dependencies == 'pre'
+        uses: actions/github-script@v8
+        with:
+          script: |
+            github.rest.actions.cancelWorkflowRun({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              run_id: context.runId,
+            });
       - uses: codecov/codecov-action@v5
         if: ${{ always() }}
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
+      - name: Wait for cancellation
+        if: failure() && matrix.dependencies == 'pre'
+        run: sleep 180
 
   test-publish:
     name: Push package to test.pypi.org
