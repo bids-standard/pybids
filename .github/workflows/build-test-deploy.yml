@@ -1,13 +1,10 @@
-# This file tests the claimed support range of PyBIDS including
-#
-# * Operating systems: Linux, OSX
+name: Python
 
 on:
   push:
     branches:
-      - master
+      - main
       - maint/*
-      - test-pypi-uploads
     tags:
       - '*'
   pull_request: {}
@@ -49,32 +46,25 @@ jobs:
 
   test:
     # Check each OS, all supported Python, minimum versions and latest releases
+    name: Test
     runs-on: ${{ matrix.os }}
     needs: [build]
     strategy:
       matrix:
         os: ['ubuntu-latest', 'macos-latest']
-        python-version: ['3.9', '3.10', '3.11', '3.12', '3.13']
-        dependencies: ['full', 'pre']
+        python-version: ['3.10', '3.11', '3.12', '3.13']
+        dependencies: ['full']
         source: ['repo']
         include:
           - os: ubuntu-latest
-            python-version: '3.9'
+            python-version: '3.10'
             dependencies: min
             source: 'repo'
           - os: ubuntu-latest
             python-version: '3'
             dependencies: full
             source: 'sdist'
-        exclude:
-          # Drop pre tests for SPEC-0-unsupported Python versions
-          # See https://scientific-python.org/specs/spec-0000/
-          - python-version: '3.9'
-            dependencies: pre
-          - python-version: '3.10'
-            dependencies: pre
       fail-fast: false
-    continue-on-error: ${{ matrix.dependencies == 'pre' }}
 
     env:
       DEPENDS: ${{ matrix.dependencies }}
@@ -95,7 +85,7 @@ jobs:
         if: matrix.source == 'sdist'
         run: tar --strip-components=1 -xzf dist/*.tar.gz
       - name: Install the latest version of uv
-        uses: astral-sh/setup-uv@v6
+        uses: astral-sh/setup-uv@v7
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v6
         with:
