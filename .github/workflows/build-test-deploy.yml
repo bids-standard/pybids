@@ -66,6 +66,10 @@ jobs:
             python-version: '3'
             dependencies: full
             source: 'sdist'
+          - os: windows-latest
+            python-version: '3.12'
+            dependencies: full
+            source: repo
         exclude:
           # Drop pre tests for SPEC-0-unsupported Python versions
           # See https://scientific-python.org/specs/spec-0000/
