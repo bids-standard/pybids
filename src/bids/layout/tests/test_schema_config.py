@@ -61,53 +61,80 @@ class TestSchemaConfig:
         """Test loading specific schema version."""
         # Test loading BIDS v1.9.0 schema
         config = Config.load({'schema_version': '1.9.0'})
-        
+
         assert config.name.startswith('bids-schema-')
         assert len(config.entities) > 0
         # Should include the version in the name
         assert '1.9.0' in config.name
-    
+
+    def test_invalid_schema_version(self):
+        """Test that loading invalid schema version raises appropriate error."""
+        # Test with a non-existent version
+        with pytest.raises(ValueError, match="Failed to load BIDS schema version"):
+            Config.load({'schema_version': '99.99.99'})
+
     
     
     def test_entity_generation(self):
         """Test entity pattern generation using real schema."""
         config = Config.load('bids-schema')
-        
+
         # Test that entities were generated
         assert len(config.entities) > 0
-        
+
         # Test specific entity properties we care about (using full names)
         assert 'subject' in config.entities
         assert 'task' in config.entities
         assert 'run' in config.entities
-        
+
         # Test that patterns are valid regex
         for entity_name, entity in config.entities.items():
             assert entity.regex is not None, f"Entity {entity_name} missing regex"
             # Test that regex compiles and works
             assert hasattr(entity.regex, 'search'), f"Entity {entity_name} regex invalid"
-        
+
         # Test specific entity patterns work correctly
         subject_entity = config.entities['subject']
         assert 'sub-' in subject_entity.pattern
-        
+
         # Test subject pattern matches expected format
         match = subject_entity.regex.search('/sub-01/')
         assert match is not None
         assert match.group(1) == '01'
-        
-        # Test task pattern matches expected format  
+
+        # Test task pattern matches expected format
         task_entity = config.entities['task']
         match = task_entity.regex.search('_task-rest_')
         assert match is not None
         assert match.group(1) == 'rest'
-        
+
         # Test run pattern matches expected format
         run_entity = config.entities['run']
         match = run_entity.regex.search('_run-02_')
         assert match is not None
         assert match.group(1) == '02'
-    
+
+    def test_schema_directory_query(self):
+        """Test directory queries with schema-based config."""
+        from bids import BIDSLayout
+        from pathlib import Path
+        import os
+
+        # Use the 7t_trt test dataset
+        data_dir = Path(__file__).parent.parent.parent.parent.parent / 'tests' / 'data' / '7t_trt'
+        if not data_dir.exists():
+            pytest.skip("Test dataset not available")
+
+        # Create layout with schema config
+        layout = BIDSLayout(data_dir, config='bids-schema', derivatives=False)
+
+        # Test directory query for subjects
+        subject_dirs = layout.get(target='subject', return_type='dir')
+        assert len(subject_dirs) > 0
+        assert all(os.path.exists(d) for d in subject_dirs)
+        # Should include subject directories
+        assert any('sub-' in os.path.basename(d) for d in subject_dirs)
+
 
 
 if __name__ == '__main__':
