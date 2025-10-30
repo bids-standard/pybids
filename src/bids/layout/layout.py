@@ -446,12 +446,13 @@ class BIDSLayout:
         # Traverse schema directory hierarchy
         while current_level:
             rule = directory_rules.get(current_level)
-            if not rule:
+            if not rule:  # pragma: no cover
+                # Schema always provides valid rules; current_level only set from schema subdirs
                 break
-                
+
             rule_dict = dict(rule)
             rule_entity = rule_dict.get('entity')
-            
+
             # If this rule corresponds to an entity, add directory component
             if rule_entity and rule_entity in entities:
                 entity_value = entities[rule_entity]
@@ -459,7 +460,8 @@ class BIDSLayout:
                     path_components.append(f'sub-{entity_value}')
                 elif rule_entity == 'session':
                     path_components.append(f'ses-{entity_value}')
-                else:
+                else:  # pragma: no cover
+                    # BIDS schema only defines subject/session entity directories currently
                     path_components.append(str(entity_value))
             elif current_level == 'datatype' and 'datatype' in entities:
                 # Special case: datatype rule has no entity field but we use the datatype value

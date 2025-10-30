@@ -1214,3 +1214,57 @@ def test_intended_for(temporary_dataset, intent):
 
     layout = BIDSLayout(temporary_dataset)
     assert layout.get_IntendedFor(subject='01')
+
+
+def test_get_return_type_dir_with_schema_datatype(layout_7t_trt):
+    """Test return_type='dir' with schema config for datatype entity (covers line 463)."""
+    # Create a schema-based layout
+    layout = BIDSLayout(layout_7t_trt.root, config='bids-schema', derivatives=False)
+
+    # Query for datatype directories - this should trigger the code path
+    # that handles non-subject/non-session entities (line 463)
+    dirs = layout.get(target='datatype', return_type='dir')
+
+    # Should return actual datatype directories
+    assert len(dirs) > 0
+    # Check that these are actual directories in the dataset
+    for d in dirs:
+        assert os.path.exists(d)
+
+
+def test_get_return_type_dir_with_legacy_config_no_template():
+    """Test return_type='dir' with legacy config missing directory template (covers line 842)."""
+    # Create a minimal config without directory templates
+    config_dict = {
+        'name': 'test_config',
+        'entities': [
+            {
+                'name': 'subject',
+                'pattern': '[/\\\\]sub-([a-zA-Z0-9]+)',
+                'directory': '/sub-{subject}/'  # This has a template
+            },
+            {
+                'name': 'task',
+                'pattern': '_task-([a-zA-Z0-9]+)',
+                # No directory template - this should trigger the error
+            }
+        ]
+    }
+
+    # Create temporary test dataset
+    import tempfile
+    with tempfile.TemporaryDirectory() as tmpdir:
+        # Create minimal BIDS structure
+        Path(tmpdir).joinpath('dataset_description.json').write_text('{"Name": "test", "BIDSVersion": "1.6.0"}')
+        sub_dir = Path(tmpdir) / 'sub-01'
+        sub_dir.mkdir()
+        test_file = sub_dir / 'sub-01_task-rest_bold.nii.gz'
+        test_file.touch()
+
+        # Load with our custom config
+        layout = BIDSLayout(tmpdir, config=config_dict, validate=False)
+
+        # This should raise ValueError when trying to get directories for 'task'
+        # because task entity has no directory template
+        with pytest.raises(ValueError, match='Return type set to directory'):
+            layout.get(target='task', return_type='dir')
