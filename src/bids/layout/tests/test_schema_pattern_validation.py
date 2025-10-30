@@ -185,13 +185,3 @@ class TestSchemaAccuracy:
         print(f"Schema datatypes used: {len(bids_schema.objects.datatypes)}")
         print(f"Schema entities used: {len(bids_schema.objects.entities)}")
 
-
-if __name__ == '__main__':
-    # Allow running as script for quick testing
-    test_instance = TestSchemaAccuracy()
-    test_instance.test_extension_patterns_match_schema()
-    test_instance.test_suffix_patterns_match_schema()
-    test_instance.test_datatype_patterns_match_schema()
-    test_instance.test_entity_format_patterns_match_schema()
-    test_instance.test_no_hardcoded_values()
-    print("All schema accuracy tests passed!")

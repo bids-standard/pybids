@@ -135,13 +135,3 @@ class TestSchemaConfig:
         # Should include subject directories
         assert any('sub-' in os.path.basename(d) for d in subject_dirs)
 
-
-
-if __name__ == '__main__':
-    # Allow running as script for quick testing
-    test_instance = TestSchemaConfig()
-    test_instance.test_load_bids_schema_basic()
-    test_instance.test_schema_entity_patterns()
-    test_instance.test_schema_version_tracking()
-    test_instance.test_schema_version_parameter()
-    print("Basic tests passed!")

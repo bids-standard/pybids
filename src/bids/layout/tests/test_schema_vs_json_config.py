@@ -307,10 +307,3 @@ class TestConfigCompatibility:
         }
         return name_mapping.get(new_entity_name, new_entity_name)
 
-
-if __name__ == '__main__':
-    # Allow running as script for quick testing
-    test_instance = TestConfigCompatibility()
-    test_instance.test_entity_coverage_matches()
-    test_instance.test_suffix_coverage_matches()
-    test_instance.test_filename_parsing_compatibility()

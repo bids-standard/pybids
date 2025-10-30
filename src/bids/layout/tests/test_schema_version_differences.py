@@ -90,11 +90,3 @@ class TestSchemaVersionDifferences:
         assert config_current.name != config_v190.name
         assert config_v190.name != config_v180.name
 
-
-if __name__ == '__main__':
-    # Allow running as script for quick testing
-    test_instance = TestSchemaVersionDifferences()
-    test_instance.test_schema_version_entity_differences()
-    test_instance.test_motion_datatype_evolution()
-    test_instance.test_schema_version_metadata_differences()
-    print("Schema version difference tests completed!")
