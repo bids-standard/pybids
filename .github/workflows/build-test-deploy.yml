@@ -77,7 +77,7 @@ jobs:
           fetch-depth: 0
       - name: Download packages built by build-and-inspect-python-package
         if: matrix.source == 'sdist'
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v7
         with:
           name: Packages
           path: dist
@@ -116,7 +116,7 @@ jobs:
 
     steps:
       - name: Download packages built by build-and-inspect-python-package
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v7
         with:
           name: Packages
           path: dist
@@ -138,7 +138,7 @@ jobs:
 
     steps:
       - name: Download packages built by build-and-inspect-python-package
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v7
         with:
           name: Packages
           path: dist
