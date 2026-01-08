@@ -2172,6 +2172,7 @@ name = "pybids"
 source = { editable = "." }
 dependencies = [
     { name = "bids-validator" },
+    { name = "bidsschematools" },
     { name = "click" },
     { name = "formulaic" },
     { name = "frozendict" },
@@ -2266,6 +2267,7 @@ requires-dist = [
     { name = "altair", marker = "extra == 'model-reports'" },
     { name = "altair", marker = "extra == 'test'", specifier = ">=5" },
     { name = "bids-validator", specifier = ">=1.14.7" },
+    { name = "bidsschematools", specifier = ">=1.1.0" },
     { name = "bsmschema", marker = "extra == 'test'", specifier = ">=0.1" },
     { name = "click", specifier = ">=8.0" },
     { name = "coverage", extras = ["toml"], marker = "extra == 'test'", specifier = ">=7" },

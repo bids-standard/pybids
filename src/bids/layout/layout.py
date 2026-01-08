@@ -76,7 +76,8 @@ class BIDSLayout:
         file in order to be indexed.
     config : str or list or None, optional
         Optional name(s) of configuration file(s) to use.
-        By default (None), uses 'bids'.
+        By default (None), uses 'bids'. Can also be 'bids-schema' to use
+        the official BIDS schema instead of JSON config files.
     sources : :obj:`bids.layout.BIDSLayout` or list or None, optional
         Optional BIDSLayout(s) from which the current BIDSLayout is derived.
     config_filename : str
@@ -414,6 +415,89 @@ class BIDSLayout:
             entities.update({e.name: e for e in results})
         return entities
 
+    def _find_directories_for_entity_using_schema(self, entity_name, results):
+        """Find directories using schema directory rules."""
+        from bidsschematools import schema as bst_schema
+        import os
+        
+        # Load schema directory rules
+        bids_schema = bst_schema.load_schema()
+        
+        directory_rules = bids_schema.rules.directories.raw
+        directories = set()
+        
+        # Build directory paths using schema rules for each file
+        for f in results:
+            if entity_name in f.entities:
+                # Build path based on schema directory hierarchy
+                path_components = self._build_path_from_schema_rules(f.entities, directory_rules)
+                if path_components:
+                    # Convert to full directory path
+                    directory_path = os.path.join(self.root, *path_components)
+                    directories.add(directory_path)
+        
+        return list(directories)
+    
+    def _build_path_from_schema_rules(self, entities, directory_rules):
+        """Build directory path components from schema rules and entity values."""
+        path_components = []
+        current_level = 'root'
+        
+        # Traverse schema directory hierarchy
+        while current_level:
+            rule = directory_rules.get(current_level)
+            if not rule:  # pragma: no cover
+                # Schema always provides valid rules; current_level only set from schema subdirs
+                break
+
+            rule_dict = dict(rule)
+            rule_entity = rule_dict.get('entity')
+
+            # If this rule corresponds to an entity, add directory component
+            if rule_entity and rule_entity in entities:
+                entity_value = entities[rule_entity]
+                if rule_entity == 'subject':
+                    path_components.append(f'sub-{entity_value}')
+                elif rule_entity == 'session':
+                    path_components.append(f'ses-{entity_value}')
+                else:  # pragma: no cover
+                    # BIDS schema only defines subject/session entity directories currently
+                    path_components.append(str(entity_value))
+            elif current_level == 'datatype' and 'datatype' in entities:
+                # Special case: datatype rule has no entity field but we use the datatype value
+                path_components.append(entities['datatype'])
+            
+            # Determine next level based on subdirs and available entities
+            subdirs = rule_dict.get('subdirs', [])
+            next_level = None
+            
+            # First pass: look for entity-based subdirs across all options
+            entity_candidates = []
+            rule_candidates = []
+            
+            for subdir in subdirs:
+                if isinstance(subdir, dict) and 'oneOf' in subdir:
+                    for option in subdir['oneOf']:
+                        if option in entities:
+                            entity_candidates.append(option)
+                        elif option in directory_rules:
+                            rule_candidates.append(option)
+                elif isinstance(subdir, str):
+                    if subdir in entities:
+                        entity_candidates.append(subdir)
+                    elif subdir in directory_rules:
+                        rule_candidates.append(subdir)
+            
+            # Prefer entity candidates, fallback to rule candidates
+            if entity_candidates:
+                next_level = entity_candidates[0]  # Take first entity match
+            elif rule_candidates:
+                next_level = rule_candidates[0]  # Take first rule match
+            
+            current_level = next_level
+        
+        return path_components
+
     def get_files(self, scope='all'):
         """Get BIDSFiles for all layouts in the specified scope.
 
@@ -678,7 +762,7 @@ class BIDSLayout:
                                '`layout.get(**filters)`.')
 
         # Ensure leading periods if extensions were passed
-        if 'extension' in filters and 'bids' in self.config:
+        if 'extension' in filters and ('bids' in self.config or any('bids-schema' in c for c in self.config)):
             filters['extension'] = ['.' + x.lstrip('.') if isinstance(x, str) else x
                                     for x in listify(filters['extension'])]
 
@@ -746,28 +830,37 @@ class BIDSLayout:
                 ))
                 results = natural_sort(list(set(results)))
             elif return_type == 'dir':
-                template = entities[target].directory
-                if template is None:
-                    raise ValueError('Return type set to directory, but no '
-                                     'directory template is defined for the '
-                                     'target entity (\"%s\").' % target)
-                # Construct regex search pattern from target directory template
-                # On Windows, the regex won't compile if, e.g., there is a folder starting with "U" on the path.
-                # Converting to a POSIX path with forward slashes solves this.
-                template = self._root.as_posix() + template
-                to_rep = re.findall(r'{(.*?)\}', template)
-                for ent in to_rep:
-                    patt = entities[ent].pattern
-                    template = template.replace('{%s}' % ent, patt)
-                # Avoid matching subfolders. We are working with POSIX paths here, so we explicitly use "/"
-                # as path separator.
-                template += r'[^/]*$'
-                matches = [
-                    f.dirname
-                    for f in results
-                    if re.search(template, f._dirname.as_posix())
-                ]
-                results = natural_sort(list(set(matches)))
+                # Check if we're using schema-based config or legacy config
+                using_schema = any('bids-schema' in str(c) for c in listify(self.config))
+                
+                if using_schema:
+                    # Use schema directory rules for schema-based configs
+                    directories = self._find_directories_for_entity_using_schema(target, results)
+                    results = natural_sort(list(set(directories)))
+                else:
+                    # Use original template-based approach for legacy configs
+                    template = entities[target].directory
+                    if template is None:
+                        raise ValueError('Return type set to directory, but no '
+                                         'directory template is defined for the '
+                                         'target entity (\"%s\").' % target)
+                    # Construct regex search pattern from target directory template
+                    # On Windows, the regex won't compile if, e.g., there is a folder starting with "U" on the path.
+                    # Converting to a POSIX path with forward slashes solves this.
+                    template = self._root.as_posix() + template
+                    to_rep = re.findall(r'{(.*?)\}', template)
+                    for ent in to_rep:
+                        patt = entities[ent].pattern
+                        template = template.replace('{%s}' % ent, patt)
+                    # Avoid matching subfolders. We are working with POSIX paths here, so we explicitly use "/"
+                    # as path separator.
+                    template += r'[^/]*$'
+                    matches = [
+                        f.dirname
+                        for f in results
+                        if re.search(template, f._dirname.as_posix())
+                    ]
+                    results = natural_sort(list(set(matches)))
         else:
             results = natural_sort(results, 'path')
 

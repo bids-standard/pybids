@@ -30,6 +30,7 @@ dependencies = [
   "formulaic >=0.3",
   "sqlalchemy >=1.4.31",
   "bids-validator>=1.14.7",  # Keep up-to-date to ensure support for recent modalities
+  "bidsschematools>=1.1.0",  # Required for schema-based configs
   "num2words >=0.5.10",
   "click >=8.0",
   "universal_pathlib >=0.2.2",
