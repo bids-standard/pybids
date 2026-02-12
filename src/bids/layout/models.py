@@ -174,11 +174,13 @@ class Config(Base):
             config_paths = get_option('config_paths')
             if config in config_paths:
                 config = config_paths[config]
-            if not UPath(config).exists():
-                raise ValueError("{} is not a valid path.".format(config))
-            else:
-                with open(config, 'r') as f:
-                    config = json.load(f)
+            # config_paths may store dicts directly (not just file paths)
+            if not isinstance(config, dict):
+                if not UPath(config).exists():
+                    raise ValueError("{} is not a valid path.".format(config))
+                else:
+                    with open(config, 'r') as f:
+                        config = json.load(f)
 
         # Return existing Config record if one exists
         if session is not None:

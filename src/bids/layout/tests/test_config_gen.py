@@ -783,3 +783,59 @@ class TestBidsPath:
             patterns=["sub-{subject}_{suffix<T1w>}{extension}"],
         )
         assert result is None
+
+
+# ---------------------------------------------------------------------------
+# Dict-based config paths tests
+# ---------------------------------------------------------------------------
+
+
+class TestDictConfigPaths:
+    """Tests for passing in-memory config dicts to add_config_paths()."""
+
+    def test_add_config_paths_accepts_dict(self):
+        """add_config_paths() accepts a dict value without requiring a file."""
+        import bids.config as cf
+        from bids.layout.utils import add_config_paths
+
+        config_dict = {
+            "name": "_test_dict_config",
+            "entities": [
+                {"name": "subject", "pattern": "[/\\\\]+sub-([a-zA-Z0-9+]+)"},
+            ],
+            "default_path_patterns": [
+                "sub-{subject}_{suffix}{extension}",
+            ],
+        }
+        try:
+            add_config_paths(_test_dict_config=config_dict)
+            paths = cf.get_option("config_paths")
+            assert "_test_dict_config" in paths
+            assert paths["_test_dict_config"] is config_dict
+        finally:
+            # Clean up: remove the test config
+            current = cf.get_option("config_paths")
+            current.pop("_test_dict_config", None)
+            cf.set_option("config_paths", current)
+
+    def test_config_load_resolves_dict_from_config_paths(self):
+        """Config.load() resolves a dict stored in config_paths by name."""
+        import bids.config as cf
+        from bids.layout.models import Config
+        from bids.layout.utils import add_config_paths
+
+        config_dict = {
+            "name": "_test_load_dict",
+            "entities": [
+                {"name": "subject", "pattern": "[/\\\\]+sub-([a-zA-Z0-9+]+)"},
+            ],
+            "default_path_patterns": [],
+        }
+        try:
+            add_config_paths(_test_load_dict=config_dict)
+            loaded = Config.load("_test_load_dict")
+            assert loaded.name == "_test_load_dict"
+        finally:
+            current = cf.get_option("config_paths")
+            current.pop("_test_load_dict", None)
+            cf.set_option("config_paths", current)
