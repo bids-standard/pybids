@@ -296,6 +296,47 @@ class TestRuleToPathPattern:
         # Should contain .json
         assert ".json" in sidecar
 
+    def test_no_sidecar_split(self, schema):
+        """sidecar_split=False puts all extensions in one pattern."""
+        rule = schema["rules"]["files"]["raw"]["anat"]["nonparametric"]
+        patterns = rule_to_path_pattern(rule, schema, sidecar_split=False)
+
+        assert len(patterns) == 1
+        pattern = patterns[0]
+        # Main pattern should contain both imaging and heritable extensions
+        assert ".nii.gz" in pattern
+        assert ".json" in pattern
+        # Should still be a full path pattern
+        assert pattern.startswith("sub-{subject}")
+
+    def test_no_sidecar_split_build_path_json(self, schema):
+        """sidecar_split=False patterns can build .json paths."""
+        rule = schema["rules"]["files"]["raw"]["anat"]["nonparametric"]
+        patterns = rule_to_path_pattern(rule, schema, sidecar_split=False)
+
+        result = build_path(
+            {"subject": "01", "datatype": "anat", "suffix": "T1w",
+             "extension": ".json"},
+            patterns,
+        )
+        assert result is not None
+        assert result.endswith(".json")
+        assert "sub-01" in result
+        assert "anat" in result
+
+    def test_generate_config_no_sidecar_split(self, schema):
+        """generate_config with sidecar_split=False produces no sidecar patterns."""
+        config = generate_config(
+            name="test", schema=schema, rule_groups=["raw"],
+            sidecar_split=False,
+        )
+        patterns = config["default_path_patterns"]
+        # All patterns should be full-path (start with sub-)
+        for p in patterns:
+            assert p.startswith("sub-{subject}"), (
+                f"Expected full-path pattern, got sidecar: {p}"
+            )
+
     def test_pattern_usable_with_build_path(self, schema):
         """Generated patterns work with pybids build_path()."""
         rule = schema["rules"]["files"]["raw"]["anat"]["nonparametric"]

@@ -277,6 +277,7 @@ def _format_entity_segment(
 def rule_to_path_pattern(
     rule: dict,
     schema,
+    sidecar_split: bool = True,
 ) -> list[str]:
     """Convert a single dereferenced file rule to pybids path pattern(s).
 
@@ -287,13 +288,18 @@ def rule_to_path_pattern(
         ``suffixes``, ``extensions``.
     schema
         The loaded BIDS schema.
+    sidecar_split : bool, optional
+        If ``True`` (default), heritable extensions (``.json``, ``.tsv``,
+        etc.) are split into a separate sidecar/inheritance pattern.
+        If ``False``, all extensions are included in the main pattern
+        and no sidecar pattern is generated.
 
     Returns
     -------
     list of str
         One or more pybids path patterns. The first is the main file pattern;
-        subsequent ones are sidecar/inheritance patterns for heritable
-        extensions (``.json``, ``.tsv``, etc.).
+        if *sidecar_split* is True, subsequent ones are sidecar/inheritance
+        patterns for heritable extensions.
     """
     entity_order = list(schema["rules"]["entities"])
     entity_defs = schema["objects"]["entities"]
@@ -316,7 +322,10 @@ def rule_to_path_pattern(
     patterns = []
 
     # --- Main pattern ---
-    exts_for_main = main_exts if has_main else sorted(all_exts)
+    if sidecar_split:
+        exts_for_main = main_exts if has_main else sorted(all_exts)
+    else:
+        exts_for_main = sorted(all_exts)
     patterns.append(
         _build_file_pattern(
             entity_order, entity_defs, rule_entities,
@@ -325,7 +334,7 @@ def rule_to_path_pattern(
     )
 
     # --- Sidecar/inheritance pattern ---
-    if sidecar_exts and has_main:
+    if sidecar_split and sidecar_exts and has_main:
         patterns.append(
             _build_sidecar_pattern(
                 entity_order, entity_defs, rule_entities,
@@ -462,7 +471,9 @@ def _build_sidecar_pattern(
     return pattern
 
 
-def generate_path_patterns(schema, rule_group: str = "raw") -> list[str]:
+def generate_path_patterns(
+    schema, rule_group: str = "raw", sidecar_split: bool = True,
+) -> list[str]:
     """Generate all pybids path patterns from a schema rule group.
 
     Parameters
@@ -471,6 +482,10 @@ def generate_path_patterns(schema, rule_group: str = "raw") -> list[str]:
         The loaded BIDS schema.
     rule_group : str
         Which rule group to process: ``"raw"`` or ``"deriv"``.
+    sidecar_split : bool, optional
+        If ``True`` (default), heritable extensions are split into
+        separate sidecar patterns.  If ``False``, all extensions are
+        kept in a single main pattern per rule.
 
     Returns
     -------
@@ -481,12 +496,14 @@ def generate_path_patterns(schema, rule_group: str = "raw") -> list[str]:
     seen = set()
 
     rule_groups = schema["rules"]["files"].get(rule_group, {})
-    _generate_patterns_recursive(rule_groups, schema, patterns, seen)
+    _generate_patterns_recursive(
+        rule_groups, schema, patterns, seen, sidecar_split=sidecar_split,
+    )
 
     return patterns
 
 
-def _generate_patterns_recursive(obj, schema, patterns, seen):
+def _generate_patterns_recursive(obj, schema, patterns, seen, sidecar_split=True):
     """Recursively walk rule groups, generating patterns for leaf rules."""
     if isinstance(obj, Mapping):
         # A leaf rule has entities, suffixes, and extensions
@@ -495,12 +512,16 @@ def _generate_patterns_recursive(obj, schema, patterns, seen):
             key = _make_rule_key(obj)
             if key not in seen:
                 seen.add(key)
-                new_patterns = rule_to_path_pattern(obj, schema)
+                new_patterns = rule_to_path_pattern(
+                    obj, schema, sidecar_split=sidecar_split,
+                )
                 patterns.extend(new_patterns)
         else:
             for v in obj.values():
                 if isinstance(v, Mapping):
-                    _generate_patterns_recursive(v, schema, patterns, seen)
+                    _generate_patterns_recursive(
+                        v, schema, patterns, seen, sidecar_split=sidecar_split,
+                    )
 
 
 def _make_rule_key(rule) -> tuple:
@@ -533,6 +554,7 @@ def generate_config(
     schema=None,
     schema_path: str | None = None,
     rule_groups: list[str] | None = None,
+    sidecar_split: bool = True,
 ) -> dict:
     """Generate a complete pybids config dict from the BIDS schema.
 
@@ -547,6 +569,10 @@ def generate_config(
     rule_groups : list of str, optional
         Which rule groups to include. Defaults to ``["raw"]`` for ``"bids"``,
         ``["raw", "deriv"]`` for ``"derivatives"`` or any other name.
+    sidecar_split : bool, optional
+        If ``True`` (default), heritable extensions are split into separate
+        sidecar patterns.  If ``False``, all extensions are kept in a single
+        main pattern per rule.
 
     Returns
     -------
@@ -575,7 +601,9 @@ def generate_config(
     # Generate path patterns
     all_patterns = []
     for rg in rule_groups:
-        all_patterns.extend(generate_path_patterns(schema, rg))
+        all_patterns.extend(
+            generate_path_patterns(schema, rg, sidecar_split=sidecar_split)
+        )
 
     return {
         "name": name,
@@ -907,6 +935,7 @@ def generate_extended_config(
     schema=None,
     schema_path: str | None = None,
     rule_groups: list[str] | None = None,
+    sidecar_split: bool = True,
 ) -> dict:
     """Generate config and apply extensions in one step.
 
@@ -922,6 +951,10 @@ def generate_extended_config(
         Path to schema directory.
     rule_groups : list of str, optional
         Rule groups to process.
+    sidecar_split : bool, optional
+        If ``True`` (default), heritable extensions are split into separate
+        sidecar patterns.  If ``False``, all extensions are kept in a single
+        main pattern per rule.
 
     Returns
     -------
@@ -940,6 +973,7 @@ def generate_extended_config(
 
     config = generate_config(
         name=name, schema=schema, rule_groups=rule_groups,
+        sidecar_split=sidecar_split,
     )
 
     if extensions:
