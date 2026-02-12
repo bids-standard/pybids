@@ -604,6 +604,13 @@ class ConfigExtension:
     extra_datatypes : list of str, optional
         Additional datatype values to recognize in the ``datatype`` entity
         pattern (e.g., ``["figures"]``).
+    inject_entity_segments : list of dict, optional
+        Entity segments to inject into all generated path patterns.
+        Each dict must have ``"segment"`` (the string to insert, e.g.,
+        ``"[_hash-{hash}]"``) and ``"after"`` (the substring to insert
+        after, e.g., ``"[_ses-{session}]"``). Patterns that do not
+        contain the ``"after"`` string are left unchanged. Injection is
+        skipped if the segment is already present (deduplication).
     """
 
     def __init__(
@@ -613,12 +620,26 @@ class ConfigExtension:
         extra_path_patterns: list[str] | None = None,
         entity_overrides: dict[str, dict] | None = None,
         extra_datatypes: list[str] | None = None,
+        inject_entity_segments: list[dict] | None = None,
     ):
         self.name = name
         self.extra_entities = extra_entities or []
         self.extra_path_patterns = extra_path_patterns or []
         self.entity_overrides = entity_overrides or {}
         self.extra_datatypes = extra_datatypes or []
+        self.inject_entity_segments = inject_entity_segments or []
+
+
+def _rename_template_vars(
+    patterns: list[str], old_name: str, new_name: str,
+) -> list[str]:
+    """Rename template variables in path patterns.
+
+    Rewrites ``{old_name}``, ``{old_name<...>}``, ``{old_name|...}`` to use
+    *new_name* instead.
+    """
+    regex = re.compile(r"\{" + re.escape(old_name) + r"(?=[<|}\s])")
+    return [regex.sub("{" + new_name, p) for p in patterns]
 
 
 def apply_extension(config: dict, extension: ConfigExtension) -> dict:
@@ -644,7 +665,26 @@ def apply_extension(config: dict, extension: ConfigExtension) -> dict:
         if ent["name"] in extension.entity_overrides:
             ent.update(extension.entity_overrides[ent["name"]])
 
-    # 2. Insert extra entities at specified positions
+    # 2. Rename template variables in patterns to match overridden names
+    for entity_key, overrides in extension.entity_overrides.items():
+        if "name" in overrides and overrides["name"] != entity_key:
+            config["default_path_patterns"] = _rename_template_vars(
+                config["default_path_patterns"],
+                entity_key,
+                overrides["name"],
+            )
+
+    # 3. Inject entity segments into existing patterns
+    for injection in extension.inject_entity_segments:
+        segment = injection["segment"]
+        after = injection["after"]
+        config["default_path_patterns"] = [
+            p.replace(after, after + segment)
+            if (after in p and segment not in p) else p
+            for p in config["default_path_patterns"]
+        ]
+
+    # 4. Insert extra entities at specified positions
     pseudo_names = {"suffix", "scans", "fmap", "datatype", "extension"}
 
     for extra_ent in extension.extra_entities:
@@ -668,7 +708,7 @@ def apply_extension(config: dict, extension: ConfigExtension) -> dict:
                     config["entities"].insert(i, extra_ent)
                     break
 
-    # 3. Extend datatype pattern
+    # 5. Extend datatype pattern
     if extension.extra_datatypes:
         for ent in config["entities"]:
             if ent["name"] == "datatype":
@@ -682,7 +722,7 @@ def apply_extension(config: dict, extension: ConfigExtension) -> dict:
                     )
                 break
 
-    # 4. Append extra path patterns
+    # 6. Append extra path patterns
     config["default_path_patterns"].extend(extension.extra_path_patterns)
 
     return config

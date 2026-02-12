@@ -645,6 +645,114 @@ class TestConfigExtension:
         apply_extension(bids_config, ext)
         assert len(bids_config["entities"]) == original_len
 
+    def test_entity_override_renames_template_vars(self, bids_config):
+        """Renaming an entity via overrides also renames template variables."""
+        ext = ConfigExtension(
+            name="test",
+            entity_overrides={
+                "description": {"name": "desc"},
+            },
+        )
+        result = apply_extension(bids_config, ext)
+        desc_ent = next(
+            (e for e in result["entities"] if e["name"] == "desc"), None
+        )
+        assert desc_ent is not None
+
+        for p in result["default_path_patterns"]:
+            assert "{description" not in p, (
+                f"Pattern still uses {{description}}: {p[:80]}"
+            )
+
+    def test_multiple_entity_overrides_rename(self, bids_config):
+        """Multiple entity renames all take effect in patterns."""
+        ext = ConfigExtension(
+            name="test",
+            entity_overrides={
+                "description": {"name": "desc"},
+                "hemisphere": {"name": "hemi"},
+            },
+        )
+        result = apply_extension(bids_config, ext)
+        for p in result["default_path_patterns"]:
+            assert "{description" not in p
+            assert "{hemisphere" not in p
+
+    def test_inject_entity_segments(self, bids_config):
+        """inject_entity_segments inserts segments into matching patterns."""
+        ext = ConfigExtension(
+            name="test",
+            inject_entity_segments=[
+                {"segment": "[_hash-{hash}]", "after": "[_ses-{session}]"},
+            ],
+        )
+        result = apply_extension(bids_config, ext)
+        main_patterns = [
+            p for p in result["default_path_patterns"]
+            if "sub-{subject}" in p
+        ]
+        sidecar_patterns = [
+            p for p in result["default_path_patterns"]
+            if "sub-{subject}" not in p
+        ]
+        # All main patterns should have hash injected
+        for p in main_patterns:
+            assert "[_hash-{hash}]" in p, f"Missing hash in: {p[:80]}"
+        # No sidecar patterns should have hash
+        for p in sidecar_patterns:
+            assert "[_hash-{hash}]" not in p
+
+    def test_inject_deduplication(self, bids_config):
+        """Injection skips patterns that already contain the segment."""
+        ext = ConfigExtension(
+            name="test",
+            inject_entity_segments=[
+                {"segment": "[_hash-{hash}]", "after": "[_ses-{session}]"},
+                {"segment": "[_hash-{hash}]", "after": "[_ses-{session}]"},
+            ],
+        )
+        result = apply_extension(bids_config, ext)
+        for p in result["default_path_patterns"]:
+            count = p.count("[_hash-{hash}]")
+            assert count <= 1, f"Double injection in: {p[:80]}"
+
+    def test_inject_and_rename_together(self, schema):
+        """Renaming + injection produce correct patterns for build_path."""
+        ext = ConfigExtension(
+            name="test",
+            entity_overrides={"description": {"name": "desc"}},
+            extra_entities=[
+                {
+                    "name": "hash",
+                    "pattern": "hash-([a-zA-Z0-9+]+)",
+                    "position": "after:session",
+                },
+            ],
+            inject_entity_segments=[
+                {"segment": "[_hash-{hash}]", "after": "[_ses-{session}]"},
+            ],
+        )
+        config = generate_extended_config(
+            name="test", schema=schema, extensions=[ext],
+            rule_groups=["deriv"],
+        )
+        entities = {
+            "subject": "01",
+            "session": "pre",
+            "hash": "abc123",
+            "desc": "preproc",
+            "datatype": "anat",
+            "suffix": "T1w",
+            "extension": ".nii.gz",
+        }
+        result = build_path(entities, config["default_path_patterns"])
+        assert result is not None
+        assert "hash-abc123" in result
+        assert "desc-preproc" in result
+        assert "sub-01" in result
+        assert "ses-pre" in result
+        assert "T1w" in result
+
 
 class TestGenerateExtendedConfig:
     """Tests for generate_extended_config()."""
