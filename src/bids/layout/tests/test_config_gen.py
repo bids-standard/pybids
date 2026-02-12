@@ -754,6 +754,123 @@ class TestConfigExtension:
         assert "T1w" in result
 
 
+    def test_extra_rules_basic(self, schema):
+        """extra_rules generate patterns with inherited entities."""
+        ext = ConfigExtension(
+            name="test",
+            extra_rules=[
+                {
+                    "datatypes": ["anat"],
+                    "suffixes": ["boldref"],
+                    "extensions": [".nii.gz"],
+                },
+            ],
+        )
+        config = generate_extended_config(
+            name="test", schema=schema, extensions=[ext],
+            rule_groups=["deriv"],
+        )
+        result = build_path(
+            {"subject": "01", "datatype": "anat", "suffix": "boldref",
+             "extension": ".nii.gz"},
+            config["default_path_patterns"],
+        )
+        assert result is not None
+        assert "sub-01/anat/sub-01_boldref.nii.gz" == result
+
+    def test_extra_rules_with_entities(self, schema):
+        """extra_rules accept non-schema entities like from/to/mode."""
+        ext = ConfigExtension(
+            name="test",
+            extra_entities=[
+                {"name": "from", "pattern": "from-([a-zA-Z0-9+]+)",
+                 "position": "after:hemisphere"},
+                {"name": "to", "pattern": "to-([a-zA-Z0-9+]+)",
+                 "position": "after:from"},
+                {"name": "mode", "pattern": "mode-(image|points)",
+                 "position": "after:to"},
+            ],
+            extra_rules=[
+                {
+                    "datatypes": ["anat"],
+                    "suffixes": ["xfm"],
+                    "extensions": [".txt", ".h5"],
+                    "entities": {
+                        "from": "required",
+                        "to": "required",
+                        "mode": {"level": "required", "enum": ["image", "points"],
+                                 "default": "image"},
+                    },
+                },
+            ],
+        )
+        config = generate_extended_config(
+            name="test", schema=schema, extensions=[ext],
+            rule_groups=["deriv"],
+        )
+        # With from/to provided, mode defaults to "image"
+        result = build_path(
+            {"subject": "01", "datatype": "anat", "suffix": "xfm",
+             "extension": ".txt", "from": "orig", "to": "T1w"},
+            config["default_path_patterns"],
+        )
+        assert result is not None
+        assert "from-orig" in result
+        assert "to-T1w" in result
+        assert "mode-image" in result
+
+    def test_extra_rules_short_entity_names(self, schema):
+        """extra_rules support short BIDS names like 'desc' for 'description'."""
+        ext = ConfigExtension(
+            name="test",
+            entity_overrides={"description": {"name": "desc"}},
+            extra_rules=[
+                {
+                    "datatypes": ["anat"],
+                    "suffixes": ["morph"],
+                    "extensions": [".tsv"],
+                    "entities": {"desc": "optional"},
+                },
+            ],
+        )
+        config = generate_extended_config(
+            name="test", schema=schema, extensions=[ext],
+            rule_groups=["deriv"],
+        )
+        result = build_path(
+            {"subject": "01", "datatype": "anat", "suffix": "morph",
+             "extension": ".tsv", "desc": "brain"},
+            config["default_path_patterns"],
+        )
+        assert result is not None
+        assert "desc-brain" in result
+
+    def test_extra_rules_inherit_entities(self, schema):
+        """extra_rules without explicit entities inherit from schema deriv rules."""
+        ext = ConfigExtension(
+            name="test",
+            extra_rules=[
+                {
+                    "datatypes": ["anat"],
+                    "suffixes": ["MTw"],
+                    "extensions": [".nii.gz"],
+                },
+            ],
+        )
+        config = generate_extended_config(
+            name="test", schema=schema, extensions=[ext],
+            rule_groups=["deriv"],
+        )
+        # Should accept standard derivative entities like space, desc
+        result = build_path(
+            {"subject": "01", "datatype": "anat", "suffix": "MTw",
+             "extension": ".nii.gz", "space": "MNI", "description": "preproc"},
+            config["default_path_patterns"],
+        )
+        assert result is not None
+        assert "space-MNI" in result
+
+
 class TestGenerateExtendedConfig:
     """Tests for generate_extended_config()."""
 
