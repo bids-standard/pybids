@@ -8,8 +8,12 @@ import sys
 import shutil
 from string import Formatter
 from itertools import product
-from ..utils import listify
+from ..utils import listify, bids_sort
 from upath import UPath as Path
+
+import bidsschematools as bst
+
+schema = bst.schema.load_schema()
 
 __all__ = ['build_path', 'write_to_file']
 
@@ -125,6 +129,9 @@ def build_path(entities, path_patterns, strict=False):
 
     # Drop None and empty-strings, keep zeros, and listify
     entities = {k: listify(v) for k, v in entities.items() if v or v == 0}
+
+    # sort the entities because we're going to start moving away from static path patterns
+    entities = bids_sort(entities)
 
     # Loop over available patherns, return first one that matches all
     for pattern in path_patterns:

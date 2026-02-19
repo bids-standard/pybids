@@ -21,7 +21,7 @@ try:
 except ImportError:  # sqlalchemy < 1.4
     from sqlalchemy.ext.declarative import declarative_base
 
-from ..utils import listify
+from ..utils import listify, bids_sort
 from .writing import build_path, write_to_file
 from ..config import get_option
 from .utils import BIDSMetadata, PaddedInt
@@ -333,8 +333,8 @@ class BIDSFile(Base):
 
         results = query.all()
         if values.startswith('obj'):
-            return {t.entity_name: t.entity for t in results}
-        return {t.entity_name: t.value for t in results}
+            return bids_sort({t.entity_name: t.entity for t in results})
+        return bids_sort({t.entity_name: t.value for t in results})
 
     def copy(self, path_patterns, symbolic_link=False, root=None,
              conflicts='fail'):

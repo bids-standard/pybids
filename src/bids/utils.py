@@ -2,6 +2,7 @@
 
 import re
 import os
+import bidsschematools as bst
 from pathlib import Path
 from frozendict import frozendict as _frozendict
 from upath import UPath as Path
@@ -187,3 +188,11 @@ def validate_multiple(val, retval=None):
     if len(val) == 1:
         return val[0]
     return val
+
+entity_order = list(bst.schema.load_schema().rules.entities)
+entity_order += ['suffix', 'extension', 'datatype']
+
+def bids_sort(unsorted: dict, entity_order=entity_order):
+    sorted_bids = {k: unsorted[k] for k in sorted(unsorted, key=lambda k: entity_order.index(k) if k in entity_order else len(entity_order))}
+
+    return sorted_bids
