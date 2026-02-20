@@ -7,7 +7,6 @@ import json
 import copy
 import enum
 import difflib
-from pandas.core.indexes.multi import get_adjustment
 from upath import UPath as Path
 import warnings
 from typing import Hashable
