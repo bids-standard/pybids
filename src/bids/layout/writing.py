@@ -11,10 +11,6 @@ from itertools import product
 from ..utils import listify, bids_sort
 from upath import UPath as Path
 
-import bidsschematools as bst
-
-schema = bst.schema.load_schema()
-
 __all__ = ['build_path', 'write_to_file']
 
 _PATTERN_FIND = re.compile(r'({([\w\d]*?)(?:<([^>]+)>)?(?:\|((?:\.?[\w])+))?\})')

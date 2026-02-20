@@ -7,6 +7,7 @@ import json
 import copy
 import enum
 import difflib
+from pandas.core.indexes.multi import get_adjustment
 from upath import UPath as Path
 import warnings
 from typing import Hashable
@@ -16,7 +17,7 @@ from sqlalchemy.orm import aliased
 from sqlalchemy.sql.expression import cast
 from bids_validator import BIDSValidator
 
-from ..utils import listify, natural_sort, hashablefy
+from ..utils import listify, natural_sort, hashablefy, get_schema
 from ..external import inflect
 from ..exceptions import (
     BIDSDerivativesValidationError,
@@ -108,12 +109,22 @@ class BIDSLayout:
         validate=False to index derivatives without dataset_description.json. If
         validate=True, the dataset must have a dataset_description.json with
         DatasetType=derivative and GeneratedBy
+    schema_path : {"latest", "stable", "bundled"} or Path or None, optional
+        Source for the BIDS schema used for entity ordering and related logic.
+        ``"latest"`` and ``"stable"`` fetch from the specification website;
+        ``"bundled"`` or None use the schema packaged with bidsschematools.
+        A path or URI to a schema file may also be passed.
+        Default is ``"stable"``.
+    schema_get_fail_silently : bool, optional
+        If True, when loading the schema from the requested source fails
+        (e.g. no network), fall back to the bundled schema instead of raising.
+        Default is True.
     """
 
     def __init__(self, root=None, validate=True, absolute_paths=RemovedOption,
                  derivatives=False, config=None, sources=None,
                  regex_search=False, database_path=None, reset_database=False,
-                 indexer=None, is_derivative=False, **indexer_kwargs):
+                 indexer=None, is_derivative=False, schema_path="stable", schema_get_fail_silently=True, **indexer_kwargs):
 
         if absolute_paths is not RemovedOption:
             msg = (
@@ -130,6 +141,9 @@ class BIDSLayout:
                 f"Pass `indexer=BIDSLayoutIndexer({args})` instead."
             )
             raise TypeError(msg)
+
+        # set and get bids schema
+        get_schema(path=schema_path, fail_silently=schema_get_fail_silently)
 
         # Load from existing database file
         load_db = (database_path is not None and reset_database is False and
@@ -167,6 +181,9 @@ class BIDSLayout:
         self.derivatives = DerivativeDatasets()
         self.sources = sources
         self.regex_search = regex_search
+        self.schema_path = schema_path
+        self.schema_version = get_schema().schema_version
+        self.bids_version = get_schema().bids_version
 
         # Initialize a completely new layout and index the dataset
         if not load_db:

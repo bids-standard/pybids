@@ -17,6 +17,9 @@ _default_settings = {
         name: conf_path.format(name) for name in ['bids', 'derivatives']},
     # XXX 0.16: Remove
     'extension_initial_dot': True,
+    # When True, verify SSL when fetching the BIDS schema from a URL. Set to False
+    # e.g. in pybids_config.json when behind a proxy that uses its own certificate.
+    'schema_verify_ssl': True,
 }
 
 

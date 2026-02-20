@@ -35,6 +35,8 @@ dependencies = [
   "universal_pathlib >=0.2.2",
   "frozendict >=2.3",
   "bidsschematools>=1.0.9",
+  "requests>=2.32.3",
+  "aiohttp>=3.11.18",
 ]
 dynamic = ["version"]
 

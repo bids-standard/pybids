@@ -2,11 +2,93 @@
 
 import re
 import os
-import bidsschematools as bst
 from pathlib import Path
 from frozendict import frozendict as _frozendict
+from sqlalchemy import schema
 from upath import UPath as Path
+from typing import Literal
 
+
+# we'll be reusing this
+bids_schema = None
+
+def get_schema(path: Literal["latest", "stable", "bundled"] | Path | None = "stable", fail_silently=False):
+    """Load the BIDS schema.
+
+    By default loads the schema from the BIDS specification "stable" docs.
+    Use ``"latest"`` or ``"stable"`` to fetch from the specification website,
+    or pass a path (local or URI) to load a specific schema. Schema is cached;
+    check ``get_schema().schema_version`` and/or ``get_schema().bids_version``
+    to confirm the loaded version.
+
+    Parameters
+    ----------
+    path : {"latest", "stable", "bundled"} or Path or None, optional
+        Source for the schema. Use ``"latest"`` or ``"stable"`` to fetch from
+        the specification website, or ``"bundled"`` / None to use the schema
+        packaged with bidsschematools. A path or URI to a schema file or
+        directory may also be passed. Default is ``"stable"``.
+    fail_silently : bool, optional
+        If True, on failure to retrieve the requested schema (e.g. no network),
+        fall back to the schema packaged with bidsschematools instead of
+        raising. Default is False.
+
+    Returns
+    -------
+    dict-like
+        The BIDS schema (e.g. with ``objects``, ``rules``, ``schema_version``,
+        ``bids_version``).
+    """
+    global bids_schema
+    if bids_schema is not None:
+        return bids_schema
+
+    from bidsschematools.schema import load_schema
+    from bidsschematools.types.namespace import Namespace
+    import requests
+
+    _url = "https://bids-specification.readthedocs.io/en/{version}/schema.json"
+
+    # Resolve what to try: URL for "latest"/"stable", path as-is, or None for bundled only
+    if path in ("latest", "stable"):
+        source = _url.format(version=path)
+    elif path is None or path == "bundled":
+        source = None
+    else:
+        source = path  # Path or path-like
+
+    if source is None:
+        bids_schema = load_schema()
+        return bids_schema
+
+    # Fetch URLs with requests. UPath/fsspec uses aiohttp which can give
+    # FileNotFoundError for these URLs; requests with default cert verification works.
+    # SSL verification: config key schema_verify_ssl (pybids_config.json) or env
+    # BIDS_SCHEMA_VERIFY_SSL=0 to disable (e.g. behind a proxy).
+    if isinstance(source, str) and source.startswith("http"):
+        try:
+            if "BIDS_SCHEMA_VERIFY_SSL" in os.environ:
+                verify = os.environ.get("BIDS_SCHEMA_VERIFY_SSL", "1").lower() not in ("0", "false", "no")
+            else:
+                from . import config as _bids_config
+                verify = _bids_config.get_option("schema_verify_ssl")
+            resp = requests.get(source, timeout=30, verify=verify)
+            resp.raise_for_status()
+            bids_schema = Namespace.from_json(resp.text)
+        except Exception as err:
+            if fail_silently:
+                bids_schema = load_schema()
+            else:
+                raise err
+    else:
+        try:
+            bids_schema = load_schema(source)
+        except Exception as err:
+            if fail_silently:
+                bids_schema = load_schema()
+            else:
+                raise err
+    return bids_schema
 
 # Monkeypatch to print out frozendicts *as if* they were dictionaries.
 class frozendict(_frozendict):
@@ -189,10 +271,10 @@ def validate_multiple(val, retval=None):
         return val[0]
     return val
 
-entity_order = list(bst.schema.load_schema().rules.entities)
-entity_order += ['suffix', 'extension', 'datatype']
-
-def bids_sort(unsorted: dict, entity_order=entity_order):
+def bids_sort(unsorted: dict):
+    _schema = get_schema()
+    entity_order = list(_schema.rules.entities) + ['suffix', 'extension', 'datatype']
+    
     sorted_bids = {k: unsorted[k] for k in sorted(unsorted, key=lambda k: entity_order.index(k) if k in entity_order else len(entity_order))}
 
     return sorted_bids
