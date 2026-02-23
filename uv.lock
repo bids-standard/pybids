@@ -292,16 +292,16 @@ wheels = [
 
 [[package]]
 name = "bidsschematools"
-version = "1.2.0"
+version = "1.2.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "acres" },
     { name = "click" },
     { name = "pyyaml" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/82/9c/e65cf502947a27748ad572528f5fab6836bd8e8276029e912c226100f83f/bidsschematools-1.2.0.tar.gz", hash = "sha256:0f5af8d669793483c42298d670fdd73ac39eeb28793fb48dee4adc0cfae58f58", size = 1767945, upload-time = "2026-02-04T21:01:01.971Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/64/ef/d4ef2e808468078ced2571ebb68b7bb1335b0d43a6592b155f52c63c087a/bidsschematools-1.2.1.tar.gz", hash = "sha256:f147943812c01a61913e8306d779393e095a58b9e8fb63b48f2366662b702a80", size = 1768328, upload-time = "2026-02-19T18:24:10.939Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/b8/86/577bac5e163e1a85ec3430e9cea64f7efe52d044c40ff795d994c4a6b363/bidsschematools-1.2.0-py3-none-any.whl", hash = "sha256:34ab6b2a404cd73a0a0b664c506a4b43e94dda12fe2380cc808e976913ac5dcc", size = 194012, upload-time = "2026-02-04T21:00:59.775Z" },
+    { url = "https://files.pythonhosted.org/packages/aa/fe/d1519c7bf665996ce2a0eab9e6d4684b4b995bdd20933c0f096a5539af7a/bidsschematools-1.2.1-py3-none-any.whl", hash = "sha256:50c210360393bdc54cecf3aeec872e3da5074c8541f2f1486ae4709b26e73f47", size = 194082, upload-time = "2026-02-19T18:24:08.841Z" },
 ]
 
 [[package]]
@@ -3370,15 +3370,15 @@ wheels = [
 
 [[package]]
 name = "universal-pathlib"
-version = "0.3.9"
+version = "0.3.10"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "fsspec" },
     { name = "pathlib-abc" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/dc/c6/6cc1b21d7a96b67923b43de91b1f42d9aa1e663b11d7dc32be54aa02441e/universal_pathlib-0.3.9.tar.gz", hash = "sha256:3a2225bc8cb0ca685a032ff885b945fdb0613b46e8c97d32df6afb6327c6c817", size = 260902, upload-time = "2026-01-31T22:35:35.183Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/3d/6e/d997a70ee8f4c61f9a7e2f4f8af721cf072a3326848fc881b05187e52558/universal_pathlib-0.3.10.tar.gz", hash = "sha256:4487cbc90730a48cfb64f811d99e14b6faed6d738420cd5f93f59f48e6930bfb", size = 261110, upload-time = "2026-02-22T14:40:58.87Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/85/23/1e5afa2ea865b2bf0d031a7a1eb4d11e5b3e1a70cffa7001112eb34c7805/universal_pathlib-0.3.9-py3-none-any.whl", hash = "sha256:e4c3bdfd7650f55fb47da0a8a48eae9da6ae7216ea628fe5e1cadcc82d591a0e", size = 83476, upload-time = "2026-01-31T22:35:33.377Z" },
+    { url = "https://files.pythonhosted.org/packages/dd/1a/5d9a402b39ec892d856bbdd9db502ff73ce28cdf4aff72eb1ce1d6843506/universal_pathlib-0.3.10-py3-none-any.whl", hash = "sha256:dfaf2fb35683d2eb1287a3ed7b215e4d6016aa6eaf339c607023d22f90821c66", size = 83528, upload-time = "2026-02-22T14:40:57.316Z" },
 ]
 
 [[package]]
