@@ -187,3 +187,28 @@ def validate_multiple(val, retval=None):
     if len(val) == 1:
         return val[0]
     return val
+
+def bids_sort(unsorted: dict):
+    f"""
+    Sorts filename entity dictionaries according to their order as defined in 
+    schema.rules.entities as well as suffix, extension. Lastly, appends datatype
+    to the end of the sort to accomodate pybids datastructures.
+
+    Parameters
+    ----------
+    unsorted: dict
+        A dictionary containing bids file entities and their values.
+    
+    Returns
+    -------
+    sorted_bids: dict
+
+    """
+    from bidsschematools.schema import load_schema
+    from bidsschematools.types.namespace import Namespace
+    _schema = load_schema()
+    entity_order = list(_schema.rules.entities) + ['suffix', 'extension', 'datatype']
+    
+    sorted_bids = {k: unsorted[k] for k in sorted(unsorted, key=lambda k: entity_order.index(k) if k in entity_order else len(entity_order))}
+
+    return sorted_bids

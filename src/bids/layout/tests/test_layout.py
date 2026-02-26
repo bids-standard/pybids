@@ -15,7 +15,7 @@ from bids.layout import BIDSLayout, Query
 from bids.layout.models import Config
 from bids.layout.index import BIDSLayoutIndexer, _check_path_matches_patterns, _regexfy
 from bids.layout.utils import PaddedInt
-from bids.utils import natural_sort
+from bids.utils import natural_sort, bids_sort
 
 from bids.exceptions import (
     BIDSChildDatasetError,
@@ -1268,3 +1268,34 @@ def test_get_return_type_dir_with_legacy_config_no_template():
         # because task entity has no directory template
         with pytest.raises(ValueError, match='Return type set to directory'):
             layout.get(target='task', return_type='dir')
+
+def test_bids_sort(layout_7t_trt):
+    files = layout_7t_trt.get(task='rest', extension='.nii.gz')
+    assert len(files) > 0
+    from bidsschematools.schema import load_schema
+    import random
+    import copy
+    # we apply bids_sort at the model level, but just to be extra sure
+    # we sort here one more time
+    first_file_ents_sorted = bids_sort(files[0].get_entities())
+    schema_order = list(load_schema().rules.entities) + ['suffix', 'extension', 'datatype']
+
+    # collect keys from file entity then unsort them
+    sorted_keys = list(first_file_ents_sorted.keys())
+    unsorted_keys = copy.copy(sorted_keys)
+    while unsorted_keys == sorted_keys:
+        random.shuffle(unsorted_keys)
+
+    first_file_ents_unsorted = {}
+    for key in unsorted_keys:
+        first_file_ents_unsorted[key] = first_file_ents_sorted[key] 
+    
+    # check order of sorted entities against schema
+    for i, entity in enumerate(sorted_keys):
+        for j in sorted_keys[i + 1:]:
+            if entity in schema_order and j in schema_order:
+                assert schema_order.index(entity) < schema_order.index(j)
+
+    assert list(first_file_ents_unsorted.keys()) != sorted_keys
+    assert list(bids_sort(first_file_ents_unsorted).keys()) == sorted_keys
+    
