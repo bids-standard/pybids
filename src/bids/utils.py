@@ -192,7 +192,7 @@ def bids_sort(unsorted: dict):
     f"""
     Sorts filename entity dictionaries according to their order as defined in 
     schema.rules.entities as well as suffix, extension. Lastly, appends datatype
-    to the end of the sort to accomodate pybids datastructures.
+    to the end of the sort to accommodate pybids datastructures.
 
     Parameters
     ----------
