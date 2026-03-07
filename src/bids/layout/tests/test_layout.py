@@ -1288,8 +1288,8 @@ def test_bids_sort(layout_7t_trt):
 
     first_file_ents_unsorted = {}
     for key in unsorted_keys:
-        first_file_ents_unsorted[key] = first_file_ents_sorted[key] 
-    
+        first_file_ents_unsorted[key] = first_file_ents_sorted[key]
+
     # check order of sorted entities against schema
     for i, entity in enumerate(sorted_keys):
         for j in sorted_keys[i + 1:]:
@@ -1298,4 +1298,3 @@ def test_bids_sort(layout_7t_trt):
 
     assert list(first_file_ents_unsorted.keys()) != sorted_keys
     assert list(bids_sort(first_file_ents_unsorted).keys()) == sorted_keys
-    

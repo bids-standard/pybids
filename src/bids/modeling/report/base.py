@@ -13,7 +13,7 @@ PATH_PATTERNS = [
 
 def _build_node_dict(node, all_entities):
     report_node = {
-        'name': node.name, 
+        'name': node.name,
         'analyses': [],
         'group_by': node.group_by,
         'model': node.model,
@@ -63,7 +63,7 @@ def _build_node_dict(node, all_entities):
             analysis_dict['VIF'] = out.report_['VIF']
             if hasattr(out, 'trans_hist'):
                 analysis_dict['trans_hist'] = out.trans_hist
-            
+
         analysis_dict['contrast_matrix'] = generate_contrast_matrix(out.contrasts, out.X.columns)
         report_node['analyses'].append(analysis_dict)
 
@@ -104,7 +104,7 @@ def _write_report(report_dict, out_dir, template_path=None):
         raise ImportError(
             "Jinja2 must be installed to generate reports. "
             "You can install it with pip install jinja2."
-        )   
+        )
 
     if template_path is None:
         loader = jinja2.PackageLoader('bids', 'modeling/report')
@@ -157,7 +157,7 @@ def generate_report(
 
     # Run entire graph
     graph.run_graph(
-        scan_length=scan_length, entities=entities, transformation_history=True, 
+        scan_length=scan_length, entities=entities, transformation_history=True,
         node_reports=True)
 
     report_dict =  _build_report_dict(graph)

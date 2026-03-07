@@ -666,7 +666,7 @@ def merge_variables(variables, **kwargs):
 
         Possible args:
 
-            sampling_rate (int, str): 
+            sampling_rate (int, str):
                 The sampling rate to use if resampling
                 of DenseRunVariables is necessary for harmonization. If
                 'highest', the highest sampling rate found will be used. This

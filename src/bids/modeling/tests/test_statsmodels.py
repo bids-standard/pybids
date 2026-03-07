@@ -6,8 +6,8 @@ from nibabel.optpkg import optional_package
 graphviz, has_graphviz, _ = optional_package("graphviz")
 
 import pytest
-import numpy as np 
-import json 
+import numpy as np
+import json
 
 from bids.modeling import BIDSStatsModelsGraph
 from bids.modeling.statsmodels import ContrastInfo, expand_wildcards

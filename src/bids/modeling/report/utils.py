@@ -19,7 +19,7 @@ def node_report(node_output):
         from .viz import plot_design_matrix, plot_corr_matrix
     except ImportError:
         warnings.warn(
-            'altair failed to import, and is required for StatsModel report plots.', 
+            'altair failed to import, and is required for StatsModel report plots.',
             ImportWarning)
     else:
         _report['design_matrix_plot'] = plot_design_matrix(
@@ -32,7 +32,7 @@ def node_report(node_output):
 
 def est_vif(desmat):
     '''
-    General variance inflation factor estimation.  Calculates VIF for all 
+    General variance inflation factor estimation.  Calculates VIF for all
     regressors in the design matrix.
 
     Parameters
@@ -61,18 +61,18 @@ def get_eff_reg_vif(desmat, contrast_def):
     This is done by extending the effective regressor definition from Smith et al (2007)
     Meaningful design and contrast estimability (NeuroImage).  Regressors involved
     in the contrast estimate are rotated to span the same space as the original space
-    consisting of the effective regressor and and an orthogonal basis.  The rest of the 
+    consisting of the effective regressor and and an orthogonal basis.  The rest of the
     regressors are unchanged.
 
     Parameters
     ----------
-        desmat (DataFrame): design matrix.  Assumed to be a pandas dataframe with column  
+        desmat (DataFrame): design matrix.  Assumed to be a pandas dataframe with column
              headings which are used define the contrast of interest
         contrast_def (array or Series): a single contrast defined as a vector
 
     Returns
     -------
-        vif (float): a single VIF for the contrast of interest  
+        vif (float): a single VIF for the contrast of interest
     '''
     des_nuisance_regs = desmat[desmat.columns[contrast_def == 0]]
     des_contrast_regs = desmat[desmat.columns[contrast_def != 0]]
@@ -89,7 +89,7 @@ def get_eff_reg_vif(desmat, contrast_def):
     eff_reg = x @ q @ np.transpose(con) @ f1
     eff_reg = pd.DataFrame(eff_reg, columns = [0])
 
-    other_reg = x @ q @ con3_t @ f3 
+    other_reg = x @ q @ con3_t @ f3
     other_reg_names = [f'orth_proj{val}' for val in range(other_reg.shape[1])]
     other_reg = pd.DataFrame(other_reg, columns = other_reg_names)
 
@@ -138,16 +138,16 @@ def get_all_contrast_vif(node_output):
     '''
     vif_contrasts = {'contrast': [],
                       'VIF': []}
-    
+
     con_matrix = generate_contrast_matrix(
         node_output.contrasts, node_output.X.columns)
     for name, weights in con_matrix.iterrows():
         # Transform weights to vector matching X's columns
         vif_out = get_eff_reg_vif(node_output.X, weights)
         vif_contrasts['contrast'].append(name)
-        vif_contrasts['VIF'].append(vif_out) 
+        vif_contrasts['VIF'].append(vif_out)
     vif_contrasts = pd.DataFrame(vif_contrasts)
-    return vif_contrasts     
+    return vif_contrasts
 
 
 def deroot(val, root):
