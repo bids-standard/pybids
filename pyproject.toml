@@ -23,9 +23,9 @@ classifiers = [
   "Topic :: Scientific/Engineering",
 ]
 dependencies = [
-  "numpy >=1.24",  # SPEC 0 + 1yr (3yr)
-  "scipy >=1.10",   # SPEC 0 + 1yr (3yr)
-  "nibabel >=5.0",  # SPEC 0 + 1yr (3yr)
+  "numpy >=1.25",  # SPEC 0 + 1yr (3yr)
+  "scipy >=1.11",   # SPEC 0 + 1yr (3yr)
+  "nibabel >=5.1",  # SPEC 0 + 1yr (3yr)
   "pandas >=2.0",  # SPEC 0 + 1yr (3yr)
   "formulaic >=0.3",
   "sqlalchemy >=1.4.31",
