@@ -110,6 +110,9 @@
       "orcid": "0000-0002-4830-4535"
     },
     {
+      "name": "Stewart, Ashley"
+    },
+    {
       "affiliation": "MRC Cognition and Brain Sciences Unit",
       "name": "Carlin, Johan",
       "orcid": "0000-0003-0933-1239"
@@ -262,6 +265,10 @@
       "orcid": "0000-0001-7568-7167"
     },
     {
+      "name": "Galassi, Anthony",
+      "orcid": "0000-0001-6550-4574"
+    },
+    {
       "affiliation": "Université Libre de Bruxelles - Hôpital Erasme",
       "name": "Rovai, Antonin",
       "orcid": "0000-0001-6781-5341"
@@ -275,6 +282,11 @@
       "affiliation": "INRIA",
       "name": "Thirion, Bertrand",
       "orcid": "0000-0001-5018-7895"
+    },
+    {
+      "affiliation": "Univ Rennes, Inria, CNRS, Inserm",
+      "name": "Clénet, Boris",
+      "orcid": "0009-0006-7727-5100"
     },
     {
       "affiliation": "Stanford University",
