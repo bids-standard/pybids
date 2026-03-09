@@ -1,12 +1,11 @@
 """File-indexing functionality. """
 
-import os
 import json
 import re
-import fsspec
 from collections import defaultdict
 from upath import UPath as Path
 from functools import partial, lru_cache
+import warnings
 
 from bids_validator import BIDSValidator
 
@@ -470,10 +469,12 @@ class BIDSLayoutIndexer:
             # Files with IntendedFor field always get mapped to targets
             intended = listify(file_md.get('IntendedFor', []))
             for target in intended:
-                # Per spec, IntendedFor paths are relative to sub dir.
-                target = self._layout._root.joinpath(
-                    'sub-{}'.format(bf.entities['subject']),
-                    target)
+                # IntendedFor paths should use BIDS URIs
+                # Previously (now deprecated), paths may be relative to participant sub-dir
+                target = _resolve_intent(target, self._layout._root, bf.entities['subject'])
+                if target is None:
+                    warnings.warn(f'Skipping association for {target}', stacklevel=2)
+                    continue
                 all_objs += create_association_pair(bf.path, str(target), 'IntendedFor',
                                         'InformedBy')
 
@@ -524,3 +525,24 @@ class BIDSLayoutIndexer:
         self.session.bulk_insert_mappings(Tag, all_tag_dicts)
         self.session.commit()
 
+
+def _resolve_intent(intent: str, root: Path, subject: str) -> str | None:
+    """
+    Resolve IntendedFor paths as absolute paths.
+
+    Path may be either a BIDS URI (prefix bids:: or bids:<name>:) or
+    a relative path from subject directory.
+
+    Examples
+    --------
+    >>> _resolve_intent('bids::sub-01/anat/sub-01_T1w.nii.gz', Path(), '01')
+    'sub-01/anat/sub-01_T1w.nii.gz'
+    >>> _resolve_intent('anat/sub-01_T1w.nii.gz', Path(), '01')
+    'sub-01/anat/sub-01_T1w.nii.gz'
+    >>> _resolve_intent('bids:named_dataset:sub-01/anat/sub-01_T1w.nii.gz', Path(), '01')
+
+    """
+    if not intent.startswith('bids:'):
+        return str(root / f'sub-{subject}' / intent)
+    if intent.startswith('bids::'):
+        return str(root / intent[6:])

@@ -52,6 +52,11 @@
       "name": "McNamara, Quinten"
     },
     {
+      "affiliation": "University of Texas at Austin",
+      "name": "Kent, James D.",
+      "orcid": "0000-0002-4892-2659"
+    },
+    {
       "affiliation": "University of Oregon",
       "name": "DeStasio, Krista",
       "orcid": "0000-0002-3959-9060"
@@ -80,14 +85,9 @@
       "orcid": "0000-0003-4613-6643"
     },
     {
-      "affiliation": "University of Texas at Austin",
-      "orcid": "0000-0002-4892-2659",
-      "name": "James Kent"
-    },
-    {
-      "affiliation": "Neuroscience Program, University of Iowa",
-      "name": "Kent, James D.",
-      "orcid": "0000-0002-4892-2659"
+      "affiliation": "Department of Psychology, Stanford University",
+      "name": "Goncalves, Mathias",
+      "orcid": "0000-0002-7252-7771"
     },
     {
       "affiliation": "Center for Adaptive Rationality, Max Planck Institute for Human Development, Berlin, Germany",
@@ -98,11 +98,6 @@
       "affiliation": "Western University, London, ON, CA",
       "name": "Van Dyken, Peter",
       "orcid": "0000-0001-7357-5815"
-    },
-    {
-      "affiliation": "Department of Psychology, Stanford University",
-      "name": "Goncalves, Mathias",
-      "orcid": "0000-0002-7252-7771"
     },
     {
       "name": "Bansal, Shashank",
@@ -153,6 +148,11 @@
       "orcid": "0000-0002-6314-9027"
     },
     {
+      "affiliation": "University of Pennsylvania",
+      "name": "Cook, Philip A",
+      "orcid": "0000-0002-1985-8475"
+    },
+    {
       "name": "Ivanov, Alexander"
     },
     {
@@ -183,6 +183,16 @@
       "affiliation": "Child Mind Institute",
       "name": "Erkent, Alp",
       "orcid": "0000-0002-8820-4782"
+    },
+    {
+      "affiliation": "University of Montréal, Montréal, Canada",
+      "name": "Pinsard, Basile",
+      "orcid": "0000-0002-4391-3075"
+    },
+    {
+      "affiliation": "Stanford University",
+      "name": "Mumford, Jeanette",
+      "orcid": "0000-0002-0926-3531"
     },
     {
       "affiliation": "Université de Sherbrooke",
@@ -219,24 +229,9 @@
       "orcid": "0000-0003-0679-1985"
     },
     {
-      "affiliation": "University of Montréal, Montréal, Canada",
-      "name": "Pinsard, Basile",
-      "orcid": "0000-0002-4391-3075"
-    },
-    {
       "affiliation": "Ottawa Hospital Research Institute",
       "name": "Boulay, Chadwick",
       "orcid": "0000-0003-1747-3931"
-    },
-    {
-      "affiliation": "Stanford University",
-      "name": "Mumford, Jeanette",
-      "orcid": "0000-0002-0926-3531"
-    },
-    {
-      "affiliation": "University of Pennsylvania",
-      "name": "Cook, Philip A",
-      "orcid": "0000-0002-1985-8475"
     },
     {
       "affiliation": "CEA, Inria",
@@ -282,14 +277,28 @@
       "orcid": "0000-0001-5018-7895"
     },
     {
+      "affiliation": "Stanford University",
+      "name": "Shain, Cory",
+      "orcid": "0000-0002-2704-7197"
+    },
+    {
       "affiliation": "Rutgers University",
       "name": "Kleinschmidt, Dave F.",
       "orcid": "0000-0002-7442-2762"
     },
     {
+      "name": "Ferdman, Emmanuel",
+      "orcid": "0009-0004-8953-0151"
+    },
+    {
       "affiliation": "Centre for Addiction and Mental Health, University of Toronto, Canada",
       "name": "Dickie, Erin W",
       "orcid": "0000-0003-3028-9864"
+    },
+    {
+      "affiliation": "Institute of Neuroscience and Medicine (INM-7: Brain and Behaviour), Forschungszentrum Jülich",
+      "name": "Raimondo, Fede",
+      "orcid": "0000-0003-4087-8259"
     },
     {
       "affiliation": "Sagol School of Neuroscience, Tel Aviv University",
