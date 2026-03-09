@@ -10,6 +10,7 @@ from pathlib import Path
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 import numpy as np
+import pandas as pd
 
 from bids.layout.models import (BIDSFile, Entity, Tag, Base, Config,
                                 FileAssociation, BIDSImageFile, LayoutInfo)
@@ -210,12 +211,12 @@ def test_bidsdatafile_enforces_dtype(layout_synthetic):
     bf = layout_synthetic.get(suffix='participants', extension='tsv')[0]
     df = bf.get_df(enforce_dtypes=False)
     assert df.shape[0] == 5
-    assert df.loc[:, 'subject_id'].dtype == int
-    assert df.loc[:, 'subject_id'][0] == 1
+    assert pd.api.types.is_integer_dtype(df['subject_id'])
+    assert df.loc[0, 'subject_id'] == 1
     df = bf.get_df(enforce_dtypes=True)
-    assert df.loc[:, 'subject_id'].dtype == 'O'
-    assert df.loc[:, 'subject_id'][0] == '001'
-    assert df.loc[:, 'subject_id'][1] == '2'
+    assert pd.api.types.is_string_dtype(df['subject_id'])
+    assert df.loc[0, 'subject_id'] == '001'
+    assert df.loc[1, 'subject_id'] == '2'
 
 
 def test_bidsimagefile_get_image():

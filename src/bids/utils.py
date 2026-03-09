@@ -5,6 +5,7 @@ import os
 from pathlib import Path
 from frozendict import frozendict as _frozendict
 from upath import UPath as Path
+from functools import cache
 
 
 # Monkeypatch to print out frozendicts *as if* they were dictionaries.
@@ -187,3 +188,37 @@ def validate_multiple(val, retval=None):
     if len(val) == 1:
         return val[0]
     return val
+
+@cache
+def entity_indices(schema_spec=None):
+    from bidsschematools.schema import load_schema
+    from collections import defaultdict
+
+    entities = load_schema(schema_spec).rules.entities + ['suffix', 'extension', 'datatype']
+    
+    return defaultdict(lambda e=entities: len(e),
+        {elem: idx for idx, elem in enumerate(entities)}
+    )
+
+def bids_sort(unsorted: dict, schema_spec=None):
+    f"""
+    Sorts filename entity dictionaries according to their order as defined in 
+    schema.rules.entities as well as suffix, extension. Lastly, appends datatype
+    to the end of the sort to accommodate pybids datastructures.
+
+    Parameters
+    ----------
+    unsorted: dict
+        A dictionary containing bids file entities and their values.
+    schema_spec: str
+        Path or version of schema to use, defaults to the version bundled
+        with bidsschematools.
+    
+    Returns
+    -------
+    sorted_bids: dict
+
+    """
+    indices = entity_indices(schema_spec)
+
+    return {k: unsorted[k] for k in sorted(unsorted, key=indices.__getitem__)}

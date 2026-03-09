@@ -15,7 +15,7 @@ from bids.layout import BIDSLayout, Query
 from bids.layout.models import Config
 from bids.layout.index import BIDSLayoutIndexer, _check_path_matches_patterns, _regexfy
 from bids.layout.utils import PaddedInt
-from bids.utils import natural_sort
+from bids.utils import natural_sort, bids_sort
 
 from bids.exceptions import (
     BIDSChildDatasetError,
@@ -1191,3 +1191,111 @@ def test_empty_directory(temporary_dataset):
     layout = BIDSLayout(temporary_dataset)
 
     assert layout.get(subject='01', datatype='anat') == []
+
+
+@pytest.mark.parametrize("intent", [
+    "bids::sub-01/func/sub-01_task-mixedgamblestask_run-01_bold.nii.gz",
+    "bids:mydataset:sub-01/func/sub-01_task-mixedgamblestask_run-01_bold.nii.gz",
+    "func/sub-01_task-mixedgamblestask_run-01_bold.nii.gz",
+    [
+        "bids::sub-01/func/sub-01_task-mixedgamblestask_run-01_bold.nii.gz",
+        "bids::sub-01/func/sub-01_task-mixedgamblestask_run-02_bold.nii.gz",
+    ],
+])
+def test_intended_for(temporary_dataset, intent):
+    fmap_dir = temporary_dataset / 'sub-01' / 'fmap'
+    fmap_dir.mkdir()
+
+    # Create a fieldmap + populate IntendedFor
+    fmap = fmap_dir / 'sub-01_fieldmap.nii.gz'
+    fmap.touch()
+    fmap_metadata = fmap.parent / fmap.name.replace('.nii.gz', '.json')
+    fmap_metadata.write_text(json.dumps({'IntendedFor': intent}))
+
+    layout = BIDSLayout(temporary_dataset)
+    assert layout.get_IntendedFor(subject='01')
+
+
+def test_get_return_type_dir_with_schema_datatype(layout_7t_trt):
+    """Test return_type='dir' with schema config for datatype entity (covers line 463)."""
+    # Create a schema-based layout
+    layout = BIDSLayout(layout_7t_trt.root, config='bids-schema', derivatives=False)
+
+    # Query for datatype directories - this should trigger the code path
+    # that handles non-subject/non-session entities (line 463)
+    dirs = layout.get(target='datatype', return_type='dir')
+
+    # Should return actual datatype directories
+    assert len(dirs) > 0
+    # Check that these are actual directories in the dataset
+    for d in dirs:
+        assert os.path.exists(d)
+
+
+def test_get_return_type_dir_with_legacy_config_no_template():
+    """Test return_type='dir' with legacy config missing directory template (covers line 842)."""
+    # Create a minimal config without directory templates
+    config_dict = {
+        'name': 'test_config',
+        'entities': [
+            {
+                'name': 'subject',
+                'pattern': '[/\\\\]sub-([a-zA-Z0-9]+)',
+                'directory': '/sub-{subject}/'  # This has a template
+            },
+            {
+                'name': 'task',
+                'pattern': '_task-([a-zA-Z0-9]+)',
+                # No directory template - this should trigger the error
+            }
+        ]
+    }
+
+    # Create temporary test dataset
+    import tempfile
+    with tempfile.TemporaryDirectory() as tmpdir:
+        # Create minimal BIDS structure
+        Path(tmpdir).joinpath('dataset_description.json').write_text('{"Name": "test", "BIDSVersion": "1.6.0"}')
+        sub_dir = Path(tmpdir) / 'sub-01'
+        sub_dir.mkdir()
+        test_file = sub_dir / 'sub-01_task-rest_bold.nii.gz'
+        test_file.touch()
+
+        # Load with our custom config
+        layout = BIDSLayout(tmpdir, config=config_dict, validate=False)
+
+        # This should raise ValueError when trying to get directories for 'task'
+        # because task entity has no directory template
+        with pytest.raises(ValueError, match='Return type set to directory'):
+            layout.get(target='task', return_type='dir')
+
+def test_bids_sort(layout_7t_trt):
+    files = layout_7t_trt.get(task='rest', extension='.nii.gz')
+    assert len(files) > 0
+    from bidsschematools.schema import load_schema
+    import random
+    import copy
+    # we apply bids_sort at the model level, but just to be extra sure
+    # we sort here one more time
+    first_file_ents_sorted = bids_sort(files[0].get_entities())
+    schema_order = list(load_schema().rules.entities) + ['suffix', 'extension', 'datatype']
+
+    # collect keys from file entity then unsort them
+    sorted_keys = list(first_file_ents_sorted.keys())
+    unsorted_keys = copy.copy(sorted_keys)
+    while unsorted_keys == sorted_keys:
+        random.shuffle(unsorted_keys)
+
+    first_file_ents_unsorted = {}
+    for key in unsorted_keys:
+        first_file_ents_unsorted[key] = first_file_ents_sorted[key] 
+    
+    # check order of sorted entities against schema
+    for i, entity in enumerate(sorted_keys):
+        for j in sorted_keys[i + 1:]:
+            if entity in schema_order and j in schema_order:  #pragma: no branch
+                assert schema_order.index(entity) < schema_order.index(j)
+
+    assert list(first_file_ents_unsorted.keys()) != sorted_keys
+    assert list(bids_sort(first_file_ents_unsorted).keys()) == sorted_keys
+    
