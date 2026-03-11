@@ -291,13 +291,13 @@ def collect_schema(
         if not version:
             raise ValueError(f"Unable to determine version from bids_version={bids_version}")
 
-        # Validate numeric version against available releases (>= 1.9.0); fail gracefully on timeout
+        # Validate numeric version against available releases (>= 1.8.0); fail gracefully on timeout
         if version not in ("latest", "stable"):
             allowed = _allowed_bids_versions()
             if allowed is not None and version.lstrip("v") not in allowed:
                 raise ValueError(
                     f"bids_version {bids_version!r} (resolved to {version!r}) is not an available "
-                    f"BIDS release >= 1.9.0. Available: {', '.join(sorted(allowed))}"
+                    f"BIDS release >= 1.8.0. Available: {', '.join(sorted(allowed))}"
                 )
 
         uri = f"https://bids-specification.readthedocs.io/en/{version}/schema.json"
