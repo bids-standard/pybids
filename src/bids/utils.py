@@ -239,7 +239,7 @@ def bids_sort(unsorted: dict, schema_spec=None):
     return {k: unsorted[k] for k in sorted(unsorted, key=indices.__getitem__)}
 
 
-def _allowed_bids_versions(timeout=5, min_version="1.9.0"):
+def _allowed_bids_versions(timeout=5, min_version="1.8.0"):
     """Fetch BIDS specification releases from GitHub, strip leading 'v', filter to >= min_version.
     Returns a set of version strings (e.g. {'1.9.0', '1.10.0', ...}) or None on timeout/error.
     """
@@ -269,7 +269,9 @@ def _allowed_bids_versions(timeout=5, min_version="1.9.0"):
 
 
 def collect_schema(
-    uri: str = None, bids_version: str = None, schema_version: str = None
+    uri: str = None,
+    bids_version: str = None,
+    schema_version: str = None,
 ):
     if uri is not None and bids_version is not None:
         raise ValueError(

@@ -18,6 +18,7 @@ from sqlalchemy.orm import reconstructor, relationship, backref, object_session
 
 from bidsschematools import schema as bst_schema
 from bidsschematools import rules
+from ..utils import collect_schema
 import re
 
 try:
@@ -30,6 +31,7 @@ from .writing import build_path, write_to_file
 from ..config import get_option
 from .utils import BIDSMetadata, PaddedInt
 from ..exceptions import BIDSChildDatasetError
+from ..utils import get_schema as pybids_get_schema
 
 Base = declarative_base()
 
@@ -165,8 +167,12 @@ class Config(Base):
             * A path to a JSON file containing config information
             * A dictionary containing config information
             * 'bids-schema' to load from the official BIDS schema
-            * dict with 'schema_version' key to load specific BIDS version
-                (e.g., {'schema_version': '1.9.0'})
+            * dict with 'use_schema': True and optional 'bids_version'
+                (e.g., {'use_schema': True, 'bids_version': '1.9.0'})
+            * dict with 'use_schema': True and 'schema_path' to load a local
+                schema directory or JSON file
+            * dict with 'schema_version' key (deprecated; alias for
+                {'use_schema': True, 'bids_version': 'x.y.z'})
         session : :obj:`sqlalchemy.orm.session.Session` or None
             An optional SQLAlchemy Session instance.
             If passed, the session is used to check the database for (and
@@ -177,13 +183,48 @@ class Config(Base):
         A Config instance.
         """
 
-        # Handle schema-based config loading
+        # Normalize schema-related options from config
+        use_schema = False
+        bids_version = None
+        schema_path = None
+
+        # String shortcut: use default schema packaged with bidsschematools
+        # this can vary as bidsschematools is packaged within bid-standard/bids-specification
+        # we haven't come up with a good way to sync/coordinate the versions of bidsschematools,
+        # the spec, and the schema together. However, schema and bids version are tied together
+        # with each bids release.
         if config == 'bids-schema':
-            return cls._from_schema(session=session)
-        elif isinstance(config, dict) and 'schema_version' in config:
+            use_schema = True
+
+        elif isinstance(config, dict):
+            cfg = dict(config)  # shallow copy; avoid mutating caller input
+
+            # Backwards-compatible alias: schema_version -> use_schema + bids_version
+            if 'schema_version' in cfg and 'use_schema' not in cfg:
+                cfg['use_schema'] = True
+                cfg['bids_version'] = cfg['schema_version']
+                warnings.warn(
+                    "Config key 'schema_version' will be deprecated; use "
+                    "{'use_schema': True, 'bids_version': 'X.Y.Z'} instead.",
+                    FutureWarning,
+                    stacklevel=2,
+                )
+
+            # If a schema_path is provided, we must use the schema-based path
+            if 'schema_path' in cfg and 'use_schema' not in cfg:
+                cfg['use_schema'] = True
+
+            use_schema = bool(cfg.get('use_schema', False))
+            bids_version = cfg.get('bids_version')
+            schema_path = cfg.get('schema_path')
+            config = cfg
+
+        # If schema-based loading is requested, delegate to _from_schema
+        if use_schema:
             return cls._from_schema(
-                schema_version=config['schema_version'],
-                session=session
+                bids_version=bids_version,
+                schema_path=schema_path,
+                session=session,
             )
 
         # Existing JSON/file-based loading
@@ -206,14 +247,17 @@ class Config(Base):
         return Config(session=session, **config)
 
     @classmethod
-    def _from_schema(cls, schema_version=None, session=None):
+    def _from_schema(cls, bids_version=None, schema_path=None, session=None):
         """Load config from BIDS schema.
         
         Parameters
         ----------
-        schema_version : str, optional
-            Specific BIDS specification version to load (e.g., "1.9.0", "1.8.0").
+        bids_version : str, optional
+            BIDS specification version to load (e.g., "latest", "1.9.0", "1.8.0").
             If None, uses the schema version bundled with bidsschematools.
+        schema_path : str or Path, optional
+            Local schema directory or JSON file to load. When provided, this
+            is passed directly to the schema loader and bids_version is ignored.
         session : :obj:`sqlalchemy.orm.session.Session` or None
             An optional SQLAlchemy Session instance.
             
@@ -223,23 +267,13 @@ class Config(Base):
             A Config instance populated with entities and patterns
             extracted from the BIDS schema.
         """
-        from bidsschematools import rules, schema as bidsschema
-        from upath import UPath
-        
-        # Load schema - either default or specific version
-        if schema_version is None:
-            bids_schema = bidsschema.load_schema()
+
+        # If schema_path is provided, treat it as a URI/path-like object and let
+        # collect_schema/load_schema (via UPath/Path) handle local vs remote.
+        if schema_path is not None:
+            bids_schema = collect_schema(uri=UPath(schema_path))
         else:
-            # Load specific schema version from versioned URL
-            schema_url = UPath(f"https://bids-specification.readthedocs.io/en/v{schema_version}/schema.json")
-            try:
-                bids_schema = bidsschema.load_schema(schema_url)
-            except Exception as e:
-                raise ValueError(
-                    f"Failed to load BIDS schema version {schema_version}. "
-                    f"Check that the version exists at {schema_url}. "
-                    f"Error: {e}"
-                )
+            bids_schema = collect_schema(bids_version=bids_version)
         
         # Collect ALL patterns from bidsschematools (keep existing collection logic)
         all_patterns = []
