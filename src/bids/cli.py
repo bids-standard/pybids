@@ -251,15 +251,15 @@ def upgrade_filenames(root, description):
 @click.argument('derivatives', type=click.Path(file_okay=False, exists=True), nargs=-1)
 @click.argument('output_dir', type=click.Path(file_okay=False, exists=False))
 @click.option('--scan_length', type=click.FLOAT)
-@click.option('--sub_label', '-s', multiple=True, 
+@click.option('--sub_label', '-s', multiple=True,
     help='The label(s) of the subjects(s) to create report for')
-@click.option('--ses_label', '-ss', multiple=True, 
+@click.option('--ses_label', '-ss', multiple=True,
     help='The label(s) of the session(s) to create report for')
 @click.option('--task_label', '-t', multiple=True,
     help='The label(s) of the task(s) to create report for')
 @click.option('--run_label', '-r', multiple=True,
     help='The label(s) of the run(s) to create report for')
-def model_report(model, root, derivatives, output_dir, scan_length, 
+def model_report(model, root, derivatives, output_dir, scan_length,
     sub_label, ses_label, task_label, run_label):
     """
     Generate a report of a BIDS StatsModel.

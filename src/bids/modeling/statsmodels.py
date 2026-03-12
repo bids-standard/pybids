@@ -240,7 +240,7 @@ class BIDSStatsModelsGraph:
                 filename=dotfilename,
                 node_attr={'shape': 'record'},
                 comment=self.model['name'],
-                format=format, 
+                format=format,
             )
 
         for node, nobj in self.nodes.items():
@@ -269,7 +269,7 @@ class BIDSStatsModelsGraph:
         """
         if entities is None:
             entities = {}
-        
+
         _run_node_recursive(self.root_node, filters=entities, **kwargs)
 
 def _run_node_recursive(node, inputs=None, filters=None, **kwargs):
@@ -280,7 +280,7 @@ def _run_node_recursive(node, inputs=None, filters=None, **kwargs):
     """
     if filters == None:
         filters = {}
-        
+
     # Run node
     run_kwargs = {**filters, **kwargs}
     node.outputs_ =  node.run(inputs, group_by=node.group_by, **run_kwargs)

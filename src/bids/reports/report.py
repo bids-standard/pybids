@@ -18,15 +18,15 @@ class BIDSReport:
         (str), a dictionary, or None. If None, loads and uses default
         configuration information.
         Keys in the dictionary include:
-        
-            'dir': 
+
+            'dir':
                 a dictionary for converting encoding direction strings
                 (e.g., j-) to descriptions (e.g., anterior to
                 posterior)
-            'seq': 
+            'seq':
                 a dictionary of sequence abbreviations (e.g., EP) and
                 corresponding names (e.g., echo planar)
-            'seqvar': 
+            'seqvar':
                 a dictionary of sequence variant abbreviations
                 (e.g., SP) and corresponding names (e.g., spoiled)
 

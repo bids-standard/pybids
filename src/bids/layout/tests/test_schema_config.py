@@ -7,28 +7,28 @@ from bids.layout.models import Config
 
 class TestSchemaConfig:
     """Test schema-based configuration loading."""
-    
+
     def test_load_bids_schema_basic(self):
         """Test loading config from BIDS schema."""
         config = Config.load('bids-schema')
-        
+
         # Basic checks
         assert config.name.startswith('bids-schema-')
         assert len(config.entities) > 0
-        
+
         # Check that standard entities are present (using full names per PyBIDS convention)
         entity_names = {e.name for e in config.entities.values()}
         expected_entities = {'subject', 'session', 'task', 'run'}
         assert expected_entities.issubset(entity_names)
-        
+
         # Check that PyBIDS-specific entities are present
         pybids_entities = {'extension', 'suffix', 'datatype'}
         assert pybids_entities.issubset(entity_names)
-    
+
     def test_schema_entity_patterns(self):
         """Test that entity patterns are correctly generated."""
         config = Config.load('bids-schema')
-        
+
         # Test subject entity (directory-based)
         if 'subject' in config.entities:
             subject_entity = config.entities['subject']
@@ -37,7 +37,7 @@ class TestSchemaConfig:
             match = subject_entity.regex.search('/sub-01/')
             assert match is not None
             assert match.group(1) == '01'
-        
+
         # Test task entity (file-based)
         if 'task' in config.entities:
             task_entity = config.entities['task']
@@ -46,17 +46,17 @@ class TestSchemaConfig:
             match = task_entity.regex.search('_task-rest_')
             assert match is not None
             assert match.group(1) == 'rest'
-    
+
     def test_schema_version_tracking(self):
         """Test that schema version is tracked in config name."""
         config = Config.load('bids-schema')
-        
+
         # Config name should include version
         assert 'bids-schema-' in config.name
         # Should have some version number after the dash
         version_part = config.name.split('bids-schema-')[1]
         assert len(version_part) > 0
-    
+
     def test_schema_version_parameter(self):
         """Test loading specific schema version."""
         # Test loading BIDS v1.9.0 schema
@@ -73,8 +73,8 @@ class TestSchemaConfig:
         with pytest.raises(ValueError, match="Failed to load BIDS schema version"):
             Config.load({'schema_version': '99.99.99'})
 
-    
-    
+
+
     def test_entity_generation(self):
         """Test entity pattern generation using real schema."""
         config = Config.load('bids-schema')

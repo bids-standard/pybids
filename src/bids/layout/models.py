@@ -208,7 +208,7 @@ class Config(Base):
     @classmethod
     def _from_schema(cls, schema_version=None, session=None):
         """Load config from BIDS schema.
-        
+
         Parameters
         ----------
         schema_version : str, optional
@@ -216,7 +216,7 @@ class Config(Base):
             If None, uses the schema version bundled with bidsschematools.
         session : :obj:`sqlalchemy.orm.session.Session` or None
             An optional SQLAlchemy Session instance.
-            
+
         Returns
         -------
         Config
@@ -225,7 +225,7 @@ class Config(Base):
         """
         from bidsschematools import rules, schema as bidsschema
         from upath import UPath
-        
+
         # Load schema - either default or specific version
         if schema_version is None:
             bids_schema = bidsschema.load_schema()
@@ -240,15 +240,15 @@ class Config(Base):
                     f"Check that the version exists at {schema_url}. "
                     f"Error: {e}"
                 )
-        
+
         # Collect ALL patterns from bidsschematools (keep existing collection logic)
         all_patterns = []
         file_sections = {
             'raw': bids_schema.rules.files.raw,
-            'deriv': bids_schema.rules.files.deriv,  
+            'deriv': bids_schema.rules.files.deriv,
             'common': bids_schema.rules.files.common
         }
-        
+
         for section_type, sections in file_sections.items():
             if section_type == 'raw':
                 for datatype_name in sections.keys():
@@ -260,35 +260,35 @@ class Config(Base):
                     subsection_rules = getattr(sections, subsection_name)
                     regex_rules = rules.regexify_filename_rules(subsection_rules, bids_schema, level=1)
                     all_patterns.extend(regex_rules)
-        
+
         # Store patterns directly - NO PARSING EVER
         config_name = f'bids-schema-{bids_schema.bids_version}'
-        
+
         # Extract entities directly from schema rules
         entity_names = cls._extract_entity_names_from_rules(bids_schema)
-        
+
         # Extract actual values for key entities from schema rules directly
         entity_values = cls._extract_entity_values_from_rules(bids_schema, entity_names)
-        
+
         # Create Entity objects
         entities = cls._create_entities_from_schema(entity_names, entity_values, bids_schema)
-        
+
         config = cls(name=config_name, entities=entities, session=session)
-        
+
         return config
-    
+
     @classmethod
     def _extract_entity_names_from_rules(cls, bids_schema):
         """Extract entity names directly from schema rules"""
-        
+
         # Get entity names from all rule sections
         entity_names = set()
         file_sections = {
             'raw': bids_schema.rules.files.raw,
-            'deriv': bids_schema.rules.files.deriv,  
+            'deriv': bids_schema.rules.files.deriv,
             'common': bids_schema.rules.files.common
         }
-        
+
         for section_type, sections in file_sections.items():
             for section_name in sections.keys():
                 section_rules = getattr(sections, section_name)
@@ -297,53 +297,53 @@ class Config(Base):
                     rule_dict = dict(rule)
                     if 'entities' in rule_dict:
                         entity_names.update(rule_dict['entities'].keys())
-        
+
         # Add special constructs that appear in patterns but aren't "entities"
         entity_names.update(['suffix', 'extension', 'datatype'])
-        
+
         return entity_names
-    
+
     @classmethod
     def _create_entities_from_schema(cls, entity_names, entity_values, bids_schema):
         """Create Entity objects directly from schema information."""
         entities = []
-        
+
         for entity_name in sorted(entity_names):
             # Get entity info from schema if available
             entity_spec = bids_schema.objects.entities.get(entity_name, {})
-            
+
             # Handle special entities that don't have BIDS prefixes
             special_entities = {'suffix', 'extension', 'datatype'}
-            
+
             if entity_name in special_entities:
                 # These entities use explicit value lists from schema rules
                 if entity_name in entity_values and entity_values[entity_name]:
                     # Filter out problematic values for extension entity
                     if entity_name == 'extension':
                         # Remove empty string and wildcard patterns
-                        filtered_values = {v for v in entity_values[entity_name] 
+                        filtered_values = {v for v in entity_values[entity_name]
                                          if v and v not in ('.*', '**', '*')}
                         values = '|'.join(sorted(filtered_values))
                     else:
                         values = '|'.join(sorted(entity_values[entity_name]))
-                    
+
                     if entity_name == 'extension':
                         pattern = fr'({values})\Z'  # Extensions are at the end
                     elif entity_name == 'datatype':
-                        pattern = fr'/({values})/'  # Datatypes are directory names  
+                        pattern = fr'/({values})/'  # Datatypes are directory names
                     else:  # suffix
                         pattern = fr'[_/\\\\]({values})\.?'  # Before extension, with optional dot
             else:
                 # Regular BIDS entities - use schema format patterns directly
                 bids_prefix = entity_spec.get('name', entity_name)
                 format_type = entity_spec.get('format', 'label')
-                
+
                 # Get the official value pattern from schema formats
                 value_pattern = '[0-9a-zA-Z]+'  # Default pattern
                 if format_type in bids_schema.objects.formats:
                     format_obj = dict(bids_schema.objects.formats[format_type])
                     value_pattern = format_obj.get('pattern', value_pattern)
-                
+
                 # Determine separator based on entity type
                 if entity_name in ['subject', 'session']:
                     # Directory-level entities
@@ -351,35 +351,35 @@ class Config(Base):
                 else:
                     # File-level entities
                     pattern = fr'[_/\\\\]+{bids_prefix}-({value_pattern})'
-            
+
             entity_config = {
                 'name': entity_name,
                 'pattern': pattern,
                 'dtype': 'int' if entity_spec.get('format') == 'index' else 'str'
             }
-            
+
             entities.append(entity_config)
-        
+
         return entities
-    
+
     @classmethod
     def _extract_entity_values_from_rules(cls, bids_schema, entity_names):
         """Extract entity values directly from schema rules"""
-        
+
         entity_values = {name: set() for name in entity_names}
         file_sections = {
             'raw': bids_schema.rules.files.raw,
-            'deriv': bids_schema.rules.files.deriv,  
+            'deriv': bids_schema.rules.files.deriv,
             'common': bids_schema.rules.files.common
         }
-        
+
         for section_type, sections in file_sections.items():
             for section_name in sections.keys():
                 section_rules = getattr(sections, section_name)
                 for rule_name in section_rules.keys():
                     rule = getattr(section_rules, rule_name)
                     rule_dict = dict(rule)
-                    
+
                     # Get values for special entities directly from rules
                     if 'suffixes' in rule_dict:
                         entity_values['suffix'].update(rule_dict['suffixes'])
@@ -387,10 +387,10 @@ class Config(Base):
                         entity_values['extension'].update(rule_dict['extensions'])
                     if 'datatypes' in rule_dict:
                         entity_values['datatype'].update(rule_dict['datatypes'])
-                    
+
                     # For regular entities, we don't extract specific values
-                    # They use generic patterns like [0-9a-zA-Z]+ 
-        
+                    # They use generic patterns like [0-9a-zA-Z]+
+
         return entity_values
 
 

@@ -1,6 +1,39 @@
 Changelog
 =========
 
+Version 0.22.0 (March 11, 2026)
+-------------------------------
+
+New feature release in the 0.22.x series.
+
+This release introduces schema-based layout configurations::
+
+    from bids.layout import BIDSLayout
+
+    layout = BIDSLayout('/path/to/dataset', config='bids-schema')
+
+This will use the version of the schema included in
+the installed version of bidsschematools_.
+The schema configuration will be the way to incorporate updates from
+new versions of BIDS (v1.11+), and will eventually be made the default
+configuration.
+Please try it out and report any issues you encounter
+to help us make the transition as smooth as possible.
+We are particularly interested in reports from
+users who supply custom configurations.
+
+The following dependencies have been updated to new minimum versions:
+
+* NumPy 1.25
+* SciPy 1.11
+* NiBabel 5.1
+
+* ENH: Sort BIDS file name entities (#1220)
+* ENH: Use BIDS schema to "drive" pybids #818 (#1163)
+* DOC: Fix documentation deployment (#1224)
+* MNT: Add Python 3.14 tests (#1175)
+* MNT: Skip pre-release checks on unlabeled PRs (#1188)
+
 Version 0.21.0 (October 16, 2025)
 ---------------------------------
 

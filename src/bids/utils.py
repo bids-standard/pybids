@@ -195,14 +195,14 @@ def entity_indices(schema_spec=None):
     from collections import defaultdict
 
     entities = load_schema(schema_spec).rules.entities + ['suffix', 'extension', 'datatype']
-    
+
     return defaultdict(lambda e=entities: len(e),
         {elem: idx for idx, elem in enumerate(entities)}
     )
 
 def bids_sort(unsorted: dict, schema_spec=None):
     f"""
-    Sorts filename entity dictionaries according to their order as defined in 
+    Sorts filename entity dictionaries according to their order as defined in
     schema.rules.entities as well as suffix, extension. Lastly, appends datatype
     to the end of the sort to accommodate pybids datastructures.
 
@@ -213,7 +213,7 @@ def bids_sort(unsorted: dict, schema_spec=None):
     schema_spec: str
         Path or version of schema to use, defaults to the version bundled
         with bidsschematools.
-    
+
     Returns
     -------
     sorted_bids: dict

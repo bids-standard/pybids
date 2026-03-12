@@ -419,13 +419,13 @@ class BIDSLayout:
         """Find directories using schema directory rules."""
         from bidsschematools import schema as bst_schema
         import os
-        
+
         # Load schema directory rules
         bids_schema = bst_schema.load_schema()
-        
+
         directory_rules = bids_schema.rules.directories.raw
         directories = set()
-        
+
         # Build directory paths using schema rules for each file
         for f in results:
             if entity_name in f.entities:
@@ -435,14 +435,14 @@ class BIDSLayout:
                     # Convert to full directory path
                     directory_path = os.path.join(self.root, *path_components)
                     directories.add(directory_path)
-        
+
         return list(directories)
-    
+
     def _build_path_from_schema_rules(self, entities, directory_rules):
         """Build directory path components from schema rules and entity values."""
         path_components = []
         current_level = 'root'
-        
+
         # Traverse schema directory hierarchy
         while current_level:
             rule = directory_rules.get(current_level)
@@ -466,15 +466,15 @@ class BIDSLayout:
             elif current_level == 'datatype' and 'datatype' in entities:
                 # Special case: datatype rule has no entity field but we use the datatype value
                 path_components.append(entities['datatype'])
-            
+
             # Determine next level based on subdirs and available entities
             subdirs = rule_dict.get('subdirs', [])
             next_level = None
-            
+
             # First pass: look for entity-based subdirs across all options
             entity_candidates = []
             rule_candidates = []
-            
+
             for subdir in subdirs:
                 if isinstance(subdir, dict) and 'oneOf' in subdir:
                     for option in subdir['oneOf']:
@@ -487,15 +487,15 @@ class BIDSLayout:
                         entity_candidates.append(subdir)
                     elif subdir in directory_rules:
                         rule_candidates.append(subdir)
-            
+
             # Prefer entity candidates, fallback to rule candidates
             if entity_candidates:
                 next_level = entity_candidates[0]  # Take first entity match
             elif rule_candidates:
                 next_level = rule_candidates[0]  # Take first rule match
-            
+
             current_level = next_level
-        
+
         return path_components
 
     def get_files(self, scope='all'):
@@ -832,7 +832,7 @@ class BIDSLayout:
             elif return_type == 'dir':
                 # Check if we're using schema-based config or legacy config
                 using_schema = any('bids-schema' in str(c) for c in listify(self.config))
-                
+
                 if using_schema:
                     # Use schema directory rules for schema-based configs
                     directories = self._find_directories_for_entity_using_schema(target, results)

@@ -1,1 +1,1 @@
-bids/_version.py export-subst
+src/bids/_version.py export-subst
