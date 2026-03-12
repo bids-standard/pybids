@@ -1,0 +1,27 @@
+﻿bids.modeling.statsmodels.BIDSStatsModelsNode
+=============================================
+
+.. currentmodule:: bids.modeling.statsmodels
+
+.. autoclass:: BIDSStatsModelsNode
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~BIDSStatsModelsNode.__init__
+      ~BIDSStatsModelsNode.add_child
+      ~BIDSStatsModelsNode.add_collections
+      ~BIDSStatsModelsNode.add_parent
+      ~BIDSStatsModelsNode.get_collections
+      ~BIDSStatsModelsNode.run
+   
+   
+
+   
+   
+   

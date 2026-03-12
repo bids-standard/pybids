@@ -1,0 +1,32 @@
+﻿bids.modeling.statsmodels.BIDSStatsModelsGraph
+==============================================
+
+.. currentmodule:: bids.modeling.statsmodels
+
+.. autoclass:: BIDSStatsModelsGraph
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~BIDSStatsModelsGraph.__init__
+      ~BIDSStatsModelsGraph.get_node
+      ~BIDSStatsModelsGraph.load_collections
+      ~BIDSStatsModelsGraph.run_graph
+      ~BIDSStatsModelsGraph.write_graph
+   
+   
+
+   
+   
+   .. rubric:: Attributes
+
+   .. autosummary::
+   
+      ~BIDSStatsModelsGraph.root_node
+   
+   

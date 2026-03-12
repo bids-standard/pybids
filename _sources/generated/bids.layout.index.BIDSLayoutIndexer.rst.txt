@@ -1,0 +1,28 @@
+﻿bids.layout.index.BIDSLayoutIndexer
+===================================
+
+.. currentmodule:: bids.layout.index
+
+.. autoclass:: BIDSLayoutIndexer
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~BIDSLayoutIndexer.__init__
+   
+   
+
+   
+   
+   .. rubric:: Attributes
+
+   .. autosummary::
+   
+      ~BIDSLayoutIndexer.session
+   
+   

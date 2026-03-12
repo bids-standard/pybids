@@ -1,0 +1,59 @@
+Traceback (most recent call last):
+  File "/home/runner/work/pybids/pybids/.tox/docs/lib/python3.12/site-packages/jupyter_cache/executors/utils.py", line 58, in single_nb_execution
+    executenb(
+  File "/home/runner/work/pybids/pybids/.tox/docs/lib/python3.12/site-packages/nbclient/client.py", line 1323, in execute
+    return NotebookClient(nb=nb, resources=resources, km=km, **kwargs).execute()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/work/pybids/pybids/.tox/docs/lib/python3.12/site-packages/jupyter_core/utils/__init__.py", line 165, in wrapped
+    return loop.run_until_complete(inner)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/asyncio/base_events.py", line 687, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "/home/runner/work/pybids/pybids/.tox/docs/lib/python3.12/site-packages/nbclient/client.py", line 709, in async_execute
+    await self.async_execute_cell(
+  File "/home/runner/work/pybids/pybids/.tox/docs/lib/python3.12/site-packages/nbclient/client.py", line 1062, in async_execute_cell
+    await self._check_raise_for_error(cell, cell_index, exec_reply)
+  File "/home/runner/work/pybids/pybids/.tox/docs/lib/python3.12/site-packages/nbclient/client.py", line 918, in _check_raise_for_error
+    raise CellExecutionError.from_cell_and_msg(cell, exec_reply_content)
+nbclient.exceptions.CellExecutionError: An error occurred while executing the following cell:
+------------------
+# Here we're using an example BIDS dataset that's bundled with the pybids tests
+data_path = os.path.join(get_test_data_path(), '7t_trt')
+
+# Initialize the layout
+layout = BIDSLayout(data_path)
+
+# Print some basic information about the layout
+layout
+------------------
+
+
+[31m---------------------------------------------------------------------------[39m
+[31mValueError[39m                                Traceback (most recent call last)
+[36mCell[39m[36m [39m[32mIn[2][39m[32m, line 5[39m
+[32m      2[39m data_path = os.path.join(get_test_data_path(), [33m'[39m[33m7t_trt[39m[33m'[39m)
+[32m      4[39m [38;5;66;03m# Initialize the layout[39;00m
+[32m----> [39m[32m5[39m layout = [43mBIDSLayout[49m[43m([49m[43mdata_path[49m[43m)[49m
+[32m      7[39m [38;5;66;03m# Print some basic information about the layout[39;00m
+[32m      8[39m layout
+
+[36mFile [39m[32m~/work/pybids/pybids/.tox/docs/lib/python3.12/site-packages/bids/layout/layout.py:148[39m, in [36mBIDSLayout.__init__[39m[34m(self, root, validate, absolute_paths, derivatives, config, sources, regex_search, database_path, reset_database, indexer, is_derivative, **indexer_kwargs)[39m
+[32m    145[39m     config = info.config
+[32m    147[39m [38;5;66;03m# Validate that a valid BIDS project exists at root[39;00m
+[32m--> [39m[32m148[39m root, description = [43mvalidate_root[49m[43m([49m[43mroot[49m[43m,[49m[43m [49m[43mvalidate[49m[43m)[49m
+[32m    149[39m [38;5;28;01mif[39;00m [38;5;28many[39m([
+[32m    150[39m     is_derivative,
+[32m    151[39m     description [38;5;129;01mand[39;00m description.get([33m"[39m[33mDatasetType[39m[33m"[39m) == [33m"[39m[33mderivative[39m[33m"[39m
+[32m    152[39m ]):
+[32m    153[39m     [38;5;28;01mtry[39;00m:
+
+[36mFile [39m[32m~/work/pybids/pybids/.tox/docs/lib/python3.12/site-packages/bids/layout/validation.py:54[39m, in [36mvalidate_root[39m[34m(root, validate)[39m
+[32m     52[39m root = root.absolute()
+[32m     53[39m [38;5;28;01mif[39;00m [38;5;129;01mnot[39;00m root.exists():
+[32m---> [39m[32m54[39m     [38;5;28;01mraise[39;00m [38;5;167;01mValueError[39;00m([33m"[39m[33mBIDS root does not exist: [39m[38;5;132;01m%s[39;00m[33m"[39m % root)
+[32m     56[39m target = root / [33m'[39m[33mdataset_description.json[39m[33m'[39m
+[32m     57[39m [38;5;28;01mif[39;00m [38;5;129;01mnot[39;00m target.exists():
+
+[31mValueError[39m: BIDS root does not exist: /home/runner/work/pybids/pybids/.tox/docs/lib/python3.12/tests/data/7t_trt
+

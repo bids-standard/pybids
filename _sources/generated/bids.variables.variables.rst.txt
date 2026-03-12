@@ -1,0 +1,21 @@
+﻿bids.variables.variables
+========================
+
+.. automodule:: bids.variables.variables
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      merge_variables
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      BIDSVariable
+      DenseRunVariable
+      SimpleVariable
+      SparseRunVariable
+   

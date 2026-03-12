@@ -1,0 +1,6 @@
+﻿bids.utils.make\_bidsfile
+=========================
+
+.. currentmodule:: bids.utils
+
+.. autofunction:: make_bidsfile

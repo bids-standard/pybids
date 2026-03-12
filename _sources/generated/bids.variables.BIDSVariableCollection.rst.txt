@@ -1,0 +1,27 @@
+﻿bids.variables.BIDSVariableCollection
+=====================================
+
+.. currentmodule:: bids.variables
+
+.. autoclass:: BIDSVariableCollection
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~BIDSVariableCollection.__init__
+      ~BIDSVariableCollection.clone
+      ~BIDSVariableCollection.from_df
+      ~BIDSVariableCollection.match_variables
+      ~BIDSVariableCollection.merge_variables
+      ~BIDSVariableCollection.to_df
+   
+   
+
+   
+   
+   

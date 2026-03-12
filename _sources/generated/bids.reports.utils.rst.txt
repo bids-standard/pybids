@@ -1,0 +1,15 @@
+﻿bids.reports.utils
+==================
+
+.. automodule:: bids.reports.utils
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      list_to_str
+      num_to_str
+      reminder
+      remove_duplicates
+   

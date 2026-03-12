@@ -1,0 +1,12 @@
+﻿bids.variables.io
+=================
+
+.. automodule:: bids.variables.io
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      load_variables
+   

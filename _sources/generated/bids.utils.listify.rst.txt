@@ -1,0 +1,6 @@
+﻿bids.utils.listify
+==================
+
+.. currentmodule:: bids.utils
+
+.. autofunction:: listify

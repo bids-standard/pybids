@@ -1,0 +1,6 @@
+﻿bids.config.get\_option
+=======================
+
+.. currentmodule:: bids.config
+
+.. autofunction:: get_option

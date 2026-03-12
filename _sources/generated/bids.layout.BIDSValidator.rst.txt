@@ -1,0 +1,36 @@
+﻿bids.layout.BIDSValidator
+=========================
+
+.. currentmodule:: bids.layout
+
+.. autoclass:: BIDSValidator
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~BIDSValidator.__init__
+      ~BIDSValidator.is_associated_data
+      ~BIDSValidator.is_bids
+      ~BIDSValidator.is_file
+      ~BIDSValidator.is_phenotypic
+      ~BIDSValidator.is_session_level
+      ~BIDSValidator.is_subject_level
+      ~BIDSValidator.is_top_level
+      ~BIDSValidator.parse
+   
+   
+
+   
+   
+   .. rubric:: Attributes
+
+   .. autosummary::
+   
+      ~BIDSValidator.regexes
+   
+   

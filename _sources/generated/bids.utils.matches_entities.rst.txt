@@ -1,0 +1,6 @@
+﻿bids.utils.matches\_entities
+============================
+
+.. currentmodule:: bids.utils
+
+.. autofunction:: matches_entities

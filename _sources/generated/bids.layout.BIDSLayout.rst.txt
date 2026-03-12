@@ -1,0 +1,53 @@
+﻿bids.layout.BIDSLayout
+======================
+
+.. currentmodule:: bids.layout
+
+.. autoclass:: BIDSLayout
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~BIDSLayout.__init__
+      ~BIDSLayout.add_derivatives
+      ~BIDSLayout.build_path
+      ~BIDSLayout.clone
+      ~BIDSLayout.copy_files
+      ~BIDSLayout.get
+      ~BIDSLayout.get_bval
+      ~BIDSLayout.get_bvec
+      ~BIDSLayout.get_collections
+      ~BIDSLayout.get_dataset_description
+      ~BIDSLayout.get_entities
+      ~BIDSLayout.get_fieldmap
+      ~BIDSLayout.get_file
+      ~BIDSLayout.get_files
+      ~BIDSLayout.get_metadata
+      ~BIDSLayout.get_nearest
+      ~BIDSLayout.get_tr
+      ~BIDSLayout.load
+      ~BIDSLayout.parse_file_entities
+      ~BIDSLayout.save
+      ~BIDSLayout.to_df
+      ~BIDSLayout.write_to_file
+   
+   
+
+   
+   
+   .. rubric:: Attributes
+
+   .. autosummary::
+   
+      ~BIDSLayout.config
+      ~BIDSLayout.entities
+      ~BIDSLayout.files
+      ~BIDSLayout.root
+      ~BIDSLayout.session
+   
+   

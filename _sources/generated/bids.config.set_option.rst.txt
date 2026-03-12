@@ -1,0 +1,6 @@
+﻿bids.config.set\_option
+=======================
+
+.. currentmodule:: bids.config
+
+.. autofunction:: set_option
