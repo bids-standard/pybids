@@ -23,8 +23,8 @@ import re
 
 try:
     from sqlalchemy.orm import declarative_base
-except ImportError:  # sqlalchemy < 1.4
-    from sqlalchemy.ext.declarative import declarative_base
+except ImportError:  # sqlalchemy < 1.4 # pragma: no cover
+    from sqlalchemy.ext.declarative import declarative_base # pragma: no cover
 
 from ..utils import listify, bids_sort
 from .writing import build_path, write_to_file

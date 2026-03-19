@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "pybids"
 description = "bids: interface with datasets conforming to BIDS"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.9"
 license = { file="LICENSE" }
 authors = [
   { name = "PyBIDS Developers", email = "bids-discussion@googlegroups.com" },
@@ -49,13 +49,13 @@ doc = [
 ]
 plotting = ["graphviz"]
 test = [
-  "pytest >= 8",
-  "pytest-cov >= 7",
+  "pytest >= 6",
+  "pytest-cov >= 2.11",
   "bsmschema >= 0.1",
-  "coverage[toml] >= 7",
+  "coverage[toml] >= 5.2.1",
   "altair >= 5",
-  "pytest-xdist >= 3.8",
-  "s3fs >= 2025" #for testing remote uri
+  "pytest-xdist >= 2.5",
+  "s3fs >= 2024" #for testing remote uri
 ]
 model_reports = [
   "jinja2",
