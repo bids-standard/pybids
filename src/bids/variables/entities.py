@@ -1,14 +1,16 @@
-""" Data classes for internal BIDS data hierarchy. """
+"""Data classes for internal BIDS data hierarchy."""
 
-from itertools import chain
 from collections import namedtuple
+from itertools import chain
 
 import pandas as pd
 
-from . import collections as clc
 from bids.utils import matches_entities
 
+from . import collections as clc
+
 BASE_ENTITIES = ['subject', 'session', 'task', 'run']
+
 
 class Node:
     """Base class for objects that represent a single object in the BIDS
@@ -19,15 +21,14 @@ class Node:
     id : int or str
         A value uniquely identifying this node. Typically the
         entity value extracted from the filename via layout.
+
     """
 
     def __init__(self, level, entities):
         self.level = level.lower()
         self.entities = entities
         if self.entities is not None:
-            self.base_ents = {
-                e: val for e, val in entities.items() if e in BASE_ENTITIES
-                }
+            self.base_ents = {e: val for e, val in entities.items() if e in BASE_ENTITIES}
         else:
             self.base_ents = None
         self.variables = {}
@@ -39,11 +40,12 @@ class Node:
         ----------
         variable : BIDSVariable
             The Variable to add to the list.
+
         """
         if self.base_ents is not None:
             for e, val in self.base_ents.items():
-                if e in variable.entities and variable.entities[e] !=  val:
-                    raise ValueError("Variable and node entity mismatch.")
+                if e in variable.entities and variable.entities[e] != val:
+                    raise ValueError('Variable and node entity mismatch.')
         self.variables[variable.name] = variable
 
 
@@ -64,6 +66,7 @@ class RunNode(Node):
         TR for the run.
     task : str
         The task name for this run.
+
     """
 
     def __init__(self, entities, image_file, duration, repetition_time, n_vols):
@@ -71,7 +74,7 @@ class RunNode(Node):
         self.duration = duration
         self.repetition_time = repetition_time
         self.n_vols = n_vols
-        super(RunNode, self).__init__('run', entities)
+        super().__init__('run', entities)
 
     def get_info(self):
         # Note: do not remove the dict() call! self.entities is a SQLAlchemy
@@ -79,8 +82,7 @@ class RunNode(Node):
         # to the DB persists, causing problems on Python 3.5 if we try to clone
         # a RunInfo or any containing object.
         entities = dict(self.entities)
-        return RunInfo(entities, self.duration,
-                       self.repetition_time, self.image_file, self.n_vols)
+        return RunInfo(entities, self.duration, self.repetition_time, self.image_file, self.n_vols)
 
 
 # Stores key information for each Run.
@@ -89,23 +91,23 @@ RunInfo_ = namedtuple('RunInfo', ['entities', 'duration', 'tr', 'image', 'n_vols
 
 # Wrap with class to provide docstring
 class RunInfo(RunInfo_):
-    """ A namedtuple storing run-related information.
+    """A namedtuple storing run-related information.
 
     Properties include 'entities', 'duration', 'tr', and 'image', 'n_vols'.
     """
+
     pass
 
 
 class NodeIndex:
-    """Represents the top level in a BIDS hierarchy. """
+    """Represents the top level in a BIDS hierarchy."""
 
     def __init__(self):
-        super(NodeIndex, self).__init__()
+        super().__init__()
         self.index = pd.DataFrame()
         self.nodes = []
 
-    def get_collections(self, unit, names=None, merge=False,
-                        sampling_rate=None, **entities):
+    def get_collections(self, unit, names=None, merge=False, sampling_rate=None, **entities):
         """Retrieve variable data for a specified level in the Dataset.
 
         Parameters
@@ -132,8 +134,8 @@ class NodeIndex:
         -------
         A list of BIDSVariableCollections if merge=False; a single
         BIDSVariableCollection if merge=True.
-        """
 
+        """
         nodes = self.get_nodes(unit, entities)
         var_sets = []
 
@@ -185,8 +187,8 @@ class NodeIndex:
         Returns
         -------
         A list of Node instances.
-        """
 
+        """
         entities = {} if entities is None else entities.copy()
 
         if level is not None:
@@ -199,7 +201,7 @@ class NodeIndex:
         common_cols = list(match_ents & set(self.index.columns))
 
         if strict and match_ents - common_cols:
-            raise ValueError("Invalid entities: ", match_ents - common_cols)
+            raise ValueError('Invalid entities: ', match_ents - common_cols)
 
         if not common_cols:
             return self.nodes
@@ -208,8 +210,7 @@ class NodeIndex:
         query = []
         for col in common_cols:
             oper = 'in' if isinstance(entities[col], (list, tuple)) else '=='
-            q = '{name} {oper} {val}'.format(name=col, oper=oper,
-                                             val=repr(entities[col]))
+            q = f'{col} {oper} {repr(entities[col])}'
             query.append(q)
         query = ' and '.join(query)
 
@@ -218,8 +219,16 @@ class NodeIndex:
             return []
 
         # Sort and return
-        sort_cols = ['subject', 'session', 'task', 'run', 'node_index',
-                     'suffix', 'level', 'datatype']
+        sort_cols = [
+            'subject',
+            'session',
+            'task',
+            'run',
+            'node_index',
+            'suffix',
+            'level',
+            'datatype',
+        ]
         sort_cols = [sc for sc in sort_cols if sc in set(rows.columns)]
         rows = rows.sort_values(sort_cols)
         inds = rows['node_index'].astype(int)
@@ -243,8 +252,8 @@ class NodeIndex:
         Returns
         -------
         A Node instance.
-        """
 
+        """
         if level == 'run':
             node = RunNode(entities, *args, **kwargs)
         else:
@@ -279,16 +288,17 @@ class NodeIndex:
         Returns
         -------
         A Node instance.
-        """
 
+        """
         result = self.get_nodes(level, entities)
 
         if result:
             if len(result) > 1:
-                raise ValueError("More than one matching Node found! If you're"
-                                 " expecting more than one Node, use "
-                                 "get_nodes() instead of get_or_create_node()."
-                                 )
+                raise ValueError(
+                    "More than one matching Node found! If you're"
+                    ' expecting more than one Node, use '
+                    'get_nodes() instead of get_or_create_node().'
+                )
             return result[0]
 
         return self.create_node(level, entities, *args, **kwargs)

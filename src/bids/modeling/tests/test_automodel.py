@@ -1,10 +1,12 @@
-from os.path import join
 from itertools import chain
-from bids.modeling.auto_model import auto_model
-from bids.modeling import BIDSStatsModelsGraph
-from bids.layout import BIDSLayout
-from bids.tests import get_test_data_path
+from os.path import join
+
 import pytest
+
+from bids.layout import BIDSLayout
+from bids.modeling import BIDSStatsModelsGraph
+from bids.modeling.auto_model import auto_model
+from bids.tests import get_test_data_path
 
 
 @pytest.fixture
@@ -16,12 +18,14 @@ def model():
 
     return models[0]
 
+
 def test_automodel_valid(model):
     try:
         from bsmschema.models import BIDSStatsModel
     except ImportError:
-        pytest.skip("Needs bsmschema, available for Python 3.8+")
+        pytest.skip('Needs bsmschema, available for Python 3.8+')
     BIDSStatsModel.model_validate(model)
+
 
 def test_automodel_runs(model):
     layout_path = join(get_test_data_path(), 'ds005')
@@ -29,19 +33,19 @@ def test_automodel_runs(model):
 
     # Test to make sure an analaysis can be setup from the generated model
     graph = BIDSStatsModelsGraph(layout, model)
-    graph.load_collections(scan_length=480, subject=["01", "02"])
-    outputs = graph["Run"].run()
+    graph.load_collections(scan_length=480, subject=['01', '02'])
+    outputs = graph['Run'].run()
     assert len(outputs) == 6
     cis = list(chain(*[op.contrasts for op in outputs]))
     assert len(cis) == 6
-    outputs = graph["Subject"].run(cis)
+    outputs = graph['Subject'].run(cis)
     # 2 subjects x 1 contrast
     assert len(outputs) == 2
     cis = list(chain(*[op.contrasts for op in outputs]))
     assert len(cis) == 2
 
-def test_auto_model_graph(model):
 
+def test_auto_model_graph(model):
     assert model['Name'] == 'ds005_mixedgamblestask'
 
     # run level

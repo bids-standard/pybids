@@ -1,30 +1,30 @@
-"""File-indexing functionality. """
+"""File-indexing functionality."""
 
 import json
 import re
-from collections import defaultdict
-from upath import UPath as Path
-from functools import partial, lru_cache
 import warnings
+from collections import defaultdict
+from functools import cache, partial
 
 from bids_validator import BIDSValidator
+from upath import UPath as Path
 
-from ..utils import listify, make_bidsfile
 from ..exceptions import BIDSConflictingValuesError
-
-from .models import Config, Entity, Tag, FileAssociation, _create_tag_dict
+from ..utils import listify, make_bidsfile
+from .models import Config, Entity, FileAssociation, Tag, _create_tag_dict
 from .validation import validate_indexing_args
 
+
 def _regexfy(patt, root=None):
-    if hasattr(patt, "search"):
+    if hasattr(patt, 'search'):
         return patt
 
     patt = Path(patt)
 
     if patt.is_absolute():
-        patt = str(patt.relative_to(root or "/"))
+        patt = str(patt.relative_to(root or '/'))
 
-    return re.compile(r"^/" + str(patt) + r".*")
+    return re.compile(r'^/' + str(patt) + r'.*')
 
 
 def _extract_entities(bidsfile, entities):
@@ -39,18 +39,16 @@ def _extract_entities(bidsfile, entities):
 
 
 def _check_path_matches_patterns(path, patterns, root=None):
-    """Check if the path matches at least one of the provided patterns. """
-
+    """Check if the path matches at least one of the provided patterns."""
     if not patterns:
         return False
 
     path = path.absolute()
     if root is not None:
-
-        if isinstance(path,Path):
-            path = Path("/") / Path(path.path).relative_to(Path(root.path))
+        if isinstance(path, Path):
+            path = Path('/') / Path(path.path).relative_to(Path(root.path))
         else:
-            path = Path("/") / path.relative_to(root)
+            path = Path('/') / path.relative_to(root)
 
     # Path now can be downcast to str
     path = str(path)
@@ -70,7 +68,7 @@ def _validate_path(path, incl_patt=None, excl_patt=None, root=None):
 
 
 class BIDSLayoutIndexer:
-    """ Indexer class for BIDSLayout.
+    """Indexer class for BIDSLayout.
 
     Parameters
     ----------
@@ -107,6 +105,7 @@ class BIDSLayoutIndexer:
         keyword arguments passed to the .get() method of a
         :obj:`bids.layout.BIDSLayout` object. These keyword arguments define
         what files get selected for metadata indexing.
+
     """
 
     def __init__(
@@ -138,8 +137,7 @@ class BIDSLayoutIndexer:
         self._layout = layout
         self._config = list(layout.config.values())
 
-        ignore, force = validate_indexing_args(self.ignore, self.force_index,
-                                               self._layout._root)
+        ignore, force = validate_indexing_args(self.ignore, self.force_index, self._layout._root)
 
         # Do not accept string patterns
         self._include_patterns = [
@@ -167,7 +165,7 @@ class BIDSLayoutIndexer:
             f,
             incl_patt=self._include_patterns,
             excl_patt=self._exclude_patterns,
-            root=self._layout._root
+            root=self._layout._root,
         )
 
         if matched_patt is not None:
@@ -178,7 +176,9 @@ class BIDSLayoutIndexer:
 
         # BIDS validator expects absolute paths, but really these are relative
         # to the BIDS project root.
-        to_check = Path(f.path).relative_to(Path(self._layout._root.path)) # use .path then Path() to drop the uri prefix
+        to_check = Path(f.path).relative_to(
+            Path(self._layout._root.path)
+        )  # use .path then Path() to drop the uri prefix
         # Pretend the path is an absolute path
         to_check = Path('/') / to_check
         # bids-validator works with posix paths only
@@ -186,7 +186,7 @@ class BIDSLayoutIndexer:
         return self.validator.is_bids(to_check)
 
     def _index_dir(self, path, config, force=None):
-        root_path = Path(self._layout._root.path) # drops the uri prefix if it is there
+        root_path = Path(self._layout._root.path)  # drops the uri prefix if it is there
         abs_path = root_path / Path(path.path).relative_to(root_path)
 
         # Derivative directories must always be added separately
@@ -267,7 +267,7 @@ class BIDSLayoutIndexer:
         return all_bfs, all_tag_dicts
 
     def _index_file(self, abs_fn, entities):
-        """Create DB record for file and its tags. """
+        """Create DB record for file and its tags."""
         bf = make_bidsfile(abs_fn)
 
         # Extract entity values
@@ -281,15 +281,13 @@ class BIDSLayoutIndexer:
 
         # Create Entity <=> BIDSFile mappings
         tag_dicts = [
-            _create_tag_dict(bf, ent, val, ent._dtype)
-            for ent, val in match_vals.values()
+            _create_tag_dict(bf, ent, val, ent._dtype) for ent, val in match_vals.values()
         ]
 
         return bf, tag_dicts
 
     def _index_metadata(self):
-        """Index metadata for all files in the BIDS dataset.
-        """
+        """Index metadata for all files in the BIDS dataset."""
         filters = self.filters
 
         if filters:
@@ -316,7 +314,7 @@ class BIDSLayoutIndexer:
         # that before adding each new Tag.
         all_tags = {}
         for t in self.session.query(Tag).all():
-            key = '{}_{}'.format(t.file_path, t.entity_name)
+            key = f'{t.file_path}_{t.entity_name}'
             all_tags[key] = str(t.value)
 
         # We build up a store of all file data as we iterate files. It looks
@@ -327,15 +325,14 @@ class BIDSLayoutIndexer:
         # Memoizing JSON loader
         # Use as a function to allow lazy loading so only read JSON files
         # if they correspond to data files that are indexed
-        @lru_cache(maxsize=None)
+        @cache
         def load_json(path):
             with Path(path).fs.open(Path(path).path, 'r', encoding='utf-8') as handle:
                 try:
                     return json.load(handle)
                 except (UnicodeDecodeError, json.JSONDecodeError) as e:
                     raise OSError(
-                        "Error occurred while trying to decode JSON "
-                        f"from file {path}"
+                        f'Error occurred while trying to decode JSON from file {path}'
                     ) from e
 
         filenames = []
@@ -344,7 +341,7 @@ class BIDSLayoutIndexer:
                 file_ents = bf.entities.copy()
                 suffix = file_ents.pop('suffix')
                 ext = file_ents.pop('extension')
-                key = "{}/{}".format(ext, suffix)
+                key = f'{ext}/{suffix}'
                 if key not in file_data:
                     file_data[key] = defaultdict(list)
 
@@ -369,7 +366,7 @@ class BIDSLayoutIndexer:
                 seen_assocs.add(pk1)
             pk2 = '#'.join([dst, src, kind2])
             if pk2 not in seen_assocs:
-                objs.append((FileAssociation(src=dst, dst=src, kind=kind2)))
+                objs.append(FileAssociation(src=dst, dst=src, kind=kind2))
                 seen_assocs.add(pk2)
 
             return objs
@@ -393,8 +390,8 @@ class BIDSLayoutIndexer:
             # the current file. If so, it's a valid candidate, and we
             # add the payload to the stack. Finally, we invert the
             # stack and merge the payloads in order.
-            ext_key = "{}/{}".format(ext, suffix)
-            json_key = ".json/{}".format(suffix)
+            ext_key = f'{ext}/{suffix}'
+            json_key = f'.json/{suffix}'
             dirname = bf._dirname
 
             payloads = []
@@ -407,8 +404,7 @@ class BIDSLayoutIndexer:
                     js_keys = set(js_ents.keys())
                     if js_keys - file_ent_keys:
                         continue
-                    matches = [js_ents[name] == file_ents[name]
-                               for name in js_keys]
+                    matches = [js_ents[name] == file_ents[name] for name in js_keys]
                     if all(matches):
                         payloads.append((js_md, js_path))
 
@@ -475,26 +471,31 @@ class BIDSLayoutIndexer:
                 if target is None:
                     warnings.warn(f'Skipping association for {target}', stacklevel=2)
                     continue
-                all_objs += create_association_pair(bf.path, str(target), 'IntendedFor',
-                                        'InformedBy')
+                all_objs += create_association_pair(
+                    bf.path, str(target), 'IntendedFor', 'InformedBy'
+                )
 
             # Link files to BOLD runs
             if suffix in ['physio', 'stim', 'events', 'sbref']:
                 images = self._layout.get(
-                    extension=['.nii', '.nii.gz'], suffix='bold',
-                    return_type='filename', **file_ents)
+                    extension=['.nii', '.nii.gz'],
+                    suffix='bold',
+                    return_type='filename',
+                    **file_ents,
+                )
                 for img in images:
-                    all_objs += create_association_pair(bf.path, img, 'IntendedFor',
-                                            'InformedBy')
+                    all_objs += create_association_pair(bf.path, img, 'IntendedFor', 'InformedBy')
 
             # Link files to DWI runs
             if suffix == 'sbref' or ext in ['bvec', 'bval']:
                 images = self._layout.get(
-                    extension=['.nii', '.nii.gz'], suffix='dwi',
-                    return_type='filename', **file_ents)
+                    extension=['.nii', '.nii.gz'],
+                    suffix='dwi',
+                    return_type='filename',
+                    **file_ents,
+                )
                 for img in images:
-                    all_objs += create_association_pair(bf.path, img, 'IntendedFor',
-                                            'InformedBy')
+                    all_objs += create_association_pair(bf.path, img, 'IntendedFor', 'InformedBy')
 
             # Create Tag <-> Entity mappings, and any newly discovered Entities
             for md_key, md_val in file_md.items():
@@ -502,7 +503,7 @@ class BIDSLayoutIndexer:
                 # Alternative is to cast None to null in layout.models._create_tag_dict
                 if md_val is None:
                     continue
-                tag_string = '{}_{}'.format(bf.path, md_key)
+                tag_string = f'{bf.path}_{md_key}'
                 # Skip pairs that were already found in the filenames
                 if tag_string in all_tags:
                     file_val = all_tags[tag_string]
@@ -513,7 +514,8 @@ class BIDSLayoutIndexer:
                             "(value='{}'). Please reconcile this discrepancy."
                         )
                         raise BIDSConflictingValuesError(
-                            msg.format(md_key, bf.path, file_val, md_val))
+                            msg.format(md_key, bf.path, file_val, md_val)
+                        )
                     continue
                 if md_key not in all_entities:
                     all_entities[md_key] = Entity(md_key)
@@ -527,8 +529,7 @@ class BIDSLayoutIndexer:
 
 
 def _resolve_intent(intent: str, root: Path, subject: str) -> str | None:
-    """
-    Resolve IntendedFor paths as absolute paths.
+    """Resolve IntendedFor paths as absolute paths.
 
     Path may be either a BIDS URI (prefix bids:: or bids:<name>:) or
     a relative path from subject directory.

@@ -1,0 +1,57 @@
+line-length = 99
+extend-exclude = [
+  "_version.py",  # Auto-generated
+  "tests/data",   # Submodules
+  "bids-examples",
+  ".cursor",
+  ".vscode",
+  ".venv",
+  "paper",
+  "scripts/",
+  "tools/"
+]
+
+[format]
+quote-style = "single"
+line-ending = "lf"
+docstring-code-format = true
+
+[lint]
+extend-select = [
+  "F",    # pyflakes
+  "E",    # pycodestyle errors
+  "W",    # pycodestyle warnings
+  "I",    # isort
+  "D",    # pydocstyle
+  "UP",   # pyupgrade
+  "YTT",  # flake8-2020
+  "S",    # bandit
+  "BLE",  # blind-except
+  "B",    # bugbear
+  "A",    # builtins
+  "C4",   # comprehensions
+  "DTZ",  # datetimez
+  "T10",  # debugger
+  # "EM",   # errmsg
+  "EXE",  # executable
+  "ISC",  # implicit-str-concat
+  "ICN",  # import-conventions
+  "PT",   # pytest-style
+  "Q",    # quotes
+]
+ignore = [
+  "D105",  # undocumented-magic-method
+  "D107",  # undocumented __init__
+  "D203",  # blank line before class docstring
+  "D213",  # multi-line-summary-first-line
+  "PT022",  # useless-yield-fixture; yield keeps fixtures/sessions alive
+  "Q000",  # double quotes
+  "Q003",  # avoidable-escaped-quote
+]
+
+[lint.extend-per-file-ignores]
+"setup.py" = ["D"]
+"*/test_*.py" = [
+  "S101",  # assert
+  "D",
+]

@@ -1,16 +1,17 @@
-from bids.layout import BIDSLayout
-import pytest
+import json
 import os
+import uuid
 from os.path import join
-from bids.tests import get_test_data_path
-from bids.variables import (merge_variables, DenseRunVariable, SimpleVariable,
-                            load_variables)
-from bids.variables.entities import RunInfo
+
+import nibabel as nb
 import numpy as np
 import pandas as pd
-import nibabel as nb
-import uuid
-import json
+import pytest
+
+from bids.layout import BIDSLayout
+from bids.tests import get_test_data_path
+from bids.variables import DenseRunVariable, SimpleVariable, load_variables, merge_variables
+from bids.variables.entities import RunInfo
 
 
 def generate_DEV(name='test', sr=20, duration=480):
@@ -19,9 +20,10 @@ def generate_DEV(name='test', sr=20, duration=480):
     ent_names = ['task', 'run', 'session', 'subject']
     entities = {e: uuid.uuid4().hex for e in ent_names}
     image = uuid.uuid4().hex + '.nii.gz'
-    run_info = RunInfo(entities, duration, 2, image, duration / 2),
-    return DenseRunVariable(name='test', values=values, run_info=run_info,
-                            source='dummy', sampling_rate=sr)
+    run_info = (RunInfo(entities, duration, 2, image, duration / 2),)
+    return DenseRunVariable(
+        name='test', values=values, run_info=run_info, source='dummy', sampling_rate=sr
+    )
 
 
 @pytest.fixture
@@ -31,7 +33,7 @@ def layout1():
     return layout
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope='module')
 def layout2():
     path = join(get_test_data_path(), '7t_trt')
     layout = BIDSLayout(path)
@@ -194,8 +196,7 @@ def test_filter_simple_variable(layout2):
     assert merged.to_df().shape == (60, 9)
     filt = merged.filter({'acquisition': 'fullbrain'})
     assert filt.to_df().shape == (40, 9)
-    flt1 = merged.filter({'acquisition': 'fullbrain',
-                          'subject': ['01', '02']}).to_df()
+    flt1 = merged.filter({'acquisition': 'fullbrain', 'subject': ['01', '02']}).to_df()
     assert flt1.shape == (8, 9)
     query = 'acquisition=="fullbrain" and subject in ["01", "02"]'
     flt2 = merged.filter(query=query)
@@ -206,10 +207,7 @@ def test_filter_simple_variable(layout2):
     assert merged.to_df().shape == (40, 9)
 
 
-@pytest.mark.parametrize(
-    "TR, nvols",
-    [(2.00000, 251),
-     (2.000001, 251)])
+@pytest.mark.parametrize('TR, nvols', [(2.00000, 251), (2.000001, 251)])
 def test_resampling_edge_case(tmpdir, TR, nvols):
     tmpdir.chdir()
     os.makedirs('sub-01/func')
@@ -235,6 +233,7 @@ def test_downsampling(tmpdir):
     tmpdir.chdir()
     os.makedirs('sub-01/func')
     import numpy as np
+
     TR, newTR, nvols, newvols = 2.00000, 6.0, 90, 30
     Fs = 1 / TR
     t = np.linspace(0, int(nvols / Fs), nvols, endpoint=False)
@@ -242,7 +241,7 @@ def test_downsampling(tmpdir):
     with open('sub-01/func/sub-01_task-task_events.tsv', 'w') as fobj:
         fobj.write('onset\tduration\tval\n')
         for idx, val in enumerate(values):
-            fobj.write('%f\t%f\t%f\n' % (idx*TR, TR, val))
+            fobj.write('%f\t%f\t%f\n' % (idx * TR, TR, val))
     with open('sub-01/func/sub-01_task-task_bold.json', 'w') as fobj:
         json.dump({'RepetitionTime': TR}, fobj)
 
@@ -260,9 +259,7 @@ def test_downsampling(tmpdir):
     # This checks that the filtering has happened. If it has not, then
     # this value for this frequency bin will be an alias and have a
     # very different amplitude
-    assert np.allclose(np.abs(np.fft.fft(regressor.values.ravel()))[9],
-                       0.46298273)
+    assert np.allclose(np.abs(np.fft.fft(regressor.values.ravel()))[9], 0.46298273)
     # This checks that the signal (0.025 Hz) within the new Nyquist
     # rate actually gets passed through.
-    assert np.allclose(np.abs(np.fft.fft(regressor.values.ravel()))[4],
-                       8.88189504)
+    assert np.allclose(np.abs(np.fft.fft(regressor.values.ravel()))[4], 8.88189504)

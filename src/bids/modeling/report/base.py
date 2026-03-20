@@ -1,15 +1,18 @@
-import os
 import datetime
+import os
 from pathlib import Path
+
+from bids import __version__ as bids_version
 from bids.layout import BIDSLayout
 from bids.modeling import BIDSStatsModelsGraph
-from bids import __version__ as bids_version
-from .utils import deroot, snake_to_camel, displayify, to_alphanum, generate_contrast_matrix
+
+from .utils import deroot, displayify, generate_contrast_matrix, snake_to_camel, to_alphanum
 
 PATH_PATTERNS = [
     'reports/[sub-{subject}/][ses-{session}/][level-{level}_][sub-{subject}_][ses-{session}_]'
     '[run-{run}_]model-{model}.html'
 ]
+
 
 def _build_node_dict(node, all_entities):
     report_node = {
@@ -19,14 +22,14 @@ def _build_node_dict(node, all_entities):
         'model': node.model,
         'level': node.level,
         'transformations': node.transformations,
-        }
+    }
     for out in node.outputs_:
         analysis_dict = {'entities': {}, 'contrasts': []}
 
         for contrast_info in out.contrasts:
             cents = contrast_info.entities.copy()
-            cents["level"] = out.node.level
-            cents["name"] = out.node.name
+            cents['level'] = out.node.level
+            cents['name'] = out.node.name
 
             for key in ('datatype', 'desc', 'suffix', 'extension'):
                 cents.pop(key, None)
@@ -34,7 +37,7 @@ def _build_node_dict(node, all_entities):
                 cents.pop(key, None)
 
             for k, v in cents.items():
-                if k in ("name", "contrast"):
+                if k in ('name', 'contrast'):
                     cents.update({k: to_alphanum(str(v))})
 
             analysis_dict['entities'] = {
@@ -59,7 +62,9 @@ def _build_node_dict(node, all_entities):
         # If reports were run-level
         if out.report_ is not None:
             analysis_dict['design_matrix_plot'] = out.report_['design_matrix_plot'].to_json()
-            analysis_dict['design_matrix_corrplot'] = out.report_['design_matrix_corrplot'].to_json()
+            analysis_dict['design_matrix_corrplot'] = out.report_[
+                'design_matrix_corrplot'
+            ].to_json()
             analysis_dict['VIF'] = out.report_['VIF']
             if hasattr(out, 'trans_hist'):
                 analysis_dict['trans_hist'] = out.trans_hist
@@ -79,7 +84,7 @@ def _build_report_dict(graph):
         'nodes': [],
         'version': bids_version,
         'timestamp': datetime.datetime.now(),
-        'graph_plot': graph.write_graph(format='svg', pipe=True)
+        'graph_plot': graph.write_graph(format='svg', pipe=True),
     }
 
     if 'DatasetDOI' in graph.layout.description:
@@ -102,8 +107,8 @@ def _write_report(report_dict, out_dir, template_path=None):
         import jinja2
     except ImportError:
         raise ImportError(
-            "Jinja2 must be installed to generate reports. "
-            "You can install it with pip install jinja2."
+            'Jinja2 must be installed to generate reports. '
+            'You can install it with pip install jinja2.'
         )
 
     if template_path is None:
@@ -122,14 +127,11 @@ def _write_report(report_dict, out_dir, template_path=None):
     report_dict = deroot(report_dict, str(out_path))
 
     html = tpl.render(report_dict)
-    Path.write_text(out_path / f"{model}_report.html", html)
+    Path.write_text(out_path / f'{model}_report.html', html)
 
 
-def generate_report(
-    model, dataset_path, derivatives, output_dir, scan_length=None,
-    **entities):
-    """
-    Generate a report for a model.
+def generate_report(model, dataset_path, derivatives, output_dir, scan_length=None, **entities):
+    """Generate a report for a model.
 
     Parameters
     ----------
@@ -146,6 +148,7 @@ def generate_report(
         dataset (requires image files to be present).
     entities : dict (optional)
         A dictionary of BIDS entities to filter the layout on.
+
     """
     # Initialize BIDSLayout
     layout = BIDSLayout(dataset_path, derivatives=derivatives)
@@ -157,9 +160,9 @@ def generate_report(
 
     # Run entire graph
     graph.run_graph(
-        scan_length=scan_length, entities=entities, transformation_history=True,
-        node_reports=True)
+        scan_length=scan_length, entities=entities, transformation_history=True, node_reports=True
+    )
 
-    report_dict =  _build_report_dict(graph)
+    report_dict = _build_report_dict(graph)
 
     _write_report(report_dict, output_dir)

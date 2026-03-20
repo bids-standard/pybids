@@ -1,6 +1,10 @@
-from .statsmodels import (BIDSStatsModelsGraph, BIDSStatsModelsNode,
-                          BIDSStatsModelsNodeOutput, BIDSStatsModelsEdge)
 from .auto_model import auto_model
+from .statsmodels import (
+    BIDSStatsModelsEdge,
+    BIDSStatsModelsGraph,
+    BIDSStatsModelsNode,
+    BIDSStatsModelsNodeOutput,
+)
 from .transformations import TransformerManager
 
 __all__ = [
@@ -9,5 +13,5 @@ __all__ = [
     'BIDSStatsModelsNodeOutput',
     'BIDSStatsModelsEdge',
     'auto_model',
-    'TransformerManager'
+    'TransformerManager',
 ]

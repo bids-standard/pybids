@@ -23,7 +23,7 @@ sys.path.insert(0, os.path.abspath('../'))
 # -- Project information -----------------------------------------------------
 
 project = 'PyBIDS'
-copyright = '2015-{}, Developers of PyBIDS'.format(date.today().year)
+copyright = f'2015-{date.today().year}, Developers of PyBIDS'
 author = 'Developers of PyBIDS'
 
 currentdir = os.path.abspath(os.path.dirname(__file__))
@@ -49,14 +49,14 @@ extensions = [
 ]
 
 intersphinx_mapping = {
-    "python": ('https://docs.python.org/3.5', None),
-    "numpy" : ('https://docs.scipy.org/doc/numpy', None),
-    "scipy" : ('https://docs.scipy.org/doc/scipy/reference', None),
-    "matplotlib" : ('https://matplotlib.org/', None),
-    "scikit-learn" : ('https://scikit-learn.org/0.17', None),
-    "nibabel" : ('https://nipy.org/nibabel/', None),
-    "pandas" : ('https://pandas.pydata.org/pandas-docs/stable/', None),
-    "neurosynth" : ('https://neurosynth.readthedocs.io/en/latest/', None),
+    'python': ('https://docs.python.org/3.5', None),
+    'numpy': ('https://docs.scipy.org/doc/numpy', None),
+    'scipy': ('https://docs.scipy.org/doc/scipy/reference', None),
+    'matplotlib': ('https://matplotlib.org/', None),
+    'scikit-learn': ('https://scikit-learn.org/0.17', None),
+    'nibabel': ('https://nipy.org/nibabel/', None),
+    'pandas': ('https://pandas.pydata.org/pandas-docs/stable/', None),
+    'neurosynth': ('https://neurosynth.readthedocs.io/en/latest/', None),
 }
 
 intersphinx_timeout = 5
@@ -99,7 +99,7 @@ pygments_style = 'sphinx'
 #
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
-html_theme = "sphinx_rtd_theme"
+html_theme = 'sphinx_rtd_theme'
 html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
 
 # Add any paths that contain custom static files (such as style sheets) here,
@@ -112,23 +112,26 @@ html_domain_indices = False
 
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
-man_pages = [
-    ('index', 'bids', 'bids Documentation',
-     [author], 1)
-]
+man_pages = [('index', 'bids', 'bids Documentation', [author], 1)]
 
 # Grouping the document tree into Texinfo files. List of tuples
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-  ('index', 'bids', 'bids Documentation',
-   author, 'bids', 'One line description of project.',
-   'Miscellaneous'),
+    (
+        'index',
+        'bids',
+        'bids Documentation',
+        author,
+        'bids',
+        'One line description of project.',
+        'Miscellaneous',
+    ),
 ]
 
 # If false, no module index is generated.
 texinfo_domain_indices = False
 
 nb_custom_formats = {
-    ".md": ["jupytext.reads", {"fmt": "mystnb"}],
+    '.md': ['jupytext.reads', {'fmt': 'mystnb'}],
 }

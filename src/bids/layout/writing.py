@@ -1,15 +1,15 @@
-"""
-Contains helper functions that involve writing operations.
-"""
+"""Contains helper functions that involve writing operations."""
 
-import warnings
 import re
-import sys
 import shutil
-from string import Formatter
+import sys
+import warnings
 from itertools import product
-from ..utils import listify
+from string import Formatter
+
 from upath import UPath as Path
+
+from ..utils import listify
 
 __all__ = ['build_path', 'write_to_file']
 
@@ -17,8 +17,7 @@ _PATTERN_FIND = re.compile(r'({([\w\d]*?)(?:<([^>]+)>)?(?:\|((?:\.?[\w])+))?\})'
 
 
 def build_path(entities, path_patterns, strict=False):
-    """
-    Constructs a path given a set of entities and a list of potential
+    """Constructs a path given a set of entities and a list of potential
     filename patterns to use.
 
     Parameters
@@ -57,15 +56,17 @@ def build_path(entities, path_patterns, strict=False):
     ...     'subject': '001',
     ...     'suffix': 'inplaneT2',
     ... }
-    >>> patterns = ['sub-{subject}[/ses-{session}]/anat/sub-{subject}[_ses-{session}]'
-    ...             '[_acq-{acquisition}][_ce-{ceagent}][_rec-{reconstruction}]_'
-    ...             '{suffix<T[12]w|T1rho|T[12]map|T2star|FLAIR|FLASH|PDmap|PD|PDT2|'
-    ...             'inplaneT[12]|angio>}{extension<.nii|.nii.gz|.json>|.nii.gz}',
-    ...             'sub-{subject}[/ses-{session}]/anat/sub-{subject}[_ses-{session}]'
-    ...             '[_acq-{acquisition}][_ce-{ceagent}][_rec-{reconstruction}]'
-    ...             '[_space-{space}][_desc-{desc}]_{suffix<T1w|T2w|T1rho|T1map|T2map|'
-    ...             'T2star|FLAIR|FLASH|PDmap|PD|PDT2|inplaneT[12]|angio>}'
-    ...             '{extension<.nii|.nii.gz|.json>|.nii.gz}']
+    >>> patterns = [
+    ...     'sub-{subject}[/ses-{session}]/anat/sub-{subject}[_ses-{session}]'
+    ...     '[_acq-{acquisition}][_ce-{ceagent}][_rec-{reconstruction}]_'
+    ...     '{suffix<T[12]w|T1rho|T[12]map|T2star|FLAIR|FLASH|PDmap|PD|PDT2|'
+    ...     'inplaneT[12]|angio>}{extension<.nii|.nii.gz|.json>|.nii.gz}',
+    ...     'sub-{subject}[/ses-{session}]/anat/sub-{subject}[_ses-{session}]'
+    ...     '[_acq-{acquisition}][_ce-{ceagent}][_rec-{reconstruction}]'
+    ...     '[_space-{space}][_desc-{desc}]_{suffix<T1w|T2w|T1rho|T1map|T2map|'
+    ...     'T2star|FLAIR|FLASH|PDmap|PD|PDT2|inplaneT[12]|angio>}'
+    ...     '{extension<.nii|.nii.gz|.json>|.nii.gz}',
+    ... ]
     >>> build_path(entities, patterns)
     'sub-001/anat/sub-001_inplaneT2.nii'
 
@@ -106,8 +107,8 @@ def build_path(entities, path_patterns, strict=False):
     ...     'subject': '001',
     ... }
     >>> patterns = (
-    ...     "sub-{subject}[/ses-{session}]/{datatype|dwi}/sub-{subject}[_ses-{session}]"
-    ...     "[_acq-{acquisition}]_{suffix|dwi}{extension<.bval|.bvec|.json|.nii.gz|.nii>|.nii.gz}"
+    ...     'sub-{subject}[/ses-{session}]/{datatype|dwi}/sub-{subject}[_ses-{session}]'
+    ...     '[_acq-{acquisition}]_{suffix|dwi}{extension<.bval|.bvec|.json|.nii.gz|.nii>|.nii.gz}'
     ... )
     >>> build_path(entities, patterns, strict=True)
     'sub-001/dwi/sub-001_dwi.bvec'
@@ -153,8 +154,7 @@ def build_path(entities, path_patterns, strict=False):
                 tmp_entities['extension'] = ['.' + e for e in exts]
 
         for fmt, name, valid, defval in entities_matched:
-            valid_expanded = [v for val in valid.split('|') if val
-                              for v in _expand_options(val)]
+            valid_expanded = [v for val in valid.split('|') if val for v in _expand_options(val)]
             if valid_expanded and defval and defval not in valid_expanded:
                 warnings.warn(
                     f'Pattern {fmt!r} is inconsistent as it defines an invalid default value.',
@@ -186,18 +186,13 @@ def build_path(entities, path_patterns, strict=False):
             new_path = new_path.replace(op, '')
 
         # Replace entities
-        fields = {pat[1] for pat in Formatter().parse(new_path)
-                  if pat[1] and not pat[1].isdigit()}
+        fields = {pat[1] for pat in Formatter().parse(new_path) if pat[1] and not pat[1].isdigit()}
         if fields - set(tmp_entities.keys()):
             continue
 
-        tmp_entities = {k: v for k, v in tmp_entities.items()
-                        if k in fields}
+        tmp_entities = {k: v for k, v in tmp_entities.items() if k in fields}
 
-        new_path = [
-            new_path.format(**e)
-            for e in _expand_entities(tmp_entities)
-        ]
+        new_path = [new_path.format(**e) for e in _expand_entities(tmp_entities)]
 
         if new_path:
             if len(new_path) == 1:
@@ -207,10 +202,16 @@ def build_path(entities, path_patterns, strict=False):
     return None
 
 
-def write_to_file(path, contents=None, link_to=None, copy_from=None,
-                  content_mode='text', root=None, conflicts='fail'):
-    """
-    Writes provided contents to a new path, or copies from an old path.
+def write_to_file(
+    path,
+    contents=None,
+    link_to=None,
+    copy_from=None,
+    content_mode='text',
+    root=None,
+    conflicts='fail',
+):
+    """Writes provided contents to a new path, or copies from an old path.
 
     Parameters
     ----------
@@ -238,6 +239,7 @@ def write_to_file(path, contents=None, link_to=None, copy_from=None,
         exists. 'fail' raises an exception; 'skip' does nothing;
         'overwrite' overwrites the existing file; 'append' adds a suffix
         to each file copy, starting with 1. Default is 'fail'.
+
     """
     path = Path(path)
 
@@ -257,17 +259,19 @@ def write_to_file(path, contents=None, link_to=None, copy_from=None,
             return
         elif conflicts == 'overwrite':
             if path.is_dir():
-                warnings.warn('New path is a directory, not going to '
-                              'overwrite it, skipping instead.')
+                warnings.warn(
+                    'New path is a directory, not going to overwrite it, skipping instead.'
+                )
                 return
             path.unlink()
         elif conflicts == 'append':
             i = 1
             while i < sys.maxsize:
                 suffixes = ''.join(path.suffixes)
-                appended_filename = path.with_name(path.name.rstrip(suffixes) + '_%d' % i + suffixes)
-                if not appended_filename.exists() and \
-                        not appended_filename.is_symlink():
+                appended_filename = path.with_name(
+                    path.name.rstrip(suffixes) + '_%d' % i + suffixes
+                )
+                if not appended_filename.exists() and not appended_filename.is_symlink():
                     path = appended_filename
                     break
                 i += 1
@@ -281,7 +285,7 @@ def write_to_file(path, contents=None, link_to=None, copy_from=None,
         path.symlink_to(link_to)
     elif copy_from is not None:
         if not Path(copy_from).exists():
-            raise ValueError("Source file '{}' does not exist.".format(copy_from))
+            raise ValueError(f"Source file '{copy_from}' does not exist.")
         shutil.copy(copy_from, path)
 
     elif contents:
@@ -293,8 +297,7 @@ def write_to_file(path, contents=None, link_to=None, copy_from=None,
 
 
 def _expand_options(value):
-    """
-    Expand optional substrings of valid entity values.
+    """Expand optional substrings of valid entity values.
 
     Examples
     --------
@@ -314,8 +317,7 @@ def _expand_options(value):
 
 
 def _expand_entities(entities):
-    """
-    Generate multiple replacement queries based on all combinations of values.
+    """Generate multiple replacement queries based on all combinations of values.
 
     Examples
     --------
