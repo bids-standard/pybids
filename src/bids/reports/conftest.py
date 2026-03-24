@@ -29,7 +29,7 @@ def testconfig(config_file):
 def _unsupported_files():
     with warnings.catch_warnings():
         warnings.filterwarnings(
-            "ignore",
+            'ignore',
             message=r'.*magnitude.* not yet supported.*',
             category=UserWarning,
             append=True,

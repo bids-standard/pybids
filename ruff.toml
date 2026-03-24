@@ -8,7 +8,9 @@ extend-exclude = [
   ".venv",
   "paper",
   "scripts/",
-  "tools/"
+  "tools/",
+  "*tests/*",
+  "*.ipynb",
 ]
 
 [format]
@@ -47,6 +49,12 @@ ignore = [
   "PT022",  # useless-yield-fixture; yield keeps fixtures/sessions alive
   "Q000",  # double quotes
   "Q003",  # avoidable-escaped-quote
+  # --- Fix one group at a time; remove from ignore when done ---
+  # 1. Docstrings (D*)
+  "D205",  # blank line between summary and description
+  "D400",  # ends with period
+  "D401",  # imperative mood
+  "D415",  # ends with period/question/exclamation
 ]
 
 [lint.extend-per-file-ignores]
