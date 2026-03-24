@@ -16,7 +16,7 @@ LOGGER = logging.getLogger('pybids.reports.parsing')
 def describe_slice_timing(img, metadata: dict) -> str:
     """Generate description of slice timing from metadata."""
     if 'SliceTiming' in metadata:
-        slice_order = ' in {0} order'.format(get_slice_info(metadata['SliceTiming']))
+        slice_order = ' in {0} order'.format(get_slice_info(metadata['SliceTiming']))  # noqa: UP030
         n_slices = len(metadata['SliceTiming'])
     else:
         slice_order = ''
@@ -90,7 +90,7 @@ def describe_echo_times(files):
 
     """
     echo_times = [f.get_metadata()['EchoTime'] for f in files]
-    echo_times = sorted(list(set(echo_times)))
+    echo_times = sorted(list(set(echo_times)))  # noqa: C414
     if len(echo_times) > 1:
         te = [num_to_str(t * 1000) for t in echo_times]
         te = list_to_str(te)
@@ -120,8 +120,8 @@ def describe_echo_times_fmap(files):
 
     echo_times1 = [f.get_metadata()['EchoTime1'] for f in files]
     echo_times2 = [f.get_metadata()['EchoTime2'] for f in files]
-    echo_times1 = sorted(list(set(echo_times1)))
-    echo_times2 = sorted(list(set(echo_times2)))
+    echo_times1 = sorted(list(set(echo_times1)))  # noqa: C414
+    echo_times2 = sorted(list(set(echo_times2)))  # noqa: C414
     if len(echo_times1) <= 1 and len(echo_times2) <= 1:
         # if that's not the case we should probably throw a warning
         # because we should expect the same echo times for all values
@@ -278,7 +278,7 @@ def get_slice_info(slice_times) -> str:
 
     else:
         slice_order = [str(s) for s in slice_order]
-        raise Exception('Unknown slice order: [{0}]'.format(', '.join(slice_order)))
+        raise Exception('Unknown slice order: [{0}]'.format(', '.join(slice_order)))  # noqa: UP030
 
     return slice_order_name
 

@@ -229,8 +229,8 @@ class Config(Base):
             )
             try:
                 bids_schema = bidsschema.load_schema(schema_url)
-            except Exception as e:
-                raise ValueError(
+            except Exception as e:  # noqa: BLE001
+                raise ValueError(  # noqa: B904
                     f'Failed to load BIDS schema version {schema_version}. '
                     f'Check that the version exists at {schema_url}. '
                     f'Error: {e}'
@@ -287,7 +287,7 @@ class Config(Base):
             'common': bids_schema.rules.files.common,
         }
 
-        for section_type, sections in file_sections.items():
+        for section_type, sections in file_sections.items():  # noqa: B007
             for section_name in sections.keys():
                 section_rules = getattr(sections, section_name)
                 for rule_name in section_rules.keys():
@@ -373,7 +373,7 @@ class Config(Base):
             'common': bids_schema.rules.files.common,
         }
 
-        for section_type, sections in file_sections.items():
+        for section_type, sections in file_sections.items():  # noqa: B007
             for section_name in sections.keys():
                 section_rules = getattr(sections, section_name)
                 for rule_name in section_rules.keys():
@@ -446,7 +446,7 @@ class BIDSFile(Base):
         return self.path
 
     @property
-    @lru_cache
+    @lru_cache  # noqa: B019
     def relpath(self):
         """Return path relative to layout root"""
         root = object_session(self).query(LayoutInfo).first().root
@@ -580,9 +580,9 @@ class BIDSFile(Base):
             path = UPath(root) / self._path
 
         if not path.exists():
-            raise ValueError("Target filename to copy/symlink (%s) doesn't exist." % path)
+            raise ValueError("Target filename to copy/symlink (%s) doesn't exist." % path)  # noqa: UP031
 
-        kwargs = dict(path=new_filename, root=root, conflicts=conflicts)
+        kwargs = dict(path=new_filename, root=root, conflicts=conflicts)  # noqa: C408
         if symbolic_link:
             kwargs['link_to'] = path
         else:
@@ -697,7 +697,7 @@ class BIDSJSONFile(BIDSFile):
         d = json.loads(self.get_json())
         if not isinstance(d, dict):
             raise ValueError(
-                'File %s is a json containing %s, not a dict which was expected'
+                'File %s is a json containing %s, not a dict which was expected'  # noqa: UP031
                 % (self.path, type(d))
             )
         return d
@@ -765,7 +765,7 @@ class Entity(Base):
         if self._dtype == 'int':
             self.dtype = PaddedInt
         else:
-            self.dtype = eval(self._dtype)
+            self.dtype = eval(self._dtype)  # noqa: S307
         self.regex = re.compile(self.pattern) if self.pattern is not None else None
 
     def __iter__(self):
@@ -947,7 +947,7 @@ def _create_tag_dict(file, entity, value, dtype=None, is_metadata=False):
     return data
 
 
-class FileAssociation(Base):
+class FileAssociation(Base):  # noqa: D101
     __tablename__ = 'associations'
 
     src = Column(String, ForeignKey('files.path'), primary_key=True)
@@ -964,7 +964,7 @@ config_to_entity_map = Table(
 )
 
 
-class DerivativeDatasets(UserDict):
+class DerivativeDatasets(UserDict):  # noqa: D101
     def __getitem__(self, key):
         try:
             return super().__getitem__(key)
@@ -973,7 +973,7 @@ class DerivativeDatasets(UserDict):
 
         try:
             result = self.get_pipeline(key)
-            warnings.warn(
+            warnings.warn(  # noqa: B028
                 'Directly selecting derivative datasets using '
                 'pipeline name (i.e. dataset.derivatives[<pipeline_name>] will be '
                 'phased out in an upcoming release. Select instead using the folder '
@@ -988,7 +988,7 @@ class DerivativeDatasets(UserDict):
                 'a dataset file name.'
             ) from err
 
-    def get_pipeline(self, pipeline):
+    def get_pipeline(self, pipeline):  # noqa: D102
         matches = {
             (name, dataset)
             for name, dataset in self.data.items()

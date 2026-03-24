@@ -1,4 +1,4 @@
-# Backwards compatibility
+# Backwards compatibility  # noqa: D104
 from bids_validator import BIDSValidator
 
 from .index import BIDSLayoutIndexer

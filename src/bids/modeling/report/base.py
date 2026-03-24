@@ -1,4 +1,4 @@
-import datetime
+import datetime  # noqa: D100
 import os
 from pathlib import Path
 
@@ -83,7 +83,7 @@ def _build_report_dict(graph):
         'model': graph.model,
         'nodes': [],
         'version': bids_version,
-        'timestamp': datetime.datetime.now(),
+        'timestamp': datetime.datetime.now(),  # noqa: DTZ005
         'graph_plot': graph.write_graph(format='svg', pipe=True),
     }
 
@@ -91,7 +91,7 @@ def _build_report_dict(graph):
         report['dataset']['doi'] = graph.layout.description['DatasetDOI']
 
     all_entities = graph.layout.get_entities(metadata=True)
-    for name, node in graph.nodes.items():
+    for name, node in graph.nodes.items():  # noqa: B007
         report['nodes'].append(_build_node_dict(node, all_entities))
 
     # Get subjects hackily
@@ -106,7 +106,7 @@ def _write_report(report_dict, out_dir, template_path=None):
     try:
         import jinja2
     except ImportError:
-        raise ImportError(
+        raise ImportError(  # noqa: B904
             'Jinja2 must be installed to generate reports. '
             'You can install it with pip install jinja2.'
         )
@@ -118,7 +118,7 @@ def _write_report(report_dict, out_dir, template_path=None):
         loader = jinja2.FileSystemLoader(os.path.dirname(template_path))
         template_file = os.path.basename(template_path)
 
-    tpl = jinja2.Environment(loader=loader).get_template(template_file)
+    tpl = jinja2.Environment(loader=loader).get_template(template_file)  # noqa: S701
 
     model = snake_to_camel(report_dict['model']['name'])
     out_path = Path(out_dir)

@@ -1,4 +1,4 @@
-from .auto_model import auto_model
+from .auto_model import auto_model  # noqa: D104
 from .statsmodels import (
     BIDSStatsModelsEdge,
     BIDSStatsModelsGraph,

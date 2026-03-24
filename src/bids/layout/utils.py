@@ -18,7 +18,7 @@ class BIDSMetadata(dict):
         try:
             return super().__getitem__(key)
         except KeyError:
-            raise KeyError(f'Metadata term {key!r} unavailable for file {self._source_file}.')
+            raise KeyError(f'Metadata term {key!r} unavailable for file {self._source_file}.')  # noqa: B904
 
 
 class PaddedInt(int):

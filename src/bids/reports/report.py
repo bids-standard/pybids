@@ -99,8 +99,8 @@ class BIDSReport:
         """
         descriptions = []
 
-        subjects = sorted(list(set([f.get_entities().get('subject') for f in files])))
-        sessions = sorted(list(set([f.get_entities().get('session') for f in files])))
+        subjects = sorted(list(set([f.get_entities().get('subject') for f in files])))  # noqa: C403, C414
+        sessions = sorted(list(set([f.get_entities().get('session') for f in files])))  # noqa: C403, C414
         for sub in subjects:
             subject_files = [f for f in files if f.get_entities().get('subject') == sub]
             description_list = []
@@ -179,7 +179,7 @@ class BIDSReport:
         print(utils.reminder())
         return counter
 
-    def _report_subject(self, subject, **kwargs):
+    def _report_subject(self, subject, **kwargs):  # noqa: D417
         """Write a report for a single subject.
 
         Parameters

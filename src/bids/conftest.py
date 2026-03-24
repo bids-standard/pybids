@@ -1,4 +1,5 @@
-"""This module allows you to mock the config file as needed.
+# ruff: noqa: D404
+"""This module allows you to mock the config file as needed.  # noqa: D404
 A default fixture that simply returns a safe-to-modify copy of
 the default value is provided.
 This can be overridden by parametrizing over the option you wish to
@@ -21,21 +22,21 @@ from upath import UPath as Path
 
 
 @pytest.fixture
-def config_paths():
+def config_paths():  # noqa: D103
     import bids.config
 
     return bids.config.get_option('config_paths').copy()
 
 
 @pytest.fixture
-def extension_initial_dot():
+def extension_initial_dot():  # noqa: D103
     import bids.config
 
     return bids.config.get_option('extension_initial_dot')
 
 
 @pytest.fixture
-def mock_config(config_paths, extension_initial_dot):
+def mock_config(config_paths, extension_initial_dot):  # noqa: D103
     import bids.config
 
     with patch.dict('bids.config._settings'):
@@ -45,7 +46,7 @@ def mock_config(config_paths, extension_initial_dot):
 
 
 @pytest.fixture(scope='session')
-def bids_examples():
+def bids_examples():  # noqa: D103
     examples_dir = Path(
         os.getenv(
             'BIDS_EXAMPLES', Path(__file__).absolute().parent.parent.parent / 'bids-examples'
@@ -61,7 +62,7 @@ def bids_examples():
 
 
 @pytest.fixture(scope='session')
-def tests_dir():
+def tests_dir():  # noqa: D103
     test_dir = Path(
         os.getenv('PYBIDS_TEST_DATA', Path(__file__).absolute().parent.parent.parent / 'tests')
     )

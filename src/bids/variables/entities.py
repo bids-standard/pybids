@@ -76,7 +76,7 @@ class RunNode(Node):
         self.n_vols = n_vols
         super().__init__('run', entities)
 
-    def get_info(self):
+    def get_info(self):  # noqa: D102
         # Note: do not remove the dict() call! self.entities is a SQLAlchemy
         # association_proxy mapping, and without the conversion, the connection
         # to the DB persists, causing problems on Python 3.5 if we try to clone

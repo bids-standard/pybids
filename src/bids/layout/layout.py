@@ -187,7 +187,7 @@ class BIDSLayout:
             # back to a default
             config = listify(config if config else default_config)
 
-            init_args = dict(root=root, derivatives=derivatives, config=config)
+            init_args = dict(root=root, derivatives=derivatives, config=config)  # noqa: C408
 
             self.connection_manager = ConnectionManager(
                 database_path, reset_database, config, init_args
@@ -217,7 +217,7 @@ class BIDSLayout:
             )
 
     @property
-    def root(self):
+    def root(self):  # noqa: D102
         return str(self._root)
 
     def __getattr__(self, key):
@@ -240,7 +240,7 @@ class BIDSLayout:
             return partial(self.get, return_type='id', target=ent_name)
         # Spit out default message if we get this far
         raise AttributeError(
-            '%s object has no attribute named %r' % (self.__class__.__name__, key)
+            '%s object has no attribute named %r' % (self.__class__.__name__, key)  # noqa: UP031
         )
 
     def __repr__(self):
@@ -255,7 +255,7 @@ class BIDSLayout:
         )
 
         n_sessions = len(
-            set(
+            set(  # noqa: C401
                 (t.value, t.file.entities.get('subject'))
                 for t in self.session.query(Tag).filter_by(entity_name='session')
                 if t.file.entities.get('subject')
@@ -263,7 +263,7 @@ class BIDSLayout:
         )
 
         n_runs = len(
-            set(
+            set(  # noqa: C401
                 (t.value, t.file.entities.get('subject'))
                 for t in self.session.query(Tag).filter_by(entity_name='run')
                 if isinstance(t.value, int) and t.file.entities.get('subject')
@@ -314,7 +314,7 @@ class BIDSLayout:
             layouts = [collect_layouts(d) for d in children]
             return [layout] + list(chain(*layouts))
 
-        layouts = [l for l in collect_layouts(self) if l._in_scope(scope)]
+        layouts = [l for l in collect_layouts(self) if l._in_scope(scope)]  # noqa: E741
         return list(set(layouts))
 
     def _sanitize_query_dtypes(self, entities):
@@ -334,17 +334,17 @@ class BIDSLayout:
                     ]
                 else:
                     entities[name] = ents[name]._astype(val)
-            except Exception:
+            except Exception:  # noqa: BLE001, S110
                 pass
         return entities
 
     @property
-    def session(self):
+    def session(self):  # noqa: D102
         return self.connection_manager.session
 
     @property
-    @lru_cache
-    def config(self):
+    @lru_cache  # noqa: B019
+    def config(self):  # noqa: D102
         return {c.name: c for c in self.session.query(Config).all()}
 
     @property
@@ -433,7 +433,7 @@ class BIDSLayout:
         # TODO: memoize results
         layouts = self._get_layouts_in_scope(scope)
         entities = {}
-        for l in layouts:
+        for l in layouts:  # noqa: E741
             query = l.session.query(Entity)
             if metadata is not None:
                 query = query.join(Tag).filter_by(is_metadata=metadata)
@@ -545,7 +545,7 @@ class BIDSLayout:
         # TODO: memoize results
         layouts = self._get_layouts_in_scope(scope)
         files = {}
-        for l in layouts:
+        for l in layouts:  # noqa: E741
             results = l.session.query(BIDSFile).all()
             files.update({f.path: f for f in results})
         return files
@@ -590,7 +590,7 @@ class BIDSLayout:
         # If either entities or config is specified, just pass through
         if entities is None and config is None:
             layouts = self._get_layouts_in_scope(scope)
-            config = chain(*[list(l.config.values()) for l in layouts])
+            config = chain(*[list(l.config.values()) for l in layouts])  # noqa: E741
             config = list(set(config))
 
         return parse_file_entities(filename, entities, config, include_unmatched)
@@ -637,7 +637,7 @@ class BIDSLayout:
             parent_database_path = Path(parent_database_path)
         deriv_paths = list(self._get_derivative_dirs(paths))
         if not deriv_paths:
-            warnings.warn(
+            warnings.warn(  # noqa: B028
                 'Derivative indexing was requested, but no valid '
                 'datasets were found in the specified locations '
                 f'({paths}). Note that all BIDS-Derivatives datasets must'
@@ -645,7 +645,7 @@ class BIDSLayout:
                 '(a common problem is to fail to include a '
                 "'dataset_description.json' file in derivatives "
                 'datasets).\n'
-                + "Example contents of 'dataset_description.json':\n%s"
+                + "Example contents of 'dataset_description.json':\n%s"  # noqa: UP031
                 % json.dumps(EXAMPLE_DERIVATIVES_DESCRIPTION)
             )
 
@@ -686,7 +686,7 @@ class BIDSLayout:
         try:
             import pandas as pd
         except ImportError:
-            raise ImportError('Missing dependency: "pandas"')
+            raise ImportError('Missing dependency: "pandas"')  # noqa: B904
 
         # TODO: efficiency could probably be improved further by joining the
         # BIDSFile and Tag tables and running a single query. But this would
@@ -712,7 +712,7 @@ class BIDSLayout:
 
         return data.reset_index()
 
-    def get(
+    def get(  # noqa: D417
         self,
         return_type='object',
         target=None,
@@ -844,7 +844,7 @@ class BIDSLayout:
             )
 
         results = []
-        for l in layouts:
+        for l in layouts:  # noqa: E741
             query = l._build_file_query(filters=filters, regex_search=regex_search)
             # NOTE: The following line, when uncommented, eager loads
             # associations. This was introduced in order to prevent sessions
@@ -888,19 +888,19 @@ class BIDSLayout:
                     template = entities[target].directory
                     if template is None:
                         raise ValueError(
-                            'Return type set to directory, but no '
+                            'Return type set to directory, but no '  # noqa: UP031
                             'directory template is defined for the '
                             'target entity ("%s").' % target
                         )
                     # Construct regex search pattern from target directory template
-                    # On Windows, the regex won't compile if, e.g., there is a folder starting with "U" on the path.
+                    # On Windows, the regex won't compile if, e.g., there is a folder starting with "U" on the path.  # noqa: E501
                     # Converting to a POSIX path with forward slashes solves this.
                     template = self._root.as_posix() + template
                     to_rep = re.findall(r'{(.*?)\}', template)
                     for ent in to_rep:
                         patt = entities[ent].pattern
-                        template = template.replace('{%s}' % ent, patt)
-                    # Avoid matching subfolders. We are working with POSIX paths here, so we explicitly use "/"
+                        template = template.replace('{%s}' % ent, patt)  # noqa: UP031
+                    # Avoid matching subfolders. We are working with POSIX paths here, so we explicitly use "/"  # noqa: E501
                     # as path separator.
                     template += r'[^/]*$'
                     matches = [
@@ -1135,9 +1135,9 @@ class BIDSLayout:
         layouts = self._get_layouts_in_scope(scope)
         if not all_:
             return layouts[0].get_file('dataset_description.json').get_dict()
-        return [l.get_file('dataset_description.json').get_dict() for l in layouts]
+        return [l.get_file('dataset_description.json').get_dict() for l in layouts]  # noqa: E741
 
-    def get_nearest(
+    def get_nearest(  # noqa: D417
         self,
         path,
         return_type='filename',
@@ -1179,7 +1179,7 @@ class BIDSLayout:
             f = self.get_file(path)
             if 'suffix' not in f.entities:
                 raise BIDSValidationError(
-                    "File '%s' does not have a valid suffix, most "
+                    "File '%s' does not have a valid suffix, most "  # noqa: UP031
                     'likely because it is not a valid BIDS file.' % path
                 )
             filters['suffix'] = f.entities['suffix']
@@ -1290,9 +1290,9 @@ class BIDSLayout:
             metadata = self.get_metadata(file.path)
             if metadata and 'IntendedFor' in metadata.keys():
                 intended_for = listify(metadata['IntendedFor'])
-                # path uses local os separators while _suff read from json likely uses author's os separators, so we
+                # path uses local os separators while _suff read from json likely uses author's os separators, so we  # noqa: E501
                 # convert _suff to use local separators.
-                if any([path.endswith(str(Path(_suff))) for _suff in intended_for]):
+                if any([path.endswith(str(Path(_suff))) for _suff in intended_for]):  # noqa: C419
                     cur_fieldmap = {}
                     if file.entities['suffix'] == 'phasediff':
                         cur_fieldmap = {
@@ -1427,7 +1427,7 @@ class BIDSLayout:
             layouts = self._get_layouts_in_scope(scope)
             path_patterns = []
             seen_configs = set()
-            for l in layouts:
+            for l in layouts:  # noqa: E741
                 for c in l.config.values():
                     if c in seen_configs:
                         continue
@@ -1501,7 +1501,7 @@ class BIDSLayout:
         for f in _files:
             f.copy(path_patterns, symbolic_link=symbolic_links, root=root, conflicts=conflicts)
 
-    def write_to_file(
+    def write_to_file(  # noqa: D417
         self,
         entities,
         path_patterns=None,

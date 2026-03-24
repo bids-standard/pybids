@@ -59,43 +59,43 @@ from typing import (
 )
 
 
-class UnknownClassicalModeError(Exception):
+class UnknownClassicalModeError(Exception):  # noqa: D101
     pass
 
 
-class BadNumValueError(Exception):
+class BadNumValueError(Exception):  # noqa: D101
     pass
 
 
-class BadChunkingOptionError(Exception):
+class BadChunkingOptionError(Exception):  # noqa: D101
     pass
 
 
-class NumOutOfRangeError(Exception):
+class NumOutOfRangeError(Exception):  # noqa: D101
     pass
 
 
-class BadUserDefinedPatternError(Exception):
+class BadUserDefinedPatternError(Exception):  # noqa: D101
     pass
 
 
-class BadRcFileError(Exception):
+class BadRcFileError(Exception):  # noqa: D101
     pass
 
 
-class BadGenderError(Exception):
+class BadGenderError(Exception):  # noqa: D101
     pass
 
 
 STDOUT_ON = False
 
 
-def print3(txt: str) -> None:
+def print3(txt: str) -> None:  # noqa: D103
     if STDOUT_ON:
         print(txt)
 
 
-def enclose(s: str) -> str:
+def enclose(s: str) -> str:  # noqa: D103
     return f'(?:{s})'
 
 
@@ -1681,7 +1681,7 @@ si_pron_acc_keys = enclose('|'.join(si_pron['acc']))
 si_pron_acc_keys_bysize = bysize(si_pron['acc'])
 
 
-def get_si_pron(thecase, word, gender) -> str:
+def get_si_pron(thecase, word, gender) -> str:  # noqa: D103
     try:
         sing = si_pron[thecase][word]
     except KeyError:
@@ -1701,66 +1701,66 @@ plverb_irregular_pres = {
     'is': 'are',
     'was': 'were',
     'were': 'were',
-    'was': 'were',
+    'was': 'were',  # noqa: F601
     'have': 'have',
-    'have': 'have',
+    'have': 'have',  # noqa: F601
     'has': 'have',
     'do': 'do',
-    'do': 'do',
+    'do': 'do',  # noqa: F601
     'does': 'do',
 }
 
 plverb_ambiguous_pres = {
     'act': 'act',
-    'act': 'act',
+    'act': 'act',  # noqa: F601
     'acts': 'act',
     'blame': 'blame',
-    'blame': 'blame',
+    'blame': 'blame',  # noqa: F601
     'blames': 'blame',
     'can': 'can',
-    'can': 'can',
-    'can': 'can',
+    'can': 'can',  # noqa: F601
+    'can': 'can',  # noqa: F601
     'must': 'must',
-    'must': 'must',
-    'must': 'must',
+    'must': 'must',  # noqa: F601
+    'must': 'must',  # noqa: F601
     'fly': 'fly',
-    'fly': 'fly',
+    'fly': 'fly',  # noqa: F601
     'flies': 'fly',
     'copy': 'copy',
-    'copy': 'copy',
+    'copy': 'copy',  # noqa: F601
     'copies': 'copy',
     'drink': 'drink',
-    'drink': 'drink',
+    'drink': 'drink',  # noqa: F601
     'drinks': 'drink',
     'fight': 'fight',
-    'fight': 'fight',
+    'fight': 'fight',  # noqa: F601
     'fights': 'fight',
     'fire': 'fire',
-    'fire': 'fire',
+    'fire': 'fire',  # noqa: F601
     'fires': 'fire',
     'like': 'like',
-    'like': 'like',
+    'like': 'like',  # noqa: F601
     'likes': 'like',
     'look': 'look',
-    'look': 'look',
+    'look': 'look',  # noqa: F601
     'looks': 'look',
     'make': 'make',
-    'make': 'make',
+    'make': 'make',  # noqa: F601
     'makes': 'make',
     'reach': 'reach',
-    'reach': 'reach',
+    'reach': 'reach',  # noqa: F601
     'reaches': 'reach',
     'run': 'run',
-    'run': 'run',
+    'run': 'run',  # noqa: F601
     'runs': 'run',
     'sink': 'sink',
-    'sink': 'sink',
+    'sink': 'sink',  # noqa: F601
     'sinks': 'sink',
     'sleep': 'sleep',
-    'sleep': 'sleep',
+    'sleep': 'sleep',  # noqa: F601
     'sleeps': 'sleep',
     'view': 'view',
-    'view': 'view',
+    'view': 'view',  # noqa: F601
     'views': 'view',
 }
 
@@ -1869,7 +1869,7 @@ nth = {
 }
 nth_suff = set(nth.values())
 
-ordinal = dict(
+ordinal = dict(  # noqa: C408
     ty='tieth',
     one='first',
     two='second',
@@ -1928,7 +1928,7 @@ mill = [
 
 # SUPPORT CLASSICAL PLURALIZATIONS
 
-def_classical = dict(all=False, zero=False, herd=False, names=True, persons=False, ancient=False)
+def_classical = dict(all=False, zero=False, herd=False, names=True, persons=False, ancient=False)  # noqa: C408
 
 all_classical = dict.fromkeys(def_classical, True)
 no_classical = dict.fromkeys(def_classical, False)
@@ -1998,7 +1998,7 @@ PRESENT_PARTICIPLE_REPLACEMENTS = (
 DIGIT = re.compile(r'\d')
 
 
-class Words(str):
+class Words(str):  # noqa: D101
     lowered: str
     split_: list[str]
     first: str
@@ -2011,7 +2011,7 @@ class Words(str):
         self.last = self.split_[-1]
 
 
-class engine:
+class engine:  # noqa: D101
     def __init__(self) -> None:
         self.classical_dict = def_classical.copy()
         self.persistent_count: int | None = None
@@ -2032,7 +2032,7 @@ class engine:
     def _number_args(self, val):
         self.__number_args = val
 
-    deprecated_methods = dict(
+    deprecated_methods = dict(  # noqa: C408
         pl='plural',
         plnoun='plural_noun',
         plverb='plural_verb',
@@ -2103,13 +2103,13 @@ class engine:
             re.match(pattern, '')
         except re.error:
             print3(f'\nBad user-defined singular pattern:\n\t{pattern}\n')
-            raise BadUserDefinedPatternError
+            raise BadUserDefinedPatternError  # noqa: B904
 
     def checkpatplural(self, pattern: str) -> None:
         """Check for errors in a regex replace pattern"""
         return
 
-    def ud_match(self, word: str, wordlist: list[str]) -> str | None:
+    def ud_match(self, word: str, wordlist: list[str]) -> str | None:  # noqa: D102
         for i in range(len(wordlist) - 2, -2, -2):  # backwards through even elements
             mo = re.search(rf'^{wordlist[i]}$', word, re.IGNORECASE)
             if mo:
@@ -2164,7 +2164,7 @@ class engine:
             try:
                 self.persistent_count = int(count)
             except ValueError:
-                raise BadNumValueError
+                raise BadNumValueError  # noqa: B904
             if (show is None) or show:
                 return str(count)
         else:
@@ -2271,7 +2271,7 @@ class engine:
 
     # ## PLURAL SUBROUTINES
 
-    def postprocess(self, orig: str, inflected) -> str:
+    def postprocess(self, orig: str, inflected) -> str:  # noqa: D102
         inflected = str(inflected)
         if '|' in inflected:
             word_options = inflected.split('|')
@@ -2301,7 +2301,7 @@ class engine:
                 result[index] = result[index].upper()
         return ' '.join(result)
 
-    def partition_word(self, text: str) -> tuple[str, str, str]:
+    def partition_word(self, text: str) -> tuple[str, str, str]:  # noqa: D102
         mo = PARTITION_WORD.search(text)
         if mo:
             return mo.group(1), mo.group(2), mo.group(3)
@@ -2558,7 +2558,7 @@ class engine:
             )
         )
 
-    def get_count(self, count: str | int | None = None) -> str | int:
+    def get_count(self, count: str | int | None = None) -> str | int:  # noqa: D102
         if count is None and self.persistent_count is not None:
             count = self.persistent_count
 
@@ -2889,7 +2889,7 @@ class engine:
         try:
             return next(pivots)
         except StopIteration:
-            raise ValueError('No pivot found')
+            raise ValueError('No pivot found')  # noqa: B904
 
     def _pl_special_verb(  # noqa: C901
         self, word: str, count: str | int | None = None
@@ -3045,7 +3045,7 @@ class engine:
             elif gender not in singular_pronoun_genders:
                 raise BadGenderError
         except (TypeError, IndexError):
-            raise BadGenderError
+            raise BadGenderError  # noqa: B904
 
         # HANDLE USER-DEFINED NOUNS
 
@@ -3515,16 +3515,16 @@ class engine:
                 rval = f'{str_num}th'
             return rval
 
-    def millfn(self, ind: int = 0) -> str:
+    def millfn(self, ind: int = 0) -> str:  # noqa: D102
         if ind > len(mill) - 1:
             print3('number out of range')
             raise NumOutOfRangeError
         return mill[ind]
 
-    def unitfn(self, units: int, mindex: int = 0) -> str:
+    def unitfn(self, units: int, mindex: int = 0) -> str:  # noqa: D102
         return f'{unit[units]}{self.millfn(mindex)}'
 
-    def tenfn(self, tens, units, mindex=0) -> str:
+    def tenfn(self, tens, units, mindex=0) -> str:  # noqa: D102
         if tens != 1:
             tens_part = ten[tens]
             if tens and units:
@@ -3536,7 +3536,7 @@ class engine:
             return f'{tens_part}{hyphen}{unit_part}{mill_part}'
         return f'{teen[units]}{mill[mindex]}'
 
-    def hundfn(self, hundreds: int, tens: int, units: int, mindex: int) -> str:
+    def hundfn(self, hundreds: int, tens: int, units: int, mindex: int) -> str:  # noqa: D102
         if hundreds:
             andword = f' {self._number_args["andword"]} ' if tens or units else ''
             # use unit not unitfn as simpler
@@ -3548,7 +3548,7 @@ class engine:
             return f'{self.tenfn(tens, units)}{self.millfn(mindex)}, '
         return ''
 
-    def group1sub(self, mo: Match) -> str:
+    def group1sub(self, mo: Match) -> str:  # noqa: D102
         units = int(mo.group(1))
         if units == 1:
             return f' {self._number_args["one"]}, '
@@ -3557,14 +3557,14 @@ class engine:
         else:
             return f' {self._number_args["zero"]}, '
 
-    def group1bsub(self, mo: Match) -> str:
+    def group1bsub(self, mo: Match) -> str:  # noqa: D102
         units = int(mo.group(1))
         if units:
             return f'{unit[units]}, '
         else:
             return f' {self._number_args["zero"]}, '
 
-    def group2sub(self, mo: Match) -> str:
+    def group2sub(self, mo: Match) -> str:  # noqa: D102
         tens = int(mo.group(1))
         units = int(mo.group(2))
         if tens:
@@ -3573,7 +3573,7 @@ class engine:
             return f' {self._number_args["zero"]} {unit[units]}, '
         return f' {self._number_args["zero"]} {self._number_args["zero"]}, '
 
-    def group3sub(self, mo: Match) -> str:
+    def group3sub(self, mo: Match) -> str:  # noqa: D102
         hundreds = int(mo.group(1))
         tens = int(mo.group(2))
         units = int(mo.group(3))
@@ -3591,18 +3591,18 @@ class engine:
             tenword = f' {self._number_args["zero"]} {self._number_args["zero"]}'
         return f'{hunword} {tenword}, '
 
-    def hundsub(self, mo: Match) -> str:
+    def hundsub(self, mo: Match) -> str:  # noqa: D102
         ret = self.hundfn(int(mo.group(1)), int(mo.group(2)), int(mo.group(3)), self.mill_count)
         self.mill_count += 1
         return ret
 
-    def tensub(self, mo: Match) -> str:
+    def tensub(self, mo: Match) -> str:  # noqa: D102
         return f'{self.tenfn(int(mo.group(1)), int(mo.group(2)), self.mill_count)}, '
 
-    def unitsub(self, mo: Match) -> str:
+    def unitsub(self, mo: Match) -> str:  # noqa: D102
         return f'{self.unitfn(int(mo.group(1)), self.mill_count)}, '
 
-    def enword(self, num: str, group: int) -> str:
+    def enword(self, num: str, group: int) -> str:  # noqa: D102
         # import pdb
         # pdb.set_trace()
 

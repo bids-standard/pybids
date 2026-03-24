@@ -17,7 +17,7 @@ from bids.variables import SparseRunVariable
 from bids.variables.collections import BIDSVariableCollection
 
 
-class Transformation(metaclass=ABCMeta):
+class Transformation(metaclass=ABCMeta):  # noqa: D101
     ### Class-level settings ###
     # The following settings govern the way Transformations are applied to the
     # data. The default settings can be overridden within subclasses.
@@ -97,7 +97,7 @@ class Transformation(metaclass=ABCMeta):
     # every input variable.
     _sync_kwargs = True
 
-    def __new__(cls, collection, variables, *args, **kwargs):
+    def __new__(cls, collection, variables, *args, **kwargs):  # noqa: D102
         t = super().__new__(cls)
         t._setup(collection, variables, *args, **kwargs)
         return t.transform()
@@ -233,14 +233,14 @@ class Transformation(metaclass=ABCMeta):
                 sr = self.collection.sampling_rate
                 self._variables[v] = var.to_dense(sr)
 
-    def transform(self):
+    def transform(self):  # noqa: D102
         output_passed = not (
             self.output is None and self.output_prefix is None and self.output_suffix is None
         )
 
         if not output_passed and self._output_required:
             raise ValueError(
-                "Transformation '%s' requires output names to be "
+                "Transformation '%s' requires output names to be "  # noqa: UP031
                 "provided. Please set at least one of 'output',"
                 "'output_prefix', or 'output_suffix'." % self.__class__.__name__
             )
@@ -389,7 +389,7 @@ class Transformation(metaclass=ABCMeta):
 
                 # Compare 1st col with each of the others
                 fc = get_col_data(variables[0])
-                if not all([compare_variables(fc, get_col_data(c)) for c in variables[1:]]):
+                if not all([compare_variables(fc, get_col_data(c)) for c in variables[1:]]):  # noqa: C419
                     if self._aligned_required == 'force_dense':
                         msg = (
                             'Forcing all sparse variables to dense in '
@@ -424,7 +424,7 @@ class Transformation(metaclass=ABCMeta):
 
 
 @dataclass
-class TransformationOutput:
+class TransformationOutput:  # noqa: D101
     index: int
     output: BIDSVariableCollection
     transformation_name: str
@@ -520,7 +520,7 @@ class TransformerManager:
             if func is None:
                 if not hasattr(self.default, name):
                     raise ValueError(
-                        "No transformation '%s' found: either "
+                        "No transformation '%s' found: either "  # noqa: UP031
                         'explicitly register a handler, or pass a'
                         ' default module that supports it.' % name
                     )

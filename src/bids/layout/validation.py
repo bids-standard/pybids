@@ -37,12 +37,12 @@ ALWAYS_IGNORE = (
 )
 
 
-def validate_root(root, validate):
+def validate_root(root, validate):  # noqa: D103
     # Validate root argument and make sure it contains mandatory info
     try:
         root = Path(root)
     except TypeError:
-        raise TypeError(
+        raise TypeError(  # noqa: B904
             'root argument must be a pathlib.Path (or a type that '
             'supports casting to pathlib.Path, such as '
             'string) specifying the directory '
@@ -51,13 +51,13 @@ def validate_root(root, validate):
 
     root = root.absolute()
     if not root.exists():
-        raise ValueError('BIDS root does not exist: %s' % root)
+        raise ValueError('BIDS root does not exist: %s' % root)  # noqa: UP031
 
     target = root / 'dataset_description.json'
     if not target.exists():
         if validate:
             raise BIDSValidationError(
-                "'dataset_description.json' is missing from project root."
+                "'dataset_description.json' is missing from project root."  # noqa: UP031
                 ' Every valid BIDS dataset must have this file.'
                 "\nExample contents of 'dataset_description.json': \n%s"
                 % json.dumps(EXAMPLE_BIDS_DESCRIPTION)
@@ -94,7 +94,7 @@ def validate_root(root, validate):
     return root, description
 
 
-def validate_derivative_path(path, **kwargs):
+def validate_derivative_path(path, **kwargs):  # noqa: D103
     # Collect all paths that contain a dataset_description.json
     dd = Path(path) / 'dataset_description.json'
     description = json.loads(dd.read_text(encoding='utf-8'))
@@ -104,7 +104,7 @@ def validate_derivative_path(path, **kwargs):
     if pipeline_names:
         pipeline_name = pipeline_names[0]
     elif 'PipelineDescription' in description:
-        warnings.warn(
+        warnings.warn(  # noqa: B028
             'The PipelineDescription field was superseded '
             'by GeneratedBy in BIDS 1.4.0. You can use '
             '``pybids upgrade`` to update your derivative '
@@ -138,7 +138,7 @@ def _sort_patterns(patterns, root):
     return [Path(p) for p in reversed(paths)] + regexes
 
 
-def validate_indexing_args(ignore, force_index, root):
+def validate_indexing_args(ignore, force_index, root):  # noqa: D103
     if ignore is None:
         ignore = DEFAULT_LOCATIONS_TO_IGNORE - set(force_index or [])
 

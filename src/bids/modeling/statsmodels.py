@@ -20,7 +20,7 @@ from .model_spec import GLMMSpec, MetaAnalysisSpec
 from .report.utils import node_report, snake_to_camel
 
 
-def validate_model(model, *, stacklevel=2):
+def validate_model(model, *, stacklevel=2):  # noqa: D417
     """Validate a BIDS-StatsModel structure.
 
     Parameters
@@ -117,7 +117,7 @@ class BIDSStatsModelsGraph:
         self._root_node = self.model.get('root', list(self.nodes.values())[0])
 
     def __repr__(self):
-        return f"<{self.__class__.__name__}[{{name='{self.model['name']}', description='{self.model['description']}', ... }}]>"
+        return f"<{self.__class__.__name__}[{{name='{self.model['name']}', description='{self.model['description']}', ... }}]>"  # noqa: E501
 
     def __getitem__(self, key):
         """Alias for get_node(key)."""
@@ -189,7 +189,7 @@ class BIDSStatsModelsGraph:
             raise KeyError(f'There is no node with the name "{name}".')
         return self.nodes[name]
 
-    def load_collections(self, nodes=None, drop_na=False, **kwargs):
+    def load_collections(self, nodes=None, drop_na=False, **kwargs):  # noqa: D417
         """Load collections in all nodes.
 
         Parameters
@@ -222,7 +222,7 @@ class BIDSStatsModelsGraph:
             collections = self.layout.get_collections(node.level, drop_na=drop_na, **node_kwargs)
             node.add_collections(collections)
 
-    def write_graph(self, dotfilename='graph.dot', format='png', pipe=False):
+    def write_graph(self, dotfilename='graph.dot', format='png', pipe=False):  # noqa: A002, D417
         """Generates a graphviz dot file and a png file
 
         Parameters
@@ -276,7 +276,7 @@ def _run_node_recursive(node, inputs=None, filters=None, **kwargs):
     BIDSStatsModelsNode.outputs_.
 
     """
-    if filters == None:
+    if filters == None:  # noqa: E711
         filters = {}
 
     # Run node
@@ -360,7 +360,7 @@ class BIDSStatsModelsNode:
                     'https://github.com/bids-standard/pybids/issues/852.'
                 )
         except KeyError:
-            # We talked about X being required, I don't know if we want to throw an error over that requirement here
+            # We talked about X being required, I don't know if we want to throw an error over that requirement here  # noqa: E501
             # though.
             pass
 
@@ -412,7 +412,7 @@ class BIDSStatsModelsNode:
         df = pd.DataFrame.from_records(entities)
 
         # Separate BIDSVariableCollections
-        collections = [obj.to_df() for obj in objects if type(obj) == BIDSVariableCollection]
+        collections = [obj.to_df() for obj in objects if type(obj) == BIDSVariableCollection]  # noqa: E721
         if collections:
             metadata_vars = reduce(pd.DataFrame.merge, collections)
             on_vars = list({'subject', 'session', 'run'} & set(metadata_vars.columns))
@@ -453,7 +453,7 @@ class BIDSStatsModelsNode:
             if missing:
                 product = itertools.product(*[unique_vals[col] for col in missing])
                 for perm in product:
-                    fill_ents = [(k, v) for (k, v) in dict(zip(missing, perm)).items()]
+                    fill_ents = [(k, v) for (k, v) in dict(zip(missing, perm)).items()]  # noqa: B905
                     records.append(base_ents + fill_ents)
             else:
                 records.append(base_ents)
@@ -643,7 +643,7 @@ class BIDSStatsModelsNode:
         return [c for c in self._collections if matches_entities(c, filters)]
 
 
-def expand_wildcards(selectors, pool):
+def expand_wildcards(selectors, pool):  # noqa: D103
     out = list(selectors)
     for spec in selectors:
         if re.search(r'[\*\?\[\]]', spec):
@@ -706,7 +706,7 @@ class BIDSStatsModelsNodeOutput:
     def __init__(
         self,
         node,
-        entities={},
+        entities={},  # noqa: B006
         collections=None,
         inputs=None,
         force_dense=True,
@@ -966,7 +966,7 @@ class BIDSStatsModelsNodeOutput:
                     raise ValueError(msg)
                 elif self.invalid_contrasts == 'drop':
                     continue
-            weights = np.atleast_2d(con['weights'])
+            weights = np.atleast_2d(con['weights'])  # noqa: F841
 
             # Add contrast name to entities; can be used in grouping downstream
             entities = {**self.entities, 'contrast': name}

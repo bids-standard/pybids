@@ -1,4 +1,4 @@
-# Configuration file for the Sphinx documentation builder.
+# Configuration file for the Sphinx documentation builder.  # noqa: D100, EXE002
 #
 # This file only contains a selection of the most common options. For a full
 # list see the documentation:
@@ -23,7 +23,7 @@ sys.path.insert(0, os.path.abspath('../'))
 # -- Project information -----------------------------------------------------
 
 project = 'PyBIDS'
-copyright = f'2015-{date.today().year}, Developers of PyBIDS'
+copyright = f'2015-{date.today().year}, Developers of PyBIDS'  # noqa: A001, DTZ011
 author = 'Developers of PyBIDS'
 
 currentdir = os.path.abspath(os.path.dirname(__file__))

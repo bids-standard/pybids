@@ -1,4 +1,4 @@
-import re
+import re  # noqa: D100
 
 
 def dollars_to_math(source):
@@ -34,7 +34,7 @@ def dollars_to_math(source):
     def repl(matchobj):
         global _data
         s = matchobj.group(0)
-        t = '___XXX_REPL_%d___' % len(_data)
+        t = '___XXX_REPL_%d___' % len(_data)  # noqa: UP031
         _data[t] = s
         return t
 
@@ -52,14 +52,14 @@ def dollars_to_math(source):
     source[:] = [s]
 
 
-def process_dollars(app, docname, source):
+def process_dollars(app, docname, source):  # noqa: D103
     dollars_to_math(source)
 
 
-def mathdollar_docstrings(app, what, name, obj, options, lines):
+def mathdollar_docstrings(app, what, name, obj, options, lines):  # noqa: D103
     dollars_to_math(lines)
 
 
-def setup(app):
+def setup(app):  # noqa: D103
     app.connect('source-read', process_dollars)
     app.connect('autodoc-process-docstring', mathdollar_docstrings)

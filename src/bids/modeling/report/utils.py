@@ -1,4 +1,4 @@
-import re
+import re  # noqa: D100
 import warnings
 
 import numpy as np
@@ -18,7 +18,7 @@ def node_report(node_output):
     try:
         from .viz import plot_corr_matrix, plot_design_matrix
     except ImportError:
-        warnings.warn(
+        warnings.warn(  # noqa: B028
             'altair failed to import, and is required for StatsModel report plots.', ImportWarning
         )
     else:
@@ -29,7 +29,7 @@ def node_report(node_output):
     return _report
 
 
-def est_vif(desmat):
+def est_vif(desmat):  # noqa: D417
     """General variance inflation factor estimation.  Calculates VIF for all
     regressors in the design matrix.
 
@@ -57,7 +57,7 @@ def est_vif(desmat):
     return vif_data
 
 
-def get_eff_reg_vif(desmat, contrast_def):
+def get_eff_reg_vif(desmat, contrast_def):  # noqa: D417
     """The goal of this function is to estimate a variance inflation factor for a contrast.
     This is done by extending the effective regressor definition from Smith et al (2007)
     Meaningful design and contrast estimability (NeuroImage).  Regressors involved
@@ -101,7 +101,7 @@ def get_eff_reg_vif(desmat, contrast_def):
     return vif_output
 
 
-def generate_contrast_matrix(contrasts, cols):
+def generate_contrast_matrix(contrasts, cols):  # noqa: D417
     """Generate a contrast matrix from a list of contrast definitions.
 
     Parameters
@@ -117,7 +117,7 @@ def generate_contrast_matrix(contrasts, cols):
     rows = []
     ix = []
     for con in contrasts:
-        vec = cols.map(dict(zip(con.conditions, con.weights))).fillna(0)
+        vec = cols.map(dict(zip(con.conditions, con.weights))).fillna(0)  # noqa: B905
         rows.append(vec.tolist())
         ix.append(con.name)
 
@@ -125,7 +125,7 @@ def generate_contrast_matrix(contrasts, cols):
     return df
 
 
-def get_all_contrast_vif(node_output):
+def get_all_contrast_vif(node_output):  # noqa: D417
     """Calculates the VIF for multiple contrasts
 
     Parameters
@@ -149,7 +149,7 @@ def get_all_contrast_vif(node_output):
     return vif_contrasts
 
 
-def deroot(val, root):
+def deroot(val, root):  # noqa: D103
     if isinstance(val, str):
         if val.startswith(root):
             idx = len(root)
@@ -164,12 +164,12 @@ def deroot(val, root):
     return val
 
 
-def snake_to_camel(string):
+def snake_to_camel(string):  # noqa: D103
     words = string.split('_')
     return words[0] + ''.join(word.title() for word in words[1:])
 
 
-def displayify(contrast_name):
+def displayify(contrast_name):  # noqa: D103
     for match, repl in (('_gt_', ' &gt; '), ('_lt_', ' &lt; '), ('_vs_', ' vs. ')):
         contrast_name = contrast_name.replace(match, repl)
     return contrast_name

@@ -1,4 +1,4 @@
-# For backwards compatibility
+# For backwards compatibility  # noqa: D104
 from bids_validator import BIDSValidator
 
 from .due import Doi, due
@@ -25,6 +25,6 @@ due.cite(
 
 del due, Doi
 
-from . import _version
+from . import _version  # noqa: E402
 
 __version__ = _version.get_versions()['version']

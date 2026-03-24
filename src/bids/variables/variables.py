@@ -55,7 +55,7 @@ class BIDSVariable(metaclass=ABCMeta):
                     data = data.values.reshape(self.values.shape)
                 else:
                     raise ValueError(
-                        'Replacement data has shape %s; must have'
+                        'Replacement data has shape %s; must have'  # noqa: UP031
                         ' same shape as existing data %s.' % (data.shape, self.values.shape)
                     )
             result.values = pd.DataFrame(data)
@@ -151,10 +151,10 @@ class BIDSVariable(metaclass=ABCMeta):
         if len(variables) == 1:
             return variables[0]
 
-        var_names = set([v.name for v in variables])
+        var_names = set([v.name for v in variables])  # noqa: C403
         if len(var_names) > 1:
             raise ValueError(
-                'Columns with different names cannot be merged. '
+                'Columns with different names cannot be merged. '  # noqa: UP031
                 'Column names provided: %s' % var_names
             )
 
@@ -205,7 +205,7 @@ class BIDSVariable(metaclass=ABCMeta):
         grouper = self.get_grouper(groupby)
         return self.values.groupby(grouper, group_keys=False).apply(func, *args, **kwargs)
 
-    def to_df(self, condition=True, entities=True, **kwargs):
+    def to_df(self, condition=True, entities=True, **kwargs):  # noqa: D417
         """Convert to a DataFrame, with columns for name and entities.
 
         Parameters
@@ -317,7 +317,7 @@ class SimpleVariable(BIDSVariable):
         data = data.drop('condition', axis=1)
 
         subsets = []
-        for i, col_name in enumerate(grouper.columns):
+        for i, col_name in enumerate(grouper.columns):  # noqa: B007
             col_data = data.loc[grouper[col_name].astype(bool), :]
             name = f'{self.name}.{col_name}'
             col = self.__class__(
@@ -381,7 +381,7 @@ class SparseRunVariable(SimpleVariable):
         if hasattr(run_info, 'duration'):
             run_info = [run_info]
         if not isinstance(run_info, list):
-            raise TypeError('We expect a list of run_info, got %s' % repr(run_info))
+            raise TypeError('We expect a list of run_info, got %s' % repr(run_info))  # noqa: UP031
         self.run_info = run_info
         for sc in self._property_columns:
             arr = data.pop(sc).values
@@ -505,7 +505,7 @@ class DenseRunVariable(BIDSVariable):
 
         if not isinstance(sampling_rate, (float, int)):
             raise TypeError(
-                'sampling_rate must be a float or integer, not %s' % type(sampling_rate)
+                'sampling_rate must be a float or integer, not %s' % type(sampling_rate)  # noqa: UP031
             )
 
         if hasattr(run_info, 'duration'):
@@ -535,7 +535,7 @@ class DenseRunVariable(BIDSVariable):
         df = pd.DataFrame(values, columns=grouper.columns)
         return [
             DenseRunVariable(
-                name='%s.%s' % (self.name, name),
+                name='%s.%s' % (self.name, name),  # noqa: UP031
                 values=df[name].values,
                 run_info=self.run_info,
                 source=self.source,
@@ -576,7 +576,7 @@ class DenseRunVariable(BIDSVariable):
             all_ents.append(run.entities)
             all_keys.update(run.entities.keys())
 
-        self.timestamps = pd.date_range(0, periods=sum(all_reps), freq='%sms' % interval)
+        self.timestamps = pd.date_range(0, periods=sum(all_reps), freq='%sms' % interval)  # noqa: UP031
 
         return _create_index(all_keys, all_reps, all_ents)
 
@@ -620,11 +620,11 @@ class DenseRunVariable(BIDSVariable):
                 kind=kind,
             )
         )
-        assert len(self.values) == len(self.index)
+        assert len(self.values) == len(self.index)  # noqa: S101
 
         self.sampling_rate = sampling_rate
 
-    def to_df(self, condition=True, entities=True, timing=True, sampling_rate=None):
+    def to_df(self, condition=True, entities=True, timing=True, sampling_rate=None):  # noqa: D417
         """Convert to a DataFrame, with columns for name and entities.
 
         Parameters
@@ -654,7 +654,7 @@ class DenseRunVariable(BIDSVariable):
     @classmethod
     def _merge(cls, variables, name, sampling_rate=None, **kwargs):
         if not isinstance(sampling_rate, int):
-            rates = set([v.sampling_rate for v in variables])
+            rates = set([v.sampling_rate for v in variables])  # noqa: C403
             if len(rates) == 1:
                 sampling_rate = list(rates)[0]
             else:
@@ -662,7 +662,7 @@ class DenseRunVariable(BIDSVariable):
                     sampling_rate = max(rates)
                 else:
                     msg = (
-                        'Cannot merge DenseRunVariables (%s) with different'
+                        'Cannot merge DenseRunVariables (%s) with different'  # noqa: UP031
                         ' sampling rates (%s). Either specify an integer '
                         'sampling rate to use for all variables, or set '
                         "sampling_rate='highest' to use the highest sampling"
@@ -710,17 +710,17 @@ def merge_variables(variables, **kwargs):
       possible to merge two different variables into a single variable.)
 
     """
-    classes = set([v.__class__ for v in variables])
+    classes = set([v.__class__ for v in variables])  # noqa: C403
     if len(classes) > 1:
         raise ValueError(
-            'Variables of different classes cannot be merged. '
+            'Variables of different classes cannot be merged. '  # noqa: UP031
             'Variables passed are of classes: %s' % classes
         )
 
-    sources = set([v.source for v in variables])
+    sources = set([v.source for v in variables])  # noqa: C403
     if len(sources) > 1:
         raise ValueError(
-            'Variables extracted from different types of files '
+            'Variables extracted from different types of files '  # noqa: UP031
             'cannot be merged. Sources found: %s' % sources
         )
 

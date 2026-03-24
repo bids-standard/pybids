@@ -92,7 +92,7 @@ class BIDSVariableCollection:
             'sessions': 'subject',
             'participants': 'dataset',
         }
-        var_levels = set(
+        var_levels = set(  # noqa: C403
             [
                 SOURCE_TO_LEVEL[v.source] if v.source in SOURCE_TO_LEVEL else v.source
                 for v in variables
@@ -102,13 +102,13 @@ class BIDSVariableCollection:
         # TODO: relax this requirement & allow implicit merging between levels
         if len(var_levels) > 1:
             raise ValueError(
-                'A Collection cannot be initialized from '
+                'A Collection cannot be initialized from '  # noqa: UP031
                 'variables at more than one level of analysis. '
                 'Levels found in input variables: %s' % var_levels
             )
         elif not var_levels:
             raise ValueError(
-                'None of the provided variables matched any of the known levels, which are: %s'
+                'None of the provided variables matched any of the known levels, which are: %s'  # noqa: UP031
                 % (', '.join(sorted(SOURCE_TO_LEVEL.values())))
             )
 
@@ -122,7 +122,7 @@ class BIDSVariableCollection:
         self.groups = {}
 
     @staticmethod
-    def merge_variables(variables, **kwargs):
+    def merge_variables(variables, **kwargs):  # noqa: D417
         """Concatenates Variables along row axis.
 
         Parameters
@@ -145,7 +145,7 @@ class BIDSVariableCollection:
             var_dict[v.name].append(v)
         return [merge_variables(vars_, **kwargs) for vars_ in list(var_dict.values())]
 
-    def to_df(self, variables=None, format='wide', fillna=np.nan, entities=True, timing=True):
+    def to_df(self, variables=None, format='wide', fillna=np.nan, entities=True, timing=True):  # noqa: A002
         """Merge BIDVariables in the collection into a single pandas DataFrame.
 
         Parameters
@@ -231,7 +231,7 @@ class BIDSVariableCollection:
         return df
 
     @classmethod
-    def from_df(cls, data, entities=None, source='contrast'):
+    def from_df(cls, data, entities=None, source='contrast'):  # noqa: D417
         """Create a Collection from a pandas DataFrame.
 
         Parameters
@@ -346,7 +346,7 @@ class BIDSVariableCollection:
         return results
 
     def __repr__(self):
-        return f'<{self.__class__.__name__}{sorted(list(self.variables.keys()))}>'
+        return f'<{self.__class__.__name__}{sorted(list(self.variables.keys()))}>'  # noqa: C414
 
 
 class BIDSRunVariableCollection(BIDSVariableCollection):
@@ -398,10 +398,10 @@ class BIDSRunVariableCollection(BIDSVariableCollection):
             if isinstance(v, SparseRunVariable) and v.name in variables
         ]
 
-    def all_dense(self):
+    def all_dense(self):  # noqa: D102
         return len(self.get_dense_variables()) == len(self.variables)
 
-    def all_sparse(self):
+    def all_sparse(self):  # noqa: D102
         return len(self.get_sparse_variables()) == len(self.variables)
 
     def _get_sampling_rate(self, sampling_rate):
@@ -491,7 +491,7 @@ class BIDSRunVariableCollection(BIDSVariableCollection):
         coll.sampling_rate = sr
         return coll
 
-    def to_dense(
+    def to_dense(  # noqa: D417
         self,
         sampling_rate=None,
         variables=None,
@@ -582,7 +582,7 @@ class BIDSRunVariableCollection(BIDSVariableCollection):
     def to_df(
         self,
         variables=None,
-        format='wide',
+        format='wide',  # noqa: A002
         fillna=np.nan,
         sampling_rate='highest',
         include_sparse=True,
@@ -698,10 +698,10 @@ def merge_collections(collections, sampling_rate='highest', output_level=None, v
     if len(collections) == 1 and variables is None:
         return collections[0]
 
-    levels = set([c.level for c in collections])
+    levels = set([c.level for c in collections])  # noqa: C403
     if len(levels) > 1:
         raise ValueError(
-            "At the moment, it's only possible to merge "
+            "At the moment, it's only possible to merge "  # noqa: UP031
             'Collections at the same level of analysis. You '
             'passed collections at levels: %s.' % levels
         )

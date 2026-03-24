@@ -57,11 +57,11 @@ try:
 
     if 'due' in locals() and not hasattr(due, 'cite'):
         raise RuntimeError('Imported due lacks .cite. DueCredit is now disabled')
-except Exception as e:
+except Exception as e:  # noqa: BLE001
     if type(e).__name__ not in ('ImportError', 'ModuleNotFoundError'):
         import logging
 
-        logging.getLogger('duecredit').error('Failed to import duecredit due to %s' % str(e))
+        logging.getLogger('duecredit').error('Failed to import duecredit due to %s' % str(e))  # noqa: UP031
     # Initiate due stub
     due = InactiveDueCreditCollector()
     BibTeX = Doi = Url = Text = _donothing_func

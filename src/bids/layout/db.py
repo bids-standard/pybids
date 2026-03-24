@@ -12,7 +12,7 @@ from bids.utils import listify
 from .models import Base, Config, LayoutInfo
 
 
-def get_database_file(path):
+def get_database_file(path):  # noqa: D103
     if path is not None:
         path = Path(path)
         database_file = path / 'layout_index.sqlite'
@@ -22,7 +22,7 @@ def get_database_file(path):
     return database_file
 
 
-class ConnectionManager:
+class ConnectionManager:  # noqa: D101
     def __init__(self, database_path=None, reset_database=False, config=None, init_args=None):
         self.database_file = get_database_file(database_path)
 
@@ -96,10 +96,10 @@ class ConnectionManager:
         return engine
 
     @classmethod
-    def exists(cls, database_path):
+    def exists(cls, database_path):  # noqa: D102
         return get_database_file(database_path).exists()
 
-    def reset_database(self, init_args, config):
+    def reset_database(self, init_args, config):  # noqa: D102
         Base.metadata.drop_all(self.engine)
         Base.metadata.create_all(self.engine)
         # Add LayoutInfo record
@@ -146,14 +146,14 @@ class ConnectionManager:
             return self
 
     @property
-    def session(self):
+    def session(self):  # noqa: D102
         if self._session is None:
             self.reset_session()
         return self._session
 
     @property
-    @lru_cache
-    def layout_info(self):
+    @lru_cache  # noqa: B019
+    def layout_info(self):  # noqa: D102
         return self.session.query(LayoutInfo).first()
 
     def reset_session(self):

@@ -1,4 +1,5 @@
-"""This module is for hemodynamic response function (hrf) specification.
+# ruff: noqa: D404
+"""This module is for hemodynamic response function (hrf) specification.  # noqa: D404
 Here we provide for SPM, Glover hrfs and finite timpulse response (FIR) models.
 This module closely follows SPM implementation
 
@@ -308,7 +309,7 @@ def _sample_condition(exp_condition, frame_times, oversampling=50, min_onset=-24
     # Get the condition information
     onsets, durations, values = tuple(map(np.asanyarray, exp_condition))
     if (onsets < frame_times[0] + min_onset).any():
-        warnings.warn(
+        warnings.warn(  # noqa: B028
             (
                 'Some stimulus onsets are earlier than %s in the'
                 ' experiment and are thus not considered in the model'
@@ -321,7 +322,7 @@ def _sample_condition(exp_condition, frame_times, oversampling=50, min_onset=-24
     tmax = len(hr_frame_times)
     regressor = np.zeros_like(hr_frame_times).astype(float)
     t_onset = np.minimum(np.searchsorted(hr_frame_times, onsets), tmax - 1)
-    for t, v in zip(t_onset, values):
+    for t, v in zip(t_onset, values):  # noqa: B905
         regressor[t] += v
     t_offset = np.minimum(np.searchsorted(hr_frame_times, onsets + durations), tmax - 1)
 
@@ -330,7 +331,7 @@ def _sample_condition(exp_condition, frame_times, oversampling=50, min_onset=-24
         if t < (tmax - 1) and t == t_onset[i]:
             t_offset[i] += 1
 
-    for t, v in zip(t_offset, values):
+    for t, v in zip(t_offset, values):  # noqa: B905
         regressor[t] -= v
     regressor = np.cumsum(regressor)
 
@@ -338,7 +339,7 @@ def _sample_condition(exp_condition, frame_times, oversampling=50, min_onset=-24
 
 
 def _resample_regressor(hr_regressor, hr_frame_times, frame_times):
-    """This function sub-samples the regressors at frame times
+    """This function sub-samples the regressors at frame times  # noqa: D404
 
     Parameters
     ----------
@@ -414,7 +415,7 @@ def _regressor_names(con_name, hrf_model, fir_delays=None):
     elif hrf_model in ['spm + derivative + dispersion', 'glover + derivative + dispersion']:
         return [con_name, con_name + '_derivative', con_name + '_dispersion']
     elif hrf_model == 'fir':
-        return [con_name + '_delay_%d' % i for i in fir_delays]
+        return [con_name + '_delay_%d' % i for i in fir_delays]  # noqa: UP031
 
 
 def _hrf_kernel(hrf_model, tr, oversampling=50, fir_delays=None):

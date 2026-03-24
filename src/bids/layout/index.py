@@ -133,7 +133,7 @@ class BIDSLayoutIndexer:
         self._include_patterns = None
         self._exclude_patterns = None
 
-    def __call__(self, layout):
+    def __call__(self, layout):  # noqa: D102
         self._layout = layout
         self._config = list(layout.config.values())
 
@@ -157,7 +157,7 @@ class BIDSLayoutIndexer:
             self._index_metadata()
 
     @property
-    def session(self):
+    def session(self):  # noqa: D102
         return self._layout.connection_manager.session
 
     def _validate_file(self, f):
@@ -437,7 +437,7 @@ class BIDSLayoutIndexer:
 
             # Consolidate metadata by looping over inherited JSON files
             file_md = {}
-            for pl, js_file in payloads[::-1]:
+            for pl, js_file in payloads[::-1]:  # noqa: B007
                 try:
                     file_md.update(pl())
                 except FileNotFoundError:
@@ -450,7 +450,7 @@ class BIDSLayoutIndexer:
 
             # Create FileAssociation records for JSON inheritance
             n_pl = len(payloads)
-            for i, (pl, js_file) in enumerate(payloads):
+            for i, (pl, js_file) in enumerate(payloads):  # noqa: B007
                 if (i + 1) < n_pl:
                     other = payloads[i + 1][1]
                     all_objs += create_association_pair(js_file, other, 'Child', 'Parent')

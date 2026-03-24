@@ -172,13 +172,13 @@ def build_path(entities, path_patterns, strict=False):
                 tmp_entities[name] = [defval]
 
             # At this point, valid & default values are checked & set - simplify pattern
-            new_path = new_path.replace(fmt, '{%s}' % name)
+            new_path = new_path.replace(fmt, '{%s}' % name)  # noqa: UP031
 
         optional_patterns = re.findall(r'(\[.*?\])', new_path)
         # Optional patterns with selector are cast to mandatory or removed
         for op in optional_patterns:
             for ent_name in {k for k, v in entities.items() if v is not None}:
-                if ('{%s}' % ent_name) in op:
+                if ('{%s}' % ent_name) in op:  # noqa: UP031
                     new_path = new_path.replace(op, op[1:-1])
                     continue
 
@@ -255,11 +255,11 @@ def write_to_file(
             raise ValueError(msg.format(path))
         elif conflicts == 'skip':
             msg = 'A file at path {} already exists, skipping writing file.'
-            warnings.warn(msg.format(path))
+            warnings.warn(msg.format(path))  # noqa: B028
             return
         elif conflicts == 'overwrite':
             if path.is_dir():
-                warnings.warn(
+                warnings.warn(  # noqa: B028
                     'New path is a directory, not going to overwrite it, skipping instead.'
                 )
                 return
@@ -269,7 +269,7 @@ def write_to_file(
             while i < sys.maxsize:
                 suffixes = ''.join(path.suffixes)
                 appended_filename = path.with_name(
-                    path.name.rstrip(suffixes) + '_%d' % i + suffixes
+                    path.name.rstrip(suffixes) + '_%d' % i + suffixes  # noqa: UP031
                 )
                 if not appended_filename.exists() and not appended_filename.is_symlink():
                     path = appended_filename
@@ -353,4 +353,4 @@ def _expand_entities(entities):
     """
     keys = list(entities.keys())
     values = list(product(*[entities[k] for k in keys]))
-    return [{k: v for k, v in zip(keys, combs)} for combs in values]
+    return [{k: v for k, v in zip(keys, combs)} for combs in values]  # noqa: B905, C416

@@ -1,4 +1,4 @@
-from .base import TransformerManager
+from .base import TransformerManager  # noqa: D104
 from .compute import (
     And_,
     Convolve,

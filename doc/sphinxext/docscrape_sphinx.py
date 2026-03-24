@@ -1,4 +1,4 @@
-import inspect
+import inspect  # noqa: D100
 import pydoc
 import re
 import textwrap
@@ -7,8 +7,8 @@ import sphinx
 from docscrape import ClassDoc, FunctionDoc, NumpyDocString
 
 
-class SphinxDocString(NumpyDocString):
-    def __init__(self, docstring, config={}):
+class SphinxDocString(NumpyDocString):  # noqa: D101
+    def __init__(self, docstring, config={}):  # noqa: B006
         self.use_plots = config.get('use_plots', False)
         NumpyDocString.__init__(self, docstring, config=config)
 
@@ -28,7 +28,7 @@ class SphinxDocString(NumpyDocString):
     def _str_signature(self):
         return ['']
         if self['Signature']:
-            return ['``%s``' % self['Signature']] + ['']
+            return ['``%s``' % self['Signature']] + ['']  # noqa: UP031
         else:
             return ['']
 
@@ -44,7 +44,7 @@ class SphinxDocString(NumpyDocString):
             out += self._str_field_list(name)
             out += ['']
             for param, param_type, desc in self[name]:
-                out += self._str_indent(['**%s** : %s' % (param.strip(), param_type)])
+                out += self._str_indent(['**%s** : %s' % (param.strip(), param_type)])  # noqa: UP031
                 out += ['']
                 out += self._str_indent(desc, 8)
                 out += ['']
@@ -65,18 +65,18 @@ class SphinxDocString(NumpyDocString):
         """
         out = []
         if self[name]:
-            out += ['.. rubric:: %s' % name, '']
+            out += ['.. rubric:: %s' % name, '']  # noqa: UP031
             prefix = getattr(self, '_name', '')
 
             if prefix:
-                prefix = '~%s.' % prefix
+                prefix = '~%s.' % prefix  # noqa: UP031
 
             autosum = []
             others = []
             for param, param_type, desc in self[name]:
                 param = param.strip()
                 if not self._obj or hasattr(self._obj, param):
-                    autosum += ['   %s%s' % (prefix, param)]
+                    autosum += ['   %s%s' % (prefix, param)]  # noqa: UP031
                 else:
                     others.append((param, param_type, desc))
 
@@ -88,7 +88,7 @@ class SphinxDocString(NumpyDocString):
                 maxlen_0 = max([len(x[0]) for x in others])
                 maxlen_1 = max([len(x[1]) for x in others])
                 hdr = '=' * maxlen_0 + '  ' + '=' * maxlen_1 + '  ' + '=' * 10
-                fmt = '%%%ds  %%%ds  ' % (maxlen_0, maxlen_1)
+                fmt = '%%%ds  %%%ds  ' % (maxlen_0, maxlen_1)  # noqa: UP031
                 n_indent = maxlen_0 + maxlen_1 + 4
                 out += [hdr]
                 for param, param_type, desc in others:
@@ -129,14 +129,14 @@ class SphinxDocString(NumpyDocString):
         if len(idx) == 0:
             return out
 
-        out += ['.. index:: %s' % idx.get('default', '')]
+        out += ['.. index:: %s' % idx.get('default', '')]  # noqa: UP031
         for section, references in idx.iteritems():
             if section == 'default':
                 continue
             elif section == 'refguide':
-                out += ['   single: %s' % (', '.join(references))]
+                out += ['   single: %s' % (', '.join(references))]  # noqa: UP031
             else:
-                out += ['   %s: %s' % (section, ','.join(references))]
+                out += ['   %s: %s' % (section, ','.join(references))]  # noqa: UP031
         return out
 
     def _str_references(self):
@@ -158,7 +158,7 @@ class SphinxDocString(NumpyDocString):
                 m = re.match(r'.. \[([a-z0-9._-]+)\]', line, re.I)
                 if m:
                     items.append(m.group(1))
-            out += ['   ' + ', '.join(['[%s]_' % item for item in items]), '']
+            out += ['   ' + ', '.join(['[%s]_' % item for item in items]), '']  # noqa: UP031
         return out
 
     def _str_examples(self):
@@ -193,25 +193,25 @@ class SphinxDocString(NumpyDocString):
         return '\n'.join(out)
 
 
-class SphinxFunctionDoc(SphinxDocString, FunctionDoc):
-    def __init__(self, obj, doc=None, config={}):
+class SphinxFunctionDoc(SphinxDocString, FunctionDoc):  # noqa: D101
+    def __init__(self, obj, doc=None, config={}):  # noqa: B006
         self.use_plots = config.get('use_plots', False)
         FunctionDoc.__init__(self, obj, doc=doc, config=config)
 
 
-class SphinxClassDoc(SphinxDocString, ClassDoc):
-    def __init__(self, obj, doc=None, func_doc=None, config={}):
+class SphinxClassDoc(SphinxDocString, ClassDoc):  # noqa: D101
+    def __init__(self, obj, doc=None, func_doc=None, config={}):  # noqa: B006
         self.use_plots = config.get('use_plots', False)
         ClassDoc.__init__(self, obj, doc=doc, func_doc=None, config=config)
 
 
-class SphinxObjDoc(SphinxDocString):
-    def __init__(self, obj, doc=None, config={}):
+class SphinxObjDoc(SphinxDocString):  # noqa: D101
+    def __init__(self, obj, doc=None, config={}):  # noqa: B006
         self._f = obj
         SphinxDocString.__init__(self, doc, config=config)
 
 
-def get_doc_object(obj, what=None, doc=None, config={}):
+def get_doc_object(obj, what=None, doc=None, config={}):  # noqa: B006, D103
     if what is None:
         if inspect.isclass(obj):
             what = 'class'

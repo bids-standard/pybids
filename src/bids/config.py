@@ -29,7 +29,7 @@ def set_option(key, value):
 
     """
     if key not in _settings:
-        raise ValueError("Invalid pybids setting: '%s'" % key)
+        raise ValueError("Invalid pybids setting: '%s'" % key)  # noqa: UP031
     # XXX 0.16: Remove
     elif key == 'extension_initial_dot':
         if value is not True:
@@ -38,7 +38,7 @@ def set_option(key, value):
                 'This setting is always True, and will be removed '
                 'entirely in 0.16.'
             )
-        warnings.warn(
+        warnings.warn(  # noqa: B028
             "Setting 'extension_initial_dot' will be removed in pybids 0.16.", FutureWarning
         )
     _settings[key] = value
@@ -63,7 +63,7 @@ def get_option(key):
 
     """
     if key not in _settings:
-        raise ValueError("Invalid pybids setting: '%s'" % key)
+        raise ValueError("Invalid pybids setting: '%s'" % key)  # noqa: UP031
     return _settings[key]
 
 
@@ -83,7 +83,7 @@ def from_file(filenames, error_on_missing=True):
             settings = json.loads(Path(f).read_text(encoding='utf-8'))
             _settings.update(settings)
         elif error_on_missing:
-            raise ValueError("Config file '%s' does not exist." % f)
+            raise ValueError("Config file '%s' does not exist." % f)  # noqa: UP031
 
 
 def reset_options(update_from_file=False):

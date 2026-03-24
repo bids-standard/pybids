@@ -28,12 +28,12 @@ class Assign(Transformation):
     _return_type = 'variable'
     _allow_categorical = ('variables', 'target')
 
-    def _transform(self, input, target, input_attr='amplitude', target_attr='amplitude'):
+    def _transform(self, input, target, input_attr='amplitude', target_attr='amplitude'):  # noqa: A002
         # assign only makes sense for sparse variables; dense variables don't
         # have durations or onsets, and amplitudes can be copied by cloning
         if isinstance(input, DenseRunVariable):
             raise ValueError(
-                "The 'assign' transformation can only be applied"
+                "The 'assign' transformation can only be applied"  # noqa: UP031
                 ' to sparsely-coded event types. The input '
                 'variable (%s) is dense.' % input.name
             )
@@ -41,7 +41,7 @@ class Assign(Transformation):
         target = self.collection.variables[target].clone()
         if isinstance(target, DenseRunVariable):
             raise ValueError(
-                "The 'assign' transformation can only be applied"
+                "The 'assign' transformation can only be applied"  # noqa: UP031
                 ' to sparsely-coded event types. The target '
                 'variable (%s) is dense.' % target.name
             )
@@ -49,16 +49,16 @@ class Assign(Transformation):
         # Ensure attributes are valid
         valid_attrs = ['amplitude', 'duration', 'onset']
         if input_attr not in valid_attrs:
-            raise ValueError('Valid values for input_attr are: %s.' % valid_attrs)
+            raise ValueError('Valid values for input_attr are: %s.' % valid_attrs)  # noqa: UP031
         if target_attr not in valid_attrs:
-            raise ValueError('Valid values for target_attr are: %s.' % valid_attrs)
+            raise ValueError('Valid values for target_attr are: %s.' % valid_attrs)  # noqa: UP031
 
         # variables must have same number of events, but do *not* need to have
         # aligned onsets.
         l_s, l_t = len(input.values), len(target.values)
         if l_s != l_t:
             raise ValueError(
-                'Input and target variables do not contain the '
+                'Input and target variables do not contain the '  # noqa: UP031
                 'same number of events (%d vs. %d).' % (l_s, l_t)
             )
 
@@ -111,13 +111,13 @@ class Delete(Transformation):
     _allow_categorical = ('variables',)
 
     def _transform(self, variables):
-        variables = set([v.name for v in variables])
+        variables = set([v.name for v in variables])  # noqa: C403
         self.collection.variables = {
             k: v for k, v in self.collection.variables.items() if k not in variables
         }
 
 
-class DropNA(Transformation):
+class DropNA(Transformation):  # noqa: D101
     _groupable = False
     _input_type = 'variable'
     _return_type = 'variable'
@@ -130,7 +130,7 @@ class DropNA(Transformation):
         return var
 
 
-class Factor(Transformation):
+class Factor(Transformation):  # noqa: D101
     _groupable = False
     _input_type = 'variable'
     _return_type = 'variable'

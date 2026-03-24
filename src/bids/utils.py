@@ -3,10 +3,10 @@
 import os
 import re
 from functools import cache
-from pathlib import Path
+from pathlib import Path  # noqa: F811
 
 from frozendict import frozendict as _frozendict
-from upath import UPath as Path
+from upath import UPath as Path  # noqa: F811
 
 
 # Monkeypatch to print out frozendicts *as if* they were dictionaries.
@@ -15,7 +15,7 @@ class frozendict(_frozendict):
 
     def __repr__(self):
         """Override frozendict representation."""
-        return repr({k: v for k, v in self.items()})
+        return repr({k: v for k, v in self.items()})  # noqa: C416
 
 
 def listify(obj):
@@ -52,9 +52,9 @@ def matches_entities(obj, entities, strict=False):
     return True
 
 
-def natural_sort(l, field=None):
+def natural_sort(l, field=None):  # noqa: E741
     """Based on snippet found at https://stackoverflow.com/a/4836734/2445984"""
-    convert = lambda text: int(text) if text.isdigit() else text.lower()
+    convert = lambda text: int(text) if text.isdigit() else text.lower()  # noqa: E731
 
     def alphanum_key(key):
         if field is not None:
@@ -113,7 +113,7 @@ def splitext(path):
     )
     extensions = os.path.basename(path).split(os.extsep)[1:]
     li.append(path_without_extensions)
-    # li.append(extensions) if you want extensions in another list inside the list that is returned.
+    # li.append(extensions) if you want extensions in another list inside the list that is returned.  # noqa: E501
     li.extend(extensions)
     return li
 
@@ -138,7 +138,7 @@ def make_bidsfile(filename):
     return Cls(filename)
 
 
-def collect_associated_files(layout, files, extra_entities=()):
+def collect_associated_files(layout, files, extra_entities=()):  # noqa: D417
     """Collect and group BIDSFiles with multiple files per acquisition.
 
     Parameters
@@ -186,9 +186,9 @@ def validate_multiple(val, retval=None):
     This helper method converts empty tuples to a desired return value (default: None).
     This helper method selects the first item in single-item tuples.
     """
-    assert isinstance(val, tuple)
+    assert isinstance(val, tuple)  # noqa: S101
 
-    if val == tuple():
+    if val == tuple():  # noqa: C408
         return retval
     if len(val) == 1:
         return val[0]
@@ -196,7 +196,7 @@ def validate_multiple(val, retval=None):
 
 
 @cache
-def entity_indices(schema_spec=None):
+def entity_indices(schema_spec=None):  # noqa: D103
     from collections import defaultdict
 
     from bidsschematools.schema import load_schema

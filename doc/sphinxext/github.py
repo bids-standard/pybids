@@ -21,7 +21,7 @@ from docutils import nodes, utils
 from docutils.parsers.rst.roles import set_classes
 
 
-def make_link_node(rawtext, app, type, slug, options):
+def make_link_node(rawtext, app, type, slug, options):  # noqa: A002
     """Create a link to a github resource.
 
     :param rawtext: Text being replaced with link node.
@@ -37,7 +37,7 @@ def make_link_node(rawtext, app, type, slug, options):
         if not base.endswith('/'):
             base += '/'
     except AttributeError as err:
-        raise ValueError('github_project_url configuration value is not set (%s)' % str(err))
+        raise ValueError('github_project_url configuration value is not set (%s)' % str(err))  # noqa: B904, UP031
 
     ref = base + type + '/' + slug + '/'
     set_classes(options)
@@ -48,7 +48,7 @@ def make_link_node(rawtext, app, type, slug, options):
     return node
 
 
-def ghissue_role(name, rawtext, text, lineno, inliner, options={}, content=[]):
+def ghissue_role(name, rawtext, text, lineno, inliner, options={}, content=[]):  # noqa: B006
     """Link to a GitHub issue.
 
     Returns 2 part tuple containing list of nodes to insert into the
@@ -69,7 +69,7 @@ def ghissue_role(name, rawtext, text, lineno, inliner, options={}, content=[]):
             raise ValueError
     except ValueError:
         msg = inliner.reporter.error(
-            'GitHub issue number must be a number greater than or equal to 1; '
+            'GitHub issue number must be a number greater than or equal to 1; '  # noqa: UP031
             '"%s" is invalid.' % text,
             line=lineno,
         )
@@ -83,7 +83,7 @@ def ghissue_role(name, rawtext, text, lineno, inliner, options={}, content=[]):
         category = 'issues'
     else:
         msg = inliner.reporter.error(
-            'GitHub roles include "ghpull" and "ghissue", "%s" is invalid.' % name, line=lineno
+            'GitHub roles include "ghpull" and "ghissue", "%s" is invalid.' % name, line=lineno  # noqa: UP031
         )
         prb = inliner.problematic(rawtext, rawtext, msg)
         return [prb], [msg]
@@ -91,7 +91,7 @@ def ghissue_role(name, rawtext, text, lineno, inliner, options={}, content=[]):
     return [node], []
 
 
-def ghuser_role(name, rawtext, text, lineno, inliner, options={}, content=[]):
+def ghuser_role(name, rawtext, text, lineno, inliner, options={}, content=[]):  # noqa: B006
     """Link to a GitHub user.
 
     Returns 2 part tuple containing list of nodes to insert into the
@@ -106,14 +106,14 @@ def ghuser_role(name, rawtext, text, lineno, inliner, options={}, content=[]):
     :param options: Directive options for customization.
     :param content: The directive content for customization.
     """
-    app = inliner.document.settings.env.app
+    app = inliner.document.settings.env.app  # noqa: F841
     # app.info('user link %r' % text)
     ref = 'https://www.github.com/' + text
     node = nodes.reference(rawtext, text, refuri=ref, **options)
     return [node], []
 
 
-def ghcommit_role(name, rawtext, text, lineno, inliner, options={}, content=[]):
+def ghcommit_role(name, rawtext, text, lineno, inliner, options={}, content=[]):  # noqa: B006
     """Link to a GitHub commit.
 
     Returns 2 part tuple containing list of nodes to insert into the
@@ -137,7 +137,7 @@ def ghcommit_role(name, rawtext, text, lineno, inliner, options={}, content=[]):
         if not base.endswith('/'):
             base += '/'
     except AttributeError as err:
-        raise ValueError('github_project_url configuration value is not set (%s)' % str(err))
+        raise ValueError('github_project_url configuration value is not set (%s)' % str(err))  # noqa: B904, UP031
 
     ref = base + text
     node = nodes.reference(rawtext, text[:6], refuri=ref, **options)

@@ -40,7 +40,7 @@ def func_info(layout, files, config):
     task_name = first_file.get_entities()['task'] + ' task'
     task_name = metadata.get('TaskName', task_name)
     seqs, variants = parameters.describe_sequence(metadata, config)
-    all_runs = sorted(list(set([f.get_entities().get('run', 1) for f in files])))
+    all_runs = sorted(list(set([f.get_entities().get('run', 1) for f in files])))  # noqa: C403, C414
     n_runs = len(all_runs)
     if n_runs == 1:
         run_str = f'{num2words(n_runs).title()} run'
@@ -103,7 +103,7 @@ def anat_info(layout, files, config):
 
     # General info
     seqs, variants = parameters.describe_sequence(metadata, config)
-    all_runs = sorted(list(set([f.get_entities().get('run', 1) for f in files])))
+    all_runs = sorted(list(set([f.get_entities().get('run', 1) for f in files])))  # noqa: C403, C414
     n_runs = len(all_runs)
     if n_runs == 1:
         run_str = f'{num2words(n_runs).title()} run'
@@ -163,7 +163,7 @@ def dwi_info(layout, files, config):
 
     # General info
     seqs, variants = parameters.describe_sequence(metadata, config)
-    all_runs = sorted(list(set([f.get_entities().get('run', 1) for f in files])))
+    all_runs = sorted(list(set([f.get_entities().get('run', 1) for f in files])))  # noqa: C403, C414
     n_runs = len(all_runs)
     if n_runs == 1:
         run_str = f'{num2words(n_runs).title()} run'

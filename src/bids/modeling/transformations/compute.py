@@ -79,7 +79,7 @@ class Convolve(Transformation):
         # Sampling at >100Hz will never be useful, but can be wildly expensive
         max_freq, min_interval = 100, 0.01
         # Sampling at <1Hz can degrade signals
-        min_freq, max_interval = 1, 1
+        min_freq, max_interval = 1, 1  # noqa: F841
 
         # Given the sampling rate, determine an oversampling factor to ensure that
         # events can be modeled with reasonable precision
@@ -104,7 +104,7 @@ class Convolve(Transformation):
 
         results = []
         arr, names = convolved
-        for conv, name in zip(np.split(arr, arr.shape[1], axis=1), names):
+        for conv, name in zip(np.split(arr, arr.shape[1], axis=1), names):  # noqa: B905
             new_name = '_'.join([var.name, name.split('_')[-1]]) if '_' in name else var.name
             results.append(
                 DenseRunVariable(
@@ -118,12 +118,12 @@ class Convolve(Transformation):
         return results
 
 
-class Demean(Transformation):
+class Demean(Transformation):  # noqa: D101
     def _transform(self, data):
         return data - data.mean()
 
 
-class Orthogonalize(Transformation):
+class Orthogonalize(Transformation):  # noqa: D101
     _variables_used = ('variables', 'other')
     _densify = ('variables', 'other')
     _aligned_required = 'force_dense'
@@ -136,7 +136,7 @@ class Orthogonalize(Transformation):
         # Set up X matrix and slice into it based on target variable indices
         X = np.array([self._variables[c].values.values.squeeze() for c in other]).T
         X = X[var.index, :]
-        assert len(X) == len(var)
+        assert len(X) == len(var)  # noqa: S101
         y = var.values
         _aX = np.c_[np.ones(len(y)), X]
         coefs, resids, rank, s = np.linalg.lstsq(_aX, y, rcond=None)
@@ -144,7 +144,7 @@ class Orthogonalize(Transformation):
         return result
 
 
-class Product(Transformation):
+class Product(Transformation):  # noqa: D101
     _loopable = False
     _groupable = False
     _aligned_required = True
@@ -198,7 +198,7 @@ class Scale(Transformation):
         return data
 
 
-class Sum(Transformation):
+class Sum(Transformation):  # noqa: D101
     _loopable = False
     _groupable = False
     _aligned_required = True

@@ -15,7 +15,7 @@ BASE_ENTITIES = ['subject', 'session', 'task', 'run']
 ALL_ENTITIES = BASE_ENTITIES + ['datatype', 'suffix', 'acquisition']
 
 
-def load_variables(
+def load_variables(  # noqa: D417
     layout,
     types=None,
     levels=None,
@@ -81,13 +81,13 @@ def load_variables(
                 'subject': ['sessions', 'scans'],
                 'dataset': ['participants'],
             }
-            [types.extend(lev_map[l.lower()]) for l in listify(levels)]
+            [types.extend(lev_map[l.lower()]) for l in listify(levels)]  # noqa: E741
         else:
             types = TYPES
 
     bad_types = set(types) - set(TYPES)
     if bad_types:
-        raise ValueError('Invalid variable types: %s' % bad_types)
+        raise ValueError('Invalid variable types: %s' % bad_types)  # noqa: UP031
 
     dataset = dataset or NodeIndex()
 
@@ -120,16 +120,16 @@ def _get_nvols(img_f):
                 nvols = ax.size
                 break
         else:
-            raise ValueError('No series axis found in %s' % img_f)
+            raise ValueError('No series axis found in %s' % img_f)  # noqa: UP031
     elif isinstance(img, nb.GiftiImage):
         nvols = len(img.get_arrays_from_intent('time series'))
     else:
-        raise ValueError('Unknown image type %s: %s' % img.__class__, img_f)
+        raise ValueError('Unknown image type %s: %s' % img.__class__, img_f)  # noqa: UP031
 
     return nvols
 
 
-def _load_time_variables(
+def _load_time_variables(  # noqa: D417
     layout,
     dataset=None,
     columns=None,
@@ -304,7 +304,7 @@ def _load_time_variables(
                     else:
                         msg = "Column name 'amplitude' is reserved; renaming it to 'amplitude_'."
                         _data = _data.rename(columns={'amplitude': 'amplitude_'})
-                    warnings.warn(msg)
+                    warnings.warn(msg)  # noqa: B028
 
                 # Pandas already converts 'n/a' to NaN. Leaving this comment
                 # because we used to do it manually here.
@@ -373,7 +373,7 @@ def _load_time_variables(
             for rf in rec_files:
                 metadata = layout.get_metadata(rf)
                 if not metadata:
-                    raise ValueError("No .json sidecar found for '%s'." % rf)
+                    raise ValueError("No .json sidecar found for '%s'." % rf)  # noqa: UP031
                 data = pd.read_csv(rf, sep='\t')
                 freq = metadata['SamplingFrequency']
                 st = metadata['StartTime']
@@ -422,7 +422,7 @@ def _load_time_variables(
     return dataset
 
 
-def _load_tsv_variables(
+def _load_tsv_variables(  # noqa: D417
     layout,
     suffix,
     dataset=None,
@@ -525,13 +525,13 @@ def _load_tsv_variables(
             _data['subject'] = _data['subject'].str.replace('sub-', '')
 
         def make_patt(x, regex_search=False):
-            patt = '%s' % x
+            patt = '%s' % x  # noqa: UP031
             if isinstance(x, (int, float)):
                 # allow for leading zeros if a number was specified
                 # regardless of regex_search
                 patt = '0*' + patt
             if not regex_search:
-                patt = '^%s$' % patt
+                patt = '^%s$' % patt  # noqa: UP031
             return patt
 
         # Filter rows on all selectors
@@ -560,7 +560,7 @@ def _load_tsv_variables(
             df.columns = ['amplitude'] + ent_cols
 
             if prepend_type:
-                col_name = '%s.%s' % (suffix, col_name)
+                col_name = '%s.%s' % (suffix, col_name)  # noqa: UP031
 
             node.add_variable(SimpleVariable(name=col_name, data=df, source=suffix))
 

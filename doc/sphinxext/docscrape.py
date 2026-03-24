@@ -1,3 +1,4 @@
+# ruff: noqa: D301
 """Extract reference documentation from the NumPy source tree."""
 
 import collections
@@ -12,7 +13,7 @@ class Reader:
     """A line-based string reader."""
 
     def __init__(self, data):
-        """Parameters
+        """Parameters  # noqa: D301
         ----------
         data : str
            String with lines separated by '\n'.
@@ -28,10 +29,10 @@ class Reader:
     def __getitem__(self, n):
         return self._str[n]
 
-    def reset(self):
+    def reset(self):  # noqa: D102
         self._l = 0  # current line nr
 
-    def read(self):
+    def read(self):  # noqa: D102
         if not self.eof():
             out = self[self._l]
             self._l += 1
@@ -39,17 +40,17 @@ class Reader:
         else:
             return ''
 
-    def seek_next_non_empty_line(self):
-        for l in self[self._l :]:
+    def seek_next_non_empty_line(self):  # noqa: D102
+        for l in self[self._l :]:  # noqa: E741
             if l.strip():
                 break
             else:
                 self._l += 1
 
-    def eof(self):
+    def eof(self):  # noqa: D102
         return self._l >= len(self._str)
 
-    def read_to_condition(self, condition_func):
+    def read_to_condition(self, condition_func):  # noqa: D102
         start = self._l
         for line in self[start:]:
             if condition_func(line):
@@ -59,7 +60,7 @@ class Reader:
                 return self[start : self._l + 1]
         return []
 
-    def read_to_next_empty_line(self):
+    def read_to_next_empty_line(self):  # noqa: D102
         self.seek_next_non_empty_line()
 
         def is_empty(line):
@@ -67,24 +68,24 @@ class Reader:
 
         return self.read_to_condition(is_empty)
 
-    def read_to_next_unindented_line(self):
+    def read_to_next_unindented_line(self):  # noqa: D102
         def is_unindented(line):
             return line.strip() and (len(line.lstrip()) == len(line))
 
         return self.read_to_condition(is_unindented)
 
-    def peek(self, n=0):
+    def peek(self, n=0):  # noqa: D102
         if self._l + n < len(self._str):
             return self[self._l + n]
         else:
             return ''
 
-    def is_empty(self):
+    def is_empty(self):  # noqa: D102
         return not ''.join(self._str).strip()
 
 
-class NumpyDocString(collections.abc.Mapping):
-    def __init__(self, docstring, config={}):
+class NumpyDocString(collections.abc.Mapping):  # noqa: D101
+    def __init__(self, docstring, config={}):  # noqa: B006
         docstring = textwrap.dedent(docstring).split('\n')
 
         self._doc = Reader(docstring)
@@ -115,7 +116,7 @@ class NumpyDocString(collections.abc.Mapping):
 
     def __setitem__(self, key, val):
         if key not in self._parsed_data:
-            warn('Unknown section %s' % key)
+            warn('Unknown section %s' % key)  # noqa: B028, UP031
         else:
             self._parsed_data[key] = val
 
@@ -142,11 +143,11 @@ class NumpyDocString(collections.abc.Mapping):
     def _strip(self, doc):
         i = 0
         j = 0
-        for i, line in enumerate(doc):
+        for i, line in enumerate(doc):  # noqa: B007
             if line.strip():
                 break
 
-        for j, line in enumerate(doc[::-1]):
+        for j, line in enumerate(doc[::-1]):  # noqa: B007
             if line.strip():
                 break
 
@@ -216,7 +217,7 @@ class NumpyDocString(collections.abc.Mapping):
                     return g[3], None
                 else:
                     return g[2], g[1]
-            raise ValueError('%s is not a item name' % text)
+            raise ValueError('%s is not a item name' % text)  # noqa: UP031
 
         def push_item(name, rest):
             if not name:
@@ -298,7 +299,7 @@ class NumpyDocString(collections.abc.Mapping):
         self._parse_summary()
 
         sections = list(self._read_sections())
-        section_names = set([section for section, content in sections])
+        section_names = set([section for section, content in sections])  # noqa: C403
 
         has_returns = 'Returns' in section_names
         has_yields = 'Yields' in section_names
@@ -364,7 +365,7 @@ class NumpyDocString(collections.abc.Mapping):
             out += self._str_header(name)
             for param, param_type, desc in self[name]:
                 if param_type:
-                    out += ['%s : %s' % (param, param_type)]
+                    out += ['%s : %s' % (param, param_type)]  # noqa: UP031
                 else:
                     out += [param]
                 out += self._str_indent(desc)
@@ -387,16 +388,16 @@ class NumpyDocString(collections.abc.Mapping):
         last_had_desc = True
         for func, desc, role in self['See Also']:
             if role:
-                link = ':%s:`%s`' % (role, func)
+                link = ':%s:`%s`' % (role, func)  # noqa: UP031
             elif func_role:
-                link = ':%s:`%s`' % (func_role, func)
+                link = ':%s:`%s`' % (func_role, func)  # noqa: UP031
             else:
-                link = '`%s`_' % func
+                link = '`%s`_' % func  # noqa: UP031
             if desc or last_had_desc:
                 out += ['']
                 out += [link]
             else:
-                out[-1] += ', %s' % link
+                out[-1] += ', %s' % link  # noqa: UP031
             if desc:
                 out += self._str_indent([' '.join(desc)])
                 last_had_desc = True
@@ -408,11 +409,11 @@ class NumpyDocString(collections.abc.Mapping):
     def _str_index(self):
         idx = self['index']
         out = []
-        out += ['.. index:: %s' % idx.get('default', '')]
+        out += ['.. index:: %s' % idx.get('default', '')]  # noqa: UP031
         for section, references in idx.items():
             if section == 'default':
                 continue
-            out += ['   :%s: %s' % (section, ', '.join(references))]
+            out += ['   :%s: %s' % (section, ', '.join(references))]  # noqa: UP031
         return out
 
     def __str__(self, func_role=''):
@@ -439,12 +440,12 @@ class NumpyDocString(collections.abc.Mapping):
         return '\n'.join(out)
 
 
-def indent(str, indent=4):
+def indent(str, indent=4):  # noqa: A002, D103
     indent_str = ' ' * indent
     if str is None:
         return indent_str
     lines = str.split('\n')
-    return '\n'.join(indent_str + l for l in lines)
+    return '\n'.join(indent_str + l for l in lines)  # noqa: E741
 
 
 def dedent_lines(lines):
@@ -452,12 +453,12 @@ def dedent_lines(lines):
     return textwrap.dedent('\n'.join(lines)).split('\n')
 
 
-def header(text, style='-'):
+def header(text, style='-'):  # noqa: D103
     return text + '\n' + style * len(text) + '\n'
 
 
-class FunctionDoc(NumpyDocString):
-    def __init__(self, func, role='func', doc=None, config={}):
+class FunctionDoc(NumpyDocString):  # noqa: D101
+    def __init__(self, func, role='func', doc=None, config={}):  # noqa: B006
         self._f = func
         self._role = role  # e.g. "func" or "meth"
 
@@ -474,15 +475,15 @@ class FunctionDoc(NumpyDocString):
                 argspec = inspect.getfullargspec(func)
                 argspec = inspect.formatargspec(*argspec)
                 argspec = argspec.replace('*', r'\*')
-                signature = '%s%s' % (func_name, argspec)
+                signature = '%s%s' % (func_name, argspec)  # noqa: UP031
             except TypeError:
-                signature = '%s()' % func_name
+                signature = '%s()' % func_name  # noqa: UP031
             self['Signature'] = signature
 
-    def get_func(self):
+    def get_func(self):  # noqa: D102
         func_name = getattr(self._f, '__name__', self.__class__.__name__)
         if inspect.isclass(self._f):
-            func = getattr(self._f, '__call__', self._f.__init__)
+            func = getattr(self._f, '__call__', self._f.__init__)  # noqa: B004
         else:
             func = self._f
         return func, func_name
@@ -491,25 +492,25 @@ class FunctionDoc(NumpyDocString):
         out = ''
 
         func, func_name = self.get_func()
-        signature = self['Signature'].replace('*', r'\*')
+        signature = self['Signature'].replace('*', r'\*')  # noqa: F841
 
         roles = {'func': 'function', 'meth': 'method'}
 
         if self._role:
             if self._role not in roles:
-                print('Warning: invalid role %s' % self._role)
-            out += '.. %s:: %s\n    \n\n' % (roles.get(self._role, ''), func_name)
+                print('Warning: invalid role %s' % self._role)  # noqa: UP031
+            out += '.. %s:: %s\n    \n\n' % (roles.get(self._role, ''), func_name)  # noqa: UP031
 
         out += super().__str__(func_role=self._role)
         return out
 
 
-class ClassDoc(NumpyDocString):
+class ClassDoc(NumpyDocString):  # noqa: D101
     extra_public_methods = ['__call__']
 
-    def __init__(self, cls, doc=None, modulename='', func_doc=FunctionDoc, config={}):
+    def __init__(self, cls, doc=None, modulename='', func_doc=FunctionDoc, config={}):  # noqa: B006
         if not inspect.isclass(cls) and cls is not None:
-            raise ValueError('Expected a class or None, but got %r' % cls)
+            raise ValueError('Expected a class or None, but got %r' % cls)  # noqa: UP031
         self._cls = cls
 
         self.show_inherited_members = config.get('show_inherited_class_members', True)
@@ -545,7 +546,7 @@ class ClassDoc(NumpyDocString):
                     self[field] = doc_list
 
     @property
-    def methods(self):
+    def methods(self):  # noqa: D102
         if self._cls is None:
             return []
         return [
@@ -559,7 +560,7 @@ class ClassDoc(NumpyDocString):
         ]
 
     @property
-    def properties(self):
+    def properties(self):  # noqa: D102
         if self._cls is None:
             return []
         return [

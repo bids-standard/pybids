@@ -1,4 +1,4 @@
-from abc import ABCMeta, abstractmethod
+from abc import ABCMeta, abstractmethod  # noqa: D100
 
 import numpy as np
 import pandas as pd
@@ -83,7 +83,7 @@ class GLMMSpec(ModelSpec):
     def __repr__(self):
         return f"<{self.__class__.__name__}{[term.name for term in self.fixed_terms]}'>"
 
-    def set_priors(self, fixed=None, random=None):
+    def set_priors(self, fixed=None, random=None):  # noqa: D102
         raise NotImplementedError("Custom prior use hasn't been implemented yet.")
 
     def build_fixed_terms(self, X):
@@ -159,7 +159,7 @@ class GLMMSpec(ModelSpec):
         """Return X design matrix (i.e., fixed component of model)."""
         if not self.fixed_terms:
             return None
-        names, cols = zip(*[(c.name, c.values) for c in self.fixed_terms])
+        names, cols = zip(*[(c.name, c.values) for c in self.fixed_terms])  # noqa: B905
         return pd.DataFrame(np.c_[cols], columns=names)
 
     @property
@@ -265,7 +265,7 @@ class GLMMSpec(ModelSpec):
         return GLMMSpec(**kwargs)
 
 
-class MetaAnalysisSpec(GLMMSpec):
+class MetaAnalysisSpec(GLMMSpec):  # noqa: D101
     pass
 
 

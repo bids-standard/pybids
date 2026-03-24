@@ -1,4 +1,4 @@
-import json
+import json  # noqa: D100
 import os
 from copy import deepcopy
 from pathlib import Path
@@ -52,11 +52,11 @@ class Either(click.ParamType):
         self.types = types
 
     @property
-    def name(self):
-        tpstrings = tuple(tp.name for tp in self.types)
+    def name(self):  # noqa: D102
+        tpstrings = tuple(tp.name for tp in self.types)  # noqa: F841
         return 'any type in {tpstrings}'
 
-    def convert(self, value, param, ctx):
+    def convert(self, value, param, ctx):  # noqa: D102
         errors = []
         for tp in self.types:
             try:
@@ -72,7 +72,7 @@ class PathOrRegex(click.ParamType):
 
     name = 'path or m/regex/'
 
-    def convert(self, value, param, ctx):
+    def convert(self, value, param, ctx):  # noqa: D102
         import re
 
         if re.match(r'^m/.*/$', value):  # has form "m/<regex>/"
@@ -163,7 +163,7 @@ def layout(
     if not (Path(db_path) / 'layout_index.sqlite').exists():
         reset_db = True
 
-    layout = BIDSLayout(
+    layout = BIDSLayout(  # noqa: F841
         root,
         database_path=db_path,
         reset_database=reset_db,
@@ -252,7 +252,7 @@ def upgrade_dataset_description(description):
     return description
 
 
-def upgrade_filenames(root, description):
+def upgrade_filenames(root, description):  # noqa: D103
     dstype = description['DatasetType']
     layout = BIDSLayout(root, validate=False, config='bids' if dstype == 'raw' else 'derivatives')
 

@@ -1,3 +1,4 @@
+# ruff: noqa: D104
 from .collections import BIDSRunVariableCollection, BIDSVariableCollection, merge_collections
 from .io import load_variables
 from .variables import DenseRunVariable, SimpleVariable, SparseRunVariable, merge_variables
