@@ -59,6 +59,8 @@ ignore = [
 
 [lint.extend-per-file-ignores]
 "setup.py" = ["D"]
+"src/bids/external/__init__.py" = ["D104"]
+"src/bids/modeling/report/__init__.py" = ["D104"]
 "*/test_*.py" = [
   "S101",  # assert
   "D",
