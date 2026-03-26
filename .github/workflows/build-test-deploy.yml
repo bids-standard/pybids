@@ -30,6 +30,18 @@ permissions:
   contents: read
 
 jobs:
+  noqa-budget:
+    name: Noqa budget
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - name: Ensure '# noqa' count does not increase
+        run: |
+          python tools/check_noqa_budget.py --base-ref "origin/${{ github.base_ref }}"
+
   build:
     name: Build & verify package
     runs-on: ubuntu-latest
