@@ -1,13 +1,8 @@
-"""Generate pybids config dicts from the BIDS schema.
+"""Generate pybids path patterns and entity lists from the BIDS schema.
 
 This module converts the structured BIDS schema (loaded via bidsschematools)
-into pybids-format configuration dictionaries compatible with
-``bids.json`` and ``derivatives.json``.
-
-It also provides an extension mechanism for downstream tools (such as
-NiPreps/niworkflows) to layer custom entities and path patterns on top
-of the schema-generated config, and a standalone ``bids_path()``
-convenience function.
+into pybids-format entity lists and path patterns, and provides a standalone
+``bids_path()`` convenience function.
 
 Requires the optional ``bidsschematools`` package::
 
@@ -15,8 +10,6 @@ Requires the optional ``bidsschematools`` package::
 """
 from __future__ import annotations
 
-import copy
-import re
 from collections.abc import Mapping
 from typing import Any
 
@@ -42,47 +35,52 @@ def _require_schema():
 # Entity conversion
 # ---------------------------------------------------------------------------
 
-# Entities that define directory structure
-_DIRECTORY_ENTITIES = {
-    "subject": "{subject}",
-    "session": "{subject}{session}",
-}
-
-# Format → regex capture group mapping
-_FORMAT_PATTERN = {
-    "label": "([a-zA-Z0-9+]+)",
-    "index": "(\\d+)",
-}
-
 # Index-format entities get dtype: int
 _INDEX_DTYPE = "int"
 
-# Pseudo-entities appended to every config (not from the schema entity list)
-_PSEUDO_ENTITIES = [
-    {
-        "name": "suffix",
-        "pattern": "(?:^|[_/\\\\])([a-zA-Z0-9+]+)\\.[^/\\\\]+$",
-    },
-    {
-        "name": "scans",
-        "pattern": "(.*\\_scans.tsv)$",
-    },
-    {
-        "name": "fmap",
-        "pattern": "(phasediff|magnitude[1-2]|phase[1-2]|fieldmap|epi)\\.nii",
-    },
-    # datatype is built dynamically
-    {
-        "name": "extension",
-        "pattern": "[^./\\\\](\\.[^/\\\\]+)$",
-    },
-]
+
+def _get_format_patterns(schema) -> dict[str, str]:
+    """Build format → regex capture group mapping from the schema.
+
+    Reads ``schema['objects']['formats']`` and extracts the ``pattern``
+    attribute for each format that has one.
+    """
+    formats = schema["objects"]["formats"]
+    patterns = {}
+    for key, fmt_def in formats.items():
+        pat = getattr(fmt_def, "pattern", None) or fmt_def.get("pattern")
+        if pat:
+            patterns[key] = "(%s)" % pat
+    return patterns
+
+
+def _get_directory_entities(schema) -> dict[str, str]:
+    """Derive directory entity mappings from ``schema['rules']['directories']``.
+
+    Returns a dict mapping entity keys to their directory template strings,
+    e.g. ``{"subject": "{subject}", "session": "{subject}{session}"}``.
+    """
+    raw_dirs = schema["rules"]["directories"].get("raw", {})
+    result = {}
+
+    # Subject is a top-level directory entity
+    subj_dir = raw_dirs.get("subject", {})
+    if hasattr(subj_dir, "entity") or (isinstance(subj_dir, Mapping) and "entity" in subj_dir):
+        result["subject"] = "{subject}"
+
+    # Session is nested under subject
+    sess_dir = raw_dirs.get("session", {})
+    if hasattr(sess_dir, "entity") or (isinstance(sess_dir, Mapping) and "entity" in sess_dir):
+        result["session"] = "{subject}{session}"
+
+    return result
 
 
 def schema_entity_to_pybids(
     entity_key: str,
     entity_def: dict,
     format_patterns: dict,
+    directory_entities: dict,
 ) -> dict:
     """Convert a single BIDS schema entity definition to a pybids entity dict.
 
@@ -93,7 +91,9 @@ def schema_entity_to_pybids(
     entity_def : dict
         The entity definition from ``schema.objects.entities[entity_key]``.
     format_patterns : dict
-        Format patterns from ``schema.objects.formats``.
+        Format → regex capture group mapping from :func:`_get_format_patterns`.
+    directory_entities : dict
+        Directory entity mapping from :func:`_get_directory_entities`.
 
     Returns
     -------
@@ -109,7 +109,9 @@ def schema_entity_to_pybids(
     if enum_values:
         capture = "(%s)" % "|".join(enum_values)
     else:
-        capture = _FORMAT_PATTERN.get(fmt, _FORMAT_PATTERN["label"])
+        # Fall back to label pattern if format not found
+        label_pattern = format_patterns.get("label", "([a-zA-Z0-9+]+)")
+        capture = format_patterns.get(fmt, label_pattern)
 
     # Build prefix: directory entities use path separator, others use _ or separator
     if entity_key == "subject":
@@ -122,8 +124,8 @@ def schema_entity_to_pybids(
     result = {"name": entity_key, "pattern": pattern}
 
     # Directory entities
-    if entity_key in _DIRECTORY_ENTITIES:
-        result["directory"] = _DIRECTORY_ENTITIES[entity_key]
+    if entity_key in directory_entities:
+        result["directory"] = directory_entities[entity_key]
 
     # Session is not mandatory
     if entity_key == "session":
@@ -158,6 +160,41 @@ def _build_datatype_entity(datatypes: set[str]) -> dict:
     }
 
 
+def _build_suffix_entity(schema) -> dict:
+    """Build the suffix pseudo-entity from schema suffix definitions."""
+    suffixes = schema["objects"].get("suffixes", {})
+    if suffixes:
+        suffix_names = sorted(suffixes.keys())
+        capture = "(%s)" % "|".join(suffix_names)
+    else:
+        # Fallback: match alphanumeric
+        capture = "([a-zA-Z0-9+]+)"
+    return {
+        "name": "suffix",
+        "pattern": "(?:^|[_/\\\\])%s\\.[^/\\\\]+$" % capture,
+    }
+
+
+def _build_extension_entity(schema) -> dict:
+    """Build the extension pseudo-entity from schema extension definitions."""
+    extensions = schema["objects"].get("extensions", {})
+    if extensions:
+        # Get all extension values, escape dots for regex
+        ext_values = []
+        for key, ext_def in extensions.items():
+            # Extension keys in the schema are the actual extensions (e.g., ".nii.gz")
+            val = ext_def.get("value", key) if isinstance(ext_def, Mapping) else key
+            ext_values.append(val.replace(".", "\\."))
+        capture = "(%s)" % "|".join(sorted(ext_values, key=len, reverse=True))
+    else:
+        # Fallback: match any extension
+        capture = "(\\.[^/\\\\]+)"
+    return {
+        "name": "extension",
+        "pattern": "[^./\\\\]%s$" % capture,
+    }
+
+
 def generate_entities(schema) -> list[dict]:
     """Generate the full ordered list of pybids entity dicts from the schema.
 
@@ -173,24 +210,24 @@ def generate_entities(schema) -> list[dict]:
     """
     entity_order = list(schema["rules"]["entities"])
     entity_defs = schema["objects"]["entities"]
-    format_defs = schema["objects"]["formats"]
+    format_patterns = _get_format_patterns(schema)
+    directory_entities = _get_directory_entities(schema)
 
     entities = []
     for key in entity_order:
         if key not in entity_defs:
             continue
-        entities.append(schema_entity_to_pybids(key, entity_defs[key], format_defs))
+        entities.append(
+            schema_entity_to_pybids(key, entity_defs[key], format_patterns, directory_entities)
+        )
 
     # Collect all datatypes from rules for the datatype pseudo-entity
     datatypes = _collect_datatypes(schema)
 
-    # Append pseudo-entities
-    for pseudo in _PSEUDO_ENTITIES:
-        entities.append(dict(pseudo))
-
-    # Insert datatype entity before extension (second-to-last)
-    dt_entity = _build_datatype_entity(datatypes)
-    entities.insert(-1, dt_entity)
+    # Append schema-derived pseudo-entities
+    entities.append(_build_suffix_entity(schema))
+    entities.append(_build_datatype_entity(datatypes))
+    entities.append(_build_extension_entity(schema))
 
     return entities
 
@@ -545,445 +582,6 @@ def _make_rule_key(rule) -> tuple:
 
 
 # ---------------------------------------------------------------------------
-# Config generation
-# ---------------------------------------------------------------------------
-
-
-def generate_config(
-    name: str = "bids",
-    schema=None,
-    schema_path: str | None = None,
-    rule_groups: list[str] | None = None,
-    sidecar_split: bool = True,
-) -> dict:
-    """Generate a complete pybids config dict from the BIDS schema.
-
-    Parameters
-    ----------
-    name : str
-        The config name (e.g., ``"bids"``, ``"derivatives"``).
-    schema : optional
-        A pre-loaded BIDS schema. If ``None``, loads via ``bidsschematools``.
-    schema_path : str, optional
-        Path to schema directory. Only used if ``schema`` is ``None``.
-    rule_groups : list of str, optional
-        Which rule groups to include. Defaults to ``["raw"]`` for ``"bids"``,
-        ``["raw", "deriv"]`` for ``"derivatives"`` or any other name.
-    sidecar_split : bool, optional
-        If ``True`` (default), heritable extensions are split into separate
-        sidecar patterns.  If ``False``, all extensions are kept in a single
-        main pattern per rule.
-
-    Returns
-    -------
-    dict
-        A config dict matching the ``bids.json`` format::
-
-            {"name": ..., "entities": [...], "default_path_patterns": [...]}
-    """
-    _require_schema()
-
-    if schema is None:
-        kwargs = {}
-        if schema_path is not None:
-            kwargs["schema_dir"] = schema_path
-        schema = load_schema(**kwargs)
-
-    if rule_groups is None:
-        if name == "bids":
-            rule_groups = ["raw"]
-        else:
-            rule_groups = ["raw", "deriv"]
-
-    # Generate entities
-    entities = generate_entities(schema)
-
-    # Generate path patterns
-    all_patterns = []
-    for rg in rule_groups:
-        all_patterns.extend(
-            generate_path_patterns(schema, rg, sidecar_split=sidecar_split)
-        )
-
-    return {
-        "name": name,
-        "entities": entities,
-        "default_path_patterns": all_patterns,
-    }
-
-
-# ---------------------------------------------------------------------------
-# Extension mechanism
-# ---------------------------------------------------------------------------
-
-
-class ConfigExtension:
-    """Defines custom entities and path patterns to layer on top of a
-    schema-generated config.
-
-    Parameters
-    ----------
-    name : str
-        A name for this extension (e.g., ``"nipreps"``).
-    extra_entities : list of dict, optional
-        Additional entity dicts to add. Each must have at minimum
-        ``"name"`` and ``"pattern"``. An optional ``"position"`` key
-        controls insertion: ``"after:<entity_name>"`` inserts after the
-        named entity, ``"before:<entity_name>"`` inserts before it, and
-        ``"end"`` (default) appends before pseudo-entities.
-    extra_path_patterns : list of str, optional
-        Additional path patterns to append.
-    entity_overrides : dict, optional
-        A dict mapping entity long names to partial dicts that override
-        fields in the generated entity.
-    extra_datatypes : list of str, optional
-        Additional datatype values to recognize in the ``datatype`` entity
-        pattern (e.g., ``["figures"]``).
-    inject_entity_segments : list of dict, optional
-        Entity segments to inject into all generated path patterns.
-        Each dict must have ``"segment"`` (the string to insert, e.g.,
-        ``"[_hash-{hash}]"``) and ``"after"`` (the substring to insert
-        after, e.g., ``"[_ses-{session}]"``). Patterns that do not
-        contain the ``"after"`` string are left unchanged. Injection is
-        skipped if the segment is already present (deduplication).
-    extra_rules : list of dict, optional
-        Compact rule dicts to generate additional path patterns from.
-        Each dict has ``"datatypes"``, ``"suffixes"``, ``"extensions"``
-        (all lists) and an optional ``"entities"`` dict.  When
-        ``"entities"`` is omitted, entities are inherited from the
-        schema's derivative rules for the given datatypes (all
-        optional).  Explicit entities are merged on top—use this to add
-        non-schema entities or mark entities as required.  Entity names
-        may use either schema keys (``"description"``) or short BIDS
-        names (``"desc"``).
-    """
-
-    def __init__(
-        self,
-        name: str,
-        extra_entities: list[dict] | None = None,
-        extra_path_patterns: list[str] | None = None,
-        entity_overrides: dict[str, dict] | None = None,
-        extra_datatypes: list[str] | None = None,
-        inject_entity_segments: list[dict] | None = None,
-        extra_rules: list[dict] | None = None,
-    ):
-        self.name = name
-        self.extra_entities = extra_entities or []
-        self.extra_path_patterns = extra_path_patterns or []
-        self.entity_overrides = entity_overrides or {}
-        self.extra_datatypes = extra_datatypes or []
-        self.inject_entity_segments = inject_entity_segments or []
-        self.extra_rules = extra_rules or []
-
-
-def _rename_template_vars(
-    patterns: list[str], old_name: str, new_name: str,
-) -> list[str]:
-    """Rename template variables in path patterns.
-
-    Rewrites ``{old_name}``, ``{old_name<...>}``, ``{old_name|...}`` to use
-    *new_name* instead.
-    """
-    regex = re.compile(r"\{" + re.escape(old_name) + r"(?=[<|}\s])")
-    return [regex.sub("{" + new_name, p) for p in patterns]
-
-
-def _build_extended_entity_order(schema, extension: ConfigExtension) -> list[str]:
-    """Build an entity order that includes extension entities at their positions."""
-    order = list(schema["rules"]["entities"])
-
-    # Build a lookup so position targets can use either schema keys or
-    # short BIDS names (e.g., "after:hemi" matches schema key "hemisphere").
-    entity_defs = schema["objects"]["entities"]
-    name_map = _build_entity_name_map(entity_defs)
-
-    def _find_target(target):
-        """Resolve a position target to an index in *order*."""
-        # Direct match (schema key or previously inserted extra entity)
-        if target in order:
-            return order.index(target)
-        # Resolve short name → schema key
-        resolved = name_map.get(target)
-        if resolved and resolved in order:
-            return order.index(resolved)
-        return None
-
-    for extra_ent in extension.extra_entities:
-        name = extra_ent["name"]
-        if name in order:
-            continue
-        position = extra_ent.get("position", "end")
-        if position == "end":
-            order.append(name)
-        elif position.startswith("after:"):
-            target = position.split(":", 1)[1]
-            idx = _find_target(target)
-            order.insert((idx + 1) if idx is not None else len(order), name)
-        elif position.startswith("before:"):
-            target = position.split(":", 1)[1]
-            idx = _find_target(target)
-            order.insert(idx if idx is not None else len(order), name)
-    return order
-
-
-def _build_extended_entity_defs(schema, extension: ConfigExtension) -> dict:
-    """Build entity definitions combining schema and extension entities."""
-    defs = dict(schema["objects"]["entities"])
-    for extra_ent in extension.extra_entities:
-        name = extra_ent["name"]
-        if name not in defs:
-            defs[name] = {"name": name, "format": "label"}
-    return defs
-
-
-def _build_entity_name_map(entity_defs: dict) -> dict[str, str]:
-    """Map both schema keys and short BIDS names to schema keys.
-
-    For example, both ``"description"`` and ``"desc"`` map to
-    ``"description"``.
-    """
-    name_map: dict[str, str] = {}
-    for key, defn in entity_defs.items():
-        name_map[key] = key
-        short = defn.get("name", key)
-        if short != key:
-            name_map[short] = key
-    return name_map
-
-
-def _collect_deriv_entities_for_datatypes(
-    schema, datatypes: list[str],
-) -> dict[str, str]:
-    """Collect the union of entities from deriv rules matching *datatypes*.
-
-    All collected entities are marked ``"optional"``.
-    """
-    entities: dict[str, str] = {}
-    deriv_rules = schema["rules"]["files"].get("deriv", {})
-    _collect_rule_entities(deriv_rules, set(datatypes), entities)
-    return entities
-
-
-def _collect_rule_entities(obj, target_datatypes: set, entities: dict):
-    """Recursively find rules matching *target_datatypes* and union entities."""
-    if isinstance(obj, Mapping):
-        if "entities" in obj and "datatypes" in obj:
-            if set(obj.get("datatypes", [])) & target_datatypes:
-                for ent_key in obj["entities"]:
-                    if ent_key not in ("subject", "session"):
-                        if ent_key not in entities:
-                            entities[ent_key] = "optional"
-        else:
-            for v in obj.values():
-                if isinstance(v, Mapping):
-                    _collect_rule_entities(v, target_datatypes, entities)
-
-
-def _extra_rules_to_patterns(
-    rules: list[dict],
-    schema,
-    extension: ConfigExtension,
-) -> list[str]:
-    """Convert extra rule dicts to path pattern strings.
-
-    Entity ordering comes from the schema, extended with entities from
-    *extension*.  For each rule, a base entity set is inherited from
-    matching schema derivative rules; explicitly specified entities are
-    merged on top.
-    """
-    entity_order = _build_extended_entity_order(schema, extension)
-    entity_defs = _build_extended_entity_defs(schema, extension)
-    name_map = _build_entity_name_map(entity_defs)
-
-    patterns: list[str] = []
-
-    for rule in rules:
-        datatypes = rule.get("datatypes", [])
-        suffixes = rule.get("suffixes", [])
-        extensions = rule.get("extensions", [])
-
-        if not suffixes or not extensions:
-            continue
-
-        # Inherit entities from schema deriv rules, merge explicit on top
-        base_entities = _collect_deriv_entities_for_datatypes(schema, datatypes)
-        explicit = rule.get("entities", {})
-        resolved = {name_map.get(k, k): v for k, v in explicit.items()}
-        merged = {**base_entities, **resolved}
-
-        # Extra rules produce a single full-path pattern with all extensions
-        # (no sidecar split). Sidecar/inheritance patterns for heritable
-        # extensions are already provided by the schema's own rules.
-        patterns.append(
-            _build_file_pattern(
-                entity_order, entity_defs, merged,
-                datatypes, suffixes, sorted(extensions),
-            )
-        )
-
-    return patterns
-
-
-def apply_extension(config: dict, extension: ConfigExtension, schema=None) -> dict:
-    """Apply a ConfigExtension to a generated config dict.
-
-    Parameters
-    ----------
-    config : dict
-        A config dict as returned by :func:`generate_config`.
-    extension : ConfigExtension
-        The extension to apply.
-
-    Returns
-    -------
-    dict
-        A new config dict with the extension applied (does not
-        mutate the input).
-    """
-    config = copy.deepcopy(config)
-
-    # 1. Apply entity overrides
-    for ent in config["entities"]:
-        if ent["name"] in extension.entity_overrides:
-            ent.update(extension.entity_overrides[ent["name"]])
-
-    # 1b. Convert extra_rules to patterns (before renaming/injection)
-    if extension.extra_rules:
-        if schema is None:
-            raise ValueError(
-                "schema is required when the extension has extra_rules"
-            )
-        config["default_path_patterns"].extend(
-            _extra_rules_to_patterns(extension.extra_rules, schema, extension)
-        )
-
-    # 2. Rename template variables in patterns to match overridden names
-    for entity_key, overrides in extension.entity_overrides.items():
-        if "name" in overrides and overrides["name"] != entity_key:
-            config["default_path_patterns"] = _rename_template_vars(
-                config["default_path_patterns"],
-                entity_key,
-                overrides["name"],
-            )
-
-    # 3. Inject entity segments into existing patterns
-    for injection in extension.inject_entity_segments:
-        segment = injection["segment"]
-        after = injection["after"]
-        config["default_path_patterns"] = [
-            p.replace(after, after + segment)
-            if (after in p and segment not in p) else p
-            for p in config["default_path_patterns"]
-        ]
-
-    # 4. Insert extra entities at specified positions
-    pseudo_names = {"suffix", "scans", "fmap", "datatype", "extension"}
-
-    for extra_ent in extension.extra_entities:
-        extra_ent = dict(extra_ent)  # Don't mutate the original
-        position = extra_ent.pop("position", "end")
-
-        if position == "end":
-            # Insert before pseudo-entities
-            idx = _find_first_pseudo_index(config["entities"], pseudo_names)
-            config["entities"].insert(idx, extra_ent)
-        elif position.startswith("after:"):
-            target = position.split(":", 1)[1]
-            for i, ent in enumerate(config["entities"]):
-                if ent["name"] == target:
-                    config["entities"].insert(i + 1, extra_ent)
-                    break
-        elif position.startswith("before:"):
-            target = position.split(":", 1)[1]
-            for i, ent in enumerate(config["entities"]):
-                if ent["name"] == target:
-                    config["entities"].insert(i, extra_ent)
-                    break
-
-    # 5. Extend datatype pattern
-    if extension.extra_datatypes:
-        for ent in config["entities"]:
-            if ent["name"] == "datatype":
-                m = re.search(r"\(([^)]+)\)", ent["pattern"])
-                if m:
-                    existing = set(m.group(1).split("|"))
-                    existing.update(extension.extra_datatypes)
-                    new_vals = "|".join(sorted(existing))
-                    ent["pattern"] = ent["pattern"].replace(
-                        m.group(1), new_vals
-                    )
-                break
-
-    # 6. Append extra path patterns
-    config["default_path_patterns"].extend(extension.extra_path_patterns)
-
-    return config
-
-
-def _find_first_pseudo_index(entities: list[dict], pseudo_names: set) -> int:
-    """Find the index of the first pseudo-entity in the list."""
-    for i, ent in enumerate(entities):
-        if ent["name"] in pseudo_names:
-            return i
-    return len(entities)
-
-
-def generate_extended_config(
-    name: str = "bids",
-    extensions: list[ConfigExtension] | None = None,
-    schema=None,
-    schema_path: str | None = None,
-    rule_groups: list[str] | None = None,
-    sidecar_split: bool = True,
-) -> dict:
-    """Generate config and apply extensions in one step.
-
-    Parameters
-    ----------
-    name : str
-        Config name.
-    extensions : list of ConfigExtension, optional
-        Extensions to apply in order.
-    schema : optional
-        Pre-loaded BIDS schema.
-    schema_path : str, optional
-        Path to schema directory.
-    rule_groups : list of str, optional
-        Rule groups to process.
-    sidecar_split : bool, optional
-        If ``True`` (default), heritable extensions are split into separate
-        sidecar patterns.  If ``False``, all extensions are kept in a single
-        main pattern per rule.
-
-    Returns
-    -------
-    dict
-        The final config dict ready for use with ``Config.load()`` or
-        ``BIDSLayout``.
-    """
-    _require_schema()
-
-    # Load schema once so it can be shared with apply_extension
-    if schema is None:
-        kwargs = {}
-        if schema_path is not None:
-            kwargs["schema_dir"] = schema_path
-        schema = load_schema(**kwargs)
-
-    config = generate_config(
-        name=name, schema=schema, rule_groups=rule_groups,
-        sidecar_split=sidecar_split,
-    )
-
-    if extensions:
-        for ext in extensions:
-            config = apply_extension(config, ext, schema=schema)
-
-    return config
-
-
-# ---------------------------------------------------------------------------
 # Standalone path builder
 # ---------------------------------------------------------------------------
 
@@ -1041,8 +639,10 @@ def _get_default_patterns(schema=None) -> list[str]:
         _require_schema()
         if schema is None:
             schema = load_schema()
-        config = generate_config(
-            name="all", schema=schema, rule_groups=["raw", "deriv"]
-        )
-        _default_patterns_cache[cache_key] = config["default_path_patterns"]
+        all_patterns = []
+        for rg in ("raw", "deriv"):
+            all_patterns.extend(
+                generate_path_patterns(schema, rg, sidecar_split=True)
+            )
+        _default_patterns_cache[cache_key] = all_patterns
     return _default_patterns_cache[cache_key]
