@@ -61,9 +61,42 @@ def test_layout_on_examples_with_derivatives(dataset, nb_files, bids_examples):
         ("mrs_fmrs", 169),
         ("mrs_biggaba", 172),
         ("mrs_2dmrsi", 67),
+        ("emg_ConcurrentIndependentUnits", 18),
+        ("emg_CustomBipolar", 7),
+        ("emg_CustomBipolarFace", 11),
+        ("emg_IndependentMod", 7),
+        ("emg_MultiBodyParts", 10),
+        ("emg_Multimodal", 21),
+        ("emg_TwoHDsEMG", 12),
+        ("emg_TwoWristbands", 10),
+        ("eyetracking_binocular", 21),
+        ("eyetracking_fmri", 30),
     ],
 )
 def test_layout_on_examples_no_derivatives(dataset, nb_files, bids_examples):
     layout = BIDSLayout(bids_examples / dataset)
+    files = layout.get()
+    assert len(files) == nb_files
+
+@pytest.mark.xfail(reason="atlas datasets are not fully supported in pybids")
+@pytest.mark.parametrize(
+    "dataset, nb_files",
+    [
+
+    ("atlas-4S", 48),
+    ("atlas-AAL", 7),
+    ("atlas-Destrieux", 7),
+    ("atlas-DiFuMo", 19),
+    ("atlas-HarvardOxford", 9),
+    ("atlas-HOSPA", 27),
+    ("atlas-Juelich", 9),
+    ("atlas-Schaefer", 10),
+    ("atlas-suit", 18),
+    ("atlas-Talairach", 19),
+    ],
+)
+def test_layout_on_examples_derivatives(dataset, nb_files, bids_examples):
+    """Check n files found in derivative dataset."""
+    layout = BIDSLayout(bids_examples / dataset, config="derivatives")
     files = layout.get()
     assert len(files) == nb_files
