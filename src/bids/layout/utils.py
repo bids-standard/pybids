@@ -154,16 +154,19 @@ def add_config_paths(**kwargs):
     Parameters
     ----------
     kwargs : dict
-        Dictionary specifying where to find additional config files.
-        Keys are names, values are paths to the corresponding .json file.
+        Dictionary specifying where to find additional configurations.
+        Keys are names, values are either paths to .json files or
+        in-memory config dicts with keys ``"name"``, ``"entities"``,
+        and ``"default_path_patterns"``.
 
     Examples
     --------
     > add_config_paths(my_config='/path/to/config')
+    > add_config_paths(my_config={"name": "my_config", "entities": [...], ...})
     > layout = BIDSLayout('/path/to/bids', config=['bids', 'my_config'])
     """
-    for k, path in kwargs.items():
-        if not Path(path).exists():
+    for k, config in kwargs.items():
+        if not isinstance(config, dict) and not Path(config).exists():
             raise ConfigError(
                 'Configuration file "{}" does not exist'.format(k))
         if k in cf.get_option('config_paths'):

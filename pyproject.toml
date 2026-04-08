@@ -46,6 +46,7 @@ doc = [
   "myst_nb",
   "jupytext",
 ]
+schema = ["bidsschematools >= 1.0"]
 plotting = ["graphviz"]
 test = [
   "pytest >= 8",

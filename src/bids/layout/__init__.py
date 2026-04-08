@@ -3,6 +3,7 @@ from .models import (BIDSFile, BIDSImageFile, BIDSDataFile, BIDSJSONFile,
                      Config, Entity, Tag)
 from .index import BIDSLayoutIndexer
 from .utils import add_config_paths, parse_file_entities
+from .config_gen import bids_path, generate_entities, generate_path_patterns
 # Backwards compatibility
 from bids_validator import BIDSValidator
 
@@ -19,5 +20,8 @@ __all__ = [
     "Config",
     "Entity",
     "Tag",
-    "Query"
+    "Query",
+    "bids_path",
+    "generate_entities",
+    "generate_path_patterns",
 ]
