@@ -109,7 +109,3 @@ source = [
 [tool.coverage.report]
 include = ["src/*", "tests/*"]
 
-[dependency-groups]
-dev = [
-    "ruff>=0.15.7",
-]
