@@ -1,21 +1,15 @@
-""" Tests of functionality in the layout module--mostly related to the
+"""Tests of functionality in the layout module--mostly related to the
 BIDSLayout class."""
 
+import json
 import os
 import re
-from os.path import join, abspath, basename
-from pathlib import Path
 import shutil
-import json
+from os.path import abspath, basename, join
+from pathlib import Path
 
 import numpy as np
 import pytest
-
-from bids.layout import BIDSLayout, Query
-from bids.layout.models import Config
-from bids.layout.index import BIDSLayoutIndexer, _check_path_matches_patterns, _regexfy
-from bids.layout.utils import PaddedInt
-from bids.utils import natural_sort, bids_sort
 
 from bids.exceptions import (
     BIDSChildDatasetError,
@@ -24,6 +18,11 @@ from bids.exceptions import (
     NoMatchError,
     TargetError,
 )
+from bids.layout import BIDSLayout, Query
+from bids.layout.index import BIDSLayoutIndexer, _check_path_matches_patterns, _regexfy
+from bids.layout.models import Config
+from bids.layout.utils import PaddedInt
+from bids.utils import bids_sort, natural_sort
 
 
 def test_layout_init(layout_7t_trt):
@@ -40,7 +39,8 @@ def test_layout_init(layout_7t_trt):
         (True, {'task': 'rest', 'extension': ['.nii.gz']}, 3.0),
         (True, {'task': 'rest', 'extension': '.nii.gz'}, 3.0),
         (True, {'task': 'rest', 'extension': ['.nii.gz', '.json'], 'return_type': 'file'}, 3.0),
-    ])
+    ],
+)
 def test_index_metadata(tests_dir, index_metadata, filters, result, mock_config):
     data_dir = tests_dir / 'data' / '7t_trt'
     layout = BIDSLayout(
@@ -48,45 +48,42 @@ def test_index_metadata(tests_dir, index_metadata, filters, result, mock_config)
         indexer=BIDSLayoutIndexer(index_metadata=index_metadata, **filters),
     )
 
-    sample_file = layout.get(task='rest', extension='.nii.gz',
-                             acquisition='fullbrain')
+    sample_file = layout.get(task='rest', extension='.nii.gz', acquisition='fullbrain')
     assert bool(sample_file)
     metadata = sample_file[0].get_metadata()
     assert metadata.get('RepetitionTime') == result
-
 
 
 @pytest.mark.parametrize('config_type', [str, Path])
 def test_config_filename(tests_dir, config_type):
     # Use custom config that replaces session with oligarchy
     config_path = tests_dir / 'data' / 'bids_specs_with_oligarchy.json'
-    layout = BIDSLayout(tests_dir / 'data' / "7t_trt", config=config_type(config_path))
+    layout = BIDSLayout(tests_dir / 'data' / '7t_trt', config=config_type(config_path))
     # Validate that we are using the desired configuration
     assert 'oligarchy' in layout.get_entities()
 
 
 def test_layout_repr(layout_7t_trt):
-    assert "Subjects: 10 | Sessions: 20 | Runs: 20" in str(layout_7t_trt)
+    assert 'Subjects: 10 | Sessions: 20 | Runs: 20' in str(layout_7t_trt)
 
 
 def test_invalid_dataset_description(tests_dir, tmp_path):
-    shutil.copytree(tests_dir / 'data' / '7t_trt', tmp_path / "7t_dset")
-    (tmp_path / "7t_dset" / "dataset_description.json").write_text(
-        "I am not a valid json file"
-    )
+    shutil.copytree(tests_dir / 'data' / '7t_trt', tmp_path / '7t_dset')
+    (tmp_path / '7t_dset' / 'dataset_description.json').write_text('I am not a valid json file')
     with pytest.raises(BIDSValidationError) as exc:
-        BIDSLayout(tmp_path / "7t_dset")
+        BIDSLayout(tmp_path / '7t_dset')
 
-    assert "is not a valid json file" in str(exc.value)
+    assert 'is not a valid json file' in str(exc.value)
 
 
 def test_layout_repr_overshadow_run(tests_dir, tmp_path):
     """A test creating a layout to replicate #681."""
-    shutil.copytree(tests_dir / 'data' / '7t_trt', tmp_path / "7t_trt")
-    (tmp_path / "7t_trt" / "sub-01" / "ses-1" / "sub-01_ses-1_scans.json").write_text(
-        json.dumps({"run": {"Description": "metadata to cause #681"}})
+    shutil.copytree(tests_dir / 'data' / '7t_trt', tmp_path / '7t_trt')
+    (tmp_path / '7t_trt' / 'sub-01' / 'ses-1' / 'sub-01_ses-1_scans.json').write_text(
+        json.dumps({'run': {'Description': 'metadata to cause #681'}})
     )
-    assert "Subjects: 10 | Sessions: 20 | Runs: 20" in str(BIDSLayout(tmp_path / "7t_trt"))
+    assert 'Subjects: 10 | Sessions: 20 | Runs: 20' in str(BIDSLayout(tmp_path / '7t_trt'))
+
 
 # def test_layout_copy(layout_7t_trt):
 #     # Largely a smoke test to guarantee that copy() does not blow
@@ -107,7 +104,7 @@ def test_load_description(layout_7t_trt):
     # Should not raise an error
     assert hasattr(layout_7t_trt, 'description')
     assert layout_7t_trt.description['Name'] == '7t_trt'
-    assert layout_7t_trt.description['BIDSVersion'] == "1.0.0rc3"
+    assert layout_7t_trt.description['BIDSVersion'] == '1.0.0rc3'
 
 
 def test_get_file(layout_ds005_derivs):
@@ -128,7 +125,9 @@ def test_get_file(layout_ds005_derivs):
     assert not layout.get_file(target, scope='derivatives')
 
     # relative path in derivatives pipeline
-    orig_file = 'derivatives/events/sub-01/func/sub-01_task-mixedgamblestask_run-01_desc-extra_events.tsv'
+    orig_file = (
+        'derivatives/events/sub-01/func/sub-01_task-mixedgamblestask_run-01_desc-extra_events.tsv'
+    )
     target = os.path.join(*orig_file.split('/'))
     assert layout.get_file(target)
     assert not layout.get_file(target, scope='raw')
@@ -149,61 +148,58 @@ def test_get_file(layout_ds005_derivs):
 
 class TestDerivativeAsRoot:
     def test_dataset_without_datasettype_parsed_as_raw(self, tests_dir):
-        ds_root = tests_dir / "data" / "ds005_derivs" / "format_errs" / "no_dataset_type"
+        ds_root = tests_dir / 'data' / 'ds005_derivs' / 'format_errs' / 'no_dataset_type'
         unvalidated = BIDSLayout(ds_root, validate=False)
         assert len(unvalidated.get()) == 4
         with pytest.raises(ValueError):
-            unvalidated.get(desc="preproc")
+            unvalidated.get(desc='preproc')
 
         validated = BIDSLayout(ds_root)
         assert len(validated.get()) == 1
 
     def test_derivative_indexing_forced_with_is_derivative(self, tests_dir):
         unvalidated = BIDSLayout(
-            tests_dir / "data" / "ds005_derivs" / "format_errs" / "no_type_or_description",
+            tests_dir / 'data' / 'ds005_derivs' / 'format_errs' / 'no_type_or_description',
             is_derivative=True,
-            validate=False
+            validate=False,
         )
         assert len(unvalidated.get()) == 4
-        assert len(unvalidated.get(desc="preproc")) == 3
+        assert len(unvalidated.get(desc='preproc')) == 3
 
     def test_forced_derivative_indexing_fails_validation(self, tests_dir):
         with pytest.raises(BIDSDerivativesValidationError):
             BIDSLayout(
-                tests_dir / "data" / "ds005_derivs" / "format_errs" / "no_type_or_description",
+                tests_dir / 'data' / 'ds005_derivs' / 'format_errs' / 'no_type_or_description',
                 is_derivative=True,
-                validate=True
+                validate=True,
             )
 
     def test_dataset_missing_generatedby_fails_validation(self, tests_dir):
         with pytest.raises(BIDSDerivativesValidationError):
-            BIDSLayout(tests_dir / "data" / "ds005_derivs" / "format_errs" / "no_pipeline_description")
-
+            BIDSLayout(
+                tests_dir / 'data' / 'ds005_derivs' / 'format_errs' / 'no_pipeline_description'
+            )
 
     def test_correctly_formatted_derivative_loads_as_derivative(self, tests_dir):
-        layout = BIDSLayout(tests_dir / "data" / "ds005_derivs" / "dummy", validate=False)
+        layout = BIDSLayout(tests_dir / 'data' / 'ds005_derivs' / 'dummy', validate=False)
         assert len(layout.get()) == 4
-        assert len(layout.get(desc="preproc")) == 3
+        assert len(layout.get(desc='preproc')) == 3
 
     @pytest.mark.parametrize(
-        "dataset_path",
+        'dataset_path',
         [
-            Path("ds005_derivs", "dummy"),
-            Path("ds005_derivs", "format_errs", "no_pipeline_description")
-        ]
+            Path('ds005_derivs', 'dummy'),
+            Path('ds005_derivs', 'format_errs', 'no_pipeline_description'),
+        ],
     )
     def test_derivative_datasets_load_with_no_validation(self, tests_dir, dataset_path):
-        layout = BIDSLayout(
-            tests_dir / "data" / dataset_path,
-            validate=False
-        )
+        layout = BIDSLayout(tests_dir / 'data' / dataset_path, validate=False)
         assert len(layout.get()) == 4
-        assert len(layout.get(desc="preproc")) == 3
+        assert len(layout.get(desc='preproc')) == 3
 
 
 def test_get_metadata(layout_7t_trt):
-    target = 'sub-03/ses-2/func/sub-03_ses-2_task-' \
-             'rest_acq-fullbrain_run-2_bold.nii.gz'
+    target = 'sub-03/ses-2/func/sub-03_ses-2_task-rest_acq-fullbrain_run-2_bold.nii.gz'
     target = target.split('/')
     result = layout_7t_trt.get_metadata(join(layout_7t_trt.root, *target))
     assert result['RepetitionTime'] == 3.0
@@ -237,22 +233,29 @@ def test_get_metadata4(layout_ds005):
 
 def test_get_metadata_error2(layout_7t_trt):
     """Ensure that False boolean fields are retained as False."""
-    target = 'sub-03/ses-2/func/sub-03_ses-2_task-' \
-             'rest_acq-fullbrain_run-2_bold.nii.gz'
+    target = 'sub-03/ses-2/func/sub-03_ses-2_task-rest_acq-fullbrain_run-2_bold.nii.gz'
     target = target.split('/')
     # Check get_metadata from the BIDSLayout
     result = layout_7t_trt.get_metadata(join(layout_7t_trt.root, *target))
     assert result['MTState'] is False
 
     # Check get_metadata from the BIDSFile
-    files = layout_7t_trt.get(task="rest", acquisition="fullbrain", suffix="bold", extension=".nii.gz")
+    files = layout_7t_trt.get(
+        task='rest', acquisition='fullbrain', suffix='bold', extension='.nii.gz'
+    )
     result = files[0].get_metadata()
     assert result['MTState'] is False
 
 
 def test_get_metadata_meg(layout_ds117):
-    funcs = ['get_subjects', 'get_sessions', 'get_tasks', 'get_runs',
-             'get_acquisitions', 'get_procs']
+    funcs = [
+        'get_subjects',
+        'get_sessions',
+        'get_tasks',
+        'get_runs',
+        'get_acquisitions',
+        'get_procs',
+    ]
     assert all([hasattr(layout_ds117, f) for f in funcs])
     procs = layout_ds117.get_procs()
     assert procs == ['sss']
@@ -266,15 +269,14 @@ def test_get_metadata_meg(layout_ds117):
 def test_get_metadata5(layout_7t_trt):
     target = 'sub-01/ses-1/func/sub-01_ses-1_task-rest_acq-fullbrain_run-1_bold.nii.gz'
     target = target.split('/')
-    result = layout_7t_trt.get_metadata(
-        join(layout_7t_trt.root, *target), include_entities=True)
+    result = layout_7t_trt.get_metadata(join(layout_7t_trt.root, *target), include_entities=True)
     assert result['EchoTime'] == 0.020
     assert result['subject'] == '01'
     assert result['acquisition'] == 'fullbrain'
 
 
 def test_get_metadata_via_bidsfile(layout_7t_trt):
-    ''' Same as test_get_metadata5, but called through BIDSFile. '''
+    """Same as test_get_metadata5, but called through BIDSFile."""
     target = 'sub-01/ses-1/func/sub-01_ses-1_task-rest_acq-fullbrain_run-1_bold.nii.gz'
     target = target.split('/')
     path = join(layout_7t_trt.root, *target)
@@ -311,19 +313,19 @@ def test_metadata_equivalence(layout_7t_trt):
 
 
 def test_get_metadata_error(layout_7t_trt):
-    ''' Same as test_get_metadata5, but called through BIDSFile. '''
+    """Same as test_get_metadata5, but called through BIDSFile."""
     target = 'sub-01/ses-1/func/sub-01_ses-1_task-rest_acq-fullbrain_run-1_bold.nii.gz'
     target = target.split('/')
     path = join(layout_7t_trt.root, *target)
     result = layout_7t_trt.files[path].get_metadata()
     with pytest.raises(KeyError) as err:
         result['Missing']
-    assert "Metadata term 'Missing' unavailable for file {}".format(path) in str(err.value)
+    assert f"Metadata term 'Missing' unavailable for file {path}" in str(err.value)
 
     result = layout_7t_trt.get_metadata(path)
     with pytest.raises(KeyError) as err:
         result['Missing']
-    assert "Metadata term 'Missing' unavailable for file {}".format(path) in str(err.value)
+    assert f"Metadata term 'Missing' unavailable for file {path}" in str(err.value)
 
 
 def test_get_with_bad_target(layout_7t_trt):
@@ -338,7 +340,7 @@ def test_get_with_bad_target(layout_7t_trt):
 
 
 def test_get_bvals_bvecs(layout_ds005):
-    dwifile = layout_ds005.get(subject="01", datatype="dwi")[0]
+    dwifile = layout_ds005.get(subject='01', datatype='dwi')[0]
     result = layout_ds005.get_bval(dwifile.path)
     assert result == abspath(join(layout_ds005.root, 'dwi.bval'))
 
@@ -353,21 +355,19 @@ def test_get_subjects(layout_7t_trt):
 
 
 def test_get_fieldmap(layout_7t_trt):
-    target = 'sub-03/ses-1/func/sub-03_ses-1_task-' \
-             'rest_acq-fullbrain_run-1_bold.nii.gz'
+    target = 'sub-03/ses-1/func/sub-03_ses-1_task-rest_acq-fullbrain_run-1_bold.nii.gz'
     target = target.split('/')
     result = layout_7t_trt.get_fieldmap(join(layout_7t_trt.root, *target))
-    assert result["suffix"] == "phasediff"
-    assert result["phasediff"].endswith('sub-03_ses-1_run-1_phasediff.nii.gz')
+    assert result['suffix'] == 'phasediff'
+    assert result['phasediff'].endswith('sub-03_ses-1_run-1_phasediff.nii.gz')
 
 
 def test_get_fieldmap2(layout_7t_trt):
-    target = 'sub-03/ses-2/func/sub-03_ses-2_task-' \
-             'rest_acq-fullbrain_run-2_bold.nii.gz'
+    target = 'sub-03/ses-2/func/sub-03_ses-2_task-rest_acq-fullbrain_run-2_bold.nii.gz'
     target = target.split('/')
     result = layout_7t_trt.get_fieldmap(join(layout_7t_trt.root, *target))
-    assert result["suffix"] == "phasediff"
-    assert result["phasediff"].endswith('sub-03_ses-2_run-2_phasediff.nii.gz')
+    assert result['suffix'] == 'phasediff'
+    assert result['phasediff'].endswith('sub-03_ses-2_run-2_phasediff.nii.gz')
 
 
 def test_bids_json(layout_7t_trt):
@@ -381,40 +381,39 @@ def test_get_return_type_dir(layout_7t_trt):
     res = layout_7t_trt.get(target='subject', return_type='dir')
 
     # returned directories should be in sorted order so we can match exactly
-    target = [os.path.join(layout_7t_trt.root, f"sub-{i:02d}") for i in range(1, 11)]
+    target = [os.path.join(layout_7t_trt.root, f'sub-{i:02d}') for i in range(1, 11)]
 
     assert target == res
 
 
-@pytest.mark.parametrize("acq", [None, Query.NONE])
+@pytest.mark.parametrize('acq', [None, Query.NONE])
 def test_get_val_none(layout_7t_trt, acq):
     t1w_files = layout_7t_trt.get(subject='01', session='1', suffix='T1w')
     assert len(t1w_files) == 1
     assert 'acq' not in t1w_files[0].path
-    t1w_files = layout_7t_trt.get(
-        subject='01', session='1', suffix='T1w', acquisition=acq)
+    t1w_files = layout_7t_trt.get(subject='01', session='1', suffix='T1w', acquisition=acq)
     assert len(t1w_files) == 1
-    bold_files = layout_7t_trt.get(
-        subject='01', session='1', suffix='bold', acquisition=acq)
+    bold_files = layout_7t_trt.get(subject='01', session='1', suffix='bold', acquisition=acq)
     assert len(bold_files) == 0
 
 
 def test_get_val_enum_any(layout_7t_trt):
     t1w_files = layout_7t_trt.get(
-        subject='01', session='1', suffix='T1w', acquisition=Query.ANY,
-        extension=Query.ANY)
+        subject='01', session='1', suffix='T1w', acquisition=Query.ANY, extension=Query.ANY
+    )
     assert not t1w_files
-    bold_files = layout_7t_trt.get(subject='01', session='1', run=1,
-                                  suffix='bold', acquisition=Query.ANY)
+    bold_files = layout_7t_trt.get(
+        subject='01', session='1', run=1, suffix='bold', acquisition=Query.ANY
+    )
     assert len(bold_files) == 2
 
 
 def test_get_val_enum_any_optional(layout_7t_trt, layout_ds005):
     # layout with sessions
     query = {
-        "subject": "01",
-        "run": 1,
-        "suffix": "bold",
+        'subject': '01',
+        'run': 1,
+        'suffix': 'bold',
     }
     bold_files = layout_7t_trt.get(session=Query.OPTIONAL, **query)
     assert len(bold_files) == 3
@@ -591,7 +590,7 @@ def test_nested_include_exclude_with_regex(tests_dir):
             validate=False,
             ignore=[patt2],
             force_index=[patt1],
-        )
+        ),
     )
     assert layout.get_file(target1)
     assert not layout.get_file(target2)
@@ -604,7 +603,7 @@ def test_nested_include_exclude_with_regex(tests_dir):
             validate=False,
             ignore=[patt1],
             force_index=[patt2],
-        )
+        ),
     )
     assert not layout.get_file(target1)
     assert layout.get_file(target2)
@@ -618,7 +617,7 @@ def test_nested_include_exclude_with_regex(tests_dir):
             validate=True,
             ignore=[patt2],
             force_index=[patt1],
-        )
+        ),
     )
     assert layout.get_file(target1)
     assert not layout.get_file(target2)
@@ -631,7 +630,7 @@ def test_nested_include_exclude_with_regex(tests_dir):
             validate=True,
             ignore=[patt1],
             force_index=[patt2],
-        )
+        ),
     )
     assert not layout.get_file(target1)
     assert layout.get_file(target2)
@@ -644,7 +643,7 @@ def test_layout_with_derivs(tests_dir, layout_ds005_derivs):
     deriv = layout_ds005_derivs.derivatives['events']
     assert deriv.files
     assert len(deriv.files) == 2
-    event_file = "sub-01_task-mixedgamblestask_run-01_desc-extra_events.tsv"
+    event_file = 'sub-01_task-mixedgamblestask_run-01_desc-extra_events.tsv'
     deriv_files = [basename(f) for f in list(deriv.files.keys())]
     assert event_file in deriv_files
     assert 'roi' in deriv.entities
@@ -704,18 +703,19 @@ def test_layout_with_conflicting_deriv_folders(tests_dir):
 
 
 def test_query_derivatives(layout_ds005_derivs):
-    result = layout_ds005_derivs.get(suffix='events', return_type='object',
-                                     extension='.tsv')
+    result = layout_ds005_derivs.get(suffix='events', return_type='object', extension='.tsv')
     result = [f.filename for f in result]
     assert len(result) == 49
     assert 'sub-01_task-mixedgamblestask_run-01_desc-extra_events.tsv' in result
-    result = layout_ds005_derivs.get(suffix='events', return_type='object',
-                                     scope='raw', extension='.tsv')
+    result = layout_ds005_derivs.get(
+        suffix='events', return_type='object', scope='raw', extension='.tsv'
+    )
     assert len(result) == 48
     result = [f.filename for f in result]
     assert 'sub-01_task-mixedgamblestask_run-01_desc-extra_events.tsv' not in result
-    result = layout_ds005_derivs.get(suffix='events', return_type='object',
-                                     desc='extra', extension='.tsv')
+    result = layout_ds005_derivs.get(
+        suffix='events', return_type='object', desc='extra', extension='.tsv'
+    )
     assert len(result) == 1
     result = [f.filename for f in result]
     assert 'sub-01_task-mixedgamblestask_run-01_desc-extra_events.tsv' in result
@@ -746,16 +746,16 @@ def test_derivative_getters(tests_dir):
 def test_get_tr(layout_7t_trt):
     # Bad subject, should fail
     with pytest.raises(NoMatchError) as exc:
-        layout_7t_trt.get_tr(subject="zzz")
-    assert str(exc.value).startswith("No functional images")
+        layout_7t_trt.get_tr(subject='zzz')
+    assert str(exc.value).startswith('No functional images')
     # There are multiple tasks with different TRs, so this should fail
     with pytest.raises(NoMatchError) as exc:
         layout_7t_trt.get_tr(subject=['01', '02'])
-    assert str(exc.value).startswith("Unique TR")
+    assert str(exc.value).startswith('Unique TR')
     # This should work
-    tr = layout_7t_trt.get_tr(subject=['01', '02'], acquisition="fullbrain")
+    tr = layout_7t_trt.get_tr(subject=['01', '02'], acquisition='fullbrain')
     assert tr == 3.0
-    tr = layout_7t_trt.get_tr(subject=['01', '02'], acquisition="prefrontal")
+    tr = layout_7t_trt.get_tr(subject=['01', '02'], acquisition='prefrontal')
     assert tr == 4.0
 
     tr = layout_7t_trt.get_RepetitionTime()
@@ -765,22 +765,21 @@ def test_get_tr(layout_7t_trt):
 def test_get_nonhashable_metadata(layout_ds117):
     """Test nonhashable metadata values (#683)."""
     assert layout_ds117.get_IntendedFor(subject=['01'])[0] == (
-       "ses-mri/func/sub-01_ses-mri_task-facerecognition_run-01_bold.nii.gz",
-       "ses-mri/func/sub-01_ses-mri_task-facerecognition_run-02_bold.nii.gz",
-       "ses-mri/func/sub-01_ses-mri_task-facerecognition_run-03_bold.nii.gz",
-       "ses-mri/func/sub-01_ses-mri_task-facerecognition_run-04_bold.nii.gz",
-       "ses-mri/func/sub-01_ses-mri_task-facerecognition_run-05_bold.nii.gz",
-       "ses-mri/func/sub-01_ses-mri_task-facerecognition_run-06_bold.nii.gz",
-       "ses-mri/func/sub-01_ses-mri_task-facerecognition_run-07_bold.nii.gz",
-       "ses-mri/func/sub-01_ses-mri_task-facerecognition_run-08_bold.nii.gz",
-       "ses-mri/func/sub-01_ses-mri_task-facerecognition_run-09_bold.nii.gz",
+        'ses-mri/func/sub-01_ses-mri_task-facerecognition_run-01_bold.nii.gz',
+        'ses-mri/func/sub-01_ses-mri_task-facerecognition_run-02_bold.nii.gz',
+        'ses-mri/func/sub-01_ses-mri_task-facerecognition_run-03_bold.nii.gz',
+        'ses-mri/func/sub-01_ses-mri_task-facerecognition_run-04_bold.nii.gz',
+        'ses-mri/func/sub-01_ses-mri_task-facerecognition_run-05_bold.nii.gz',
+        'ses-mri/func/sub-01_ses-mri_task-facerecognition_run-06_bold.nii.gz',
+        'ses-mri/func/sub-01_ses-mri_task-facerecognition_run-07_bold.nii.gz',
+        'ses-mri/func/sub-01_ses-mri_task-facerecognition_run-08_bold.nii.gz',
+        'ses-mri/func/sub-01_ses-mri_task-facerecognition_run-09_bold.nii.gz',
     )
 
     landmarks = layout_ds117.get_AnatomicalLandmarkCoordinates(subject=['01'])[0]
-    assert landmarks["Nasion"] == (43, 111, 95)
-    assert landmarks["LPA"] == (140, 74, 16)
-    assert landmarks["RPA"] == (143, 74, 173)
-
+    assert landmarks['Nasion'] == (43, 111, 95)
+    assert landmarks['LPA'] == (140, 74, 16)
+    assert landmarks['RPA'] == (143, 74, 173)
 
 
 def test_to_df(layout_ds117):
@@ -788,16 +787,28 @@ def test_to_df(layout_ds117):
     df = layout_ds117.to_df()
     n_files = len(layout_ds117.files)
     assert len(df) == n_files
-    target = {'datatype', 'fmap', 'run', 'path', 'acquisition', 'scans', 'echo',
-              'session', 'subject', 'suffix', 'task', 'proc', 'extension'}
+    target = {
+        'datatype',
+        'fmap',
+        'run',
+        'path',
+        'acquisition',
+        'scans',
+        'echo',
+        'session',
+        'subject',
+        'suffix',
+        'task',
+        'proc',
+        'extension',
+    }
     assert set(df.columns) == target
     assert set(df['subject'].dropna().unique()) == {'01', '02', 'emptyroom'}
 
     # Include metadata entities
     df = layout_ds117.to_df(metadata=True)
     assert df.shape == (n_files, len(target) + 44)
-    assert not ({'InstitutionAddress', 'TriggerChannelCount', 'EchoTime'} -
-                set(df.columns))
+    assert not ({'InstitutionAddress', 'TriggerChannelCount', 'EchoTime'} - set(df.columns))
 
 
 # XXX 0.14: Add dot to extension (difficult to parametrize with module-scoped fixture)
@@ -806,16 +817,27 @@ def test_parse_file_entities_from_layout(layout_synthetic):
     filename = '/sub-03_ses-07_run-4_desc-bleargh_sekret.nii.gz'
 
     # Test with entities taken from bids config
-    target = {'subject': '03', 'session': '07', 'run': 4, 'suffix': 'sekret',
-              'extension': '.nii.gz'}
+    target = {
+        'subject': '03',
+        'session': '07',
+        'run': 4,
+        'suffix': 'sekret',
+        'extension': '.nii.gz',
+    }
     assert target == layout.parse_file_entities(filename, config='bids')
     config = Config.load('bids')
     assert target == layout.parse_file_entities(filename, config=[config])
     assert target == layout.parse_file_entities(filename, scope='raw')
 
     # Test with default scope--i.e., everything
-    target = {'subject': '03', 'session': '07', 'run': 4, 'suffix': 'sekret',
-              'desc': 'bleargh', 'extension': '.nii.gz'}
+    target = {
+        'subject': '03',
+        'session': '07',
+        'run': 4,
+        'suffix': 'sekret',
+        'desc': 'bleargh',
+        'extension': '.nii.gz',
+    }
     assert target == layout.parse_file_entities(filename)
     # Test with only the fmriprep pipeline (which includes both configs)
     assert target == layout.parse_file_entities(filename, scope='fmriprep')
@@ -895,20 +917,20 @@ def test_get_dataset_description(layout_ds005_multi_derivs):
 
 
 def test_indexed_file_associations(layout_7t_trt):
-    img = layout_7t_trt.get(subject='01', run=1, suffix='bold', session='1',
-                            acquisition='fullbrain', extension='.nii.gz')[0]
+    img = layout_7t_trt.get(
+        subject='01',
+        run=1,
+        suffix='bold',
+        session='1',
+        acquisition='fullbrain',
+        extension='.nii.gz',
+    )[0]
     assocs = img.get_associations()
     assert len(assocs) == 3
     targets = {
-        os.path.join(layout_7t_trt.root,
-                     'sub-01/ses-1/fmap/sub-01_ses-1_run-1_phasediff.nii.gz'),
-        os.path.join(
-            img.dirname,
-            'sub-01_ses-1_task-rest_acq-fullbrain_run-1_physio.tsv.gz'),
-        os.path.join(
-            img.dirname,
-            'sub-01_ses-1_task-rest_acq-fullbrain_run-1_bold.json'
-        )
+        os.path.join(layout_7t_trt.root, 'sub-01/ses-1/fmap/sub-01_ses-1_run-1_phasediff.nii.gz'),
+        os.path.join(img.dirname, 'sub-01_ses-1_task-rest_acq-fullbrain_run-1_physio.tsv.gz'),
+        os.path.join(img.dirname, 'sub-01_ses-1_task-rest_acq-fullbrain_run-1_bold.json'),
     }
     assert set([a.path for a in assocs]) == set(targets)
 
@@ -927,10 +949,9 @@ def test_indexed_file_associations(layout_7t_trt):
 
 
 def test_layout_save(tests_dir, tmp_path, layout_7t_trt):
-    layout_7t_trt.save(str(tmp_path / "f.sqlite"),
-                       replace_connection=False)
+    layout_7t_trt.save(str(tmp_path / 'f.sqlite'), replace_connection=False)
     data_dir = tests_dir / 'data' / '7t_trt'
-    layout = BIDSLayout(data_dir, database_path=str(tmp_path / "f.sqlite"))
+    layout = BIDSLayout(data_dir, database_path=str(tmp_path / 'f.sqlite'))
     oldfies = set(layout_7t_trt.get(suffix='events', return_type='file'))
     newfies = set(layout.get(suffix='events', return_type='file'))
     assert oldfies == newfies
@@ -940,45 +961,69 @@ def test_indexing_tag_conflict(tests_dir):
     data_dir = tests_dir / 'data' / 'ds005_conflict'
     with pytest.raises(BIDSValidationError) as exc:
         layout = BIDSLayout(data_dir)
-    assert str(exc.value).startswith("Conflicting values found")
+    assert str(exc.value).startswith('Conflicting values found')
     assert 'run' in str(exc.value)
 
 
 def test_get_with_wrong_dtypes(layout_7t_trt):
-    ''' Test automatic dtype sanitization. '''
+    """Test automatic dtype sanitization."""
     l = layout_7t_trt
-    assert (l.get(run=1) == l.get(run='1') == l.get(run=np.int64(1)) ==
-            l.get(run=[1, '15']) == l.get(run='01'))
+    assert (
+        l.get(run=1)
+        == l.get(run='1')
+        == l.get(run=np.int64(1))
+        == l.get(run=[1, '15'])
+        == l.get(run='01')
+    )
     assert not l.get(run='not_numeric')
     assert l.get(session=1) == l.get(session='1')
 
 
 def test_get_with_regex_search(layout_7t_trt):
-    """ Tests that regex-based searching works. """
+    """Tests that regex-based searching works."""
     l = layout_7t_trt
 
     # subject matches both '10' and '01'
-    results = l.get(subject='1', session='1', task='rest', suffix='bold',
-                    acquisition='fron.al', extension='.nii.gz',
-                    regex_search=True)
+    results = l.get(
+        subject='1',
+        session='1',
+        task='rest',
+        suffix='bold',
+        acquisition='fron.al',
+        extension='.nii.gz',
+        regex_search=True,
+    )
     assert len(results) == 2
 
     # subject matches '10'
-    results = l.get(subject='^1', session='1', task='rest', suffix='bold',
-                    acquisition='fron.al', extension='.nii.gz',
-                    regex_search=True, return_type='filename')
+    results = l.get(
+        subject='^1',
+        session='1',
+        task='rest',
+        suffix='bold',
+        acquisition='fron.al',
+        extension='.nii.gz',
+        regex_search=True,
+        return_type='filename',
+    )
     assert len(results) == 1
     assert results[0].endswith('sub-10_ses-1_task-rest_acq-prefrontal_bold.nii.gz')
 
 
 def test_get_with_regex_search_bad_dtype(layout_7t_trt):
-    """ Tests that passing in a non-string dtype for an entity doesn't crash
+    """Tests that passing in a non-string dtype for an entity doesn't crash
     regexp-based searching (i.e., that implicit conversion is done
-    appropriately). """
+    appropriately)."""
     l = layout_7t_trt
-    results = l.get(subject='1', run=1, task='rest', suffix='bold',
-                    acquisition='fullbrain', extension='.nii.gz',
-                    regex_search=True)
+    results = l.get(
+        subject='1',
+        run=1,
+        task='rest',
+        suffix='bold',
+        acquisition='fullbrain',
+        extension='.nii.gz',
+        regex_search=True,
+    )
     # Two runs (1 per session) for each of subjects '10' and '01'
     assert len(results) == 4
 
@@ -992,8 +1037,7 @@ def test_get_with_invalid_filters(layout_ds005):
         l.get(subject='12', ses=True)
     # Silently drop amazing
     res_without = l.get(subject='12', suffix='bold')
-    res_drop = l.get(subject='12', suffix='bold', amazing='!!!',
-                     invalid_filters='drop')
+    res_drop = l.get(subject='12', suffix='bold', amazing='!!!', invalid_filters='drop')
     assert res_without == res_drop
     assert len(res_drop) == 3
     # Retain amazing, producing empty set
@@ -1023,14 +1067,12 @@ def test_get_with_query_constants_in_match_list(layout_ds005):
 
 def test_get_non_run_entity_with_query_constants_in_match_list(layout_ds005):
     l = layout_ds005
-    get1 = l.get(subject='01', acquisition="MPRAGE", suffix='T1w')
+    get1 = l.get(subject='01', acquisition='MPRAGE', suffix='T1w')
     get_none = l.get(subject='01', acquisition=None, suffix='T1w')
     get_any = l.get(subject='01', acquisition=Query.ANY, suffix='T1w')
-    get1_and_none = l.get(subject='01', acquisition=[None, "MPRAGE"], suffix='T1w')
-    get1_and_any = l.get(subject='01', acquisition=[Query.ANY, "MPRAGE"], suffix='T1w')
-    get_none_and_any = l.get(
-        subject='01', acquisition=[Query.ANY, Query.NONE], suffix='T1w'
-    )
+    get1_and_none = l.get(subject='01', acquisition=[None, 'MPRAGE'], suffix='T1w')
+    get1_and_any = l.get(subject='01', acquisition=[Query.ANY, 'MPRAGE'], suffix='T1w')
+    get_none_and_any = l.get(subject='01', acquisition=[Query.ANY, Query.NONE], suffix='T1w')
     assert set(get1_and_none) == set(get1) | set(get_none)
     assert set(get1_and_any) == set(get1) | set(get_any)
     assert set(get_none_and_any) == set(get_none) | set(get_any)
@@ -1052,8 +1094,9 @@ def test_load_layout(layout_synthetic_nodb, db_dir):
     db_path = str(db_dir / 'tmp_db')
     layout_synthetic_nodb.save(db_path)
     reloaded = BIDSLayout.load(db_path)
-    assert sorted(layout_synthetic_nodb.get(return_type='file')) == \
-        sorted(reloaded.get(return_type='file'))
+    assert sorted(layout_synthetic_nodb.get(return_type='file')) == sorted(
+        reloaded.get(return_type='file')
+    )
     cm1 = layout_synthetic_nodb.connection_manager
     cm2 = reloaded.connection_manager
     for attr in ['root', 'config', 'derivatives']:
@@ -1061,7 +1104,7 @@ def test_load_layout(layout_synthetic_nodb, db_dir):
 
 
 def test_load_layout_config_not_overwritten(layout_synthetic_nodb, tmpdir):
-    modified_dataset_path = tmpdir/"modified"
+    modified_dataset_path = tmpdir / 'modified'
     shutil.copytree(layout_synthetic_nodb.root, modified_dataset_path)
 
     # Save index
@@ -1069,13 +1112,11 @@ def test_load_layout_config_not_overwritten(layout_synthetic_nodb, tmpdir):
     BIDSLayout(modified_dataset_path).save(db_path)
 
     # Update dataset_description.json
-    dataset_description = modified_dataset_path/"dataset_description.json"
+    dataset_description = modified_dataset_path / 'dataset_description.json'
     with dataset_description.open('r') as f:
         description = json.load(f)
-    description["DatasetType"] = "derivative"
-    description["GeneratedBy"] = [
-        { "Name": "foo" }
-    ]
+    description['DatasetType'] = 'derivative'
+    description['GeneratedBy'] = [{'Name': 'foo'}]
     with dataset_description.open('w') as f:
         json.dump(description, f)
 
@@ -1091,56 +1132,63 @@ def test_load_layout_config_not_overwritten(layout_synthetic_nodb, tmpdir):
 
 
 def test_padded_run_roundtrip(layout_ds005):
-    for run in (1, "1", "01"):
-        res = layout_ds005.get(subject="01", task="mixedgamblestask",
-                               run=run, extension=".nii.gz")
+    for run in (1, '1', '01'):
+        res = layout_ds005.get(subject='01', task='mixedgamblestask', run=run, extension='.nii.gz')
         assert len(res) == 1
     boldfile = res[0]
     ents = boldfile.get_entities()
-    assert isinstance(ents["run"], PaddedInt)
-    assert ents["run"] == 1
+    assert isinstance(ents['run'], PaddedInt)
+    assert ents['run'] == 1
     newpath = layout_ds005.build_path(ents, absolute_paths=False)
-    assert newpath == "sub-01/func/sub-01_task-mixedgamblestask_run-01_bold.nii.gz"
+    assert newpath == 'sub-01/func/sub-01_task-mixedgamblestask_run-01_bold.nii.gz'
+
 
 @pytest.mark.parametrize(
-    "fname", [
-        "sub-01/anat/sub-01_T1w.nii.gz",
-        ".datalad",
-        "code",
-        "sub-01/.datalad",
+    'fname',
+    [
+        'sub-01/anat/sub-01_T1w.nii.gz',
+        '.datalad',
+        'code',
+        'sub-01/.datalad',
     ],
 )
 def test_indexer_patterns(fname):
-    root = Path("/home/user/.cache/data/")
+    root = Path('/home/user/.cache/data/')
     path = root / fname
 
-    assert bool(_check_path_matches_patterns(
-        path,
-        [_regexfy("code")],
-        root=root,
-    )) is (fname == "code")
+    assert bool(
+        _check_path_matches_patterns(
+            path,
+            [_regexfy('code')],
+            root=root,
+        )
+    ) is (fname == 'code')
 
-    assert bool(_check_path_matches_patterns(
-        path,
-        [_regexfy("code", root=root)],
-        root=root,
-    )) is (fname == "code")
+    assert bool(
+        _check_path_matches_patterns(
+            path,
+            [_regexfy('code', root=root)],
+            root=root,
+        )
+    ) is (fname == 'code')
+
+    assert (
+        _check_path_matches_patterns(
+            path,
+            [re.compile(r'/\.')],
+            root=None,
+        )
+        is True
+    )
 
     assert _check_path_matches_patterns(
         path,
-        [re.compile(r"/\.")],
-        root=None,
-    ) is True
-
-    assert _check_path_matches_patterns(
-        path,
-        [re.compile(r"/\.")],
+        [re.compile(r'/\.')],
         root=root,
-    ) is (".datalad" in fname)
+    ) is ('.datalad' in fname)
 
 
 def test_symlinks_in_path(tests_dir, tmp_path):
-
     src_ds = os.path.abspath(tests_dir / 'data' / '7t_trt')
     src_sub = join(src_ds, 'sub-04')
 
@@ -1155,7 +1203,7 @@ def test_symlinks_in_path(tests_dir, tmp_path):
     os.symlink(join(src_ds, 'dataset_description.json'), link_ds_description)
     os.symlink(src_sub, link_sub)
 
-    assert "Subjects: 1 | Sessions: 2 | Runs: 2" in str(BIDSLayout(tmp_path / "7t_trt"))
+    assert 'Subjects: 1 | Sessions: 2 | Runs: 2' in str(BIDSLayout(tmp_path / '7t_trt'))
 
 
 def test_ignore_dotfiles(temporary_dataset):
@@ -1193,15 +1241,18 @@ def test_empty_directory(temporary_dataset):
     assert layout.get(subject='01', datatype='anat') == []
 
 
-@pytest.mark.parametrize("intent", [
-    "bids::sub-01/func/sub-01_task-mixedgamblestask_run-01_bold.nii.gz",
-    "bids:mydataset:sub-01/func/sub-01_task-mixedgamblestask_run-01_bold.nii.gz",
-    "func/sub-01_task-mixedgamblestask_run-01_bold.nii.gz",
+@pytest.mark.parametrize(
+    'intent',
     [
-        "bids::sub-01/func/sub-01_task-mixedgamblestask_run-01_bold.nii.gz",
-        "bids::sub-01/func/sub-01_task-mixedgamblestask_run-02_bold.nii.gz",
+        'bids::sub-01/func/sub-01_task-mixedgamblestask_run-01_bold.nii.gz',
+        'bids:mydataset:sub-01/func/sub-01_task-mixedgamblestask_run-01_bold.nii.gz',
+        'func/sub-01_task-mixedgamblestask_run-01_bold.nii.gz',
+        [
+            'bids::sub-01/func/sub-01_task-mixedgamblestask_run-01_bold.nii.gz',
+            'bids::sub-01/func/sub-01_task-mixedgamblestask_run-02_bold.nii.gz',
+        ],
     ],
-])
+)
 def test_intended_for(temporary_dataset, intent):
     fmap_dir = temporary_dataset / 'sub-01' / 'fmap'
     fmap_dir.mkdir()
@@ -1241,21 +1292,24 @@ def test_get_return_type_dir_with_legacy_config_no_template():
             {
                 'name': 'subject',
                 'pattern': '[/\\\\]sub-([a-zA-Z0-9]+)',
-                'directory': '/sub-{subject}/'  # This has a template
+                'directory': '/sub-{subject}/',  # This has a template
             },
             {
                 'name': 'task',
                 'pattern': '_task-([a-zA-Z0-9]+)',
                 # No directory template - this should trigger the error
-            }
-        ]
+            },
+        ],
     }
 
     # Create temporary test dataset
     import tempfile
+
     with tempfile.TemporaryDirectory() as tmpdir:
         # Create minimal BIDS structure
-        Path(tmpdir).joinpath('dataset_description.json').write_text('{"Name": "test", "BIDSVersion": "1.6.0"}')
+        Path(tmpdir).joinpath('dataset_description.json').write_text(
+            '{"Name": "test", "BIDSVersion": "1.6.0"}'
+        )
         sub_dir = Path(tmpdir) / 'sub-01'
         sub_dir.mkdir()
         test_file = sub_dir / 'sub-01_task-rest_bold.nii.gz'
@@ -1269,12 +1323,15 @@ def test_get_return_type_dir_with_legacy_config_no_template():
         with pytest.raises(ValueError, match='Return type set to directory'):
             layout.get(target='task', return_type='dir')
 
+
 def test_bids_sort(layout_7t_trt):
     files = layout_7t_trt.get(task='rest', extension='.nii.gz')
     assert len(files) > 0
-    from bidsschematools.schema import load_schema
-    import random
     import copy
+    import random
+
+    from bidsschematools.schema import load_schema
+
     # we apply bids_sort at the model level, but just to be extra sure
     # we sort here one more time
     first_file_ents_sorted = bids_sort(files[0].get_entities())
@@ -1292,8 +1349,8 @@ def test_bids_sort(layout_7t_trt):
 
     # check order of sorted entities against schema
     for i, entity in enumerate(sorted_keys):
-        for j in sorted_keys[i + 1:]:
-            if entity in schema_order and j in schema_order:  #pragma: no branch
+        for j in sorted_keys[i + 1 :]:
+            if entity in schema_order and j in schema_order:  # pragma: no branch
                 assert schema_order.index(entity) < schema_order.index(j)
 
     assert list(first_file_ents_unsorted.keys()) != sorted_keys

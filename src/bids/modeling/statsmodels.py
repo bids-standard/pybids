@@ -1,25 +1,26 @@
 """BIDS-StatsModels functionality."""
 
-import json
-from collections import namedtuple, OrderedDict, Counter, defaultdict
-import itertools
-from functools import reduce
-import re
 import fnmatch
+import itertools
+import json
+import re
+import warnings
+from collections import Counter, OrderedDict, defaultdict, namedtuple
+from functools import reduce
 
 import numpy as np
 import pandas as pd
 
 from bids.layout import BIDSLayout
-from bids.utils import matches_entities, convert_JSON, listify
-from bids.variables import (BIDSVariableCollection, merge_collections)
 from bids.modeling import transformations as tm
+from bids.utils import convert_JSON, listify, matches_entities
+from bids.variables import BIDSVariableCollection, merge_collections
+
 from .model_spec import GLMMSpec, MetaAnalysisSpec
 from .report.utils import node_report, snake_to_camel
-import warnings
 
 
-def validate_model(model, *, stacklevel=2):
+def validate_model(model, *, stacklevel=2):  # noqa: D417
     """Validate a BIDS-StatsModel structure.
 
     Parameters
@@ -30,14 +31,16 @@ def validate_model(model, *, stacklevel=2):
     Returns
     -------
     True if the model passes validation. Raises an exception otherwise.
+
     """
     # Identify non-unique names
     names = Counter([n['name'] for n in model['nodes']])
     duplicates = [n for n, count in names.items() if count > 1]
     if duplicates:
-        raise ValueError("Non-unique node names found: '{}'. Please ensure"
-                            " all nodes in the model have unique names."
-                            .format(duplicates))
+        raise ValueError(
+            f"Non-unique node names found: '{duplicates}'. Please ensure"
+            ' all nodes in the model have unique names.'
+        )
 
     def capitalize(obj):
         if isinstance(obj, list):
@@ -51,48 +54,42 @@ def validate_model(model, *, stacklevel=2):
             if edge['source'] not in names:
                 raise ValueError("Missing source node: '{}'".format(edge['source']))
             if edge['destination'] not in names:
-                raise ValueError("Missing destination node: '{}'".format(
-                    edge['destination']))
+                raise ValueError("Missing destination node: '{}'".format(edge['destination']))
 
     # XXX: May 2021: Helping old models to work. This shouldn't last more than 2 years.
-    for node in model["nodes"]:
+    for node in model['nodes']:
         messages = []
-        if "type" in node.get("dummy_contrasts", {}):
-            node["dummy_contrasts"]["test"] = node["dummy_contrasts"].pop("type")
+        if 'type' in node.get('dummy_contrasts', {}):
+            node['dummy_contrasts']['test'] = node['dummy_contrasts'].pop('type')
+            messages.append('"DummyContrasts": Contrast "Type" is now "Test".')
+        for contrast in node.get('contrasts', []):
+            if 'type' in contrast:
+                contrast['test'] = contrast.pop('type')
+                messages.append('Contrast {contrast["name"]}]: Contrast "Type" is now "Test".')
+        if isinstance(node.get('transformations'), list):
+            transformations = {
+                'transformer': 'pybids-transforms-v1',
+                'instructions': node['transformations'],
+            }
+            node['transformations'] = transformations
             messages.append(
-                '"DummyContrasts": Contrast "Type" is now "Test".'
-            )
-        for contrast in node.get("contrasts", []):
-            if "type" in contrast:
-                contrast["test"] = contrast.pop("type")
-                messages.append(
-                    'Contrast {contrast["name"]}]: '
-                    'Contrast "Type" is now "Test".'
-                )
-        if isinstance(node.get("transformations"), list):
-            transformations = {"transformer": "pybids-transforms-v1",
-                               "instructions": node["transformations"]}
-            node["transformations"] = transformations
-            messages.append(
-                'Transformations are now a dictionary '
-                'with "Transformer" and "Instructions" keys.'
+                'Transformations are now a dictionary with "Transformer" and "Instructions" keys.'
             )
         if messages:
             new_text = json.dumps(capitalize(node), indent=2)
-            notes = "\n  ".join(messages)
+            notes = '\n  '.join(messages)
             warnings.warn(
                 f'[Node "{node["name"]}"] notes:\n  {notes}\n'
                 f'[Node "{node["name"]}"] reformatted:\n{new_text}\n',
-                stacklevel=stacklevel)
+                stacklevel=stacklevel,
+            )
     return True
 
 
-BIDSStatsModelsEdge = namedtuple('BIDSStatsModelsEdge',
-                                 ('source', 'destination', 'filter'))
+BIDSStatsModelsEdge = namedtuple('BIDSStatsModelsEdge', ('source', 'destination', 'filter'))
 
 
-ContrastInfo = namedtuple('ContrastInfo', ('name', 'conditions', 'weights',
-                                           'test', 'entities'))
+ContrastInfo = namedtuple('ContrastInfo', ('name', 'conditions', 'weights', 'test', 'entities'))
 
 
 class BIDSStatsModelsGraph:
@@ -107,10 +104,10 @@ class BIDSStatsModelsGraph:
         A BIDS model specification. Can either be a
         string giving the path of the JSON model spec, or an already-loaded
         dict containing the model info.
+
     """
 
     def __init__(self, layout, model):
-
         if not isinstance(layout, BIDSLayout):
             layout = BIDSLayout(layout)
         self.layout = layout
@@ -120,10 +117,10 @@ class BIDSStatsModelsGraph:
         self._root_node = self.model.get('root', list(self.nodes.values())[0])
 
     def __repr__(self):
-        return f"<{self.__class__.__name__}[{{name='{self.model['name']}', description='{self.model['description']}', ... }}]>"
+        return f"<{self.__class__.__name__}[{{name='{self.model['name']}', description='{self.model['description']}', ... }}]>"  # noqa: E501
 
     def __getitem__(self, key):
-        '''Alias for get_node(key).'''
+        """Alias for get_node(key)."""
         return self.get_node(key)
 
     @property
@@ -135,7 +132,7 @@ class BIDSStatsModelsGraph:
     def _load_model(model, validate=True):
         # Load model info from JSON and do some validation
         if isinstance(model, str):
-            with open(model, 'r', encoding='utf-8') as fobj:
+            with open(model, encoding='utf-8') as fobj:
                 model = json.load(fobj)
         # Convert JSON from CamelCase to snake_case keys
         model = convert_JSON(model)
@@ -159,10 +156,12 @@ class BIDSStatsModelsGraph:
         if not edges or model.get('pipeline', False):
             node_vals = list(nodes.values())
             for i in range(1, len(node_vals)):
-                edges.append({
-                    'source': node_vals[i-1].name,
-                    'destination': node_vals[i].name,
-                })
+                edges.append(
+                    {
+                        'source': node_vals[i - 1].name,
+                        'destination': node_vals[i].name,
+                    }
+                )
 
         for edge in edges:
             src_node, dst_node = nodes[edge['source']], nodes[edge['destination']]
@@ -184,12 +183,13 @@ class BIDSStatsModelsGraph:
         Returns
         -------
         A BIDSStatsModelsNode instance.
+
         """
         if name not in self.nodes:
-            raise KeyError('There is no node with the name "{}".'.format(name))
+            raise KeyError(f'There is no node with the name "{name}".')
         return self.nodes[name]
 
-    def load_collections(self, nodes=None, drop_na=False, **kwargs):
+    def load_collections(self, nodes=None, drop_na=False, **kwargs):  # noqa: D417
         """Load collections in all nodes.
 
         Parameters
@@ -202,13 +202,13 @@ class BIDSStatsModelsGraph:
             Boolean indicating whether or not to automatically
             drop events that have a n/a amplitude when reading in data
             from event files.
+
         """
         # Use inputs from BIDS-StatsModel document, and update with kwargs
         selectors = self.model.get('input', {}).copy()
         selectors.update(kwargs)
 
         for node in self.nodes.values():
-
             # Skip any nodes whose names don't match list
             if nodes is not None and node.name not in nodes:
                 continue
@@ -219,32 +219,29 @@ class BIDSStatsModelsGraph:
             if node.level != 'run':
                 node_kwargs.pop('scan_length', None)
 
-            collections = self.layout.get_collections(node.level, drop_na=drop_na,
-                                                      **node_kwargs)
+            collections = self.layout.get_collections(node.level, drop_na=drop_na, **node_kwargs)
             node.add_collections(collections)
 
-    def write_graph(self, dotfilename='graph.dot', format='png', pipe=False):
+    def write_graph(self, dotfilename='graph.dot', format='png', pipe=False):  # noqa: A002, D417
         """Generates a graphviz dot file and a png file
 
         Parameters
         ----------
-
         format: 'png', 'svg'
 
         """
-
         from graphviz import Digraph
 
         dot = Digraph(
-                'structs',
-                filename=dotfilename,
-                node_attr={'shape': 'record'},
-                comment=self.model['name'],
-                format=format,
-            )
+            'structs',
+            filename=dotfilename,
+            node_attr={'shape': 'record'},
+            comment=self.model['name'],
+            format=format,
+        )
 
         for node, nobj in self.nodes.items():
-            dot.node(node, f"<f0> name: {nobj.name}|<f1> level: {nobj.level}")
+            dot.node(node, f'<f0> name: {nobj.name}|<f1> level: {nobj.level}')
 
         for edge in self.edges:
             dot.edge(edge['source'], edge['destination'])
@@ -266,30 +263,32 @@ class BIDSStatsModelsGraph:
         kwargs : dict
             Optional dictionary of keyword arguments to pass to
             BIDSStatsModelsNode.run()
+
         """
         if entities is None:
             entities = {}
 
         _run_node_recursive(self.root_node, filters=entities, **kwargs)
 
+
 def _run_node_recursive(node, inputs=None, filters=None, **kwargs):
-    """
-    Run a node recursively, storing outputs in place as
+    """Run a node recursively, storing outputs in place as
     BIDSStatsModelsNode.outputs_.
 
     """
-    if filters == None:
+    if filters == None:  # noqa: E711
         filters = {}
 
     # Run node
     run_kwargs = {**filters, **kwargs}
-    node.outputs_ =  node.run(inputs, group_by=node.group_by, **run_kwargs)
+    node.outputs_ = node.run(inputs, group_by=node.group_by, **run_kwargs)
 
     # Inputs to next node
     contrasts = list(itertools.chain(*[s.contrasts for s in node.outputs_]))
 
     for edge in node.children:
         _run_node_recursive(edge.destination, contrasts, filters=edge.filter, **kwargs)
+
 
 class BIDSStatsModelsNode:
     """Represents a single node in a BIDS-StatsModel graph.
@@ -323,16 +322,24 @@ class BIDSStatsModelsNode:
         contrasts and 3 subjects, then there will be 6 separate iterations, and
         the returned list will have 6 elements. Any value passed here will be
         overridden if one is passed when run() is called on a node.
+
     """
 
-    def __init__(self, level, name, model, group_by, transformations=None,
-                 contrasts=None, dummy_contrasts=False):
+    def __init__(
+        self,
+        level,
+        name,
+        model,
+        group_by,
+        transformations=None,
+        contrasts=None,
+        dummy_contrasts=False,
+    ):
         self.level = level.lower()
         self.name = name
         self.model = model
         if transformations is None:
-            transformations = {"transformer": "pybids-transforms-v1",
-                               "instructions": []}
+            transformations = {'transformer': 'pybids-transforms-v1', 'instructions': []}
         self.transformations = transformations
         self.contrasts = contrasts or []
         self.dummy_contrasts = dummy_contrasts
@@ -341,22 +348,24 @@ class BIDSStatsModelsNode:
         self.children = []
         self.parents = []
         if group_by is None:
-            raise ValueError(f"group_by is not defined for Node: {name}")
+            raise ValueError(f'group_by is not defined for Node: {name}')
         self.group_by = group_by
 
         # Check for intercept only run level model and throw an error
         try:
             if (self.level == 'run') and (self.model['x'] == [1]):
-                raise NotImplementedError("Run level intercept only models are not currently supported."
-                                          "If this is a feature you need, please leave a comment at"
-                                          "https://github.com/bids-standard/pybids/issues/852.")
+                raise NotImplementedError(
+                    'Run level intercept only models are not currently supported.'
+                    'If this is a feature you need, please leave a comment at'
+                    'https://github.com/bids-standard/pybids/issues/852.'
+                )
         except KeyError:
-            # We talked about X being required, I don't know if we want to throw an error over that requirement here
+            # We talked about X being required, I don't know if we want to throw an error over that requirement here  # noqa: E501
             # though.
             pass
 
     def __repr__(self):
-        return f"<{self.__class__.__name__}(level={self.level}, name={self.name})>"
+        return f'<{self.__class__.__name__}(level={self.level}, name={self.name})>'
 
     @staticmethod
     def _build_groups(objects, group_by):
@@ -388,12 +397,10 @@ class BIDSStatsModelsNode:
         >>> bidsfile = namedtuple('bidsfile', ('entities',))
         >>> bidsfile1 = bidsfile(entities={'subject': '01'})
         >>> bidsfile2 = bidsfile(entities={'subject': '02'})
-        >>> groups = {(('subject', '01'),): [bidsfile1],
-        ...           (('subject', '02'),): [bidsfile2]}
-        >>> BIDSStatsModelsNode._build_groups(
-        ...     [bidsfile1, bidsfile2],
-        ...     ['subject']) == groups
+        >>> groups = {(('subject', '01'),): [bidsfile1], (('subject', '02'),): [bidsfile2]}
+        >>> BIDSStatsModelsNode._build_groups([bidsfile1, bidsfile2], ['subject']) == groups
         True
+
         """
         if not group_by:
             return {(): objects}
@@ -405,21 +412,23 @@ class BIDSStatsModelsNode:
         df = pd.DataFrame.from_records(entities)
 
         # Separate BIDSVariableCollections
-        collections = [obj.to_df() for obj in objects if type(obj) == BIDSVariableCollection]
+        collections = [obj.to_df() for obj in objects if type(obj) == BIDSVariableCollection]  # noqa: E721
         if collections:
             metadata_vars = reduce(pd.DataFrame.merge, collections)
             on_vars = list({'subject', 'session', 'run'} & set(metadata_vars.columns))
             df = df.merge(metadata_vars, how='left', on=on_vars)
 
         # Single-run tasks and single-session subjects may not have entities
-        dummy_groups = {"run", "session"} - set(df.columns)
+        dummy_groups = {'run', 'session'} - set(df.columns)
         group_by = set(group_by) - dummy_groups
 
         # Verify all columns in group_by exist and raise sensible error if not
         missing_vars = list(group_by - set(df.columns))
         if missing_vars:
-            raise ValueError("group_by contains variable(s) {} that could not "
-                             "be found in the entity index.".format(missing_vars) )
+            raise ValueError(
+                f'group_by contains variable(s) {missing_vars} that could not '
+                'be found in the entity index.'
+            )
 
         # Restrict DF to only grouping columns
         df = df.loc[:, list(group_by)]
@@ -435,7 +444,6 @@ class BIDSStatsModelsNode:
         # the base (present) grouping entities. Sort on this to produce the
         # group key.
         for i, row in df.iterrows():
-
             defined = df.columns[df.iloc[i].notnull()].tolist()
             base_ents = [(k, row[k]) for k in defined]
             missing = df.columns[df.iloc[i].isnull()].tolist()
@@ -445,7 +453,7 @@ class BIDSStatsModelsNode:
             if missing:
                 product = itertools.product(*[unique_vals[col] for col in missing])
                 for perm in product:
-                    fill_ents = [(k, v) for (k, v) in dict(zip(missing, perm)).items()]
+                    fill_ents = [(k, v) for (k, v) in dict(zip(missing, perm)).items()]  # noqa: B905
                     records.append(base_ents + fill_ents)
             else:
                 records.append(base_ents)
@@ -456,10 +464,19 @@ class BIDSStatsModelsNode:
 
         return groups
 
-    def run(self, inputs=None, group_by=None, force_dense=True,
-              sampling_rate='TR', invalid_inputs='error', invalid_contrasts='drop',
-              missing_values=None, transformation_history=False, node_reports=False,
-              **filters):
+    def run(
+        self,
+        inputs=None,
+        group_by=None,
+        force_dense=True,
+        sampling_rate='TR',
+        invalid_inputs='error',
+        invalid_contrasts='drop',
+        missing_values=None,
+        transformation_history=False,
+        node_reports=False,
+        **filters,
+    ):
         """Execute node with provided inputs.
 
         Parameters
@@ -521,8 +538,8 @@ class BIDSStatsModelsNode:
         Returns
         -------
         A list of BIDSStatsModelsNodeOutput instances.
-        """
 
+        """
         inputs = inputs or []
         collections = self._collections
         group_by = listify(group_by or self.group_by)
@@ -539,7 +556,6 @@ class BIDSStatsModelsNode:
         results = []
 
         for grp_ents, grp_objs in list(groups.items()):
-
             # split group's objects into inputs and collections
             grp_inputs, grp_colls = [], []
             for obj in grp_objs:
@@ -549,11 +565,18 @@ class BIDSStatsModelsNode:
                     grp_inputs.append(obj)
 
             node_output = BIDSStatsModelsNodeOutput(
-                node=self, entities=dict(grp_ents), collections=grp_colls,
-                inputs=grp_inputs, force_dense=force_dense,
-                sampling_rate=sampling_rate, invalid_inputs=invalid_inputs,
-                invalid_contrasts=invalid_contrasts, missing_values=missing_values,
-                transformation_history=transformation_history, node_reports=node_reports)
+                node=self,
+                entities=dict(grp_ents),
+                collections=grp_colls,
+                inputs=grp_inputs,
+                force_dense=force_dense,
+                sampling_rate=sampling_rate,
+                invalid_inputs=invalid_inputs,
+                invalid_contrasts=invalid_contrasts,
+                missing_values=missing_values,
+                transformation_history=transformation_history,
+                node_reports=node_reports,
+            )
             results.append(node_output)
 
         return results
@@ -565,6 +588,7 @@ class BIDSStatsModelsNode:
         ----------
         edge : BIDSStatsModelsEdge
             An edge to add to the list of children.
+
         """
         self.children.append(edge)
 
@@ -575,6 +599,7 @@ class BIDSStatsModelsNode:
         ----------
         edge : BIDSStatsModelsEdge
             An edge to add to the list of children.
+
         """
         self.parents.append(edge)
 
@@ -591,35 +616,39 @@ class BIDSStatsModelsNode:
         No checking for redundancy is performed, so if load_collections() is
         invoked multiple times with overlapping selectors, redundant predictors
         are likely to be stored internally.
+
         """
         self._collections.extend(collections)
 
     def get_collections(self, **filters):
         """Returns BIDSVariableCollections at the current node.
+
         Parameters
         ----------
         filters : dict
             Optional keyword filters used to constrain which of the available
             collections get returned (e.g., passing subject=['01', '02'] will
             return collections for only subjects '01' and '02').
+
         Returns
         -------
         list of BIDSVariableCollection instances
             One instance per unit of the current analysis level (e.g., if
             level='run', each element in the list represents the collection
             for a single run).
+
         """
         # Keeps only collections that match target entities, and also removes
         # those keys from the kwargs dict.
         return [c for c in self._collections if matches_entities(c, filters)]
 
 
-def expand_wildcards(selectors, pool):
+def expand_wildcards(selectors, pool):  # noqa: D103
     out = list(selectors)
     for spec in selectors:
         if re.search(r'[\*\?\[\]]', spec):
             idx = out.index(spec)
-            out[idx:idx + 1] = fnmatch.filter(pool, spec)
+            out[idx : idx + 1] = fnmatch.filter(pool, spec)
     return out
 
 
@@ -671,11 +700,24 @@ class BIDSStatsModelsNodeOutput:
         variable collections after each transformation.
     node_reports: bool
         If True, a report will be generated for each node output.
+
     """
-    def __init__(self, node, entities={}, collections=None, inputs=None,
-                 force_dense=True, sampling_rate='TR', invalid_inputs='error',
-                 invalid_contrasts='drop', missing_values=None, *,
-                 transformation_history=False, node_reports=False):
+
+    def __init__(
+        self,
+        node,
+        entities={},  # noqa: B006
+        collections=None,
+        inputs=None,
+        force_dense=True,
+        sampling_rate='TR',
+        invalid_inputs='error',
+        invalid_contrasts='drop',
+        missing_values=None,
+        *,
+        transformation_history=False,
+        node_reports=False,
+    ):
         """Initialize a new BIDSStatsModelsNodeOutput instance.
         Applies the node's model to the specified collections and inputs, including
         applying transformations and generating final model specs and design matrices (X).
@@ -716,7 +758,7 @@ class BIDSStatsModelsNodeOutput:
         # Handle the special 1 construct.
         # Add column of 1's to the design matrix called "intercept"
         if 1 in var_names:
-            if "intercept" in var_names:
+            if 'intercept' in var_names:
                 raise ValueError("Cannot define both '1' and 'intercept' in 'X'")
 
             var_names = ['intercept' if i == 1 else i for i in var_names]
@@ -730,16 +772,22 @@ class BIDSStatsModelsNodeOutput:
         if missing:
             if self.invalid_inputs == 'drop':
                 # warn caller of BIDSStatsModelsNode.run()
-                warnings.warn("X specification includes variable(s) {}, "
-                              "but these were not found in data matrix. "
-                              "These will be dropped.".format(missing), stacklevel=3)
+                warnings.warn(
+                    f'X specification includes variable(s) {missing}, '
+                    'but these were not found in data matrix. '
+                    'These will be dropped.',
+                    stacklevel=3,
+                )
                 var_names = [v for v in var_names if v not in missing]
             elif self.invalid_inputs == 'error':
-                raise ValueError("X specification includes variable(s) {}, but "
-                                 "these were not found in data matrix.".format(missing))
+                raise ValueError(
+                    f'X specification includes variable(s) {missing}, but '
+                    'these were not found in data matrix.'
+                )
             else:
-                raise ValueError("invalid_inputs must be one of ['drop', 'error'], "
-                                 "got {}".format(self.invalid_inputs))
+                raise ValueError(
+                    f"invalid_inputs must be one of ['drop', 'error'], got {self.invalid_inputs}"
+                )
 
         # separate the design columns from the entity columns
         self.data = df.loc[:, var_names]
@@ -749,17 +797,19 @@ class BIDSStatsModelsNodeOutput:
         if missing_values != 'ignore':
             missing_cols = self.data.columns[self.data.isnull().any()]
             if len(missing_cols) > 0:
-                base_message = f"NaNs detected in columns: {missing_cols}"
+                base_message = f'NaNs detected in columns: {missing_cols}'
 
                 if missing_values in ['fill', None]:
                     self.data.fillna(0, inplace=True)
                     if missing_values is None:
-                        base_message += " were replaced with 0.  Consider "\
-                            " handling missing values using transformations."
+                        base_message += (
+                            ' were replaced with 0.  Consider '
+                            ' handling missing values using transformations.'
+                        )
                         # warn caller of BIDSStatsModelsNode.run()
                         warnings.warn(base_message, stacklevel=3)
                 elif missing_values == 'error':
-                    base_message += ". Explicitly replace missing values using transformations."
+                    base_message += '. Explicitly replace missing values using transformations.'
                     raise ValueError(base_message)
 
         # create ModelSpec and build contrasts
@@ -788,7 +838,6 @@ class BIDSStatsModelsNodeOutput:
         trans_hist = []
         # merge all collections at each level and export to a DataFrame
         for level, colls in coll_levels.items():
-
             # Note: we currently merge _before_ selecting variables. Selecting
             # variables first could be done by passing `variables=all_vars` as
             # an argument on the next line), but we can't do this right now
@@ -797,13 +846,12 @@ class BIDSStatsModelsNodeOutput:
             # transformations.
             coll = merge_collections(colls)
 
-
-
             # apply transformations
             transformations = self.node.transformations
             if transformations:
                 transformer = tm.TransformerManager(
-                    transformations['transformer'], keep_history=collection_history)
+                    transformations['transformer'], keep_history=collection_history
+                )
                 coll = transformer.transform(coll.clone(), transformations['instructions'])
 
                 if hasattr(transformer, 'history_'):
@@ -811,9 +859,11 @@ class BIDSStatsModelsNodeOutput:
 
             # Take the intersection of variables and Model.X (var_names), ignoring missing
             # variables (usually contrasts)
-            coll.variables = {v: coll.variables[v]
-                              for v in expand_wildcards(var_names, coll.variables)
-                              if v in coll.variables}
+            coll.variables = {
+                v: coll.variables[v]
+                for v in expand_wildcards(var_names, coll.variables)
+                if v in coll.variables
+            }
             if not coll.variables:
                 continue
 
@@ -846,6 +896,7 @@ class BIDSStatsModelsNodeOutput:
         ----------
         unique_in_contrast : string
             Name of unique incoming contrast inputs (i.e. if there is only 1)
+
         """
         in_contrasts = self.node.contrasts.copy()
         col_names = set(self.X.columns)
@@ -858,8 +909,11 @@ class BIDSStatsModelsNodeOutput:
                 warnings.warn(
                     "Use 'Contrasts' not 'Conditions' or 'ConditionList' to specify"
                     "DummyContrasts. Renaming to 'Contrasts' for now.",
-                    stacklevel=4)
-                dummies['contrasts'] = dummies.pop('conditions', None) or dummies.pop('condition_list', None)
+                    stacklevel=4,
+                )
+                dummies['contrasts'] = dummies.pop('conditions', None) or dummies.pop(
+                    'condition_list', None
+                )
 
             if 'contrasts' in dummies:
                 conditions = set(dummies['contrasts'])
@@ -867,28 +921,29 @@ class BIDSStatsModelsNodeOutput:
                 conditions = col_names
 
             for col_name in conditions:
-                if col_name == "intercept":
+                if col_name == 'intercept':
                     col_name = 1
 
-                in_contrasts.insert(0,
+                in_contrasts.insert(
+                    0,
                     {
                         'name': col_name,
                         'condition_list': [col_name],
                         'weights': [1],
-                        'test': dummies.get('test')
-                    }
+                        'test': dummies.get('test'),
+                    },
                 )
 
         # Process all contrasts, starting with dummy contrasts
         # Dummy contrasts are replaced if a contrast is defined with same name
         contrasts = {}
         for con in in_contrasts:
-            condition_list = list(con["condition_list"])
+            condition_list = list(con['condition_list'])
 
             # Rename special 1 construct
             condition_list = ['intercept' if i == 1 else i for i in condition_list]
 
-            name = con["name"]
+            name = con['name']
 
             # Rename contrast name
             if name == 1:
@@ -897,23 +952,25 @@ class BIDSStatsModelsNodeOutput:
                 # If Node has single contrast input, as is grouped by contrast
                 # Rename contrast to append incoming contrast name
                 if unique_in_contrast:
-                    name = f"{unique_in_contrast}_{name}"
+                    name = f'{unique_in_contrast}_{name}'
 
             missing_vars = set(condition_list) - col_names
             if missing_vars:
                 if self.invalid_contrasts == 'error':
-                    msg = ("Variable(s) '{}' specified in condition list for "
-                           "contrast '{}', but not found in available data."
-                           .format(missing_vars, con['name']))
+                    msg = (
+                        "Variable(s) '{}' specified in condition list for "
+                        "contrast '{}', but not found in available data.".format(
+                            missing_vars, con['name']
+                        )
+                    )
                     raise ValueError(msg)
                 elif self.invalid_contrasts == 'drop':
                     continue
-            weights = np.atleast_2d(con['weights'])
+            weights = np.atleast_2d(con['weights'])  # noqa: F841
 
             # Add contrast name to entities; can be used in grouping downstream
             entities = {**self.entities, 'contrast': name}
-            ci = ContrastInfo(name, condition_list,
-                              con['weights'], con.get("test"), entities)
+            ci = ContrastInfo(name, condition_list, con['weights'], con.get('test'), entities)
             contrasts[name] = ci
 
         return list(contrasts.values())
@@ -924,4 +981,4 @@ class BIDSStatsModelsNodeOutput:
         return self.model_spec.X
 
     def __repr__(self):
-        return f"<{self.__class__.__name__}(name={self.node.name}, entities={self.entities})>"
+        return f'<{self.__class__.__name__}(name={self.node.name}, entities={self.entities})>'

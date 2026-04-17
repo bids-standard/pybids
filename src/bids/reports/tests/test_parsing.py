@@ -1,11 +1,13 @@
 """Tests for bids.reports.parsing."""
+
 import pytest
+
 from bids.reports import parsing
 
 
 @pytest.fixture
 def testmeta():
-    metadata = {"RepetitionTime": 2.0}
+    metadata = {'RepetitionTime': 2.0}
     return metadata
 
 
@@ -15,10 +17,10 @@ def test_anat_info_smoke(testlayout, testconfig):
     It should return a str description when provided valid inputs.
     """
     anat_files = testlayout.get(
-        subject="01",
-        session="01",
-        suffix="T1w",
-        extension=[".nii.gz"],
+        subject='01',
+        session='01',
+        suffix='T1w',
+        extension=['.nii.gz'],
     )
 
     desc = parsing.anat_info(testlayout, anat_files, testconfig)
@@ -31,10 +33,10 @@ def test_dwi_info_smoke(testlayout, testconfig):
     It should return a str description when provided valid inputs.
     """
     dwi_files = testlayout.get(
-        subject="01",
-        session="01",
-        datatype="dwi",
-        extension=[".nii.gz"],
+        subject='01',
+        session='01',
+        datatype='dwi',
+        extension=['.nii.gz'],
     )
 
     desc = parsing.dwi_info(testlayout, dwi_files, testconfig)
@@ -47,11 +49,11 @@ def test_fmap_info_smoke(testlayout, testconfig):
     It should return a str description when provided valid inputs.
     """
     fmap_files = testlayout.get(
-        subject="01",
-        session="01",
-        datatype="fmap",
-        suffix="phasediff",
-        extension=[".nii.gz"],
+        subject='01',
+        session='01',
+        datatype='fmap',
+        suffix='phasediff',
+        extension=['.nii.gz'],
     )
 
     desc = parsing.fmap_info(testlayout, fmap_files, testconfig)
@@ -64,11 +66,11 @@ def test_func_info_smoke(testlayout, testconfig):
     It should return a str description when provided valid inputs.
     """
     func_files = testlayout.get(
-        subject="01",
-        session="01",
-        task="nback",
-        run="01",
-        extension=[".nii.gz"],
+        subject='01',
+        session='01',
+        task='nback',
+        run='01',
+        extension=['.nii.gz'],
     )
 
     desc = parsing.func_info(testlayout, func_files, testconfig)
@@ -100,8 +102,8 @@ def test_parse_files_smoke(testlayout, testconfig):
     with each string containing the description for a single nifti file
     (except functional data, which is combined within task, across runs).
     """
-    subject = "01"
-    niftis = testlayout.get(subject=subject, extension=[".nii", ".nii.gz"])
+    subject = '01'
+    niftis = testlayout.get(subject=subject, extension=['.nii', '.nii.gz'])
     desc = parsing.parse_files(testlayout, niftis, subject, testconfig)
     assert isinstance(desc, list)
     assert isinstance(desc[0], str)

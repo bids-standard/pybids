@@ -1,7 +1,7 @@
-from abc import ABCMeta, abstractmethod
+from abc import ABCMeta, abstractmethod  # noqa: D100
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 from formulaic import model_matrix
 
 from bids.utils import convert_JSON
@@ -9,6 +9,7 @@ from bids.utils import convert_JSON
 
 class ModelSpec(metaclass=ABCMeta):
     """Base class for all ModelSpec classes."""
+
     @abstractmethod
     def from_df(self, df, model, metadata=None):
         """Initialize from a pandas DataFrame."""
@@ -17,7 +18,8 @@ class ModelSpec(metaclass=ABCMeta):
 
 class GLMMSpec(ModelSpec):
     """Generalized Linear Mixed Model specification.
-s
+    s
+
     Parameters
     ----------
     terms : list of Term
@@ -48,9 +50,20 @@ s
         case of a gaussian (default family), an identity link is used.
     priors: dict
         Optional specification of default priors to use for new terms.
+
     """
-    def __init__(self, terms=None, X=None, Z=None, groups=None, sigma=None,
-                 family=None, link=None, priors=None):
+
+    def __init__(
+        self,
+        terms=None,
+        X=None,
+        Z=None,
+        groups=None,
+        sigma=None,
+        family=None,
+        link=None,
+        priors=None,
+    ):
         self.terms = {}
         self.family = family
         self.link = link
@@ -70,7 +83,7 @@ s
     def __repr__(self):
         return f"<{self.__class__.__name__}{[term.name for term in self.fixed_terms]}'>"
 
-    def set_priors(self, fixed=None, random=None):
+    def set_priors(self, fixed=None, random=None):  # noqa: D102
         raise NotImplementedError("Custom prior use hasn't been implemented yet.")
 
     def build_fixed_terms(self, X):
@@ -82,6 +95,7 @@ s
             A pandas DataFrame containing variables to convert to Term
             instances. Each column is converted to a different (fixed) Term,
             with the name taken from the column name.
+
         """
         for col in X.columns:
             data = X.loc[:, col].values
@@ -105,19 +119,17 @@ s
             sigma (2DArray): A k x k 2D covariance matrix specifying the
                 covariances between variance components. Currently unused.
             names (list): Optional list specifying the names of the groups.
-        """
 
+        """
         if sigma is not None:
-            raise NotImplementedError("Covariance specification is currently"
-                                      " not supported.")
+            raise NotImplementedError('Covariance specification is currently not supported.')
 
         if groups is None:
             groups = np.ones((Z.shape[1], 1))
         n_grps = groups.shape[1]
 
         if names is None:
-            names = getattr(groups, 'columns',
-                            ['VC{}'.format(i) for i in range(n_grps)])
+            names = getattr(groups, 'columns', [f'VC{i}' for i in range(n_grps)])
 
         # Work with array instead of DF
         if hasattr(groups, 'values'):
@@ -136,10 +148,10 @@ s
         ----------
         term : Term
             A Term instance to add to the current instance.
+
         """
         if term.name in self.terms:
-            raise ValueError("Term with name {} already exists!"
-                             .format(term.name))
+            raise ValueError(f'Term with name {term.name} already exists!')
         self.terms[term.name] = term
 
     @property
@@ -147,20 +159,18 @@ s
         """Return X design matrix (i.e., fixed component of model)."""
         if not self.fixed_terms:
             return None
-        names, cols = zip(*[(c.name, c.values) for c in self.fixed_terms])
+        names, cols = zip(*[(c.name, c.values) for c in self.fixed_terms])  # noqa: B905
         return pd.DataFrame(np.c_[cols], columns=names)
 
     @property
     def Z(self):
-        """Return Z design matrix (i.e., random effects/variance components).
-        """
+        """Return Z design matrix (i.e., random effects/variance components)."""
         if not self.variance_components:
             return None
         names, cols = [], []
         for c in self.variance_components:
             cols.append(c.values)
-            names.extend(['{}.{}'.format(c.name, i)
-                          for i in range(c.values.shape[1])])
+            names.extend([f'{c.name}.{i}' for i in range(c.values.shape[1])])
         return pd.DataFrame(np.concatenate(cols, axis=1), columns=names)
 
     @property
@@ -175,7 +185,7 @@ s
 
     @classmethod
     def from_df(cls, df, model, metadata=None, formula=None):
-        """ Initialize a GLMMSpec instance from a BIDSVariableCollection and
+        """Initialize a GLMMSpec instance from a BIDSVariableCollection and
         a BIDS-StatsModels JSON spec.
 
         Parameters
@@ -202,8 +212,8 @@ s
         Returns
         -------
         A GLMMSpec instance.
-        """
 
+        """
         kwargs = {}
 
         # Fixed terms
@@ -220,7 +230,6 @@ s
         Z_list = []
 
         if vcs:
-
             # VCs can be defined by variables in either the fixed predictor
             # DF or the supplementary metadata DF, so concatenate them.
             all_vars = [df, metadata] if metadata is not None else [df]
@@ -241,7 +250,7 @@ s
             c = 0
             for i, vc in enumerate(Z_list):
                 n = vc.shape[1]
-                groups[c:(c+n), i] = 1
+                groups[c : (c + n), i] = 1
                 c += n
             groups = pd.DataFrame(groups, columns=[vc['name'] for vc in vcs])
 
@@ -256,7 +265,7 @@ s
         return GLMMSpec(**kwargs)
 
 
-class MetaAnalysisSpec(GLMMSpec):
+class MetaAnalysisSpec(GLMMSpec):  # noqa: D101
     pass
 
 
@@ -275,9 +284,10 @@ class Term:
         Optional specification of the prior distribution for the Term.
     metadata : dict
         Arbitrary metadata to store internally.
+
     """
-    def __init__(self, name, values, categorical=False, prior=None,
-                 metadata=None):
+
+    def __init__(self, name, values, categorical=False, prior=None, metadata=None):
         self.name = name
         self.values = values
         self.categorical = categorical
@@ -301,10 +311,11 @@ class VarComp(Term):
         Optional specification of the prior distribution for the VarComp.
     metadata : dict
         Arbitrary metadata to store internally.
+
     """
+
     def __init__(self, name, values, prior=None, metadata=None):
-        super(VarComp, self).__init__(name, values, categorical=True,
-                                      prior=prior, metadata=metadata)
+        super().__init__(name, values, categorical=True, prior=prior, metadata=metadata)
         self.index_vec = self.dummies_to_vec(values)
 
     @staticmethod
@@ -322,6 +333,7 @@ class VarComp(Term):
         large matrix multiplications in the backends), invert the dummy-coding
         process and represent full-rank dummies as a vector of indices into the
         coefficients.
+
         """
         vec = np.zeros(len(dummies), dtype=int)
         for i in range(dummies.shape[1]):
@@ -330,7 +342,7 @@ class VarComp(Term):
 
 
 class Prior:
-    '''Abstract specification of a term prior.
+    """Abstract specification of a term prior.
 
     Parameters
     ----------
@@ -345,7 +357,9 @@ class Prior:
     arguments, but users implementing new Bayesian estimators are encouraged to
     use the names used in PyMC3 (e.g., 'Normal', parameterized with mu and
     sd arguments).
-    '''
+
+    """
+
     def __init__(self, name, **kwargs):
         self.name = name
         self.kwargs = kwargs

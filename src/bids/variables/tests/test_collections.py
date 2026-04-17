@@ -1,53 +1,61 @@
 from os.path import join
 
-import pytest
 import numpy as np
+import pytest
 
 from bids.layout import BIDSLayout
 from bids.tests import get_test_data_path
-from bids.variables import (DenseRunVariable, SparseRunVariable,
-                            merge_collections)
+from bids.variables import DenseRunVariable, SparseRunVariable, merge_collections
 from bids.variables.entities import RunInfo
 
-@pytest.fixture(scope="module")
+
+@pytest.fixture(scope='module')
 def run_coll():
     path = join(get_test_data_path(), 'ds005')
     layout = BIDSLayout(path)
     # Limit to a few subjects to reduce test running time
-    return layout.get_collections('run', types=['events'], merge=True,
-                                  scan_length=480, subject=['01', '02', '04'])
+    return layout.get_collections(
+        'run', types=['events'], merge=True, scan_length=480, subject=['01', '02', '04']
+    )
 
-@pytest.fixture(scope="module")
+
+@pytest.fixture(scope='module')
 def run_coll_bad_length():
     path = join(get_test_data_path(), 'ds005')
     layout = BIDSLayout(path)
     # Limit to a few subjects to reduce test running time
-    return layout.get_collections('run', types=['events'], merge=True,
-                                  scan_length=480.1, subject=['01', '02', '04'])
+    return layout.get_collections(
+        'run', types=['events'], merge=True, scan_length=480.1, subject=['01', '02', '04']
+    )
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope='module')
 def run_coll_list():
     path = join(get_test_data_path(), 'ds005')
     layout = BIDSLayout(path)
-    return layout.get_collections('run', types=['events'], merge=False,
-                                  scan_length=480, subject=['01', '02', '04'])
+    return layout.get_collections(
+        'run', types=['events'], merge=False, scan_length=480, subject=['01', '02', '04']
+    )
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope='module')
 def run_coll_derivs():
     path = join(get_test_data_path(), 'ds005')
     deriv_path = join(get_test_data_path(), 'ds005', 'derivatives', 'fmriprep')
     layout = BIDSLayout(path, derivatives=deriv_path)
     # Limit to a few subjects to reduce test running time
-    return layout.get_collections('run', types=['events', 'regressors'], merge=False,
-                                  scan_length=480, subject=['01', '02'])
+    return layout.get_collections(
+        'run', types=['events', 'regressors'], merge=False, scan_length=480, subject=['01', '02']
+    )
 
 
 def test_run_variable_collection_init(run_coll):
     assert isinstance(run_coll.variables, dict)
     assert run_coll.sampling_rate == 10
-    assert run_coll.__repr__() == "<BIDSRunVariableCollection['PTval', 'RT', 'gain', 'loss', 'parametric gain', 'respcat', 'respnum', 'trial_type']>"
+    assert (
+        run_coll.__repr__()
+        == "<BIDSRunVariableCollection['PTval', 'RT', 'gain', 'loss', 'parametric gain', 'respcat', 'respnum', 'trial_type']>"
+    )
 
 
 def test_run_variable_collection_sparse_variable_accessors(run_coll):
@@ -79,9 +87,9 @@ def test_run_variable_collection_get_sampling_rate(run_coll):
         coll._get_sampling_rate('TR')
     assert str(exc.value).startswith('Non-unique')
     assert coll._get_sampling_rate('highest') == 10
-    coll.variables['RT1'] = coll.variables['RT'].to_dense(5.)
-    coll.variables['RT2'] = coll.variables['RT'].to_dense(12.)
-    assert coll._get_sampling_rate('highest') == 12.
+    coll.variables['RT1'] = coll.variables['RT'].to_dense(5.0)
+    coll.variables['RT2'] = coll.variables['RT'].to_dense(12.0)
+    assert coll._get_sampling_rate('highest') == 12.0
     assert coll._get_sampling_rate(20) == 20
     with pytest.raises(ValueError) as exc:
         coll._get_sampling_rate('BLARGH')
@@ -118,9 +126,17 @@ def test_run_variable_collection_to_df_all_sparse_vars(run_coll):
     run_coll = run_coll.clone()
 
     timing_cols = {'onset', 'duration'}
-    entity_cols = {'subject', 'run', 'task',  'suffix', 'datatype'}
-    cond_names = {'PTval', 'RT', 'gain', 'loss', 'parametric gain', 'respcat',
-                  'respnum', 'trial_type'}
+    entity_cols = {'subject', 'run', 'task', 'suffix', 'datatype'}
+    cond_names = {
+        'PTval',
+        'RT',
+        'gain',
+        'loss',
+        'parametric gain',
+        'respcat',
+        'respnum',
+        'trial_type',
+    }
     condition = {'condition'}
     ampl = {'amplitude'}
 
@@ -165,11 +181,18 @@ def test_run_variable_collection_to_df_all_sparse_vars(run_coll):
 
 
 def test_run_variable_collection_to_df_all_dense_vars(run_coll):
-
     timing_cols = {'onset', 'duration'}
-    entity_cols = {'subject', 'run', 'task',  'suffix', 'datatype'}
-    cond_names = {'PTval', 'RT', 'gain', 'loss', 'parametric gain', 'respcat',
-                  'respnum', 'trial_type'}
+    entity_cols = {'subject', 'run', 'task', 'suffix', 'datatype'}
+    cond_names = {
+        'PTval',
+        'RT',
+        'gain',
+        'loss',
+        'parametric gain',
+        'respcat',
+        'respnum',
+        'trial_type',
+    }
     md_names = {'TaskName', 'RepetitionTime', 'extension', 'SliceTiming'}
     condition = {'condition'}
     ampl = {'amplitude'}
@@ -223,12 +246,20 @@ def test_run_variable_collection_to_df_all_dense_vars(run_coll):
     n_rows = int(rows_per_var * 12 / 10)
     assert df.shape == (n_rows, 18)
 
-def test_run_variable_collection_bad_length_to_df_all_dense_vars(run_coll_bad_length):
 
+def test_run_variable_collection_bad_length_to_df_all_dense_vars(run_coll_bad_length):
     timing_cols = {'onset', 'duration'}
-    entity_cols = {'subject', 'run', 'task',  'suffix', 'datatype'}
-    cond_names = {'PTval', 'RT', 'gain', 'loss', 'parametric gain', 'respcat',
-                  'respnum', 'trial_type'}
+    entity_cols = {'subject', 'run', 'task', 'suffix', 'datatype'}
+    cond_names = {
+        'PTval',
+        'RT',
+        'gain',
+        'loss',
+        'parametric gain',
+        'respcat',
+        'respnum',
+        'trial_type',
+    }
     md_names = {'TaskName', 'RepetitionTime', 'extension', 'SliceTiming'}
     condition = {'condition'}
     ampl = {'amplitude'}
@@ -246,7 +277,7 @@ def test_run_variable_collection_bad_length_to_df_all_dense_vars(run_coll_bad_le
 
     # Test resampling to TR
     df = unif_coll.to_df(sampling_rate='TR')
-    n_rows = int(480 * 3 * 3 / 2) # (Note number of volumes is 480, not 480.1)
+    n_rows = int(480 * 3 * 3 / 2)  # (Note number of volumes is 480, not 480.1)
     assert df.shape == (n_rows, 18)
     cols = (timing_cols | entity_cols | cond_names | md_names) - {'trial_type'}
     assert set(df.columns) == cols
@@ -254,7 +285,7 @@ def test_run_variable_collection_bad_length_to_df_all_dense_vars(run_coll_bad_le
 
 def test_run_variable_collection_to_df_mixed_vars(run_coll):
     coll = run_coll.clone()
-    coll.to_dense(10, variables=['RT', 'loss','gain'], in_place=True)
+    coll.to_dense(10, variables=['RT', 'loss', 'gain'], in_place=True)
 
     # Only sparse variables
     df = coll.to_df(include_dense=False)
@@ -305,8 +336,7 @@ def test_match_variables(run_coll):
     matches = run_coll.match_variables('^.{1,2}a', match_type='regex')
     assert set(matches) == {'gain', 'parametric gain'}
     assert not run_coll.match_variables('.{1,3}a')
-    matches = run_coll.match_variables('^.{1,2}a', match_type='regex',
-                                       return_type='variable')
+    matches = run_coll.match_variables('^.{1,2}a', match_type='regex', return_type='variable')
     assert len(matches) == 2
     assert all([isinstance(m, SparseRunVariable) for m in matches])
     matches = run_coll.match_variables('*gain')
@@ -316,7 +346,11 @@ def test_match_variables(run_coll):
 def test_n_variables(run_coll_derivs):
     # Test that variables are ingested into correct collection
     # non_steady_state_outlier00 should only exist for sub-01 run-01
-    match = [c for c in run_coll_derivs if c.entities.get('subject', None) == '01' and c.entities['run'] == 1]
+    match = [
+        c
+        for c in run_coll_derivs
+        if c.entities.get('subject', None) == '01' and c.entities['run'] == 1
+    ]
     assert 'non_steady_state_outlier00' in match[0].variables.keys()
 
     # Find collections with 'non_steady_state_outlier00'
