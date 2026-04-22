@@ -1,3 +1,3 @@
-from .report import BIDSReport
+from .report import BIDSReport  # noqa: D104
 
-__all__ = ["BIDSReport"]
+__all__ = ['BIDSReport']

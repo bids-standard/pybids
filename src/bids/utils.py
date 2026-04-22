@@ -1,12 +1,16 @@
-""" Utility functions. """
+"""Utility functions."""
 
-import re
 import os
 import requests
 from pathlib import Path
 from frozendict import frozendict as _frozendict
 from upath import UPath as Path
+import re
 from functools import cache
+from pathlib import Path  # noqa: F811
+
+from frozendict import frozendict as _frozendict
+from upath import UPath as Path  # noqa: F811
 
 
 # Monkeypatch to print out frozendicts *as if* they were dictionaries.
@@ -15,17 +19,18 @@ class frozendict(_frozendict):
 
     def __repr__(self):
         """Override frozendict representation."""
-        return repr({k: v for k, v in self.items()})
+        return repr({k: v for k, v in self.items()})  # noqa: C416
 
 
 def listify(obj):
-    ''' Wraps all non-list or tuple objects in a list; provides a simple way
-    to accept flexible arguments. '''
+    """Wraps all non-list or tuple objects in a list; provides a simple way
+    to accept flexible arguments.
+    """
     return obj if isinstance(obj, (list, tuple, type(None))) else [obj]
 
 
 def hashablefy(obj):
-    ''' Make dictionaries and lists hashable or raise. '''
+    """Make dictionaries and lists hashable or raise."""
     if isinstance(obj, list):
         return tuple([hashablefy(o) for o in obj])
 
@@ -35,7 +40,7 @@ def hashablefy(obj):
 
 
 def matches_entities(obj, entities, strict=False):
-    ''' Checks whether an object's entities match the input. '''
+    """Checks whether an object's entities match the input."""
     if strict and set(obj.entities.keys()) != set(entities.keys()):
         return False
 
@@ -51,11 +56,9 @@ def matches_entities(obj, entities, strict=False):
     return True
 
 
-def natural_sort(l, field=None):
-    '''
-    based on snippet found at https://stackoverflow.com/a/4836734/2445984
-    '''
-    convert = lambda text: int(text) if text.isdigit() else text.lower()
+def natural_sort(l, field=None):  # noqa: E741
+    """Based on snippet found at https://stackoverflow.com/a/4836734/2445984"""
+    convert = lambda text: int(text) if text.isdigit() else text.lower()  # noqa: E731
 
     def alphanum_key(key):
         if field is not None:
@@ -63,15 +66,17 @@ def natural_sort(l, field=None):
         if not isinstance(key, str):
             key = str(key)
         return [convert(c) for c in re.split('([0-9]+)', key)]
+
     return sorted(l, key=alphanum_key)
 
 
 def convert_JSON(j):
-    """ Recursively convert CamelCase keys to snake_case.
+    """Recursively convert CamelCase keys to snake_case.
     From: https://stackoverflow.com/questions/17156078/
     converting-identifier-naming-between-camelcase-and-
     underscores-during-json-seria
     """
+
     def camel_to_snake(s):
         a = re.compile('((?<=[a-z0-9])[A-Z]|(?!^)[A-Z](?=[a-z]))')
         return a.sub(r'_\1', s).lower()
@@ -103,20 +108,22 @@ def convert_JSON(j):
 
 
 def splitext(path):
-    """splitext for paths with directories that may contain dots.
-    From https://stackoverflow.com/questions/5930036/separating-file-extensions-using-python-os-path-module"""
+    """Splitext for paths with directories that may contain dots.
+    From https://stackoverflow.com/questions/5930036/separating-file-extensions-using-python-os-path-module
+    """
     li = []
-    path_without_extensions = os.path.join(os.path.dirname(path),
-        os.path.basename(path).split(os.extsep)[0])
+    path_without_extensions = os.path.join(
+        os.path.dirname(path), os.path.basename(path).split(os.extsep)[0]
+    )
     extensions = os.path.basename(path).split(os.extsep)[1:]
     li.append(path_without_extensions)
-    # li.append(extensions) if you want extensions in another list inside the list that is returned.
+    # li.append(extensions) if you want extensions in another list inside the list that is returned.  # noqa: E501
     li.extend(extensions)
     return li
 
 
 def make_bidsfile(filename):
-    """Create a BIDSFile instance of the appropriate class. """
+    """Create a BIDSFile instance of the appropriate class."""
     from .layout import models
 
     # Extract all extensions from filename (a.tar.gz -> .tar.gz, not just .gz)
@@ -135,7 +142,7 @@ def make_bidsfile(filename):
     return Cls(filename)
 
 
-def collect_associated_files(layout, files, extra_entities=()):
+def collect_associated_files(layout, files, extra_entities=()):  # noqa: D417
     """Collect and group BIDSFiles with multiple files per acquisition.
 
     Parameters
@@ -147,6 +154,7 @@ def collect_associated_files(layout, files, extra_entities=()):
     Returns
     -------
     collected_files : list of list of BIDSFile
+
     """
     MULTICONTRAST_ENTITIES = ['echo', 'part', 'ch', 'direction']
     MULTICONTRAST_SUFFIXES = [
@@ -182,9 +190,9 @@ def validate_multiple(val, retval=None):
     This helper method converts empty tuples to a desired return value (default: None).
     This helper method selects the first item in single-item tuples.
     """
-    assert isinstance(val, tuple)
+    assert isinstance(val, tuple)  # noqa: S101
 
-    if val == tuple():
+    if val == tuple():  # noqa: C408
         return retval
     if len(val) == 1:
         return val[0]
@@ -192,20 +200,19 @@ def validate_multiple(val, retval=None):
 
 
 @cache
-def entity_indices(schema_spec=None):
-    from bidsschematools.schema import load_schema
+def entity_indices(schema_spec=None):  # noqa: D103
     from collections import defaultdict
 
+    from bidsschematools.schema import load_schema
+
     entities = load_schema(schema_spec).rules.entities + ['suffix', 'extension', 'datatype']
-    
-    return defaultdict(lambda e=entities: len(e),
-        {elem: idx for idx, elem in enumerate(entities)}
-    )
+
+    return defaultdict(lambda e=entities: len(e), {elem: idx for idx, elem in enumerate(entities)})
+
 
 
 def bids_sort(unsorted: dict, schema_spec=None):
-    f"""
-    Sorts filename entity dictionaries according to their order as defined in 
+    """Sorts filename entity dictionaries according to their order as defined in
     schema.rules.entities as well as suffix, extension. Lastly, appends datatype
     to the end of the sort to accommodate pybids datastructures.
 
@@ -216,7 +223,7 @@ def bids_sort(unsorted: dict, schema_spec=None):
     schema_spec: str
         Path or version of schema to use, defaults to the version bundled
         with bidsschematools.
-    
+
     Returns
     -------
     sorted_bids: dict

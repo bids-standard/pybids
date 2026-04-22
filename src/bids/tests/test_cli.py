@@ -1,11 +1,11 @@
 import os
 
-from click.testing import CliRunner
 import pytest
+from click.testing import CliRunner
 
 from bids.cli import cli
-from bids.utils import validate_multiple
 from bids.tests import get_test_data_path
+from bids.utils import validate_multiple
 
 
 @pytest.fixture
@@ -19,7 +19,7 @@ def test_cli_entrypoint(runner):
         help_text = res.stderr
     elif res.exit_code == 0:
         help_text = res.stdout
-    assert "Command-line interface for PyBIDS operations" in help_text
+    assert 'Command-line interface for PyBIDS operations' in help_text
     assert runner.invoke(cli, ['-h'], catch_exceptions=False).stdout == help_text
     # verify versioning
     assert runner.invoke(cli, ['--version'], catch_exceptions=False).stdout.startswith('pybids')
@@ -36,13 +36,13 @@ def test_validate_multiple():
 
 def test_layout(runner, tmp_path):
     def is_success(res):
-        return res.stdout.startswith("Successfully generated database index")
+        return res.stdout.startswith('Successfully generated database index')
 
     res = runner.invoke(cli, ['layout', '--help'])
-    assert "Initialize a BIDSLayout" in res.stdout
+    assert 'Initialize a BIDSLayout' in res.stdout
 
     bids_dir = os.path.join(get_test_data_path(), 'ds005')
-    db0 = tmp_path / "db0"
+    db0 = tmp_path / 'db0'
     db0.mkdir()
     res = runner.invoke(cli, ['layout', bids_dir, str(db0)], catch_exceptions=False)
     assert is_success(res)
@@ -50,22 +50,30 @@ def test_layout(runner, tmp_path):
     res = runner.invoke(cli, ['layout', bids_dir, str(db0)], catch_exceptions=False)
     assert not is_success(res)
     # but forcing it should
-    res = runner.invoke(
-        cli, ['layout', bids_dir, str(db0), '--reset-db'], catch_exceptions=False
-    )
+    res = runner.invoke(cli, ['layout', bids_dir, str(db0), '--reset-db'], catch_exceptions=False)
     assert is_success(res)
 
-    db1 = tmp_path / "db1"
+    db1 = tmp_path / 'db1'
     db1.mkdir()
     # throw the kitchen sink at it
     res = runner.invoke(
         cli,
         [
-            'layout', bids_dir, str(db1),
-            '--validate', '--no-index-metadata',
-            '--ignore', 'derivatives', '--ignore', 'sourcedata', '--ignore', r'm/^\./',
-            '--force-index', 'test',
-            '--config', 'bids',
+            'layout',
+            bids_dir,
+            str(db1),
+            '--validate',
+            '--no-index-metadata',
+            '--ignore',
+            'derivatives',
+            '--ignore',
+            'sourcedata',
+            '--ignore',
+            r'm/^\./',
+            '--force-index',
+            'test',
+            '--config',
+            'bids',
         ],
         catch_exceptions=False,
     )

@@ -1,19 +1,20 @@
-""" Classes for representing BIDS variables. """
+"""Classes for representing BIDS variables."""
 
 import math
 import warnings
+from abc import ABCMeta, abstractmethod
 from copy import deepcopy
-from abc import abstractmethod, ABCMeta
-from itertools import chain
 from functools import reduce
+from itertools import chain
 
 import numpy as np
 import pandas as pd
 
 from bids.utils import listify
 
+
 class BIDSVariable(metaclass=ABCMeta):
-    """Base representation of a column in a BIDS project. """
+    """Base representation of a column in a BIDS project."""
 
     # Columns that define special properties (e.g., onset, duration). These
     # will be stored separately from the main data object, and are accessible
@@ -44,6 +45,7 @@ class BIDSVariable(metaclass=ABCMeta):
             values to set in the copy. E.g., passing `name='my_name'`
             would set the `.name` attribute on the cloned instance to the
             passed value.
+
         """
         result = deepcopy(self)
         if data is not None:
@@ -52,9 +54,10 @@ class BIDSVariable(metaclass=ABCMeta):
                 if data.squeeze().shape == self.values.squeeze().shape:
                     data = data.values.reshape(self.values.shape)
                 else:
-                    raise ValueError("Replacement data has shape %s; must have"
-                                     " same shape as existing data %s." %
-                                     (data.shape, self.values.shape))
+                    raise ValueError(
+                        'Replacement data has shape %s; must have'  # noqa: UP031
+                        ' same shape as existing data %s.' % (data.shape, self.values.shape)
+                    )
             result.values = pd.DataFrame(data)
 
         if kwargs:
@@ -90,11 +93,10 @@ class BIDSVariable(metaclass=ABCMeta):
         Returns
         -------
         BIDSVariable or None if no rows are left after filtering.
-        """
 
+        """
         if filters is None and query is None:
-            raise ValueError("Either the 'filters' or the 'query' argument "
-                             "must be provided!")
+            raise ValueError("Either the 'filters' or the 'query' argument must be provided!")
 
         if filters is not None and query is None:
             query = []
@@ -104,8 +106,7 @@ class BIDSVariable(metaclass=ABCMeta):
                         return None
                     continue
                 oper = 'in' if isinstance(val, (list, tuple)) else '=='
-                q = '{name} {oper} {val}'.format(name=name, oper=oper,
-                                                 val=repr(val))
+                q = f'{name} {oper} {repr(val)}'
                 query.append(q)
             query = ' and '.join(query)
 
@@ -141,19 +142,21 @@ class BIDSVariable(metaclass=ABCMeta):
         -------
         A single BIDSVariable of the same class as the input variables.
 
-        See also
+        See Also
         --------
         merge_variables
-        """
 
+        """
         variables = listify(variables)
         if len(variables) == 1:
             return variables[0]
 
-        var_names = set([v.name for v in variables])
+        var_names = set([v.name for v in variables])  # noqa: C403
         if len(var_names) > 1:
-            raise ValueError("Columns with different names cannot be merged. "
-                             "Column names provided: %s" % var_names)
+            raise ValueError(
+                'Columns with different names cannot be merged. '  # noqa: UP031
+                'Column names provided: %s' % var_names
+            )
 
         if name is None:
             name = variables[0].name
@@ -179,10 +182,10 @@ class BIDSVariable(metaclass=ABCMeta):
         -------
         list
             A list defining the groups.
+
         """
         grouper = self.index.loc[:, groupby]
-        return grouper.apply(lambda x: '@@@'.join(x.astype(str).values),
-                             axis=1)
+        return grouper.apply(lambda x: '@@@'.join(x.astype(str).values), axis=1)
 
     def apply(self, func, groupby='run', *args, **kwargs):
         """Applies the passed function to the groups defined by the groupby
@@ -197,11 +200,12 @@ class BIDSVariable(metaclass=ABCMeta):
         args, kwargs : dict
             Optional positional and keyword arguments to pass
             onto the function call.
+
         """
         grouper = self.get_grouper(groupby)
         return self.values.groupby(grouper, group_keys=False).apply(func, *args, **kwargs)
 
-    def to_df(self, condition=True, entities=True, **kwargs):
+    def to_df(self, condition=True, entities=True, **kwargs):  # noqa: D417
         """Convert to a DataFrame, with columns for name and entities.
 
         Parameters
@@ -213,6 +217,7 @@ class BIDSVariable(metaclass=ABCMeta):
             the current column name.
         entities : bool
             If True, adds extra columns for all entities.
+
         """
         amp = 'amplitude' if condition else self.name
         data = pd.DataFrame({amp: self.values.values.ravel()})
@@ -239,7 +244,9 @@ class BIDSVariable(metaclass=ABCMeta):
         runs 1, 2 and 3 from subject '01', the returned dict will be
         {'subject': '01'}; the runs will be excluded as they vary across
         the Variable contents.
+
         """
+
         def is_unique(s):
             a = s.to_numpy()
             return (a[0] == a).all()
@@ -253,7 +260,7 @@ class BIDSVariable(metaclass=ABCMeta):
             res = {}
             for k in keep:
                 v = self.index.loc[first_row_ix, k]
-                if pd.isna(v): # Only drop NaNs if we get that on first try
+                if pd.isna(v):  # Only drop NaNs if we get that on first try
                     v = self.index[k].dropna().iloc[0]
                 res[k] = v
             return res
@@ -276,19 +283,19 @@ class SimpleVariable(BIDSVariable):
         'scans', 'sessions', 'participants', or 'beh'.
     kwargs : dict
         Optional keyword arguments passed onto superclass.
+
     """
 
     _entity_columns = {'condition', 'amplitude'}
 
     def __init__(self, name, data, source, **kwargs):
-
         ent_cols = list(set(data.columns) - self._entity_columns)
         self.index = data.loc[:, ent_cols]
 
         values = data['amplitude'].reset_index(drop=True)
         values.name = name
 
-        super(SimpleVariable, self).__init__(name, values, source)
+        super().__init__(name, values, source)
 
     def split(self, grouper):
         """Split the current SparseRunVariable into multiple columns.
@@ -304,16 +311,21 @@ class SimpleVariable(BIDSVariable):
         Returns
         -------
         A list of SparseRunVariables, one per column in the grouper DF.
+
         """
         data = self.to_df(condition=True, entities=True)
         data = data.drop('condition', axis=1)
 
         subsets = []
-        for i, col_name in enumerate(grouper.columns):
+        for i, col_name in enumerate(grouper.columns):  # noqa: B007
             col_data = data.loc[grouper[col_name].astype(bool), :]
-            name = '{}.{}'.format(self.name, col_name)
-            col = self.__class__(name=name, data=col_data, source=self.source,
-                                 run_info=getattr(self, 'run_info', None))
+            name = f'{self.name}.{col_name}'
+            col = self.__class__(
+                name=name,
+                data=col_data,
+                source=self.source,
+                run_info=getattr(self, 'run_info', None),
+            )
             subsets.append(col)
         return subsets
 
@@ -332,6 +344,7 @@ class SimpleVariable(BIDSVariable):
         rows : array_like
             An integer or boolean array identifying the indices
             of rows to keep.
+
         """
         self.values = self.values.iloc[rows]
         self.index = self.index.iloc[rows, :]
@@ -359,6 +372,7 @@ class SparseRunVariable(SimpleVariable):
         'scans', 'sessions', 'participants', or 'beh'.
     kwargs : dict
         Optional keyword arguments passed onto superclass.
+
     """
 
     _property_columns = {'onset', 'duration'}
@@ -367,17 +381,16 @@ class SparseRunVariable(SimpleVariable):
         if hasattr(run_info, 'duration'):
             run_info = [run_info]
         if not isinstance(run_info, list):
-            raise TypeError("We expect a list of run_info, got %s"
-                            % repr(run_info))
+            raise TypeError('We expect a list of run_info, got %s' % repr(run_info))  # noqa: UP031
         self.run_info = run_info
         for sc in self._property_columns:
             arr = data.pop(sc).values
             arr.flags['WRITEABLE'] = True
             setattr(self, sc, arr)
-        super(SparseRunVariable, self).__init__(name, data, source, **kwargs)
+        super().__init__(name, data, source, **kwargs)
 
     def get_duration(self):
-        """Return the total duration of the Variable's run(s). """
+        """Return the total duration of the Variable's run(s)."""
         return sum([r.duration for r in self.run_info])
 
     def to_dense(self, sampling_rate=None):
@@ -395,12 +408,13 @@ class SparseRunVariable(SimpleVariable):
         Returns
         -------
         DenseRunVariable
+
         """
         # Cast onsets and durations to milliseconds
         onsets = np.round(self.onset * 1000).astype(int)
         durations = np.round(self.duration * 1000).astype(int)
         gcd = np.gcd.reduce(np.r_[onsets, durations])
-        bin_sr = 1000. / gcd
+        bin_sr = 1000.0 / gcd
 
         # never use a computed SR smaller than the requested one, because
         # when events are widely-spaced and timing is very regular, this can
@@ -426,10 +440,12 @@ class SparseRunVariable(SimpleVariable):
             _onset = int(start + onsets[i])
             _offset = int(_onset + durations[i])
             if _onset >= duration:
-                warnings.warn("The onset time of a variable seems to exceed "
-                              "the runs duration, hence runs are incremented "
-                              "by one internally.",
-                              stacklevel=2)
+                warnings.warn(
+                    'The onset time of a variable seems to exceed '
+                    'the runs duration, hence runs are incremented '
+                    'by one internally.',
+                    stacklevel=2,
+                )
             ts[_onset:_offset] = val
             last_ind = onsets[i]
 
@@ -444,7 +460,8 @@ class SparseRunVariable(SimpleVariable):
             values=ts,
             run_info=run_info,
             source=self.source,
-            sampling_rate=sampling_rate)
+            sampling_rate=sampling_rate,
+        )
 
         return dense_var
 
@@ -460,9 +477,7 @@ class SparseRunVariable(SimpleVariable):
     @classmethod
     def _merge(cls, variables, name, **kwargs):
         run_info = list(chain(*[v.run_info for v in variables]))
-        return super(SparseRunVariable, cls)._merge(variables, name,
-                                                    run_info=run_info,
-                                                    **kwargs)
+        return super()._merge(variables, name, run_info=run_info, **kwargs)
 
 
 class DenseRunVariable(BIDSVariable):
@@ -482,14 +497,16 @@ class DenseRunVariable(BIDSVariable):
     sampling_rate : :obj:`float`
         Mandatory sampling rate (in Hz) to use. Must match the sampling rate used
         to generate the values.
+
     """
 
     def __init__(self, name, values, run_info, source, sampling_rate):
-
         values = pd.DataFrame(values)
 
         if not isinstance(sampling_rate, (float, int)):
-            raise TypeError("sampling_rate must be a float or integer, not %s" % type(sampling_rate))
+            raise TypeError(
+                'sampling_rate must be a float or integer, not %s' % type(sampling_rate)  # noqa: UP031
+            )
 
         if hasattr(run_info, 'duration'):
             run_info = [run_info]
@@ -497,7 +514,7 @@ class DenseRunVariable(BIDSVariable):
         self.sampling_rate = sampling_rate
         self.index = self._build_entity_index(run_info, sampling_rate)
 
-        super(DenseRunVariable, self).__init__(name, values, source)
+        super().__init__(name, values, source)
 
     def split(self, grouper):
         """Split the current DenseRunVariable into multiple columns.
@@ -512,29 +529,36 @@ class DenseRunVariable(BIDSVariable):
         Returns
         -------
         A list of DenseRunVariables, one per unique value in the grouper.
+
         """
         values = grouper.values * self.values.values
         df = pd.DataFrame(values, columns=grouper.columns)
-        return [DenseRunVariable(name='%s.%s' % (self.name, name),
-                                 values=df[name].values,
-                                 run_info=self.run_info,
-                                 source=self.source,
-                                 sampling_rate=self.sampling_rate)
-                for i, name in enumerate(df.columns)]
+        return [
+            DenseRunVariable(
+                name='%s.%s' % (self.name, name),  # noqa: UP031
+                values=df[name].values,
+                run_info=self.run_info,
+                source=self.source,
+                sampling_rate=self.sampling_rate,
+            )
+            for i, name in enumerate(df.columns)
+        ]
 
     def _build_entity_index(self, run_info, sampling_rate, match_vol=False):
-        """Build the entity index from run information. """
-        interval = int(round(1000. / sampling_rate))
+        """Build the entity index from run information."""
+        interval = int(round(1000.0 / sampling_rate))
 
         def _create_index(all_keys, all_reps, all_ents):
             all_keys = np.array(sorted(all_keys))
-            df = pd.DataFrame(np.zeros((sum(all_reps), len(all_keys)), dtype=object), columns=all_keys)
+            df = pd.DataFrame(
+                np.zeros((sum(all_reps), len(all_keys)), dtype=object), columns=all_keys
+            )
 
             prev_ix = 0
             for i, reps in enumerate(all_reps):
                 for k, v in all_ents[i].items():
                     col_ix = np.where(all_keys == k)[0][0]
-                    df.iloc[prev_ix:prev_ix + reps, col_ix] = v
+                    df.iloc[prev_ix : prev_ix + reps, col_ix] = v
                 prev_ix = reps
 
             return df
@@ -552,7 +576,7 @@ class DenseRunVariable(BIDSVariable):
             all_ents.append(run.entities)
             all_keys.update(run.entities.keys())
 
-        self.timestamps = pd.date_range(0, periods=sum(all_reps), freq='%sms' % interval)
+        self.timestamps = pd.date_range(0, periods=sum(all_reps), freq='%sms' % interval)  # noqa: UP031
 
         return _create_index(all_keys, all_reps, all_ents)
 
@@ -570,6 +594,7 @@ class DenseRunVariable(BIDSVariable):
             Argument to pass to :obj:`scipy.interpolate.interp1d`; indicates
             the kind of interpolation approach to use. See interp1d docs for
             valid values. Default is 'linear'.
+
         """
         if not inplace:
             var = self.clone()
@@ -579,7 +604,7 @@ class DenseRunVariable(BIDSVariable):
         match_vol = False
         if sampling_rate == 'TR':
             match_vol = True
-            sampling_rate = 1. / self.run_info[0].tr
+            sampling_rate = 1.0 / self.run_info[0].tr
 
         if sampling_rate == self.sampling_rate:
             return
@@ -592,13 +617,14 @@ class DenseRunVariable(BIDSVariable):
                 sampling_rate,
                 self.sampling_rate,
                 len(self.index),
-                kind=kind)
+                kind=kind,
+            )
         )
-        assert len(self.values) == len(self.index)
+        assert len(self.values) == len(self.index)  # noqa: S101
 
         self.sampling_rate = sampling_rate
 
-    def to_df(self, condition=True, entities=True, timing=True, sampling_rate=None):
+    def to_df(self, condition=True, entities=True, timing=True, sampling_rate=None):  # noqa: D417
         """Convert to a DataFrame, with columns for name and entities.
 
         Parameters
@@ -612,34 +638,36 @@ class DenseRunVariable(BIDSVariable):
         timing : :obj:`bool`
             If True, includes onset and duration columns (even though events are
             sampled uniformly). If False, omits them.
+
         """
         if sampling_rate not in (None, self.sampling_rate):
             return self.resample(sampling_rate).to_df(condition, entities)
 
-        df = super(DenseRunVariable, self).to_df(condition, entities)
+        df = super().to_df(condition, entities)
 
         if timing:
-            df['onset'] = self.timestamps.values.astype(float) / 1e+9
-            df['duration'] = 1. / self.sampling_rate
+            df['onset'] = self.timestamps.values.astype(float) / 1e9
+            df['duration'] = 1.0 / self.sampling_rate
 
         return df
 
     @classmethod
     def _merge(cls, variables, name, sampling_rate=None, **kwargs):
-
         if not isinstance(sampling_rate, int):
-            rates = set([v.sampling_rate for v in variables])
+            rates = set([v.sampling_rate for v in variables])  # noqa: C403
             if len(rates) == 1:
                 sampling_rate = list(rates)[0]
             else:
                 if sampling_rate == 'auto':
                     sampling_rate = max(rates)
                 else:
-                    msg = ("Cannot merge DenseRunVariables (%s) with different"
-                           " sampling rates (%s). Either specify an integer "
-                           "sampling rate to use for all variables, or set "
-                           "sampling_rate='highest' to use the highest sampling"
-                           " rate found." % (name, rates))
+                    msg = (
+                        'Cannot merge DenseRunVariables (%s) with different'  # noqa: UP031
+                        ' sampling rates (%s). Either specify an integer '
+                        'sampling rate to use for all variables, or set '
+                        "sampling_rate='highest' to use the highest sampling"
+                        ' rate found.' % (name, rates)
+                    )
                     raise ValueError(msg)
 
         variables = [v.resample(sampling_rate) for v in variables]
@@ -647,11 +675,8 @@ class DenseRunVariable(BIDSVariable):
         run_info = list(chain(*[v.run_info for v in variables]))
         source = variables[0].source
         return DenseRunVariable(
-            name=name,
-            values=values,
-            run_info=run_info,
-            source=source,
-            sampling_rate=sampling_rate)
+            name=name, values=values, run_info=run_info, source=source, sampling_rate=sampling_rate
+        )
 
 
 def merge_variables(variables, **kwargs):
@@ -666,7 +691,7 @@ def merge_variables(variables, **kwargs):
 
         Possible args:
 
-            sampling_rate (int, str): 
+            sampling_rate (int, str):
                 The sampling rate to use if resampling
                 of DenseRunVariables is necessary for harmonization. If
                 'highest', the highest sampling rate found will be used. This
@@ -683,17 +708,21 @@ def merge_variables(variables, **kwargs):
       future, it may be extended to support implicit conversion.
     - Variables in the list must all share the same name (i.e., it is not
       possible to merge two different variables into a single variable.)
+
     """
-
-    classes = set([v.__class__ for v in variables])
+    classes = set([v.__class__ for v in variables])  # noqa: C403
     if len(classes) > 1:
-        raise ValueError("Variables of different classes cannot be merged. "
-                         "Variables passed are of classes: %s" % classes)
+        raise ValueError(
+            'Variables of different classes cannot be merged. '  # noqa: UP031
+            'Variables passed are of classes: %s' % classes
+        )
 
-    sources = set([v.source for v in variables])
+    sources = set([v.source for v in variables])  # noqa: C403
     if len(sources) > 1:
-        raise ValueError("Variables extracted from different types of files "
-                         "cannot be merged. Sources found: %s" % sources)
+        raise ValueError(
+            'Variables extracted from different types of files '  # noqa: UP031
+            'cannot be merged. Sources found: %s' % sources
+        )
 
     return list(classes)[0].merge(variables, **kwargs)
 
@@ -704,12 +733,13 @@ def _resample(y, new_sr, old_sr, new_num, kind='linear'):
     if new_sr < old_sr:
         # Downsampling, so filter the signal
         from scipy.signal import butter, filtfilt
+
         # cutoff = new Nyqist / old Nyquist
-        b, a = butter(5, (new_sr / 2.0) / (old_sr / 2.0),
-                    btype='low', output='ba', analog=False)
+        b, a = butter(5, (new_sr / 2.0) / (old_sr / 2.0), btype='low', output='ba', analog=False)
         y = filtfilt(b, a, y)
 
     from scipy.interpolate import interp1d
+
     f = interp1d(x, y, kind=kind)
     x_new = np.linspace(0, n - 1, num=new_num)
 

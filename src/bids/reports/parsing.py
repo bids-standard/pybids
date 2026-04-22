@@ -1,4 +1,5 @@
 """Parsing functions for generating BIDSReports."""
+
 import logging
 import warnings
 
@@ -9,7 +10,7 @@ from .. import __version__
 from ..utils import collect_associated_files
 from . import parameters
 
-LOGGER = logging.getLogger("pybids.reports.parsing")
+LOGGER = logging.getLogger('pybids.reports.parsing')
 
 
 def func_info(layout, files, config):
@@ -29,21 +30,22 @@ def func_info(layout, files, config):
     -------
     desc : :obj:`str`
         A description of the scan's acquisition information.
+
     """
     first_file = files[0]
     metadata = first_file.get_metadata()
     img = nib.load(first_file.path)
 
     # General info
-    task_name = first_file.get_entities()["task"] + " task"
-    task_name = metadata.get("TaskName", task_name)
+    task_name = first_file.get_entities()['task'] + ' task'
+    task_name = metadata.get('TaskName', task_name)
     seqs, variants = parameters.describe_sequence(metadata, config)
-    all_runs = sorted(list(set([f.get_entities().get("run", 1) for f in files])))
+    all_runs = sorted(list(set([f.get_entities().get('run', 1) for f in files])))  # noqa: C403, C414
     n_runs = len(all_runs)
     if n_runs == 1:
-        run_str = "{0} run".format(num2words(n_runs).title())
+        run_str = f'{num2words(n_runs).title()} run'
     else:
-        run_str = "{0} runs".format(num2words(n_runs).title())
+        run_str = f'{num2words(n_runs).title()} runs'
     dur_str = parameters.describe_duration(files)
 
     # Parameters
@@ -67,19 +69,11 @@ def func_info(layout, files, config):
         inplaneaccel_str,
     ]
     parameters_str = [d for d in parameters_str if len(d)]
-    parameters_str = "; ".join(parameters_str)
+    parameters_str = '; '.join(parameters_str)
 
     desc = (
-        "{run_str} of {task} {variants} {seqs} {me_str} fMRI data were "
-        "collected ({parameters_str}). {dur_str}".format(
-            run_str=run_str,
-            task=task_name,
-            variants=variants,
-            seqs=seqs,
-            me_str=me_str,
-            parameters_str=parameters_str,
-            dur_str=dur_str,
-        )
+        f'{run_str} of {task_name} {variants} {seqs} {me_str} fMRI data were '
+        f'collected ({parameters_str}). {dur_str}'
     )
     return desc
 
@@ -101,6 +95,7 @@ def anat_info(layout, files, config):
     -------
     desc : :obj:`str`
         A description of the scan's acquisition information.
+
     """
     first_file = files[0]
     metadata = first_file.get_metadata()
@@ -108,13 +103,13 @@ def anat_info(layout, files, config):
 
     # General info
     seqs, variants = parameters.describe_sequence(metadata, config)
-    all_runs = sorted(list(set([f.get_entities().get("run", 1) for f in files])))
+    all_runs = sorted(list(set([f.get_entities().get('run', 1) for f in files])))  # noqa: C403, C414
     n_runs = len(all_runs)
     if n_runs == 1:
-        run_str = "{0} run".format(num2words(n_runs).title())
+        run_str = f'{num2words(n_runs).title()} run'
     else:
-        run_str = "{0} runs".format(num2words(n_runs).title())
-    scan_type = first_file.get_entities()["suffix"].replace("w", "-weighted")
+        run_str = f'{num2words(n_runs).title()} runs'
+    scan_type = first_file.get_entities()['suffix'].replace('w', '-weighted')
 
     # Parameters
     slice_str = parameters.describe_slice_timing(img, metadata)
@@ -133,18 +128,11 @@ def anat_info(layout, files, config):
         voxelsize_str,
     ]
     parameters_str = [d for d in parameters_str if len(d)]
-    parameters_str = "; ".join(parameters_str)
+    parameters_str = '; '.join(parameters_str)
 
     desc = (
-        "{run_str} of {scan_type} {variants} {seqs} {me_str} structural MRI "
-        "data were collected ({parameters_str}).".format(
-            run_str=run_str,
-            scan_type=scan_type,
-            variants=variants,
-            seqs=seqs,
-            me_str=me_str,
-            parameters_str=parameters_str,
-        )
+        f'{run_str} of {scan_type} {variants} {seqs} {me_str} structural MRI '
+        f'data were collected ({parameters_str}).'
     )
     return desc
 
@@ -166,20 +154,21 @@ def dwi_info(layout, files, config):
     -------
     desc : :obj:`str`
         A description of the DWI scan's acquisition information.
+
     """
     first_file = files[0]
     metadata = first_file.get_metadata()
     img = nib.load(first_file.path)
-    bval_file = first_file.path.replace(".nii.gz", ".bval").replace(".nii", ".bval")
+    bval_file = first_file.path.replace('.nii.gz', '.bval').replace('.nii', '.bval')
 
     # General info
     seqs, variants = parameters.describe_sequence(metadata, config)
-    all_runs = sorted(list(set([f.get_entities().get("run", 1) for f in files])))
+    all_runs = sorted(list(set([f.get_entities().get('run', 1) for f in files])))  # noqa: C403, C414
     n_runs = len(all_runs)
     if n_runs == 1:
-        run_str = "{0} run".format(num2words(n_runs).title())
+        run_str = f'{num2words(n_runs).title()} run'
     else:
-        run_str = "{0} runs".format(num2words(n_runs).title())
+        run_str = f'{num2words(n_runs).title()} runs'
 
     # Parameters
     tr_str = parameters.describe_repetition_time(metadata)
@@ -202,16 +191,11 @@ def dwi_info(layout, files, config):
         mb_str,
     ]
     parameters_str = [d for d in parameters_str if len(d)]
-    parameters_str = "; ".join(parameters_str)
+    parameters_str = '; '.join(parameters_str)
 
     desc = (
-        "{run_str} of {variants} {seqs} diffusion-weighted (dMRI) data were "
-        "collected ({parameters_str}).".format(
-            run_str=run_str,
-            variants=variants,
-            seqs=seqs,
-            parameters_str=parameters_str,
-        )
+        f'{run_str} of {variants} {seqs} diffusion-weighted (dMRI) data were '
+        f'collected ({parameters_str}).'
     )
     return desc
 
@@ -233,6 +217,7 @@ def fmap_info(layout, files, config):
     -------
     desc : :obj:`str`
         A description of the field map's acquisition information.
+
     """
     first_file = files[0]
     metadata = first_file.get_metadata()
@@ -262,19 +247,11 @@ def fmap_info(layout, files, config):
         mb_str,
     ]
     parameters_str = [d for d in parameters_str if len(d)]
-    parameters_str = "; ".join(parameters_str)
+    parameters_str = '; '.join(parameters_str)
 
     for_str = parameters.describe_intendedfor_targets(metadata, layout)
 
-    desc = (
-        "A {variants} {seqs} field map ({parameters_str}) was "
-        "acquired{for_str}.".format(
-            variants=variants,
-            seqs=seqs,
-            for_str=for_str,
-            parameters_str=parameters_str,
-        )
-    )
+    desc = f'A {variants} {seqs} field map ({parameters_str}) was acquired{for_str}.'
     return desc
 
 
@@ -292,14 +269,12 @@ def general_acquisition_info(metadata):
     -------
     out_str : :obj:`str`
         Output string with scanner information.
+
     """
-    out_str = (
-        "MR data were acquired using a {tesla}-Tesla {manu} {model} MRI "
-        "scanner.".format(
-            tesla=metadata.get("MagneticFieldStrength", "UNKNOWN"),
-            manu=metadata.get("Manufacturer", "MANUFACTURER"),
-            model=metadata.get("ManufacturersModelName", "MODEL"),
-        )
+    out_str = 'MR data were acquired using a {tesla}-Tesla {manu} {model} MRI scanner.'.format(
+        tesla=metadata.get('MagneticFieldStrength', 'UNKNOWN'),
+        manu=metadata.get('Manufacturer', 'MANUFACTURER'),
+        model=metadata.get('ManufacturersModelName', 'MODEL'),
     )
     return out_str
 
@@ -316,20 +291,18 @@ def final_paragraph(metadata):
     -------
     desc : :obj:`str`
         Output string with scanner information.
+
     """
-    if "ConversionSoftware" in metadata.keys():
-        soft = metadata["ConversionSoftware"]
-        vers = metadata["ConversionSoftwareVersion"]
-        software_str = " using {soft} ({conv_vers})".format(soft=soft, conv_vers=vers)
+    if 'ConversionSoftware' in metadata.keys():
+        soft = metadata['ConversionSoftware']
+        vers = metadata['ConversionSoftwareVersion']
+        software_str = f' using {soft} ({vers})'
     else:
-        software_str = ""
+        software_str = ''
     desc = (
-        "Dicoms were converted to NIfTI-1 format{software_str}. "
-        "This section was (in part) generated automatically using pybids "
-        "({meth_vers}).".format(
-            software_str=software_str,
-            meth_vers=__version__,
-        )
+        f'Dicoms were converted to NIfTI-1 format{software_str}. '
+        'This section was (in part) generated automatically using pybids '
+        f'({__version__}).'
     )
     return desc
 
@@ -349,6 +322,7 @@ def parse_files(layout, data_files, sub, config):
         Subject ID.
     config : :obj:`dict`
         Configuration info for methods generation.
+
     """
     return _parse_files(layout, data_files, sub, config)
 
@@ -356,38 +330,37 @@ def parse_files(layout, data_files, sub, config):
 # Indirection to allow warnings to be raised in user-written code
 def _parse_files(layout, data_files, sub, config, *, stacklevel=3):
     # Group files into individual runs
-    data_files = collect_associated_files(layout, data_files, extra_entities=["run"])
+    data_files = collect_associated_files(layout, data_files, extra_entities=['run'])
 
     description_list = []
     # Assume all data have same basic info
     description_list.append(general_acquisition_info(data_files[0][0].get_metadata()))
 
     for group in data_files:
-
-        if group[0].entities["datatype"] == "func":
+        if group[0].entities['datatype'] == 'func':
             group_description = func_info(layout, group, config)
 
-        elif (group[0].entities["datatype"] == "anat") and group[0].entities[
-            "suffix"
-        ].endswith("w"):
+        elif (group[0].entities['datatype'] == 'anat') and group[0].entities['suffix'].endswith(
+            'w'
+        ):
             group_description = anat_info(layout, group, config)
 
-        elif group[0].entities["datatype"] == "dwi":
+        elif group[0].entities['datatype'] == 'dwi':
             group_description = dwi_info(layout, group, config)
 
-        elif (group[0].entities["datatype"] == "fmap") and group[0].entities[
-            "suffix"
-        ] == "phasediff":
+        elif (group[0].entities['datatype'] == 'fmap') and group[0].entities[
+            'suffix'
+        ] == 'phasediff':
             group_description = fmap_info(layout, group, config)
 
-        elif group[0].entities["datatype"] in ["eeg", "meg", "beh", "perf"]:
-            warnings.warn(group[0].entities["datatype"] + " not yet supported.",
-                          stacklevel=stacklevel)
+        elif group[0].entities['datatype'] in ['eeg', 'meg', 'beh', 'perf']:
+            warnings.warn(
+                group[0].entities['datatype'] + ' not yet supported.', stacklevel=stacklevel
+            )
             continue
 
         else:
-            warnings.warn(group[0].filename + " not yet supported.",
-                          stacklevel=stacklevel)
+            warnings.warn(group[0].filename + ' not yet supported.', stacklevel=stacklevel)
             continue
 
         description_list.append(group_description)

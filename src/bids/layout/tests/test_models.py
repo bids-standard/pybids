@@ -1,22 +1,29 @@
 """Tests of functionality in the models module."""
 
-import os
-import pytest
 import copy
 import json
+import os
 import warnings
 from pathlib import Path
 
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
 import numpy as np
 import pandas as pd
+import pytest
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
 
-from bids.layout.models import (BIDSFile, Entity, Tag, Base, Config,
-                                FileAssociation, BIDSImageFile, LayoutInfo)
+from bids.layout.models import (
+    Base,
+    BIDSFile,
+    BIDSImageFile,
+    Config,
+    Entity,
+    FileAssociation,
+    LayoutInfo,
+    Tag,
+)
 from bids.layout.utils import PaddedInt
 from bids.tests import get_test_data_path
-
 
 
 def create_session():
@@ -29,25 +36,34 @@ def create_session():
 @pytest.fixture
 def sample_bidsfile(tmpdir):
     testfile = 'sub-03_ses-2_task-rest_acq-fullbrain_run-2_bold.nii.gz'
-    fn = tmpdir.mkdir("tmp").join(testfile)
+    fn = tmpdir.mkdir('tmp').join(testfile)
     fn.write('###')
     return BIDSFile(os.path.join(str(fn)))
 
 
 @pytest.fixture(scope='module')
 def subject_entity():
-    return Entity('subject', r"[/\\\\]sub-([a-zA-Z0-9]+)", mandatory=False,
-               directory="{subject}", dtype='str')
+    return Entity(
+        'subject',
+        r'[/\\\\]sub-([a-zA-Z0-9]+)',
+        mandatory=False,
+        directory='{subject}',
+        dtype='str',
+    )
 
 
 def test_layoutinfo_init():
-    args = dict(root='/made/up/path', validate=True,
-                index_metadata=False,
-                derivatives=True, ignore=['code/', 'blergh/'],
-                force_index=None)
+    args = dict(
+        root='/made/up/path',
+        validate=True,
+        index_metadata=False,
+        derivatives=True,
+        ignore=['code/', 'blergh/'],
+        force_index=None,
+    )
     with pytest.raises(ValueError) as exc:
         LayoutInfo(**args)
-    assert str(exc.value).startswith("Missing mandatory")
+    assert str(exc.value).startswith('Missing mandatory')
     args['config'] = ['bids', 'derivatives']
     info = LayoutInfo(**args)
     assert info.derivatives is True
@@ -66,20 +82,20 @@ def test_entity_initialization():
 def test_entity_init_all_args(subject_entity):
     ent = subject_entity
     assert ent.name == 'subject'
-    assert ent.pattern == r"[/\\\\]sub-([a-zA-Z0-9]+)"
+    assert ent.pattern == r'[/\\\\]sub-([a-zA-Z0-9]+)'
     assert ent.mandatory is False
-    assert ent.directory == "{subject}"
+    assert ent.directory == '{subject}'
 
 
 def test_entity_init_with_bad_dtype():
     with pytest.raises(ValueError) as exc:
         ent = Entity('test', dtype='superfloat')
-    assert str(exc.value).startswith("Invalid dtype")
+    assert str(exc.value).startswith('Invalid dtype')
 
 
 def test_entity_matches(tmpdir):
-    filename = "aardvark-4-reporting-for-duty.txt"
-    tmpdir.mkdir("tmp").join(filename).write("###")
+    filename = 'aardvark-4-reporting-for-duty.txt'
+    tmpdir.mkdir('tmp').join(filename).write('###')
     f = BIDSFile(os.path.join(str(tmpdir), filename))
     e = Entity('avaricious', r'aardvark-(\d+)')
     result = e.match_file(f)
@@ -100,11 +116,11 @@ def test_file_associations():
     md1 = BIDSFile('sub-03/func/sub-03_task-rest_run-2_bold.json')
     md2 = BIDSFile('task-rest_run-2_bold.json')
     assocs = [
-        FileAssociation(src=md1.path, dst=img.path, kind="MetadataFor"),
-        FileAssociation(src=img.path, dst=md1.path, kind="MetadataIn"),
-        FileAssociation(src=md1.path, dst=md2.path, kind="Child"),
-        FileAssociation(src=md2.path, dst=md1.path, kind="Parent"),
-        FileAssociation(src=md2.path, dst=img.path, kind="Informs")
+        FileAssociation(src=md1.path, dst=img.path, kind='MetadataFor'),
+        FileAssociation(src=img.path, dst=md1.path, kind='MetadataIn'),
+        FileAssociation(src=md1.path, dst=md2.path, kind='Child'),
+        FileAssociation(src=md2.path, dst=md1.path, kind='Parent'),
+        FileAssociation(src=md2.path, dst=img.path, kind='Informs'),
     ]
     session.add_all([img, md1, md2] + assocs)
     session.commit()
@@ -120,7 +136,7 @@ def test_tag_init(sample_bidsfile, subject_entity):
     f, e = sample_bidsfile, subject_entity
     tag = Tag(f, e, 'zzz')
     rep = str(tag)
-    assert rep.startswith("<Tag file:") and f.path in rep and 'zzz' in rep
+    assert rep.startswith('<Tag file:') and f.path in rep and 'zzz' in rep
 
 
 def test_tag_dtype(sample_bidsfile, subject_entity):
@@ -151,21 +167,15 @@ def test_entity_add_file(sample_bidsfile):
 def test_config_init_with_args():
     session = create_session()
     ents = [
-        {
-            "name": "task",
-            "pattern": "[_/\\\\]task-([a-zA-Z0-9]+)"
-        },
-        {
-            "name": "acquisition",
-            "pattern": "[_/\\\\]acq-([a-zA-Z0-9]+)"
-        }
+        {'name': 'task', 'pattern': '[_/\\\\]task-([a-zA-Z0-9]+)'},
+        {'name': 'acquisition', 'pattern': '[_/\\\\]acq-([a-zA-Z0-9]+)'},
     ]
     patterns = ['this_will_never_match_anything', 'and_neither_will_this']
     config = Config('custom', entities=ents, default_path_patterns=patterns)
     assert config.name == 'custom'
     target = {'task', 'acquisition'}
     assert set(ent.name for ent in config.entities.values()) == target
-    assert config.default_path_patterns  == patterns
+    assert config.default_path_patterns == patterns
 
 
 def test_load_existing_config():
@@ -174,18 +184,19 @@ def test_load_existing_config():
     session.add(first)
     session.commit()
 
-    second = Config.load({"name": "dummy"}, session=session)
+    second = Config.load({'name': 'dummy'}, session=session)
     assert first == second
     session.add(second)
     session.commit()
 
-    from sqlalchemy.orm.exc import FlushError
     from sqlalchemy.exc import DBAPIError
+    from sqlalchemy.orm.exc import FlushError
+
     with pytest.raises((FlushError, DBAPIError)):
-        second = Config.load({"name": "dummy"})
+        second = Config.load({'name': 'dummy'})
         session.add(second)
         with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
+            warnings.simplefilter('ignore')
             session.commit()
 
 
@@ -198,13 +209,13 @@ def test_bidsfile_get_df_from_tsv_gz(layout_synthetic):
     assert df1.equals(df2)
     assert df1.shape == (1600, 3)
     assert set(df1.columns) == {'onset', 'respiratory', 'cardiac'}
-    assert df1.iloc[0, 0] == 0.
+    assert df1.iloc[0, 0] == 0.0
     assert df1.iloc[1, 0] - df1.iloc[0, 0] == 0.1
 
     # With onsets and time shifted
     df3 = bf.get_df(adjust_onset=True)
     assert df1.iloc[:, 1:].equals(df3.iloc[:, 1:])
-    assert np.allclose(df3.iloc[:,0], df1.iloc[:, 0] + 22.8)
+    assert np.allclose(df3.iloc[:, 0], df1.iloc[:, 0] + 22.8)
 
 
 def test_bidsdatafile_enforces_dtype(layout_synthetic):
@@ -220,7 +231,7 @@ def test_bidsdatafile_enforces_dtype(layout_synthetic):
 
 
 def test_bidsimagefile_get_image():
-    path = "synthetic/sub-01/ses-01/func/sub-01_ses-01_task-nback_run-01_bold.nii.gz"
+    path = 'synthetic/sub-01/ses-01/func/sub-01_ses-01_task-nback_run-01_bold.nii.gz'
     path = path.split('/')
     path = os.path.join(get_test_data_path(), *path)
     bf = BIDSImageFile(path)
@@ -247,8 +258,7 @@ def test_bidsfile_get_metadata(layout_synthetic):
 
 def test_bidsfile_get_entities(layout_synthetic):
     md_ents = {'Columns', 'SamplingFrequency', 'StartTime'}
-    file_ents = {'datatype', 'extension', 'run', 'session', 'subject',
-                 'suffix', 'task'}
+    file_ents = {'datatype', 'extension', 'run', 'session', 'subject', 'suffix', 'task'}
     bf = layout_synthetic.get(suffix='physio', extension='tsv.gz')[10]
     # metadata=True and values='tags'; this is equivalent to get_metadata()
     md = bf.get_entities(metadata=True)

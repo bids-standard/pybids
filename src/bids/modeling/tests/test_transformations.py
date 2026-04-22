@@ -1,20 +1,22 @@
 # from bids.modeling.variables import load_variables
-from bids.modeling import transformations as transform
-from bids.variables import SparseRunVariable, DenseRunVariable
-from bids.variables.entities import RunInfo
-from bids.variables.collections import BIDSRunVariableCollection
-from bids.layout import BIDSLayout
 import math
-import pytest
 from os.path import join, sep
-from bids.tests import get_test_data_path
+
 import numpy as np
 import pandas as pd
+import pytest
+
+from bids.layout import BIDSLayout
+from bids.modeling import transformations as transform
+from bids.tests import get_test_data_path
+from bids.variables import DenseRunVariable, SparseRunVariable
+from bids.variables.collections import BIDSRunVariableCollection
+from bids.variables.entities import RunInfo
 
 try:
     from unittest import mock
 except ImportError:
-    import mock
+    from unittest import mock
 
 
 # Sub-select collection for faster testing, without sacrificing anything
@@ -37,34 +39,26 @@ def collection():
             scan_length=SCAN_LENGTH,
             merge=True,
             sampling_rate=10,
-            subject=SUBJECTS
+            subject=SUBJECTS,
         )
     # Always return a clone!
-    yield cached_collections['ds005'].clone()
+    return cached_collections['ds005'].clone()
 
 
 @pytest.fixture
 def sparse_run_variable_with_missing_values():
-    data = pd.DataFrame({
-        'onset': [2, 5, 11, 17],
-        'duration': [1.2, 1.6, 0.8, 2],
-        'amplitude': [1, 1, np.nan, 1]
-    })
+    data = pd.DataFrame(
+        {'onset': [2, 5, 11, 17], 'duration': [1.2, 1.6, 0.8, 2], 'amplitude': [1, 1, np.nan, 1]}
+    )
     run_info = [RunInfo({'subject': '01'}, 20, 2, 'dummy.nii.gz', 10)]
-    var = SparseRunVariable(
-        name='var', data=data, run_info=run_info, source='events')
-    yield BIDSRunVariableCollection([var])
+    var = SparseRunVariable(name='var', data=data, run_info=run_info, source='events')
+    return BIDSRunVariableCollection([var])
 
 
 def test_convolve_multi(collection):
     # Just tests that we can convolve multiple arguments with one model
     output_names = ['unique_name', 'another_unique_name']
-    transform.Convolve(
-        collection,
-        ['parametric gain', 'loss'],
-        output=output_names,
-        model='spm'
-    )
+    transform.Convolve(collection, ['parametric gain', 'loss'], output=output_names, model='spm')
 
     assert set(output_names).issubset(collection.variables)
 
@@ -74,8 +68,7 @@ def test_convolve(collection):
     transform.Convolve(collection, ['RT'], output=['reaction_time'])
     rt_conv = collection.variables['reaction_time']
 
-    assert rt_conv.values.shape[0] == \
-        rt.get_duration() * collection.sampling_rate
+    assert rt_conv.values.shape[0] == rt.get_duration() * collection.sampling_rate
 
     transform.ToDense(collection, ['RT'], output=['rt_dense'])
     transform.Convolve(collection, 'rt_dense', derivative=True)
@@ -85,9 +78,11 @@ def test_convolve(collection):
 
     dense_conv = collection.variables['reaction_time']
 
-    assert dense_conv.values.shape[0] == \
-        collection.variables['rt_dense_derivative'].values.shape[0] == \
-        rt.get_duration() * collection.sampling_rate
+    assert (
+        dense_conv.values.shape[0]
+        == collection.variables['rt_dense_derivative'].values.shape[0]
+        == rt.get_duration() * collection.sampling_rate
+    )
 
 
 def test_convolve_oversampling(collection):
@@ -99,7 +94,7 @@ def test_convolve_oversampling(collection):
     # To resolve 1Hz frequencies, we must sample at >=2Hz
     args = (mock.ANY, 'spm', mock.ANY)
     kwargs = dict(fir_delays=None, min_onset=0)
-    mock_return = (np.array([[0, 0]]), ["cond"])
+    mock_return = (np.array([[0, 0]]), ['cond'])
     with mock.patch('bids.modeling.transformations.compute.hrf.compute_regressor') as mocked:
         mocked.return_value = mock_return
         # Sampling rate is 10Hz, no oversampling needed
@@ -137,14 +132,9 @@ def test_convolve_oversampling(collection):
 
 def test_convolve_impulse():
     # Smoke test impulse convolution
-    data = pd.DataFrame({
-        'onset': [10, 20],
-        'duration': [0, 0],
-        'amplitude': [1, 1]
-    })
+    data = pd.DataFrame({'onset': [10, 20], 'duration': [0, 0], 'amplitude': [1, 1]})
     run_info = [RunInfo({'subject': '01'}, 25, 2, 'dummy.nii.gz', 10)]
-    var = SparseRunVariable(
-        name='var', data=data, run_info=run_info, source='events')
+    var = SparseRunVariable(name='var', data=data, run_info=run_info, source='events')
     coll = BIDSRunVariableCollection([var])
     transform.ToDense(coll, 'var', output='var_dense')
     transform.Convolve(coll, 'var', output='var_hrf')
@@ -153,7 +143,9 @@ def test_convolve_impulse():
 
 def test_rename(collection):
     dense_rt = collection.variables['RT'].to_dense(collection.sampling_rate)
-    assert len(dense_rt.values) == math.ceil(len(SUBJECTS) * NRUNS * SCAN_LENGTH * collection.sampling_rate)
+    assert len(dense_rt.values) == math.ceil(
+        len(SUBJECTS) * NRUNS * SCAN_LENGTH * collection.sampling_rate
+    )
     transform.Rename(collection, ['RT'], output=['reaction_time'])
     assert 'reaction_time' in collection.variables
     assert 'RT' not in collection.variables
@@ -164,44 +156,48 @@ def test_rename(collection):
 
 def test_product(collection):
     c = collection
-    transform.Product(collection, variables=['parametric gain', 'gain'],
-                      output='prod')
+    transform.Product(collection, variables=['parametric gain', 'gain'], output='prod')
     res = c['prod'].values
     assert (res == c['parametric gain'].values * c['gain'].values).all()
 
 
 def test_sum(collection):
     c = collection
-    transform.Sum(
-        collection, variables=['parametric gain', 'gain'], output='sum')
+    transform.Sum(collection, variables=['parametric gain', 'gain'], output='sum')
     res = c['sum'].values
     target = c['parametric gain'].values + c['gain'].values
     assert np.array_equal(res, target)
-    transform.Sum(
-        collection,
-        variables=['parametric gain', 'gain'], output='sum', weights=[2, 2])
+    transform.Sum(collection, variables=['parametric gain', 'gain'], output='sum', weights=[2, 2])
     assert np.array_equal(c['sum'].values, target * 2)
     with pytest.raises(ValueError):
-        transform.Sum(collection, variables=['parametric gain', 'gain'],
-                      output='sum', weights=[1, 1, 1])
+        transform.Sum(
+            collection, variables=['parametric gain', 'gain'], output='sum', weights=[1, 1, 1]
+        )
 
 
 def test_scale(collection, sparse_run_variable_with_missing_values):
-    transform.Scale(collection, variables=['RT', 'parametric gain'],
-                    output=['RT_Z', 'gain_Z'], groupby=['run', 'subject'],
-                    rescale=True)
+    transform.Scale(
+        collection,
+        variables=['RT', 'parametric gain'],
+        output=['RT_Z', 'gain_Z'],
+        groupby=['run', 'subject'],
+        rescale=True,
+    )
     groupby = collection['RT'].get_grouper(['run', 'subject'])
     z1 = collection['RT_Z'].values
-    z2 = collection['RT'].values.groupby(
-        groupby, group_keys=False).apply(lambda x: (x - x.mean()) / x.std())
+    z2 = (
+        collection['RT']
+        .values.groupby(groupby, group_keys=False)
+        .apply(lambda x: (x - x.mean()) / x.std())
+    )
     assert np.allclose(z1, z2)
 
     # Test constant input
     coll = sparse_run_variable_with_missing_values
     coll['var'].values.fillna(1)
-    with pytest.raises(ValueError, match="Cannot scale.*1.0"):
+    with pytest.raises(ValueError, match='Cannot scale.*1.0'):
         transform.Scale(coll, 'var').values
-    with pytest.raises(ValueError, match="Cannot scale.*1.0"):
+    with pytest.raises(ValueError, match='Cannot scale.*1.0'):
         transform.Scale(coll, 'var', replace_na='before').values
     transform.Scale(coll, 'var', replace_na='after', output='zero')
     assert coll['zero'].values.unique() == 0
@@ -225,8 +221,13 @@ def test_orthogonalize_dense(collection):
 
     # Orthogonalize and store result
     with pytest.warns(UserWarning, match='Found a mix of dense and sparse.*'):
-        transform.Orthogonalize(collection, variables='trial_type/parametric gain',
-                                other='RT', dense=True, groupby=['run', 'subject'])
+        transform.Orthogonalize(
+            collection,
+            variables='trial_type/parametric gain',
+            other='RT',
+            dense=True,
+            groupby=['run', 'subject'],
+        )
     pg_post = collection['trial_type/parametric gain']
 
     # Verify that the to_dense() calls result in identical indexing
@@ -246,8 +247,9 @@ def test_orthogonalize_dense(collection):
 def test_orthogonalize_sparse(collection):
     pg_pre = collection['parametric gain'].values
     rt = collection['RT'].values
-    transform.Orthogonalize(collection, variables='parametric gain',
-                            other='RT', groupby=['run', 'subject'])
+    transform.Orthogonalize(
+        collection, variables='parametric gain', other='RT', groupby=['run', 'subject']
+    )
     pg_post = collection['parametric gain'].values
     vals = np.c_[rt.values, pg_pre.values, pg_post.values]
     df = pd.DataFrame(vals, columns=['rt', 'pre', 'post'])
@@ -259,11 +261,9 @@ def test_orthogonalize_sparse(collection):
 
 
 def test_split(collection):
-
     orig = collection['RT'].clone(name='RT_2')
     collection['RT_2'] = orig.clone()
-    collection['RT_3'] = collection['RT']\
-        .clone(name='RT_3').to_dense(collection.sampling_rate)
+    collection['RT_3'] = collection['RT'].clone(name='RT_3').to_dense(collection.sampling_rate)
 
     rt_pre_onsets = collection['RT'].onset
     rt_pre_values = collection['RT'].values.values
@@ -272,24 +272,32 @@ def test_split(collection):
     transform.Split(collection, ['RT'], ['respcat'])
 
     # Verify names
-    assert 'RT.respcat[0]' in collection.variables.keys() and \
-           'RT.respcat[-1]' in collection.variables.keys()
+    assert (
+        'RT.respcat[0]' in collection.variables.keys()
+        and 'RT.respcat[-1]' in collection.variables.keys()
+    )
 
     # Verify values
-    rt_post_onsets = np.r_[collection['RT.respcat[0]'].onset,
-                           collection['RT.respcat[-1]'].onset,
-                           collection['RT.respcat[1]'].onset]
+    rt_post_onsets = np.r_[
+        collection['RT.respcat[0]'].onset,
+        collection['RT.respcat[-1]'].onset,
+        collection['RT.respcat[1]'].onset,
+    ]
     assert np.array_equal(np.sort(rt_pre_onsets), np.sort(rt_post_onsets))
 
-    rt_post_values = np.r_[collection['RT.respcat[0]'].values.values,
-                           collection['RT.respcat[-1]'].values.values,
-                           collection['RT.respcat[1]'].values.values]
+    rt_post_values = np.r_[
+        collection['RT.respcat[0]'].values.values,
+        collection['RT.respcat[-1]'].values.values,
+        collection['RT.respcat[1]'].values.values,
+    ]
     assert np.array_equal(np.sort(rt_pre_values), np.sort(rt_post_values))
 
     # Grouping SparseEventVariable by multiple columns
     transform.Split(collection, variables=['RT_2'], by=['loss', 'respcat'])
-    assert 'RT_2.loss[13].respcat[-1]' in collection.variables.keys() and \
-           'RT_2.loss[13].respcat[1]' in collection.variables.keys()
+    assert (
+        'RT_2.loss[13].respcat[-1]' in collection.variables.keys()
+        and 'RT_2.loss[13].respcat[1]' in collection.variables.keys()
+    )
 
     # Grouping by DenseEventVariable
     transform.Split(collection, variables='RT_3', by='respcat')
@@ -321,7 +329,9 @@ def test_resample_dense(collection):
     upsampling2 = float(new_sampling_rate2) / old_sampling_rate
 
     collection.resample(new_sampling_rate2, force_dense=True, in_place=True)
-    assert len(old_rt.values) == math.ceil(float(len(collection['parametric gain'].values) / upsampling2))
+    assert len(old_rt.values) == math.ceil(
+        float(len(collection['parametric gain'].values) / upsampling2)
+    )
 
 
 def test_threshold(collection):
@@ -339,15 +349,15 @@ def test_threshold(collection):
     assert coll_sum == (orig_vals >= 0.2).sum()
 
     collection['pg'] = old_pg.clone(name='pg')
-    transform.Threshold(collection, 'pg', threshold=-0.1, binarize=True,
-                        signed=False, above=False)
+    transform.Threshold(collection, 'pg', threshold=-0.1, binarize=True, signed=False, above=False)
     n = np.logical_and(orig_vals <= 0.1, orig_vals >= -0.1).sum()
     assert collection.variables['pg'].values.sum() == n
 
 
 def test_assign(collection):
-    transform.Assign(collection, 'parametric gain', target='RT',
-                     target_attr='onset', output='test1')
+    transform.Assign(
+        collection, 'parametric gain', target='RT', target_attr='onset', output='test1'
+    )
     t1 = collection['test1']
     pg = collection['parametric gain']
     rt = collection['RT']
@@ -355,9 +365,14 @@ def test_assign(collection):
     assert np.array_equal(t1.duration, rt.duration)
     assert np.array_equal(t1.values.values, rt.values.values)
 
-    transform.Assign(collection, 'RT', target='parametric gain',
-                     input_attr='onset', target_attr='amplitude',
-                     output='test2')
+    transform.Assign(
+        collection,
+        'RT',
+        target='parametric gain',
+        input_attr='onset',
+        target_attr='amplitude',
+        output='test2',
+    )
     t2 = collection['test2']
     assert np.array_equal(t2.values.values, rt.onset)
     assert np.array_equal(t2.onset, pg.onset)
@@ -366,9 +381,14 @@ def test_assign(collection):
 
 def test_assign_multiple(collection):
     # test kwarg distribution
-    transform.Assign(collection, ['RT', 'respcat'], target=['gain', 'loss'],
-                     input_attr=['amplitude', 'amplitude'], target_attr=['duration', 'amplitude'],
-                     output=['gain_rt', 'loss_cat'])
+    transform.Assign(
+        collection,
+        ['RT', 'respcat'],
+        target=['gain', 'loss'],
+        input_attr=['amplitude', 'amplitude'],
+        target_attr=['duration', 'amplitude'],
+        output=['gain_rt', 'loss_cat'],
+    )
     rt = collection['RT']
     gain_rt = collection['gain_rt']
     loss_cat = collection['loss_cat']
@@ -381,8 +401,7 @@ def test_assign_multiple(collection):
 def test_copy(collection):
     transform.Copy(collection, 'RT', output='RT_copy')
     assert 'RT_copy' in collection.variables.keys()
-    assert np.array_equal(collection['RT'].values.values,
-                          collection['RT_copy'].values.values)
+    assert np.array_equal(collection['RT'].values.values, collection['RT_copy'].values.values)
 
 
 def test_expand_variable_names(collection):
@@ -393,10 +412,12 @@ def test_expand_variable_names(collection):
     transform.Copy(collection, '*resp*', output_suffix='_copy')
     assert 'respnum_copy' in collection.variables.keys()
     assert 'respcat_copy' in collection.variables.keys()
-    assert np.array_equal(collection['respcat'].values.values,
-                          collection['respcat_copy'].values.values)
-    assert np.array_equal(collection['respnum'].values.values,
-                          collection['respnum_copy'].values.values)
+    assert np.array_equal(
+        collection['respcat'].values.values, collection['respcat_copy'].values.values
+    )
+    assert np.array_equal(
+        collection['respnum'].values.values, collection['respnum_copy'].values.values
+    )
 
 
 def test_factor(collection):
@@ -422,10 +443,8 @@ def test_factor(collection):
     transform.Factor(coll, 'respnum')
     targets = set(['respnum.%d' % d for d in range(0, 5)])
     assert not targets - set(coll.variables.keys())
-    assert all([set(coll.variables[t].values.unique()) == {0.0, 1.0}
-                for t in targets])
-    data = pd.concat([coll.variables[t].values for t in targets],
-                     axis=1, sort=True)
+    assert all([set(coll.variables[t].values.unique()) == {0.0, 1.0} for t in targets])
+    data = pd.concat([coll.variables[t].values for t in targets], axis=1, sort=True)
     assert (data.sum(axis=1) == 1).all()
 
     # reduced-rank dummy-coding, multiple values
@@ -434,11 +453,9 @@ def test_factor(collection):
     targets = set(['respnum.%d' % d for d in range(1, 5)])
     assert not targets - set(coll.variables.keys())
     assert 'respnum.0' not in coll.variables.keys()
-    assert all([set(coll.variables[t].values.unique()) == {0.0, 1.0}
-                for t in targets])
-    data = pd.concat([coll.variables[t].values for t in targets],
-                     axis=1, sort=True)
-    assert set(np.unique(data.sum(axis=1).values.ravel())) == {0., 1.}
+    assert all([set(coll.variables[t].values.unique()) == {0.0, 1.0} for t in targets])
+    data = pd.concat([coll.variables[t].values for t in targets], axis=1, sort=True)
+    assert set(np.unique(data.sum(axis=1).values.ravel())) == {0.0, 1.0}
 
     # Effect coding, multiple values
     coll = collection.clone()
@@ -446,16 +463,14 @@ def test_factor(collection):
     targets = set(['respnum.%d' % d for d in range(1, 5)])
     assert not targets - set(coll.variables.keys())
     assert 'respnum.0' not in coll.variables.keys()
-    assert all([set(coll.variables[t].values.unique()) == {-0.25, 0.0, 1.0}
-                for t in targets])
-    data = pd.concat([coll.variables[t].values for t in targets],
-                     axis=1, sort=True)
-    assert set(np.unique(data.sum(axis=1).values.ravel())) == {-1., 1.}
+    assert all([set(coll.variables[t].values.unique()) == {-0.25, 0.0, 1.0} for t in targets])
+    data = pd.concat([coll.variables[t].values for t in targets], axis=1, sort=True)
+    assert set(np.unique(data.sum(axis=1).values.ravel())) == {-1.0, 1.0}
 
 
 def test_filter(collection):
     orig = collection['parametric gain'].clone()
-    q = "parametric gain > 0"
+    q = 'parametric gain > 0'
     transform.Filter(collection, 'parametric gain', query=q)
     assert len(orig.values) == 2 * len(collection['parametric gain'].values)
     assert np.all(collection['parametric gain'].values > 0)
@@ -481,9 +496,9 @@ def test_replace(collection):
     target = set(np.unique(orig.duration)) - {3} | {2.0}
     assert set(np.unique(collection['parametric gain'].duration)) == target
     # Onsets
-    replace_dict = {4.: 3., 476.: 475.5}
+    replace_dict = {4.0: 3.0, 476.0: 475.5}
     transform.Replace(collection, 'parametric gain', replace_dict, 'onset')
-    target = set(np.unique(orig.onset)) - {4., 476.} | {3., 475.5}
+    target = set(np.unique(orig.onset)) - {4.0, 476.0} | {3.0, 475.5}
     assert set(np.unique(collection['parametric gain'].onset)) == target
 
 
@@ -526,8 +541,7 @@ def test_or(collection):
 
     coll['copy'] = coll.variables['respnum.0'].clone(name='copy')
     transform.Or(coll, ['respnum.0', 'copy'], output='or')
-    assert coll.variables['or'].values.astype(float).equals(
-        coll.variables['respnum.0'].values)
+    assert coll.variables['or'].values.astype(float).equals(coll.variables['respnum.0'].values)
 
 
 def test_not(collection):
@@ -560,8 +574,7 @@ def test_group(collection):
     assert coll.groups == {'outcome_vars': ['gain', 'loss']}
 
     # Checks that variable groups are replaced properly
-    transform.Rename(coll, ['outcome_vars'],
-                     output=['gain_renamed', 'loss_renamed'])
+    transform.Rename(coll, ['outcome_vars'], output=['gain_renamed', 'loss_renamed'])
     assert 'gain_renamed' in coll.variables
     assert 'loss_renamed' in coll.variables
     assert 'gain' not in coll.variables
@@ -595,52 +608,52 @@ def test_resample(collection):
 
 def test_Lag():
     var = DenseRunVariable(
-        name="rot_x",
-        values=np.arange(5., 20.),
-        run_info=RunInfo({}, 15, 1, "none", 15),
+        name='rot_x',
+        values=np.arange(5.0, 20.0),
+        run_info=RunInfo({}, 15, 1, 'none', 15),
         source='regressors',
-        sampling_rate=1
+        sampling_rate=1,
     )
     coll = BIDSRunVariableCollection([var], sampling_rate=1)
 
     # Forward shift
-    transform.Lag(coll, "rot_x", output="d_rot_x")
-    d_rot_x = coll["d_rot_x"].values.values
-    assert np.isclose(d_rot_x[0, 0], 5.)
-    assert np.allclose(d_rot_x[1:, 0], np.arange(5., 19.))
+    transform.Lag(coll, 'rot_x', output='d_rot_x')
+    d_rot_x = coll['d_rot_x'].values.values
+    assert np.isclose(d_rot_x[0, 0], 5.0)
+    assert np.allclose(d_rot_x[1:, 0], np.arange(5.0, 19.0))
 
     # Backward shift
-    transform.Lag(coll, "rot_x", output="d_rot_x", shift=-1)
-    d_rot_x = coll["d_rot_x"].values.values
-    assert np.isclose(d_rot_x[-1, 0], 19.)
-    assert np.allclose(d_rot_x[:-1, 0], np.arange(6., 20.))
+    transform.Lag(coll, 'rot_x', output='d_rot_x', shift=-1)
+    d_rot_x = coll['d_rot_x'].values.values
+    assert np.isclose(d_rot_x[-1, 0], 19.0)
+    assert np.allclose(d_rot_x[:-1, 0], np.arange(6.0, 20.0))
 
     # Half shift; don't know why you'd want to do it, but you can
-    transform.Lag(coll, "rot_x", output="half_shift", shift=0.5, order=1)
-    half_shift = coll["half_shift"].values.values
-    assert np.isclose(half_shift[0, 0], 5.)
+    transform.Lag(coll, 'rot_x', output='half_shift', shift=0.5, order=1)
+    half_shift = coll['half_shift'].values.values
+    assert np.isclose(half_shift[0, 0], 5.0)
     assert np.allclose(half_shift[1:, 0], np.arange(5.5, 19.5))
 
     # Constant mode
-    transform.Lag(coll, "rot_x", output="d_rot_x", mode="constant")
-    d_rot_x = coll["d_rot_x"].values.values
-    assert np.isclose(d_rot_x[0, 0], 0.)
-    assert np.allclose(d_rot_x[1:, 0], np.arange(5., 19.))
+    transform.Lag(coll, 'rot_x', output='d_rot_x', mode='constant')
+    d_rot_x = coll['d_rot_x'].values.values
+    assert np.isclose(d_rot_x[0, 0], 0.0)
+    assert np.allclose(d_rot_x[1:, 0], np.arange(5.0, 19.0))
 
     # Reflect mode
-    transform.Lag(coll, "rot_x", output="d_rot_x", mode="reflect")
-    d_rot_x = coll["d_rot_x"].values.values
-    assert np.isclose(d_rot_x[0, 0], 5.)
-    assert np.allclose(d_rot_x[1:, 0], np.arange(5., 19.))
+    transform.Lag(coll, 'rot_x', output='d_rot_x', mode='reflect')
+    d_rot_x = coll['d_rot_x'].values.values
+    assert np.isclose(d_rot_x[0, 0], 5.0)
+    assert np.allclose(d_rot_x[1:, 0], np.arange(5.0, 19.0))
 
     # Forward shift -> Backward difference
-    transform.Lag(coll, "rot_x", output="d_rot_x", difference=True)
-    d_rot_x = coll["d_rot_x"].values.values
-    assert np.isclose(d_rot_x[0, 0], 0.)
-    assert np.allclose(d_rot_x[1:, 0], 1.)
+    transform.Lag(coll, 'rot_x', output='d_rot_x', difference=True)
+    d_rot_x = coll['d_rot_x'].values.values
+    assert np.isclose(d_rot_x[0, 0], 0.0)
+    assert np.allclose(d_rot_x[1:, 0], 1.0)
 
     # Backward shift -> Forward difference
-    transform.Lag(coll, "rot_x", output="d_rot_x", shift=-1, difference=True)
-    d_rot_x = coll["d_rot_x"].values.values
-    assert np.isclose(d_rot_x[-1, 0], 0.)
-    assert np.allclose(d_rot_x[:-1, 0], 1.)
+    transform.Lag(coll, 'rot_x', output='d_rot_x', shift=-1, difference=True)
+    d_rot_x = coll['d_rot_x'].values.values
+    assert np.isclose(d_rot_x[-1, 0], 0.0)
+    assert np.allclose(d_rot_x[:-1, 0], 1.0)

@@ -7,28 +7,28 @@ from bids.layout.models import Config
 
 class TestSchemaConfig:
     """Test schema-based configuration loading."""
-    
+
     def test_load_bids_schema_basic(self):
         """Test loading config from BIDS schema."""
         config = Config.load('bids-schema')
-        
+
         # Basic checks
         assert config.name.startswith('bids-schema-')
         assert len(config.entities) > 0
-        
+
         # Check that standard entities are present (using full names per PyBIDS convention)
         entity_names = {e.name for e in config.entities.values()}
         expected_entities = {'subject', 'session', 'task', 'run'}
         assert expected_entities.issubset(entity_names)
-        
+
         # Check that PyBIDS-specific entities are present
         pybids_entities = {'extension', 'suffix', 'datatype'}
         assert pybids_entities.issubset(entity_names)
-    
+
     def test_schema_entity_patterns(self):
         """Test that entity patterns are correctly generated."""
         config = Config.load('bids-schema')
-        
+
         # Test subject entity (directory-based)
         if 'subject' in config.entities:
             subject_entity = config.entities['subject']
@@ -37,7 +37,7 @@ class TestSchemaConfig:
             match = subject_entity.regex.search('/sub-01/')
             assert match is not None
             assert match.group(1) == '01'
-        
+
         # Test task entity (file-based)
         if 'task' in config.entities:
             task_entity = config.entities['task']
@@ -46,17 +46,17 @@ class TestSchemaConfig:
             match = task_entity.regex.search('_task-rest_')
             assert match is not None
             assert match.group(1) == 'rest'
-    
+
     def test_schema_version_tracking(self):
         """Test that schema version is tracked in config name."""
         config = Config.load('bids-schema')
-        
+
         # Config name should include version
         assert 'bids-schema-' in config.name
         # Should have some version number after the dash
         version_part = config.name.split('bids-schema-')[1]
         assert len(version_part) > 0
-    
+
     def test_schema_version_parameter(self):
         """Test loading specific schema version."""
         # Test loading BIDS v1.9.0 schema
@@ -73,8 +73,6 @@ class TestSchemaConfig:
         with pytest.raises(ValueError):
             Config.load({'schema_version': '99.99.99'})
 
-    
-    
     def test_entity_generation(self):
         """Test entity pattern generation using real schema."""
         config = Config.load('bids-schema')
@@ -89,9 +87,9 @@ class TestSchemaConfig:
 
         # Test that patterns are valid regex
         for entity_name, entity in config.entities.items():
-            assert entity.regex is not None, f"Entity {entity_name} missing regex"
+            assert entity.regex is not None, f'Entity {entity_name} missing regex'
             # Test that regex compiles and works
-            assert hasattr(entity.regex, 'search'), f"Entity {entity_name} regex invalid"
+            assert hasattr(entity.regex, 'search'), f'Entity {entity_name} regex invalid'
 
         # Test specific entity patterns work correctly
         subject_entity = config.entities['subject']
@@ -116,14 +114,15 @@ class TestSchemaConfig:
 
     def test_schema_directory_query(self):
         """Test directory queries with schema-based config."""
-        from bids import BIDSLayout
-        from pathlib import Path
         import os
+        from pathlib import Path
+
+        from bids import BIDSLayout
 
         # Use the 7t_trt test dataset
         data_dir = Path(__file__).parent.parent.parent.parent.parent / 'tests' / 'data' / '7t_trt'
         if not data_dir.exists():
-            pytest.skip("Test dataset not available")
+            pytest.skip('Test dataset not available')
 
         # Create layout with schema config
         layout = BIDSLayout(data_dir, config='bids-schema', derivatives=False)
@@ -134,4 +133,3 @@ class TestSchemaConfig:
         assert all(os.path.exists(d) for d in subject_dirs)
         # Should include subject directories
         assert any('sub-' in os.path.basename(d) for d in subject_dirs)
-

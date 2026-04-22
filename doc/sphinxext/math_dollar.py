@@ -1,8 +1,8 @@
-import re
+import re  # noqa: D100
+
 
 def dollars_to_math(source):
-    r"""
-    Replace dollar signs with backticks.
+    r"""Replace dollar signs with backticks.
 
     More precisely, do a regular expression search.  Replace a plain
     dollar sign ($) by a backtick (`).  Replace an escaped dollar sign
@@ -21,8 +21,8 @@ def dollars_to_math(source):
 
       `f(n) = 0 \text{ if $n$ is prime}`
     """
-    s = "\n".join(source)
-    if s.find("$") == -1:
+    s = '\n'.join(source)
+    if s.find('$') == -1:
         return
     # This searches for "$blah$" inside a pair of curly braces --
     # don't change these, since they're probably coming from a nested
@@ -30,19 +30,21 @@ def dollars_to_math(source):
     # string, and later on we substitute the original back.
     global _data
     _data = {}
+
     def repl(matchobj):
         global _data
         s = matchobj.group(0)
-        t = "___XXX_REPL_%d___" % len(_data)
+        t = '___XXX_REPL_%d___' % len(_data)  # noqa: UP031
         _data[t] = s
         return t
-    s = re.sub(r"({[^{}$]*\$[^{}$]*\$[^{}]*})", repl, s)
+
+    s = re.sub(r'({[^{}$]*\$[^{}$]*\$[^{}]*})', repl, s)
     # matches $...$
-    dollars = re.compile(r"(?<!\$)(?<!\\)\$([^\$]+?)\$")
+    dollars = re.compile(r'(?<!\$)(?<!\\)\$([^\$]+?)\$')
     # regular expression for \$
-    slashdollar = re.compile(r"\\\$")
-    s = dollars.sub(r":math:`\1`", s)
-    s = slashdollar.sub(r"$", s)
+    slashdollar = re.compile(r'\\\$')
+    s = dollars.sub(r':math:`\1`', s)
+    s = slashdollar.sub(r'$', s)
     # change the original {...} things in:
     for r in _data:
         s = s.replace(r, _data[r])
@@ -50,14 +52,14 @@ def dollars_to_math(source):
     source[:] = [s]
 
 
-def process_dollars(app, docname, source):
+def process_dollars(app, docname, source):  # noqa: D103
     dollars_to_math(source)
 
 
-def mathdollar_docstrings(app, what, name, obj, options, lines):
+def mathdollar_docstrings(app, what, name, obj, options, lines):  # noqa: D103
     dollars_to_math(lines)
 
 
-def setup(app):
-    app.connect("source-read", process_dollars)
+def setup(app):  # noqa: D103
+    app.connect('source-read', process_dollars)
     app.connect('autodoc-process-docstring', mathdollar_docstrings)

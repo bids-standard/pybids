@@ -1,19 +1,22 @@
-"""
-Transformations that primarily involve numerical computation on variables.
-"""
+"""Transformations that primarily involve numerical computation on variables."""
+
 import math
+
 import numpy as np
 import pandas as pd
 from scipy import ndimage as ndi
-from bids.utils import listify
-from .base import Transformation
+
 from bids.modeling import hrf
-from bids.variables import SparseRunVariable,  DenseRunVariable
+from bids.utils import listify
+from bids.variables import DenseRunVariable, SparseRunVariable
+
+from .base import Transformation
 
 
 def _fractional_gcd(vals, res=0.001):
     from functools import reduce
     from math import gcd
+
     return reduce(gcd, (int(np.round(val / res)) for val in vals)) * res
 
 
@@ -38,15 +41,15 @@ class Convolve(Transformation):
     Notes
     -----
     Uses the HRF convolution functions implemented in nilearn.
+
     """
+
     _groupable = False
     _input_type = 'variable'
     _return_type = 'variable'
     _sync_kwargs = False
 
-    def _transform(self, var, model='spm', derivative=False, dispersion=False,
-                   fir_delays=None):
-
+    def _transform(self, var, model='spm', derivative=False, dispersion=False, fir_delays=None):
         model = model.lower()
 
         df = var.to_df(entities=False)
@@ -55,7 +58,8 @@ class Convolve(Transformation):
             sampling_rate = self.collection.sampling_rate
             dur = var.get_duration()
             resample_frames = np.linspace(
-                0, dur, int(math.ceil(dur * sampling_rate)), endpoint=False)
+                0, dur, int(math.ceil(dur * sampling_rate)), endpoint=False
+            )
             safety = 2  # Double frequency to resolve events
         else:
             resample_frames = df['onset'].values
@@ -75,7 +79,7 @@ class Convolve(Transformation):
         # Sampling at >100Hz will never be useful, but can be wildly expensive
         max_freq, min_interval = 100, 0.01
         # Sampling at <1Hz can degrade signals
-        min_freq, max_interval = 1, 1
+        min_freq, max_interval = 1, 1  # noqa: F841
 
         # Given the sampling rate, determine an oversampling factor to ensure that
         # events can be modeled with reasonable precision
@@ -85,50 +89,54 @@ class Convolve(Transformation):
         # Note that GCD ignores zeros, so 0 onsets and impulse responses (0 durations) do
         # not harm this.
         required_resolution = _fractional_gcd(
-            np.concatenate((unique_onsets, unique_durations)),
-            res=min_interval)
+            np.concatenate((unique_onsets, unique_durations)), res=min_interval
+        )
         # Bound the effective sampling rate between min_freq and max_freq
         effective_sr = max(min_freq, min(safety / required_resolution, max_freq))
         convolved = hrf.compute_regressor(
-            vals, model, resample_frames, fir_delays=fir_delays, min_onset=0,
-            oversampling=int(np.ceil(effective_sr / sampling_rate))
-            )
+            vals,
+            model,
+            resample_frames,
+            fir_delays=fir_delays,
+            min_onset=0,
+            oversampling=int(np.ceil(effective_sr / sampling_rate)),
+        )
 
         results = []
         arr, names = convolved
-        for conv, name in zip(np.split(arr, arr.shape[1], axis=1), names):
+        for conv, name in zip(np.split(arr, arr.shape[1], axis=1), names):  # noqa: B905
             new_name = '_'.join([var.name, name.split('_')[-1]]) if '_' in name else var.name
             results.append(
                 DenseRunVariable(
-                    name=new_name, values=conv, run_info=var.run_info,
-                    source=var.source, sampling_rate=sampling_rate)
+                    name=new_name,
+                    values=conv,
+                    run_info=var.run_info,
+                    source=var.source,
+                    sampling_rate=sampling_rate,
+                )
             )
         return results
 
 
-class Demean(Transformation):
-
+class Demean(Transformation):  # noqa: D101
     def _transform(self, data):
         return data - data.mean()
 
 
-class Orthogonalize(Transformation):
-
+class Orthogonalize(Transformation):  # noqa: D101
     _variables_used = ('variables', 'other')
     _densify = ('variables', 'other')
     _aligned_required = 'force_dense'
-    _aligned_variables = ('other')
+    _aligned_variables = 'other'
     _sync_kwargs = False
 
     def _transform(self, var, other):
-
         other = listify(other)
 
         # Set up X matrix and slice into it based on target variable indices
-        X = np.array([self._variables[c].values.values.squeeze()
-                      for c in other]).T
+        X = np.array([self._variables[c].values.values.squeeze() for c in other]).T
         X = X[var.index, :]
-        assert len(X) == len(var)
+        assert len(X) == len(var)  # noqa: S101
         y = var.values
         _aX = np.c_[np.ones(len(y)), X]
         coefs, resids, rank, s = np.linalg.lstsq(_aX, y, rcond=None)
@@ -136,8 +144,7 @@ class Orthogonalize(Transformation):
         return result
 
 
-class Product(Transformation):
-
+class Product(Transformation):  # noqa: D101
     _loopable = False
     _groupable = False
     _aligned_required = True
@@ -169,27 +176,29 @@ class Scale(Transformation):
     -----
     If a constant column is passed in, and replace_na is None or 'before', an
     exception will be raised.
+
     """
 
     def _transform(self, data, demean=True, rescale=True, replace_na=None):
         if data.nunique() == 1 and replace_na in {None, 'before'}:
             val = data.unique()[0]
-            raise ValueError("Cannot scale a column with constant value ({})! "
-                             "If you want a constant column of 0's returned, "
-                             "set replace_na to 'after'.".format(val))
+            raise ValueError(
+                f'Cannot scale a column with constant value ({val})! '
+                "If you want a constant column of 0's returned, "
+                "set replace_na to 'after'."
+            )
         if replace_na == 'before':
-            data = data.fillna(0.)
+            data = data.fillna(0.0)
         if demean:
             data -= data.mean()
         if rescale:
             data /= data.std()
         if replace_na == 'after':
-            data = data.fillna(0.)
+            data = data.fillna(0.0)
         return data
 
 
-class Sum(Transformation):
-
+class Sum(Transformation):  # noqa: D101
     _loopable = False
     _groupable = False
     _aligned_required = True
@@ -203,9 +212,11 @@ class Sum(Transformation):
         else:
             weights = np.array(weights)
             if len(weights.ravel()) != data.shape[1]:
-                raise ValueError("If weights are passed to sum(), the number "
-                                 "of elements must equal number of variables"
-                                 " being summed.")
+                raise ValueError(
+                    'If weights are passed to sum(), the number '
+                    'of elements must equal number of variables'
+                    ' being summed.'
+                )
         return (data * weights).sum(axis=1)
 
 
@@ -233,12 +244,12 @@ class Threshold(Transformation):
         threshold=3, if signed=True, all and only values above +3 would be
         retained. If signed=False, all absolute values > 3 would be retained
         (i.e.,values in  the range -3 < X < 3 would be set to 0).
+
     """
 
     _groupable = False
 
-    def _transform(self, data, threshold=0., binarize=False, above=True,
-                   signed=True):
+    def _transform(self, data, threshold=0.0, binarize=False, above=True, signed=True):
         if not signed:
             threshold = np.abs(threshold)
             data = data.abs()
@@ -256,6 +267,7 @@ class And_(Transformation):
     ----------
     dfs : list of :obj:`pandas.DataFrame`
         variables to enter into the conjunction.
+
     """
 
     _loopable = False
@@ -276,6 +288,7 @@ class Not(Transformation):
     ----------
     var : :obj:`pandas.Series`
         Variable to negate. Must be convertible to bool.
+
     """
 
     _loopable = True
@@ -293,6 +306,7 @@ class Or_(Transformation):
     ----------
     dfs : list of :obj:`pandas.DataFrame`
         variables to enter into the disjunction.
+
     """
 
     _loopable = False
@@ -353,16 +367,15 @@ class Lag(Transformation):
         For the forward difference dx of an array x, dx[i] = x[i+1] - x[i].
         For the backward difference dx of an array x, dx[i] = x[i] - x[i-1].
         (default: ``False``)
+
     """
 
     _input_type = 'numpy'
     _return_type = 'numpy'
 
-    def _transform(self, var, shift=1, order=3, mode="nearest",
-                   constant=0.0, difference=False):
+    def _transform(self, var, shift=1, order=3, mode='nearest', constant=0.0, difference=False):
         var = var.flatten()
-        shifted = ndi.shift(var, shift=shift, order=order, mode=mode,
-                            cval=constant)
+        shifted = ndi.shift(var, shift=shift, order=order, mode=mode, cval=constant)
         if not difference:
             return shifted
         elif shift >= 0:
