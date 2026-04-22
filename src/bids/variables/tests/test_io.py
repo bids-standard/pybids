@@ -1,10 +1,11 @@
-from bids.layout import BIDSLayout
-from bids.variables import (SparseRunVariable, SimpleVariable,
-                            DenseRunVariable, load_variables)
-from bids.variables.entities import Node, RunNode, NodeIndex
-import pytest
 from os.path import join
+
+import pytest
+
+from bids.layout import BIDSLayout
 from bids.tests import get_test_data_path
+from bids.variables import DenseRunVariable, SimpleVariable, SparseRunVariable, load_variables
+from bids.variables.entities import Node, NodeIndex, RunNode
 
 
 @pytest.fixture
@@ -14,18 +15,16 @@ def layout1():
     return layout
 
 
-@pytest.fixture(scope="module", params=["events", "preproc"])
+@pytest.fixture(scope='module', params=['events', 'preproc'])
 def synthetic(request):
-    import bids.config
     root = join(get_test_data_path(), 'synthetic')
     if request.param == 'preproc':
         layout = BIDSLayout(root, derivatives=True)
-        dataset = load_variables(layout, skip_empty=True, desc='preproc',
-                                 space='T1w')
+        dataset = load_variables(layout, skip_empty=True, desc='preproc', space='T1w')
     else:
         layout = BIDSLayout(root)
         dataset = load_variables(layout, skip_empty=True)
-    yield request.param, dataset
+    return request.param, dataset
 
 
 def test_load_events(layout1):
@@ -61,7 +60,6 @@ def test_load_participants(layout1):
 
 
 def test_load_synthetic_dataset(synthetic):
-
     param, index = synthetic
     # Runs
     runs = index.get_nodes('run')
@@ -75,15 +73,13 @@ def test_load_synthetic_dataset(synthetic):
         match = ['Cosine01', 'stdDVARS', 'RotZ', 'FramewiseDisplacement']
         sum_dense = 56
     else:
-        match = ['trial_type', 'weight', 'respiratory', 'cardiac', 'stimA',
-                 'stimB']
+        match = ['trial_type', 'weight', 'respiratory', 'cardiac', 'stimA', 'stimB']
         sum_dense = 4
 
     for v in match:
         assert v in variables.keys()
 
-    assert sum([isinstance(v, DenseRunVariable)
-                for v in variables.values()]) == sum_dense
+    assert sum([isinstance(v, DenseRunVariable) for v in variables.values()]) == sum_dense
     assert all([len(r.variables['weight'].values) == 42 for r in runs])
 
     # Sessions

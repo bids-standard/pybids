@@ -1,13 +1,15 @@
 """Miscellaneous layout-related utilities."""
+
 from upath import UPath as Path
 
 from .. import config as cf
-from ..utils import make_bidsfile, listify
 from ..exceptions import ConfigError
+from ..utils import listify, make_bidsfile
 
 
 class BIDSMetadata(dict):
-    """ Metadata dictionary that reports the associated file on lookup failures. """
+    """Metadata dictionary that reports the associated file on lookup failures."""
+
     def __init__(self, source_file):
         self._source_file = source_file
         super().__init__()
@@ -15,20 +17,19 @@ class BIDSMetadata(dict):
     def __getitem__(self, key):
         try:
             return super().__getitem__(key)
-        except KeyError as e:
-            raise KeyError(
-                "Metadata term {!r} unavailable for file {}.".format(key, self._source_file))
+        except KeyError:
+            raise KeyError(f'Metadata term {key!r} unavailable for file {self._source_file}.')  # noqa: B904
 
 
 class PaddedInt(int):
-    """ Integer type that preserves zero-padding
+    """Integer type that preserves zero-padding
 
     Acts like an int in almost all ways except that string formatting
     will keep the original zero-padding. Numeric format specifiers
 
     >>> PaddedInt(1)
     1
-    >>> p2 = PaddedInt("02")
+    >>> p2 = PaddedInt('02')
     >>> p2
     02
     >>> str(p2)
@@ -37,23 +38,23 @@ class PaddedInt(int):
     True
     >>> p2 in range(3)
     True
-    >>> f"{p2}"
+    >>> f'{p2}'
     '02'
-    >>> f"{p2:s}"
+    >>> f'{p2:s}'
     '02'
-    >>> f"{p2!s}"
+    >>> f'{p2!s}'
     '02'
-    >>> f"{p2!r}"
+    >>> f'{p2!r}'
     '02'
-    >>> f"{p2:d}"
+    >>> f'{p2:d}'
     '2'
-    >>> f"{p2:03d}"
+    >>> f'{p2:03d}'
     '002'
-    >>> f"{p2:f}"
+    >>> f'{p2:f}'
     '2.000000'
-    >>> {2: "val"}.get(p2)
+    >>> {2: 'val'}.get(p2)
     'val'
-    >>> {p2: "val"}.get(2)
+    >>> {p2: 'val'}.get(2)
     'val'
 
     Note that arithmetic will break the padding.
@@ -61,6 +62,7 @@ class PaddedInt(int):
     >>> str(p2 + 1)
     '3'
     """
+
     def __init__(self, val):
         self.sval = str(val)
 
@@ -80,7 +82,7 @@ class PaddedInt(int):
         return self.sval
 
     def __format__(self, format_spec):
-        """ Format a padded integer
+        """Format a padded integer
 
         If a format spec can be used on a string, apply it to the zero-padded string.
         Otherwise format as an integer.
@@ -94,8 +96,7 @@ class PaddedInt(int):
         return super().__hash__()
 
 
-def parse_file_entities(filename, entities=None, config=None,
-                        include_unmatched=False):
+def parse_file_entities(filename, entities=None, config=None, include_unmatched=False):
     """Parse the passed filename for entity/value pairs.
 
     Parameters
@@ -120,16 +121,16 @@ def parse_file_entities(filename, entities=None, config=None,
     -------
     dict
         Keys are Entity names and values are the values from the filename.
+
     """
     # Load Configs if needed
     if entities is None:
-
         if config is None:
             config = ['bids', 'derivatives']
 
         from .models import Config
-        config = [Config.load(c) if not isinstance(c, Config) else c
-                  for c in listify(config)]
+
+        config = [Config.load(c) if not isinstance(c, Config) else c for c in listify(config)]
 
         # Consolidate entities from all Configs into a single dict
         entities = {}
@@ -161,13 +162,13 @@ def add_config_paths(**kwargs):
     --------
     > add_config_paths(my_config='/path/to/config')
     > layout = BIDSLayout('/path/to/bids', config=['bids', 'my_config'])
+
     """
     for k, path in kwargs.items():
         if not Path(path).exists():
-            raise ConfigError(
-                'Configuration file "{}" does not exist'.format(k))
+            raise ConfigError(f'Configuration file "{k}" does not exist')
         if k in cf.get_option('config_paths'):
-            raise ConfigError('Configuration {!r} already exists'.format(k))
+            raise ConfigError(f'Configuration {k!r} already exists')
 
     kwargs.update(**cf.get_option('config_paths'))
     cf.set_option('config_paths', kwargs)

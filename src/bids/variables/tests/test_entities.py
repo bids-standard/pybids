@@ -1,20 +1,21 @@
-from bids.layout import BIDSLayout
-from bids.variables.entities import RunNode, Node, NodeIndex
-from bids.variables import load_variables
-from bids.variables import BIDSRunVariableCollection
-import pytest
 from os.path import join
+
+import pytest
+
+from bids.layout import BIDSLayout
 from bids.tests import get_test_data_path
+from bids.variables import BIDSRunVariableCollection, load_variables
+from bids.variables.entities import Node, NodeIndex, RunNode
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope='module')
 def layout1():
     path = join(get_test_data_path(), 'ds005')
     layout = BIDSLayout(path)
     return layout
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope='module')
 def layout2():
     path = join(get_test_data_path(), '7t_trt')
     layout = BIDSLayout(path)
@@ -22,9 +23,10 @@ def layout2():
 
 
 def test_run(layout1):
-    img = layout1.get(subject='01', task='mixedgamblestask', suffix='bold',
-                      run=1, return_type='obj')[0]
-    run = RunNode(None, img.filename, 480, 2, 480/2)
+    img = layout1.get(
+        subject='01', task='mixedgamblestask', suffix='bold', run=1, return_type='obj'
+    )[0]
+    run = RunNode(None, img.filename, 480, 2, 480 / 2)
     assert run.image_file == img.filename
     assert run.duration == 480
     assert run.repetition_time == 2
@@ -32,8 +34,9 @@ def test_run(layout1):
 
 
 def test_get_or_create_node(layout1):
-    img = layout1.get(subject='01', task='mixedgamblestask', suffix='bold',
-                      run=1, return_type='obj')[0]
+    img = layout1.get(
+        subject='01', task='mixedgamblestask', suffix='bold', run=1, return_type='obj'
+    )[0]
     index = NodeIndex()
 
     entities = {'subject': '01', 'session': 1}
@@ -43,10 +46,14 @@ def test_get_or_create_node(layout1):
     sess2 = index.get_or_create_node('session', entities)
     assert sess2 == sess
 
-    run = index.get_or_create_node('run', img.entities,
-                                   image_file=img.filename, duration=480,
-                                   repetition_time=2,
-                                   n_vols=480/2)
+    run = index.get_or_create_node(
+        'run',
+        img.entities,
+        image_file=img.filename,
+        duration=480,
+        repetition_time=2,
+        n_vols=480 / 2,
+    )
     assert run.__class__ == RunNode
     assert run.duration == 480
     assert run.n_vols == 480 / 2

@@ -1,4 +1,5 @@
 """Generate publication-quality data acquisition methods section from BIDS dataset."""
+
 import json
 import os.path as op
 from collections import Counter
@@ -38,6 +39,7 @@ class BIDSReport:
 
     Additionally, only MRI datatypes (func, anat, fmap, and dwi) are currently
     supported.
+
     """
 
     def __init__(self, layout, config=None):
@@ -45,8 +47,8 @@ class BIDSReport:
         if config is None:
             config = op.join(
                 op.dirname(op.abspath(__file__)),
-                "config",
-                "converters.json",
+                'config',
+                'converters.json',
             )
 
         if isinstance(config, str):
@@ -55,8 +57,7 @@ class BIDSReport:
 
         if not isinstance(config, dict):
             raise ValueError(
-                "Input config must be None, dict, or path to "
-                "json file containing dict."
+                'Input config must be None, dict, or path to json file containing dict.'
             )
 
         self.config = config
@@ -94,18 +95,17 @@ class BIDSReport:
 
         >>> counter.most_common()[0][0]  # doctest: +ELLIPSIS
         'In session 01, MR data were...'
+
         """
         descriptions = []
 
-        subjects = sorted(list(set([f.get_entities().get("subject") for f in files])))
-        sessions = sorted(list(set([f.get_entities().get("session") for f in files])))
+        subjects = sorted(list(set([f.get_entities().get('subject') for f in files])))  # noqa: C403, C414
+        sessions = sorted(list(set([f.get_entities().get('session') for f in files])))  # noqa: C403, C414
         for sub in subjects:
-            subject_files = [f for f in files if f.get_entities().get("subject") == sub]
+            subject_files = [f for f in files if f.get_entities().get('subject') == sub]
             description_list = []
             for ses in sessions:
-                data_files = [
-                    f for f in subject_files if f.get_entities().get("session") == ses
-                ]
+                data_files = [f for f in subject_files if f.get_entities().get('session') == ses]
 
                 if data_files:
                     ses_description = parsing._parse_files(
@@ -114,24 +114,22 @@ class BIDSReport:
                         sub,
                         self.config,
                     )
-                    ses_description[0] = "In session {0}, ".format(ses) + ses_description[0]
+                    ses_description[0] = f'In session {ses}, ' + ses_description[0]
                     description_list += ses_description
                     metadata = self.layout.get_metadata(data_files[0].path)
                 else:
-                    raise Exception("No imaging files for subject {0}".format(sub))
+                    raise Exception(f'No imaging files for subject {sub}')
 
             # Assume all data were converted the same way and use the last nifti
             # file's json for conversion information.
-            if "metadata" not in vars():
-                raise Exception(
-                    "No valid jsons found. Cannot generate final paragraph."
-                )
+            if 'metadata' not in vars():
+                raise Exception('No valid jsons found. Cannot generate final paragraph.')
 
-            description = "\n\t".join(description_list)
-            description += "\n\n{0}".format(parsing.final_paragraph(metadata))
+            description = '\n\t'.join(description_list)
+            description += f'\n\n{parsing.final_paragraph(metadata)}'
             descriptions.append(description)
         counter = Counter(descriptions)
-        print("Number of patterns detected: {0}".format(len(counter.keys())))
+        print(f'Number of patterns detected: {len(counter.keys())}')
         print(utils.reminder())
         return counter
 
@@ -168,19 +166,20 @@ class BIDSReport:
 
         >>> counter.most_common()[0][0]  # doctest: +ELLIPSIS
         'In session 01, MR data were...'
+
         """
         descriptions = []
 
         subjects = self.layout.get_subjects(**kwargs)
-        kwargs = {k: v for k, v in kwargs.items() if k != "subject"}
+        kwargs = {k: v for k, v in kwargs.items() if k != 'subject'}
         for sub in subjects:
             descriptions.append(self._report_subject(subject=sub, **kwargs))
         counter = Counter(descriptions)
-        print("Number of patterns detected: {0}".format(len(counter.keys())))
+        print(f'Number of patterns detected: {len(counter.keys())}')
         print(utils.reminder())
         return counter
 
-    def _report_subject(self, subject, **kwargs):
+    def _report_subject(self, subject, **kwargs):  # noqa: D417
         """Write a report for a single subject.
 
         Parameters
@@ -200,12 +199,11 @@ class BIDSReport:
         description : :obj:`str`
             A publication-ready report of the dataset's data acquisition
             information. Each scan type is given its own paragraph.
+
         """
         description_list = []
         # Remove session from kwargs if provided, else set session as all available
-        sessions = kwargs.pop(
-            "session", self.layout.get_sessions(subject=subject, **kwargs)
-        )
+        sessions = kwargs.pop('session', self.layout.get_sessions(subject=subject, **kwargs))
         if not sessions:
             sessions = [None]
         elif not isinstance(sessions, list):
@@ -214,7 +212,7 @@ class BIDSReport:
         for ses in sessions:
             data_files = self.layout.get(
                 subject=subject,
-                extension=[".nii", ".nii.gz"],
+                extension=['.nii', '.nii.gz'],
                 **kwargs,
             )
 
@@ -225,14 +223,14 @@ class BIDSReport:
                     subject,
                     self.config,
                 )
-                ses_description[0] = "In session {0}, ".format(ses) + ses_description[0]
+                ses_description[0] = f'In session {ses}, ' + ses_description[0]
                 description_list += ses_description
                 metadata = self.layout.get_metadata(data_files[0].path)
             else:
-                raise Exception("No imaging files for subject {0}".format(subject))
+                raise Exception(f'No imaging files for subject {subject}')
 
         # Assume all data were converted the same way and use the first nifti
         # file's json for conversion information.
-        description = "\n\t".join(description_list)
-        description += "\n\n{0}".format(parsing.final_paragraph(metadata))
+        description = '\n\t'.join(description_list)
+        description += f'\n\n{parsing.final_paragraph(metadata)}'
         return description
