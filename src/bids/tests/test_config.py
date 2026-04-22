@@ -1,9 +1,11 @@
-import bids
-import tempfile
-import os
 import json
+import os
+import tempfile
 import warnings
+
 import pytest
+
+import bids
 from bids.config import reset_options
 from bids.tests import get_test_data_path
 
@@ -13,17 +15,19 @@ def test_load_from_standard_paths():
     reset_options(False)
     assert bids.config._settings == bids.config._default_settings
 
-    env_config = {"loop_preproc": True}
-    cwd_config = {"loop_preproc": True}
+    env_config = {'loop_preproc': True}
+    cwd_config = {'loop_preproc': True}
 
     handle, f = tempfile.mkstemp(suffix='.json')
     json.dump(env_config, open(f, 'w'))
     os.environ['PYBIDS_CONFIG'] = f
     target = 'pybids_config.json'
     if os.path.exists(target):
-        pytest.skip("Cannot test bids config because the default config file"
-                    " (pybids_config.json) already exists in the current "
-                    "working directory. Skipping test to avoid overwriting.")
+        pytest.skip(
+            'Cannot test bids config because the default config file'
+            ' (pybids_config.json) already exists in the current '
+            'working directory. Skipping test to avoid overwriting.'
+        )
     json.dump(cwd_config, open(target, 'w'))
     reset_options(True)
     os.unlink(target)
@@ -35,7 +39,6 @@ def test_load_from_standard_paths():
 
 
 def test_set_option():
-
     reset_options(False)
     opts = bids.config._settings
 
@@ -68,6 +71,6 @@ def test_extension_initial_dot(mock_config):
 
     # No warnings on layout construction
     with warnings.catch_warnings():
-        warnings.simplefilter("error")
+        warnings.simplefilter('error')
         layout = bids.BIDSLayout(ds117)
     assert layout.get(extension='nii.gz')[0].entities['extension'] == '.nii.gz'

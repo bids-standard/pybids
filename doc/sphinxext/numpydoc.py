@@ -1,5 +1,4 @@
-"""
-========
+"""========
 numpydoc
 ========
 
@@ -16,26 +15,27 @@ It will:
 .. [1] https://github.com/numpy/numpy/blob/master/doc/HOWTO_DOCUMENT.rst.txt
 
 """
-import re
-import pydoc
-import sphinx
-import inspect
+
 import collections
+import inspect
+import pydoc
+import re
+
+import sphinx
 
 if sphinx.__version__ < '1.0.1':
-    raise RuntimeError("Sphinx 1.0.1 or newer is required")
+    raise RuntimeError('Sphinx 1.0.1 or newer is required')
 
-from docscrape_sphinx import get_doc_object, SphinxDocString
+from docscrape_sphinx import SphinxDocString, get_doc_object
 
 
-def mangle_docstrings(app, what, name, obj, options, lines,
-                      reference_offset=[0]):
-
-    cfg = {'use_plots': app.config.numpydoc_use_plots,
-           'show_class_members': app.config.numpydoc_show_class_members,
-           'show_inherited_class_members':
-           app.config.numpydoc_show_inherited_class_members,
-           'class_members_toctree': app.config.numpydoc_class_members_toctree}
+def mangle_docstrings(app, what, name, obj, options, lines, reference_offset=[0]):  # noqa: B006, D103
+    cfg = {
+        'use_plots': app.config.numpydoc_use_plots,
+        'show_class_members': app.config.numpydoc_show_class_members,
+        'show_inherited_class_members': app.config.numpydoc_show_inherited_class_members,
+        'class_members_toctree': app.config.numpydoc_class_members_toctree,
+    }
 
     u_NL = '\n'
     if what == 'module':
@@ -47,15 +47,13 @@ def mangle_docstrings(app, what, name, obj, options, lines,
         doc = str(get_doc_object(obj, what, u_NL.join(lines), config=cfg))
         lines[:] = doc.split(u_NL)
 
-    if (app.config.numpydoc_edit_link and hasattr(obj, '__name__') and
-            obj.__name__):
+    if app.config.numpydoc_edit_link and hasattr(obj, '__name__') and obj.__name__:
         if hasattr(obj, '__module__'):
-            v = dict(full_name="%s.%s" % (obj.__module__, obj.__name__))
+            v = dict(full_name='%s.%s' % (obj.__module__, obj.__name__))  # noqa: C408, UP031
         else:
-            v = dict(full_name=obj.__name__)
+            v = dict(full_name=obj.__name__)  # noqa: C408
         lines += ['', '.. htmlonly::', '']
-        lines += ['    %s' % x for x in
-                  (app.config.numpydoc_edit_link % v).split("\n")]
+        lines += ['    %s' % x for x in (app.config.numpydoc_edit_link % v).split('\n')]  # noqa: UP031
 
     # replace reference numbers so that there are no duplicates
     references = []
@@ -68,29 +66,26 @@ def mangle_docstrings(app, what, name, obj, options, lines,
     # start renaming from the longest string, to avoid overwriting parts
     references.sort(key=lambda x: -len(x))
     if references:
-        for i, line in enumerate(lines):
+        for i, line in enumerate(lines):  # noqa: B007
             for r in references:
                 if re.match('^\\d+$', r):
-                    new_r = "R%d" % (reference_offset[0] + int(r))
+                    new_r = 'R%d' % (reference_offset[0] + int(r))  # noqa: UP031
                 else:
-                    new_r = "%s%d" % (r, reference_offset[0])
-                lines[i] = lines[i].replace('[%s]_' % r,
-                                            '[%s]_' % new_r)
-                lines[i] = lines[i].replace('.. [%s]' % r,
-                                            '.. [%s]' % new_r)
+                    new_r = '%s%d' % (r, reference_offset[0])  # noqa: UP031
+                lines[i] = lines[i].replace('[%s]_' % r, '[%s]_' % new_r)  # noqa: UP031
+                lines[i] = lines[i].replace('.. [%s]' % r, '.. [%s]' % new_r)  # noqa: UP031
 
     reference_offset[0] += len(references)
 
 
-def mangle_signature(app, what, name, obj, options, sig, retann):
+def mangle_signature(app, what, name, obj, options, sig, retann):  # noqa: D103
     # Do not try to inspect classes that don't define `__init__`
-    if (inspect.isclass(obj) and
-        (not hasattr(obj, '__init__') or
-            'initializes x; see ' in pydoc.getdoc(obj.__init__))):
+    if inspect.isclass(obj) and (
+        not hasattr(obj, '__init__') or 'initializes x; see ' in pydoc.getdoc(obj.__init__)
+    ):
         return '', ''
 
-    if not (isinstance(obj, collections.abc.Callable) or
-            hasattr(obj, '__argspec_is_invalid_')):
+    if not (isinstance(obj, collections.abc.Callable) or hasattr(obj, '__argspec_is_invalid_')):
         return
 
     if not hasattr(obj, '__doc__'):
@@ -98,11 +93,11 @@ def mangle_signature(app, what, name, obj, options, sig, retann):
 
     doc = SphinxDocString(pydoc.getdoc(obj))
     if doc['Signature']:
-        sig = re.sub("^[^(]*", "", doc['Signature'])
+        sig = re.sub('^[^(]*', '', doc['Signature'])
         return sig, ''
 
 
-def setup(app, get_doc_object_=get_doc_object):
+def setup(app, get_doc_object_=get_doc_object):  # noqa: D103
     if not hasattr(app, 'add_config_value'):
         return  # probably called by nose, better bail out
 
@@ -121,29 +116,29 @@ def setup(app, get_doc_object_=get_doc_object):
     app.add_domain(NumpyPythonDomain)
     app.add_domain(NumpyCDomain)
 
+
 # ------------------------------------------------------------------------------
 # Docstring-mangling domains
 # ------------------------------------------------------------------------------
 
-from docutils.statemachine import ViewList
-from sphinx.domains.c import CDomain
-from sphinx.domains.python import PythonDomain
+from docutils.statemachine import ViewList  # noqa: E402
+from sphinx.domains.c import CDomain  # noqa: E402
+from sphinx.domains.python import PythonDomain  # noqa: E402
 
 
-class ManglingDomainBase:
+class ManglingDomainBase:  # noqa: D101
     directive_mangling_map = {}
 
     def __init__(self, *a, **kw):
-        super(ManglingDomainBase, self).__init__(*a, **kw)
+        super().__init__(*a, **kw)
         self.wrap_mangling_directives()
 
-    def wrap_mangling_directives(self):
+    def wrap_mangling_directives(self):  # noqa: D102
         for name, objtype in list(self.directive_mangling_map.items()):
-            self.directives[name] = wrap_mangling_directive(
-                self.directives[name], objtype)
+            self.directives[name] = wrap_mangling_directive(self.directives[name], objtype)
 
 
-class NumpyPythonDomain(ManglingDomainBase, PythonDomain):
+class NumpyPythonDomain(ManglingDomainBase, PythonDomain):  # noqa: D101
     name = 'np'
     directive_mangling_map = {
         'function': 'function',
@@ -157,7 +152,7 @@ class NumpyPythonDomain(ManglingDomainBase, PythonDomain):
     indices = []
 
 
-class NumpyCDomain(ManglingDomainBase, CDomain):
+class NumpyCDomain(ManglingDomainBase, CDomain):  # noqa: D101
     name = 'np-c'
     directive_mangling_map = {
         'function': 'function',
@@ -168,7 +163,7 @@ class NumpyCDomain(ManglingDomainBase, CDomain):
     }
 
 
-def wrap_mangling_directive(base_directive, objtype):
+def wrap_mangling_directive(base_directive, objtype):  # noqa: D103
     class directive(base_directive):
         def run(self):
             env = self.state.document.settings.env

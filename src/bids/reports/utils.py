@@ -3,17 +3,15 @@
 Utilities to generate the MRI data acquisition portion of a
 methods section from a BIDS dataset.
 """
+
 import logging
 
-LOGGER = logging.getLogger("pybids.reports.utils")
+LOGGER = logging.getLogger('pybids.reports.utils')
 
 
 def reminder():
     """Remind users about things they need to do after generating the report."""
-    return (
-        "Remember to double-check everything and to replace <deg> with "
-        "a degree symbol."
-    )
+    return 'Remember to double-check everything and to replace <deg> with a degree symbol.'
 
 
 def remove_duplicates(seq):
@@ -34,7 +32,7 @@ def num_to_str(num):
         2.500 -> '2.5'
         3. -> '3'
     """
-    return "{0:0.02f}".format(num).rstrip("0").rstrip(".")
+    return f'{num:0.02f}'.rstrip('0').rstrip('.')
 
 
 def list_to_str(lst):
@@ -54,10 +52,10 @@ def list_to_str(lst):
     if len(lst) == 1:
         str_ = lst[0]
     elif len(lst) == 2:
-        str_ = " and ".join(lst)
+        str_ = ' and '.join(lst)
     elif len(lst) > 2:
-        str_ = ", ".join(lst[:-1])
-        str_ += ", and {0}".format(lst[-1])
+        str_ = ', '.join(lst[:-1])
+        str_ += f', and {lst[-1]}'
     else:
-        raise ValueError("List of length 0 provided.")
+        raise ValueError('List of length 0 provided.')
     return str_
