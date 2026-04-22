@@ -1,19 +1,18 @@
-"""
-Database-related functionality.
-"""
+"""Database-related functionality."""
 
-from upath import UPath as Path
 import re
 import sqlite3
 from functools import lru_cache
 
 import sqlalchemy as sa
+from upath import UPath as Path
 
 from bids.utils import listify
+
 from .models import Base, Config, LayoutInfo
 
 
-def get_database_file(path):
+def get_database_file(path):  # noqa: D103
     if path is not None:
         path = Path(path)
         database_file = path / 'layout_index.sqlite'
@@ -23,18 +22,15 @@ def get_database_file(path):
     return database_file
 
 
-class ConnectionManager:
-
-    def __init__(self, database_path=None, reset_database=False, config=None,
-                 init_args=None):
-
+class ConnectionManager:  # noqa: D101
+    def __init__(self, database_path=None, reset_database=False, config=None, init_args=None):
         self.database_file = get_database_file(database_path)
 
         # Determine if file exists before we create it in _get_engine()
         reset_database = (
-            reset_database or                # manual reset
-            self.database_file is None or    # in-memory DB
-            not self.database_file.exists()  # file hasn't been created yet
+            reset_database  # manual reset
+            or self.database_file is None  # in-memory DB
+            or not self.database_file.exists()  # file hasn't been created yet
         )
 
         self.engine = self._get_engine(self.database_file)
@@ -57,10 +53,12 @@ class ConnectionManager:
             # from being used again in a different thread and works best
             # with SQLite's coarse-grained file locking.
             from sqlalchemy.pool import NullPool
+
             engine = sa.create_engine(
-                'sqlite:///{dbfilepath}'.format(dbfilepath=database_file),
+                f'sqlite:///{database_file}',
                 connect_args={'check_same_thread': False},
-                poolclass=NullPool)
+                poolclass=NullPool,
+            )
         else:
             # https://docs.sqlalchemy.org/en/13/dialects/sqlite.html
             # Using a Memory Database in Multiple Threads
@@ -72,10 +70,12 @@ class ConnectionManager:
             # Pysqlite as False. Note that using a :memory: database in
             # multiple threads requires a recent version of SQLite.
             from sqlalchemy.pool import StaticPool
+
             engine = sa.create_engine(
                 'sqlite://',  # In memory database
                 connect_args={'check_same_thread': False},
-                poolclass=StaticPool)
+                poolclass=StaticPool,
+            )
 
         def regexp(expr, item):
             """Regex function for SQLite's REGEXP."""
@@ -89,17 +89,17 @@ class ConnectionManager:
         # Do not remove this decorator!!! An in-line create_function call will
         # work when using an in-memory SQLite DB, but fails when using a file.
         # For more details, see https://stackoverflow.com/questions/12461814/
-        @sa.event.listens_for(engine, "begin")
+        @sa.event.listens_for(engine, 'begin')
         def do_begin(conn):
             conn.connection.create_function('regexp', 2, regexp)
 
         return engine
 
     @classmethod
-    def exists(cls, database_path):
+    def exists(cls, database_path):  # noqa: D102
         return get_database_file(database_path).exists()
 
-    def reset_database(self, init_args, config):
+    def reset_database(self, init_args, config):  # noqa: D102
         Base.metadata.drop_all(self.engine)
         Base.metadata.create_all(self.engine)
         # Add LayoutInfo record
@@ -128,6 +128,7 @@ class ConnectionManager:
         replace_connection : bool, optional
             If True, returns a new ConnectionManager that points to the newly
             created database. If False, returns the current instance.
+
         """
         database_file = get_database_file(database_path)
         new_db = sqlite3.connect(str(database_file))
@@ -145,16 +146,15 @@ class ConnectionManager:
             return self
 
     @property
-    def session(self):
+    def session(self):  # noqa: D102
         if self._session is None:
             self.reset_session()
         return self._session
 
     @property
-    @lru_cache()
-    def layout_info(self):
+    @lru_cache  # noqa: B019
+    def layout_info(self):  # noqa: D102
         return self.session.query(LayoutInfo).first()
-
 
     def reset_session(self):
         """Force a new session."""
