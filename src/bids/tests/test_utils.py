@@ -87,9 +87,11 @@ def test_collect_schema_latest_and_stable(mock_load_schema):
 
 
 @patch.object(utils, "_allowed_bids_versions", return_value=None)
+@patch("requests.head")
 @patch("bidsschematools.schema.load_schema")
-def test_collect_schema_allowed_versions_none(mock_load_schema, mock_allowed):
+def test_collect_schema_allowed_versions_none(mock_load_schema, mock_head, mock_allowed):
     """If _allowed_bids_versions returns None, collect_schema should proceed without filtering."""
+    mock_head.return_value = DummyResponse(status_code=200)
     collect_schema(bids_version="1.11.1")
     mock_load_schema.assert_called_once()
 

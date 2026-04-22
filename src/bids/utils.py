@@ -286,14 +286,28 @@ def collect_schema(
         if not version:
             raise ValueError(f"Unable to determine version from bids_version={bids_version}")
 
-        # Validate numeric version against available releases (>= 1.8.0); fail gracefully on timeout
+        # Validate numeric version against available releases (>= 1.8.0).
+        # If release lookup is unavailable, validate the specific schema URL directly.
         if version not in ("latest", "stable"):
             allowed = _allowed_bids_versions()
-            if allowed is not None and version.lstrip("v") not in allowed:
-                raise ValueError(
-                    f"bids_version {bids_version!r} (resolved to {version!r}) is not an available "
-                    f"BIDS release >= 1.8.0. Available: {', '.join(sorted(allowed))}"
-                )
+            if allowed is not None:
+                if version.lstrip("v") not in allowed:
+                    raise ValueError(
+                        f"bids_version {bids_version!r} (resolved to {version!r}) is not an available "
+                        f"BIDS release >= 1.8.0. Available: {', '.join(sorted(allowed))}"
+                    )
+            else:
+                probe_uri = f"https://bids-specification.readthedocs.io/en/{version}/schema.json"
+                try:
+                    response = requests.head(probe_uri, timeout=5, allow_redirects=True)
+                except requests.RequestException:
+                    response = None
+
+                if response is not None and response.status_code >= 400:
+                    raise ValueError(
+                        f"bids_version {bids_version!r} (resolved to {version!r}) did not resolve "
+                        f"to an available schema at {probe_uri!r} (status {response.status_code})."
+                    )
 
         uri = f"https://bids-specification.readthedocs.io/en/{version}/schema.json"
     if uri is None:
