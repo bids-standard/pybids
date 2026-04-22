@@ -1,7 +1,7 @@
 Changelog
 =========
 
-Version 0.22.0 (March 11, 2026)
+Version 0.22.0 (April 22, 2026)
 -------------------------------
 
 New feature release in the 0.22.x series.
@@ -33,6 +33,8 @@ The following dependencies have been updated to new minimum versions:
 * DOC: Fix documentation deployment (#1224)
 * MNT: Add Python 3.14 tests (#1175)
 * MNT: Skip pre-release checks on unlabeled PRs (#1188)
+* MNT: Format with Ruff  (#1231)
+* MNT: Dependabot updates (#1232, #1233, #1234, #1236, #1237, #1238, #1239, #1240, #1242)
 
 Version 0.21.0 (October 16, 2025)
 ---------------------------------
