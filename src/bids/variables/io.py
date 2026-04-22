@@ -1,23 +1,30 @@
-""" Tools for reading/writing BIDS data files. """
+"""Tools for reading/writing BIDS data files."""
 
-import warnings
 import json
+import warnings
 
 import numpy as np
 import pandas as pd
 
 from bids.utils import listify
-from .entities import NodeIndex
-from .variables import SparseRunVariable, DenseRunVariable, SimpleVariable
 
+from .entities import NodeIndex
+from .variables import DenseRunVariable, SimpleVariable, SparseRunVariable
 
 BASE_ENTITIES = ['subject', 'session', 'task', 'run']
 ALL_ENTITIES = BASE_ENTITIES + ['datatype', 'suffix', 'acquisition']
 
 
-def load_variables(layout, types=None, levels=None, skip_empty=True,
-                   dataset=None, scope='all', regex_search=None,
-                   **kwargs):
+def load_variables(  # noqa: D417
+    layout,
+    types=None,
+    levels=None,
+    skip_empty=True,
+    dataset=None,
+    scope='all',
+    regex_search=None,
+    **kwargs,
+):
     """A convenience wrapper for one or more load_*_variables() calls.
 
     Parameters
@@ -59,10 +66,9 @@ def load_variables(layout, types=None, levels=None, skip_empty=True,
     >>> load_variables(layout, ['events', 'physio'], subject='01')  # doctest: +SKIP
     # returns all variables stored in _events.tsv and _physio.tsv.gz files
     # for runs that belong to subject with id '01'.
-    """
 
-    TYPES = ['events', 'physio', 'stim', 'scans', 'participants', 'sessions',
-             'regressors']
+    """
+    TYPES = ['events', 'physio', 'stim', 'scans', 'participants', 'sessions', 'regressors']
 
     types = listify(types)
 
@@ -73,35 +79,37 @@ def load_variables(layout, types=None, levels=None, skip_empty=True,
                 'run': ['events', 'physio', 'stim', 'regressors'],
                 'session': ['scans'],
                 'subject': ['sessions', 'scans'],
-                'dataset': ['participants']
+                'dataset': ['participants'],
             }
-            [types.extend(lev_map[l.lower()]) for l in listify(levels)]
+            [types.extend(lev_map[l.lower()]) for l in listify(levels)]  # noqa: E741
         else:
             types = TYPES
 
     bad_types = set(types) - set(TYPES)
     if bad_types:
-        raise ValueError("Invalid variable types: %s" % bad_types)
+        raise ValueError('Invalid variable types: %s' % bad_types)  # noqa: UP031
 
     dataset = dataset or NodeIndex()
 
     run_types = list({'events', 'physio', 'stim', 'regressors'} - set(types))
-    type_flags = {t: False for t in run_types}
+    type_flags = dict.fromkeys(run_types, False)
     if len(type_flags) < 4:
         _kwargs = kwargs.copy()
         _kwargs.update(type_flags)
         dataset = _load_time_variables(layout, dataset, scope=scope, **_kwargs)
 
-    for t in ({'scans', 'sessions', 'participants'} & set(types)):
-        kwargs.pop('suffix', None) # suffix is always one of values above
-        dataset = _load_tsv_variables(layout, t, dataset, scope=scope,
-                                      regex_search=regex_search, **kwargs)
+    for t in {'scans', 'sessions', 'participants'} & set(types):
+        kwargs.pop('suffix', None)  # suffix is always one of values above
+        dataset = _load_tsv_variables(
+            layout, t, dataset, scope=scope, regex_search=regex_search, **kwargs
+        )
 
     return dataset
 
 
 def _get_nvols(img_f):
     import nibabel as nb
+
     img = nb.load(img_f)
     nvols = 0
     if isinstance(img, nb.Nifti1Pair):
@@ -112,19 +120,29 @@ def _get_nvols(img_f):
                 nvols = ax.size
                 break
         else:
-            raise ValueError("No series axis found in %s" % img_f)
+            raise ValueError('No series axis found in %s' % img_f)  # noqa: UP031
     elif isinstance(img, nb.GiftiImage):
         nvols = len(img.get_arrays_from_intent('time series'))
     else:
-        raise ValueError("Unknown image type %s: %s" % img.__class__, img_f)
+        raise ValueError('Unknown image type %s: %s' % img.__class__, img_f)  # noqa: UP031
 
     return nvols
 
 
-def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
-                         drop_na=True, events=True, physio=True, stim=True,
-                         regressors=True, skip_empty=True, scope='all',
-                         **selectors):
+def _load_time_variables(  # noqa: D417
+    layout,
+    dataset=None,
+    columns=None,
+    scan_length=None,
+    drop_na=True,
+    events=True,
+    physio=True,
+    stim=True,
+    regressors=True,
+    skip_empty=True,
+    scope='all',
+    **selectors,
+):
     """Loads all variables found in *_events.tsv files and returns them as a
     BIDSVariableCollection.
 
@@ -169,8 +187,8 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
     Returns
     -------
     A NodeIndex instance.
-    """
 
+    """
     # Extract any non-keyword arguments
     selectors = selectors.copy()
 
@@ -183,11 +201,10 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
     images = layout.get(return_type='object', scope=scope, extension=exts, **selectors)
 
     if not images:
-        raise ValueError("No functional images that match criteria found.")
+        raise ValueError('No functional images that match criteria found.')
 
     # Main loop over images
     for img_obj in images:
-
         img_f = img_obj.path
 
         # Run is not mandatory, but we need it to behave like an int and not
@@ -198,7 +215,7 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
         if 'run' in entities:
             entities['run'] = int(entities['run'])
 
-        tr = img_obj.get_metadata()["RepetitionTime"]
+        tr = img_obj.get_metadata()['RepetitionTime']
 
         # Get duration of run: first try to get it directly from the image
         # header; if that fails, look for a scan_length argument.
@@ -210,10 +227,12 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
                 duration = scan_length
                 nvols = int(np.rint(scan_length / tr))
             else:
-                msg = ("Unable to extract scan duration from one or more "
-                       "BOLD runs, and no scan_length argument was provided "
-                       "as a fallback. Please check that the image files are "
-                       "available, or manually specify the scan duration.")
+                msg = (
+                    'Unable to extract scan duration from one or more '
+                    'BOLD runs, and no scan_length argument was provided '
+                    'as a fallback. Please check that the image files are '
+                    'available, or manually specify the scan duration.'
+                )
                 raise ValueError(msg) from e
 
         # We don't want to pass all the image file's entities onto get_node(),
@@ -224,17 +243,18 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
         # TODO: one downside of this approach is the stripped entities also
         # won't be returned in the resulting node due to the way things are
         # implemented. Consider adding a flag to control this.
-        select_on = {k: v for (k, v) in entities.items()
-                     if k in BASE_ENTITIES or k in selectors}
+        select_on = {k: v for (k, v) in entities.items() if k in BASE_ENTITIES or k in selectors}
 
         # If a matching node already exists, return it
         result = dataset.get_nodes('run', select_on)
 
         if result:
             if len(result) > 1:
-                raise ValueError("More than one existing Node matches the "
-                                 "specified entities! You may need to pass "
-                                 "additional selectors to narrow the search.")
+                raise ValueError(
+                    'More than one existing Node matches the '
+                    'specified entities! You may need to pass '
+                    'additional selectors to narrow the search.'
+                )
             run = result[0]
 
         else:
@@ -250,37 +270,47 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
                 for (k, v) in entities.items()
             }
 
-            run = dataset.create_node('run', entities, image_file=img_f,
-                                      duration=duration, repetition_time=tr,
-                                      n_vols=nvols)
+            run = dataset.create_node(
+                'run',
+                entities,
+                image_file=img_f,
+                duration=duration,
+                repetition_time=tr,
+                n_vols=nvols,
+            )
         run_info = run.get_info()
 
         # Process event files
         if events:
             dfs = layout.get_nearest(
-                img_f, extension='.tsv', suffix='events', all_=True,
-                full_search=True, ignore_strict_entities=['suffix', 'extension'])
+                img_f,
+                extension='.tsv',
+                suffix='events',
+                all_=True,
+                full_search=True,
+                ignore_strict_entities=['suffix', 'extension'],
+            )
             for _data in dfs:
                 _data = pd.read_csv(_data, sep='\t')
                 if 'amplitude' in _data.columns:
-                    if (_data['amplitude'].astype(int) == 1).all() and \
-                            'trial_type' in _data.columns:
-                        msg = ("Column 'amplitude' with constant value 1 "
-                               "is unnecessary in event files; ignoring it.")
+                    if (
+                        _data['amplitude'].astype(int) == 1
+                    ).all() and 'trial_type' in _data.columns:
+                        msg = (
+                            "Column 'amplitude' with constant value 1 "
+                            'is unnecessary in event files; ignoring it.'
+                        )
                         _data = _data.drop('amplitude', axis=1)
                     else:
-                        msg = ("Column name 'amplitude' is reserved; "
-                               "renaming it to 'amplitude_'.")
-                        _data = _data.rename(
-                            columns={'amplitude': 'amplitude_'})
-                    warnings.warn(msg)
+                        msg = "Column name 'amplitude' is reserved; renaming it to 'amplitude_'."
+                        _data = _data.rename(columns={'amplitude': 'amplitude_'})
+                    warnings.warn(msg)  # noqa: B028
 
                 # Pandas already converts 'n/a' to NaN. Leaving this comment
                 # because we used to do it manually here.
                 # We also converted to numeric, but this is now irrelevant.
 
-                _cols = columns or list(set(_data.columns.tolist()) -
-                                        {'onset', 'duration'})
+                _cols = columns or list(set(_data.columns.tolist()) - {'onset', 'duration'})
 
                 # Construct a DataFrame for each extra column
                 for col in _cols:
@@ -299,27 +329,29 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
                     if df.empty:
                         continue
 
-                    var = SparseRunVariable(
-                        name=col, data=df, run_info=run_info, source='events')
+                    var = SparseRunVariable(name=col, data=df, run_info=run_info, source='events')
                     run.add_variable(var)
 
         # Process confound files
         if regressors:
-            sub_ents = {k: v for k, v in entities.items()
-                        if k in BASE_ENTITIES}
-            confound_files = layout.get(suffix=['regressors', 'timeseries'],
-                                        scope=scope, extension='.tsv',
-                                        **sub_ents)
+            sub_ents = {k: v for k, v in entities.items() if k in BASE_ENTITIES}
+            confound_files = layout.get(
+                suffix=['regressors', 'timeseries'], scope=scope, extension='.tsv', **sub_ents
+            )
             for cf in confound_files:
                 _data = pd.read_csv(cf.path, sep='\t', na_values='n/a')
                 if columns is not None:
                     conf_cols = list(set(_data.columns) & set(columns))
                     _data = _data.loc[:, conf_cols]
                 for col in _data.columns:
-                    sr = 1. / run.repetition_time
-                    var = DenseRunVariable(name=col, values=_data[[col]],
-                                           run_info=run_info, source='regressors',
-                                           sampling_rate=sr)
+                    sr = 1.0 / run.repetition_time
+                    var = DenseRunVariable(
+                        name=col,
+                        values=_data[[col]],
+                        run_info=run_info,
+                        source='regressors',
+                        sampling_rate=sr,
+                    )
                     run.add_variable(var)
 
         # Process recordinging files
@@ -331,12 +363,17 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
 
         if rec_types:
             rec_files = layout.get_nearest(
-                img_f, extension='.tsv.gz', all_=True, suffix=rec_types,
-                ignore_strict_entities=['suffix', 'extension'], full_search=True)
+                img_f,
+                extension='.tsv.gz',
+                all_=True,
+                suffix=rec_types,
+                ignore_strict_entities=['suffix', 'extension'],
+                full_search=True,
+            )
             for rf in rec_files:
                 metadata = layout.get_metadata(rf)
                 if not metadata:
-                    raise ValueError("No .json sidecar found for '%s'." % rf)
+                    raise ValueError("No .json sidecar found for '%s'." % rf)  # noqa: UP031
                 data = pd.read_csv(rf, sep='\t')
                 freq = metadata['SamplingFrequency']
                 st = metadata['StartTime']
@@ -374,15 +411,27 @@ def _load_time_variables(layout, dataset=None, columns=None, scan_length=None,
                 df = pd.DataFrame(values, columns=rf_cols)
                 source = 'physio' if '_physio.tsv' in rf else 'stim'
                 for col in df.columns:
-                    var = DenseRunVariable(name=col, values=df[[col]], run_info=run_info,
-                                           source=source, sampling_rate=freq)
+                    var = DenseRunVariable(
+                        name=col,
+                        values=df[[col]],
+                        run_info=run_info,
+                        source=source,
+                        sampling_rate=freq,
+                    )
                     run.add_variable(var)
     return dataset
 
 
-def _load_tsv_variables(layout, suffix, dataset=None, columns=None,
-                        prepend_type=False, scope='all', regex_search=None,
-                        **selectors):
+def _load_tsv_variables(  # noqa: D417
+    layout,
+    suffix,
+    dataset=None,
+    columns=None,
+    prepend_type=False,
+    scope='all',
+    regex_search=None,
+    **selectors,
+):
     """Reads variables from scans.tsv, sessions.tsv, and participants.tsv.
 
     Parameters
@@ -412,6 +461,7 @@ def _load_tsv_variables(layout, suffix, dataset=None, columns=None,
     Returns
     -------
     A NodeIndex instance.
+
     """
     if regex_search is None:
         regex_search = layout.regex_search
@@ -420,7 +470,7 @@ def _load_tsv_variables(layout, suffix, dataset=None, columns=None,
     valid_entities_map = {
         'scans': ['subject', 'session'],
         'sessions': ['subject'],
-        'participants': []
+        'participants': [],
     }
     valid_entities = valid_entities_map[suffix]
     layout_kwargs = {k: v for k, v in selectors.items() if k in valid_entities}
@@ -428,11 +478,9 @@ def _load_tsv_variables(layout, suffix, dataset=None, columns=None,
     if dataset is None:
         dataset = NodeIndex()
 
-    files = layout.get(extension='.tsv', suffix=suffix, scope=scope,
-                       **layout_kwargs)
+    files = layout.get(extension='.tsv', suffix=suffix, scope=scope, **layout_kwargs)
 
     for f in files:
-
         _data = f.get_df(include_timing=False)
 
         # Entities can be defined either within the first column of the .tsv
@@ -447,7 +495,6 @@ def _load_tsv_variables(layout, suffix, dataset=None, columns=None,
         # Handling is a bit more convoluted for scans.tsv, because the first
         # column contains the run filename, which we also need to parse.
         if suffix == 'scans':
-
             # Suffix is guaranteed to be present in each filename, so drop the
             # constant column with value 'scans' to make way for it and prevent
             # two 'suffix' columns.
@@ -457,8 +504,7 @@ def _load_tsv_variables(layout, suffix, dataset=None, columns=None,
             _data = _data.drop('filename', axis=1)
             dn = f._dirname
             paths = [str(dn / p) for p in image.values]
-            ent_recs = [dict(layout.files[p].entities) for p in paths
-                        if p in layout.files]
+            ent_recs = [dict(layout.files[p].entities) for p in paths if p in layout.files]
             ent_cols = pd.DataFrame.from_records(ent_recs)
 
             # Remove entity columns found in both DFs
@@ -479,13 +525,13 @@ def _load_tsv_variables(layout, suffix, dataset=None, columns=None,
             _data['subject'] = _data['subject'].str.replace('sub-', '')
 
         def make_patt(x, regex_search=False):
-            patt = '%s' % x
+            patt = '%s' % x  # noqa: UP031
             if isinstance(x, (int, float)):
                 # allow for leading zeros if a number was specified
                 # regardless of regex_search
                 patt = '0*' + patt
             if not regex_search:
-                patt = '^%s$' % patt
+                patt = '^%s$' % patt  # noqa: UP031
             return patt
 
         # Filter rows on all selectors
@@ -498,8 +544,7 @@ def _load_tsv_variables(layout, suffix, dataset=None, columns=None,
             else:
                 _data = _data[_data[col].isin(vals)]
 
-        level = {'scans': 'session', 'sessions': 'subject',
-                 'participants': 'dataset'}[suffix]
+        level = {'scans': 'session', 'sessions': 'subject', 'participants': 'dataset'}[suffix]
 
         node = dataset.get_or_create_node(level, f.entities)
 
@@ -510,13 +555,12 @@ def _load_tsv_variables(layout, suffix, dataset=None, columns=None,
             amp_cols = list(set(amp_cols) & set(columns))
 
         for col_name in amp_cols:
-
             # Rename columns: values must be in 'amplitude'
             df = _data.loc[:, [col_name] + ent_cols]
             df.columns = ['amplitude'] + ent_cols
 
             if prepend_type:
-                col_name = '%s.%s' % (suffix, col_name)
+                col_name = '%s.%s' % (suffix, col_name)  # noqa: UP031
 
             node.add_variable(SimpleVariable(name=col_name, data=df, source=suffix))
 

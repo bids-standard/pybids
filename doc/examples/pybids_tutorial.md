@@ -63,7 +63,7 @@ The utility of the `BIDSLayout` would be pretty limited if all we could do was r
 layout.get(subject='01', extension='nii.gz', suffix='bold', return_type='filename')
 ```
 
-If you're wondering what entities you can pass in as filtering arguments, the answer is contained in the `.json` configuration files [housed here](https://github.com/bids-standard/pybids/tree/master/src/bids/layout/config). To save you the trouble, here are a few of the most common entities:
+If you're wondering what entities you can pass in as filtering arguments, the answer is contained in the `.json` configuration files [housed here](https://github.com/bids-standard/pybids/tree/main/src/bids/layout/config). To save you the trouble, here are a few of the most common entities:
 
 * `suffix`: The part of a BIDS filename just before the extension (e.g., `'bold'`, `'events'`, `'physio'`, etc.).
 * `subject`: The subject label
@@ -232,7 +232,7 @@ Note that in the above example, we set `validate=False` to ensure that the stand
 
 ### Loading derivatives
 
-By default, `BIDSLayout` objects are initialized without scanning contained `derivatives/` directories. But you can easily ensure that all derivatives files are loaded and endowed with the extra structure specified in the [derivatives config file](https://github.com/bids-standard/pybids/blob/master/src/bids/layout/config/derivatives.json):
+By default, `BIDSLayout` objects are initialized without scanning contained `derivatives/` directories. But you can easily ensure that all derivatives files are loaded and endowed with the extra structure specified in the [derivatives config file](https://github.com/bids-standard/pybids/blob/main/src/bids/layout/config/derivatives.json):
 
 ```{code-cell} ipython3
 # Define paths to root and derivatives folders

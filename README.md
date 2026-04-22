@@ -2,7 +2,7 @@
 [![DOI](https://joss.theoj.org/papers/10.21105/joss.01294/status.svg)](https://doi.org/10.21105/joss.01294)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.2537312.svg)](https://doi.org/10.5281/zenodo.2537312)
 
-[![Binder](https://mybinder.org/badge.svg)](https://mybinder.org/v2/gh/bids-standard/pybids/master)
+[![Binder](https://mybinder.org/badge.svg)](https://mybinder.org/v2/gh/bids-standard/pybids/main)
 [![PyPI version](https://badge.fury.io/py/pybids.svg)](https://badge.fury.io/py/pybids)
 [![Conda version](https://img.shields.io/conda/vn/conda-forge/pybids)](https://anaconda.org/conda-forge/pybids)
 
@@ -21,7 +21,7 @@ Or, alternatively via conda:
 
 > conda install -c conda-forge pybids
 
-If you want to live on the bleeding edge, you can install from master:
+If you want to live on the bleeding edge, you can install from main:
 
 > pip install git+https://github.com/bids-standard/pybids.git
 
@@ -31,7 +31,7 @@ PyBIDS has a number of dependencies. The core querying functionality requires on
 ## Usage
 Get started by checking out [the documentation](https://bids-standard.github.io/pybids)!
 
-Or you can start at [our tutorial](https://bids-standard.github.io/pybids/examples/pybids_tutorial.html)! You can run it interactively without installing anything via [binder](https://mybinder.org/v2/gh/bids-standard/pybids/master). Click on the link and then navigate to `doc/examples/pybids_tutorial.md` to explore.
+Or you can start at [our tutorial](https://bids-standard.github.io/pybids/examples/pybids_tutorial.html)! You can run it interactively without installing anything via [binder](https://mybinder.org/v2/gh/bids-standard/pybids/main). Click on the link and then navigate to `doc/examples/pybids_tutorial.md` to explore.
 
 ## Development and testing
 PyBIDS uses [tox](https://tox.wiki/) to manage testing environments and ensure that the same

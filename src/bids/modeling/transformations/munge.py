@@ -1,19 +1,21 @@
-"""
-Transformations that primarily involve manipulating/munging variables into
+"""Transformations that primarily involve manipulating/munging variables into
 other formats or shapes.
 """
 
-import numpy as np
-import pandas as pd
+import re
+
 # Might not be needed since python 3.7
 # See https://github.com/bids-standard/pybids/issues/423 for more info
 from collections import OrderedDict as odict
 
-from bids.utils import listify
-from .base import Transformation
+import numpy as np
+import pandas as pd
 from formulaic import model_matrix
-import re
+
+from bids.utils import listify
 from bids.variables import DenseRunVariable, SimpleVariable
+
+from .base import Transformation
 
 
 class Assign(Transformation):
@@ -26,37 +28,39 @@ class Assign(Transformation):
     _return_type = 'variable'
     _allow_categorical = ('variables', 'target')
 
-    def _transform(self, input, target, input_attr='amplitude',
-                   target_attr='amplitude'):
-
+    def _transform(self, input, target, input_attr='amplitude', target_attr='amplitude'):  # noqa: A002
         # assign only makes sense for sparse variables; dense variables don't
         # have durations or onsets, and amplitudes can be copied by cloning
         if isinstance(input, DenseRunVariable):
-            raise ValueError("The 'assign' transformation can only be applied"
-                             " to sparsely-coded event types. The input "
-                             "variable (%s) is dense." % input.name)
+            raise ValueError(
+                "The 'assign' transformation can only be applied"  # noqa: UP031
+                ' to sparsely-coded event types. The input '
+                'variable (%s) is dense.' % input.name
+            )
 
         target = self.collection.variables[target].clone()
         if isinstance(target, DenseRunVariable):
-            raise ValueError("The 'assign' transformation can only be applied"
-                             " to sparsely-coded event types. The target "
-                             "variable (%s) is dense." % target.name)
+            raise ValueError(
+                "The 'assign' transformation can only be applied"  # noqa: UP031
+                ' to sparsely-coded event types. The target '
+                'variable (%s) is dense.' % target.name
+            )
 
         # Ensure attributes are valid
         valid_attrs = ['amplitude', 'duration', 'onset']
         if input_attr not in valid_attrs:
-            raise ValueError("Valid values for input_attr are: %s." %
-                             valid_attrs)
+            raise ValueError('Valid values for input_attr are: %s.' % valid_attrs)  # noqa: UP031
         if target_attr not in valid_attrs:
-            raise ValueError("Valid values for target_attr are: %s." %
-                             valid_attrs)
+            raise ValueError('Valid values for target_attr are: %s.' % valid_attrs)  # noqa: UP031
 
         # variables must have same number of events, but do *not* need to have
         # aligned onsets.
         l_s, l_t = len(input.values), len(target.values)
         if l_s != l_t:
-            raise ValueError("Input and target variables do not contain the "
-                             "same number of events (%d vs. %d)." % (l_s, l_t))
+            raise ValueError(
+                'Input and target variables do not contain the '  # noqa: UP031
+                'same number of events (%d vs. %d).' % (l_s, l_t)
+            )
 
         if input_attr.startswith('amplitude'):
             vals = input.values.values
@@ -78,6 +82,7 @@ class Copy(Transformation):
     ----------
     col : str
         Name of variable to copy.
+
     """
 
     _groupable = False
@@ -96,7 +101,9 @@ class Delete(Transformation):
     ----------
     variables : list or str
         Name(s) of variables to delete.
+
     """
+
     _groupable = False
     _loopable = False
     _input_type = 'variable'
@@ -104,36 +111,32 @@ class Delete(Transformation):
     _allow_categorical = ('variables',)
 
     def _transform(self, variables):
-        variables = set([v.name for v in variables])
-        self.collection.variables = {k: v for k, v in
-                                     self.collection.variables.items()
-                                     if k not in variables}
+        variables = set([v.name for v in variables])  # noqa: C403
+        self.collection.variables = {
+            k: v for k, v in self.collection.variables.items() if k not in variables
+        }
 
 
-class DropNA(Transformation):
-
+class DropNA(Transformation):  # noqa: D101
     _groupable = False
     _input_type = 'variable'
     _return_type = 'variable'
     _allow_categorical = ('variables',)
 
     def _transform(self, var):
-
         # Identify non-NA rows
         valid = var.values.notna().values
         var.select_rows(valid)
         return var
 
 
-class Factor(Transformation):
-
+class Factor(Transformation):  # noqa: D101
     _groupable = False
     _input_type = 'variable'
     _return_type = 'variable'
     _allow_categorical = ('variables',)
 
     def _transform(self, var, constraint='none', ref_level=None, sep='.'):
-
         result = []
         data = var.to_df()
         orig_name = var.name
@@ -149,7 +152,7 @@ class Factor(Transformation):
 
             if constraint == 'mean_zero':
                 ref_inds = data['amplitude'] == ref_level
-                new_cols.loc[ref_inds, :] = -1. / (len(levels) - 1)
+                new_cols.loc[ref_inds, :] = -1.0 / (len(levels) - 1)
 
         for lev in levels:
             if ref_level is not None and lev == ref_level:
@@ -176,11 +179,10 @@ class Filter(Transformation):
     _input_type = 'variable'
     _return_type = 'variable'
     _aligned_required = 'force_dense'
-    _aligned_variables = ('by')
+    _aligned_variables = 'by'
     _allow_categorical = ('variables', 'by')
 
     def _transform(self, var, query, by=None):
-
         if by is None:
             by = []
 
@@ -194,8 +196,7 @@ class Filter(Transformation):
         for k, v in name_map.items():
             query = query.replace(k, v)
 
-        data = pd.concat([self.collection[n].values for n in names],
-                         axis=1, sort=True)
+        data = pd.concat([self.collection[n].values for n in names], axis=1, sort=True)
         # Make sure we can use integer index
         data = data.reset_index(drop=True)
         data.columns = list(name_map.values())
@@ -217,8 +218,9 @@ class Group(Transformation):
 
     def _transform(self, variables, name):
         if name in self.variables:
-            raise ValueError("Variable group name '{}' conflicts with an "
-                             "existing variable name!".format(name))
+            raise ValueError(
+                f"Variable group name '{name}' conflicts with an existing variable name!"
+            )
         self.collection.groups[name] = [v.name for v in variables]
 
 
@@ -229,7 +231,9 @@ class Rename(Transformation):
     ----------
     var : str
         Name of existing variable to rename.
+
     """
+
     _groupable = False
     _output_required = True
     _input_type = 'variable'
@@ -244,13 +248,13 @@ class Rename(Transformation):
 
 class Replace(Transformation):
     """Replace values in the values, onset, or duration attributes."""
+
     _groupable = False
     _input_type = 'variable'
     _return_type = 'variable'
     _allow_categorical = ('variables',)
 
     def _transform(self, var, replace, attribute='value'):
-
         if attribute == 'value':
             var.values = var.values.replace(replace)
         elif attribute == 'onset':
@@ -258,8 +262,7 @@ class Replace(Transformation):
         elif attribute == 'duration':
             var.duration = pd.Series(var.duration).replace(replace).values
         else:
-            raise ValueError("Invalid attribute. Must be one of 'value',"
-                             "'onset', or 'duration'.")
+            raise ValueError("Invalid attribute. Must be one of 'value','onset', or 'duration'.")
 
         return var
 
@@ -272,7 +275,9 @@ class Select(Transformation):
     variables : list or str
         Name(s) of variables to retain. All variables
         not in the list will be dropped from the collection.
+
     """
+
     _groupable = False
     _loopable = False
     _input_type = 'variable'
@@ -291,6 +296,7 @@ class Split(Transformation):
     ----------
     by : str or list
         Name(s) of variable(s) to split on.
+
     """
 
     _variables_used = ('variables', 'by')
@@ -302,7 +308,6 @@ class Split(Transformation):
     _sync_kwargs = False
 
     def _transform(self, var, by):
-
         if not isinstance(var, SimpleVariable):
             self._densify_variables()
 
@@ -310,9 +315,10 @@ class Split(Transformation):
         # 'by' can be either regular variables, or entities in the index--so
         # we need to check both places.
         all_variables = self._variables
-        by_variables = [all_variables[v].values if v in all_variables
-                        else var.index[v].reset_index(drop=True)
-                        for v in listify(by)]
+        by_variables = [
+            all_variables[v].values if v in all_variables else var.index[v].reset_index(drop=True)
+            for v in listify(by)
+        ]
         group_data = pd.concat(by_variables, axis=1, sort=True)
         group_data.columns = listify(by)
 
@@ -339,7 +345,8 @@ class ToDense(Transformation):
 
 
 class Resample(Transformation):
-    """ Frequency concersion and resampling of variable """
+    """Frequency concersion and resampling of variable"""
+
     _groupable = False
     _input_type = 'variable'
     _return_type = 'variable'

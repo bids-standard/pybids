@@ -1,24 +1,23 @@
-"""Base Transformation class and associated utilities. """
+"""Base Transformation class and associated utilities."""
 
+import inspect
+import itertools
 import re
 import warnings
 from abc import ABCMeta, abstractmethod
 from copy import deepcopy
-import itertools
-import inspect
 from dataclasses import dataclass
 
 import numpy as np
 import pandas as pd
 
-from bids.utils import listify, convert_JSON
-from bids.variables import SparseRunVariable
 from bids.modeling import transformations as pbt
+from bids.utils import convert_JSON, listify
+from bids.variables import SparseRunVariable
 from bids.variables.collections import BIDSVariableCollection
 
 
-class Transformation(metaclass=ABCMeta):
-
+class Transformation(metaclass=ABCMeta):  # noqa: D101
     ### Class-level settings ###
     # The following settings govern the way Transformations are applied to the
     # data. The default settings can be overridden within subclasses.
@@ -98,14 +97,15 @@ class Transformation(metaclass=ABCMeta):
     # every input variable.
     _sync_kwargs = True
 
-    def __new__(cls, collection, variables, *args, **kwargs):
-        t = super(Transformation, cls).__new__(cls)
+    def __new__(cls, collection, variables, *args, **kwargs):  # noqa: D102
+        t = super().__new__(cls)
         t._setup(collection, variables, *args, **kwargs)
         return t.transform()
 
     def _setup(self, collection, variables, *args, **kwargs):
         """Replaces __init__ to set instance attributes because on Python
-        >= 3.3, we can't override both new and init. """
+        >= 3.3, we can't override both new and init.
+        """
         self.collection = collection
         self.variables = listify(variables)
         self.groupby = kwargs.pop('groupby', None)
@@ -131,15 +131,14 @@ class Transformation(metaclass=ABCMeta):
                 if not isinstance(v, list):
                     self.kwargs[k] = [v] * len(self.variables)
                 elif not len(self.kwargs[k]) == len(self.variables):
-                    raise ValueError("Length of {} must match length of "
-                                     "variables".format(k))
+                    raise ValueError(f'Length of {k} must match length of variables')
 
         # Expand any detected variable group names or wild cards
         self._expand_variable_groups()
         self._expand_variable_names()
 
     def _expand_variable_groups(self):
-        """ Replace any detected variable groups with the associated lists of
+        """Replace any detected variable groups with the associated lists of
         variable names.
         """
         groups = self.collection.groups
@@ -148,7 +147,9 @@ class Transformation(metaclass=ABCMeta):
 
     def _expand_variable_names(self):
         """Filter all available arguments against collection's variables using
-        unix-style pattern matching."""
+        unix-style pattern matching.
+        """
+
         def _replace_arg_values(values):
             is_iter = isinstance(values, (list, tuple))
             values = listify(values)
@@ -174,11 +175,10 @@ class Transformation(metaclass=ABCMeta):
 
     def _clone_variables(self):
         """Deep copy all variables the transformation touches. This prevents us
-        from unnecessarily overwriting existing variables. """
-
+        from unnecessarily overwriting existing variables.
+        """
         # Always clone the target variables
-        self._variables = {v: self.collection[v].clone()
-                           for v in self.variables}
+        self._variables = {v: self.collection[v].clone() for v in self.variables}
 
         if not self._variables_used:
             return
@@ -188,38 +188,40 @@ class Transformation(metaclass=ABCMeta):
             for v in listify(self.kwargs.get(var, [])):
                 # Kludge: we need to allow entity variables to be passed as
                 # names even though they don't exist as separate variables
-                if (v not in self.collection.variables and
-                        v in ['task', 'run', 'session', 'subject']):
+                if v not in self.collection.variables and v in [
+                    'task',
+                    'run',
+                    'session',
+                    'subject',
+                ]:
                     continue
                 self._variables[v] = deepcopy(self.collection[v])
 
     def _check_categorical_variables(self):
-        """Convert categorical variables to dummy-coded indicators. """
-
+        """Convert categorical variables to dummy-coded indicators."""
         # Collect variable names to pass through
         pass_thru = []
         if self._allow_categorical is not None:
             for arg in self._allow_categorical:
-                keys = self.variables if arg == 'variables' \
-                    else self.kwargs.get(arg, [])
+                keys = self.variables if arg == 'variables' else self.kwargs.get(arg, [])
                 pass_thru.extend(listify(keys))
         pass_thru = list(set(pass_thru))
 
         for name, col in self._variables.items():
             if name not in pass_thru:
                 if col.values.values.dtype.kind not in 'bifc':
-                    msg = ("The %s transformation does not allow variable '%s'"
-                           " to be categorical. Either pass a different "
-                           "variable or explicitly convert to a set of binary "
-                           "indicators via the 'factor' transformation.")
+                    msg = (
+                        "The %s transformation does not allow variable '%s'"
+                        ' to be categorical. Either pass a different '
+                        'variable or explicitly convert to a set of binary '
+                        "indicators via the 'factor' transformation."
+                    )
                     raise ValueError(msg % (self.__class__.__name__, name))
 
     def _densify_variables(self):
-
         variables = []
 
         for var in self._densify:
-
             if var == 'variables':
                 variables.extend(self.variables)
             else:
@@ -231,16 +233,17 @@ class Transformation(metaclass=ABCMeta):
                 sr = self.collection.sampling_rate
                 self._variables[v] = var.to_dense(sr)
 
-    def transform(self):
-
-        output_passed = not (self.output is None and self.output_prefix is None
-                             and self.output_suffix is None)
+    def transform(self):  # noqa: D102
+        output_passed = not (
+            self.output is None and self.output_prefix is None and self.output_suffix is None
+        )
 
         if not output_passed and self._output_required:
-            raise ValueError("Transformation '%s' requires output names to be "
-                             "provided. Please set at least one of 'output',"
-                             "'output_prefix', or 'output_suffix'." %
-                             self.__class__.__name__)
+            raise ValueError(
+                "Transformation '%s' requires output names to be "  # noqa: UP031
+                "provided. Please set at least one of 'output',"
+                "'output_prefix', or 'output_suffix'." % self.__class__.__name__
+            )
 
         kwargs = self.kwargs
 
@@ -262,8 +265,9 @@ class Transformation(metaclass=ABCMeta):
 
         # Pass desired type--variable, DataFrame, or NDArray
         def select_type(col):
-            return {'variable': col, 'pandas': col.values,
-                    'numpy': col.values.values}[self._input_type]
+            return {'variable': col, 'pandas': col.values, 'numpy': col.values.values}[
+                self._input_type
+            ]
 
         data = [select_type(c) for c in variables]
 
@@ -282,8 +286,7 @@ class Transformation(metaclass=ABCMeta):
             # Otherwise loop over variables individually
             else:
                 if self._groupable and self.groupby is not None:
-                    result = col.apply(self._transform, groupby=self.groupby,
-                                       **i_kwargs)
+                    result = col.apply(self._transform, groupby=self.groupby, **i_kwargs)
                 else:
                     result = self._transform(data[i], **i_kwargs)
 
@@ -311,15 +314,16 @@ class Transformation(metaclass=ABCMeta):
                 if self.output is not None:
                     n_vars = len(self.variables)
                     n_output = len(self.output)
-                    if n_vars == n_output or not \
-                            self._loopable:
+                    if n_vars == n_output or not self._loopable:
                         _output = self.output[i]
                     elif n_output == 1:
                         _output = str(self.output) + '_' + col.name
                     else:
-                        msg = ("Number of output variable names in provided "
-                               "list ({}) does not match the number of variables"
-                               " produced by the transformation ({}).")
+                        msg = (
+                            'Number of output variable names in provided '
+                            'list ({}) does not match the number of variables'
+                            ' produced by the transformation ({}).'
+                        )
                         raise ValueError(msg.format(n_output, n_vars))
                 else:
                     _output = col.name
@@ -359,23 +363,24 @@ class Transformation(metaclass=ABCMeta):
         not aligned and force = True, all variables will be forced to dense
         format in order to ensure alignment.
         """
-
         if self._aligned_required is None or self._aligned_required == 'none':
             return
 
         def _align(variables):
             # If any variable is dense, all variables must be dense
-            sparse = [c for c in variables
-                      if isinstance(c, SparseRunVariable)]
+            sparse = [c for c in variables if isinstance(c, SparseRunVariable)]
             if len(sparse) < len(variables):
                 if sparse:
-                    msg = ("Found a mix of dense and sparse variables. May "
-                           "cause problems for some transformations.")
+                    msg = (
+                        'Found a mix of dense and sparse variables. May '
+                        'cause problems for some transformations.'
+                    )
                     # This gets called deep in Transformations.__new__()
                     warnings.warn(msg, stacklevel=5)
             # If all are sparse, durations, onsets, and index must match
             # perfectly for all
             else:
+
                 def get_col_data(col):
                     return np.c_[col.values.index, col.duration, col.onset]
 
@@ -384,29 +389,28 @@ class Transformation(metaclass=ABCMeta):
 
                 # Compare 1st col with each of the others
                 fc = get_col_data(variables[0])
-                if not all([compare_variables(fc, get_col_data(c))
-                            for c in variables[1:]]):
+                if not all([compare_variables(fc, get_col_data(c)) for c in variables[1:]]):  # noqa: C419
                     if self._aligned_required == 'force_dense':
-                        msg = ("Forcing all sparse variables to dense in "
-                               "order to ensure proper alignment.")
+                        msg = (
+                            'Forcing all sparse variables to dense in '
+                            'order to ensure proper alignment.'
+                        )
                         sr = self.collection.sampling_rate
                         variables = [c.to_dense(sr) for c in variables]
                         warnings.warn(msg, stacklevel=5)
                     else:
                         raise ValueError(
-                            "Misaligned sparse variables found."
-                            "To force variables into alignment by densifying,"
-                            "set dense=True in the Transformation arguments"
-                            )
+                            'Misaligned sparse variables found.'
+                            'To force variables into alignment by densifying,'
+                            'set dense=True in the Transformation arguments'
+                        )
 
-        _aligned_variables = True if not self._aligned_variables \
-            else self._aligned_variables
-        _aligned_variables = [listify(self.kwargs[v])
-                              for v in listify(_aligned_variables)
-                              if v in self.kwargs]
-        _aligned_variables = list(itertools.chain(*_aligned_variables))
+        _aligned_variables = True if not self._aligned_variables else self._aligned_variables
         _aligned_variables = [
-            self.collection[c] for c in _aligned_variables if c]
+            listify(self.kwargs[v]) for v in listify(_aligned_variables) if v in self.kwargs
+        ]
+        _aligned_variables = list(itertools.chain(*_aligned_variables))
+        _aligned_variables = [self.collection[c] for c in _aligned_variables if c]
 
         if _aligned_variables and self._loopable:
             for c in variables:
@@ -418,14 +422,16 @@ class Transformation(metaclass=ABCMeta):
         else:
             _align(listify(variables) + _aligned_variables)
 
+
 @dataclass
-class TransformationOutput:
+class TransformationOutput:  # noqa: D101
     index: int
     output: BIDSVariableCollection
     transformation_name: str
     transformation_kwargs: dict
     input_cols: list
     level: str
+
 
 class TransformerManager:
     """Handles registration and application of transformations to
@@ -441,24 +447,26 @@ class TransformerManager:
     keep_history: bool
         Whether to keep snapshots variable after a transformation is applied.
         If True, a list of collections will be stored in the ``history_`` attribute.
+
     """
 
     def __init__(self, default=None, keep_history=True):
         self.transformations = {}
-        if default in (None, "pybids-transforms-v1"):
+        if default in (None, 'pybids-transforms-v1'):
             # Default to PyBIDS transformations
             default = pbt
         self.default = default
         self.keep_history = keep_history
 
     def _sanitize_name(self, name):
-        """ Replace any invalid/reserved transformation names with acceptable
+        """Replace any invalid/reserved transformation names with acceptable
         equivalents.
 
         Parameters
         ----------
         name: str
             The name of the transformation to sanitize.
+
         """
         if name in ('And', 'Or'):
             name += '_'
@@ -473,6 +481,7 @@ class TransformerManager:
             The name of the transformation to handle.
         func : callable
             The callable to invoke when the named transformation is applied.
+
         """
         name = self._sanitize_name(name)
         self.transformations[name] = func
@@ -486,6 +495,7 @@ class TransformerManager:
             The BIDSVariableCollection containing variables to transform.
         transformations : list
             List of transformations to apply.
+
         """
         if self.keep_history:
             self.history_ = [
@@ -495,12 +505,12 @@ class TransformerManager:
                     transformation_name=None,
                     transformation_kwargs=None,
                     input_cols=None,
-                    level=None
+                    level=None,
                 )
             ]
 
         for ix, t in enumerate(transformations):
-            t = convert_JSON(t) # make sure all keys are snake case
+            t = convert_JSON(t)  # make sure all keys are snake case
             kwargs = dict(t)
             name = self._sanitize_name(kwargs.pop('name'))
             cols = kwargs.pop('input', None)
@@ -509,9 +519,11 @@ class TransformerManager:
             func = self.transformations.get(name, None)
             if func is None:
                 if not hasattr(self.default, name):
-                    raise ValueError("No transformation '%s' found: either "
-                                     "explicitly register a handler, or pass a"
-                                     " default module that supports it." % name)
+                    raise ValueError(
+                        "No transformation '%s' found: either "  # noqa: UP031
+                        'explicitly register a handler, or pass a'
+                        ' default module that supports it.' % name
+                    )
                 func = getattr(self.default, name)
 
                 # Apply the transformation
@@ -521,12 +533,12 @@ class TransformerManager:
                 if self.keep_history:
                     self.history_.append(
                         TransformationOutput(
-                            index=ix+1,
+                            index=ix + 1,
                             output=collection.clone(),
                             transformation_name=name,
                             transformation_kwargs=kwargs,
                             input_cols=cols,
-                            level=collection.level
+                            level=collection.level,
                         )
                     )
 

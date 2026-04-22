@@ -3,47 +3,58 @@
 import os
 
 import numpy as np
-import pytest
 import pandas as pd
+import pytest
+
 import bids
 from bids.exceptions import ConfigError
 
-from ..models import Entity, Config
-from ..utils import BIDSMetadata, PaddedInt, parse_file_entities, add_config_paths
+from ..models import Config, Entity
+from ..utils import BIDSMetadata, PaddedInt, add_config_paths, parse_file_entities
 
 
 def test_bidsmetadata_class():
-    md = BIDSMetadata("fakefile")
+    md = BIDSMetadata('fakefile')
     with pytest.raises(KeyError) as err:
-        md["Missing"]
+        md['Missing']
     assert "Metadata term 'Missing' unavailable for file fakefile." in str(err)
-    md["Missing"] = 1
-    assert md["Missing"] == 1
+    md['Missing'] = 1
+    assert md['Missing'] == 1
 
 
 def test_parse_file_entities(mock_config):
     filename = '/sub-03_ses-07_run-4_desc-bleargh_sekret.nii.gz'
 
     # Test with entities taken from bids config
-    target = {'subject': '03', 'session': '07', 'run': 4, 'suffix': 'sekret',
-              'extension': '.nii.gz'}
+    target = {
+        'subject': '03',
+        'session': '07',
+        'run': 4,
+        'suffix': 'sekret',
+        'extension': '.nii.gz',
+    }
     assert target == parse_file_entities(filename, config='bids')
     config = Config.load('bids')
     assert target == parse_file_entities(filename, config=[config])
 
     # Test with entities taken from bids and derivatives config
-    target = {'subject': '03', 'session': '07', 'run': 4, 'suffix': 'sekret',
-              'desc': 'bleargh', 'extension': '.nii.gz'}
+    target = {
+        'subject': '03',
+        'session': '07',
+        'run': 4,
+        'suffix': 'sekret',
+        'desc': 'bleargh',
+        'extension': '.nii.gz',
+    }
     assert target == parse_file_entities(filename)
-    assert target == parse_file_entities(
-        filename, config=['bids', 'derivatives'])
+    assert target == parse_file_entities(filename, config=['bids', 'derivatives'])
 
     # Test with list of Entities
     entities = [
-        Entity('subject', "[/\\\\]sub-([a-zA-Z0-9]+)"),
-        Entity('run', "[_/\\\\]run-0*(\\d+)", dtype=int),
-        Entity('suffix', "[._]*([a-zA-Z0-9]*?)\\.[^/\\\\]+$"),
-        Entity('desc', "desc-([a-zA-Z0-9]+)"),
+        Entity('subject', '[/\\\\]sub-([a-zA-Z0-9]+)'),
+        Entity('run', '[_/\\\\]run-0*(\\d+)', dtype=int),
+        Entity('suffix', '[._]*([a-zA-Z0-9]*?)\\.[^/\\\\]+$'),
+        Entity('desc', 'desc-([a-zA-Z0-9]+)'),
     ]
     # Leave out session to distinguish from previous test target
     target = {'subject': '03', 'run': 4, 'suffix': 'sekret', 'desc': 'bleargh'}
@@ -51,13 +62,13 @@ def test_parse_file_entities(mock_config):
 
 
 @pytest.mark.parametrize(
-    "filename, target",
+    'filename, target',
     [
         ('/path/to/sub-01.ext', {'subject': '01', 'extension': '.ext'}),
         ('/path/to/stub.ext', {'suffix': 'stub', 'extension': '.ext'}),
         ('/path/to/.dotfile', {}),
         ('/path/to/stub', {}),
-    ]
+    ],
 )
 def test_parse_degenerate_files(mock_config, filename, target):
     assert parse_file_entities(filename, config='bids') == target
@@ -81,9 +92,9 @@ def test_PaddedInt_array_comparisons():
     # Array comparisons should work, not raise exceptions
     arr = np.array([5, 5, 5])
     assert np.all(arr == PaddedInt(5))
-    assert np.all(arr == PaddedInt("05"))
+    assert np.all(arr == PaddedInt('05'))
     assert np.all(PaddedInt(5) == arr)
-    assert np.all(PaddedInt("05") == arr)
+    assert np.all(PaddedInt('05') == arr)
 
     # If the value gets put into an array, it should be considered an int
     # We lose the padding, but it's unlikely we would try to recover it

@@ -1,5 +1,4 @@
-"""
-The PyBIDS extension namespace package
+"""The PyBIDS extension namespace package
 
 ``bids.ext`` is reserved as a namespace for extensions to install into.
 To write such an extension, the following things are needed:

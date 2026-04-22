@@ -1,41 +1,38 @@
-""" Model classes used in BIDSLayouts. """
+"""Model classes used in BIDSLayouts."""
 
-import re
-import os
-from pathlib import Path
-from upath import UPath
-import warnings
 import json
-from copy import deepcopy
-from itertools import chain
-from functools import lru_cache
-from collections import UserDict
-
-from sqlalchemy.ext.associationproxy import association_proxy
-from sqlalchemy.orm.collections import attribute_mapped_collection
-from sqlalchemy import Column, String, Boolean, ForeignKey, Table
-from sqlalchemy.orm import reconstructor, relationship, backref, object_session
-
-from bidsschematools import schema as bst_schema
-from bidsschematools import rules
+import os
 import re
+import warnings
+from collections import UserDict
+from copy import deepcopy
+from functools import lru_cache
+from itertools import chain
+from pathlib import Path
+
+from bidsschematools import rules
+from sqlalchemy import Boolean, Column, ForeignKey, String, Table
+from sqlalchemy.ext.associationproxy import association_proxy
+from sqlalchemy.orm import backref, object_session, reconstructor, relationship
+from sqlalchemy.orm.collections import attribute_mapped_collection
+from upath import UPath
 
 try:
     from sqlalchemy.orm import declarative_base
 except ImportError:  # sqlalchemy < 1.4
     from sqlalchemy.ext.declarative import declarative_base
 
-from ..utils import listify, bids_sort
-from .writing import build_path, write_to_file
 from ..config import get_option
-from .utils import BIDSMetadata, PaddedInt
 from ..exceptions import BIDSChildDatasetError
+from ..utils import bids_sort, listify
+from .utils import BIDSMetadata, PaddedInt
+from .writing import build_path, write_to_file
 
 Base = declarative_base()
 
 
 class LayoutInfo(Base):
-    """ Contains information about a BIDSLayout's initialization parameters."""
+    """Contains information about a BIDSLayout's initialization parameters."""
 
     __tablename__ = 'layout_info'
 
@@ -51,8 +48,7 @@ class LayoutInfo(Base):
         all_cols = raw_cols + json_cols
         missing_cols = set(all_cols) - set(init_args.keys())
         if missing_cols:
-            raise ValueError("Missing mandatory initialization args: {}"
-                             .format(missing_cols))
+            raise ValueError(f'Missing mandatory initialization args: {missing_cols}')
         for col in all_cols:
             setattr(self, col, init_args[col])
             if col in json_cols:
@@ -63,8 +59,8 @@ class LayoutInfo(Base):
     def _init_on_load(self):
         if self.absolute_paths is False:
             warnings.warn(
-                "PyBIDS database loaded with deprecated `absolute_paths` "
-                "option. Returned paths will be absolute.",
+                'PyBIDS database loaded with deprecated `absolute_paths` '
+                'option. Returned paths will be absolute.',
                 stacklevel=2,
             )
         for col in ['derivatives', 'config']:
@@ -72,34 +68,32 @@ class LayoutInfo(Base):
             setattr(self, col, json.loads(db_val))
 
     def _sanitize_init_args(self, kwargs):
-        """ Prepare initialization arguments for serialization """
+        """Prepare initialization arguments for serialization"""
         if 'root' in kwargs:
             kwargs['root'] = str(UPath(kwargs['root']).absolute())
 
         if 'config' in kwargs and isinstance(kwargs['config'], list):
             kwargs['config'] = [
-                str(UPath(config).absolute())
-                if isinstance(config, os.PathLike) else config
+                str(UPath(config).absolute()) if isinstance(config, os.PathLike) else config
                 for config in kwargs['config']
             ]
 
         # Get abspaths
         if kwargs.get('derivatives') not in (None, True, False):
             kwargs['derivatives'] = [
-                str(UPath(der).absolute())
-                for der in listify(kwargs['derivatives'])
-                ]
+                str(UPath(der).absolute()) for der in listify(kwargs['derivatives'])
+            ]
 
         if kwargs.pop('absolute_paths', True) is not True:
             warnings.warn(
-                "Deprecated `absolute_paths` option passed. "
-                "Value must be True.", stacklevel=3,
+                'Deprecated `absolute_paths` option passed. Value must be True.',
+                stacklevel=3,
             )
 
         return kwargs
 
     def __repr__(self):
-        return f"<LayoutInfo {self.root}>"
+        return f'<LayoutInfo {self.root}>'
 
 
 class Config(Base):
@@ -118,18 +112,20 @@ class Config(Base):
         An optional SQLAlchemy session. If passed,
         the session is used to update the database with any newly created
         Entity objects. If None, no database update occurs.
+
     """
+
     __tablename__ = 'configs'
 
     name = Column(String, primary_key=True)
     _default_path_patterns = Column(String)
     entities = relationship(
-        "Entity", secondary="config_to_entity_map",
-        collection_class=attribute_mapped_collection('name'))
+        'Entity',
+        secondary='config_to_entity_map',
+        collection_class=attribute_mapped_collection('name'),
+    )
 
-    def __init__(self, name, entities=None, default_path_patterns=None,
-                 session=None):
-
+    def __init__(self, name, entities=None, default_path_patterns=None, session=None):
         self.name = name
         self.default_path_patterns = default_path_patterns
         self._default_path_patterns = json.dumps(default_path_patterns)
@@ -137,8 +133,7 @@ class Config(Base):
         if entities:
             for ent in entities:
                 if session is not None:
-                    existing = (session.query(Config)
-                                .filter_by(name=ent['name']).first())
+                    existing = session.query(Config).filter_by(name=ent['name']).first()
                 else:
                     existing = None
                 ent = existing or Entity(**ent)
@@ -175,16 +170,13 @@ class Config(Base):
         Returns
         -------
         A Config instance.
-        """
 
+        """
         # Handle schema-based config loading
         if config == 'bids-schema':
             return cls._from_schema(session=session)
         elif isinstance(config, dict) and 'schema_version' in config:
-            return cls._from_schema(
-                schema_version=config['schema_version'],
-                session=session
-            )
+            return cls._from_schema(schema_version=config['schema_version'], session=session)
 
         # Existing JSON/file-based loading
         if isinstance(config, (str, Path, UPath)):
@@ -192,9 +184,9 @@ class Config(Base):
             if config in config_paths:
                 config = config_paths[config]
             if not UPath(config).exists():
-                raise ValueError("{} is not a valid path.".format(config))
+                raise ValueError(f'{config} is not a valid path.')
             else:
-                with open(config, 'r') as f:
+                with open(config) as f:
                     config = json.load(f)
 
         # Return existing Config record if one exists
@@ -208,7 +200,7 @@ class Config(Base):
     @classmethod
     def _from_schema(cls, schema_version=None, session=None):
         """Load config from BIDS schema.
-        
+
         Parameters
         ----------
         schema_version : str, optional
@@ -216,80 +208,86 @@ class Config(Base):
             If None, uses the schema version bundled with bidsschematools.
         session : :obj:`sqlalchemy.orm.session.Session` or None
             An optional SQLAlchemy Session instance.
-            
+
         Returns
         -------
         Config
             A Config instance populated with entities and patterns
             extracted from the BIDS schema.
+
         """
-        from bidsschematools import rules, schema as bidsschema
+        from bidsschematools import schema as bidsschema
         from upath import UPath
-        
+
         # Load schema - either default or specific version
         if schema_version is None:
             bids_schema = bidsschema.load_schema()
         else:
             # Load specific schema version from versioned URL
-            schema_url = UPath(f"https://bids-specification.readthedocs.io/en/v{schema_version}/schema.json")
+            schema_url = UPath(
+                f'https://bids-specification.readthedocs.io/en/v{schema_version}/schema.json'
+            )
             try:
                 bids_schema = bidsschema.load_schema(schema_url)
-            except Exception as e:
-                raise ValueError(
-                    f"Failed to load BIDS schema version {schema_version}. "
-                    f"Check that the version exists at {schema_url}. "
-                    f"Error: {e}"
+            except Exception as e:  # noqa: BLE001
+                raise ValueError(  # noqa: B904
+                    f'Failed to load BIDS schema version {schema_version}. '
+                    f'Check that the version exists at {schema_url}. '
+                    f'Error: {e}'
                 )
-        
+
         # Collect ALL patterns from bidsschematools (keep existing collection logic)
         all_patterns = []
         file_sections = {
             'raw': bids_schema.rules.files.raw,
-            'deriv': bids_schema.rules.files.deriv,  
-            'common': bids_schema.rules.files.common
+            'deriv': bids_schema.rules.files.deriv,
+            'common': bids_schema.rules.files.common,
         }
-        
+
         for section_type, sections in file_sections.items():
             if section_type == 'raw':
                 for datatype_name in sections.keys():
                     datatype_rules = getattr(sections, datatype_name)
-                    regex_rules = rules.regexify_filename_rules(datatype_rules, bids_schema, level=1)
+                    regex_rules = rules.regexify_filename_rules(
+                        datatype_rules, bids_schema, level=1
+                    )
                     all_patterns.extend(regex_rules)
             else:
                 for subsection_name in sections.keys():
                     subsection_rules = getattr(sections, subsection_name)
-                    regex_rules = rules.regexify_filename_rules(subsection_rules, bids_schema, level=1)
+                    regex_rules = rules.regexify_filename_rules(
+                        subsection_rules, bids_schema, level=1
+                    )
                     all_patterns.extend(regex_rules)
-        
+
         # Store patterns directly - NO PARSING EVER
         config_name = f'bids-schema-{bids_schema.bids_version}'
-        
+
         # Extract entities directly from schema rules
         entity_names = cls._extract_entity_names_from_rules(bids_schema)
-        
+
         # Extract actual values for key entities from schema rules directly
         entity_values = cls._extract_entity_values_from_rules(bids_schema, entity_names)
-        
+
         # Create Entity objects
         entities = cls._create_entities_from_schema(entity_names, entity_values, bids_schema)
-        
+
         config = cls(name=config_name, entities=entities, session=session)
-        
+
         return config
-    
+
     @classmethod
     def _extract_entity_names_from_rules(cls, bids_schema):
         """Extract entity names directly from schema rules"""
-        
         # Get entity names from all rule sections
         entity_names = set()
         file_sections = {
             'raw': bids_schema.rules.files.raw,
-            'deriv': bids_schema.rules.files.deriv,  
-            'common': bids_schema.rules.files.common
+            'deriv': bids_schema.rules.files.deriv,
+            'common': bids_schema.rules.files.common,
         }
-        
-        for section_type, sections in file_sections.items():
+
+        for section_type, sections in file_sections.items():  # noqa: B007
             for section_name in sections.keys():
                 section_rules = getattr(sections, section_name)
                 for rule_name in section_rules.keys():
@@ -297,89 +295,91 @@ class Config(Base):
                     rule_dict = dict(rule)
                     if 'entities' in rule_dict:
                         entity_names.update(rule_dict['entities'].keys())
-        
+
         # Add special constructs that appear in patterns but aren't "entities"
         entity_names.update(['suffix', 'extension', 'datatype'])
-        
+
         return entity_names
-    
+
     @classmethod
     def _create_entities_from_schema(cls, entity_names, entity_values, bids_schema):
         """Create Entity objects directly from schema information."""
         entities = []
-        
+
         for entity_name in sorted(entity_names):
             # Get entity info from schema if available
             entity_spec = bids_schema.objects.entities.get(entity_name, {})
-            
+
             # Handle special entities that don't have BIDS prefixes
             special_entities = {'suffix', 'extension', 'datatype'}
-            
+
             if entity_name in special_entities:
                 # These entities use explicit value lists from schema rules
                 if entity_name in entity_values and entity_values[entity_name]:
                     # Filter out problematic values for extension entity
                     if entity_name == 'extension':
                         # Remove empty string and wildcard patterns
-                        filtered_values = {v for v in entity_values[entity_name] 
-                                         if v and v not in ('.*', '**', '*')}
+                        filtered_values = {
+                            v
+                            for v in entity_values[entity_name]
+                            if v and v not in ('.*', '**', '*')
+                        }
                         values = '|'.join(sorted(filtered_values))
                     else:
                         values = '|'.join(sorted(entity_values[entity_name]))
-                    
+
                     if entity_name == 'extension':
-                        pattern = fr'({values})\Z'  # Extensions are at the end
+                        pattern = rf'({values})\Z'  # Extensions are at the end
                     elif entity_name == 'datatype':
-                        pattern = fr'/({values})/'  # Datatypes are directory names  
+                        pattern = rf'/({values})/'  # Datatypes are directory names
                     else:  # suffix
-                        pattern = fr'[_/\\\\]({values})\.?'  # Before extension, with optional dot
+                        pattern = rf'[_/\\\\]({values})\.?'  # Before extension, with optional dot
             else:
                 # Regular BIDS entities - use schema format patterns directly
                 bids_prefix = entity_spec.get('name', entity_name)
                 format_type = entity_spec.get('format', 'label')
-                
+
                 # Get the official value pattern from schema formats
                 value_pattern = '[0-9a-zA-Z]+'  # Default pattern
                 if format_type in bids_schema.objects.formats:
                     format_obj = dict(bids_schema.objects.formats[format_type])
                     value_pattern = format_obj.get('pattern', value_pattern)
-                
+
                 # Determine separator based on entity type
                 if entity_name in ['subject', 'session']:
                     # Directory-level entities
-                    pattern = fr'[/\\\\]+{bids_prefix}-({value_pattern})'
+                    pattern = rf'[/\\\\]+{bids_prefix}-({value_pattern})'
                 else:
                     # File-level entities
-                    pattern = fr'[_/\\\\]+{bids_prefix}-({value_pattern})'
-            
+                    pattern = rf'[_/\\\\]+{bids_prefix}-({value_pattern})'
+
             entity_config = {
                 'name': entity_name,
                 'pattern': pattern,
-                'dtype': 'int' if entity_spec.get('format') == 'index' else 'str'
+                'dtype': 'int' if entity_spec.get('format') == 'index' else 'str',
             }
-            
+
             entities.append(entity_config)
-        
+
         return entities
-    
+
     @classmethod
     def _extract_entity_values_from_rules(cls, bids_schema, entity_names):
         """Extract entity values directly from schema rules"""
-        
         entity_values = {name: set() for name in entity_names}
         file_sections = {
             'raw': bids_schema.rules.files.raw,
-            'deriv': bids_schema.rules.files.deriv,  
-            'common': bids_schema.rules.files.common
+            'deriv': bids_schema.rules.files.deriv,
+            'common': bids_schema.rules.files.common,
         }
-        
-        for section_type, sections in file_sections.items():
+
+        for section_type, sections in file_sections.items():  # noqa: B007
             for section_name in sections.keys():
                 section_rules = getattr(sections, section_name)
                 for rule_name in section_rules.keys():
                     rule = getattr(section_rules, rule_name)
                     rule_dict = dict(rule)
-                    
+
                     # Get values for special entities directly from rules
                     if 'suffixes' in rule_dict:
                         entity_values['suffix'].update(rule_dict['suffixes'])
@@ -387,17 +387,14 @@ class Config(Base):
                         entity_values['extension'].update(rule_dict['extensions'])
                     if 'datatypes' in rule_dict:
                         entity_values['datatype'].update(rule_dict['datatypes'])
-                    
+
                     # For regular entities, we don't extract specific values
-                    # They use generic patterns like [0-9a-zA-Z]+ 
-        
+                    # They use generic patterns like [0-9a-zA-Z]+
+
         return entity_values
 
-
-
-
     def __repr__(self):
-        return f"<Config {self.name}>"
+        return f'<Config {self.name}>'
 
 
 class BIDSFile(Base):
@@ -407,24 +404,26 @@ class BIDSFile(Base):
     ----------
     filename : str
         The path to the corresponding file.
+
     """
+
     __tablename__ = 'files'
 
     path = Column(String, primary_key=True)
     filename = Column(String)
     dirname = Column(String)
-    entities = association_proxy("tags", "value")
+    entities = association_proxy('tags', 'value')
     is_dir = Column(Boolean, index=True)
     class_ = Column(String(20))
 
-    _associations = relationship('BIDSFile', secondary='associations',
-                                 primaryjoin='FileAssociation.dst == BIDSFile.path',
-                                 secondaryjoin='FileAssociation.src == BIDSFile.path')
+    _associations = relationship(
+        'BIDSFile',
+        secondary='associations',
+        primaryjoin='FileAssociation.dst == BIDSFile.path',
+        secondaryjoin='FileAssociation.src == BIDSFile.path',
+    )
 
-    __mapper_args__ = {
-        'polymorphic_on': class_,
-        'polymorphic_identity': 'file'
-    }
+    __mapper_args__ = {'polymorphic_on': class_, 'polymorphic_identity': 'file'}
 
     def __init__(self, filename):
         self.path = str(filename)
@@ -441,13 +440,13 @@ class BIDSFile(Base):
         return UPath(self.dirname)
 
     def __repr__(self):
-        return "<{} filename='{}'>".format(self.__class__.__name__, self.path)
+        return f"<{self.__class__.__name__} filename='{self.path}'>"
 
     def __fspath__(self):
         return self.path
 
     @property
-    @lru_cache()
+    @lru_cache  # noqa: B019
     def relpath(self):
         """Return path relative to layout root"""
         root = object_session(self).query(LayoutInfo).first().root
@@ -473,14 +472,17 @@ class BIDSFile(Base):
         -------
         list
             A list of BIDSFile instances.
+
         """
         if kind is None and not include_parents:
             return self._associations
 
         session = object_session(self)
-        q = (session.query(BIDSFile)
-             .join(FileAssociation, BIDSFile.path == FileAssociation.dst)
-             .filter_by(src=self.path))
+        q = (
+            session.query(BIDSFile)
+            .join(FileAssociation, BIDSFile.path == FileAssociation.dst)
+            .filter_by(src=self.path)
+        )
 
         if kind is not None:
             q = q.filter_by(kind=kind)
@@ -499,7 +501,7 @@ class BIDSFile(Base):
         return list(chain(*[collect_associations([], bf) for bf in associations]))
 
     def get_metadata(self):
-        """Return all metadata associated with the current file. """
+        """Return all metadata associated with the current file."""
         md = BIDSMetadata(self.path)
         md.update(self.get_entities(metadata=True))
         return md
@@ -527,14 +529,13 @@ class BIDSFile(Base):
         dict
             A dict, where keys are entity names and values are Entity
             instances.
+
         """
         if metadata is None and values == 'tags':
             return self.entities
 
         session = object_session(self)
-        query = (session.query(Tag)
-                 .filter_by(file_path=self.path)
-                 .join(Entity))
+        query = session.query(Tag).filter_by(file_path=self.path).join(Entity)
 
         if metadata not in (None, 'all'):
             query = query.filter(Tag.is_metadata == metadata)
@@ -544,8 +545,7 @@ class BIDSFile(Base):
             return bids_sort({t.entity_name: t.entity for t in results})
         return bids_sort({t.entity_name: t.value for t in results})
 
-    def copy(self, path_patterns, symbolic_link=False, root=None,
-             conflicts='fail'):
+    def copy(self, path_patterns, symbolic_link=False, root=None, conflicts='fail'):
         """Copy the contents of a file to a new location.
 
         Parameters
@@ -565,6 +565,7 @@ class BIDSFile(Base):
                 'skip' does nothing
                 'overwrite': overwrites the existing file
                 'append': adds  a suffix to each file copy, starting with 1
+
         """
         new_filename = build_path(self.entities, path_patterns)
         if not new_filename:
@@ -579,10 +580,9 @@ class BIDSFile(Base):
             path = UPath(root) / self._path
 
         if not path.exists():
-            raise ValueError("Target filename to copy/symlink (%s) doesn't "
-                             "exist." % path)
+            raise ValueError("Target filename to copy/symlink (%s) doesn't exist." % path)  # noqa: UP031
 
-        kwargs = dict(path=new_filename, root=root, conflicts=conflicts)
+        kwargs = dict(path=new_filename, root=root, conflicts=conflicts)  # noqa: C408
         if symbolic_link:
             kwargs['link_to'] = path
         else:
@@ -598,12 +598,9 @@ class BIDSDataFile(BIDSFile):
     obtaining pandas DataFrame data representation (via `get_df`).
     """
 
-    __mapper_args__ = {
-        'polymorphic_identity': 'data_file'
-    }
+    __mapper_args__ = {'polymorphic_identity': 'data_file'}
 
-    def get_df(self, include_timing=True, adjust_onset=False,
-               enforce_dtypes=True, **pd_args):
+    def get_df(self, include_timing=True, adjust_onset=False, enforce_dtypes=True, **pd_args):
         """Return the contents of a tsv file as a pandas DataFrame.
 
         Parameters
@@ -627,16 +624,13 @@ class BIDSDataFile(BIDSFile):
         -------
         :obj:`pandas.DataFrame`
             A pandas DataFrame.
+
         """
-        import pandas as pd
         import numpy as np
+        import pandas as pd
 
         if enforce_dtypes:
-            dtype = {
-                'subject_id': str,
-                'session_id': str,
-                'participant_id': str
-            }
+            dtype = {'subject_id': str, 'session_id': str, 'participant_id': str}
         else:
             dtype = None
 
@@ -645,8 +639,9 @@ class BIDSDataFile(BIDSFile):
         # enforce_dtypes).
         suffix = self.entities['suffix']
         header = None if suffix in {'physio', 'stim'} else 'infer'
-        self.data = pd.read_csv(self.path, sep='\t', na_values='n/a',
-                                dtype=dtype, header=header, **pd_args)
+        self.data = pd.read_csv(
+            self.path, sep='\t', na_values='n/a', dtype=dtype, header=header, **pd_args
+        )
 
         data = self.data.copy()
 
@@ -671,9 +666,7 @@ class BIDSImageFile(BIDSFile):
     obtaining nibabel's image file representation (via `get_image`).
     """
 
-    __mapper_args__ = {
-        'polymorphic_identity': 'image_file'
-    }
+    __mapper_args__ = {'polymorphic_identity': 'image_file'}
 
     def get_image(self, **kwargs):
         """Return the associated image file (if it exists) as a NiBabel object
@@ -682,10 +675,12 @@ class BIDSImageFile(BIDSFile):
         """
         try:
             import nibabel as nb
+
             return nb.load(self.path, **kwargs)
         except Exception as e:
-            raise ValueError("'{}' does not appear to be an image format "
-                             "NiBabel can read.".format(self.path)) from e
+            raise ValueError(
+                f"'{self.path}' does not appear to be an image format NiBabel can read."
+            ) from e
 
 
 class BIDSJSONFile(BIDSFile):
@@ -694,26 +689,27 @@ class BIDSJSONFile(BIDSFile):
     Derived from `BIDSFile` and provides additional functionality for reading
     the contents of JSON files as either dicts or strings.
     """
-    __mapper_args__ = {
-        'polymorphic_identity': 'json_file'
-    }
+
+    __mapper_args__ = {'polymorphic_identity': 'json_file'}
 
     def get_dict(self):
-        """Return the contents of the current file as a dictionary. """
+        """Return the contents of the current file as a dictionary."""
         d = json.loads(self.get_json())
         if not isinstance(d, dict):
-            raise ValueError("File %s is a json containing %s, not a dict which was expected" % (self.path, type(d)))
+            raise ValueError(
+                'File %s is a json containing %s, not a dict which was expected'  # noqa: UP031
+                % (self.path, type(d))
+            )
         return d
 
     def get_json(self):
-        """Return the contents of the current file as a JSON string. """
-        with open(self.path, 'r') as f:
+        """Return the contents of the current file as a JSON string."""
+        with open(self.path) as f:
             return f.read()
 
 
 class Entity(Base):
-    """
-    Represents a single entity defined in the JSON config.
+    """Represents a single entity defined in the JSON config.
 
     Parameters
     ----------
@@ -733,7 +729,9 @@ class Entity(Base):
         one of 'int', 'float', 'bool', or 'str'. If None, no type
         enforcement will be attempted, which means the dtype of the
         value may be unpredictable.
+
     """
+
     __tablename__ = 'entities'
 
     name = Column(String, primary_key=True)
@@ -741,10 +739,9 @@ class Entity(Base):
     pattern = Column(String)
     directory = Column(String, nullable=True)
     _dtype = Column(String, default='str')
-    files = association_proxy("tags", "value")
+    files = association_proxy('tags', 'value')
 
-    def __init__(self, name, pattern=None, mandatory=False, directory=None,
-                 dtype='str'):
+    def __init__(self, name, pattern=None, mandatory=False, directory=None, dtype='str'):
         self.name = name
         self.pattern = pattern
         self.mandatory = mandatory
@@ -757,17 +754,18 @@ class Entity(Base):
         self._init_on_load()
 
     def __repr__(self):
-        return f"<Entity {self.name} (pattern={self.pattern}, dtype={self.dtype})>"
+        return f'<Entity {self.name} (pattern={self.pattern}, dtype={self.dtype})>'
 
     @reconstructor
     def _init_on_load(self):
         if self._dtype not in ('str', 'float', 'int', 'bool'):
-            raise ValueError("Invalid dtype '{}'. Must be one of 'int', "
-                             "'float', 'bool', or 'str'.".format(self._dtype))
-        if self._dtype == "int":
+            raise ValueError(
+                f"Invalid dtype '{self._dtype}'. Must be one of 'int', 'float', 'bool', or 'str'."
+            )
+        if self._dtype == 'int':
             self.dtype = PaddedInt
         else:
-            self.dtype = eval(self._dtype)
+            self.dtype = eval(self._dtype)  # noqa: S307
         self.regex = re.compile(self.pattern) if self.pattern is not None else None
 
     def __iter__(self):
@@ -792,8 +790,7 @@ class Entity(Base):
         return result
 
     def match_file(self, f):
-        """
-        Determine whether the passed file matches the Entity.
+        """Determine whether the passed file matches the Entity.
 
         Parameters
         ----------
@@ -803,6 +800,7 @@ class Entity(Base):
         Returns
         -------
         the matched value if a match was found, otherwise None.
+
         """
         if self.regex is None:
             return None
@@ -812,8 +810,7 @@ class Entity(Base):
         return self._astype(val)
 
     def unique(self):
-        """Return all unique values/levels for the current entity.
-        """
+        """Return all unique values/levels for the current entity."""
         return list(set(self.files.values()))
 
     def count(self, files=False):
@@ -829,6 +826,7 @@ class Entity(Base):
         -------
         int
             Count of unique values or files.
+
         """
         return len(self.files) if files else len(self.unique())
 
@@ -837,6 +835,7 @@ class Entity(Base):
             val = self.dtype(val)
         return val
 
+
 type_map = {
     'str': str,
     'int': PaddedInt,
@@ -844,6 +843,8 @@ type_map = {
     'bool': bool,
     'json': 'json',
 }
+
+
 class Tag(Base):
     """Represents an association between a File and an Entity.
 
@@ -865,7 +866,9 @@ class Tag(Base):
         Indicates whether or not the Entity is derived
         from JSON sidecars (True) or is a predefined Entity from a
         config (False).
+
     """
+
     __tablename__ = 'tags'
 
     file_path = Column(String, ForeignKey('files.path'), primary_key=True)
@@ -874,11 +877,14 @@ class Tag(Base):
     _dtype = Column(String, default='str')
     is_metadata = Column(Boolean, default=False)
 
-
-    file = relationship('BIDSFile', backref=backref(
-        "tags", collection_class=attribute_mapped_collection("entity_name")))
-    entity = relationship('Entity', backref=backref(
-        "tags", collection_class=attribute_mapped_collection("file_path")))
+    file = relationship(
+        'BIDSFile',
+        backref=backref('tags', collection_class=attribute_mapped_collection('entity_name')),
+    )
+    entity = relationship(
+        'Entity',
+        backref=backref('tags', collection_class=attribute_mapped_collection('file_path')),
+    )
 
     def __init__(self, file, entity, value, dtype=None, is_metadata=False):
         data = _create_tag_dict(file, entity, value, dtype, is_metadata)
@@ -896,7 +902,7 @@ class Tag(Base):
             self.value = value
 
     def __repr__(self):
-        msg = "<Tag file:{!r} entity:{!r} value:{!r}>"
+        msg = '<Tag file:{!r} entity:{!r} value:{!r}>'
         return msg.format(self.file_path, self.entity_name, self.value)
 
     @reconstructor
@@ -911,35 +917,37 @@ class Tag(Base):
             self.dtype = type_map[self._dtype]
             self.value = self.dtype(self._value)
 
+
 def _create_tag_dict(file, entity, value, dtype=None, is_metadata=False):
-        data = {}
-        if dtype is None:
-            dtype = type(value)
+    data = {}
+    if dtype is None:
+        dtype = type(value)
 
-        if not isinstance(dtype, str):
-            dtype = dtype.__name__
+    if not isinstance(dtype, str):
+        dtype = dtype.__name__
 
-        if dtype in ['list', 'dict']:
-            _dtype = 'json'
-            _value = json.dumps(value)
-        else:
-            _dtype = dtype
-            _value = str(value)
-        if _dtype not in ('str', 'float', 'int', 'bool', 'json'):
-            raise ValueError(
-                f"Passed value has an invalid dtype ({dtype}). Must be one of "
-                "int, float, bool, or str.")
+    if dtype in ['list', 'dict']:
+        _dtype = 'json'
+        _value = json.dumps(value)
+    else:
+        _dtype = dtype
+        _value = str(value)
+    if _dtype not in ('str', 'float', 'int', 'bool', 'json'):
+        raise ValueError(
+            f'Passed value has an invalid dtype ({dtype}). Must be one of '
+            'int, float, bool, or str.'
+        )
 
-        data['is_metadata'] = is_metadata
-        data['file_path'] = file.path
-        data['entity_name'] = entity.name
-        data['_dtype'] = _dtype
-        data['_value'] = _value
+    data['is_metadata'] = is_metadata
+    data['file_path'] = file.path
+    data['entity_name'] = entity.name
+    data['_dtype'] = _dtype
+    data['_value'] = _value
 
-        return data
+    return data
 
 
-class FileAssociation(Base):
+class FileAssociation(Base):  # noqa: D101
     __tablename__ = 'associations'
 
     src = Column(String, ForeignKey('files.path'), primary_key=True)
@@ -948,13 +956,15 @@ class FileAssociation(Base):
 
 
 # Association objects
-config_to_entity_map = Table('config_to_entity_map', Base.metadata,
-                             Column('config', String, ForeignKey('configs.name')),
-                             Column('entity', String, ForeignKey('entities.name'))
-                             )
+config_to_entity_map = Table(
+    'config_to_entity_map',
+    Base.metadata,
+    Column('config', String, ForeignKey('configs.name')),
+    Column('entity', String, ForeignKey('entities.name')),
+)
 
 
-class DerivativeDatasets(UserDict):
+class DerivativeDatasets(UserDict):  # noqa: D101
     def __getitem__(self, key):
         try:
             return super().__getitem__(key)
@@ -963,35 +973,35 @@ class DerivativeDatasets(UserDict):
 
         try:
             result = self.get_pipeline(key)
-            warnings.warn(
-                "Directly selecting derivative datasets using "
-                "pipeline name (i.e. dataset.derivatives[<pipeline_name>] will be "
-                "phased out in an upcoming release. Select instead using the folder "
-                "name of the dataset (i.e. dataset.derivatives[<folder_name>]), or use "
-                "dataset.derivatives.get_pipeline(<pipeline_name>).",
+            warnings.warn(  # noqa: B028
+                'Directly selecting derivative datasets using '
+                'pipeline name (i.e. dataset.derivatives[<pipeline_name>] will be '
+                'phased out in an upcoming release. Select instead using the folder '
+                'name of the dataset (i.e. dataset.derivatives[<folder_name>]), or use '
+                'dataset.derivatives.get_pipeline(<pipeline_name>).',
                 DeprecationWarning,
             )
             return result
         except KeyError as err:
             raise KeyError(
-                f"No datasets found matching {key} either as a pipeline name or as "
-                "a dataset file name."
+                f'No datasets found matching {key} either as a pipeline name or as '
+                'a dataset file name.'
             ) from err
 
-
-    def get_pipeline(self, pipeline):
+    def get_pipeline(self, pipeline):  # noqa: D102
         matches = {
-            (name, dataset) for name, dataset in self.data.items()
+            (name, dataset)
+            for name, dataset in self.data.items()
             if dataset.source_pipeline == pipeline
         }
         if len(matches) > 1:
-            datasets = "\n\t- ".join(match[0] for match in matches)
+            datasets = '\n\t- '.join(match[0] for match in matches)
             raise BIDSChildDatasetError(
-                f"Multiple datasets generated by {pipeline} were found:\n"
-                f"\t- {datasets}\n\n"
-                "Select a specific dataset by using "
-                "dataset.derivatives[<dataset_folder_name>]."
+                f'Multiple datasets generated by {pipeline} were found:\n'
+                f'\t- {datasets}\n\n'
+                'Select a specific dataset by using '
+                'dataset.derivatives[<dataset_folder_name>].'
             )
         if not matches:
-            raise KeyError(f"No match found for {pipeline}")
+            raise KeyError(f'No match found for {pipeline}')
         return next(iter(matches))[1]
