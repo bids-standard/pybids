@@ -217,7 +217,7 @@ class Config(Base):
                 )
 
             # If a schema_path is provided, we must use the schema-based path
-            if 'schema_path' in cfg and 'use_schema' not in cfg:
+            if 'use_schema' not in cfg and ('schema_path' in cfg or 'bids_version' in cfg):
                 cfg['use_schema'] = True
 
             use_schema = bool(cfg.get('use_schema', False))
