@@ -2545,7 +2545,7 @@ requires-dist = [
     { name = "nbconvert", marker = "extra == 'tutorial'" },
     { name = "nibabel", specifier = ">=5.2" },
     { name = "num2words", specifier = ">=0.5.10" },
-    { name = "numpy", specifier = ">=2.2" },
+    { name = "numpy", specifier = ">=1.25" },
     { name = "numpydoc", marker = "extra == 'doc'" },
     { name = "pandas", specifier = ">=2.2" },
     { name = "pybids", extras = ["doc"], marker = "extra == 'docs'" },
