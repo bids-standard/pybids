@@ -23,7 +23,7 @@ classifiers = [
   "Topic :: Scientific/Engineering",
 ]
 dependencies = [
-  "numpy >=2.2",  # SPEC 0 + 1yr (3yr)
+  "numpy >=1.25",  # SPEC 0 + 1yr (3yr)
   "scipy >=1.11",   # SPEC 0 + 1yr (3yr)
   "nibabel >=5.2",  # SPEC 0 + 1yr (3yr)
   "pandas >=2.2",  # SPEC 0 + 1yr (3yr)
