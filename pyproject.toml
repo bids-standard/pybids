@@ -35,6 +35,7 @@ dependencies = [
   "click >=8.0",
   "universal_pathlib >=0.2.2",
   "frozendict >=2.3",
+  "requests>=2.33.1",
 ]
 dynamic = ["version"]
 
