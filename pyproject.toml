@@ -25,8 +25,8 @@ classifiers = [
 dependencies = [
   "numpy >=1.25",  # SPEC 0 + 1yr (3yr)
   "scipy >=1.11",   # SPEC 0 + 1yr (3yr)
-  "nibabel >=5.2",  # SPEC 0 + 1yr (3yr)
-  "pandas >=2.2",  # SPEC 0 + 1yr (3yr)
+  "nibabel >=5.1",  # SPEC 0 + 1yr (3yr)
+  "pandas >=2.0",  # SPEC 0 + 1yr (3yr)
   "formulaic >=0.3",
   "sqlalchemy >=1.4.31",
   "bids-validator>=1.14.7",  # Keep up-to-date to ensure support for recent modalities
@@ -35,7 +35,6 @@ dependencies = [
   "click >=8.0",
   "universal_pathlib >=0.2.2",
   "frozendict >=2.3",
-  "requests>=2.32.5",
 ]
 dynamic = ["version"]
 
