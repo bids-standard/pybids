@@ -7,6 +7,7 @@ from pathlib import Path  # noqa: F811
 from warnings import warn
 
 import requests
+from bidsschematools.schema import load_schema
 from frozendict import frozendict as _frozendict
 from packaging.version import InvalidVersion
 from upath import UPath as Path  # noqa: F811
@@ -239,25 +240,31 @@ def _allowed_bids_versions(timeout=5, min_version="1.8.0"):
     """
     try:
         from packaging.version import Version
+        min_ver = Version(min_version)
+        allowed = set()
 
+        latest_schema_uri = "https://bids-specification.readthedocs.io/en/latest/schema.json"
         r = requests.get(
-            "https://api.github.com/repos/bids-standard/bids-specification/releases",
-            params={"per_page": 100},
+            latest_schema_uri,
             timeout=timeout,
         )
         if r.status_code != 200:
-            return None
-        min_ver = Version(min_version)
-        allowed = set()
-        for release in r.json():
-            tag = release.get("tag_name", "")
-            ver_str = tag.lstrip("v")
+            warn(
+                f"Unable to reach release list at"
+                f"{latest_schema_uri}",
+                stacklevel=2
+            )
+            release_list = load_schema()['meta']['versions']
+        else:
+            release_list = r.json()['meta']['versions']
+
+        for release in release_list:
             try:
-                if Version(ver_str) >= min_ver:
-                    allowed.add(ver_str)
+                if Version(release) >= min_ver:
+                    allowed.add(release)
             except InvalidVersion:
                 warn(
-                    f"Detected InvalidVersion from release list {ver_str}",
+                    f"Detected InvalidVersion from release list {release}",
                     stacklevel=2)
                 continue
         return allowed if allowed else None
