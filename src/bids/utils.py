@@ -250,7 +250,7 @@ def _allowed_bids_versions(timeout=5, min_version="1.8.0"):
         )
         if r.status_code != 200:
             warn(
-                f"Unable to reach release list at"
+                f"Unable to reach release list at "
                 f"{latest_schema_uri}",
                 stacklevel=2
             )

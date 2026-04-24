@@ -112,5 +112,3 @@ source = [
 
 [tool.coverage.report]
 include = ["src/*", "tests/*"]
-
-
