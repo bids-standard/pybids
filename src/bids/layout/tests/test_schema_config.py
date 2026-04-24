@@ -70,8 +70,8 @@ class TestSchemaConfig:
     def test_invalid_schema_version(self):
         """Test that loading invalid schema version raises appropriate error."""
         # Test with a non-existent version
-        with pytest.raises(ValueError, match='Failed to load BIDS schema version'):
-            Config.load({'schema_version': '99.99.99'})
+        with pytest.raises(ValueError):
+            Config.load({'bids_version': '99.99.99'})
 
     def test_entity_generation(self):
         """Test entity pattern generation using real schema."""

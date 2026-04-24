@@ -35,6 +35,7 @@ dependencies = [
   "click >=8.0",
   "universal_pathlib >=0.2.2",
   "frozendict >=2.3",
+  "requests>=2.33.1",
 ]
 dynamic = ["version"]
 
@@ -56,6 +57,9 @@ test = [
   "pytest-xdist >= 3.8",
   "s3fs >= 2025" #for testing remote uri
 ]
+formatting = [
+  "ruff>=0.15.11",
+]
 model_reports = [
   "jinja2",
   "altair"
@@ -71,7 +75,7 @@ tutorial = [
 docs = ["pybids[doc]"]
 tests = ["pybids[test]"]
 ci_tests = ["pybids[test]"]
-dev = ["pybids[doc,test,plotting]"]
+dev = ["pybids[doc,test,plotting,formatting]"]
 
 [project.urls]
 Homepage = "https://github.com/bids-standard/pybids"
@@ -108,4 +112,3 @@ source = [
 
 [tool.coverage.report]
 include = ["src/*", "tests/*"]
-

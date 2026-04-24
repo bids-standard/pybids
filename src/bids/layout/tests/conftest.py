@@ -1,7 +1,9 @@
 import shutil
 from os.path import join
+from functools import lru_cache
 
 import pytest
+import requests
 
 from bids.layout import BIDSLayout
 
@@ -102,3 +104,44 @@ def temporary_dataset(tmp_path, tests_dir):
     path = tests_dir / 'data' / 'ds005'
     shutil.copytree(path, tmp_path / 'ds005')
     return tmp_path / 'ds005'
+
+
+@lru_cache(maxsize=1)
+def _schema_hosts_reachable(timeout=3):
+    hosts = [
+        "https://bids.neuroimaging.io",
+        "https://bids-specification.readthedocs.io/en/latest/schema.json",
+    ]
+    for host in hosts:
+        try:
+            response = requests.head(host, timeout=timeout, allow_redirects=True)
+            if response.status_code >= 400:
+                return False
+        except requests.RequestException:
+            return False
+    return True
+
+
+@pytest.fixture(scope='session')
+def require_schema_network():
+    if not _schema_hosts_reachable():
+        pytest.skip(
+            "Skipping schema retrieval tests because bids.neuroimaging.io or schema host is unreachable."
+        )
+
+
+_SCHEMA_NETWORK_MODULES = {
+    "bids.layout.tests.test_schema_config",
+    "bids.layout.tests.test_schema_pattern_validation",
+    "bids.layout.tests.test_schema_version_differences",
+    "bids.layout.tests.test_schema_vs_json_config",
+}
+
+
+@pytest.fixture(autouse=True)
+def _skip_schema_network_tests_when_unreachable(request):
+    module_name = getattr(request.module, "__name__", "")
+    if module_name in _SCHEMA_NETWORK_MODULES and not _schema_hosts_reachable():
+        pytest.skip(
+            "Skipping schema retrieval tests because bids.neuroimaging.io or schema host is unreachable."
+        )

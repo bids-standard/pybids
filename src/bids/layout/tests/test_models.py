@@ -298,3 +298,24 @@ def test_bidsfile_fspath(sample_bidsfile):
     bf_path = Path(bf)
     assert bf_path == Path(bf.path)
     assert bf_path.read_text() == '###'
+
+def test_layoutinfo_init_on_load_warns_for_absolute_paths_false():
+    info = LayoutInfo(
+        root='/made/up/path',
+        derivatives=True,
+        config=['bids'],
+    )
+    info.absolute_paths = False
+
+    with pytest.warns(UserWarning, match="deprecated `absolute_paths` option"):
+        info._init_on_load()
+
+def test_layoutinfo_sanitize_init_args_root():
+    info = LayoutInfo(
+        root=Path('/'),
+        config=['bids'],
+        derivatives=True
+    )
+    info = LayoutInfo.__new__(LayoutInfo)
+    sanitized = info._sanitize_init_args(kwargs={'root': '/'})
+    assert sanitized['root'] == '/'
