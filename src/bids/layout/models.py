@@ -1,19 +1,6 @@
 """Model classes used in BIDSLayouts."""
 
 import json
-from copy import deepcopy
-from itertools import chain
-from functools import lru_cache
-from collections import UserDict
-
-from sqlalchemy.ext.associationproxy import association_proxy
-from sqlalchemy.orm.collections import attribute_mapped_collection
-from sqlalchemy import Column, String, Boolean, ForeignKey, Table
-from sqlalchemy.orm import reconstructor, relationship, backref, object_session
-
-from bidsschematools import schema as bst_schema
-from bidsschematools import rules
-from ..utils import collect_schema
 import os
 import re
 import warnings
@@ -30,14 +17,15 @@ from sqlalchemy.orm import backref, object_session, reconstructor, relationship
 from sqlalchemy.orm.collections import attribute_mapped_collection
 from upath import UPath
 
+from ..utils import collect_schema
+
 try:
     from sqlalchemy.orm import declarative_base
 except ImportError:  # sqlalchemy < 1.4 # pragma: no cover
-    from sqlalchemy.ext.declarative import declarative_base # pragma: no cover
+    from sqlalchemy.ext.declarative import declarative_base  # pragma: no cover
 
 from ..config import get_option
 from ..exceptions import BIDSChildDatasetError
-from ..utils import get_schema as pybids_get_schema
 from ..utils import bids_sort, listify
 from .utils import BIDSMetadata, PaddedInt
 from .writing import build_path, write_to_file
@@ -187,8 +175,9 @@ class Config(Base):
 
         Returns
         -------
-        A Config instance."""
+        A Config instance.
 
+        """
         # Normalize schema-related options from config
         use_schema = False
         bids_version = None
@@ -274,14 +263,13 @@ class Config(Base):
             extracted from the BIDS schema.
 
         """
-
         # If schema_path is provided, treat it as a URI/path-like object and let
         # collect_schema/load_schema (via UPath/Path) handle local vs remote.
         if schema_path is not None:
             bids_schema = collect_schema(uri=UPath(schema_path))
         else:
             bids_schema = collect_schema(bids_version=bids_version)
-        
+
         # Collect ALL patterns from bidsschematools (keep existing collection logic)
         all_patterns = []
         file_sections = {

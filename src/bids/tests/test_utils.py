@@ -67,9 +67,11 @@ def test_collect_schema_unparseable_bids_version():
         collect_schema(bids_version="not-a-version")
 
 
+@patch("requests.head")
 @patch("bidsschematools.schema.load_schema")
-def test_collect_schema_latest_and_stable(mock_load_schema):
+def test_collect_schema_latest_and_stable(mock_load_schema, mock_head):
     """collect_schema should resolve 'latest' and 'stable' labels."""
+    mock_head.return_value = DummyResponse(status_code=200)
 
     # latest
     collect_schema(bids_version="latest")
@@ -90,10 +92,10 @@ def test_collect_schema_latest_and_stable(mock_load_schema):
 @patch("requests.head")
 @patch("bidsschematools.schema.load_schema")
 def test_collect_schema_allowed_versions_none(mock_load_schema, mock_head, mock_allowed):
-    """If _allowed_bids_versions returns None, collect_schema should proceed without filtering."""
-    mock_head.return_value = DummyResponse(status_code=200)
-    collect_schema(bids_version="1.11.1")
-    mock_load_schema.assert_called_once()
+    """If _allowed_bids_versions returns None, collect_schema should error."""
+    with pytest.raises(ValueError, match="list of available BIDS releases could not be retrieved"):
+        collect_schema(bids_version="1.11.1")
+    mock_load_schema.assert_not_called()
 
 
 @patch.object(utils, "_allowed_bids_versions", return_value={"1.9.0"})
@@ -105,11 +107,11 @@ def test_collect_schema_invalid_numeric_version_filtered(mock_allowed):
 
 @patch("bidsschematools.schema.load_schema")
 def test_collect_schema_default_latest_when_no_args(mock_load_schema):
-    """With no uri or bids_version, collect_schema should default to latest schema URL."""
+    """With no uri or bids_version, collect_schema should default to stable schema URL."""
     collect_schema()
     mock_load_schema.assert_called_once()
     arg = str(mock_load_schema.call_args.args[0])
-    assert "latest/schema.json" in arg
+    assert "stable/schema.json" in arg
 
 def test_match_entities():
     obj = SimpleNamespace(entities={'a': 1, 'b':2, 'c':3})
