@@ -283,6 +283,19 @@ def collect_schema(
     When given no arguments, will attempt to retrieve the latest stable
     version of the schema. Failing that retrieval will default to the
     schema version included with bidsschematools.
+    
+    Examples:
+    --------
+    >>> from bids.utils import collect_schema
+    >>> schemav1_10_0 = collect_schema(bids_version="1.10.0")
+    >>> schemav1_11_0 = collect_schema(bids_version="1.11.0")
+    >>> schemav1_9_0 = collect_schema(bids_version="1.9.0")
+    >>> schemav1_10_0['bids_version']
+    '1.10.0'
+    >>> schemav1_11_0['bids_version']
+    '1.11.0'
+    >>> schemav1_9_0['bids_version']
+    '1.9.0'
 
     :param uri: filepath or url to a bids schema json, defaults to None
     :type uri: str, optional
