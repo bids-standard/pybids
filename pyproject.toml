@@ -35,12 +35,16 @@ dependencies = [
   "click >=8.0",
   "universal_pathlib >=0.2.2",
   "frozendict >=2.3",
-  "requests>=2.33.1",
-  "aiohttp>=3.13.5",
 ]
 dynamic = ["version"]
 
 [project.optional-dependencies]
+web = [
+  "aiohttp>=3.13.5",
+  "requests>=2.33.1",
+  "s3fs >= 2025" #for testing remote uri
+]
+
 doc = [
   "sphinx >=6.2",
   "numpydoc",
@@ -56,7 +60,7 @@ test = [
   "coverage[toml] >= 7",
   "altair >= 5",
   "pytest-xdist >= 3.8",
-  "s3fs >= 2025" #for testing remote uri
+  "pybids[web]",
 ]
 formatting = [
   "ruff>=0.15.11",
