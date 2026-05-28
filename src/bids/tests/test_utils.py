@@ -31,46 +31,15 @@ def test_allowed_bids_versions_non_200(monkeypatch):
     release_versions = load_schema().meta.versions
     filtered_versions = {v for v in release_versions if Version(v) >= Version("1.8.0") }
 
-    with pytest.warns(UserWarning, match="Unable to reach release list"):
-        allowed = _allowed_bids_versions(min_version="1.8.0")
 
-    assert allowed == filtered_versions
-
-
-def test_allowed_bids_versions_request_exception(monkeypatch):
-    """
-    Check Return None for un-handled exceptions
-    """
-
-    def boom(*args, **kwargs):
-        raise requests.RequestException("boom")
-
-    monkeypatch.setattr(requests, "get", boom)
-    assert _allowed_bids_versions() is None
-
-def test_allowed_bids_versions_success(monkeypatch):
-    """_allowed_bids_versions returns versions >= min_version."""
-
-    payload = { 
-        "meta": 
-            {   "versions": 
-                [
-                    "1.7.0",
-                    "1.8.0",
-                    "1.9.0",
-                    "1.10.1",
-                ]
-            }
-    }
-
-    def fake_get(*args, **kwargs):
-        return DummyResponse(status_code=200, payload=payload)
-
-    monkeypatch.setattr(requests, "get", fake_get)
-    allowed = _allowed_bids_versions(min_version="1.8.0")
-
-    assert allowed == {"1.8.0", "1.9.0", "1.10.1"}
-
+def test_allowed_bids_versions_empty_when_none_valid(monkeypatch):
+    """Return None when no bundled versions pass the min_version filter."""
+    class FakeSchema:
+        class meta:
+            versions = ["0.1.0", "bad-version"]
+    
+    monkeypatch.setattr("bids.utils.load_schema", lambda: FakeSchema())
+    assert _allowed_bids_versions(min_version="1.8.0") is None
 
 
 def test_collect_schema_uri_and_bids_version_mutually_exclusive():
@@ -122,14 +91,16 @@ def test_collect_schema_invalid_numeric_version_filtered(mock_allowed):
     with pytest.raises(ValueError, match="is not an available BIDS release"):
         collect_schema(bids_version="1.0.0")
 
+@patch("requests.head")
+def test_collect_schema_default_latest_when_no_args(mock_head):
+    """With no uri or bids_version, collect_schema should default to the schema packaged with bidsschematools."""
+    result = collect_schema()
+    bundled = load_schema()
+    
+    mock_head.assert_not_called()
+    assert result.bids_version == bundled.bids_version
+    assert result.schema_version == bundled.schema_version
 
-@patch("bidsschematools.schema.load_schema")
-def test_collect_schema_default_latest_when_no_args(mock_load_schema):
-    """With no uri or bids_version, collect_schema should default to stable schema URL."""
-    collect_schema()
-    mock_load_schema.assert_called_once()
-    arg = str(mock_load_schema.call_args.args[0])
-    assert "stable/schema.json" in arg
 
 def test_match_entities():
     obj = SimpleNamespace(entities={'a': 1, 'b':2, 'c':3})

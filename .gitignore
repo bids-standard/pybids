@@ -118,3 +118,8 @@ doc/generated/
 # Ignore test sql database files
 bidsdb.sqlite
 fmriprep.sqlite
+
+# The Future
+.cursor/
+
+scripts/

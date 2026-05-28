@@ -1,15 +1,18 @@
 """Utility functions."""
 
+import logging
 import os
 import re
 from functools import cache
 from pathlib import Path  # noqa: F811
 from warnings import warn
 
-import requests
+logger = logging.getLogger(__name__)
+
+import bidsschematools
 from bidsschematools.schema import load_schema
 from frozendict import frozendict as _frozendict
-from packaging.version import InvalidVersion
+from packaging.version import InvalidVersion, Version
 from upath import UPath as Path  # noqa: F811
 
 
@@ -234,42 +237,30 @@ def bids_sort(unsorted: dict, schema_spec=None):
     return {k: unsorted[k] for k in sorted(unsorted, key=indices.__getitem__)}
 
 
-def _allowed_bids_versions(timeout=5, min_version="1.8.0"):
-    """Fetch BIDS specification releases from GitHub, strip leading 'v', filter to >= min_version.
-    Returns a set of version strings (e.g. {'1.9.0', '1.10.0', ...}) or None on timeout/error.
+def _allowed_bids_versions(min_version="1.8.0"):
+    """Return BIDS versions with bundled schema support (>= min_version).
+
+    Uses the version list shipped with bidsschematools (no network fetch).
     """
-    try:
-        from packaging.version import Version
-        min_ver = Version(min_version)
-        allowed = set()
+    min_ver = Version(min_version)
+    schema = load_schema()
+    release_list = getattr(schema.meta, "versions", None)
+    if release_list is None:
+        meta = schema.get("meta", {}) if hasattr(schema, "get") else {}
+        release_list = meta.get("versions", [])
 
-        latest_schema_uri = "https://bids-specification.readthedocs.io/en/latest/schema.json"
-        r = requests.get(
-            latest_schema_uri,
-            timeout=timeout,
-        )
-        if r.status_code != 200:
+    allowed = set()
+    for release in release_list:
+        try:
+            if Version(release) >= min_ver:
+                allowed.add(release)
+        except InvalidVersion:
             warn(
-                f"Unable to reach release list at "
-                f"{latest_schema_uri}",
-                stacklevel=2
+                f"Detected InvalidVersion from release list {release}",
+                stacklevel=2,
             )
-            release_list = load_schema()['meta']['versions']
-        else:
-            release_list = r.json()['meta']['versions']
-
-        for release in release_list:
-            try:
-                if Version(release) >= min_ver:
-                    allowed.add(release)
-            except InvalidVersion:
-                warn(
-                    f"Detected InvalidVersion from release list {release}",
-                    stacklevel=2)
-                continue
-        return allowed if allowed else None
-    except (requests.RequestException, ValueError):
-        return None
+            continue
+    return allowed if allowed else None
 
 
 def collect_schema(
@@ -306,39 +297,42 @@ def collect_schema(
     :return: a bids schema
     :rtype: dict
     """
+    from bidsschematools.schema import load_schema
     if uri is not None and bids_version is not None:
         raise ValueError(
             "uri and bids_version are mutually exclusive, "
             f"you gave uri={uri!r}, bids_version={bids_version!r}"
         )
 
-    if bids_version and not uri:
-        version_pattern = re.compile(r"(?<![.\d])\d+(?:\.\d+){1,}(?![.\d])")
-        version = version_pattern.search(bids_version)
-        if version:
-            version = f"v{version.group(0)}"
-        if 'latest' in bids_version:
-            version = 'latest'
-        if 'stable' in bids_version:
-            version = 'stable'
-        if not version:
-            raise ValueError(f"Unable to determine version from bids_version={bids_version}")
+    if bids_version or uri:
+        import requests
+        if bids_version:
+            version_pattern = re.compile(r"(?<![.\d])\d+(?:\.\d+){1,}(?![.\d])")
+            version = version_pattern.search(bids_version)
+            if version:
+                version = f"v{version.group(0)}"
+            if 'latest' in bids_version:
+                version = 'latest'
+            if 'stable' in bids_version:
+                version = 'stable'
+            if not version:
+                raise ValueError(f"Unable to determine version from bids_version={bids_version}")
 
-        # Validate numeric version against available releases fetched from the web.
-        if version not in ("latest", "stable"):
-            allowed = _allowed_bids_versions()
-            if allowed is None:
-                raise ValueError(
-                    f"Unable to validate bids_version {bids_version!r} (resolved to {version!r}) "
-                    "because the list of available BIDS releases could not be retrieved."
-                )
-            if version.lstrip("v") not in allowed:
-                raise ValueError(
-                    f"bids_version {bids_version!r} (resolved to {version!r}) is not an available "
-                    f"BIDS release >= 1.8.0. Available: {', '.join(sorted(allowed))}"
-                )
+            # Validate numeric version against available releases fetched from the web.
+            if version not in ("latest", "stable"):
+                allowed = _allowed_bids_versions()
+                if allowed is None:
+                    raise ValueError(
+                        f"Unable to validate bids_version {bids_version!r} (resolved to {version!r}) "
+                        "because the list of available BIDS releases could not be retrieved."
+                    )
+                if version.lstrip("v") not in allowed:
+                    raise ValueError(
+                        f"bids_version {bids_version!r} (resolved to {version!r}) is not an available "
+                        f"BIDS release >= 1.8.0. Available: {', '.join(sorted(allowed))}"
+                    )
 
-        uri = f"https://bids-specification.readthedocs.io/en/{version}/schema.json"
+            uri = f"https://bids-specification.readthedocs.io/en/{version}/schema.json"
 
         # Check that the resolved schema URL is reachable before loading.
         try:
@@ -353,21 +347,15 @@ def collect_schema(
                 f"for bids_version {bids_version!r}."
             )
 
-    from bidsschematools.schema import load_schema
+        schema = load_schema(Path(uri))
 
     if uri is None and bids_version is None:
-        uri = "https://bids-specification.readthedocs.io/en/stable/schema.json"
-        try:
-            schema = load_schema(Path(uri))
-        except (FileNotFoundError, NotADirectoryError):
-            schema = load_schema()
-            warn(
-                f"Unable to retrieve stable schema from {uri},"
-                f"using version {schema.get('bids_version')} instead.",
-                stacklevel=2
-            )
-    else:
-        schema = load_schema(Path(uri))
+        schema = load_schema()
+        logger.info(
+            "No version provided, loading default schema bids_version=%s, schema_version=%s",
+            schema.bids_version,
+            schema.schema_version,
+        )
 
     return schema
 
