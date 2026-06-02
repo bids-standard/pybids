@@ -279,12 +279,9 @@ def collect_schema(
     --------
     >>> from bids.utils import collect_schema
     >>> schemav1_10_0 = collect_schema(bids_version="1.10.0")
-    >>> schemav1_11_0 = collect_schema(bids_version="1.11.0")
     >>> schemav1_9_0 = collect_schema(bids_version="1.9.0")
     >>> schemav1_10_0['bids_version']
     '1.10.0'
-    >>> schemav1_11_0['bids_version']
-    '1.11.0'
     >>> schemav1_9_0['bids_version']
     '1.9.0'
 

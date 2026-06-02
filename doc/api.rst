@@ -102,6 +102,7 @@ API Reference
    bids.utils.matches_entities
    bids.utils.convert_JSON
    bids.utils.make_bidsfile
+   bids.utils.collect_schema
 
 
 .. currentmodule:: bids
