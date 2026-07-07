@@ -400,23 +400,33 @@ class BIDSLayoutIndexer:
             while True:
                 # Get JSON payloads
                 json_data = file_data.get(json_key, {}).get(dirname, [])
+                dir_payloads = []
                 for js_ents, js_md, js_path in json_data:
                     js_keys = set(js_ents.keys())
                     if js_keys - file_ent_keys:
                         continue
                     matches = [js_ents[name] == file_ents[name] for name in js_keys]
                     if all(matches):
-                        payloads.append((js_md, js_path))
+                        dir_payloads.append((len(js_keys), js_md, js_path))
+                
+                dir_payloads.sort(key=lambda x: x[0], reverse=True)
+                for _, js_md, js_path in dir_payloads:
+                    payloads.append((js_md, js_path))
 
                 # Get all files this file inherits from
                 candidates = file_data.get(ext_key, {}).get(dirname, [])
+                dir_ancestors = []
                 for ents, _, path in candidates:
                     keys = set(ents.keys())
                     if keys - file_ent_keys:
                         continue
                     matches = [ents[name] == file_ents[name] for name in keys]
                     if all(matches):
-                        ancestors.append(path)
+                        dir_ancestors.append((len(keys), path))
+                
+                dir_ancestors.sort(key=lambda x: x[0], reverse=True)
+                for _, path in dir_ancestors:
+                    ancestors.append(path)
 
                 parent = dirname.parent
 
