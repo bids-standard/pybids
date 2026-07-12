@@ -131,14 +131,26 @@ class ConnectionManager:  # noqa: D101
 
         """
         database_file = get_database_file(database_path)
-        new_db = sqlite3.connect(str(database_file))
         old_db = self.engine.connect().connection
+
+        # Dump into a fresh temporary file and atomically move it into place.
+        # ``iterdump`` emits plain ``CREATE TABLE`` statements that raise
+        # "table ... already exists" when replayed into a database that already
+        # holds the schema, so the destination must start empty. Building a new
+        # file first (rather than clearing ``database_file`` in place) also keeps
+        # re-saving safe when the destination is the current database file, i.e.
+        # ``old_db`` and ``database_file`` alias the same path. See gh-1079.
+        temp_file = database_file.with_name(f'.{database_file.name}.tmp')
+        temp_file.unlink(missing_ok=True)
+        new_db = sqlite3.connect(str(temp_file))
 
         with new_db:
             for line in old_db.iterdump():
                 if line not in ('BEGIN;', 'COMMIT;'):
                     new_db.execute(line)
             new_db.commit()
+        new_db.close()
+        temp_file.replace(database_file)
 
         if replace_connection:
             return ConnectionManager(database_path, init_args=self.layout_info)
