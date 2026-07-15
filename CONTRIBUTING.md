@@ -14,7 +14,7 @@ tests, code style, and how we handle commits, pull requests, and the changelog.
 - **Bug reports, feature requests, and technical discussion:**
   [open an issue](https://github.com/bids-standard/pybids/issues).
 - **Usage questions** (where no bug is suspected): the
-  [NeuroStars](https://neurostars.org/tags/bids) forum, under the `bids` tag.
+  [NeuroStars](https://neurostars.org/tags/pybids) forum, under the `pybids` tag.
 
 If you are unsure whether a change is wanted, open an issue to discuss it before
 investing significant effort.
