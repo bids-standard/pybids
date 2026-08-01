@@ -13,6 +13,7 @@ import pytest
 
 from bids.exceptions import (
     BIDSChildDatasetError,
+    BIDSConflictingValuesError,
     BIDSDerivativesValidationError,
     BIDSValidationError,
     NoMatchError,
@@ -963,6 +964,37 @@ def test_indexing_tag_conflict(tests_dir):
         layout = BIDSLayout(data_dir)
     assert str(exc.value).startswith('Conflicting values found')
     assert 'run' in str(exc.value)
+
+
+@pytest.mark.parametrize('metadata_run', [1, 1.0])
+def test_indexing_zero_padded_entity_matches_numeric_metadata(tmp_path, metadata_run):
+    (tmp_path / 'dataset_description.json').write_text(
+        json.dumps({'Name': 'test', 'BIDSVersion': '1.10.0'})
+    )
+    func_dir = tmp_path / 'sub-01' / 'func'
+    func_dir.mkdir(parents=True)
+    bold_file = func_dir / 'sub-01_task-rest_run-01_bold.nii.gz'
+    bold_file.touch()
+    bold_file.with_suffix('').with_suffix('.json').write_text(json.dumps({'run': metadata_run}))
+
+    layout = BIDSLayout(tmp_path)
+
+    assert layout.get(run=1, suffix='bold', extension='.nii.gz')
+
+
+@pytest.mark.parametrize('metadata_run', [2, 1.5, True, '1'])
+def test_indexing_zero_padded_entity_rejects_conflicting_metadata(tmp_path, metadata_run):
+    (tmp_path / 'dataset_description.json').write_text(
+        json.dumps({'Name': 'test', 'BIDSVersion': '1.10.0'})
+    )
+    func_dir = tmp_path / 'sub-01' / 'func'
+    func_dir.mkdir(parents=True)
+    bold_file = func_dir / 'sub-01_task-rest_run-01_bold.nii.gz'
+    bold_file.touch()
+    bold_file.with_suffix('').with_suffix('.json').write_text(json.dumps({'run': metadata_run}))
+
+    with pytest.raises(BIDSConflictingValuesError, match="entity 'run'"):
+        BIDSLayout(tmp_path)
 
 
 def test_get_with_wrong_dtypes(layout_7t_trt):
