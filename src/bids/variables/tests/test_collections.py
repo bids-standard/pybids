@@ -360,3 +360,18 @@ def test_n_variables(run_coll_derivs):
     # Test that collections have not incorrectly merged multiple subjects
     for c in run_coll_derivs:
         assert 'subject' in c.entities
+
+
+def test_collect_events():
+    "Confirm all rows of events.tsv are parsed into dataframe."
+    path = join(get_test_data_path(), "synthetic")
+    layout = BIDSLayout(path)
+    ses = layout.get_collections("session", subject="01", session="01", merge=True)
+    first_var = list(ses.variables.values())[0].values.to_list()
+    # collection built will all variables for scans. T1w, 2x nback, rest
+    assert len(first_var) == 4
+    # collection converted to dataframe
+    ses_df = ses.to_df()
+    # TODO: fix bids/variables/collections.py(207)to_df()'s df.pivot_table
+    # issue #604
+    assert ses_df.shape[0] == 4
