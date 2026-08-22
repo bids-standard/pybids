@@ -372,6 +372,9 @@ def test_collect_events():
     assert len(first_var) == 4
     # collection converted to dataframe
     ses_df = ses.to_df()
-    # TODO: fix bids/variables/collections.py(207)to_df()'s df.pivot_table
-    # issue #604
     assert ses_df.shape[0] == 4
+
+    # read in all events across study
+    # find  tests/data/synthetic/ -iname '*scans.tsv' -exec sed 1d {} \; |wc -l # 40
+    ses_full_df = layout.get_collections("session", merge=True).to_df()
+    assert ses_full_df.shape[0] == 40

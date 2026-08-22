@@ -199,13 +199,13 @@ class BIDSVariableCollection:
             with _pandas_3_0():
                 df = df.reset_index(drop=True).fillna(fillna).infer_objects()
         else:
-            # Rows in wide format can only be defined by combinations of level entities
-            # plus (for run-level variables) onset and duration.
-            valid_vars = {'run', 'session', 'subject', 'dataset', 'onset', 'duration'}
-            idx_cols = list(valid_vars & all_cols)
+            # pivot everything but the condtion<->amplitude long format pairing
+            idx_cols = df.columns.difference(['condition', 'amplitude']).to_list()
 
             with _pandas_3_0():
-                df['amplitude'] = df['amplitude'].fillna('n/a')
+                # pivot_table(...,dropna=False) will create new rows
+                for col in df.columns:
+                    df[col] = df[col].fillna('n/a')
             wide_df = df.pivot_table(
                 index=idx_cols, columns='condition', values='amplitude', aggfunc='first'
             )
