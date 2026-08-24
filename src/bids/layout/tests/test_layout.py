@@ -29,6 +29,27 @@ def test_layout_init(layout_7t_trt):
     assert isinstance(layout_7t_trt.files, dict)
 
 
+def test_entities_are_parsed_below_dataset_root(tmp_path):
+    root = tmp_path / 'sub-wrong' / 'motion' / 'BIDS'
+    func = root / 'sub-001' / 'func'
+    func.mkdir(parents=True)
+    (root / 'dataset_description.json').write_text(
+        json.dumps({'Name': 'root boundary', 'BIDSVersion': '1.10.1'})
+    )
+    bold = func / 'sub-001_task-test_bold.nii.gz'
+    bold.touch()
+
+    layout = BIDSLayout(root, validate=False)
+
+    assert layout.get_file(bold).entities == {
+        'datatype': 'func',
+        'extension': '.nii.gz',
+        'subject': '001',
+        'suffix': 'bold',
+        'task': 'test',
+    }
+
+
 @pytest.mark.parametrize(
     'index_metadata,filters,result',
     [

@@ -270,14 +270,10 @@ class BIDSLayoutIndexer:
         """Create DB record for file and its tags."""
         bf = make_bidsfile(abs_fn)
 
-        # Extract entity values
-        match_vals = {}
-        for e in entities.values():
-            m = e.match_file(bf)
-            if m is None and e.mandatory:
-                break
-            if m is not None:
-                match_vals[e.name] = (e, m)
+        # Entity patterns must not match directories above the dataset root.
+        root = Path(self._layout._root.path)
+        relative_fn = Path('/') / Path(abs_fn.path).relative_to(root)
+        match_vals = _extract_entities(make_bidsfile(relative_fn), entities)
 
         # Create Entity <=> BIDSFile mappings
         tag_dicts = [
