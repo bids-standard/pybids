@@ -13,7 +13,7 @@ kernelspec:
 
 # Introduction to `pybids`
 
-[`pybids`](https://github.com/bids-standard/pybids) is a tool to query, summarize and manipulate data using the BIDS standard. 
+[`pybids`](https://github.com/bids-standard/pybids) is a tool to query, summarize and manipulate data using the BIDS standard.
 In this tutorial we will use a `pybids` test dataset to illustrate some of the functionality of `pybids.layout`
 
 ```{code-cell} ipython3
@@ -186,7 +186,7 @@ path = "/a/fake/path/to/a/BIDS/file/sub-01_run-1_T2w.nii.gz"
 layout.parse_file_entities(path)
 ```
 
-A version of this utility independent of a specific layout is available at `bids.layout` ([doc](https://bids-standard.github.io/pybids/generated/bids.layout.parse_file_entities.html#bids.layout.parse_file_entities)) - 
+A version of this utility independent of a specific layout is available at `bids.layout` ([doc](https://bids-standard.github.io/pybids/generated/bids.layout.parse_file_entities.html#bids.layout.parse_file_entities)) -
 
 ```{code-cell} ipython3
 from bids.layout import parse_file_entities
@@ -265,10 +265,10 @@ We can also include metadata in the result if we like (which may blow up our `Da
 layout.to_df(metadata=True).head()
 ```
 
-## Retrieving BIDS variables 
+## Retrieving BIDS variables
 BIDS variables are stored in .tsv files at the run, session, subject, or dataset level. You can retrieve these variables with `layout.get_collections()`. The resulting objects can be converted to dataframes and merged with the layout to associate the variables with corresponding scans.
 
-In the following example, we request all subject-level variable data available anywhere in the BIDS project, and merge the results into a single `DataFrame` (by default, we'll get back a single `BIDSVariableCollection` object for each subject). 
+In the following example, we request all subject-level variable data available anywhere in the BIDS project, and merge the results into a single `DataFrame` (by default, we'll get back a single `BIDSVariableCollection` object for each subject).
 
 ```{code-cell} ipython3
 # Get subject variables as a dataframe and merge them back in with the layout

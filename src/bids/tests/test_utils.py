@@ -20,7 +20,7 @@ class DummyResponse:
 
 
 def test_allowed_bids_versions_non_200(monkeypatch):
-    """_allowed_bids_versions should return the same list of 
+    """_allowed_bids_versions should return the same list of
     versions (filtered) from the bids schema loaded via bidsschematools.schema.load_schema
     on non-200 responses."""
 
@@ -37,7 +37,7 @@ def test_allowed_bids_versions_empty_when_none_valid(monkeypatch):
     class FakeSchema:
         class meta:
             versions = ["0.1.0", "bad-version"]
-    
+
     monkeypatch.setattr("bids.utils.load_schema", lambda: FakeSchema())
     assert _allowed_bids_versions(min_version="1.8.0") is None
 
@@ -96,7 +96,7 @@ def test_collect_schema_default_latest_when_no_args(mock_head):
     """With no uri or bids_version, collect_schema should default to the schema packaged with bidsschematools."""
     result = collect_schema()
     bundled = load_schema()
-    
+
     mock_head.assert_not_called()
     assert result.bids_version == bundled.bids_version
     assert result.schema_version == bundled.schema_version

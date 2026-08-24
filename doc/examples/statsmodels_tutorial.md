@@ -67,14 +67,14 @@ We can take a look at the original variables available for each node prior to ru
 
 ```{code-cell} ipython3
 colls = root_node.get_collections()
-first_sub = colls[0] # Collection for the first subject / run 
+first_sub = colls[0] # Collection for the first subject / run
 ```
 
 ```{code-cell} ipython3
 first_sub.to_df(entities=False)
 ```
 
-Note that by default `to_df` combines both sparse and dense variables. 
+Note that by default `to_df` combines both sparse and dense variables.
 
 We can take a look at the individual variable objects as well:
 
