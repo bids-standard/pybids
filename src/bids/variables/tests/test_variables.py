@@ -40,6 +40,13 @@ def layout2():
     return layout
 
 
+@pytest.fixture(scope='module')
+def layout_syn():
+    path = join(get_test_data_path(), 'synthetic')
+    layout = BIDSLayout(path)
+    return layout
+
+
 def test_dense_event_variable_init():
     dev = generate_DEV()
     assert dev.sampling_rate == 20
@@ -186,6 +193,29 @@ def test_sparse_run_variable_to_df(layout1):
 
 def test_dense_run_variable_to_df(layout2):
     pass
+
+
+def test_syn_run_variable_to_df(layout_syn):
+    dataset = load_variables(layout_syn, levels=['session', 'run'])
+    runs = dataset.get_nodes('run')
+    rows_per_run = [x.variables['respiratory'].to_df(True, True).shape[0]
+                    for x in runs]
+    subjs = [x.variables['cardiac'].index.subject.unique().tolist()
+             for x in runs]
+    # 5 subjs * 2 sessions * 3 runs
+    assert len(rows_per_run) == 30
+    # all runs have physio with 1600 samples
+    assert rows_per_run == [1600] * len(rows_per_run)
+    assert np.unique(subjs).tolist() == ['01', '02', '03', '04', '05']
+
+
+def test_syn_run_variable_to_df_merge(layout_syn):
+    "Check issue #1275. count reps and fill merge dataframe."
+    dataset = load_variables(layout_syn, levels=['session', 'run'])
+    col = dataset.get_collections('run', 'cardiac', merge=True)
+    subjs = col.variables['cardiac'].index.subject.unique().tolist()
+    assert np.unique(subjs).tolist() == ['01', '02', '03', '04', '05']
+
 
 
 def test_filter_simple_variable(layout2):

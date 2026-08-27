@@ -1,6 +1,7 @@
 from os.path import join
 
 import numpy as np
+import pandas as pd
 import pytest
 
 from bids.layout import BIDSLayout
@@ -48,6 +49,11 @@ def run_coll_derivs():
         'run', types=['events', 'regressors'], merge=False, scan_length=480, subject=['01', '02']
     )
 
+@pytest.fixture(scope='module')
+def layout_syn():
+    path = join(get_test_data_path(), 'synthetic')
+    layout = BIDSLayout(path)
+    return layout
 
 def test_run_variable_collection_init(run_coll):
     assert isinstance(run_coll.variables, dict)
@@ -308,6 +314,16 @@ def test_run_variable_collection_to_df_mixed_vars(run_coll):
     assert not {'RT', 'respcat'} - set(df.columns)
 
 
+def test_variable_collection_to_df_syn(layout_syn):
+    """Test variable.to_df, issue #1275.
+    Also see src/bids/variables/tests/test_variables.py
+    """
+    runc = layout_syn.get_collections("run", subject="01", session="01")
+    resp_var = runc[0].variables['respiratory']
+    sub_list = pd.unique(resp_var.to_df(True, True, True).subject)
+    assert sub_list == ['01']
+
+
 def test_merge_collections(run_coll, run_coll_list):
     df1 = run_coll.to_df().sort_values(['subject', 'run', 'onset'])
     rcl = [c.clone() for c in run_coll_list]
@@ -362,13 +378,13 @@ def test_n_variables(run_coll_derivs):
         assert 'subject' in c.entities
 
 
-def test_collect_events():
-    "Confirm all rows of events.tsv are parsed into dataframe."
+def test_collect_session():
+    "Confirm all rows of scans.tsv are parsed into dataframe."
     path = join(get_test_data_path(), "synthetic")
     layout = BIDSLayout(path)
     ses = layout.get_collections("session", subject="01", session="01", merge=True)
     first_var = list(ses.variables.values())[0].values.to_list()
-    # collection built will all variables for scans. T1w, 2x nback, rest
+    # collection built with all variables for scans. T1w, 2x nback, rest
     assert len(first_var) == 4
     # collection converted to dataframe
     ses_df = ses.to_df()
@@ -378,3 +394,28 @@ def test_collect_events():
     # find  tests/data/synthetic/ -iname '*scans.tsv' -exec sed 1d {} \; |wc -l # 40
     ses_full_df = layout.get_collections("session", merge=True).to_df()
     assert ses_full_df.shape[0] == 40
+
+
+def test_collect_run(layout_syn):
+    "Confirm all rows of events.tsv are parsed into dataframe."
+    runc = layout_syn.get_collections("run", subject="01", session="01", merge=True)
+    first_var = list(runc.variables.values())[0].values.to_list()
+    # find  tests/data/synthetic/ -iname '*events.tsv'|xargs wc -l
+    #  43 tests/data/synthetic/task-nback_events.tsv
+    assert len(first_var) == 42*2  # two nback runs
+
+    # find tests/data/synthetic/  -iname '*sub-01*phys*' | while read f; do echo "$(zcat $f|wc -l) ${f/*synthetic/}"; done; wc -l tests/data/synthetic/task-*events.tsv
+    #  1600 /sub-01/ses-01/func/sub-01_ses-01_task-nback_run-01_physio.tsv.gz
+    #  1600 /sub-01/ses-01/func/sub-01_ses-01_task-nback_run-02_physio.tsv.gz
+    #  1600 /sub-01/ses-01/func/sub-01_ses-01_task-rest_physio.tsv.gz
+    #  1600 /sub-01/ses-02/func/sub-01_ses-02_task-nback_run-01_physio.tsv.gz
+    #  1600 /sub-01/ses-02/func/sub-01_ses-02_task-nback_run-02_physio.tsv.gz
+    #  1600 /sub-01/ses-02/func/sub-01_ses-02_task-rest_physio.tsv.gz
+
+    # issue #1275
+    resp = runc.variables['respiratory'].to_df(True, True)
+    assert resp.subject.unique().tolist() == ['01']
+
+    # collection converted to dataframe
+    run_df = runc.to_df()
+    assert run_df.shape[0] == 1600*3  # 2x nback + rest
