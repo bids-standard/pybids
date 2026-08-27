@@ -187,7 +187,8 @@ class BIDSVariableCollection:
         # timing flags through to the individual variables and then do
         # concat/reshaping operations. So instead, we set them all to True
         # temporarily, do what we need to, then drop them later if needed.
-        dfs = [v.to_df(True, True, timing=True) for v in variables]
+        dfs = [v.to_df(condition=True, entities=True, timing=True)
+               for v in variables]
 
         # Always concatenate along row axis (for format='wide', we'll pivot).
         df = pd.concat(dfs, axis=0, sort=True)
@@ -199,12 +200,18 @@ class BIDSVariableCollection:
             with _pandas_3_0():
                 df = df.reset_index(drop=True).fillna(fillna).infer_objects()
         else:
-            # pivot everything but the condtion<->amplitude long format pairing
+            #: columns to replace None with n/a so they are not dropped
+            fill_cols = df.columns
+            #: columns to keep in long->wide pivot
             idx_cols = df.columns.difference(['condition', 'amplitude']).to_list()
+            # pivot everything but the condtion<->amplitude long format pairing
+            # could consider
+            #   testing self.level == 'run' for expliclty enumerating level entities
+            #   or using self.variables.keys() and self.entities.keys()
 
             with _pandas_3_0():
                 # pivot_table(...,dropna=False) will create new rows
-                for col in df.columns:
+                for col in fill_cols:
                     df[col] = df[col].fillna('n/a')
             wide_df = df.pivot_table(
                 index=idx_cols, columns='condition', values='amplitude', aggfunc='first'
