@@ -229,6 +229,7 @@ class BIDSVariable(metaclass=ABCMeta):
             data['condition'] = self.name
 
         if entities:
+            # BUG #1275 - injects subjec=0 when 'run' column in only some dfs
             ent_data = self.index.reset_index(drop=True)
             data = pd.concat([data, ent_data], axis=1, sort=True)
 
@@ -559,7 +560,7 @@ class DenseRunVariable(BIDSVariable):
                 for k, v in all_ents[i].items():
                     col_ix = np.where(all_keys == k)[0][0]
                     df.iloc[prev_ix : prev_ix + reps, col_ix] = v
-                prev_ix = reps
+                prev_ix += reps
 
             return df
 
