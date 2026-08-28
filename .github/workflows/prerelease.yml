@@ -65,7 +65,7 @@ jobs:
         run: tox c
       - name: Run tox
         run: tox -v --exit-and-dump-after 1200
-      - uses: codecov/codecov-action@v6
+      - uses: codecov/codecov-action@v7
         if: ${{ always() }}
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
