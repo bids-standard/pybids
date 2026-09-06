@@ -394,7 +394,14 @@ class BIDSLayoutIndexer:
             ancestors = []
 
             while True:
-                # Get JSON payloads
+                # Get JSON payloads. Several sidecars in one directory can
+                # apply to the same data file, for instance when a run
+                # without an echo entity sits beside the echo-wise sidecars
+                # of a multi-echo run. Within a directory the more specific
+                # sidecar, the one matching more of the data file's
+                # entities, must win, so order this directory's matches by
+                # decreasing specificity before adding them to the stack.
+                dir_payloads = []
                 json_data = file_data.get(json_key, {}).get(dirname, [])
                 for js_ents, js_md, js_path in json_data:
                     js_keys = set(js_ents.keys())
@@ -402,9 +409,13 @@ class BIDSLayoutIndexer:
                         continue
                     matches = [js_ents[name] == file_ents[name] for name in js_keys]
                     if all(matches):
-                        payloads.append((js_md, js_path))
+                        dir_payloads.append((len(js_keys), js_md, js_path))
+                dir_payloads.sort(key=lambda item: item[0], reverse=True)
+                payloads.extend((js_md, js_path) for _, js_md, js_path in dir_payloads)
 
-                # Get all files this file inherits from
+                # Get all files this file inherits from, ordered by the same
+                # decreasing-specificity rule.
+                dir_ancestors = []
                 candidates = file_data.get(ext_key, {}).get(dirname, [])
                 for ents, _, path in candidates:
                     keys = set(ents.keys())
@@ -412,7 +423,9 @@ class BIDSLayoutIndexer:
                         continue
                     matches = [ents[name] == file_ents[name] for name in keys]
                     if all(matches):
-                        ancestors.append(path)
+                        dir_ancestors.append((len(keys), path))
+                dir_ancestors.sort(key=lambda item: item[0], reverse=True)
+                ancestors.extend(path for _, path in dir_ancestors)
 
                 parent = dirname.parent
 
