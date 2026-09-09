@@ -396,7 +396,8 @@ class BIDSLayoutIndexer:
             while True:
                 # Get JSON payloads
                 json_data = file_data.get(json_key, {}).get(dirname, [])
-                for js_ents, js_md, js_path in json_data:
+                # Most specific first, so the closest sidecar wins.
+                for js_ents, js_md, js_path in sorted(json_data, key=lambda d: -len(d[0])):
                     js_keys = set(js_ents.keys())
                     if js_keys - file_ent_keys:
                         continue
