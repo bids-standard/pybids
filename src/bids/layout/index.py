@@ -503,7 +503,15 @@ class BIDSLayoutIndexer:
                 # Skip pairs that were already found in the filenames
                 if tag_string in all_tags:
                     file_val = all_tags[tag_string]
-                    if str(md_val) != file_val:
+                    entity = all_entities.get(md_key)
+                    values_match = str(md_val) == file_val
+                    if (
+                        entity is not None
+                        and entity._dtype == 'int'
+                        and not isinstance(md_val, bool)
+                    ):
+                        values_match = entity._astype(file_val) == md_val
+                    if not values_match:
                         msg = (
                             "Conflicting values found for entity '{}' in "
                             "filename {} (value='{}') versus its JSON sidecar "
