@@ -937,6 +937,34 @@ def test_get_dataset_description(layout_ds005_multi_derivs):
     assert set([d['Name'] for d in dd]) == names
 
 
+def test_sidecar_matches_most_specific_entities(tmp_path):
+    """A file takes the sidecar sharing all its entities, not a less specific one.
+
+    Regression test for #1253: the part-phase image inherited the magnitude
+    image's sidecar because both matched and the less specific one came first.
+    """
+    func = tmp_path / 'sub-01' / 'func'
+    func.mkdir(parents=True)
+    (tmp_path / 'dataset_description.json').write_text(
+        json.dumps({'Name': 'sidecars', 'BIDSVersion': '1.8.0'})
+    )
+    stems = {
+        'sub-01_task-rest_bold': 'arbitrary',
+        'sub-01_task-rest_part-phase_bold': 'rad',
+    }
+    for stem, units in stems.items():
+        (func / f'{stem}.nii.gz').touch()
+        (func / f'{stem}.json').write_text(json.dumps({'Units': units}))
+
+    layout = BIDSLayout(tmp_path, validate=False)
+
+    for stem, units in stems.items():
+        img = layout.get_file(func / f'{stem}.nii.gz')
+        assert img.get_metadata()['Units'] == units
+        sidecars = [a.path for a in img.get_associations() if a.path.endswith('.json')]
+        assert sidecars == [str(func / f'{stem}.json')]
+
+
 def test_indexed_file_associations(layout_7t_trt):
     img = layout_7t_trt.get(
         subject='01',
