@@ -1376,3 +1376,13 @@ def test_bids_sort(layout_7t_trt):
 
     assert list(first_file_ents_unsorted.keys()) != sorted_keys
     assert list(bids_sort(first_file_ents_unsorted).keys()) == sorted_keys
+
+def test_derivatives_dictionary_input(tests_dir):
+    data_dir = os.path.join(tests_dir, 'data', 'ds005')
+    deriv_dir = os.path.join(tests_dir, 'data', 'ds005_derivs', 'dummy-vx.x.x')
+    layout = BIDSLayout(data_dir, derivatives={'my_custom_pipeline': deriv_dir})
+    
+    assert 'my_custom_pipeline' in layout.derivatives
+    assert layout.derivatives['my_custom_pipeline'].source_pipeline == 'my_custom_pipeline'
+    assert len(layout.get(scope='my_custom_pipeline', extension='.nii.gz')) == 3
+    assert len(layout.get(scope='dummy', extension='.nii.gz')) == 0

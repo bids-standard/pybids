@@ -82,9 +82,15 @@ class LayoutInfo(Base):
 
         # Get abspaths
         if kwargs.get('derivatives') not in (None, True, False):
-            kwargs['derivatives'] = [
-                str(UPath(der).absolute()) for der in listify(kwargs['derivatives'])
-            ]
+            if isinstance(kwargs['derivatives'], dict):
+                kwargs['derivatives'] = {
+                    name: str(UPath(der).absolute()) 
+                    for name, der in kwargs['derivatives'].items()
+                }
+            else:
+                kwargs['derivatives'] = [
+                    str(UPath(der).absolute()) for der in listify(kwargs['derivatives'])
+                ]
 
         if kwargs.pop('absolute_paths', True) is not True:
             warnings.warn(
