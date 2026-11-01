@@ -369,6 +369,23 @@ def test_get_bvals_bvecs(layout_ds005):
     assert result == abspath(join(layout_ds005.root, 'dwi.bvec'))
 
 
+def test_get_bvals_bvecs_other_suffix(tmp_path):
+    (tmp_path / 'dataset_description.json').write_text(
+        json.dumps({'Name': 'trace', 'BIDSVersion': '1.10.1'})
+    )
+    dwi = tmp_path / 'sub-01' / 'dwi'
+    dwi.mkdir(parents=True)
+    trace = dwi / 'sub-01_trace.nii.gz'
+    bval = dwi / 'sub-01_trace.bval'
+    bvec = dwi / 'sub-01_trace.bvec'
+    for path in (trace, bval, bvec):
+        path.touch()
+
+    layout = BIDSLayout(tmp_path, validate=False)
+    assert Path(layout.get_bval(trace, suffix='trace')) == bval
+    assert Path(layout.get_bvec(trace, suffix='trace')) == bvec
+
+
 def test_get_subjects(layout_7t_trt):
     result = layout_7t_trt.get_subjects()
     predicted = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10']
