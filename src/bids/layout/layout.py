@@ -1247,14 +1247,14 @@ class BIDSLayout:
         matches = [match.path if return_type.startswith('file') else match for match in matches]
         return matches if all_ else matches[0] if matches else None
 
-    def get_bvec(self, path, **kwargs):
-        """Get bvec file for passed path."""
-        result = self.get_nearest(path, extension='.bvec', suffix='dwi', all_=True, **kwargs)
+    def get_bvec(self, path, suffix='dwi', **kwargs):
+        """Get bvec file for passed path; set `suffix` for files such as _trace."""
+        result = self.get_nearest(path, extension='.bvec', suffix=suffix, all_=True, **kwargs)
         return listify(result)[0]
 
-    def get_bval(self, path, **kwargs):
-        """Get bval file for passed path."""
-        result = self.get_nearest(path, suffix='dwi', extension='.bval', all_=True, **kwargs)
+    def get_bval(self, path, suffix='dwi', **kwargs):
+        """Get bval file for passed path; set `suffix` for files such as _trace."""
+        result = self.get_nearest(path, suffix=suffix, extension='.bval', all_=True, **kwargs)
         return listify(result)[0]
 
     def get_fieldmap(self, path, return_list=False):
