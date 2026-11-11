@@ -239,7 +239,7 @@ def upgrade_dataset_description(description):
             default='r',
             type=click.Choice(('r', 'd'), case_sensitive=False),
         )
-        description['DatasetType'] = 'raw' if val == 'R' else 'derivative'
+        description['DatasetType'] = 'raw' if val.upper() == 'R' else 'derivative'
 
     if description['DatasetType'] == 'derivative':
         if 'PipelineDescription' in description:

@@ -1,9 +1,10 @@
 import os
 
+import click
 import pytest
 from click.testing import CliRunner
 
-from bids.cli import cli
+from bids.cli import cli, upgrade_dataset_description
 from bids.tests import get_test_data_path
 from bids.utils import validate_multiple
 
@@ -23,6 +24,17 @@ def test_cli_entrypoint(runner):
     assert runner.invoke(cli, ['-h'], catch_exceptions=False).stdout == help_text
     # verify versioning
     assert runner.invoke(cli, ['--version'], catch_exceptions=False).stdout.startswith('pybids')
+
+
+@pytest.mark.parametrize(
+    ('answer', 'expected'), [('r', 'raw'), ('R', 'raw'), ('d', 'derivative')]
+)
+def test_upgrade_dataset_type_prompt(monkeypatch, answer, expected):
+    # The [r]aw/[d]erivative prompt accepts either case, and the default 'r'
+    # must map to 'raw'.
+    monkeypatch.setattr(click, 'prompt', lambda *args, **kwargs: answer)
+    desc = upgrade_dataset_description({'BIDSVersion': '1.6.0'})
+    assert desc['DatasetType'] == expected
 
 
 def test_validate_multiple():
