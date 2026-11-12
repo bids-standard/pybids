@@ -231,12 +231,12 @@ class BIDSVariableCollection:
         return df
 
     @classmethod
-    def from_df(cls, data, entities=None, source='contrast'):  # noqa: D417
+    def from_df(cls, data, entities=None, source='contrast'):
         """Create a Collection from a pandas DataFrame.
 
         Parameters
         ----------
-        df : :obj:`pandas.DataFrame`
+        data : :obj:`pandas.DataFrame`
             The DataFrame to convert to a Collection. Each
             column will be converted to a SimpleVariable.
         entities : :obj:`pandas.DataFrame`
