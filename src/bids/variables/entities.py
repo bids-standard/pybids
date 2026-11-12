@@ -18,9 +18,10 @@ class Node:
 
     Parameters
     ----------
-    id : int or str
-        A value uniquely identifying this node. Typically the
-        entity value extracted from the filename via layout.
+    level : str
+        The level of this node in the BIDS hierarchy.
+    entities : dict
+        Dictionary of entities for this Node.
 
     """
 
@@ -54,8 +55,6 @@ class RunNode(Node):
 
     Parameters
     ----------
-    id : int
-        The index of the run.
     entities : dict
         Dictionary of entities for this Node.
     image_file : str
@@ -64,8 +63,8 @@ class RunNode(Node):
         Duration of the run, in seconds.
     repetition_time : float
         TR for the run.
-    task : str
-        The task name for this run.
+    n_vols : int
+        Number of volumes in the run.
 
     """
 
