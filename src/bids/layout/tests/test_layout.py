@@ -296,6 +296,42 @@ def test_get_metadata5(layout_7t_trt):
     assert result['acquisition'] == 'fullbrain'
 
 
+def test_get_metadata_prefers_more_specific_sidecar(tmp_path):
+    """A sidecar in the same directory must not lose to a less specific one.
+
+    Replicates #1044: a single-echo run whose name has no ``echo`` entity may
+    sit beside the echo-wise sidecars of a multi-echo run. Both apply to an
+    echo file under the inheritance principle, but the sidecar that matches
+    more entities is the more specific one and has to win.
+    """
+    root = tmp_path / 'multiecho'
+    func = root / 'sub-01' / 'ses-01' / 'func'
+    func.mkdir(parents=True)
+    (root / 'dataset_description.json').write_text(
+        json.dumps({'Name': 'multi-echo beside single-echo', 'BIDSVersion': '1.8.0'})
+    )
+
+    stem = 'sub-01_ses-01_task-rest_run-1'
+    (func / f'{stem}_bold.json').write_text(json.dumps({'EchoTime': 0.015, 'RepetitionTime': 2.0}))
+    (func / f'{stem}_bold.nii.gz').touch()
+
+    echo_times = [0.0133, 0.0286, 0.0439, 0.0592]
+    for index, echo_time in enumerate(echo_times, start=1):
+        (func / f'{stem}_echo-{index}_bold.json').write_text(json.dumps({'EchoTime': echo_time}))
+        (func / f'{stem}_echo-{index}_bold.nii.gz').touch()
+
+    layout = BIDSLayout(root, validate=False)
+
+    for index, echo_time in enumerate(echo_times, start=1):
+        metadata = layout.get_metadata(func / f'{stem}_echo-{index}_bold.nii.gz')
+        assert metadata['EchoTime'] == echo_time
+        # The less specific sidecar still contributes what it alone defines.
+        assert metadata['RepetitionTime'] == 2.0
+
+    single_echo = layout.get_metadata(func / f'{stem}_bold.nii.gz')
+    assert single_echo['EchoTime'] == 0.015
+
+
 def test_get_metadata_via_bidsfile(layout_7t_trt):
     """Same as test_get_metadata5, but called through BIDSFile."""
     target = 'sub-01/ses-1/func/sub-01_ses-1_task-rest_acq-fullbrain_run-1_bold.nii.gz'
