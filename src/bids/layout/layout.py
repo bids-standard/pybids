@@ -596,16 +596,27 @@ class BIDSLayout:
         return parse_file_entities(filename, entities, config, include_unmatched)
 
     def _get_derivative_dirs(self, paths):
-        for path in paths:
-            p = Path(path).absolute()
-            base = p.name
-            if Path.exists(p / 'dataset_description.json'):
-                yield (base, p)
-            else:
-                yield from (
-                    (f'{base}/{dd.parent.name}', dd.parent)
-                    for dd in p.glob('*/dataset_description.json')
-                )
+        if isinstance(paths, dict):
+            for name, path in paths.items():
+                p = Path(path).absolute()
+                if Path.exists(p / 'dataset_description.json'):
+                    yield (name, p)
+                else:
+                    yield from (
+                        (f'{name}/{dd.parent.name}', dd.parent)
+                        for dd in p.glob('*/dataset_description.json')
+                    )
+        else:
+            for path in paths:
+                p = Path(path).absolute()
+                base = p.name
+                if Path.exists(p / 'dataset_description.json'):
+                    yield (base, p)
+                else:
+                    yield from (
+                        (f'{base}/{dd.parent.name}', dd.parent)
+                        for dd in p.glob('*/dataset_description.json')
+                    )
 
     def add_derivatives(self, path, parent_database_path=None, **kwargs):
         """Add BIDS-Derivatives datasets to tracking.
@@ -632,7 +643,11 @@ class BIDSLayout:
         specification for details.
 
         """
-        paths = listify(path)
+        is_custom_dict = isinstance(path, dict)
+        if is_custom_dict:
+            paths = path
+        else:
+            paths = listify(path)
         if parent_database_path:
             parent_database_path = Path(parent_database_path)
         deriv_paths = list(self._get_derivative_dirs(paths))
@@ -661,7 +676,10 @@ class BIDSLayout:
                     f'Pipeline name {name} ({path!s}) has already been added to this '
                     'BIDSLayout. Every added pipeline must have a unique name!'
                 )
-            self.derivatives[name] = BIDSLayout(path, is_derivative=True, **kwargs)
+            deriv = BIDSLayout(path, is_derivative=True, **kwargs)
+            if is_custom_dict:
+                deriv.source_pipeline = name
+            self.derivatives[name] = deriv
 
     def to_df(self, metadata=False, **filters):
         """Return information for BIDSFiles tracked in Layout as pd.DataFrame.
