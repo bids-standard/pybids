@@ -1157,7 +1157,8 @@ class BIDSLayout:
         strict (bool): When True, all entities present in both the input
             path and the target file(s) must match perfectly. When False,
             files will be ordered by the number of matching entities, and
-            partial matches will be allowed.
+            partial matches will be allowed. Either way, ties go to the file
+            with the fewest entities that the input path does not have.
         all_ (bool): When True, returns all matching files. When False
             (default), only returns the first match.
         ignore_strict_entities (str, list): Optional entity/entities to
@@ -1185,15 +1186,18 @@ class BIDSLayout:
             filters['suffix'] = f.entities['suffix']
 
         # Collect matches for all entities
+        filename_entities = self.get_entities(metadata=False)
         entities = {}
-        for ent in self.get_entities(metadata=False).values():
+        for ent in filename_entities.values():
             m = ent.regex.search(str(path))
             if m:
                 entities[ent.name] = ent._astype(m.group(1))
 
         # Remove any entities we want to ignore when strict matching is on
+        ignored = set()
         if strict and ignore_strict_entities is not None:
-            for k in listify(ignore_strict_entities):
+            ignored = set(listify(ignore_strict_entities))
+            for k in ignored:
                 entities.pop(k, None)
 
         # Get candidate files
@@ -1223,19 +1227,22 @@ class BIDSLayout:
             f_ents = f.entities
             keys = set(entities.keys()) & set(f_ents.keys())
             shared = len(keys)
-            return [shared, sum([entities[k] == f_ents[k] for k in keys])]
+            # Entities the passed file lacks, which mark e.g. a sibling run's file
+            extra = len((filename_entities.keys() & f_ents.keys()) - entities.keys() - ignored)
+            return [shared, sum([entities[k] == f_ents[k] for k in keys]), extra]
 
         matches = []
 
         for path in search_paths:
-            # Sort by number of matching entities. Also store number of
-            # common entities, for filtering when strict=True.
+            # Sort by number of matching entities, then by fewest extra
+            # entities. Also store number of common entities, for filtering
+            # when strict=True.
             num_ents = [[f] + count_matches(f) for f in folders[path]]
             # Filter out imperfect matches (i.e., where number of common
             # entities does not equal number of matching entities).
             if strict:
                 num_ents = [f for f in num_ents if f[1] == f[2]]
-            num_ents.sort(key=lambda x: x[2], reverse=True)
+            num_ents.sort(key=lambda x: (-x[2], x[3]))
 
             if num_ents:
                 for f_match in num_ents:

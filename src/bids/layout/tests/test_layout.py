@@ -5,6 +5,7 @@ import json
 import os
 import re
 import shutil
+from functools import partial
 from os.path import abspath, basename, join
 from pathlib import Path
 
@@ -1376,3 +1377,40 @@ def test_bids_sort(layout_7t_trt):
 
     assert list(first_file_ents_unsorted.keys()) != sorted_keys
     assert list(bids_sort(first_file_ents_unsorted).keys()) == sorted_keys
+
+
+def test_get_nearest_prefers_fewest_extra_entities(tmp_path):
+    (tmp_path / 'dataset_description.json').write_text(
+        json.dumps({'Name': 'nearest', 'BIDSVersion': '1.10.1'})
+    )
+    func = tmp_path / 'sub-01' / 'func'
+    func.mkdir(parents=True)
+    plain = func / 'sub-01_task-rest_bold.nii.gz'
+    acq = func / 'sub-01_task-rest_acq-4ME_bold.nii.gz'
+    plain_events = func / 'sub-01_task-rest_events.tsv'
+    acq_events = func / 'sub-01_task-rest_acq-4ME_events.tsv'
+    physio = func / 'sub-01_task-rest_recording-cardiac_physio.tsv.gz'
+    for path in (plain, acq, plain_events, acq_events, physio):
+        path.touch()
+
+    layout = BIDSLayout(tmp_path, validate=False)
+    nearest = partial(
+        layout.get_nearest, ignore_strict_entities=['suffix', 'extension'], extension='.tsv'
+    )
+
+    # The file without `acq` must not pick up its sibling's events, which sort first
+    assert Path(nearest(plain, suffix='events')) == plain_events
+    assert Path(nearest(acq, suffix='events')) == acq_events
+    assert [Path(p) for p in nearest(plain, suffix='events', all_=True)] == [
+        plain_events,
+        acq_events,
+    ]
+
+    # Extra entities only rank candidates: `recording` files still match their run
+    found = layout.get_nearest(
+        plain,
+        ignore_strict_entities=['suffix', 'extension'],
+        suffix='physio',
+        extension='.tsv.gz',
+    )
+    assert Path(found) == physio
