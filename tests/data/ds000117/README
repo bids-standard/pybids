@@ -4,7 +4,7 @@ Description:  Multi-subject, multi-modal (sMRI+fMRI+MEG+EEG) neuroimaging datase
 
 Please cite the following references if you use these data:
 
-A multi-subject, multi-modal human neuroimaging dataset 
+A multi-subject, multi-modal human neuroimaging dataset
 
 Wakeman, D.G. & Henson, R.N. (2015). A multi-subject, multi-modal human neuroimaging dataset. Sci. Data 2:150001 doi: 10.1038/sdata.2015.1
 
@@ -12,7 +12,7 @@ Wakeman, D.G. & Henson, R.N. (2015). A multi-subject, multi-modal human neuroima
   Multi-subject, multi-modal (sMRI+fMRI+MEG+EEG) neuroimaging dataset on face recognition
     ==================================================================================
 
-Please note that the subject ordering has changed since version 0.1.x (non-BIDS) of this 
+Please note that the subject ordering has changed since version 0.1.x (non-BIDS) of this
 dataset. Additionally, three subjects have been left out. The mapping is as follows:
 0.1.x:   02 03 05 14 08 09 10 11 12 15 16 17 18 23 24 25
 current: 01 02 03 04 05 06 07 08 09 10 11 12 13 14 15 16
@@ -23,11 +23,11 @@ The experiment began at the third nifti volume (corresponding to 5 ignored scans
 
 meg/
 ----
-Three anatomical fiducials were digitized for aligning the MEG with the MRI: the nasion 
-(lowest depression between the eyes) and the left and right ears (lowest depression 
+Three anatomical fiducials were digitized for aligning the MEG with the MRI: the nasion
+(lowest depression between the eyes) and the left and right ears (lowest depression
 between the tragus and the helix, above the tragus). This procedure is illustrated here:
 http://neuroimage.usc.edu/brainstorm/CoordinateSystems#Subject_Coordinate_System_.28SCS_.2F_CTF.29
-and in task-facerecognition_fidinfo.pdf 
+and in task-facerecognition_fidinfo.pdf
 
 The following triggers are included in the .fif files and are also used in the “trigger” column of the meg and bold events files:
 
@@ -59,23 +59,23 @@ If you wish to publish any of these data, please acknowledge Daniel Wakeman and 
     Henson, R.N., Wakeman, D.G., Litvak, V. & Friston, K.J. (2011). A Parametric Empirical Bayesian framework for the EEG/MEG inverse problem: generative models for multisubject and multimodal integration. Frontiers in Human Neuroscience, 5, 76, 1-16.
 
     Henson, R.N., Wakeman, D.G., Phillips, C. & Rowe, J. (2012). Effective Connectivity between OFA and FFA during face perception: DCM of evoked MEG, EEG and fMRI responses. HBM2012 Abstract.
-	
-	
+
+
 ### Comments added by Openfmri Curators ###
 ===========================================
- 
+
 General Comments
 ----------------
 
- 
+
 Defacing
 --------
 Defacing was performed by the submitter
- 
+
 Quality Control
 ---------------
 Mriqc was run on the dataset. Results are located in derivatives/mriqc. Learn more about it here: https://mriqc.readthedocs.io/en/latest/
- 
+
 Where to discuss the dataset
 ----------------------------
 1) www.openfmri.org/dataset/ds000117/ See the comments section at the bottom of the dataset
@@ -83,11 +83,7 @@ page.
 2) www.neurostars.org Please tag any discussion topics with the tags openfmri and ds000117.
 3) Send an email to submissions@openfmri.org. Please include the accession number in
 your email.
- 
+
 Known Issues
 ------------
 N/A
- 
-
-
-

@@ -13,7 +13,7 @@ kernelspec:
 
 # Writing methods reports with `pybids.reports`
 
-This tutorial 
+This tutorial
 
 ```{code-cell} ipython3
 %load_ext autoreload

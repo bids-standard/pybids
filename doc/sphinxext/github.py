@@ -83,7 +83,8 @@ def ghissue_role(name, rawtext, text, lineno, inliner, options={}, content=[]): 
         category = 'issues'
     else:
         msg = inliner.reporter.error(
-            'GitHub roles include "ghpull" and "ghissue", "%s" is invalid.' % name, line=lineno  # noqa: UP031
+            'GitHub roles include "ghpull" and "ghissue", "%s" is invalid.' % name,  # noqa: UP031
+            line=lineno,
         )
         prb = inliner.problematic(rawtext, rawtext, msg)
         return [prb], [msg]
