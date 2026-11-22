@@ -22,9 +22,9 @@ def _regexfy(patt, root=None):
     patt = Path(patt)
 
     if patt.is_absolute():
-        patt = str(patt.relative_to(root or '/'))
+        patt = patt.relative_to(root or '/')
 
-    return re.compile(r'^/' + str(patt) + r'.*')
+    return re.compile(r'^/' + patt.as_posix() + r'.*')
 
 
 def _extract_entities(bidsfile, entities):
@@ -50,8 +50,9 @@ def _check_path_matches_patterns(path, patterns, root=None):
         else:
             path = Path('/') / path.relative_to(root)
 
-    # Path now can be downcast to str
-    path = str(path)
+    # Path now can be downcast to str. Patterns are compiled against POSIX-style
+    # paths, so the separators must be normalized on Windows.
+    path = path.as_posix()
 
     for patt in patterns:
         if patt.search(path):
