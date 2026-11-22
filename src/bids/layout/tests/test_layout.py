@@ -473,6 +473,24 @@ def test_ignore_files(tests_dir, layout_ds005):
     assert target2 not in layout2.files
 
 
+def test_ignore_default_locations(temporary_dataset):
+    """Directories ignored by default are skipped below the dataset root."""
+    target_dirs = ('code', 'models', 'sourcedata', 'stimuli')
+    targets = []
+    for dirname in target_dirs:
+        sub_dir = temporary_dataset / dirname / 'sub-99' / 'anat'
+        sub_dir.mkdir(parents=True)
+        target = sub_dir / 'sub-99_T1w.nii.gz'
+        target.touch()
+        targets.append(target)
+
+    layout = BIDSLayout(temporary_dataset, validate=False)
+
+    for target in targets:
+        assert str(target) not in layout.files
+    assert '99' not in layout.get_subjects()
+
+
 def test_force_index(tests_dir, layout_ds005):
     data_dir = tests_dir / 'data' / 'ds005'
     target = join(data_dir, 'models', 'ds-005_type-test_model.json')
